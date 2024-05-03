@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -12,7 +12,7 @@ export function useToggle(initialValue = false): [boolean, () => void] {
   return [value, toggle];
 }
 
-const isBrowser = typeof window !== "undefined";
+const isBrowser = typeof(window) !== "undefined";
 
 const getInitialState = (query: string, defaultState?: boolean) => {
   // Prevent a React hydration mismatch when a default value is provided by not defaulting to window.matchMedia(query).matches.

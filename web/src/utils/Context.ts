@@ -1,15 +1,10 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { newRidgeState } from "react-ridge-state";
 import type { StateWithValue } from "react-ridge-state";
-
-interface AuthInfo {
-  username: string;
-  isLoggedIn: boolean;
-}
+import { newRidgeState } from "react-ridge-state";
 
 interface SettingsType {
   debug: boolean;
@@ -26,11 +21,16 @@ export type FilterListState = {
   status: string;
 };
 
+// interface AuthInfo {
+//   username: string;
+//   isLoggedIn: boolean;
+// }
+
 // Default values
-const AuthContextDefaults: AuthInfo = {
-  username: "",
-  isLoggedIn: false
-};
+// const AuthContextDefaults: AuthInfo = {
+//   username: "",
+//   isLoggedIn: false
+// };
 
 const SettingsContextDefaults: SettingsType = {
   debug: false,
@@ -53,44 +53,37 @@ function ContextMerger<T extends {}>(
   defaults: T,
   ctxState: StateWithValue<T>
 ) {
+  let values = structuredClone(defaults);
+
   const storage = localStorage.getItem(key);
-  if (!storage) {
-    // Nothing to do. We already have a value thanks to react-ridge-state.
-    return;
-  }
-
-  try {
-    const json = JSON.parse(storage);
-    if (json === null) {
-      console.warn(`JSON localStorage value for '${key}' context state is null`);
-      return;
-    }
-  
-    Object.keys(defaults).forEach((key) => {
-      const propName = key as unknown as keyof T;
-
-      // Check if JSON in localStorage is missing newly added key
-      if (!Object.prototype.hasOwnProperty.call(json, key)) {
-        // ... and default-initialize it.
-        json[propName] = defaults[propName];
+  if (storage) {
+    try {
+      const json = JSON.parse(storage);
+      if (json === null) {
+        console.warn(`JSON localStorage value for '${key}' context state is null`);
+      } else {
+        values = { ...values, ...json };
       }
-    });
-
-    ctxState.set(json);
-  } catch (e) {
-    console.error(`Failed to merge ${key} context state: ${e}`);
+    } catch (e) {
+      console.error(`Failed to merge ${key} context state: ${e}`);
+    }
   }
+
+  ctxState.set(values);
 }
 
+const SettingsKey = "autobrr_settings";
+const FilterListKey = "autobrr_filter_list";
+
 export const InitializeGlobalContext = () => {
-  ContextMerger<AuthInfo>("auth", AuthContextDefaults, AuthContext);
+  // ContextMerger<AuthInfo>(localStorageUserKey, AuthContextDefaults, AuthContextt);
   ContextMerger<SettingsType>(
-    "settings",
+    SettingsKey,
     SettingsContextDefaults,
     SettingsContext
   );
   ContextMerger<FilterListState>(
-    "filterList",
+    FilterListKey,
     FilterListContextDefaults,
     FilterListContext
   );
@@ -108,16 +101,16 @@ function DefaultSetter<T>(name: string, newState: T, prevState: T) {
   }
 }
 
-export const AuthContext = newRidgeState<AuthInfo>(AuthContextDefaults, {
-  onSet: (newState, prevState) => DefaultSetter("auth", newState, prevState)
-});
+// export const AuthContextt = newRidgeState<AuthInfo>(AuthContextDefaults, {
+//   onSet: (newState, prevState) => DefaultSetter(localStorageUserKey, newState, prevState)
+// });
 
 export const SettingsContext = newRidgeState<SettingsType>(
   SettingsContextDefaults,
   {
     onSet: (newState, prevState) => {
       document.documentElement.classList.toggle("dark", newState.darkTheme);
-      DefaultSetter("settings", newState, prevState);
+      DefaultSetter(SettingsKey, newState, prevState);
     }
   }
 );
@@ -125,6 +118,32 @@ export const SettingsContext = newRidgeState<SettingsType>(
 export const FilterListContext = newRidgeState<FilterListState>(
   FilterListContextDefaults,
   {
-    onSet: (newState, prevState) => DefaultSetter("filterList", newState, prevState)
+    onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
   }
 );
+
+export type AuthCtx = {
+  isLoggedIn: boolean
+  username?: string
+  login: (username: string) => void
+  logout: () => void
+}
+
+export const localStorageUserKey = "autobrr_user_auth"
+
+export const AuthContext: AuthCtx = {
+  isLoggedIn: false,
+  username: undefined,
+  login: (username: string) => {
+    AuthContext.isLoggedIn = true
+    AuthContext.username = username
+
+    localStorage.setItem(localStorageUserKey, JSON.stringify(AuthContext));
+  },
+  logout: () => {
+    AuthContext.isLoggedIn = false
+    AuthContext.username = undefined
+
+    localStorage.removeItem(localStorageUserKey);
+  },
+}

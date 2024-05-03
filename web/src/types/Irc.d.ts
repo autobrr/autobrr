@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -16,6 +16,7 @@ interface IrcNetwork {
   invite_command: string;
   use_bouncer: boolean;
   bouncer_addr: string;
+  bot_mode: boolean;
   channels: IrcChannel[];
   connected: boolean;
   connected_since: string;
@@ -33,6 +34,7 @@ interface IrcNetworkCreate {
   invite_command: string;
   use_bouncer?: boolean;
   bouncer_addr?: string;
+  bot_mode?: boolean;
   channels: IrcChannel[];
   connected: boolean;
 }
@@ -64,6 +66,7 @@ interface IrcNetworkWithHealth {
   invite_command: string;
   use_bouncer: boolean;
   bouncer_addr: string;
+  bot_mode: boolean;
   channels: IrcChannelWithHealth[];
   connected: boolean;
   connected_since: string;
@@ -84,5 +87,12 @@ interface SendIrcCmdRequest {
   server: string;
   channel: string;
   nick: string;
+  msg: string;
+}
+
+interface IrcProcessManualRequest {
+  network_id: number;
+  channel: string;
+  nick?: string;
   msg: string;
 }

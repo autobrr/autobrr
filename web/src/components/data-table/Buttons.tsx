@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -32,7 +32,10 @@ export const PageButton = ({ children, className, disabled, onClick }: ButtonPro
     type="button"
     className={classNames(
       className ?? "",
-      "cursor-pointer inline-flex items-center p-1.5 border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600"
+      disabled
+        ? "cursor-not-allowed text-gray-500 dark:text-gray-500 border-gray-300 dark:border-gray-700 dark:bg-gray-800"
+        : "cursor-pointer text-gray-500 dark:text-gray-350 border-gray-300 dark:border-gray-700 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-700",
+      "inline-flex items-center p-1.5 border text-sm font-medium transition"
     )}
     disabled={disabled}
     onClick={onClick}

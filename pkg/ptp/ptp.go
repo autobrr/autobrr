@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package ptp
@@ -14,40 +14,55 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"golang.org/x/time/rate"
 )
 
+const DefaultURL = "https://passthepopcorn.me/torrents.php"
+
+var ErrUnauthorized = errors.New("unauthorized: bad credentials")
+var ErrForbidden = errors.New("forbidden")
+var ErrTooManyRequests = errors.New("too many requests: rate-limit reached")
+
 type ApiClient interface {
 	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
 	TestAPI(ctx context.Context) (bool, error)
-	UseURL(url string)
 }
 
 type Client struct {
-	Url         string
+	url         string
 	client      *http.Client
-	Ratelimiter *rate.Limiter
+	rateLimiter *rate.Limiter
 	APIUser     string
 	APIKey      string
 }
 
-func NewClient(apiUser, apiKey string) ApiClient {
+type OptFunc func(*Client)
+
+func WithUrl(url string) OptFunc {
+	return func(c *Client) {
+		c.url = url
+	}
+}
+
+func NewClient(apiUser, apiKey string, opts ...OptFunc) ApiClient {
 	c := &Client{
-		Url: "https://passthepopcorn.me/torrents.php",
+		url: DefaultURL,
 		client: &http.Client{
-			Timeout: time.Second * 30,
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
 		},
-		Ratelimiter: rate.NewLimiter(rate.Every(1*time.Second), 1), // 10 request every 10 seconds
+		rateLimiter: rate.NewLimiter(rate.Every(1*time.Second), 1), // 10 request every 10 seconds
 		APIUser:     apiUser,
 		APIKey:      apiKey,
 	}
 
-	return c
-}
+	for _, opt := range opts {
+		opt(c)
+	}
 
-func (c *Client) UseURL(url string) {
-	c.Url = url
+	return c
 }
 
 type TorrentResponse struct {
@@ -88,13 +103,13 @@ type Torrent struct {
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
-	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
+	err := c.rateLimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
 	if err != nil {
 		return nil, errors.Wrap(err, "error waiting for ratelimiter")
 	}
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error making request")
+		return resp, errors.Wrap(err, "error making request")
 	}
 	return resp, nil
 }
@@ -111,15 +126,15 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "ptp client request error : %v", url)
+		return res, errors.Wrap(err, "ptp client request error : %v", url)
 	}
 
 	if res.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New("unauthorized: bad credentials")
+		return res, ErrUnauthorized
 	} else if res.StatusCode == http.StatusForbidden {
-		return nil, nil
+		return res, ErrForbidden
 	} else if res.StatusCode == http.StatusTooManyRequests {
-		return nil, nil
+		return res, ErrTooManyRequests
 	}
 
 	return res, nil
@@ -136,14 +151,16 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	v.Add("torrentid", torrentID)
 	params := v.Encode()
 
-	reqUrl := fmt.Sprintf("%v?%v", c.Url, params)
+	reqUrl := fmt.Sprintf("%v?%v", c.url, params)
 
 	resp, err := c.get(ctx, reqUrl)
 	if err != nil {
 		return nil, errors.Wrap(err, "error requesting data")
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		resp.Body.Close()
+	}()
 
 	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
@@ -169,7 +186,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 // TestAPI try api access against torrents page
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	resp, err := c.get(ctx, c.Url)
+	resp, err := c.get(ctx, c.url)
 	if err != nil {
 		return false, errors.Wrap(err, "error requesting data")
 	}

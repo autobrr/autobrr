@@ -1,14 +1,16 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import type { FieldProps } from "formik";
 import { Field } from "formik";
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
-import { OptionBasicTyped } from "@domain/constants";
+import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
-import { CustomTooltip } from "@components/tooltips/CustomTooltip";
+import type { FieldProps } from "formik";
+
+import { OptionBasicTyped } from "@domain/constants";
+import * as common from "@components/inputs/common";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 
 interface SelectFieldProps<T> {
   name: string;
@@ -26,10 +28,12 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
       <div>
         <label
           htmlFor={name}
-          className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
+          className="block ml-px text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       </div>
@@ -45,10 +49,12 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
               isClearable={true}
               isSearchable={true}
               components={{
-                Input,
-                Control,
-                Menu,
-                Option
+                Input: common.SelectInput,
+                Control: common.SelectControl,
+                Menu: common.SelectMenu,
+                Option: common.SelectOption,
+                IndicatorSeparator: common.IndicatorSeparator,
+                DropdownIndicator: common.DropdownIndicator
               }}
               placeholder={placeholder ?? "Choose an option"}
               styles={{
@@ -87,54 +93,13 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
   );
 }
 
-const Input = (props: InputProps) => {
-  return (
-    <components.Input
-      {...props}
-      inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-      className="text-gray-400 dark:text-gray-100"
-      children={props.children}
-    />
-  );
-};
-
-const Control = (props: ControlProps) => {
-  return (
-    <components.Control
-      {...props}
-      className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Menu = (props: MenuProps) => {
-  return (
-    <components.Menu
-      {...props}
-      className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm"
-      children={props.children}
-    />
-  );
-};
-
-const Option = (props: OptionProps) => {
-  return (
-    <components.Option
-      {...props}
-      className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900"
-      children={props.children}
-    />
-  );
-};
-
 export function SelectField<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
         <label
           htmlFor={name}
-          className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
+          className="block ml-px text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
           {label}
         </label>
@@ -149,10 +114,12 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
               {...field}
               id={name}
               components={{
-                Input,
-                Control,
-                Menu,
-                Option
+                Input: common.SelectInput,
+                Control: common.SelectControl,
+                Menu: common.SelectMenu,
+                Option: common.SelectOption,
+                IndicatorSeparator: common.IndicatorSeparator,
+                DropdownIndicator: common.DropdownIndicator
               }}
               placeholder={placeholder ?? "Choose an option"}
               styles={{
@@ -197,10 +164,12 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, d
       <div>
         <label
           htmlFor={name}
-          className="block text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
+          className="block ml-px text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
         >
           <div className="flex">
-            {label} {tooltip && (<CustomTooltip anchorId={name}>{tooltip}</CustomTooltip>)}
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
           </div>
         </label>
       </div>
@@ -214,10 +183,12 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, d
               {...field}
               id={name}
               components={{
-                Input,
-                Control,
-                Menu,
-                Option
+                Input: common.SelectInput,
+                Control: common.SelectControl,
+                Menu: common.SelectMenu,
+                Option: common.SelectOption,
+                IndicatorSeparator: common.IndicatorSeparator,
+                DropdownIndicator: common.DropdownIndicator
               }}
               placeholder={placeholder ?? "Choose an option"}
               styles={{

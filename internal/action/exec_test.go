@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -81,7 +81,11 @@ func Test_service_execCmd(t *testing.T) {
 				release: domain.Release{
 					TorrentName:    "This is a test",
 					TorrentTmpFile: "tmp-10000",
-					Indexer:        "mock",
+					Indexer: domain.IndexerMinimal{
+						ID:         0,
+						Name:       "Mock Indexer",
+						Identifier: "mock",
+					},
 				},
 				action: &domain.Action{
 					Name:     "echo",

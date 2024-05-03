@@ -1,11 +1,10 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -153,12 +152,16 @@ func TestSanitizeLogFile(t *testing.T) {
 			input:    "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"ad789a9s8d.asdpoiasdpojads09sad809\\\",\\n  \\\"minratio\\\": 10.0\\n",
 			expected: "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"REDACTED\\\",\\n  \\\"minratio\\\": 10.0\\n",
 		},
+		{
+			input:    "\"module\":\"filter\" request: https://username:password@111.server.name.here/qbittorrent/api/v2/torrents/info: error making request",
+			expected: "\"module\":\"filter\" request: https://REDACTED_USER:REDACTED_PW@111.server.name.here/qbittorrent/api/v2/torrents/info: error making request",
+		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			// Create a temporary file with sample log data
-			tmpFile, err := ioutil.TempFile("", "test-log-*.log")
+			tmpFile, err := os.CreateTemp("", "test-log-*.log")
 			if err != nil {
 				t.Fatal(err)
 			}

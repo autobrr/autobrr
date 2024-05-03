@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -65,6 +65,16 @@ func (e encoder) NoContent(w http.ResponseWriter) {
 
 func (e encoder) StatusNotFound(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
+}
+
+func (e encoder) NotFoundErr(w http.ResponseWriter, err error) {
+	res := errorResponse{
+		Message: err.Error(),
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(res)
 }
 
 func (e encoder) StatusInternalError(w http.ResponseWriter) {

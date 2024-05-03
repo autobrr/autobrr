@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package indexer
@@ -58,6 +58,10 @@ func (s *apiService) GetTorrentByID(ctx context.Context, indexer string, torrent
 		return nil, err
 	}
 
+	if torrent == nil {
+		return nil, errors.New("could not get torrent: %s from: %s", torrentID, indexer)
+	}
+
 	s.log.Trace().Str("method", "GetTorrentByID").Msgf("%s api successfully fetched torrent: %+v", indexer, torrent)
 
 	return torrent, nil
@@ -88,7 +92,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = btn.NewClient("", key)
+		s.apiClients[indexer] = btn.NewClient(key)
 
 	case "ptp":
 		user, ok := settings["api_user"]
@@ -124,7 +128,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		s.apiClients[indexer] = ops.NewClient(key)
 
 	case "mock":
-		s.apiClients[indexer] = mock.NewMockClient("", "mock")
+		s.apiClients[indexer] = mock.NewMockClient("mock")
 
 	default:
 		return errors.New("api.Service.AddClient: could not initialize client: unsupported indexer: %s", indexer)
@@ -150,7 +154,7 @@ func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
-		return btn.NewClient("", req.ApiKey), nil
+		return btn.NewClient(req.ApiKey), nil
 
 	case "ptp":
 		if req.ApiUser == "" {
@@ -181,7 +185,7 @@ func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 		return ops.NewClient(req.ApiKey), nil
 
 	case "mock":
-		return mock.NewMockClient("", "mock"), nil
+		return mock.NewMockClient("mock"), nil
 
 	default:
 		return nil, errors.New("api.Service.AddClient: could not initialize client: unsupported indexer: %s", req.Identifier)

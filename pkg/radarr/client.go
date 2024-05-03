@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package radarr
@@ -71,16 +71,16 @@ func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not make request: %+v", req)
+		return res, errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	// validate response
 	if res.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New("unauthorized: bad credentials")
+		return res, errors.New("unauthorized: bad credentials")
 	} else if res.StatusCode == http.StatusBadRequest {
-		return nil, errors.New("radarr: bad request")
+		return res, errors.New("radarr: bad request")
 	} else if res.StatusCode != http.StatusOK {
-		return nil, errors.New("radarr: bad request")
+		return res, errors.New("radarr: bad request")
 	}
 
 	// return raw response and let the caller handle json unmarshal of body

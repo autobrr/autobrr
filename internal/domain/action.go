@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -14,7 +14,7 @@ import (
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*Action) ([]*Action, error)
-	FindByFilterID(ctx context.Context, filterID int) ([]*Action, error)
+	FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)
 	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
 	Delete(ctx context.Context, req *DeleteActionRequest) error
@@ -36,12 +36,14 @@ type Action struct {
 	SavePath                 string              `json:"save_path,omitempty"`
 	Paused                   bool                `json:"paused,omitempty"`
 	IgnoreRules              bool                `json:"ignore_rules,omitempty"`
+	FirstLastPiecePrio       bool                `json:"first_last_piece_prio,omitempty"`
 	SkipHashCheck            bool                `json:"skip_hash_check,omitempty"`
 	ContentLayout            ActionContentLayout `json:"content_layout,omitempty"`
 	LimitUploadSpeed         int64               `json:"limit_upload_speed,omitempty"`
 	LimitDownloadSpeed       int64               `json:"limit_download_speed,omitempty"`
 	LimitRatio               float64             `json:"limit_ratio,omitempty"`
 	LimitSeedTime            int64               `json:"limit_seed_time,omitempty"`
+	PriorityLayout           PriorityLayout      `json:"priority,omitempty"`
 	ReAnnounceSkip           bool                `json:"reannounce_skip,omitempty"`
 	ReAnnounceDelete         bool                `json:"reannounce_delete,omitempty"`
 	ReAnnounceInterval       int64               `json:"reannounce_interval,omitempty"`
@@ -52,6 +54,7 @@ type Action struct {
 	WebhookData              string              `json:"webhook_data,omitempty"`
 	WebhookHeaders           []string            `json:"webhook_headers,omitempty"`
 	ExternalDownloadClientID int32               `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 	FilterID                 int                 `json:"filter_id,omitempty"`
 	ClientID                 int32               `json:"client_id,omitempty"`
 	Client                   *DownloadClient     `json:"client,omitempty"`
@@ -126,6 +129,14 @@ const (
 	ActionContentLayoutOriginal        ActionContentLayout = "ORIGINAL"
 	ActionContentLayoutSubfolderNone   ActionContentLayout = "SUBFOLDER_NONE"
 	ActionContentLayoutSubfolderCreate ActionContentLayout = "SUBFOLDER_CREATE"
+)
+
+type PriorityLayout string
+
+const (
+	PriorityLayoutMax     PriorityLayout = "MAX"
+	PriorityLayoutMin     PriorityLayout = "MIN"
+	PriorityLayoutDefault PriorityLayout = ""
 )
 
 type GetActionRequest struct {

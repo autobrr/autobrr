@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -23,6 +23,7 @@ type feedService interface {
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Test(ctx context.Context, feed *domain.Feed) error
 	GetLastRunData(ctx context.Context, id int) (string, error)
+	ForceRun(ctx context.Context, id int) error
 }
 
 type feedHandler struct {
@@ -48,6 +49,7 @@ func (h feedHandler) Routes(r chi.Router) {
 		r.Delete("/cache", h.deleteCache)
 		r.Patch("/enabled", h.toggleEnabled)
 		r.Get("/latest", h.latestRun)
+		r.Post("/forcerun", h.forceRun)
 	})
 }
 
@@ -120,6 +122,24 @@ func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(w, http.StatusCreated, data)
+}
+
+func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	feedID := chi.URLParam(r, "feedID")
+
+	id, err := strconv.Atoi(feedID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.ForceRun(ctx, id); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }
 
 func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {

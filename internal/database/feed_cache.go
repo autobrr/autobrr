@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -50,7 +50,7 @@ func (r *FeedCacheRepo) Get(feedId int, key string) ([]byte, error) {
 	}
 
 	var value []byte
-	var ttl time.Duration
+	var ttl time.Time
 
 	if err := row.Scan(&value, &ttl); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -175,6 +175,27 @@ func (r *FeedCacheRepo) Put(feedId int, key string, val []byte, ttl time.Time) e
 	return nil
 }
 
+func (r *FeedCacheRepo) PutMany(ctx context.Context, items []domain.FeedCacheItem) error {
+	queryBuilder := r.db.squirrel.
+		Insert("feed_cache").
+		Columns("feed_id", "key", "value", "ttl")
+
+	for _, item := range items {
+		queryBuilder = queryBuilder.Values(item.FeedId, item.Key, item.Value, item.TTL)
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
 func (r *FeedCacheRepo) Delete(ctx context.Context, feedId int, key string) error {
 	queryBuilder := r.db.squirrel.
 		Delete("feed_cache").
@@ -186,9 +207,15 @@ func (r *FeedCacheRepo) Delete(ctx context.Context, feedId int, key string) erro
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil

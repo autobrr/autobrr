@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -77,7 +77,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                                 checked
                                   ? "bg-blue-600 dark:bg-blue-500 border-transparent"
                                   : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-300",
-                                "h-6 w-6 mt-1 cursor-pointer rounded-full border flex items-center justify-center"
+                                "h-6 w-6 mt-1 cursor-pointer rounded-full border flex items-center justify-center flex-shrink-0"
                               )}
                               aria-hidden="true"
                             />

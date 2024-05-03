@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package main
@@ -30,8 +30,11 @@ import (
 	"github.com/autobrr/autobrr/internal/user"
 
 	"github.com/asaskevich/EventBus"
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
+	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 var (
@@ -50,6 +53,13 @@ func main() {
 
 	// init new logger
 	log := logger.New(cfg.Config)
+
+	// Set GOMAXPROCS to match the Linux container CPU quota (if any)
+	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
+	defer undo()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to set GOMAXPROCS")
+	}
 
 	// init dynamic config
 	cfg.DynamicReload(log)
@@ -103,9 +113,9 @@ func main() {
 		authService           = auth.NewService(log, userService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, indexerAPIService, schedulingService)
+		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
-		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
+		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)
@@ -140,7 +150,7 @@ func main() {
 	}()
 
 	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
 	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
@@ -149,20 +159,14 @@ func main() {
 	}
 
 	for sig := range sigCh {
-		switch sig {
-		case syscall.SIGHUP:
-			log.Log().Msg("shutting down server sighup")
-			srv.Shutdown()
-			db.Close()
-			os.Exit(1)
-		case syscall.SIGINT, syscall.SIGQUIT:
-			srv.Shutdown()
-			db.Close()
-			os.Exit(1)
-		case syscall.SIGKILL, syscall.SIGTERM:
-			srv.Shutdown()
-			db.Close()
+		log.Info().Msgf("received signal: %v, shutting down server.", sig)
+
+		srv.Shutdown()
+
+		if err := db.Close(); err != nil {
+			log.Error().Err(err).Msg("failed to close the database connection properly")
 			os.Exit(1)
 		}
+		os.Exit(0)
 	}
 }

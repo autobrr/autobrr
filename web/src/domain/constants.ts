@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -8,41 +8,37 @@ import { MultiSelectOption } from "@components/inputs/select";
 export const resolutions = [
   "2160p",
   "1080p",
-  "1080i",
   "810p",
   "720p",
   "576p",
   "480p",
-  "480i"
 ];
 
 export const RESOLUTION_OPTIONS: MultiSelectOption[] = resolutions.map(r => ({ value: r, label: r, key: r }));
 
 export const codecs = [
-  "HEVC",
+  "AV1",
+  "AVC",
   "H.264",
   "H.265",
-  "x264",
-  "x265",
-  "AVC",
+  "HEVC",
+  "MPEG-2",
   "VC-1",
-  "AV1",
-  "XviD"
+  "XviD",
+  "x264",
+  "x265"
 ];
 
 export const CODECS_OPTIONS: MultiSelectOption[] = codecs.map(v => ({ value: v, label: v, key: v }));
 
 export const sources = [
-  "BluRay",
-  "UHD.BluRay",
-  "WEB-DL",
-  "WEB",
-  "WEBRip",
+  "AHDTV",
   "BD5",
   "BD9",
-  "BDr",
   "BDRip",
+  "BDr",
   "BRRip",
+  "BluRay",
   "CAM",
   "DVDR",
   "DVDRip",
@@ -53,7 +49,11 @@ export const sources = [
   "HDTS",
   "HDTV",
   "Mixed",
-  "SiteRip"
+  "SiteRip",
+  "UHD.BluRay",
+  "WEB",
+  "WEB-DL",
+  "WEBRip"
 ];
 
 export const SOURCES_OPTIONS: MultiSelectOption[] = sources.map(v => ({ value: v, label: v, key: v }));
@@ -290,21 +290,6 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
   }
 ];
 
-export const DownloadClientTypeNameMap: Record<DownloadClientType | string, string> = {
-  "DELUGE_V1": "Deluge v1",
-  "DELUGE_V2": "Deluge v2",
-  "QBITTORRENT": "qBittorrent",
-  "RTORRENT": "rTorrent",
-  "TRANSMISSION": "Transmission",
-  "PORLA": "Porla",
-  "RADARR": "Radarr",
-  "SONARR": "Sonarr",
-  "LIDARR": "Lidarr",
-  "WHISPARR": "Whisparr",
-  "READARR": "Readarr",
-  "SABNZBD": "SABnzbd"
-};
-
 export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Test", description: "A simple action to test a filter.", value: "TEST" },
   { label: "Watch dir", description: "Add filtered torrents to a watch directory", value: "WATCH_FOLDER" },
@@ -324,7 +309,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "SABnzbd", description: "Add to SABnzbd", value: "SABNZBD" }
 ];
 
-export const ActionTypeNameMap = {
+export const ActionTypeNameMap: Record<ActionType, string> = {
   "TEST": "Test",
   "WATCH_FOLDER": "Watch folder",
   "WEBHOOK": "Webhook",
@@ -341,12 +326,33 @@ export const ActionTypeNameMap = {
   "WHISPARR": "Whisparr",
   "READARR": "Readarr",
   "SABNZBD": "SABnzbd"
-};
+} as const;
+
+export const DOWNLOAD_CLIENTS = [
+  "QBITTORRENT",
+  "DELUGE_V1",
+  "DELUGE_V2",
+  "RTORRENT",
+  "TRANSMISSION",
+  "PORLA",
+  "RADARR",
+  "SONARR",
+  "LIDARR",
+  "WHISPARR",
+  "READARR",
+  "SABNZBD"
+];
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [
   { label: "Original", description: "Original", value: "ORIGINAL" },
   { label: "Create subfolder", description: "Create subfolder", value: "SUBFOLDER_CREATE" },
   { label: "Don't create subfolder", description: "Don't create subfolder", value: "SUBFOLDER_NONE" }
+];
+
+export const ActionPriorityOptions: SelectGenericOption<ActionPriorityLayout>[] = [
+  { label: "Top of queue", description: "Top of queue", value: "MAX" },
+  { label: "Bottom of queue", description: "Bottom of queue", value: "MIN" },
+  { label: "Disabled", description: "Disabled", value: "" }
 ];
 
 export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
@@ -385,17 +391,33 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     value: "DISCORD"
   },
   {
+    label: "Gotify",
+    value: "GOTIFY"
+  },
+  {
+    label: "LunaSea",
+    value: "LUNASEA"
+  },
+  {
     label: "Notifiarr",
     value: "NOTIFIARR"
+  },
+  {
+    label: "Ntfy",
+    value: "NTFY"
+  },
+  {
+    label: "Pushover",
+    value: "PUSHOVER"
+  },
+  {
+    label: "Shoutrrr",
+    value: "SHOUTRRR"
   },
   {
     label: "Telegram",
     value: "TELEGRAM"
   },
-  {
-    label: "Pushover",
-    value: "PUSHOVER"
-  }
 ];
 
 export const IrcAuthMechanismTypeOptions: OptionBasicTyped<IrcAuthMechanism>[] = [
@@ -524,12 +546,12 @@ export const tagsMatchLogicOptions: OptionBasic[] = [
 
 export const ExternalFilterTypeOptions: RadioFieldsetOption[] = [
   { label: "Exec", description: "Run a custom command", value: "EXEC" },
-  { label: "Webhook", description: "Run webhook", value: "WEBHOOK" },
+  { label: "Webhook", description: "Run webhook", value: "WEBHOOK" }
 ];
 
 export const ExternalFilterTypeNameMap = {
   "EXEC": "Exec",
-  "WEBHOOK": "Webhook",
+  "WEBHOOK": "Webhook"
 };
 
 export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>[] = [
@@ -537,5 +559,5 @@ export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>
   { label: "POST", value: "POST" },
   { label: "PUT", value: "PUT" },
   { label: "PATCH", value: "PATCH" },
-  { label: "DELETE", value: "DELETE" },
+  { label: "DELETE", value: "DELETE" }
 ];

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -10,7 +10,7 @@ interface DebugProps {
     values: unknown;
 }
 
-const DEBUG: FC<DebugProps> = ({ values }) => {
+export const DEBUG: FC<DebugProps> = ({ values }) => {
   const settings = SettingsContext.useValue();
 
   if (process.env.NODE_ENV !== "development" || !settings.debug) {
@@ -24,4 +24,10 @@ const DEBUG: FC<DebugProps> = ({ values }) => {
   );
 };
 
-export default DEBUG;
+export function LogDebug(...data: any[]): void {
+  if (process.env.NODE_ENV !== "development") {
+    return;
+  }
+
+  console.log(...data)
+}

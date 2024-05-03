@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+  ~ Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
   ~ SPDX-License-Identifier: GPL-2.0-or-later
   -->
 
@@ -11,7 +11,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#141415" />
     <meta name="description" content="autobrr" />
-    <link rel="preload" href="/Inter.var.woff2" as="font" type="font/woff2" crossorigin="use-credentials">
+    <link rel="preload" href="/Inter-Variable.woff2" as="font" type="font/woff2" crossorigin="use-credentials">
     <link rel="apple-touch-icon" href="/logo192.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-iphone-60x60.png" />
     <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-ipad-76x76.png" />
@@ -25,12 +25,13 @@
   font-style: normal;
   font-weight: 100 900;
   font-display: block;
+  font-feature-settings: "calt" 0;
   src:
     local("Inter Var"), local("Inter Variable"),
     local("Inter var"), local("Inter variable"),
     local("InterVar"), local("InterVariable"),
     local("Inter"),
-    url("/Inter.var.woff2") format("woff2");
+    url("/Inter-Variable.woff2") format("woff2");
 }
 :root {
   font-family: "Inter Var", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",

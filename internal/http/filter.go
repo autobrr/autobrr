@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -119,11 +119,11 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 	filter, err := h.service.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.StatusNotFound(w)
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", id))
 			return
 		}
 
-		h.encoder.StatusInternalError(w)
+		h.encoder.Error(w, err)
 		return
 	}
 

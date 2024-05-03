@@ -8,13 +8,12 @@ urls:
   - https://danishbytes.club/
   - https://danishbytes2.org/
   - https://dbytes.org/
-  - https://danishbytes.art/
 privacy: private
 protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D
+# source: UNIT3D
 settings:
   - name: passkey
     type: secret
@@ -53,8 +52,18 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - ":[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://danishbytes.club/torrents/0000]-[FL: 0]-[DU: 0];"
+      - tests:
+        - line: ':[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://danishbytes.club/torrents/0000]-[FL: 0]-[DU: 0];'
+          expect:
+            category: Movies
+            releaseTags: Encode
+            resolution: 720p
+            torrentSize: 797 MiB
+            torrentName: Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP
+            uploader: Anonymous
+            baseUrl: https://danishbytes.club/
+            torrentId: "0000"
+            freeleech: "0"
         pattern: ':\[N\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*\/)(?:.*\/)(.*)\]-\[FL: (.*)\]-\[DU: .*\];'
         vars:
           - category

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package irc
@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
@@ -37,6 +36,7 @@ type Service interface {
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
+	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
 }
 
 type service struct {
@@ -127,7 +127,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 	if existingHandler, found := s.handlers[network.ID]; found {
 		s.log.Debug().Msgf("starting network: %s", network.Name)
 
-		if !existingHandler.client.Connected() {
+		if existingHandler.Stopped() {
 			go func(handler *Handler) {
 				if err := handler.Run(); err != nil {
 					s.log.Error().Err(err).Msgf("failed to start existing handler for network: %s", handler.network.Name)
@@ -178,7 +178,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
-		if existingHandler.client.Connected() {
+		if !existingHandler.Stopped() {
 			handler := existingHandler.GetNetwork()
 			restartNeeded := false
 			var fieldsChanged []string
@@ -210,6 +210,10 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 			if handler.BouncerAddr != network.BouncerAddr {
 				restartNeeded = true
 				fieldsChanged = append(fieldsChanged, "bouncer addr")
+			}
+			if handler.BotMode != network.BotMode {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "bot mode")
 			}
 			if handler.Auth.Mechanism != network.Auth.Mechanism {
 				restartNeeded = true
@@ -337,6 +341,10 @@ func (s *service) RestartNetwork(ctx context.Context, id int64) error {
 		return err
 	}
 
+	if !network.Enabled {
+		return errors.New("network disabled, could not restart")
+	}
+
 	return s.restartNetwork(*network)
 }
 
@@ -401,6 +409,26 @@ func (s *service) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	return network, nil
 }
 
+func (s *service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error {
+	network, err := s.repo.GetNetworkByID(ctx, req.NetworkId)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("failed to get network: %d", req.NetworkId)
+		return err
+	}
+
+	handler, ok := s.handlers[network.ID]
+	if !ok {
+		return errors.New("could not find irc handler with id: %d", network.ID)
+	}
+
+	err = handler.sendToAnnounceProcessor(req.Channel, req.Message)
+	if err != nil {
+		return errors.Wrap(err, "could not send manual announce to processor")
+	}
+
+	return nil
+}
+
 func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	networks, err := s.repo.ListNetworks(ctx)
 	if err != nil {
@@ -408,7 +436,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		return nil, err
 	}
 
-	var ret []domain.IrcNetwork
+	ret := make([]domain.IrcNetwork, 0)
 
 	for _, n := range networks {
 		channels, err := s.repo.ListChannels(n.ID)
@@ -431,7 +459,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 		return nil, err
 	}
 
-	var ret []domain.IrcNetworkWithHealth
+	ret := make([]domain.IrcNetworkWithHealth, 0)
 
 	for _, n := range networks {
 		netw := domain.IrcNetworkWithHealth{
@@ -447,6 +475,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			InviteCommand:    n.InviteCommand,
 			BouncerAddr:      n.BouncerAddr,
 			UseBouncer:       n.UseBouncer,
+			BotMode:          n.BotMode,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
@@ -454,26 +483,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 		handler, ok := s.handlers[n.ID]
 		if ok {
-			handler.m.RLock()
-
-			// only set connected and connected since if we have an active handler and connection
-			if handler.client.Connected() {
-
-				netw.Connected = handler.connectedSince != time.Time{}
-				netw.ConnectedSince = handler.connectedSince
-
-				// current and preferred nick is only available if the network is connected
-				netw.CurrentNick = handler.CurrentNick()
-				netw.PreferredNick = handler.PreferredNick()
-			}
-			netw.Healthy = handler.Healthy()
-
-			// if we have any connection errors like bad nickserv auth add them here
-			if len(handler.connectionErrors) > 0 {
-				netw.ConnectionErrors = handler.connectionErrors
-			}
-
-			handler.m.RUnlock()
+			handler.ReportStatus(&netw)
 		}
 
 		channels, err := s.repo.ListChannels(n.ID)

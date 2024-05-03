@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package version
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	goversion "github.com/hashicorp/go-version"
 )
@@ -72,6 +73,8 @@ type Checker struct {
 	Owner          string
 	Repo           string
 	CurrentVersion string
+
+	httpClient *http.Client
 }
 
 func NewChecker(owner, repo, currentVersion string) *Checker {
@@ -79,6 +82,10 @@ func NewChecker(owner, repo, currentVersion string) *Checker {
 		Owner:          owner,
 		Repo:           repo,
 		CurrentVersion: currentVersion,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -93,12 +100,11 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", c.buildUserAgent())
 
-	client := http.DefaultClient
-
-	resp, err := client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {

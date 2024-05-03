@@ -1,0 +1,123 @@
+---
+#id: animeworld
+name: AnimeWorld
+identifier: animeworld
+description: AnimeWorld is a private indexer for Anime.
+language: de-DE
+urls:
+  - https://animeworld.cx/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rss_key
+    type: secret
+    required: true
+    label: RSS key
+    help: "Your RSS key, required to download torrent files. (User-Avatar -> 'Meine Sicherheit' -> 'RSS Key (RID)')"
+
+irc:
+  network: Rizon
+  server: irc.rizon.net
+  port: 6697
+  tls: true
+  channels:
+    - "#animeworld"
+  announcers:
+    - "ryuko"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: channels.password
+      type: secret
+      required: true
+      label: Channel Password
+      help: Channel password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: 'Neuer Upload: Magic.S02E10.Ger.Eng.Sub.AAC.1080p.WEB.h264-ABC [Kategorie: Anime Serien][Typ: WebDL][Auflösung: 1080p][Größe: 1.35 GB][FL: 100%] | https://animeworld.cx/torrents/00000 | Uploader: NotAnonymous'
+          expect:
+            torrentName: 'Magic.S02E10.Ger.Eng.Sub.AAC.1080p.WEB.h264-ABC'
+            category: Anime Serien
+            releaseTags: WebDL
+            resolution: 1080p
+            torrentSize: 1.35 GB
+            freeleechPercent: 100
+            tags: ""
+            baseUrl: https://animeworld.cx/
+            torrentId: "00000"
+            uploader: NotAnonymous
+        - line: 'Neuer Upload: The.Zero.S04.German.DL.DTS.1080p.BluRay.10bit.x265.Repack-ABC [Kategorie: Anime Serien][Typ: Encode][Auflösung: 1080p][Größe: 17.28 GiB][FL: 100%][Vorgestellt] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
+          expect:
+            torrentName: 'The.Zero.S04.German.DL.DTS.1080p.BluRay.10bit.x265.Repack-ABC'
+            category: Anime Serien
+            releaseTags: Encode
+            resolution: 1080p
+            torrentSize: 17.28 GiB
+            freeleechPercent: 100
+            tags: "Vorgestellt"
+            baseUrl: https://animeworld.cx/
+            torrentId: "00000"
+            uploader: Anonym
+        - line: 'Neuer Upload: How.to.Train.2010.German.DL.AC3.1080p.BluRay.x264-ABC [Kategorie: Cartoon Filme][Typ: Encode][Auflösung: 1080p][Größe: 3.45 GiB][FL: 0%] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
+          expect:
+            torrentName: 'How.to.Train.2010.German.DL.AC3.1080p.BluRay.x264-ABC'
+            category: Cartoon Filme
+            releaseTags: Encode
+            resolution: 1080p
+            torrentSize: 3.45 GiB
+            freeleechPercent: 0
+            tags: ""
+            baseUrl: https://animeworld.cx/
+            torrentId: "00000"
+            uploader: Anonym
+        - line: 'Neuer Upload: Irgendein Testrelease ohne Schema [Kategorie: H-Manga / Doujinshi][Typ: Digital][Auflösung: No Res][Größe: 673.21 MiB][FL: 0%] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
+          expect:
+            torrentName: 'Irgendein Testrelease ohne Schema'
+            category: 'H-Manga / Doujinshi'
+            releaseTags: Digital
+            resolution: No Res
+            torrentSize: 673.21 MiB
+            freeleechPercent: 0
+            tags: ""
+            baseUrl: https://animeworld.cx/
+            torrentId: "00000"
+            uploader: Anonym
+        pattern: 'Neuer Upload: (.+) \[Kategorie: (.+)\]\[Typ: (.+)\]\[Auflösung: (.+)\]\[Größe: (.+)\]\[FL: (.+)%\](?:\[(Vorgestellt)\])? \| (https?\:\/\/.*\/)torrents\/(\d+) \| Uploader: (.+)'
+        vars:
+          - torrentName
+          - category
+          - releaseTags
+          - resolution
+          - torrentSize
+          - freeleechPercent
+          - tags
+          - baseUrl
+          - torrentId
+          - uploader
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rss_key }}"

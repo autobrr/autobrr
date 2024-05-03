@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -15,9 +15,12 @@ type Props = {
 };
 
 const Toast: FC<Props> = ({ type, body, t }) => (
-  <div className={classNames(
-    t?.visible ? "animate-enter" : "animate-leave",
-    "max-w-sm w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transition-all")}>
+  <div
+    className={classNames(
+      t?.visible ? "animate-enter" : "animate-leave",
+      "max-w-sm w-full bg-white dark:bg-gray-800 whitespace-pre-wrap shadow-2xl rounded-lg pointer-events-auto border border-gray-250 dark:border-gray-775 overflow-hidden transition-all"
+    )}
+  >
     <div className="p-4">
       <div className="flex items-start">
         <div className="flex-shrink-0">

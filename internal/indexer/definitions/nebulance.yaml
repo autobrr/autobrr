@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -27,7 +27,7 @@ settings:
 
 irc:
   network: Nebulance
-  server: irc.nebulance.cc
+  server: irc.nebulance.io
   port: 6697
   tls: true
   channels:
@@ -63,12 +63,52 @@ irc:
   parse:
     type: single
     lines:
-      - test:
-          - "[Episodes] The Show - S02E08 [WebRip / x264 / MKV / 720p / HD / VLAD / The.Show.S02E08.Episode.Name.720p.ANPL.WEBRip.AAC2.0.x264-GROUP.mkv] [702.00 MB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=000 [Tags: comedy,subtitles,cbs]"
-          - "[Seasons] Other Show - S10 [HDTV / x264 / MKV / MP4 / 480p / SD / BTN / Other.Show.S10.HDTV.x264-GROUP] [5.27 GB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=0000 [Tags: comedy,subtitles,cbs]"
-          - "[Episode] Late Night with Show Host - 2021-01-20 [WebDl / h264 / MKV / 1080p / HD / Scene / GROUP / talk.show.2021.01.20.famous.person.1080p.web.h264-group.mkv] [2.22 GB - Uploader: Uploader1] - http://nebulance.io/torrents.php?id=000000 [Tags: episode,comedy,talk.show,nbc,autofill,subtitles,webdl,h264,mkv,1080p,hd,scene,group.release]"
-          - "[Season] Jeeves & Wooster [MKV / 480p / SD / Jeeves and Wooster - Season 4] [2.06 GB - Uploader: redacted] - https://nebulance.io/torrents.php?id=0000 [Tags: season,comedy,itv1,subtitles,mkv,480p,sd]"
-        pattern: '\[(.+)\] (.+) (?:-.+)?\[(.+) \/ (.+)\] \[(.+) - Uploader: (.+)\] - (https?:\/\/.+\/).+id=(\d+) \[Tags: (.*)\]'
+      - tests:
+        - line: '[Episodes] The Show - S02E08 [WebRip / x264 / MKV / 720p / HD / VLAD / The.Show.S02E08.Episode.Name.720p.ANPL.WEBRip.AAC2.0.x264-GROUP.mkv] [702.00 MB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=000 [Tags: comedy,subtitles,cbs]'
+          expect:
+            category: Episodes
+            title: The Show
+            releaseTags: WebRip / x264 / MKV / 720p / HD / VLAD
+            torrentName: The.Show.S02E08.Episode.Name.720p.ANPL.WEBRip.AAC2.0.x264-GROUP.mkv
+            torrentSize: 702.00 MB
+            uploader: UPLOADER
+            baseUrl: http://nebulance.io/
+            torrentId: "000"
+            tags: comedy,subtitles,cbs
+        - line: '[Seasons] Other Show - S10 [HDTV / x264 / MKV / MP4 / 480p / SD / BTN / Other.Show.S10.HDTV.x264-GROUP] [5.27 GB - Uploader: UPLOADER] - http://nebulance.io/torrents.php?id=0000 [Tags: comedy,subtitles,cbs]'
+          expect:
+            category: Seasons
+            title: Other Show
+            releaseTags: HDTV / x264 / MKV / MP4 / 480p / SD / BTN
+            torrentName: Other.Show.S10.HDTV.x264-GROUP
+            torrentSize: 5.27 GB
+            uploader: UPLOADER
+            baseUrl: http://nebulance.io/
+            torrentId: "0000"
+            tags: comedy,subtitles,cbs
+        - line: '[Episode] Late Night with Show Host - 2021-01-20 [WebDl / h264 / MKV / 1080p / HD / Scene / GROUP / talk.show.2021.01.20.famous.person.1080p.web.h264-group.mkv] [2.22 GB - Uploader: Uploader1] - http://nebulance.io/torrents.php?id=000000 [Tags: episode,comedy,talk.show,nbc,autofill,subtitles,webdl,h264,mkv,1080p,hd,scene,group.release]'
+          expect:
+            category: Episode
+            title: Late Night with Show Host
+            releaseTags: WebDl / h264 / MKV / 1080p / HD / Scene / GROUP
+            torrentName: talk.show.2021.01.20.famous.person.1080p.web.h264-group.mkv
+            torrentSize: 2.22 GB
+            uploader: Uploader1
+            baseUrl: http://nebulance.io/
+            torrentId: "000000"
+            tags: episode,comedy,talk.show,nbc,autofill,subtitles,webdl,h264,mkv,1080p,hd,scene,group.release
+        - line: '[Season] Jeeves & Wooster [MKV / 480p / SD / Jeeves and Wooster - Season 4] [2.06 GB - Uploader: redacted] - https://nebulance.io/torrents.php?id=0000 [Tags: season,comedy,itv1,subtitles,mkv,480p,sd]'
+          expect:
+            category: Season
+            title: Jeeves & Wooster
+            releaseTags: MKV / 480p / SD
+            torrentName: Jeeves and Wooster - Season 4
+            torrentSize: 2.06 GB
+            uploader: redacted
+            baseUrl: https://nebulance.io/
+            torrentId: "0000"
+            tags: season,comedy,itv1,subtitles,mkv,480p,sd
+        pattern: '\[(.+?)\]\s+(.+?)(?:\s+-\s+(?:S\d{2}E\d{2}|S\d{2}|\d{4}-\d{2}-\d{2}))?\s+\[(.+) \/ (.+)\] \[(.+) - Uploader: (.+)\] - (https?:\/\/.+\/).+id=(\d+) \[Tags: (.*)\]'
         vars:
           - category
           - title

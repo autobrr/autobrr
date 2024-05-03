@@ -11,7 +11,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -28,7 +28,7 @@ settings:
 irc:
   network: AlphaRatio
   server: irc.alpharatio.cc
-  port: 6697
+  port: 7000
   tls: true
   channels:
     - "#Announce"
@@ -52,8 +52,15 @@ irc:
     type: multi
     forcesizeunit: MB
     lines:
-      - test:
-          - "[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]"
+      - tests:
+        - line: '[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]'
+          expect:
+            category: moviehd
+            torrentName: that.movie.2017.internal.1080p.bluray.crf.x264-group
+            baseUrl: https://alpharatio.cc/
+            groupId: "000000"
+            torrentId: "000000"
+            preTime: 2 mins, 59 secs
         pattern: '\[.*\]-\[(.*)\]-\[(.*)\]-\[.*\]-\[ (https?://.+/).*id=(.*) ]-\[ (\d+) \](?:-\[ \w* (.*) after .* ])?'
         vars:
           - category
@@ -62,8 +69,13 @@ irc:
           - groupId
           - torrentId
           - preTime
-      - test:
-          - "[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]"
+      - tests:
+        - line: '[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]'
+          expect:
+            scene: "1"
+            torrentSize: "10659"
+            freeleech: "1"
+            auto: "1"
         pattern: '\[.*\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.*\]'
         vars:
           - scene

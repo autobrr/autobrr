@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -11,6 +11,12 @@ interface Indexer {
   implementation: string;
   base_url: string;
   settings: Array<IndexerSetting>;
+}
+
+interface IndexerMinimal {
+  id: number;
+  name: string;
+  identifier: string;
 }
 
 interface IndexerDefinition {

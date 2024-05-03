@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -11,8 +11,9 @@ import { Form, Formik, useFormikContext } from "formik";
 import { toast } from "react-hot-toast";
 
 import { classNames, sleep } from "@utils";
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
+import { DownloadClientKeys } from "@api/query_keys";
 import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
@@ -24,8 +25,8 @@ import {
   SwitchGroupWide,
   TextFieldWide
 } from "@components/inputs";
-import { clientKeys } from "@screens/settings/DownloadClient";
-import { SelectFieldWide } from "@components/inputs/input_wide";
+import { DocsLink, ExternalLink } from "@components/ExternalLink";
+import { SelectFieldBasic } from "@components/inputs/select_wide";
 
 interface InitialValuesSettings {
   basic?: {
@@ -36,9 +37,12 @@ interface InitialValuesSettings {
   rules?: {
     enabled?: boolean;
     ignore_slow_torrents?: boolean;
+    ignore_slow_torrents_condition?: IgnoreTorrentsCondition;
     download_speed_threshold?: number;
     max_active_downloads?: number;
   };
+  external_download_client_id?: number;
+  external_download_client?: string;
 }
 
 interface InitialValues {
@@ -54,7 +58,6 @@ interface InitialValues {
   settings: InitialValuesSettings;
 }
 
-
 function FormFieldsDeluge() {
   const {
     values: { tls }
@@ -63,11 +66,20 @@ function FormFieldsDeluge() {
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
+        required
         name="host"
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
-        tooltip={<div><p>See guides for how to connect to Deluge for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#deluge</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge</a></div>}
-        required={true}
+        tooltip={
+          <div>
+            <p>See guides for how to connect to Deluge for various server types in our docs.</p>
+            <br />
+            <p>Dedicated servers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#deluge" />
+            <p>Shared seedbox providers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge" />
+          </div>
+        }
       />
 
       <NumberFieldWide
@@ -99,14 +111,23 @@ function FormFieldsArr() {
   return (
     <div className="flex flex-col space-y-4 px-1 mb-4 sm:py-0 sm:space-y-0">
       <TextFieldWide
+        required
         name="host"
         label="Host"
         help="Full url http(s)://domain.ltd and/or subdomain/subfolder"
-        tooltip={<div><p>See guides for how to connect to the *arr suite for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated/#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated/</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#sonarr' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes</a></div>}
-        required={true}
+        tooltip={
+          <div>
+            <p>See guides for how to connect to the *arr suite for various server types in our docs.</p>
+            <br />
+            <p>Dedicated servers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated/#sonarr" />
+            <p>Shared seedbox providers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#sonarr" />
+          </div>
+        }
       />
 
-      <PasswordFieldWide name="settings.apikey" label="API key" required={true}/>
+      <PasswordFieldWide required name="settings.apikey" label="API key" />
 
       <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
 
@@ -116,8 +137,6 @@ function FormFieldsArr() {
           <PasswordFieldWide name="settings.basic.password" label="Password" />
         </>
       )}
-
-      <NumberFieldWide name="settings.external_download_client_id" label="Download Client ID" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action. You can find the id in the arr by looking at the network responses for download clients.</p></div>} />
     </div>
   );
 }
@@ -130,11 +149,20 @@ function FormFieldsQbit() {
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
+        required
         name="host"
         label="Host"
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port"
-        tooltip={<div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div>}
-        required={true}
+        tooltip={
+          <div>
+            <p>See guides for how to connect to qBittorrent for various server types in our docs.</p>
+            <br />
+            <p>Dedicated servers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent" />
+            <p>Shared seedbox providers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent" />
+          </div>
+        }
       />
 
       {port > 0 && (
@@ -177,16 +205,15 @@ function FormFieldsPorla() {
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
+        required
         name="host"
         label="Host"
         help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
-        required={true}
       />
-
 
       <SwitchGroupWide name="tls" label="TLS" />
 
-      <PasswordFieldWide name="settings.apikey" label="Auth token" required={true}/>
+      <PasswordFieldWide required name="settings.apikey" label="Auth token" />
 
       {tls && (
         <SwitchGroupWide
@@ -215,11 +242,20 @@ function FormFieldsRTorrent() {
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
+        required
         name="host"
         label="Host"
         help="Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2"
-        tooltip={<div><p>See guides for how to connect to rTorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent</a></div>}
-        required={true}
+        tooltip={
+          <div>
+            <p>See guides for how to connect to rTorrent for various server types in our docs.</p>
+            <br />
+            <p>Dedicated servers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent" />
+            <p>Shared seedbox providers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent" />
+          </div>
+        }
       />
 
       <SwitchGroupWide name="tls" label="TLS" />
@@ -251,11 +287,20 @@ function FormFieldsTransmission() {
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
+        required
         name="host"
         label="Host"
         help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
-        tooltip={<div><p>See guides for how to connect to Transmission for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#transmission' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#transmission</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison</a></div>}
-        required={true}
+        tooltip={
+          <div>
+            <p>See guides for how to connect to Transmission for various server types in our docs.</p>
+            <br />
+            <p>Dedicated servers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#transmission" />
+            <p>Shared seedbox providers:</p>
+            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison" />
+          </div>
+        }
       />
 
       <NumberFieldWide name="port" label="Port" help="Port for Transmission" />
@@ -286,7 +331,16 @@ function FormFieldsSabnzbd() {
         name="host"
         label="Host"
         help="Eg. http://ip:port or https://url.com/sabnzbd"
-        // tooltip={<div><p>See guides for how to connect to qBittorrent for various server types in our docs.</p><br /><p>Dedicated servers:</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent</a><p>Shared seedbox providers:</p><a href='https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent</a></div>}
+        tooltip={
+          <div>
+            <p>See our guides on how to connect to qBittorrent for various server types in our docs.</p>
+            <br />
+            <p>Dedicated servers:</p>
+            <ExternalLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent" />
+            <p>Shared seedbox providers:</p>
+            <ExternalLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent" />
+          </div>
+        }
       />
 
       {port > 0 && (
@@ -357,11 +411,46 @@ function FormFieldsRulesBasic() {
         </p>
       </div>
 
-      <SwitchGroupWide name="settings.rules.enabled" label="Enabled"/>
+      <SwitchGroupWide name="settings.rules.enabled" label="Enabled" />
 
       {settings && settings.rules?.enabled === true && (
-        <NumberFieldWide name="settings.rules.max_active_downloads" label="Max active downloads" tooltip={<span><p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p><a href='https://autobrr.com/configuration/download-clients/dedicated#deluge-rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#deluge-rules</a><br /><br /><p>See recommendations for various server types here:</p><a href='https://autobrr.com/filters/examples#build-buffer' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#build-buffer</a></span>} />
+        <NumberFieldWide
+          name="settings.rules.max_active_downloads"
+          label="Max active downloads"
+          tooltip={
+            <span>
+              <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#deluge-rules" />
+              <br /><br />
+              <p>See recommendations for various server types here:</p>
+              <DocsLink href='https://autobrr.com/filters/examples#build-buffer' />
+            </span>
+          }
+        />
       )}
+    </div>
+  );
+}
+
+function FormFieldsRulesArr() {
+  // const {
+  //   values: { settings }
+  // } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
+      <div className="px-4 space-y-1">
+        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+          Download Client
+        </Dialog.Title>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Override download client to use. Can also be overridden per Filter Action.
+        </p>
+      </div>
+
+      <TextFieldWide name="settings.external_download_client" label="Client Name" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action.</p></div>} />
+
+      <NumberFieldWide name="settings.external_download_client_id" label="Client ID DEPRECATED" tooltip={<div><p>DEPRECATED: Use Client name field instead.</p></div>} />
     </div>
   );
 }
@@ -389,7 +478,17 @@ function FormFieldsRulesQbit() {
           <NumberFieldWide
             name="settings.rules.max_active_downloads"
             label="Max active downloads"
-            tooltip={<><p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p><a href='https://autobrr.com/configuration/download-clients/dedicated#qbittorrent-rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#qbittorrent-rules</a><br /><br /><p>See recommendations for various server types here:</p><a href='https://autobrr.com/filters/examples#build-buffer' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#build-buffer</a></>} />
+            tooltip={
+              <>
+                <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
+                <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent-rules" />
+                <br /><br />
+                <p>See recommendations for various server types here:</p>
+                <DocsLink href="https://autobrr.com/filters/examples#build-buffer" />
+              </>
+            }
+          />
+
           <SwitchGroupWide
             name="settings.rules.ignore_slow_torrents"
             label="Ignore slow torrents"
@@ -397,10 +496,10 @@ function FormFieldsRulesQbit() {
 
           {settings.rules?.ignore_slow_torrents === true && (
             <>
-              <SelectFieldWide
+              <SelectFieldBasic
                 name="settings.rules.ignore_slow_torrents_condition"
                 label="Ignore condition"
-                optionDefaultText="Select ignore condition"
+                placeholder="Select ignore condition"
                 options={DownloadRuleConditionOptions}
                 tooltip={<p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p>}
               />
@@ -447,7 +546,15 @@ function FormFieldsRulesTransmission() {
           <NumberFieldWide
             name="settings.rules.max_active_downloads"
             label="Max active downloads"
-            tooltip={<><p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p><a href='https://autobrr.com/configuration/download-clients/dedicated#transmission-rules' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/download-clients/dedicated#transmission-rules</a><br /><br /><p>See recommendations for various server types here:</p><a href='https://autobrr.com/filters/examples#build-buffer' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/filters/examples#build-buffer</a></>}
+            tooltip={
+              <>
+                <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
+                <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#transmission-rules" />
+                <br /><br />
+                <p>See recommendations for various server types here:</p>
+                <DocsLink href="https://autobrr.com/filters/examples#build-buffer" />
+              </>
+            }
           />
         </>
       )}
@@ -456,11 +563,16 @@ function FormFieldsRulesTransmission() {
 }
 
 export const rulesComponentMap: componentMapType = {
-  DELUGE_V1: <FormFieldsRulesBasic/>,
-  DELUGE_V2: <FormFieldsRulesBasic/>,
-  QBITTORRENT: <FormFieldsRulesQbit/>,
-  PORLA: <FormFieldsRulesBasic/>,
-  TRANSMISSION: <FormFieldsRulesTransmission/>
+  DELUGE_V1: <FormFieldsRulesBasic />,
+  DELUGE_V2: <FormFieldsRulesBasic />,
+  QBITTORRENT: <FormFieldsRulesQbit />,
+  PORLA: <FormFieldsRulesBasic />,
+  TRANSMISSION: <FormFieldsRulesTransmission />,
+  RADARR: <FormFieldsRulesArr />,
+  SONARR: <FormFieldsRulesArr />,
+  LIDARR: <FormFieldsRulesArr />,
+  WHISPARR: <FormFieldsRulesArr />,
+  READARR: <FormFieldsRulesArr />,
 };
 
 interface formButtonsProps {
@@ -581,13 +693,13 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   const addMutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.create(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-      toast.custom((t) => <Toast type="success" body="Client was added" t={t}/>);
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      toast.custom((t) => <Toast type="success" body="Client was added" t={t} />);
 
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Client could not be added" t={t}/>);
+      toast.custom((t) => <Toast type="error" body="Client could not be added" t={t} />);
     }
   });
 
@@ -647,7 +759,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0"/>
+          <Dialog.Overlay className="absolute inset-0" />
 
           <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
             <Transition.Child
@@ -666,7 +778,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                 >
                   {({ handleSubmit, values }) => (
                     <Form
-                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
+                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
                       onSubmit={handleSubmit}
                     >
                       <div className="flex-1">
@@ -697,8 +809,8 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                         </div>
 
                         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide name="name" label="Name" required={true}/>
-                          <SwitchGroupWide name="enabled" label="Enabled"/>
+                          <TextFieldWide required name="name" label="Name" />
+                          <SwitchGroupWide name="enabled" label="Enabled" />
                           <RadioFieldsetWide
                             name="type"
                             legend="Type"
@@ -720,7 +832,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                         values={values}
                       />
 
-                      <DEBUG values={values}/>
+                      <DEBUG values={values} />
                     </Form>
                   )}
                 </Formik>
@@ -753,10 +865,10 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const mutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t} />);
       toggle();
     }
   });
@@ -766,10 +878,10 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const deleteMutation = useMutation({
     mutationFn: (clientID: number) => APIClient.download_clients.delete(clientID),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t} />);
       toggleDeleteModal();
     }
   });
@@ -833,7 +945,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
       >
         <DeleteModal
           isOpen={deleteModalIsOpen}
-          isLoading={deleteMutation.isLoading}
+          isLoading={deleteMutation.isPending}
           toggle={toggleDeleteModal}
           buttonRef={cancelModalButtonRef}
           deleteAction={deleteAction}
@@ -841,7 +953,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
           text="Are you sure you want to remove this download client? This action cannot be undone."
         />
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0"/>
+          <Dialog.Overlay className="absolute inset-0" />
 
           <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
             <Transition.Child
@@ -861,7 +973,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                   {({ handleSubmit, values }) => {
                     return (
                       <Form
-                        className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll"
+                        className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
                         onSubmit={handleSubmit}
                       >
                         <div className="flex-1">
@@ -878,7 +990,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                               <div className="h-7 flex items-center">
                                 <button
                                   type="button"
-                                  className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                   onClick={toggle}
                                 >
                                   <span className="sr-only">Close panel</span>
@@ -892,8 +1004,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                           </div>
 
                           <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
-                            <TextFieldWide name="name" label="Name" required={true}/>
-                            <SwitchGroupWide name="enabled" label="Enabled"/>
+                            <TextFieldWide required name="name" label="Name" />
+                            <SwitchGroupWide name="enabled" label="Enabled" />
                             <RadioFieldsetWide
                               name="type"
                               legend="Type"
@@ -916,7 +1028,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                           values={values}
                         />
 
-                        <DEBUG values={values}/>
+                        <DEBUG values={values} />
                       </Form>
                     );
                   }}
