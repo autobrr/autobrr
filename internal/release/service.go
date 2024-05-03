@@ -101,7 +101,7 @@ func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 		return err
 	}
 
-	rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier})
+	rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier, IdentifierExternal: def.IdentifierExternal})
 
 	switch req.IndexerImplementation {
 	case string(domain.IndexerImplementationIRC):
