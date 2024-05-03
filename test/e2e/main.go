@@ -28,9 +28,10 @@ func assertEqual(expected, actual interface{}) {
 }
 
 var (
-	username   = "test"
-	password   = "Test2023!"
+	username   = "dev"
+	password   = "pass"
 	filterName = "Filter1"
+	rssUrl     = "https://distrowatch.com/news/torrents.xml"
 )
 
 func main() {
@@ -60,9 +61,48 @@ func main() {
 
 	page.Locator("text=Stats").IsVisible()
 
-	//time.Sleep(time.Millisecond * 2000)
+	time.Sleep(time.Millisecond * 1000)
 
-	/* TODO Add indexer */
+	/* Add indexer */
+	_, err = page.Goto("http://localhost:3000/settings/indexers")
+	assertErrorToNilf("could not navigate to settings/indexers: %w", err)
+
+	// Wait for the button to be visible and then click it to add a new indexer
+	assertErrorToNilf("could not find and click 'Add new indexer' button: %v", page.Locator("button", playwright.PageLocatorOptions{
+		HasText: "Add new indexer",
+	}).Click())
+
+	assertErrorToNilf("could not fill 'Generic RSS' in the dropdown: %v", page.Locator("input#react-select-3-input").Fill("Generic RSS"))
+
+	assertErrorToNilf("could not select 'Generic RSS' by pressing enter: %v", page.Locator("input#react-select-3-input").Press("Enter"))
+
+	// Wait for the RSS URL input field to be visible
+	assertErrorToNilf("could not find RSS URL input field: %v", page.Locator("input#feed\\.url").WaitFor())
+
+	assertErrorToNilf("could not type in RSS URL: %v", page.Locator("input#feed\\.url").Fill(rssUrl))
+
+	time.Sleep(time.Millisecond * 1000)
+
+	assertErrorToNilf("could not click the 'Save' button: %v", page.Locator("button", playwright.PageLocatorOptions{
+		HasText: "Save",
+	}).Click())
+
+	time.Sleep(time.Millisecond * 1000)
+
+	/* Enable Feed */
+	_, err = page.Goto("http://localhost:3000/settings/feeds")
+	assertErrorToNilf("could not navigate to feeds settings: %w", err)
+
+	switchButtonLocator := page.Locator("button[role='switch']")
+
+	// Wait for the switch button to be visible
+	assertErrorToNilf("could not find the switch button: %v", switchButtonLocator.WaitFor())
+
+	assertErrorToNilf("could not click the switch button: %v", switchButtonLocator.Click())
+
+	time.Sleep(time.Millisecond * 1000)
+
+	/* Add Download Client */
 
 	/* Add filter */
 
