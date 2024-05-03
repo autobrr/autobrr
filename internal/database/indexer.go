@@ -80,7 +80,17 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 }
 
 func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, enabled, name, identifier, implementation, base_url, settings FROM indexer ORDER BY name ASC")
+	queryBuilder := r.db.squirrel.
+		Select("id", "enabled", "name", "identifier", "implementation", "base_url", "settings").
+		From("indexer").
+		OrderBy("name ASC")
+
+	query, _, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
