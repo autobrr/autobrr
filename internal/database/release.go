@@ -581,14 +581,26 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 	if err != nil {
 		return errors.Wrap(err, "could not start transaction")
 	}
+
 	defer func() {
+		var txErr error
 		if p := recover(); p != nil {
-			tx.Rollback()
-			panic(p)
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
 		} else if err != nil {
-			tx.Rollback()
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
 		} else {
-			err = tx.Commit()
+			// All good, commit
+			txErr = tx.Commit()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error committing transaction")
+			}
 		}
 	}()
 
@@ -607,20 +619,13 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		}
 	}
 
-	//if req.OlderThan > 0 {
-	//	thresholdTime := time.Now().Add(-time.Duration(req.OlderThan) * time.Hour)
-	//	qb = qb.Where("timestamp < ?", thresholdTime)
-	//}
-
 	if len(req.Indexers) > 0 {
-		placeholders := strings.Repeat("?,", len(req.Indexers)-1) + "?"
-		qb = qb.Where(fmt.Sprintf("indexer IN (%s)", placeholders), toInterfaceSlice(req.Indexers)...)
+		qb = qb.Where(sq.Eq{"indexer": req.Indexers})
 	}
 
 	if len(req.ReleaseStatuses) > 0 {
-		statusPlaceholders := strings.Repeat("?,", len(req.ReleaseStatuses)-1) + "?"
-		subQuery := sq.Select("release_id").From("release_action_status").Where(fmt.Sprintf("status IN (%s)", statusPlaceholders), toInterfaceSlice(req.ReleaseStatuses)...)
-		subQueryText, subQueryArgs, err := subQuery.PlaceholderFormat(sq.Question).ToSql()
+		subQuery := sq.Select("release_id").From("release_action_status").Where(sq.Eq{"status": req.ReleaseStatuses})
+		subQueryText, subQueryArgs, err := subQuery.ToSql()
 		if err != nil {
 			return errors.Wrap(err, "error building subquery")
 		}
@@ -658,15 +663,6 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
 
 	return nil
-}
-
-// Helper function to convert []string to []interface{}
-func toInterfaceSlice(slice []string) []interface{} {
-	interfaceSlice := make([]interface{}, len(slice))
-	for i, d := range slice {
-		interfaceSlice[i] = d
-	}
-	return interfaceSlice
 }
 
 func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
