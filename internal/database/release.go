@@ -637,7 +637,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error building SQL query")
 	}
 
-	repo.log.Debug().Str("query", query).Interface("args", args).Msg("Executing combined delete query")
+	repo.log.Trace().Str("query", query).Interface("args", args).Msg("Executing combined delete query")
 
 	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
@@ -650,17 +650,20 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error fetching rows affected")
 	}
 
+	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+
 	// clean up orphaned rows
-	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
+	orphanedResult, err := tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	//if err := tx.Commit(); err != nil {
-	//	return errors.Wrap(err, "error commit transaction delete")
-	//}
+	deletedRowsOrphaned, err := orphanedResult.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error fetching rows affected")
+	}
 
-	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+	repo.log.Debug().Msgf("deleted %d orphaned rows from release table", deletedRowsOrphaned)
 
 	return nil
 }
