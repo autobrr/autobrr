@@ -11,12 +11,59 @@ type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
 
 interface HttpConfig {
+  /**
+   * One of "GET", "POST", "PUT", "PATCH", "DELETE", etc.
+   * See https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+   */
   method?: string;
+  /**
+   * JSON body for this request. Once this is set to an object,
+   * then `Content-Type` for this request is set to `application/json`
+   * automatically.
+   */
   body?: RequestBody;
+  /**
+   * Helper to work with a query string/search param of a URL.
+   * E.g. ?a=1&b=2&c=3
+   *
+   * Using this interface will automatically convert
+   * the object values into RFC-3986-compliant strings.
+   *
+   * Keys will *NOT* be sanitized, and any whitespace and
+   * invalid characters will remain.
+   *
+   * The only supported value types are:
+   * numbers, booleans, strings and flat 1-D arrays.
+   *
+   * Objects as values are not supported.
+   *
+   * The supported values are serialized as follows:
+   *  - undefined values are ignored
+   *  - empty strings are ignored
+   *  - empty strings inside arrays are ignored
+   *  - empty arrays are ignored
+   *  - arrays append each time with the key and for each child
+   *    e.g. `{ arr: [1, 2, 3] }` will yield `?arr=1&arr=2&arr=3`
+   *  - array items with an undefined value (or which serialize to an empty string) are ignored,
+   *    e.g. `{ arr: [1, undefined, undefined] }` will yield `?arr=1`
+   *    (NaN, +Inf, -Inf, etc. will remain since they are valid serializations)
+   */
   queryString?: Record<string, Primitive | Primitive[]>;
 }
 
-// See https://stackoverflow.com/a/62969380
+/**
+ * Encodes a string into a RFC-3986-compliant string.
+ *
+ * By default, encodeURIComponent will not encode
+ * any of the following characters: !'()*
+ *
+ * So a simple regex replace is done which will replace
+ * these characters with their hex-value representation.
+ *
+ * @param str Input string (dictionary value).
+ * @returns A RFC-3986-compliant string variation of the input string.
+ * @note See https://stackoverflow.com/a/62969380
+ */
 function encodeRFC3986URIComponent(str: string): string {
   return encodeURIComponent(str).replace(
     /[!'()*]/g,
@@ -24,6 +71,29 @@ function encodeRFC3986URIComponent(str: string): string {
   );
 }
 
+/**
+ * Makes a request on the network and returns a promise.
+ *
+ * This function serves as both a request builder and a response interceptor.
+ *
+ * @param endpoint The endpoint path relative to the backend instance.
+ * @param config A dictionary which specifies what information this network
+ * request must relay during transport. See @ref HttpClient.
+ * @returns A promise for the *sent* network request which must *  be await'ed or .then()-chained before it can be used.
+ *
+ * If the status code returned by the server is in the [200, 300) range, then this is considered a success.
+ *    - This function resolves with an empty dictionary object, i.e. {}, if the status code is 204 No data
+ *    - The parsed JSON body is returned by this method if the server returns `Content-Type: application/json`.
+ *    - In all other scenarios, the raw Response object from window.fetch() is returned,
+ *      which must be handled manually by awaiting on one of its methods.
+ *
+ * The following is done if the status code that the server returns is NOT successful,
+ * that is, if it falls outside of the [200, 300] range:
+ *  - A unique Error object is returned if the user is logged in and the status code is 403 Forbidden.
+ *    This Error object *should* be consumed by the @tanstack/query code, which indirectly calls HttpClient.
+ *    The current user is then prompted to log in again after being logged out.
+ *  - The `ErrorPage` screen appears in all other scenarios.
+ */
 export async function HttpClient<T = unknown>(
   endpoint: string,
   config: HttpConfig = {}
