@@ -113,7 +113,7 @@ func main() {
 		authService           = auth.NewService(log, userService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, indexerAPIService, schedulingService)
+		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService)

@@ -55,9 +55,9 @@ export const Login = () => {
       });
       router.invalidate()
     },
-    onError: () => {
+    onError: (error) => {
       toast.custom((t) => (
-        <Toast type="error" body="Wrong password or username!" t={t} />
+        <Toast type="error" body={error.message || "An error occurred!"} t={t} />
       ));
     }
   });
