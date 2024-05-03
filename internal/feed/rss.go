@@ -119,7 +119,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 	}
 
-	rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier})
+	rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
 	rls.Implementation = domain.ReleaseImplementationRSS
 
 	rls.ParseString(item.Title)
