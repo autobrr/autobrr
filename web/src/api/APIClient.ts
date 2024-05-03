@@ -347,20 +347,13 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: (params: DeleteParams) => {
-      const queryString: QueryStringParams = {};
-      if (params.olderThan !== undefined) {
-        queryString.olderThan = params.olderThan.toString();
-      }
-      if (params.indexers && params.indexers.length > 0) {
-        queryString.indexer = params.indexers;
-      }
-      if (params.releaseStatuses && params.releaseStatuses.length > 0) {
-        queryString.releaseStatus = params.releaseStatuses;
-      }
+      const queryString: QueryStringParams = {
+       ...(params.olderThan!== undefined? { olderThan: params.olderThan.toString() } : {}),
+       ...(params.indexers && params.indexers.length > 0? { indexer: params.indexers } : {}),
+       ...(params.releaseStatuses && params.releaseStatuses.length > 0? { releaseStatus: params.releaseStatuses } : {}),
+      };
     
-      return appClient.Delete("api/release", {
-        queryString
-      });
+      return appClient.Delete("api/release", { queryString });
     },
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
