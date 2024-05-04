@@ -58,52 +58,60 @@ irc:
     type: single
     lines:
       - tests:
-        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
-            torrentName: "Movie Title"
-            year: 2001
+            title: "Movie Title"
+            year: 2002
             category: Film
-            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR"
+            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
             freeleech: ""
             releaseGroup: ""
             baseUrl: https://hd-only.org/
-            groupId: "123"
-            torrentId: "456"
+            torrentId: "00000"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - FL - NIMA4K - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI - FL - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
-            torrentName: "Movie Title"
-            year: 2001
+            title: "Movie Title"
+            year: 2002
             category: Film
-            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR"
-            freeleech: FL
-            releaseGroup: NIMA4K
-            baseUrl: https://hd-only.org/
-            groupId: "123"
-            torrentId: "456"
-            tags: Aventure, Fantastique
-        - line: "Movie Title [2001] [Film] - Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR - FL - https://hd-only.org/torrents.php?id=123 / https://hd-only.org/torrents.php?action=download&id=456 - Aventure, Fantastique"
-          expect:
-            torrentName: "Movie Title"
-            year: 2001
-            category: Film
-            releaseTags: "Blu-ray 4K / HEVC / 2160p / Muet / Multilingue / VOF / VO / stFR / VFF / VFI / VFQ / VF? / Scene / Bonus / Custom / HDR / HDR10+ / DV / RM / DC / VL / UC / UR"
+            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
             freeleech: "FL"
             releaseGroup: ""
             baseUrl: https://hd-only.org/
-            groupId: "123"
-            torrentId: "456"
+            torrentId: "00000"
             tags: Aventure, Fantastique
-        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?) - (?:(FL)? ?-? ?(.*?)) ?-? ?(https:\/\/hd-only\.org\/)torrents\.php\?id=(\d+) \/ https:\/\/hd-only\.org\/torrents\.php\?action=download&id=(\d+) - (.*)'
+        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI / Scene - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+          expect:
+            title: "Movie Title"
+            year: 2002
+            category: Film
+            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
+            freeleech: ""
+            releaseGroup: "GROUP"
+            baseUrl: https://hd-only.org/
+            torrentId: "00000"
+            tags: Aventure, Fantastique
+        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI / Scene - FL - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+          expect:
+            title: "Movie Title"
+            year: 2002
+            category: Film
+            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
+            freeleech: "FL"
+            releaseGroup: "GROUP"
+            baseUrl: https://hd-only.org/
+            torrentId: "00000"
+            tags: Aventure, Fantastique
+        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?)(?:(?: - (FL))? - (.*?))? - (.*?) - (https:\/\/hd-only\.org\/).*torrentid=(\d+).* - (.*)'
         vars:
-          - torrentName
+          - title
           - year
           - category
           - releaseTags
           - freeleech
           - releaseGroup
+          - torrentName
           - baseUrl
-          - groupId
           - torrentId
           - tags
 
