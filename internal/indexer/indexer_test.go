@@ -15,8 +15,9 @@ import (
 
 func TestIndexersParseAndFilter(t *testing.T) {
 	type fields struct {
-		identifier string
-		settings   map[string]string
+		identifier         string
+		identifierExternal string
+		settings           map[string]string
 	}
 	type filterTest struct {
 		filter     *domain.Filter
@@ -41,7 +42,8 @@ func TestIndexersParseAndFilter(t *testing.T) {
 		{
 			name: "ops",
 			fields: fields{
-				identifier: "orpheus",
+				identifier:         "orpheus",
+				identifierExternal: "Orpheus",
 				settings: map[string]string{
 					"torrent_pass": "pass",
 					"api_key":      "key",
@@ -115,7 +117,8 @@ func TestIndexersParseAndFilter(t *testing.T) {
 		{
 			name: "redacted",
 			fields: fields{
-				identifier: "red",
+				identifier:         "red",
+				identifierExternal: "Redacted",
 				settings: map[string]string{
 					"authkey":      "key",
 					"torrent_pass": "pass",
@@ -298,6 +301,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			i, err := OpenAndProcessDefinition("./definitions/" + tt.fields.identifier + ".yaml")
 			assert.NoError(t, err)
 
+			i.IdentifierExternal = tt.fields.identifierExternal
 			i.SettingsMap = tt.fields.settings
 
 			ll := zerolog.New(io.Discard)
@@ -327,7 +331,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 						return
 					}
 
-					rls := domain.NewRelease(domain.IndexerMinimal{ID: i.ID, Name: i.Name, Identifier: i.Identifier})
+					rls := domain.NewRelease(domain.IndexerMinimal{ID: i.ID, Name: i.Name, Identifier: i.Identifier, IdentifierExternal: i.IdentifierExternal})
 					rls.Protocol = domain.ReleaseProtocol(i.Protocol)
 
 					// on lines matched

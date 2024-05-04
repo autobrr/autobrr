@@ -26,40 +26,43 @@ type IndexerRepo interface {
 }
 
 type Indexer struct {
-	ID             int64             `json:"id"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Enabled        bool              `json:"enabled"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Settings       map[string]string `json:"settings,omitempty"`
+	ID                 int64             `json:"id"`
+	Name               string            `json:"name"`
+	Identifier         string            `json:"identifier"`
+	IdentifierExternal string            `json:"identifier_external"`
+	Enabled            bool              `json:"enabled"`
+	Implementation     string            `json:"implementation"`
+	BaseURL            string            `json:"base_url,omitempty"`
+	Settings           map[string]string `json:"settings,omitempty"`
 }
 
 type IndexerMinimal struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	Identifier string `json:"identifier"`
+	ID                 int    `json:"id"`
+	Name               string `json:"name"`
+	Identifier         string `json:"identifier"`
+	IdentifierExternal string `json:"identifier_external"`
 }
 
 type IndexerDefinition struct {
-	ID             int               `json:"id,omitempty"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled"`
-	Description    string            `json:"description"`
-	Language       string            `json:"language"`
-	Privacy        string            `json:"privacy"`
-	Protocol       string            `json:"protocol"`
-	URLS           []string          `json:"urls"`
-	Supports       []string          `json:"supports"`
-	Settings       []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap    map[string]string `json:"-"`
-	IRC            *IndexerIRC       `json:"irc,omitempty"`
-	Torznab        *Torznab          `json:"torznab,omitempty"`
-	Newznab        *Newznab          `json:"newznab,omitempty"`
-	RSS            *FeedSettings     `json:"rss,omitempty"`
+	ID                 int               `json:"id,omitempty"`
+	Name               string            `json:"name"`
+	Identifier         string            `json:"identifier"`
+	IdentifierExternal string            `json:"identifier_external"`
+	Implementation     string            `json:"implementation"`
+	BaseURL            string            `json:"base_url,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	Description        string            `json:"description"`
+	Language           string            `json:"language"`
+	Privacy            string            `json:"privacy"`
+	Protocol           string            `json:"protocol"`
+	URLS               []string          `json:"urls"`
+	Supports           []string          `json:"supports"`
+	Settings           []IndexerSetting  `json:"settings,omitempty"`
+	SettingsMap        map[string]string `json:"-"`
+	IRC                *IndexerIRC       `json:"irc,omitempty"`
+	Torznab            *Torznab          `json:"torznab,omitempty"`
+	Newznab            *Newznab          `json:"newznab,omitempty"`
+	RSS                *FeedSettings     `json:"rss,omitempty"`
 }
 
 type IndexerImplementation string

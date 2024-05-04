@@ -7,6 +7,7 @@ interface Indexer {
   id: number;
   name: string;
   identifier: string;
+  identifier_external: string;
   enabled: boolean;
   implementation: string;
   base_url: string;
@@ -17,12 +18,14 @@ interface IndexerMinimal {
   id: number;
   name: string;
   identifier: string;
+  identifier_external: string;
 }
 
 interface IndexerDefinition {
   id: number;
   name: string;
   identifier: string;
+  identifier_external: string;
   implementation: string;
   base_url: string;
   enabled?: boolean;

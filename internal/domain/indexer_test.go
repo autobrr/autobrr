@@ -254,7 +254,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 		{
 			name: "",
 			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn"}),
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
 					"torrentName": "Trouble.in.Paradise-GROUP in Trouble in Paradise",
 				},
@@ -267,7 +267,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 		{
 			name: "",
 			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn"}),
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
 					"torrentName": "F.I.L.F. Game Walkthrough v.0.18 in F.I.L.F.",
 				},
@@ -280,7 +280,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 		{
 			name: "",
 			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn"}),
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
 					"torrentName": "Ni no Kuni: Dominion of the Dark Djinn in Ni no Kuni: Dominion of the Dark Djinn",
 				},
@@ -293,7 +293,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 		{
 			name: "",
 			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn"}),
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
 					"torrentName": "Year 2 Remastered by Insaneintherainmusic",
 					"category":    "OST",
@@ -332,7 +332,7 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 		{
 			name: "",
 			args: args{
-				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops"}),
+				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops", "Orpheus"}),
 				vars: map[string]string{
 					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] WEB/FLAC/24bit Lossless",
 					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",
@@ -348,7 +348,7 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 		{
 			name: "",
 			args: args{
-				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops"}),
+				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops", "Orpheus"}),
 				vars: map[string]string{
 					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] CD/FLAC/Lossless",
 					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",

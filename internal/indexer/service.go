@@ -275,6 +275,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	d.ID = int(indexer.ID)
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
+	d.IdentifierExternal = indexer.IdentifierExternal
 	d.Implementation = indexer.Implementation
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
@@ -311,6 +312,7 @@ func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefin
 	d.ID = int(indexer.ID)
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
+	d.IdentifierExternal = indexer.IdentifierExternal
 	d.Implementation = indexer.Implementation
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
