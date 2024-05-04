@@ -66,6 +66,7 @@ irc:
             releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI"
             freeleech: ""
             releaseGroup: ""
+            torrentName: "Movie.Title.2002.1080p.WEB.H264"
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
@@ -77,6 +78,7 @@ irc:
             releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI"
             freeleech: "FL"
             releaseGroup: ""
+            torrentName: "Movie.Title.2002.1080p.WEB.H264"
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
@@ -88,6 +90,7 @@ irc:
             releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI / Scene"
             freeleech: ""
             releaseGroup: "GROUP"
+            torrentName: "Movie.Title.2002.1080p.WEB.H264-GROUP"
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
@@ -99,10 +102,11 @@ irc:
             releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI / Scene"
             freeleech: "FL"
             releaseGroup: "GROUP"
+            torrentName: "Movie.Title.2002.1080p.WEB.H264-GROUP"
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?)(?:(?: - (FL))? - (.*?))? - (.*?) - (https:\/\/hd-only\.org\/).*torrentid=(\d+).* - (.*)'
+        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?)(?: - (FL))?(?: - (.*?))? - (.*?) - (https:\/\/hd-only\.org\/).*torrentid=(\d+).* - (.*)'
         vars:
           - title
           - year
