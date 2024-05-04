@@ -336,7 +336,14 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 		return errors.Wrap(err, "could not map variables for release")
 	}
 
-	baseUrl := def.URLS[0]
+	baseUrl := def.BaseURL
+	if baseUrl == "" {
+		if len(def.URLS) == 0 {
+			return errors.New("could not find a valid indexer baseUrl")
+		}
+
+		baseUrl = def.URLS[0]
+	}
 
 	// merge vars from regex captures on announce and vars from settings
 	mergedVars := mergeVars(vars, def.SettingsMap)
