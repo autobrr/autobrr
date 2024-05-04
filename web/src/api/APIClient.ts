@@ -15,14 +15,6 @@ interface HttpConfig {
   queryString?: Record<string, Primitive | Primitive[]>;
 }
 
-interface DeleteParams {
-  olderThan?: number;
-  indexers?: string[];
-  releaseStatuses?: string[];
-}
-
-type QueryStringParams = Record<string, string | string[]>;
-
 // See https://stackoverflow.com/a/62969380
 function encodeRFC3986URIComponent(str: string): string {
   return encodeURIComponent(str).replace(
@@ -347,13 +339,13 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: (params: DeleteParams) => {
-      const queryString: QueryStringParams = {
-       ...(params.olderThan!== undefined? { olderThan: params.olderThan.toString() } : {}),
-       ...(params.indexers && params.indexers.length > 0? { indexer: params.indexers } : {}),
-       ...(params.releaseStatuses && params.releaseStatuses.length > 0? { releaseStatus: params.releaseStatuses } : {}),
-      };
-    
-      return appClient.Delete("api/release", { queryString });
+      return appClient.Delete("api/release", {
+        queryString: {
+          olderThan: params.olderThan,
+          indexer: params.indexers,
+          releaseStatus: params.releaseStatuses,
+        }
+      });
     },
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
