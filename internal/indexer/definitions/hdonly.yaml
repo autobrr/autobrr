@@ -58,45 +58,45 @@ irc:
     type: single
     lines:
       - tests:
-        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
             category: Film
-            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI"
             freeleech: ""
             releaseGroup: ""
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI - FL - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - FL - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
             category: Film
-            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI"
             freeleech: "FL"
             releaseGroup: ""
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI / Scene - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
             category: Film
-            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI / Scene"
             freeleech: ""
             releaseGroup: "GROUP"
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2002] [Film] - Source / Codec / 1080p / VO / stFR / VFI / Scene - FL - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - FL - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
             category: Film
-            releaseTags: "Source / Codec / 1080p / VO / stFR / VFI"
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI / Scene"
             freeleech: "FL"
             releaseGroup: "GROUP"
             baseUrl: https://hd-only.org/
