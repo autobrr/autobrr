@@ -152,6 +152,7 @@ export const ReleaseTable = () => {
           id: 0,
           name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
           identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier_external: index % 2 === 0 ? "distrowatch" : "linuxtracker",
         },
         category: "Linux ISOs",
         size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),

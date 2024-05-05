@@ -51,14 +51,6 @@ interface HttpConfig {
   queryString?: Record<string, Primitive | Primitive[]>;
 }
 
-interface DeleteParams {
-  olderThan?: number;
-  indexers?: string[];
-  releaseStatuses?: string[];
-}
-
-type QueryStringParams = Record<string, string | string[]>;
-
 /**
  * Encodes a string into a RFC-3986-compliant string.
  *
@@ -72,6 +64,7 @@ type QueryStringParams = Record<string, string | string[]>;
  * @returns A RFC-3986-compliant string variation of the input string.
  * @note See https://stackoverflow.com/a/62969380
  */
+
 function encodeRFC3986URIComponent(str: string): string {
   return encodeURIComponent(str).replace(
     /[!'()*]/g,
@@ -102,6 +95,7 @@ function encodeRFC3986URIComponent(str: string): string {
  *    The current user is then prompted to log in again after being logged out.
  *  - The `ErrorPage` screen appears in all other scenarios.
  */
+
 export async function HttpClient<T = unknown>(
   endpoint: string,
   config: HttpConfig = {}
@@ -421,19 +415,12 @@ export const APIClient = {
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
     delete: (params: DeleteParams) => {
-      const queryString: QueryStringParams = {};
-      if (params.olderThan !== undefined) {
-        queryString.olderThan = params.olderThan.toString();
-      }
-      if (params.indexers && params.indexers.length > 0) {
-        queryString.indexer = params.indexers;
-      }
-      if (params.releaseStatuses && params.releaseStatuses.length > 0) {
-        queryString.releaseStatus = params.releaseStatuses;
-      }
-    
       return appClient.Delete("api/release", {
-        queryString
+        queryString: {
+          olderThan: params.olderThan,
+          indexer: params.indexers,
+          releaseStatus: params.releaseStatuses,
+        }
       });
     },
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
