@@ -6,7 +6,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 
-import { SettingsIndexRoute } from "@app/routes";
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
@@ -16,12 +15,13 @@ import Toast from "@components/notifications/Toast";
 import { ExternalLink } from "@components/ExternalLink";
 
 import { Section, RowItem } from "./_components";
+import { getRouteApi } from "@tanstack/react-router";
 
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
+  const settingsIndexRoute = getRouteApi("/auth/authenticated-routes/settings/");
 
-  const ctx = SettingsIndexRoute.useRouteContext()
-  const queryClient = ctx.queryClient
+  const { queryClient} =  settingsIndexRoute.useRouteContext();
 
   const { isError:isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
   if (isConfigError) {
