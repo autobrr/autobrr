@@ -32,6 +32,10 @@ type Service interface {
 	ProcessMultiple(releases []*domain.Release)
 	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
+
+	StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
+	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
+	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
 }
 
 type actionClientTypeKey struct {
@@ -92,6 +96,18 @@ func (s *service) StoreReleaseActionStatus(ctx context.Context, status *domain.R
 
 func (s *service) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
 	return s.repo.Delete(ctx, req)
+}
+
+func (s *service) FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error) {
+	return s.repo.FindDuplicateReleaseProfiles(ctx)
+}
+
+func (s *service) StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error {
+	return s.repo.StoreDuplicateProfile(ctx, profile)
+}
+
+func (s *service) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error {
+	return s.repo.DeleteReleaseProfileDuplicate(ctx, id)
 }
 
 func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error {
@@ -193,27 +209,25 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 	triedActionClients := map[actionClientTypeKey]struct{}{}
 
 	// loop over and check filters
-	for _, f := range filters {
-		f := f
-
-		l := s.log.With().Str("indexer", release.Indexer.Identifier).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
+	for _, fil := range filters {
+		l := s.log.With().Str("indexer", release.Indexer.Identifier).Str("filter", fil.Name).Str("release", release.TorrentName).Logger()
 
 		// save filter on release
-		release.Filter = f
-		release.FilterName = f.Name
-		release.FilterID = f.ID
+		release.Filter = fil
+		release.FilterName = fil.Name
+		release.FilterID = fil.ID
 
 		// test filter
-		match, err := s.filterSvc.CheckFilter(ctx, f, release)
+		match, err := s.filterSvc.CheckFilter(ctx, fil, release)
 		if err != nil {
 			l.Error().Err(err).Msg("release.Process: error checking filter")
 			return err
 		}
 
 		if !match {
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectionsString(false))
+			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, fil.RejectionsString(false))
 
-			l.Debug().Msgf("filter %s rejected release: %s", f.Name, f.RejectionsString(true))
+			l.Debug().Msgf("filter %q rejected release: %s", fil.Name, fil.RejectionsString(true))
 			continue
 		}
 
@@ -221,23 +235,16 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		// found matching filter, lets find the filter actions and attach
 		active := true
-		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active)
+		actions, err := s.actionSvc.FindByFilterID(ctx, fil.ID, &active)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
+			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", fil.Name)
 			return err
 		}
 
 		// if no actions, continue to next filter
 		if len(actions) == 0 {
-			s.log.Warn().Msgf("release.Process: no active actions found for filter '%s', trying next one..", f.Name)
+			s.log.Warn().Msgf("release.Process: no active actions found for filter '%s', trying next one..", fil.Name)
 			continue
-		}
-
-		// sleep for the delay period specified in the filter before running actions
-		delay := release.Filter.Delay
-		if delay > 0 {
-			l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer.Name, delay)
-			time.Sleep(time.Duration(delay) * time.Second)
 		}
 
 		// save release here to only save those with rejections from actions instead of all releases
@@ -253,7 +260,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		var rejections []string
 
 		// run actions (watchFolder, test, exec, qBittorrent, Deluge, arr etc.)
-		for _, a := range actions {
+		for idx, a := range actions {
 			act := a
 
 			// only run enabled actions
@@ -262,17 +269,33 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 				continue
 			}
 
+			// add action status as pending
+			actionStatus := domain.NewReleaseActionStatus(act, release)
+
+			if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
+				s.log.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
+			}
+
+			if idx == 0 {
+				// sleep for the delay period specified in the filter before running actions
+				delay := release.Filter.Delay
+				if delay > 0 {
+					l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer.Name, delay)
+					time.Sleep(time.Duration(delay) * time.Second)
+				}
+			}
+
 			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s , run action: %s", release.Indexer.Name, release.FilterName, release.TorrentName, act.Name)
 
 			// keep track of action clients to avoid sending the same thing all over again
 			_, tried := triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}]
 			if tried {
-				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action client already tried, skip", release.Indexer.Name, release.FilterName, release.TorrentName)
+				l.Debug().Msgf("release.Process: indexer: %s, filter: %s release: %s action client already tried, skip", release.Indexer.Name, release.FilterName, release.TorrentName)
 				continue
 			}
 
 			// run action
-			status, err := s.runAction(ctx, act, release)
+			status, err := s.runAction(ctx, act, release, actionStatus)
 			if err != nil {
 				l.Error().Err(err).Msgf("release.Process: error running actions for filter: %s", release.FilterName)
 				//continue
@@ -320,13 +343,13 @@ func (s *service) ProcessMultiple(releases []*domain.Release) {
 	}
 }
 
-func (s *service) runAction(ctx context.Context, action *domain.Action, release *domain.Release) (*domain.ReleaseActionStatus, error) {
+func (s *service) runAction(ctx context.Context, action *domain.Action, release *domain.Release, status *domain.ReleaseActionStatus) (*domain.ReleaseActionStatus, error) {
 	// add action status as pending
-	status := domain.NewReleaseActionStatus(action, release)
-
-	if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-		s.log.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
-	}
+	//status := domain.NewReleaseActionStatus(action, release)
+	//
+	//if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+	//	s.log.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
+	//}
 
 	rejections, err := s.actionSvc.RunAction(ctx, action, release)
 	if err != nil {
@@ -351,7 +374,14 @@ func (s *service) runAction(ctx context.Context, action *domain.Action, release 
 }
 
 func (s *service) retryAction(ctx context.Context, action *domain.Action, release *domain.Release) error {
-	actionStatus, err := s.runAction(ctx, action, release)
+	// add action status as pending
+	status := domain.NewReleaseActionStatus(action, release)
+
+	if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+		s.log.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
+	}
+
+	actionStatus, err := s.runAction(ctx, action, release, status)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("release.retryAction: error running actions for filter: %s", release.FilterName)
 

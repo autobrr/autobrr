@@ -16,29 +16,30 @@ func dataSourceName(configPath string, name string) string {
 	return name
 }
 
-func toNullString(s string) sql.NullString {
-	return sql.NullString{
-		String: s,
-		Valid:  s != "",
+func toNullString(s string) sql.Null[string] {
+	return sql.Null[string]{
+		V:     s,
+		Valid: s != "",
 	}
 }
 
-func toNullInt32(s int32) sql.NullInt32 {
-	return sql.NullInt32{
-		Int32: s,
-		Valid: s != 0,
-	}
-}
-func toNullInt64(s int64) sql.NullInt64 {
-	return sql.NullInt64{
-		Int64: s,
+func toNullInt32(s int32) sql.Null[int32] {
+	return sql.Null[int32]{
+		V:     s,
 		Valid: s != 0,
 	}
 }
 
-func toNullFloat64(s float64) sql.NullFloat64 {
-	return sql.NullFloat64{
-		Float64: s,
-		Valid:   s != 0,
+func toNullInt64(s int64) sql.Null[int64] {
+	return sql.Null[int64]{
+		V:     s,
+		Valid: s != 0,
+	}
+}
+
+func toNullFloat64(s float64) sql.Null[float64] {
+	return sql.Null[float64]{
+		V:     s,
+		Valid: s != 0,
 	}
 }

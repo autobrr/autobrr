@@ -23,6 +23,7 @@ import * as common from "@components/inputs/common";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 
 import { componentMapType } from "./DownloadClientForms";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 function FormFieldsDiscord() {
   return (
@@ -289,12 +290,7 @@ interface NotificationAddFormValues {
     enabled: boolean;
 }
 
-interface AddProps {
-    isOpen: boolean;
-    toggle: () => void;
-}
-
-export function NotificationAddForm({ isOpen, toggle }: AddProps) {
+export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -544,12 +540,6 @@ const EventCheckBoxes = () => (
   </fieldset>
 );
 
-interface UpdateProps {
-    isOpen: boolean;
-    toggle: () => void;
-    notification: ServiceNotification;
-}
-
 interface InitialValues {
   id: number;
   enabled: boolean;
@@ -565,7 +555,7 @@ interface InitialValues {
   events: NotificationEvent[];
 }
 
-export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
+export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({

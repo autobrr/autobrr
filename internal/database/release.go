@@ -97,6 +97,58 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 	return nil
 }
 
+func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *domain.DuplicateReleaseProfile) error {
+	if profile.ID == 0 {
+		queryBuilder := repo.db.squirrel.
+			Insert("release_profile_duplicate").
+			Columns("name", "protocol", "release_name", "title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack").
+			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Title, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.HDR, profile.Group, profile.Proper, profile.Repack).
+			Suffix("RETURNING id").
+			RunWith(repo.db.handler)
+
+		// return values
+		var retID int64
+
+		err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		profile.ID = retID
+	} else {
+		queryBuilder := repo.db.squirrel.
+			Update("release_profile_duplicate").
+			Set("name", profile.Name).
+			Set("protocol", profile.Protocol).
+			Set("release_name", profile.ReleaseName).
+			Set("title", profile.Title).
+			Set("season", profile.Season).
+			Set("episode", profile.Episode).
+			Set("year", profile.Year).
+			Set("month", profile.Month).
+			Set("day", profile.Day).
+			Set("resolution", profile.Resolution).
+			Set("source", profile.Source).
+			Set("codec", profile.Codec).
+			Set("container", profile.Container).
+			Set("hdr", profile.HDR).
+			Set("release_group", profile.Group).
+			Set("proper", profile.Proper).
+			Set("repack", profile.Repack).
+			Where(sq.Eq{"id": profile.ID}).
+			RunWith(repo.db.handler)
+
+		_, err := queryBuilder.ExecContext(ctx)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+	}
+
+	repo.log.Debug().Msgf("release.StoreDuplicateProfile: %+v", profile)
+
+	return nil
+}
+
 func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
@@ -328,6 +380,62 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 	}
 
 	return releases, nil
+}
+
+func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error) {
+	queryBuilder := repo.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"protocol",
+			"release_name",
+			"title",
+			"year",
+			"month",
+			"day",
+			"source",
+			"resolution",
+			"codec",
+			"container",
+			"hdr",
+			"release_group",
+			"season",
+			"episode",
+			"proper",
+			"repack",
+		).
+		From("release_profile_duplicate")
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows FindDuplicateReleaseProfiles")
+	}
+
+	res := make([]*domain.DuplicateReleaseProfile, 0)
+
+	for rows.Next() {
+		var p domain.DuplicateReleaseProfile
+
+		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Title, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.HDR, &p.Group, &p.Season, &p.Episode, &p.Proper, &p.Repack)
+		if err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		res = append(res, &p)
+	}
+
+	return res, nil
 }
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
@@ -668,6 +776,31 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 	return nil
 }
 
+func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error {
+	qb := repo.db.squirrel.Delete("release_profile_duplicate").Where(sq.Eq{"id": id})
+
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building SQL query")
+	}
+
+	_, err = repo.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing delete query")
+	}
+
+	//deletedRows, err := result.RowsAffected()
+	//if err != nil {
+	//	return errors.Wrap(err, "error fetching rows affected")
+	//}
+	//
+	//repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+
+	repo.log.Debug().Msgf("deleted duplicate release profile: %d", id)
+
+	return nil
+}
+
 func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
 	// TODO support non season episode shows
 	// if rls.Day > 0 {
@@ -783,4 +916,107 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 	repo.log.Trace().Msgf("release updated (%d) base urls from %q to %q", rowsAffected, oldBaseURL, newBaseURL)
 
 	return nil
+}
+
+func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.ReleaseNormalized) (bool, error) {
+	queryBuilder := repo.db.squirrel.
+		Select("r.id, r.torrent_name, r.title, ras.action, ras.status").
+		From("release r").
+		LeftJoin("release_action_status ras ON r.id = ras.release_id").
+		Where("ras.status = 'PUSH_APPROVED'")
+
+	if profile.Title {
+		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.title)": release.Title})
+	}
+
+	if profile.ReleaseName {
+		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.torrent_name)": release.TorrentName})
+	}
+
+	if profile.Year {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.year": release.Year})
+	}
+	//if profile.Month {
+	//	queryBuilder = queryBuilder.Where(sq.Eq{"r.month": release.Month})
+	//}
+	//if profile.Day {
+	//	queryBuilder = queryBuilder.Where(sq.Eq{"r.day": release.Day})
+	//}
+
+	if profile.Source {
+		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.source)": release.Source})
+	}
+	if profile.Container {
+		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.container)": release.Container})
+	}
+	if profile.Codec {
+		//queryBuilder = queryBuilder.Where(sq.Eq{"r.codec": release.Codec})
+		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.codec", release.Codec))
+		// TODO fix array check
+	}
+	if profile.Resolution {
+		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.resolution)": release.Resolution})
+	}
+	if profile.HDR {
+		//queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.Resolution})
+		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.hdr", release.HDR))
+		// TODO fix array check
+	}
+	if profile.Group {
+		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.release_group)": release.Group})
+	}
+	if profile.Season {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.season": release.Season})
+	}
+	if profile.Episode {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.episode": release.Episode})
+	}
+	if profile.Proper {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": release.Proper})
+	}
+	if profile.Repack {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": release.Repack})
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "error building query")
+	}
+
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("query: %q, args: %q", query, args)
+
+	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return false, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return false, errors.Wrap(err, "error rows CheckIsDuplicateRelease")
+	}
+
+	type result struct {
+		id      int
+		release string
+		title   string
+		action  string
+		status  string
+	}
+
+	var res []result
+
+	for rows.Next() {
+		r := result{}
+		if err := rows.Scan(&r.id, &r.release, &r.title, &r.action, &r.status); err != nil {
+			return false, errors.Wrap(err, "error scan CheckIsDuplicateRelease")
+		}
+		res = append(res, r)
+	}
+
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("found duplicate releases: %+v", res)
+
+	if len(res) == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }

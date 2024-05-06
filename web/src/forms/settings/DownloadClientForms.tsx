@@ -27,6 +27,7 @@ import {
 } from "@components/inputs";
 import { DocsLink, ExternalLink } from "@components/ExternalLink";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 interface InitialValuesSettings {
   basic?: {
@@ -678,12 +679,7 @@ function DownloadClientFormButtons({
   );
 }
 
-interface formProps {
-  isOpen: boolean;
-  toggle: () => void;
-}
-
-export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
+export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
@@ -845,13 +841,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   );
 }
 
-interface updateFormProps {
-  isOpen: boolean;
-  toggle: () => void;
-  client: DownloadClient;
-}
-
-export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormProps) {
+export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: UpdateFormProps<DownloadClient>) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);

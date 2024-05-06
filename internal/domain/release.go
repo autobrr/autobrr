@@ -40,6 +40,11 @@ type ReleaseRepo interface {
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
 	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
+
+	StoreDuplicateProfile(ctx context.Context, profile *DuplicateReleaseProfile) error
+	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
+	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *ReleaseNormalized) (bool, error)
 }
 
 type Release struct {
@@ -104,10 +109,74 @@ type Release struct {
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+
+	normalized *ReleaseNormalized
 }
 
 func (r *Release) Raw(s string) rls.Release {
 	return rls.ParseString(s)
+}
+
+func (r *Release) Normalized() *ReleaseNormalized {
+	if r.normalized != nil {
+		return r.normalized
+	}
+
+	return &ReleaseNormalized{
+		Protocol:       r.Protocol,
+		Implementation: r.Implementation,
+		Timestamp:      r.Timestamp,
+		TorrentName:    rls.MustNormalize(r.TorrentName),
+		Title:          rls.MustNormalize(r.Title),
+		Season:         r.Season,
+		Episode:        r.Episode,
+		Year:           r.Year,
+		//Month:           r.Month,
+		//Day:           r.Day,
+		Resolution:    rls.MustNormalize(r.Resolution),
+		Source:        rls.MustNormalize(r.Source),
+		Codec:         r.Codec,
+		Container:     rls.MustNormalize(r.Container),
+		HDR:           r.HDR,
+		Audio:         r.Audio,
+		AudioChannels: r.AudioChannels,
+		AudioFormat:   r.AudioFormat,
+		Bitrate:       r.Bitrate,
+		Group:         rls.MustNormalize(r.Group),
+		Proper:        r.Proper,
+		Repack:        r.Repack,
+	}
+}
+
+type ReleaseNormalized struct {
+	Protocol       ReleaseProtocol       `json:"protocol"`
+	Implementation ReleaseImplementation `json:"implementation"` // irc, rss, api
+	Timestamp      time.Time             `json:"timestamp"`
+	TorrentName    string                `json:"name"`  // full release name
+	Title          string                `json:"title"` // Parsed title
+	Season         int                   `json:"season"`
+	Episode        int                   `json:"episode"`
+	Year           int                   `json:"year"`
+	Resolution     string                `json:"resolution"`
+	Source         string                `json:"source"`
+	Codec          []string              `json:"codec"`
+	Container      string                `json:"container"`
+	HDR            []string              `json:"hdr"`
+	Audio          []string              `json:"-"`
+	AudioChannels  string                `json:"-"`
+	AudioFormat    string                `json:"-"`
+	Bitrate        string                `json:"-"`
+	Group          string                `json:"group"`
+	Proper         bool                  `json:"proper"`
+	Repack         bool                  `json:"repack"`
+	//Region                      string                `json:"-"`
+	//Language                    []string              `json:"-"`
+	//Website                     string                `json:"website"`
+	//Artists                     string                `json:"-"`
+	//Type                        string                `json:"type"` // Album,Single,EP
+	//LogScore                    int                   `json:"-"`
+	//HasCue                      bool                  `json:"-"`
+	//HasLog                      bool                  `json:"-"`
 }
 
 type ReleaseActionStatus struct {
@@ -856,4 +925,27 @@ func getUniqueTags(target []string, source []string) []string {
 	target = append(target, toAppend...)
 
 	return target
+}
+
+type DuplicateReleaseProfile struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	//Protocol    ReleaseProtocol `json:"protocol"`
+	Protocol    bool `json:"protocol"`
+	ReleaseName bool `json:"release_name"`
+	Exact       bool `json:"exact"`
+	Title       bool `json:"title"`
+	Year        bool `json:"year"`
+	Month       bool `json:"month"`
+	Day         bool `json:"day"`
+	Source      bool `json:"source"`
+	Resolution  bool `json:"resolution"`
+	Codec       bool `json:"codec"`
+	Container   bool `json:"container"`
+	HDR         bool `json:"hdr"`
+	Group       bool `json:"group"`
+	Season      bool `json:"season"`
+	Episode     bool `json:"episode"`
+	Proper      bool `json:"proper"`
+	Repack      bool `json:"repack"`
 }

@@ -12,7 +12,7 @@ import {
   FilterKeys,
   IndexerKeys,
   IrcKeys, NotificationKeys,
-  ReleaseKeys,
+  ReleaseKeys, ReleaseProfileDuplicateKeys,
   SettingsKeys
 } from "@api/query_keys";
 
@@ -136,4 +136,12 @@ export const ReleasesIndexersQueryOptions = () =>
     queryFn: () => APIClient.release.indexerOptions(),
     placeholderData: keepPreviousData,
     staleTime: Infinity
+  });
+
+export const ReleaseProfileDuplicateList = () =>
+  queryOptions({
+    queryKey: ReleaseProfileDuplicateKeys.lists(),
+    queryFn: () => APIClient.release.profiles.duplicates.list(),
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
   });

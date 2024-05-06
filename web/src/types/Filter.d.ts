@@ -76,6 +76,7 @@ interface Filter {
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
+  release_profile_duplicate_id?: number;
 }
 
 interface Action {
