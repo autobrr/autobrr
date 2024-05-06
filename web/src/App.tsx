@@ -20,7 +20,7 @@ declare module '@tanstack/react-router' {
 }
 
 export function App() {
-  const [ settings, setSettings] = SettingsContext.use();
+  const [ , setSettings] = SettingsContext.use();
 
   useEffect(() => {
     const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
