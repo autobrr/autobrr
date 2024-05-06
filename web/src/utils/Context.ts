@@ -77,9 +77,19 @@ const FilterListKey = "autobrr_filter_list";
 
 export const InitializeGlobalContext = () => {
   // ContextMerger<AuthInfo>(localStorageUserKey, AuthContextDefaults, AuthContextt);
+  const storedSettings = localStorage.getItem(SettingsKey);
+  let initialSettings: SettingsType;
+
+  if (storedSettings) {
+    initialSettings = JSON.parse(storedSettings);
+  } else {
+    // Fallback to OS theme preference if no settings are stored
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    initialSettings = { ...SettingsContextDefaults, darkTheme: prefersDarkMode };
+  };
   ContextMerger<SettingsType>(
     SettingsKey,
-    SettingsContextDefaults,
+    initialSettings,
     SettingsContext
   );
   ContextMerger<FilterListState>(

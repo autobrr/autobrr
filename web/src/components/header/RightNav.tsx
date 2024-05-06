@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment } from "react";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, Transition } from "@headlessui/react";
 
@@ -17,32 +17,6 @@ import { SettingsContext } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
-  const [osTheme, setOsTheme] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
-
-  useEffect(() => {
-    const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleThemeChange = (e: MediaQueryListEvent) => {
-      setOsTheme(e.matches);
-      // update settings based on OS preference
-      setSettings(prevState => ({ ...prevState, darkTheme: e.matches }));
-    };
-
-    themeMediaQuery.addEventListener('change', handleThemeChange);
-    return () => themeMediaQuery.removeEventListener('change', handleThemeChange);
-  }, [setSettings]);
-
-  useEffect(() => {
-    // load theme from local storage on initial load
-    const savedSettings = localStorage.getItem('settings');
-    if (savedSettings) {
-      const parsedSettings = JSON.parse(savedSettings);
-      setSettings(parsedSettings);
-    }
-  }, [setSettings]);
-
-  useEffect(() => {
-    localStorage.setItem('settings', JSON.stringify(settings));
-  }, [settings]);
 
   const toggleTheme = () => {
     setSettings(prevState => ({
@@ -51,7 +25,7 @@ export const RightNav = (props: RightNavProps) => {
     }));
   };
 
-  const themeIcon = settings.darkTheme !== undefined ? settings.darkTheme : osTheme;
+  const themeIcon = settings.darkTheme;
 
 
   return (
