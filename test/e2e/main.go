@@ -103,19 +103,51 @@ func main() {
 	time.Sleep(time.Millisecond * 1000)
 
 	/* Add Download Client */
+	_, err = page.Goto("http://localhost:3000/settings/clients")
+	assertErrorToNilf("could not navigate to settings/clients: %w", err)
+
+	assertErrorToNilf("could not find and click 'Add new client' button: %v", page.Locator("button", playwright.PageLocatorOptions{
+		HasText: "Add new client",
+	}).Click())
+
+	assertErrorToNilf("could not fill 'qbit' in the name field: %v", page.Locator("input#name").Fill("qbit"))
+	assertErrorToNilf("could not fill 'https://qbit.local' as host: %v", page.Locator("input#host").Fill("https://qbit.local"))
+	assertErrorToNilf("could not fill username: %v", page.Locator("input#username").Fill("dev"))
+	assertErrorToNilf("could not fill password: %v", page.Locator("input#password").Fill("pass"))
+
+	time.Sleep(time.Millisecond * 2000)
+
+	assertErrorToNilf("could not click the 'Create' button: %v", page.Locator("button", playwright.PageLocatorOptions{
+		HasText: "Create",
+	}).Click())
+
+	time.Sleep(time.Millisecond * 1000)
 
 	/* Add filter */
 
-	assertErrorToNilf("could not press: %v", page.Locator("text=Filters").Click())
+	_, err = page.Goto("http://localhost:3000/filters")
+	assertErrorToNilf("could not navigate to filters: %w", err)
+
+	assertErrorToNilf("could not find and click 'Add new' button: %v", page.Locator("button", playwright.PageLocatorOptions{
+		HasText: "Add new",
+	}).Click())
+
+	assertErrorToNilf("could not fill filterName in the name field: %v", page.Locator("input#name").Fill(filterName))
+
+	time.Sleep(time.Millisecond * 2000)
+
+	assertErrorToNilf("could not click the 'Create' button: %v", page.Locator("button[type='submit']", playwright.PageLocatorOptions{
+		HasText: "Create",
+	}).Click())
 
 	//filterPageVisible, err := page.Locator("h1").IsVisible()
 	//assertErrorToNilf("could not goto: %w", err)
 	//
 	//assertBool("", filterPageVisible, true)
 
-	assertErrorToNilf("could not press: %v", page.Locator("text=Add Filter").Click())
-	assertErrorToNilf("could not type: %v", page.Locator("input#name").Fill(filterName))
-	assertErrorToNilf("could not press: %v", page.Locator("button", playwright.PageLocatorOptions{HasText: "Create"}).Click())
+	//assertErrorToNilf("could not press: %v", page.Locator("text=Add Filter").Click())
+	//assertErrorToNilf("could not type: %v", page.Locator("input#name").Fill(filterName))
+	//assertErrorToNilf("could not press: %v", page.Locator("button", playwright.PageLocatorOptions{HasText: "Create"}).Click())
 
 	time.Sleep(time.Millisecond * 2000)
 
