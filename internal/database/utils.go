@@ -29,6 +29,7 @@ func toNullInt32(s int32) sql.NullInt32 {
 		Valid: s != 0,
 	}
 }
+
 func toNullInt64(s int64) sql.NullInt64 {
 	return sql.NullInt64{
 		Int64: s,

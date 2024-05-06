@@ -162,6 +162,8 @@ type Filter struct {
 	Actions              []*Action              `json:"actions,omitempty"`
 	External             []FilterExternal       `json:"external,omitempty"`
 	Indexers             []Indexer              `json:"indexers"`
+	ReleaseProfileDuplicateID int64             `json:"release_profile_duplicate_id,omitempty"`
+	DuplicateHandling    *DuplicateReleaseProfile `json:"release_profile_duplicate"`
 	Downloads            *FilterDownloads       `json:"-"`
 	Rejections           []string               `json:"-"`
 }

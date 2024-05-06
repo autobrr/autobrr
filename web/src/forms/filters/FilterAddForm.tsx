@@ -16,14 +16,9 @@ import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
+import { AddFormProps } from "@forms/_shared";
 
-
-interface filterAddFormProps {
-    isOpen: boolean;
-    toggle: () => void;
-}
-
-export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
+export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const mutation = useMutation({

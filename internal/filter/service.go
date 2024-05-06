@@ -44,6 +44,7 @@ type Service interface {
 	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error)
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
+	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.ReleaseNormalized) (bool, error)
 }
 
 type service struct {
@@ -413,13 +414,27 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 			if !canDownloadShow {
 				l.Trace().Msgf("failed smart episode check: %s", f.Name)
-
 				if params.IsDailyEpisode() {
 					f.AddRejectionF("smart episode check: not new: (%s) Daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day)
 				} else {
 					f.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
 				}
+				return false, nil
+			}
+		}
 
+		// check duplicates
+		// TODO run before or after CheckFilter?
+		// make more efficient? check if id != 0 and only load profile then
+		if f.DuplicateHandling != nil {
+			isDuplicate, err := s.CheckIsDuplicateRelease(ctx, f.DuplicateHandling, release.Normalized())
+			if err != nil {
+				return false, errors.Wrap(err, "error finding duplicate handle")
+			}
+
+			if isDuplicate {
+				l.Debug().Msgf("filter %s rejected release %q as duplicate with profile %q", f.Name, release.TorrentName, f.DuplicateHandling.Name)
+				f.AddRejectionF("found duplicate release")
 				return false, nil
 			}
 		}
@@ -528,6 +543,10 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 func (s *service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error) {
 	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
+}
+
+func (s *service) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.ReleaseNormalized) (bool, error) {
+	return s.releaseRepo.CheckIsDuplicateRelease(ctx, profile, release)
 }
 
 func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (bool, error) {

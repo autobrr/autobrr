@@ -136,7 +136,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
         <IndexerUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
-          indexer={indexer}
+          data={indexer}
         />
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
           <Checkbox value={indexer.enabled ?? false} setValue={onToggleMutation} />

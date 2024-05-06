@@ -88,6 +88,28 @@ CREATE TABLE irc_channel
     UNIQUE (network_id, name)
 );
 
+CREATE TABLE release_profile_duplicate
+(
+    id            SERIAL PRIMARY KEY,
+    name          TEXT NOT NULL,
+    protocol      BOOLEAN DEFAULT FALSE,
+    release_name  BOOLEAN DEFAULT FALSE,
+    title         BOOLEAN DEFAULT FALSE,
+    year          BOOLEAN DEFAULT FALSE,
+    month         BOOLEAN DEFAULT FALSE,
+    day           BOOLEAN DEFAULT FALSE,
+    source        BOOLEAN DEFAULT FALSE,
+    resolution    BOOLEAN DEFAULT FALSE,
+    codec         BOOLEAN DEFAULT FALSE,
+    container     BOOLEAN DEFAULT FALSE,
+    hdr           BOOLEAN DEFAULT FALSE,
+    release_group BOOLEAN DEFAULT FALSE,
+    season        BOOLEAN DEFAULT FALSE,
+    episode       BOOLEAN DEFAULT FALSE,
+    proper        BOOLEAN DEFAULT FALSE,
+    repack        BOOLEAN DEFAULT FALSE
+);
+
 CREATE TABLE filter
 (
     id                             SERIAL PRIMARY KEY,
@@ -156,7 +178,9 @@ CREATE TABLE filter
     min_seeders                    INTEGER DEFAULT 0,
     max_seeders                    INTEGER DEFAULT 0,
     min_leechers                   INTEGER DEFAULT 0,
-    max_leechers                   INTEGER DEFAULT 0
+    max_leechers                   INTEGER DEFAULT 0,
+    release_profile_duplicate_id   INTEGER,
+    FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate(id) ON DELETE SET NULL
 );
 
 CREATE TABLE filter_external
@@ -954,5 +978,35 @@ ALTER TABLE irc_network
 ALTER TABLE irc_network
     ADD FOREIGN KEY (proxy_id) REFERENCES proxy
         ON DELETE SET NULL;
+`,
+	`CREATE TABLE release_profile_duplicate
+(
+    id            SERIAL PRIMARY KEY,
+    name          TEXT NOT NULL,
+    protocol      BOOLEAN DEFAULT FALSE,
+    release_name  BOOLEAN DEFAULT FALSE,
+    title         BOOLEAN DEFAULT FALSE,
+    year          BOOLEAN DEFAULT FALSE,
+    month         BOOLEAN DEFAULT FALSE,
+    day           BOOLEAN DEFAULT FALSE,
+    source        BOOLEAN DEFAULT FALSE,
+    resolution    BOOLEAN DEFAULT FALSE,
+    codec         BOOLEAN DEFAULT FALSE,
+    container     BOOLEAN DEFAULT FALSE,
+    hdr           BOOLEAN DEFAULT FALSE,
+    release_group BOOLEAN DEFAULT FALSE,
+    season        BOOLEAN DEFAULT FALSE,
+    episode       BOOLEAN DEFAULT FALSE,
+    proper        BOOLEAN DEFAULT FALSE,
+    repack        BOOLEAN DEFAULT FALSE
+);
+
+ALTER TABLE filter
+    ADD release_profile_duplicate_id INTEGER;
+
+ALTER TABLE filter
+    ADD CONSTRAINT filter_release_profile_duplicate_id_fk
+        FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate (id)
+            ON DELETE SET NULL;
 `,
 }
