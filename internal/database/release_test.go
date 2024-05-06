@@ -101,7 +101,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -111,8 +111,8 @@ func TestReleaseRepo_Store(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
@@ -156,7 +156,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -166,8 +166,8 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
@@ -211,7 +211,7 @@ func TestReleaseRepo_Find(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -270,7 +270,7 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -318,7 +318,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -327,8 +327,8 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
@@ -376,7 +376,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -385,14 +385,14 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
 
 			// Execute
-			actionStatus, err := repo.GetActionStatus(context.Background(), &domain.GetReleaseActionStatusRequest{Id: int(releaseActionMockData.ID)})
+			actionStatus, err := repo.GetActionStatus(context.Background(), &domain.GetReleaseActionStatusRequest{Id: releaseActionMockData.ID})
 
 			// Verify
 			assert.NoError(t, err)
@@ -435,7 +435,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -444,14 +444,14 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
 
 			// Execute
-			release, err := repo.Get(context.Background(), &domain.GetReleaseRequest{Id: int(mockData.ID)})
+			release, err := repo.Get(context.Background(), &domain.GetReleaseRequest{Id: mockData.ID})
 
 			// Verify
 			assert.NoError(t, err)
@@ -494,7 +494,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -503,8 +503,8 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
@@ -553,7 +553,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -562,8 +562,8 @@ func TestReleaseRepo_Delete(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
@@ -609,7 +609,7 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -618,8 +618,8 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+			releaseActionMockData.ActionID = createdAction.ID
+			releaseActionMockData.FilterID = createdFilters[0].ID
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)

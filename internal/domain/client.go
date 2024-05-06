@@ -15,14 +15,14 @@ import (
 
 type DownloadClientRepo interface {
 	List(ctx context.Context) ([]DownloadClient, error)
-	FindByID(ctx context.Context, id int32) (*DownloadClient, error)
+	FindByID(ctx context.Context, id int64) (*DownloadClient, error)
 	Store(ctx context.Context, client DownloadClient) (*DownloadClient, error)
 	Update(ctx context.Context, client DownloadClient) (*DownloadClient, error)
-	Delete(ctx context.Context, clientID int) error
+	Delete(ctx context.Context, clientID int64) error
 }
 
 type DownloadClient struct {
-	ID            int                    `json:"id"`
+	ID            int64                  `json:"id"`
 	Name          string                 `json:"name"`
 	Type          DownloadClientType     `json:"type"`
 	Enabled       bool                   `json:"enabled"`

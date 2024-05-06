@@ -106,7 +106,7 @@ type Release struct {
 	Seeders                     int                   `json:"-"`
 	Leechers                    int                   `json:"-"`
 	AdditionalSizeCheckRequired bool                  `json:"-"`
-	FilterID                    int                   `json:"-"`
+	FilterID                    int64                 `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
 
@@ -204,10 +204,10 @@ func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStat
 		ID:         0,
 		Status:     ReleasePushStatusPending,
 		Action:     action.Name,
-		ActionID:   int64(action.ID),
+		ActionID:   action.ID,
 		Type:       action.Type,
 		Filter:     release.FilterName,
-		FilterID:   int64(release.FilterID),
+		FilterID:   release.FilterID,
 		Rejections: []string{},
 		Timestamp:  time.Now(),
 		ReleaseID:  release.ID,
@@ -337,9 +337,9 @@ type ReleaseQueryParams struct {
 }
 
 type ReleaseActionRetryReq struct {
-	ReleaseId      int
-	ActionStatusId int
-	ActionId       int
+	ReleaseId      int64
+	ActionStatusId int64
+	ActionId       int64
 }
 
 type ReleaseProcessReq struct {
@@ -349,11 +349,11 @@ type ReleaseProcessReq struct {
 }
 
 type GetReleaseRequest struct {
-	Id int
+	Id int64
 }
 
 type GetReleaseActionStatusRequest struct {
-	Id int
+	Id int64
 }
 
 func NewRelease(indexer IndexerMinimal) *Release {

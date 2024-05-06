@@ -176,7 +176,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	return filters, nil
 }
 
-func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
+func (r *FilterRepo) FindByID(ctx context.Context, filterID int64) (*domain.Filter, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -480,7 +480,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
 		Join("indexer i ON i.id = fi.indexer_id").
-		Join("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
+		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
 		Where(sq.Eq{"f.enabled": true}).
@@ -671,7 +671,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	return filters, nil
 }
 
-func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) ([]domain.FilterExternal, error) {
+func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int64) ([]domain.FilterExternal, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"fe.id",
@@ -890,7 +890,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
 	// return values
-	var retID int
+	var retID int64
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
 		return errors.Wrap(err, "error executing query")
@@ -967,7 +967,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("max_seeders", filter.MaxSeeders).
 		Set("min_leechers", filter.MinLeechers).
 		Set("max_leechers", filter.MaxLeechers).
-		Set("release_profile_duplicate_id", filter.ReleaseProfileDuplicateID).
+		Set("release_profile_duplicate_id", toNullInt64(filter.ReleaseProfileDuplicateID)).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
@@ -1203,7 +1203,7 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	return nil
 }
 
-func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int64, enabled bool) error {
 	var err error
 
 	queryBuilder := r.db.squirrel.
@@ -1231,7 +1231,7 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 	return nil
 }
 
-func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
+func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int64, indexers []domain.Indexer) error {
 	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -1287,7 +1287,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 	return nil
 }
 
-func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
+func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int64, indexerID int64) error {
 	queryBuilder := r.db.squirrel.
 		Insert("filter_indexer").Columns("filter_id", "indexer_id").
 		Values(filterID, indexerID)
@@ -1305,7 +1305,7 @@ func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, i
 	return nil
 }
 
-func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int) error {
+func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int64) error {
 	queryBuilder := r.db.squirrel.
 		Delete("filter_indexer").
 		Where(sq.Eq{"filter_id": filterID})
@@ -1323,7 +1323,7 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 	return nil
 }
 
-func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) error {
+func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int64) error {
 	queryBuilder := r.db.squirrel.
 		Delete("filter_external").
 		Where(sq.Eq{"filter_id": filterID})
@@ -1341,7 +1341,7 @@ func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) err
 	return nil
 }
 
-func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
+func (r *FilterRepo) Delete(ctx context.Context, filterID int64) error {
 	queryBuilder := r.db.squirrel.
 		Delete("filter").
 		Where(sq.Eq{"id": filterID})
@@ -1374,7 +1374,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 //
 // See also
 // https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
-func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
+func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int64) (*domain.FilterDownloads, error) {
 	if r.db.Driver == "sqlite" {
 		return r.downloadsByFilterSqlite(ctx, filterID)
 	}
@@ -1382,7 +1382,7 @@ func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (
 	return r.downloadsByFilterPostgres(ctx, filterID)
 }
 
-func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
+func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, filterID int64) (*domain.FilterDownloads, error) {
 	query := `SELECT
 	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN 1 END) as "hour_count",
 	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN 1 END) as "day_count",
@@ -1408,7 +1408,7 @@ WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.s
 	return &f, nil
 }
 
-func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
+func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int64) (*domain.FilterDownloads, error) {
 	query := `SELECT
     COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN 1 ELSE 0 END),0) as "hour_count",
     COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('day', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "day_count",
@@ -1432,7 +1432,7 @@ WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.s
 	return &f, nil
 }
 
-func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error {
+func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int64, externalFilters []domain.FilterExternal) error {
 	tx, err := r.db.handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err

@@ -27,9 +27,9 @@ import (
 type Service interface {
 	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
-	Delete(ctx context.Context, id int) error
-	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
-	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
+	Delete(ctx context.Context, id int64) error
+	FindByFilterID(ctx context.Context, id int64) ([]domain.Indexer, error)
+	FindByID(ctx context.Context, id int64) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
@@ -39,7 +39,7 @@ type Service interface {
 	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, error)
 	Start() error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
-	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
+	ToggleEnabled(ctx context.Context, indexerID int64, enabled bool) error
 }
 
 type service struct {
@@ -121,7 +121,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		indexer.Settings[key] = sanitize.String(val)
 	}
 
-	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
+	currentIndexer, err := s.repo.FindByID(ctx, indexer.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
 	}
@@ -166,7 +166,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	return i, nil
 }
 
-func (s *service) Delete(ctx context.Context, id int) error {
+func (s *service) Delete(ctx context.Context, id int64) error {
 	indexer, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -187,7 +187,7 @@ func (s *service) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
+func (s *service) FindByFilterID(ctx context.Context, id int64) ([]domain.Indexer, error) {
 	indexers, err := s.repo.FindByFilterID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %d", id)
@@ -197,7 +197,7 @@ func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer,
 	return indexers, err
 }
 
-func (s *service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
+func (s *service) FindByID(ctx context.Context, id int64) (*domain.Indexer, error) {
 	indexers, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find indexer by id: %d", id)
@@ -272,7 +272,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 		return nil, nil
 	}
 
-	d.ID = int(indexer.ID)
+	d.ID = indexer.ID
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
 	d.IdentifierExternal = indexer.IdentifierExternal
@@ -309,7 +309,7 @@ func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefin
 		return nil, nil
 	}
 
-	d.ID = int(indexer.ID)
+	d.ID = indexer.ID
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
 	d.IdentifierExternal = indexer.IdentifierExternal
@@ -754,13 +754,13 @@ func (s *service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 	return nil
 }
 
-func (s *service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error {
+func (s *service) ToggleEnabled(ctx context.Context, indexerID int64, enabled bool) error {
 	indexer, err := s.FindByID(ctx, indexerID)
 	if err != nil {
 		return err
 	}
 
-	if err := s.repo.ToggleEnabled(ctx, int(indexer.ID), enabled); err != nil {
+	if err := s.repo.ToggleEnabled(ctx, indexer.ID, enabled); err != nil {
 		s.log.Error().Err(err).Msg("could not update indexer enabled")
 		return err
 	}

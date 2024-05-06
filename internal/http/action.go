@@ -19,7 +19,7 @@ type actionService interface {
 	List(ctx context.Context) ([]domain.Action, error)
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
-	ToggleEnabled(actionID int) error
+	ToggleEnabled(actionID int64) error
 }
 
 type actionHandler struct {
@@ -102,7 +102,7 @@ func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Delete(r.Context(), &domain.DeleteActionRequest{ActionId: actionID}); err != nil {
+	if err := h.service.Delete(r.Context(), &domain.DeleteActionRequest{ActionId: int64(actionID)}); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -117,7 +117,7 @@ func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.service.ToggleEnabled(actionID); err != nil {
+	if err := h.service.ToggleEnabled(int64(actionID)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

@@ -19,10 +19,10 @@ type IndexerRepo interface {
 	Store(ctx context.Context, indexer Indexer) (*Indexer, error)
 	Update(ctx context.Context, indexer Indexer) (*Indexer, error)
 	List(ctx context.Context) ([]Indexer, error)
-	Delete(ctx context.Context, id int) error
-	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
-	FindByID(ctx context.Context, id int) (*Indexer, error)
-	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
+	Delete(ctx context.Context, id int64) error
+	FindByFilterID(ctx context.Context, id int64) ([]Indexer, error)
+	FindByID(ctx context.Context, id int64) (*Indexer, error)
+	ToggleEnabled(ctx context.Context, indexerID int64, enabled bool) error
 }
 
 type Indexer struct {
@@ -37,14 +37,14 @@ type Indexer struct {
 }
 
 type IndexerMinimal struct {
-	ID                 int    `json:"id"`
+	ID                 int64  `json:"id"`
 	Name               string `json:"name"`
 	Identifier         string `json:"identifier"`
 	IdentifierExternal string `json:"identifier_external"`
 }
 
 type IndexerDefinition struct {
-	ID                 int               `json:"id,omitempty"`
+	ID                 int64             `json:"id,omitempty"`
 	Name               string            `json:"name"`
 	Identifier         string            `json:"identifier"`
 	IdentifierExternal string            `json:"identifier_external"`
@@ -102,7 +102,7 @@ func (i IndexerDefinition) HasApi() bool {
 }
 
 type IndexerDefinitionCustom struct {
-	ID             int               `json:"id,omitempty"`
+	ID             int64             `json:"id,omitempty"`
 	Name           string            `json:"name"`
 	Identifier     string            `json:"identifier"`
 	Implementation string            `json:"implementation"`
@@ -407,7 +407,7 @@ func (t TorrentBasic) ReleaseSizeBytes() uint64 {
 }
 
 type IndexerTestApiRequest struct {
-	IndexerId  int    `json:"id,omitempty"`
+	IndexerId  int64  `json:"id,omitempty"`
 	Identifier string `json:"identifier,omitempty"`
 	ApiUser    string `json:"api_user,omitempty"`
 	ApiKey     string `json:"api_key"`

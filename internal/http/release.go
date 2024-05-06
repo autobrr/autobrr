@@ -324,8 +324,8 @@ func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req = &domain.ReleaseActionRetryReq{
-		ReleaseId:      releaseId,
-		ActionStatusId: actionStatusId,
+		ReleaseId:      int64(releaseId),
+		ActionStatusId: int64(actionStatusId),
 	}
 
 	if err := h.service.Retry(r.Context(), req); err != nil {

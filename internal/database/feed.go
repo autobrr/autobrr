@@ -28,7 +28,7 @@ type FeedRepo struct {
 	db  *DB
 }
 
-func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+func (r *FeedRepo) FindByID(ctx context.Context, id int64) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -65,18 +65,18 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 
 	var f domain.Feed
 
-	var apiKey, cookie, settings sql.NullString
+	var apiKey, cookie, settings sql.Null[string]
 
 	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	f.ApiKey = apiKey.String
-	f.Cookie = cookie.String
+	f.ApiKey = apiKey.V
+	f.Cookie = cookie.V
 
 	if settings.Valid {
 		var settingsJson domain.FeedSettingsJSON
-		if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+		if err = json.Unmarshal([]byte(settings.V), &settingsJson); err != nil {
 			return nil, errors.Wrap(err, "error unmarshal settings")
 		}
 
@@ -123,17 +123,17 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 
 	var f domain.Feed
 
-	var apiKey, cookie, settings sql.NullString
+	var apiKey, cookie, settings sql.Null[string]
 
 	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	f.ApiKey = apiKey.String
-	f.Cookie = cookie.String
+	f.ApiKey = apiKey.V
+	f.Cookie = cookie.V
 
 	var settingsJson domain.FeedSettingsJSON
-	if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+	if err = json.Unmarshal([]byte(settings.V), &settingsJson); err != nil {
 		return nil, errors.Wrap(err, "error unmarshal settings")
 	}
 
@@ -185,7 +185,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	for rows.Next() {
 		var f domain.Feed
 
-		var apiKey, cookie, lastRunData, settings sql.NullString
+		var apiKey, cookie, lastRunData, settings sql.Null[string]
 		var lastRun sql.NullTime
 
 		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
@@ -193,9 +193,9 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		}
 
 		f.LastRun = lastRun.Time
-		f.LastRunData = lastRunData.String
-		f.ApiKey = apiKey.String
-		f.Cookie = cookie.String
+		f.LastRunData = lastRunData.V
+		f.ApiKey = apiKey.V
+		f.Cookie = cookie.V
 
 		f.Settings = &domain.FeedSettingsJSON{
 			DownloadType: domain.FeedDownloadTypeTorrent,
@@ -203,7 +203,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 
 		if settings.Valid {
 			var settingsJson domain.FeedSettingsJSON
-			if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+			if err = json.Unmarshal([]byte(settings.V), &settingsJson); err != nil {
 				return nil, errors.Wrap(err, "error unmarshal settings")
 			}
 
@@ -216,7 +216,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	return feeds, nil
 }
 
-func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, error) {
+func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int64) (string, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"last_run_data",
@@ -234,13 +234,13 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 		return "", errors.Wrap(err, "error executing query")
 	}
 
-	var data sql.NullString
+	var data sql.Null[string]
 
 	if err := row.Scan(&data); err != nil {
 		return "", errors.Wrap(err, "error scanning row")
 	}
 
-	return data.String, nil
+	return data.V, nil
 }
 
 func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
@@ -275,7 +275,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
-	var retID int
+	var retID int64
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
 		return errors.Wrap(err, "error executing query")
@@ -326,7 +326,7 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 	return nil
 }
 
-func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
+func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int64) error {
 	queryBuilder := r.db.squirrel.
 		Update("feed").
 		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
@@ -351,7 +351,7 @@ func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
 	return nil
 }
 
-func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data string) error {
+func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int64, data string) error {
 	queryBuilder := r.db.squirrel.
 		Update("feed").
 		Set("last_run", sq.Expr("CURRENT_TIMESTAMP")).
@@ -377,7 +377,7 @@ func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data s
 	return nil
 }
 
-func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
+func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {
 	var err error
 
 	queryBuilder := r.db.squirrel.
@@ -404,7 +404,7 @@ func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) erro
 	return nil
 }
 
-func (r *FeedRepo) Delete(ctx context.Context, id int) error {
+func (r *FeedRepo) Delete(ctx context.Context, id int64) error {
 	queryBuilder := r.db.squirrel.
 		Delete("feed").
 		Where(sq.Eq{"id": id})

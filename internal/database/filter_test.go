@@ -403,7 +403,7 @@ func TestFilterRepo_Find(t *testing.T) {
 			assert.NotNil(t, indexer)
 
 			// Store indexer connection
-			err = repo.StoreIndexerConnection(context.Background(), allFilter[0].ID, int(indexer.ID))
+			err = repo.StoreIndexerConnection(context.Background(), allFilter[0].ID, indexer.ID)
 
 			params := domain.FilterQueryParams{
 				Filters: struct{ Indexers []string }{Indexers: []string{"indexer1"}},
@@ -418,7 +418,7 @@ func TestFilterRepo_Find(t *testing.T) {
 			assert.Equal(t, 1, len(filters))
 
 			// Cleanup
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			_ = repo.Delete(context.Background(), filters[0].ID)
 		})
 
@@ -515,7 +515,7 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 				err := repo.Store(context.Background(), filter)
 				assert.NoError(t, err)
 
-				err = repo.StoreIndexerConnection(context.Background(), filter.ID, int(indexer.ID))
+				err = repo.StoreIndexerConnection(context.Background(), filter.ID, indexer.ID)
 				assert.NoError(t, err)
 			}
 
@@ -534,7 +534,7 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 			assert.Equal(t, filters[2].Priority, int32(20))
 
 			// Cleanup
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 
 			for _, filter := range filtersData {
 				filter := filter
@@ -604,11 +604,11 @@ func TestFilterRepo_StoreIndexerConnection(t *testing.T) {
 			assert.NotNil(t, indexer)
 
 			// Execute
-			err = repo.StoreIndexerConnection(context.Background(), mockData.ID, int(indexer.ID))
+			err = repo.StoreIndexerConnection(context.Background(), mockData.ID, indexer.ID)
 			assert.NoError(t, err)
 
 			// Cleanup
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			_ = repo.Delete(context.Background(), mockData.ID)
 		})
 
@@ -655,7 +655,7 @@ func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
 
 			// Cleanup
 			for _, indexer := range indexers {
-				_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+				_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			}
 			_ = repo.Delete(context.Background(), mockData.ID)
 		})
@@ -711,7 +711,7 @@ func TestFilterRepo_DeleteIndexerConnections(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, indexer)
 
-			err = repo.StoreIndexerConnection(context.Background(), mockData.ID, int(indexer.ID))
+			err = repo.StoreIndexerConnection(context.Background(), mockData.ID, indexer.ID)
 			assert.NoError(t, err)
 
 			// Execute
@@ -724,7 +724,7 @@ func TestFilterRepo_DeleteIndexerConnections(t *testing.T) {
 			assert.Nil(t, connections)
 
 			// Cleanup
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			_ = repo.Delete(context.Background(), mockData.ID)
 		})
 
@@ -794,7 +794,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			assert.NotNil(t, createdClient)
 
 			mockAction.FilterID = mockData.ID
-			mockAction.ClientID = int32(createdClient.ID)
+			mockAction.ClientID = createdClient.ID
 
 			action, err := actionRepo.Store(context.Background(), mockAction)
 

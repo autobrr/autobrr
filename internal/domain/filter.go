@@ -28,20 +28,20 @@ https://autodl-community.github.io/autodl-irssi/configuration/filter/
 type FilterRepo interface {
 	ListFilters(ctx context.Context) ([]Filter, error)
 	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
-	FindByID(ctx context.Context, filterID int) (*Filter, error)
+	FindByID(ctx context.Context, filterID int64) (*Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*Filter, error)
-	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
+	FindExternalFiltersByID(ctx context.Context, filterId int64) ([]FilterExternal, error)
 	Store(ctx context.Context, filter *Filter) error
 	Update(ctx context.Context, filter *Filter) error
 	UpdatePartial(ctx context.Context, filter FilterUpdate) error
-	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
-	Delete(ctx context.Context, filterID int) error
-	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
-	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
-	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []FilterExternal) error
-	DeleteIndexerConnections(ctx context.Context, filterID int) error
-	DeleteFilterExternal(ctx context.Context, filterID int) error
-	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
+	ToggleEnabled(ctx context.Context, filterID int64, enabled bool) error
+	Delete(ctx context.Context, filterID int64) error
+	StoreIndexerConnection(ctx context.Context, filterID int64, indexerID int64) error
+	StoreIndexerConnections(ctx context.Context, filterID int64, indexers []Indexer) error
+	StoreFilterExternal(ctx context.Context, filterID int64, externalFilters []FilterExternal) error
+	DeleteIndexerConnections(ctx context.Context, filterID int64) error
+	DeleteFilterExternal(ctx context.Context, filterID int64) error
+	GetDownloadsByFilterId(ctx context.Context, filterID int64) (*FilterDownloads, error)
 }
 
 type FilterDownloads struct {
@@ -71,7 +71,7 @@ type FilterQueryParams struct {
 }
 
 type Filter struct {
-	ID                        int                      `json:"id"`
+	ID                        int64                    `json:"id"`
 	Name                      string                   `json:"name"`
 	Enabled                   bool                     `json:"enabled"`
 	CreatedAt                 time.Time                `json:"created_at"`
@@ -178,7 +178,7 @@ const (
 )
 
 type FilterUpdate struct {
-	ID                   int                     `json:"id"`
+	ID                   int64                   `json:"id"`
 	Name                 *string                 `json:"name,omitempty"`
 	Enabled              *bool                   `json:"enabled,omitempty"`
 	MinSize              *string                 `json:"min_size,omitempty"`

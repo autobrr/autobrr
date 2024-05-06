@@ -29,7 +29,7 @@ import (
 )
 
 type Service interface {
-	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
+	FindByID(ctx context.Context, filterID int64) (*domain.Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
@@ -37,12 +37,12 @@ type Service interface {
 	Store(ctx context.Context, filter *domain.Filter) error
 	Update(ctx context.Context, filter *domain.Filter) error
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
-	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
-	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
-	Delete(ctx context.Context, filterID int) error
+	Duplicate(ctx context.Context, filterID int64) (*domain.Filter, error)
+	ToggleEnabled(ctx context.Context, filterID int64, enabled bool) error
+	Delete(ctx context.Context, filterID int64) error
 	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
-	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
+	GetDownloadsByFilterId(ctx context.Context, filterID int64) (*domain.FilterDownloads, error)
 	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.ReleaseNormalized) (bool, error)
 }
 
@@ -118,7 +118,7 @@ func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	return ret, nil
 }
 
-func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
+func (s *service) FindByID(ctx context.Context, filterID int64) (*domain.Filter, error) {
 	filter, err := s.repo.FindByID(ctx, filterID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filter for id: %v", filterID)
@@ -170,7 +170,7 @@ func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 	return filters, nil
 }
 
-func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
+func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int64) (*domain.FilterDownloads, error) {
 	return s.GetDownloadsByFilterId(ctx, filterID)
 }
 
@@ -223,7 +223,7 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	}
 
 	// take care of filter actions
-	actions, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions)
+	actions, err := s.actionRepo.StoreFilterActions(ctx, filter.ID, filter.Actions)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
 		return err
@@ -277,7 +277,7 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 	return nil
 }
 
-func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, error) {
+func (s *service) Duplicate(ctx context.Context, filterID int64) (*domain.Filter, error) {
 	// find filter with actions, indexers and external filters
 	filter, err := s.FindByID(ctx, filterID)
 	if err != nil {
@@ -309,7 +309,7 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	}
 
 	// take care of filter actions
-	if _, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
+	if _, err := s.actionRepo.StoreFilterActions(ctx, filter.ID, filter.Actions); err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
 		return nil, err
 	}
@@ -324,7 +324,7 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	return filter, nil
 }
 
-func (s *service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+func (s *service) ToggleEnabled(ctx context.Context, filterID int64, enabled bool) error {
 	if err := s.repo.ToggleEnabled(ctx, filterID, enabled); err != nil {
 		s.log.Error().Err(err).Msg("could not update filter enabled")
 		return err
@@ -335,7 +335,7 @@ func (s *service) ToggleEnabled(ctx context.Context, filterID int, enabled bool)
 	return nil
 }
 
-func (s *service) Delete(ctx context.Context, filterID int) error {
+func (s *service) Delete(ctx context.Context, filterID int64) error {
 	if filterID == 0 {
 		return nil
 	}

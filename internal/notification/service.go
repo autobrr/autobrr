@@ -18,10 +18,10 @@ import (
 
 type Service interface {
 	Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error)
-	FindByID(ctx context.Context, id int) (*domain.Notification, error)
+	FindByID(ctx context.Context, id int64) (*domain.Notification, error)
 	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
-	Delete(ctx context.Context, id int) error
+	Delete(ctx context.Context, id int64) error
 	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
 	Test(ctx context.Context, notification domain.Notification) error
 }
@@ -54,7 +54,7 @@ func (s *service) Find(ctx context.Context, params domain.NotificationQueryParam
 	return n, count, err
 }
 
-func (s *service) FindByID(ctx context.Context, id int) (*domain.Notification, error) {
+func (s *service) FindByID(ctx context.Context, id int64) (*domain.Notification, error) {
 	n, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find notification by id: %v", id)
@@ -96,7 +96,7 @@ func (s *service) Update(ctx context.Context, n domain.Notification) (*domain.No
 	return nil, nil
 }
 
-func (s *service) Delete(ctx context.Context, id int) error {
+func (s *service) Delete(ctx context.Context, id int64) error {
 	err := s.repo.Delete(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not delete notification: %v", id)

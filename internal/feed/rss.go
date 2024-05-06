@@ -281,7 +281,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
 		toCache = append(toCache, domain.FeedCacheItem{
-			FeedId: strconv.Itoa(j.Feed.ID),
+			FeedId: strconv.Itoa(int(j.Feed.ID)),
 			Key:    key,
 			Value:  []byte(i.Title),
 			TTL:    ttl,

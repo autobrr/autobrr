@@ -38,7 +38,7 @@ type Macro struct {
 	Resolution                string
 	Source                    string
 	HDR                       string
-	FilterID                  int
+	FilterID                  int64
 	FilterName                string
 	Size                      uint64
 	SizeString                string

@@ -24,19 +24,19 @@ import (
 )
 
 type Service interface {
-	FindByID(ctx context.Context, id int) (*domain.Feed, error)
+	FindByID(ctx context.Context, id int64) (*domain.Feed, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error)
 	Find(ctx context.Context) ([]domain.Feed, error)
-	GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error)
+	GetCacheByID(ctx context.Context, feedId int64) ([]domain.FeedCacheItem, error)
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
 	Test(ctx context.Context, feed *domain.Feed) error
-	ToggleEnabled(ctx context.Context, id int, enabled bool) error
-	Delete(ctx context.Context, id int) error
-	DeleteFeedCache(ctx context.Context, id int) error
-	GetLastRunData(ctx context.Context, id int) (string, error)
+	ToggleEnabled(ctx context.Context, id int64, enabled bool) error
+	Delete(ctx context.Context, id int64) error
+	DeleteFeedCache(ctx context.Context, id int64) error
+	GetLastRunData(ctx context.Context, id int64) (string, error)
 	DeleteFeedCacheStale(ctx context.Context) error
-	ForceRun(ctx context.Context, id int) error
+	ForceRun(ctx context.Context, id int64) error
 
 	Start() error
 }
@@ -54,7 +54,7 @@ type feedInstance struct {
 
 // feedKey creates a unique identifier to be used for controlling jobs in the scheduler
 type feedKey struct {
-	id int
+	id int64
 }
 
 // ToString creates a string of the unique id to be used for controlling jobs in the scheduler
@@ -83,7 +83,7 @@ func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCa
 	}
 }
 
-func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+func (s *service) FindByID(ctx context.Context, id int64) (*domain.Feed, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
@@ -109,7 +109,7 @@ func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
 	return feeds, nil
 }
 
-func (s *service) GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error) {
+func (s *service) GetCacheByID(ctx context.Context, feedId int64) ([]domain.FeedCacheItem, error) {
 	return s.cacheRepo.GetByFeed(ctx, feedId)
 }
 
@@ -121,11 +121,11 @@ func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
 	return s.update(ctx, feed)
 }
 
-func (s *service) Delete(ctx context.Context, id int) error {
+func (s *service) Delete(ctx context.Context, id int64) error {
 	return s.delete(ctx, id)
 }
 
-func (s *service) DeleteFeedCache(ctx context.Context, id int) error {
+func (s *service) DeleteFeedCache(ctx context.Context, id int64) error {
 	return s.cacheRepo.DeleteByFeed(ctx, id)
 }
 
@@ -133,7 +133,7 @@ func (s *service) DeleteFeedCacheStale(ctx context.Context) error {
 	return s.cacheRepo.DeleteStale(ctx)
 }
 
-func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
+func (s *service) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {
 	return s.toggleEnabled(ctx, id, enabled)
 }
 
@@ -159,7 +159,7 @@ func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 	return nil
 }
 
-func (s *service) delete(ctx context.Context, id int) error {
+func (s *service) delete(ctx context.Context, id int64) error {
 	f, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
@@ -182,7 +182,7 @@ func (s *service) delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
+func (s *service) toggleEnabled(ctx context.Context, id int64, enabled bool) error {
 	f, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
@@ -513,7 +513,7 @@ func (s *service) createCleanupJob() error {
 	return nil
 }
 
-func (s *service) stopFeedJob(id int) error {
+func (s *service) stopFeedJob(id int64) error {
 	// remove job from scheduler
 	if err := s.scheduler.RemoveJobByIdentifier(feedKey{id}.ToString()); err != nil {
 		return errors.Wrap(err, "stop job failed")
@@ -524,11 +524,11 @@ func (s *service) stopFeedJob(id int) error {
 	return nil
 }
 
-func (s *service) GetNextRun(id int) (time.Time, error) {
+func (s *service) GetNextRun(id int64) (time.Time, error) {
 	return s.scheduler.GetNextRun(feedKey{id}.ToString())
 }
 
-func (s *service) GetLastRunData(ctx context.Context, id int) (string, error) {
+func (s *service) GetLastRunData(ctx context.Context, id int64) (string, error) {
 	feed, err := s.repo.GetLastRunDataByID(ctx, id)
 	if err != nil {
 		return "", err
@@ -537,7 +537,7 @@ func (s *service) GetLastRunData(ctx context.Context, id int) (string, error) {
 	return feed, nil
 }
 
-func (s *service) ForceRun(ctx context.Context, id int) error {
+func (s *service) ForceRun(ctx context.Context, id int64) error {
 	feed, err := s.FindByID(ctx, id)
 	if err != nil {
 		return err

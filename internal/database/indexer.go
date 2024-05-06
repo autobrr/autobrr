@@ -127,7 +127,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 	return indexers, nil
 }
 
-func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
+func (r *IndexerRepo) FindByID(ctx context.Context, id int64) (*domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "settings").
 		From("indexer").
@@ -165,7 +165,7 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	return &i, nil
 }
 
-func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
+func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int64) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "identifier", "identifier_external", "base_url", "settings").
 		From("indexer").
@@ -214,7 +214,7 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 
 }
 
-func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
+func (r *IndexerRepo) Delete(ctx context.Context, id int64) error {
 	queryBuilder := r.db.squirrel.
 		Delete("indexer").
 		Where(sq.Eq{"id": id})
@@ -243,7 +243,7 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *IndexerRepo) ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error {
+func (r *IndexerRepo) ToggleEnabled(ctx context.Context, indexerID int64, enabled bool) error {
 	var err error
 
 	queryBuilder := r.db.squirrel.

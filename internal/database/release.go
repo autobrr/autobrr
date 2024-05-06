@@ -297,11 +297,11 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsindexer, rlsfilter, infoUrl, downloadUrl, codec sql.NullString
+		var rlsindexer, rlsfilter, infoUrl, downloadUrl, codec sql.Null[string]
 
-		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
-		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
-		var rasRejections []sql.NullString
+		var rasId, rasFilterId, rasReleaseId, rasActionId sql.Null[int64]
+		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.Null[string]
+		var rasRejections []sql.Null[string]
 		var rasTimestamp sql.NullTime
 
 		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
@@ -309,24 +309,24 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		}
 
 		//for _, codec := range codecs {
-		//	rls.Codec = append(rls.Codec, codec.String)
+		//	rls.Codec = append(rls.Codec, codec.V)
 		//
 		//}
 
-		ras.ID = rasId.Int64
-		ras.Status = domain.ReleasePushStatus(rasStatus.String)
-		ras.Action = rasAction.String
-		ras.ActionID = rasActionId.Int64
-		ras.Type = domain.ActionType(rasType.String)
-		ras.Client = rasClient.String
-		ras.Filter = rasFilter.String
-		ras.FilterID = rasFilterId.Int64
+		ras.ID = rasId.V
+		ras.Status = domain.ReleasePushStatus(rasStatus.V)
+		ras.Action = rasAction.V
+		ras.ActionID = rasActionId.V
+		ras.Type = domain.ActionType(rasType.V)
+		ras.Client = rasClient.V
+		ras.Filter = rasFilter.V
+		ras.FilterID = rasFilterId.V
 		ras.Timestamp = rasTimestamp.Time
-		ras.ReleaseID = rasReleaseId.Int64
+		ras.ReleaseID = rasReleaseId.V
 		ras.Rejections = []string{}
 
 		for _, rejection := range rasRejections {
-			ras.Rejections = append(ras.Rejections, rejection.String)
+			ras.Rejections = append(ras.Rejections, rejection.V)
 		}
 
 		idx := 0
@@ -343,12 +343,12 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			continue
 		}
 
-		rls.Indexer.Identifier = rlsindexer.String
-		rls.FilterName = rlsfilter.String
+		rls.Indexer.Identifier = rlsindexer.V
+		rls.FilterName = rlsfilter.V
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
-		rls.InfoURL = infoUrl.String
-		rls.DownloadURL = downloadUrl.String
-		rls.Codec = strings.Split(codec.String, ",")
+		rls.InfoURL = infoUrl.V
+		rls.DownloadURL = downloadUrl.V
+		rls.Codec = strings.Split(codec.V, ",")
 
 		// only add ActionStatus if it's not empty
 		if ras.ID > 0 {
@@ -499,16 +499,16 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 	for rows.Next() {
 		var rls domain.ReleaseActionStatus
 
-		var client, filter sql.NullString
-		var actionId sql.NullInt64
+		var client, filter sql.Null[string]
+		var actionId sql.Null[int64]
 
 		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &actionId, &rls.Type, &client, &filter, &rls.ReleaseID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
 			return res, errors.Wrap(err, "error scanning row")
 		}
 
-		rls.ActionID = actionId.Int64
-		rls.Client = client.String
-		rls.Filter = filter.String
+		rls.ActionID = actionId.V
+		rls.Client = client.V
+		rls.Filter = filter.V
 
 		res = append(res, rls)
 	}
@@ -531,7 +531,7 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 	repo.log.Trace().Str("database", "release.find").Msgf("query: '%s', args: '%v'", query, args)
 
 	row := repo.db.handler.QueryRowContext(ctx, query, args...)
-	if err != nil {
+	if row.Err() != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -541,8 +541,8 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	var rls domain.Release
 
-	var indexerName, filterName, infoUrl, downloadUrl, groupId, torrentId, category, uploader sql.NullString
-	var filterId sql.NullInt64
+	var indexerName, filterName, infoUrl, downloadUrl, groupId, torrentId, category, uploader sql.Null[string]
+	var filterId sql.Null[int64]
 
 	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -551,16 +551,16 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	rls.Indexer.Identifier = indexerName.String
-	rls.FilterName = filterName.String
-	rls.FilterID = int(filterId.Int64)
+	rls.Indexer.Identifier = indexerName.V
+	rls.FilterName = filterName.V
+	rls.FilterID = filterId.V
 	rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
-	rls.InfoURL = infoUrl.String
-	rls.DownloadURL = downloadUrl.String
-	rls.Category = category.String
-	rls.GroupID = groupId.String
-	rls.TorrentID = torrentId.String
-	rls.Uploader = uploader.String
+	rls.InfoURL = infoUrl.V
+	rls.DownloadURL = downloadUrl.V
+	rls.Category = category.V
+	rls.GroupID = groupId.V
+	rls.TorrentID = torrentId.V
+	rls.Uploader = uploader.V
 
 	return &rls, nil
 }
@@ -588,8 +588,8 @@ func (repo *ReleaseRepo) GetActionStatus(ctx context.Context, req *domain.GetRel
 
 	var rls domain.ReleaseActionStatus
 
-	var client, filter sql.NullString
-	var actionId, filterId sql.NullInt64
+	var client, filter sql.Null[string]
+	var actionId, filterId sql.Null[int64]
 
 	if err := row.Scan(&rls.ID, &rls.Status, &rls.Action, &actionId, &rls.Type, &client, &filter, &filterId, &rls.ReleaseID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -599,10 +599,10 @@ func (repo *ReleaseRepo) GetActionStatus(ctx context.Context, req *domain.GetRel
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	rls.ActionID = actionId.Int64
-	rls.Client = client.String
-	rls.Filter = filter.String
-	rls.FilterID = filterId.Int64
+	rls.ActionID = actionId.V
+	rls.Client = client.V
+	rls.Filter = filter.V
+	rls.FilterID = filterId.V
 
 	return &rls, nil
 }
@@ -634,17 +634,17 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 	for rows.Next() {
 		var rls domain.ReleaseActionStatus
 
-		var client, filter sql.NullString
-		var actionId, filterID sql.NullInt64
+		var client, filter sql.Null[string]
+		var actionId, filterID sql.Null[int64]
 
 		if err := rows.Scan(&rls.ID, &rls.Status, &rls.Action, &actionId, &rls.Type, &client, &filter, &filterID, &rls.ReleaseID, pq.Array(&rls.Rejections), &rls.Timestamp); err != nil {
 			return res, errors.Wrap(err, "error scanning row")
 		}
 
-		rls.ActionID = actionId.Int64
-		rls.Client = client.String
-		rls.Filter = filter.String
-		rls.FilterID = filterID.Int64
+		rls.ActionID = actionId.V
+		rls.Client = client.V
+		rls.Filter = filter.V
+		rls.FilterID = filterID.V
 
 		res = append(res, rls)
 	}

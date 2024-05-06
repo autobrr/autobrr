@@ -20,9 +20,9 @@ type indexerService interface {
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
-	Delete(ctx context.Context, id int) error
+	Delete(ctx context.Context, id int64) error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
-	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
+	ToggleEnabled(ctx context.Context, indexerID int64, enabled bool) error
 }
 
 type indexerHandler struct {
@@ -116,7 +116,7 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Delete(ctx, id); err != nil {
+	if err := h.service.Delete(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -165,7 +165,7 @@ func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.IndexerId == 0 {
-		req.IndexerId = id
+		req.IndexerId = int64(id)
 	}
 
 	if err := h.service.TestApi(ctx, req); err != nil {
@@ -202,7 +202,7 @@ func (h indexerHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
+	if err := h.service.ToggleEnabled(ctx, int64(id), data.Enabled); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

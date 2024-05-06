@@ -40,7 +40,7 @@ type Service interface {
 
 type actionClientTypeKey struct {
 	Type     domain.ActionType
-	ClientID int32
+	ClientID int64
 }
 
 type service struct {
@@ -415,7 +415,7 @@ func (s *service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	}
 
 	// get filter action with action id from status
-	filterAction, err := s.actionSvc.Get(ctx, &domain.GetActionRequest{Id: int(status.ActionID)})
+	filterAction, err := s.actionSvc.Get(ctx, &domain.GetActionRequest{Id: status.ActionID})
 	if err != nil {
 		return err
 	}

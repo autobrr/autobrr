@@ -11,10 +11,10 @@ import (
 type NotificationRepo interface {
 	List(ctx context.Context) ([]Notification, error)
 	Find(ctx context.Context, params NotificationQueryParams) ([]Notification, int, error)
-	FindByID(ctx context.Context, id int) (*Notification, error)
+	FindByID(ctx context.Context, id int64) (*Notification, error)
 	Store(ctx context.Context, notification Notification) (*Notification, error)
 	Update(ctx context.Context, notification Notification) (*Notification, error)
-	Delete(ctx context.Context, notificationID int) error
+	Delete(ctx context.Context, notificationID int64) error
 }
 
 type NotificationSender interface {
@@ -23,7 +23,7 @@ type NotificationSender interface {
 }
 
 type Notification struct {
-	ID        int              `json:"id"`
+	ID        int64            `json:"id"`
 	Name      string           `json:"name"`
 	Type      NotificationType `json:"type"`
 	Enabled   bool             `json:"enabled"`

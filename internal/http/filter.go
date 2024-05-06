@@ -19,14 +19,14 @@ import (
 
 type filterService interface {
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
-	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
+	FindByID(ctx context.Context, filterID int64) (*domain.Filter, error)
 	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
 	Store(ctx context.Context, filter *domain.Filter) error
-	Delete(ctx context.Context, filterID int) error
+	Delete(ctx context.Context, filterID int64) error
 	Update(ctx context.Context, filter *domain.Filter) error
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
-	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
-	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
+	Duplicate(ctx context.Context, filterID int64) (*domain.Filter, error)
+	ToggleEnabled(ctx context.Context, filterID int64, enabled bool) error
 }
 
 type filterHandler struct {
@@ -116,7 +116,7 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter, err := h.service.FindByID(ctx, id)
+	filter, err := h.service.FindByID(ctx, int64(id))
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", id))
@@ -142,7 +142,7 @@ func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filter, err := h.service.Duplicate(ctx, id)
+	filter, err := h.service.Duplicate(ctx, int64(id))
 	if err != nil {
 		h.encoder.StatusInternalError(w)
 		return
@@ -202,7 +202,7 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 		return
 	}
-	data.ID = id
+	data.ID = int64(id)
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
@@ -237,7 +237,7 @@ func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
+	if err := h.service.ToggleEnabled(ctx, int64(id), data.Enabled); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -257,7 +257,7 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Delete(ctx, id); err != nil {
+	if err := h.service.Delete(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 	}
 
