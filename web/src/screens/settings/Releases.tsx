@@ -81,7 +81,13 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
   )
 }
 
-const EnabledPill = ({ value, label, title }: any) => (
+interface PillProps {
+ value: boolean;
+ label: string;
+ title: string;
+}
+
+const EnabledPill = ({ value, label, title }: PillProps) => (
   <span title={title} className={classNames("inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset", value ? "bg-blue-100 dark:bg-blue-400/10 text-blue-700 dark:text-blue-400 ring-blue-700/10 dark:ring-blue-400/30" : "bg-gray-100 dark:bg-gray-400/10 text-gray-600 dark:text-gray-400 ring-gray-500/10 dark:ring-gray-400/30")}>
     {label}
   </span>
