@@ -885,7 +885,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MaxSeeders,
 			filter.MinLeechers,
 			filter.MaxLeechers,
-			filter.ReleaseProfileDuplicateID,
+			toNullInt64(filter.ReleaseProfileDuplicateID),
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
