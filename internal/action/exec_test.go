@@ -81,7 +81,12 @@ func Test_service_execCmd(t *testing.T) {
 				release: domain.Release{
 					TorrentName:    "This is a test",
 					TorrentTmpFile: "tmp-10000",
-					Indexer:        "mock",
+					Indexer: domain.IndexerMinimal{
+						ID:                 0,
+						Name:               "Mock Indexer",
+						Identifier:         "mock",
+						IdentifierExternal: "Mock Indexer",
+					},
 				},
 				action: &domain.Action{
 					Name:     "echo",

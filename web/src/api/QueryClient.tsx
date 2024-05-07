@@ -6,6 +6,7 @@
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import Toast from "@components/notifications/Toast";
+import { baseUrl } from "@utils";
 
 const MAX_RETRIES = 6;
 const HTTP_STATUS_TO_NOT_RETRY = [400, 401, 403, 404];
@@ -22,7 +23,7 @@ export const queryClient = new QueryClient({
         // @ts-expect-error TS2339: Property status does not exist on type Error
         console.error("bad status, redirect to login", error?.status)
         // Redirect to login page
-        window.location.href = "/login";
+        window.location.href = baseUrl()+"login";
 
         return
       }
@@ -51,6 +52,12 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       onError: (error) => {
+        console.log("mutation error: ", error)
+
+        if (error instanceof Response) {
+          return
+        }
+
         // Use a format string to convert the error object to a proper string without much hassle.
         const message = (
           typeof (error) === "object" && typeof ((error as Error).message) ?

@@ -139,7 +139,7 @@ export const Logs = () => {
               >
                 <span
                   title={entry.time}
-                  className="font-mono text-gray-500 dark:text-gray-600 mr-2 h-full"
+                  className="font-mono text-gray-500 dark:text-gray-600 h-full"
                 >
                   {format(new Date(entry.time), "HH:mm:ss")}
                 </span>
@@ -150,10 +150,10 @@ export const Logs = () => {
                       "font-mono font-semibold h-full"
                     )}
                   >
-                    {entry.level}
+                    {` ${entry.level} `}
                   </span>
                 ) : null}
-                <span className="ml-2 text-black dark:text-gray-300">
+                <span className="text-black dark:text-gray-300">
                   {entry.message}
                 </span>
               </div>

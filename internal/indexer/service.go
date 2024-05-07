@@ -36,17 +36,19 @@ type Service interface {
 	LoadIndexerDefinitions() error
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 	GetTorznabIndexers() []domain.IndexerDefinition
+	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, error)
 	Start() error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
 }
 
 type service struct {
-	log        zerolog.Logger
-	config     *domain.Config
-	repo       domain.IndexerRepo
-	ApiService APIService
-	scheduler  scheduler.Service
+	log         zerolog.Logger
+	config      *domain.Config
+	repo        domain.IndexerRepo
+	releaseRepo domain.ReleaseRepo
+	ApiService  APIService
+	scheduler   scheduler.Service
 
 	// contains all raw indexer definitions
 	definitions map[string]domain.IndexerDefinition
@@ -62,11 +64,12 @@ type service struct {
 	rssIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, apiService APIService, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, releaseRepo domain.ReleaseRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
 		repo:                      repo,
+		releaseRepo:               releaseRepo,
 		ApiService:                apiService,
 		scheduler:                 scheduler,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
@@ -118,6 +121,28 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		indexer.Settings[key] = sanitize.String(val)
 	}
 
+	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
+	}
+
+	// only IRC indexers have baseURL set
+	if indexer.Implementation == string(domain.IndexerImplementationIRC) {
+		if indexer.BaseURL == "" {
+			return nil, errors.New("indexer baseURL must not be empty")
+		}
+
+		// check if baseURL has been updated and update releases if it was
+		if currentIndexer.BaseURL != indexer.BaseURL {
+
+			// update urls of releases
+			err = s.releaseRepo.UpdateBaseURL(ctx, indexer.Identifier, currentIndexer.BaseURL, indexer.BaseURL)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not update release urls with new baseURL: %s", indexer.BaseURL)
+			}
+		}
+	}
+
 	i, err := s.repo.Update(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not update indexer: %+v", indexer)
@@ -131,7 +156,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	}
 
 	if isImplFeed(indexer.Implementation) {
-		if !indexer.Enabled {
+		if currentIndexer.Enabled && !indexer.Enabled {
 			s.stopFeed(indexer.Identifier)
 		}
 	}
@@ -250,6 +275,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	d.ID = int(indexer.ID)
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
+	d.IdentifierExternal = indexer.IdentifierExternal
 	d.Implementation = indexer.Implementation
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
@@ -286,6 +312,7 @@ func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefin
 	d.ID = int(indexer.ID)
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
+	d.IdentifierExternal = indexer.IdentifierExternal
 	d.Implementation = indexer.Implementation
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
@@ -665,6 +692,15 @@ func (s *service) getDefinitionByName(name string) *domain.IndexerDefinition {
 	}
 
 	return nil
+}
+
+func (s *service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, error) {
+	v, ok := s.mappedDefinitions[name]
+	if !ok {
+		return nil, errors.New("unknown indexer identifier: %s", name)
+	}
+
+	return v, nil
 }
 
 func (s *service) getMappedDefinitionByName(name string) *domain.IndexerDefinition {

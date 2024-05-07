@@ -370,12 +370,17 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
     } else if (formData.implementation === "irc") {
       const channels: IrcChannel[] = [];
       if (ind.irc?.channels.length) {
+        let channelPass = "";
+        if (formData.irc && formData.irc.channels && formData.irc?.channels?.password !== "") {
+          channelPass = formData.irc.channels.password;
+        }
+
         ind.irc.channels.forEach(element => {
           channels.push({
             id: 0,
             enabled: true,
             name: element,
-            password: "",
+            password: channelPass,
             detached: false,
             monitoring: false
           });
@@ -713,6 +718,7 @@ interface IndexerUpdateInitialValues {
   name: string;
   enabled: boolean;
   identifier: string;
+  identifier_external: string;
   implementation: string;
   base_url: string;
   settings: {
@@ -807,6 +813,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     name: indexer.name,
     enabled: indexer.enabled || false,
     identifier: indexer.identifier,
+    identifier_external: indexer.identifier_external,
     implementation: indexer.implementation,
     base_url: indexer.base_url,
     settings: indexer.settings?.reduce(
@@ -851,6 +858,21 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
               )}
             </Field>
           </div>
+
+          <TextFieldWide
+            name="identifier_external"
+            label="External Identifier"
+            help={`External Identifier for ARRs. If using Prowlarr set like: ${indexer.name} (Prowlarr)`}
+            tooltip={
+              <div>
+                <p>External Identifier for use with ARRs to get features like seed limits working.</p>
+                <br />
+                <p>This needs to match the indexer name in your ARR. If using Prowlarr it will likely be "{indexer.name} (Prowlarr)"</p>
+                <br />
+                <DocsLink href="https://autobrr.com/configuration/indexers#setup" />
+              </div>
+            }
+          />
           <SwitchGroupWide name="enabled" label="Enabled" />
 
           {indexer.implementation == "irc" && (

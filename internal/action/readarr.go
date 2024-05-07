@@ -58,7 +58,7 @@ func (s *service) readarr(ctx context.Context, action *domain.Action, release do
 		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
-		Indexer:          release.Indexer,
+		Indexer:          release.Indexer.IdentifierExternal,
 		DownloadClientId: externalClientId,
 		DownloadClient:   externalClient,
 		DownloadProtocol: string(release.Protocol),

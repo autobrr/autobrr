@@ -719,6 +719,10 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	return
 }
 
+func (h *Handler) SendToAnnounceProcessor(channel string, msg string) error {
+	return h.sendToAnnounceProcessor(channel, msg)
+}
+
 // send the msg to announce processor
 func (h *Handler) sendToAnnounceProcessor(channel string, msg string) error {
 	channel = strings.ToLower(channel)

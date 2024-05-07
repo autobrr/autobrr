@@ -5,6 +5,7 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -22,6 +23,7 @@ type releaseService interface {
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
+	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
 }
 
 type releaseHandler struct {
@@ -42,6 +44,8 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/stats", h.getStats)
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/", h.deleteReleases)
+
+	r.Post("/process", h.retryAction)
 
 	r.Route("/{releaseId}", func(r chi.Router) {
 		r.Post("/actions/{actionStatusId}/retry", h.retryAction)
@@ -207,7 +211,64 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		req.OlderThan = duration
 	}
 
+	indexers := r.URL.Query()["indexer"]
+	if len(indexers) > 0 {
+		req.Indexers = indexers
+	}
+
+	releaseStatuses := r.URL.Query()["releaseStatus"]
+	validStatuses := map[string]bool{
+		"PUSH_APPROVED": true,
+		"PUSH_REJECTED": true,
+		"PUSH_ERROR":    true,
+	}
+	var filteredStatuses []string
+	for _, status := range releaseStatuses {
+		if _, valid := validStatuses[status]; valid {
+			filteredStatuses = append(filteredStatuses, status)
+		} else {
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+				"code":    "INVALID_RELEASE_STATUS",
+				"message": "releaseStatus contains invalid value",
+			})
+			return
+		}
+	}
+	req.ReleaseStatuses = filteredStatuses
+
 	if err := h.service.Delete(r.Context(), &req); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
+	var req *domain.ReleaseProcessReq
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if req.IndexerIdentifier == "" {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "VALIDATION_ERROR",
+			"message": "field indexer_identifier empty",
+		})
+	}
+
+	if len(req.AnnounceLines) == 0 {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "VALIDATION_ERROR",
+			"message": "field announce_lines empty",
+		})
+	}
+
+	err = h.service.ProcessManual(r.Context(), req)
+	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -223,7 +284,10 @@ func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
 
 	releaseIdParam := chi.URLParam(r, "releaseId")
 	if releaseIdParam == "" {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "parameter releaseId missing",
+		})
 		return
 	}
 
@@ -235,7 +299,10 @@ func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
 
 	actionStatusIdParam := chi.URLParam(r, "actionStatusId")
 	if actionStatusIdParam == "" {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "parameter actionStatusId missing",
+		})
 		return
 	}
 

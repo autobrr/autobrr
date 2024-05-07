@@ -135,7 +135,7 @@ func NewMacro(release Release) Macro {
 		Uploader:            release.Uploader,
 		Website:             release.Website,
 		Year:                release.Year,
-}
+	}
 
 	return ma
 }
