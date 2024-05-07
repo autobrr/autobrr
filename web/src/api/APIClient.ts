@@ -64,7 +64,6 @@ interface HttpConfig {
  * @returns A RFC-3986-compliant string variation of the input string.
  * @note See https://stackoverflow.com/a/62969380
  */
-
 function encodeRFC3986URIComponent(str: string): string {
   return encodeURIComponent(str).replace(
     /[!'()*]/g,
@@ -95,7 +94,6 @@ function encodeRFC3986URIComponent(str: string): string {
  *    The current user is then prompted to log in again after being logged out.
  *  - The `ErrorPage` screen appears in all other scenarios.
  */
-
 export async function HttpClient<T = unknown>(
   endpoint: string,
   config: HttpConfig = {}
