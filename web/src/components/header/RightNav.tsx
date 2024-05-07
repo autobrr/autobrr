@@ -31,7 +31,9 @@ export const RightNav = (props: RightNavProps) => {
         <div className="mt-1 items-center">
           <button
             onClick={toggleTheme}
-            className="p-1 rounded-full focus:outline-none focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100">
+            className="p-1 rounded-full focus:outline-none focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
+            title={settings.darkTheme ? "Switch to light mode (currently dark mode)" : "Switch to dark mode (currently light mode)"}
+          >
             {settings.darkTheme ? (
               <MoonIcon className="h-4 w-4 text-gray-500 transition duration-100 ease-out transform" aria-hidden="true" />
             ) : (
