@@ -58,7 +58,7 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
-		Indexer:          release.Indexer.Identifier,
+		Indexer:          release.Indexer.IdentifierExternal,
 		DownloadClientId: externalClientId,
 		DownloadClient:   externalClient,
 		DownloadProtocol: string(release.Protocol),
