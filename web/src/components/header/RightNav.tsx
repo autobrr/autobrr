@@ -25,9 +25,6 @@ export const RightNav = (props: RightNavProps) => {
     }));
   };
 
-  const themeIcon = settings.darkTheme;
-
-
   return (
     <div className="hidden sm:block">
       <div className="ml-4 flex items-center sm:ml-6">
@@ -35,7 +32,7 @@ export const RightNav = (props: RightNavProps) => {
           <button
             onClick={toggleTheme}
             className="p-1 rounded-full focus:outline-none focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100">
-            {themeIcon ? (
+            {settings.darkTheme ? (
               <MoonIcon className="h-4 w-4 text-gray-500 transition duration-100 ease-out transform" aria-hidden="true" />
             ) : (
               <SunIcon className="h-4 w-4 text-gray-600" aria-hidden="true" />
