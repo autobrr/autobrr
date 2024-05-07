@@ -243,6 +243,7 @@ export const ActivityTable = () => {
           id: 0,
           name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
           identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier_external: index % 2 === 0 ? "distrowatch" : "linuxtracker",
         },
       }));
       setModifiedData(newData);
@@ -323,6 +324,7 @@ export const ActivityTableContent = () => {
           id: 0,
           name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
           identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier_external: index % 2 === 0 ? "distrowatch" : "linuxtracker",
         },
       }));
       setModifiedData(newData);

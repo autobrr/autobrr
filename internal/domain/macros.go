@@ -100,7 +100,7 @@ func NewMacro(release Release) Macro {
 		FreeleechPercent:    release.FreeleechPercent,
 		Artists:             release.Artists,
 		AudioFormat:         release.AudioFormat,
-	}
+}
 
 	return ma
 }

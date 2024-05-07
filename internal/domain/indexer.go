@@ -26,40 +26,43 @@ type IndexerRepo interface {
 }
 
 type Indexer struct {
-	ID             int64             `json:"id"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Enabled        bool              `json:"enabled"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Settings       map[string]string `json:"settings,omitempty"`
+	ID                 int64             `json:"id"`
+	Name               string            `json:"name"`
+	Identifier         string            `json:"identifier"`
+	IdentifierExternal string            `json:"identifier_external"`
+	Enabled            bool              `json:"enabled"`
+	Implementation     string            `json:"implementation"`
+	BaseURL            string            `json:"base_url,omitempty"`
+	Settings           map[string]string `json:"settings,omitempty"`
 }
 
 type IndexerMinimal struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	Identifier string `json:"identifier"`
+	ID                 int    `json:"id"`
+	Name               string `json:"name"`
+	Identifier         string `json:"identifier"`
+	IdentifierExternal string `json:"identifier_external"`
 }
 
 type IndexerDefinition struct {
-	ID             int               `json:"id,omitempty"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled"`
-	Description    string            `json:"description"`
-	Language       string            `json:"language"`
-	Privacy        string            `json:"privacy"`
-	Protocol       string            `json:"protocol"`
-	URLS           []string          `json:"urls"`
-	Supports       []string          `json:"supports"`
-	Settings       []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap    map[string]string `json:"-"`
-	IRC            *IndexerIRC       `json:"irc,omitempty"`
-	Torznab        *Torznab          `json:"torznab,omitempty"`
-	Newznab        *Newznab          `json:"newznab,omitempty"`
-	RSS            *FeedSettings     `json:"rss,omitempty"`
+	ID                 int               `json:"id,omitempty"`
+	Name               string            `json:"name"`
+	Identifier         string            `json:"identifier"`
+	IdentifierExternal string            `json:"identifier_external"`
+	Implementation     string            `json:"implementation"`
+	BaseURL            string            `json:"base_url,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	Description        string            `json:"description"`
+	Language           string            `json:"language"`
+	Privacy            string            `json:"privacy"`
+	Protocol           string            `json:"protocol"`
+	URLS               []string          `json:"urls"`
+	Supports           []string          `json:"supports"`
+	Settings           []IndexerSetting  `json:"settings,omitempty"`
+	SettingsMap        map[string]string `json:"-"`
+	IRC                *IndexerIRC       `json:"irc,omitempty"`
+	Torznab            *Torznab          `json:"torznab,omitempty"`
+	Newznab            *Newznab          `json:"newznab,omitempty"`
+	RSS                *FeedSettings     `json:"rss,omitempty"`
 }
 
 type IndexerImplementation string
@@ -336,7 +339,14 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 		return errors.Wrap(err, "could not map variables for release")
 	}
 
-	baseUrl := def.URLS[0]
+	baseUrl := def.BaseURL
+	if baseUrl == "" {
+		if len(def.URLS) == 0 {
+			return errors.New("could not find a valid indexer baseUrl")
+		}
+
+		baseUrl = def.URLS[0]
+	}
 
 	// merge vars from regex captures on announce and vars from settings
 	mergedVars := mergeVars(vars, def.SettingsMap)

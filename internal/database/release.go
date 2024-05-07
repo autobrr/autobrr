@@ -582,7 +582,27 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "could not start transaction")
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		var txErr error
+		if p := recover(); p != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
+		} else if err != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+		} else {
+			// All good, commit
+			txErr = tx.Commit()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error committing transaction")
+			}
+		}
+	}()
 
 	qb := repo.db.squirrel.Delete("release")
 
@@ -599,16 +619,30 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		}
 	}
 
-	query, args, err := qb.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error executing query")
+	if len(req.Indexers) > 0 {
+		qb = qb.Where(sq.Eq{"indexer": req.Indexers})
 	}
 
-	repo.log.Debug().Str("repo", "release").Str("query", query).Msgf("release.delete: args: %v", args)
+	if len(req.ReleaseStatuses) > 0 {
+		subQuery := sq.Select("release_id").From("release_action_status").Where(sq.Eq{"status": req.ReleaseStatuses})
+		subQueryText, subQueryArgs, err := subQuery.ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building subquery")
+		}
+		qb = qb.Where("id IN ("+subQueryText+")", subQueryArgs...)
+	}
+
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building SQL query")
+	}
+
+	repo.log.Trace().Str("query", query).Interface("args", args).Msg("Executing combined delete query")
 
 	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
-		return errors.Wrap(err, "error executing query")
+		repo.log.Error().Err(err).Str("query", query).Interface("args", args).Msg("Error executing combined delete query")
+		return errors.Wrap(err, "error executing delete query")
 	}
 
 	deletedRows, err := result.RowsAffected()
@@ -616,16 +650,20 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error fetching rows affected")
 	}
 
-	_, err = tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
+	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+
+	// clean up orphaned rows
+	orphanedResult, err := tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error commit transaction delete")
+	deletedRowsOrphaned, err := orphanedResult.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error fetching rows affected")
 	}
 
-	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+	repo.log.Debug().Msgf("deleted %d orphaned rows from release table", deletedRowsOrphaned)
 
 	return nil
 }
@@ -695,4 +733,54 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 	}
 
 	return true, nil
+}
+
+func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error {
+	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		var txErr error
+		if p := recover(); p != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
+		} else if err != nil {
+			txErr = tx.Rollback()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
+			}
+		} else {
+			// All good, commit
+			txErr = tx.Commit()
+			if txErr != nil {
+				repo.log.Error().Err(txErr).Msg("error committing transaction")
+			}
+		}
+	}()
+
+	queryBuilder := repo.db.squirrel.
+		RunWith(tx).
+		Update("release").
+		Set("download_url", sq.Expr("REPLACE(download_url, ?, ?)", oldBaseURL, newBaseURL)).
+		Set("info_url", sq.Expr("REPLACE(info_url, ?, ?)", oldBaseURL, newBaseURL)).
+		Where(sq.Eq{"indexer": indexer})
+
+	result, err := queryBuilder.ExecContext(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	}
+
+	repo.log.Trace().Msgf("release updated (%d) base urls from %q to %q", rowsAffected, oldBaseURL, newBaseURL)
+
+	return nil
 }

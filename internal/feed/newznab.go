@@ -95,7 +95,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 			}
 		}
 
-		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier})
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
 		rls.Implementation = domain.ReleaseImplementationNewznab
 		rls.Protocol = domain.ReleaseProtocolNzb
 
