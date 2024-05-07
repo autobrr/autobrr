@@ -35,7 +35,7 @@ export type FilterListState = {
 const SettingsContextDefaults: SettingsType = {
   debug: false,
   checkForUpdates: true,
-  darkTheme: true,
+  darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
   scrollOnNewLog: false,
   indentLogLines: false,
   hideWrappedText: false
