@@ -124,10 +124,8 @@ export const SettingsContext = newRidgeState<SettingsType>(
  * Updates the meta theme color based on the current theme state.
  * Used by Safari to color the compact tab bar on both iOS and MacOS.
  */
-const updateMetaThemeColor = (_darkTheme: boolean) => {
-  const root = document.documentElement;
-  const color = getComputedStyle(root).getPropertyValue('--rmsc-bg').trim();
-
+const updateMetaThemeColor = (darkTheme: boolean) => {
+  const color = darkTheme ? '#121315' : '#f4f4f5';
   let metaThemeColor: HTMLMetaElement | null = document.querySelector('meta[name="theme-color"]');
   if (!metaThemeColor) {
     metaThemeColor = document.createElement('meta') as HTMLMetaElement;
