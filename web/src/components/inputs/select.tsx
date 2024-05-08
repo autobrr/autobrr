@@ -277,7 +277,7 @@ export const Select = ({
     <div
       className={classNames(
         className ?? "col-span-12",
-        columns? `sm:col-span-${columns}` : "",
+        columns ? `sm:col-span-${columns}` : ""
       )}
     >
       <Field name={name} type="select">
