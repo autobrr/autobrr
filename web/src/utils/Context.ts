@@ -115,9 +115,26 @@ export const SettingsContext = newRidgeState<SettingsType>(
     onSet: (newState, prevState) => {
       document.documentElement.classList.toggle("dark", newState.darkTheme);
       DefaultSetter(SettingsKey, newState, prevState);
+      updateMetaThemeColor(newState.darkTheme);
     }
   }
 );
+
+/**
+ * Updates the meta theme color based on the current theme state.
+ * Used by Safari to color the compact tab bar on both iOS and MacOS.
+ */
+const updateMetaThemeColor = (darkTheme: boolean) => {
+  const color = darkTheme ? '#121315' : '#f4f4f5';
+  let metaThemeColor: HTMLMetaElement | null = document.querySelector('meta[name="theme-color"]');
+  if (!metaThemeColor) {
+    metaThemeColor = document.createElement('meta') as HTMLMetaElement;
+    metaThemeColor.name = "theme-color";
+    document.head.appendChild(metaThemeColor);
+  }
+
+  metaThemeColor.content = color;
+};
 
 export const FilterListContext = newRidgeState<FilterListState>(
   FilterListContextDefaults,
