@@ -11,7 +11,7 @@ import { Portal } from "react-portal";
 import { Router } from "@app/routes";
 import { routerBasePath } from "@utils";
 import { queryClient } from "@api/QueryClient";
-import { AuthContext, SettingsContext } from "@utils/Context";
+import { SettingsContext } from "@utils/Context";
 
 declare module '@tanstack/react-router' {
   interface Register {
@@ -33,17 +33,14 @@ export function App() {
   }, [setSettings]);
 
   return (
-      <QueryClientProvider client={queryClient}>
-        <Portal>
-          <Toaster position="top-right" />
-        </Portal>
-        <RouterProvider
-          basepath={routerBasePath()}
-          router={Router}
-          context={{
-            auth: AuthContext,
-          }}
-        />
-      </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <Portal>
+        <Toaster position="top-right" />
+      </Portal>
+      <RouterProvider
+        basepath={routerBasePath()}
+        router={Router}
+      />
+    </QueryClientProvider>
   );
 }
