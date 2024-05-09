@@ -337,8 +337,10 @@ export const RootRoute = createRootRouteWithContext<{
   component: RootComponent,
   notFoundComponent: NotFound,
   pendingComponent: () => (
-    <div className="flex flex-grow items-center justify-center h-screen">
-      <RingResizeSpinner className="text-blue-500 size-24"/>
+    <div className="h-screen">
+      <div className="flex flex-grow items-center justify-center h-screen sm:h-3/5">
+        <RingResizeSpinner className="text-blue-500 size-24"/>
+      </div>
     </div>
   ),
 });
