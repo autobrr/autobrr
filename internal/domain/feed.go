@@ -36,7 +36,7 @@ type FeedRepo interface {
 type Feed struct {
 	ID           int               `json:"id"`
 	Name         string            `json:"name"`
-	Indexer      string            `json:"indexer"`
+	Indexer      IndexerMinimal    `json:"indexer"`
 	Type         string            `json:"type"`
 	Enabled      bool              `json:"enabled"`
 	URL          string            `json:"url"`
@@ -50,7 +50,6 @@ type Feed struct {
 	CreatedAt    time.Time         `json:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at"`
 	IndexerID    int               `json:"indexer_id,omitempty"`
-	Indexerr     FeedIndexer       `json:"-"`
 	LastRun      time.Time         `json:"last_run"`
 	LastRunData  string            `json:"last_run_data"`
 	NextRun      time.Time         `json:"next_run"`

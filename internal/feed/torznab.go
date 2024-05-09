@@ -20,16 +20,15 @@ import (
 )
 
 type TorznabJob struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	Log               zerolog.Logger
-	URL               string
-	Client            torznab.Client
-	Repo              domain.FeedRepo
-	CacheRepo         domain.FeedCacheRepo
-	ReleaseSvc        release.Service
-	SchedulerSvc      scheduler.Service
+	Feed         *domain.Feed
+	Name         string
+	Log          zerolog.Logger
+	URL          string
+	Client       torznab.Client
+	Repo         domain.FeedRepo
+	CacheRepo    domain.FeedCacheRepo
+	ReleaseSvc   release.Service
+	SchedulerSvc scheduler.Service
 
 	attempts int
 	errors   []error
@@ -42,17 +41,16 @@ type FeedJob interface {
 	RunE(ctx context.Context) error
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &TorznabJob{
-		Feed:              feed,
-		Name:              name,
-		IndexerIdentifier: indexerIdentifier,
-		Log:               log,
-		URL:               url,
-		Client:            client,
-		Repo:              repo,
-		CacheRepo:         cacheRepo,
-		ReleaseSvc:        releaseSvc,
+		Feed:       feed,
+		Name:       name,
+		Log:        log,
+		URL:        url,
+		Client:     client,
+		Repo:       repo,
+		CacheRepo:  cacheRepo,
+		ReleaseSvc: releaseSvc,
 	}
 }
 
@@ -103,11 +101,11 @@ func (j *TorznabJob) process(ctx context.Context) error {
 			}
 		}
 
-		rls := domain.NewRelease(j.IndexerIdentifier)
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
+		rls.Implementation = domain.ReleaseImplementationTorznab
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-		rls.Implementation = domain.ReleaseImplementationTorznab
 
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)

@@ -92,7 +92,8 @@ interface Action {
   save_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
-  skip_hash_check: boolean;
+  first_last_piece_prio?: boolean;
+  skip_hash_check?: boolean;
   content_layout?: ActionContentLayout;
   priority?: ActionPriorityLayout;
   limit_upload_speed?: number;

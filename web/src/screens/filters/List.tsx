@@ -23,7 +23,7 @@ import {
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
 import { FilterListContext, FilterListState } from "@utils/Context";
-import { classNames } from "@utils";
+import { classNames, CopyTextToClipboard } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
@@ -284,17 +284,6 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         actions: any;
         actions_count: any;
         actions_enabled_count: number;
-        external_script_enabled: any;
-        external_script_cmd: any;
-        external_script_args: any;
-        external_script_expect_status: any;
-        external_webhook_enabled: any;
-        external_webhook_host: any;
-        external_webhook_data: any;
-        external_webhook_expect_status: any;
-        external_webhook_retry_status: any;
-        external_webhook_retry_attempts: any;
-        external_webhook_retry_delay_seconds: any;
       };
 
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
@@ -309,17 +298,6 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.actions_enabled_count;
       delete completeFilter.indexers;
       delete completeFilter.actions;
-      delete completeFilter.external_script_enabled;
-      delete completeFilter.external_script_cmd;
-      delete completeFilter.external_script_args;
-      delete completeFilter.external_script_expect_status;
-      delete completeFilter.external_webhook_enabled;
-      delete completeFilter.external_webhook_host;
-      delete completeFilter.external_webhook_data;
-      delete completeFilter.external_webhook_expect_status;
-      delete completeFilter.external_webhook_retry_status;
-      delete completeFilter.external_webhook_retry_attempts;
-      delete completeFilter.external_webhook_retry_delay_seconds;
 
       // Remove properties with default values from the exported filter to minimize the size of the JSON string
       ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
@@ -346,40 +324,17 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
       const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
 
-      const copyTextToClipboard = (text: string) => {
-        const textarea = document.createElement("textarea");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
+      // Asynchronously call copyTextToClipboard
+      CopyTextToClipboard(finalJson)
+        .then(() => {
+          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard!" t={t} />);
 
-        try {
-          const successful = document.execCommand("copy");
-          if (successful) {
-            toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-          } else {
-            toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-          }
-        } catch (err) {
-          console.error("Unable to copy text", err);
-          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-        }
+        })
+        .catch((err) => {
+          console.error("could not copy filter to clipboard", err);
 
-        document.body.removeChild(textarea);
-      };
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(finalJson).then(() => {
-          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-        }, () => {
           toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
         });
-      } else {
-        copyTextToClipboard(finalJson);
-      }
-
     } catch (error) {
       console.error(error);
       toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);

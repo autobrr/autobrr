@@ -98,7 +98,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Event:          domain.NotificationEventPushApproved,
 		ReleaseName:    release.TorrentName,
 		Filter:         release.FilterName,
-		Indexer:        release.Indexer,
+		Indexer:        release.Indexer.Name,
 		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,

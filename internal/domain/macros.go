@@ -16,78 +16,86 @@ import (
 )
 
 type Macro struct {
-	TorrentName         string
-	TorrentPathName     string
-	TorrentHash         string
-	TorrentID           string
-	TorrentUrl          string
-	TorrentDataRawBytes []byte
-	MagnetURI           string
-	Group               string
-	GroupID             string
-	DownloadUrl         string
-	InfoUrl             string
-	Indexer             string
-	Title               string
-	Type                string
-	Category            string
-	Categories          []string
-	Resolution          string
-	Source              string
-	HDR                 string
-	FilterID            int
-	FilterName          string
-	Size                uint64
-	SizeString          string
-	Season              int
-	Episode             int
-	Year                int
-	CurrentYear         int
-	CurrentMonth        int
-	CurrentDay          int
-	CurrentHour         int
-	CurrentMinute       int
-	CurrentSecond       int
-	Tags                string
+	TorrentName               string
+	TorrentPathName           string
+	TorrentHash               string
+	TorrentID                 string
+	TorrentUrl                string
+	TorrentDataRawBytes       []byte
+	MagnetURI                 string
+	Group                     string
+	GroupID                   string
+	DownloadUrl               string
+	InfoUrl                   string
+	Indexer                   string
+	IndexerName               string
+	IndexerIdentifier         string
+	IndexerIdentifierExternal string
+	Title                     string
+	Type                      string
+	Category                  string
+	Categories                []string
+	Resolution                string
+	Source                    string
+	HDR                       string
+	FilterID                  int
+	FilterName                string
+	Size                      uint64
+	SizeString                string
+	Season                    int
+	Episode                   int
+	Year                      int
+	CurrentYear               int
+	CurrentMonth              int
+	CurrentDay                int
+	CurrentHour               int
+	CurrentMinute             int
+	CurrentSecond             int
+	Tags                      string
+	Artists                   string
 }
 
 func NewMacro(release Release) Macro {
 	currentTime := time.Now()
 
 	ma := Macro{
-		TorrentName:         release.TorrentName,
-		TorrentUrl:          release.DownloadURL,
-		TorrentPathName:     release.TorrentTmpFile,
-		TorrentDataRawBytes: release.TorrentDataRawBytes,
-		TorrentHash:         release.TorrentHash,
-		TorrentID:           release.TorrentID,
-		MagnetURI:           release.MagnetURI,
-		Group:               release.Group,
-		GroupID:             release.GroupID,
-		InfoUrl:             release.InfoURL,
-		DownloadUrl:         release.DownloadURL,
-		Indexer:             release.Indexer,
-		Title:               release.Title,
-		Type:                release.Type,
-		Category:            release.Category,
-		Categories:          release.Categories,
-		Resolution:          release.Resolution,
-		Source:              release.Source,
-		HDR:                 strings.Join(release.HDR, ", "),
-		FilterID:            release.FilterID,
-		FilterName:          release.FilterName,
-		Size:                release.Size,
-		SizeString:          humanize.Bytes(release.Size),
-		Season:              release.Season,
-		Episode:             release.Episode,
-		Year:                release.Year,
-		CurrentYear:         currentTime.Year(),
-		CurrentMonth:        int(currentTime.Month()),
-		CurrentDay:          currentTime.Day(),
-		CurrentHour:         currentTime.Hour(),
-		CurrentMinute:       currentTime.Minute(),
-		CurrentSecond:       currentTime.Second(),
-		Tags:                strings.Join(release.Tags, ", "),
+		TorrentName:               release.TorrentName,
+		TorrentUrl:                release.DownloadURL,
+		TorrentPathName:           release.TorrentTmpFile,
+		TorrentDataRawBytes:       release.TorrentDataRawBytes,
+		TorrentHash:               release.TorrentHash,
+		TorrentID:                 release.TorrentID,
+		MagnetURI:                 release.MagnetURI,
+		Group:                     release.Group,
+		GroupID:                   release.GroupID,
+		InfoUrl:                   release.InfoURL,
+		DownloadUrl:               release.DownloadURL,
+		Indexer:                   release.Indexer.Identifier,
+		IndexerName:               release.Indexer.Name,
+		IndexerIdentifier:         release.Indexer.Identifier,
+		IndexerIdentifierExternal: release.Indexer.IdentifierExternal,
+		Title:                     release.Title,
+		Type:                      release.Type,
+		Category:                  release.Category,
+		Categories:                release.Categories,
+		Resolution:                release.Resolution,
+		Source:                    release.Source,
+		HDR:                       strings.Join(release.HDR, ", "),
+		FilterID:                  release.FilterID,
+		FilterName:                release.FilterName,
+		Size:                      release.Size,
+		SizeString:                humanize.Bytes(release.Size),
+		Season:                    release.Season,
+		Episode:                   release.Episode,
+		Year:                      release.Year,
+		CurrentYear:               currentTime.Year(),
+		CurrentMonth:              int(currentTime.Month()),
+		CurrentDay:                currentTime.Day(),
+		CurrentHour:               currentTime.Hour(),
+		CurrentMinute:             currentTime.Minute(),
+		CurrentSecond:             currentTime.Second(),
+		Tags:                      strings.Join(release.Tags, ", "),
+		Artists:                   release.Artists,
 	}
 
 	return ma

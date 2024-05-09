@@ -63,7 +63,7 @@ jobs:
           sarif_file: results.sarif
           category: ESLint
 
-      - uses: CatChen/eslint-suggestion-action@v3
+      - uses: CatChen/eslint-suggestion-action@v4
         with:
           request-changes: true
           fail-check: false

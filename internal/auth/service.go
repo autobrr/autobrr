@@ -134,12 +134,14 @@ func (s *service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) 
 		return errors.Errorf("invalid login: %s", req.UsernameCurrent)
 	}
 
-	hashed, err := s.CreateHash(req.PasswordNew)
-	if err != nil {
-		return errors.New("failed to hash password")
-	}
+	if req.PasswordNew != "" {
+		hashed, err := s.CreateHash(req.PasswordNew)
+		if err != nil {
+			return errors.New("failed to hash password")
+		}
 
-	req.PasswordNewHash = hashed
+		req.PasswordNewHash = hashed
+	}
 
 	if err := s.userSvc.Update(ctx, req); err != nil {
 		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.UsernameCurrent)

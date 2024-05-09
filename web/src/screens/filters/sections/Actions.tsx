@@ -51,6 +51,7 @@ export function Actions() {
     save_path: "",
     paused: false,
     ignore_rules: false,
+    first_last_piece_prio: false,
     skip_hash_check: false,
     content_layout: "" || undefined,
     priority: "" || undefined,

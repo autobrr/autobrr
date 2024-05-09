@@ -28,7 +28,7 @@ interface UpdateProps {
 
 interface InitialValues {
   id: number;
-  indexer: string;
+  indexer: IndexerMinimal;
   enabled: boolean;
   type: FeedType;
   name: string;

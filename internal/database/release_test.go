@@ -18,9 +18,13 @@ import (
 
 func getMockRelease() *domain.Release {
 	return &domain.Release{
-		FilterStatus:   domain.ReleaseStatusFilterApproved,
-		Rejections:     []string{"test", "not-a-match"},
-		Indexer:        "BTN",
+		FilterStatus: domain.ReleaseStatusFilterApproved,
+		Rejections:   []string{"test", "not-a-match"},
+		Indexer: domain.IndexerMinimal{
+			ID:         0,
+			Name:       "BTN",
+			Identifier: "btn",
+		},
 		FilterName:     "ExampleFilter",
 		Protocol:       domain.ReleaseProtocolTorrent,
 		Implementation: domain.ReleaseImplementationIRC,

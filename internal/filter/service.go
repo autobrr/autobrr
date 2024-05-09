@@ -188,29 +188,35 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
-	if err := filter.Validate(); err != nil {
-		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
+	err := filter.Validate()
+	if err != nil {
+		s.log.Error().Err(err).Msgf("validation error filter: %+v", filter)
 		return err
 	}
 
-	// replace newline with comma
-	filter.Shows = strings.ReplaceAll(filter.Shows, "\n", ",")
-	filter.Shows = strings.ReplaceAll(filter.Shows, ",,", ",")
+	err = filter.Sanitize()
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not sanitize filter: %v", filter)
+		return err
+	}
 
 	// update
-	if err := s.repo.Update(ctx, filter); err != nil {
+	err = s.repo.Update(ctx, filter)
+	if err != nil {
 		s.log.Error().Err(err).Msgf("could not update filter: %s", filter.Name)
 		return err
 	}
 
 	// take care of connected indexers
-	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
+	err = s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers)
+	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %s", filter.Name)
 		return err
 	}
 
 	// take care of connected external filters
-	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
+	err = s.repo.StoreFilterExternal(ctx, filter.ID, filter.External)
+	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
 		return err
 	}
@@ -460,14 +466,14 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 	l.Debug().Msgf("(%s) additional size check required", f.Name)
 
-	switch release.Indexer {
+	switch release.Indexer.Identifier {
 	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
 		if release.Size == 0 {
 			l.Trace().Msgf("(%s) preparing to check via api", f.Name)
 
-			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer, release.TorrentID)
+			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
 			if err != nil || torrentInfo == nil {
-				l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
+				l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
 				return false, err
 			}
 
@@ -481,7 +487,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
 		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer)
+			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
 			return false, err
 		}
 	}
@@ -648,7 +654,7 @@ func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, r
 		return 0, err
 	}
 
-	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, parsedArgs, release.TorrentName, release.Indexer, duration)
+	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, parsedArgs, release.TorrentName, release.Indexer.Name, duration)
 
 	return 0, nil
 }

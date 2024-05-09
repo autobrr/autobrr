@@ -19,16 +19,15 @@ import (
 )
 
 type NewznabJob struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	Log               zerolog.Logger
-	URL               string
-	Client            newznab.Client
-	Repo              domain.FeedRepo
-	CacheRepo         domain.FeedCacheRepo
-	ReleaseSvc        release.Service
-	SchedulerSvc      scheduler.Service
+	Feed         *domain.Feed
+	Name         string
+	Log          zerolog.Logger
+	URL          string
+	Client       newznab.Client
+	Repo         domain.FeedRepo
+	CacheRepo    domain.FeedCacheRepo
+	ReleaseSvc   release.Service
+	SchedulerSvc scheduler.Service
 
 	attempts int
 	errors   []error
@@ -36,17 +35,16 @@ type NewznabJob struct {
 	JobID int
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
+func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &NewznabJob{
-		Feed:              feed,
-		Name:              name,
-		IndexerIdentifier: indexerIdentifier,
-		Log:               log,
-		URL:               url,
-		Client:            client,
-		Repo:              repo,
-		CacheRepo:         cacheRepo,
-		ReleaseSvc:        releaseSvc,
+		Feed:       feed,
+		Name:       name,
+		Log:        log,
+		URL:        url,
+		Client:     client,
+		Repo:       repo,
+		CacheRepo:  cacheRepo,
+		ReleaseSvc: releaseSvc,
 	}
 }
 
@@ -97,12 +95,12 @@ func (j *NewznabJob) process(ctx context.Context) error {
 			}
 		}
 
-		rls := domain.NewRelease(j.IndexerIdentifier)
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
+		rls.Implementation = domain.ReleaseImplementationNewznab
+		rls.Protocol = domain.ReleaseProtocolNzb
 
 		rls.TorrentName = item.Title
 		rls.InfoURL = item.GUID
-		rls.Implementation = domain.ReleaseImplementationNewznab
-		rls.Protocol = domain.ReleaseProtocolNzb
 
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)

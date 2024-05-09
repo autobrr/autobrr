@@ -93,7 +93,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		ID                          int64
 		FilterStatus                ReleaseFilterStatus
 		Rejections                  []string
-		Indexer                     string
+		Indexer                     IndexerMinimal
 		FilterName                  string
 		Protocol                    ReleaseProtocol
 		Implementation              ReleaseImplementation
@@ -151,7 +151,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		{
 			name: "401",
 			fields: fields{
-				Indexer:     "mock-indexer",
+				Indexer: IndexerMinimal{
+					ID:         0,
+					Name:       "Mock Indexer",
+					Identifier: "mock-indexer",
+				},
 				TorrentName: "Test.Release-GROUP",
 				DownloadURL: fmt.Sprintf("%s/%d", ts.URL, 401),
 				Protocol:    ReleaseProtocolTorrent,
@@ -161,7 +165,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		{
 			name: "403",
 			fields: fields{
-				Indexer:     "mock-indexer",
+				Indexer: IndexerMinimal{
+					ID:         0,
+					Name:       "Mock Indexer",
+					Identifier: "mock-indexer",
+				},
 				TorrentName: "Test.Release-GROUP",
 				DownloadURL: fmt.Sprintf("%s/%d", ts.URL, 403),
 				Protocol:    ReleaseProtocolTorrent,
@@ -171,7 +179,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		{
 			name: "500",
 			fields: fields{
-				Indexer:     "mock-indexer",
+				Indexer: IndexerMinimal{
+					ID:         0,
+					Name:       "Mock Indexer",
+					Identifier: "mock-indexer",
+				},
 				TorrentName: "Test.Release-GROUP",
 				DownloadURL: fmt.Sprintf("%s/%d", ts.URL, 500),
 				Protocol:    ReleaseProtocolTorrent,
@@ -181,7 +193,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		{
 			name: "ok",
 			fields: fields{
-				Indexer:     "mock-indexer",
+				Indexer: IndexerMinimal{
+					ID:         0,
+					Name:       "Mock Indexer",
+					Identifier: "mock-indexer",
+				},
 				TorrentName: "Test.Release-GROUP",
 				DownloadURL: fmt.Sprintf("%s/%s", ts.URL, "file.torrent"),
 				Protocol:    ReleaseProtocolTorrent,
@@ -191,7 +207,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		{
 			name: "valid_torrent_with_text-html_header",
 			fields: fields{
-				Indexer:     "mock-indexer",
+				Indexer: IndexerMinimal{
+					ID:         0,
+					Name:       "Mock Indexer",
+					Identifier: "mock-indexer",
+				},
 				TorrentName: "Test.Release-GROUP",
 				DownloadURL: fmt.Sprintf("%s/files/%s", ts.URL, "valid_torrent_as_html"),
 				Protocol:    ReleaseProtocolTorrent,
@@ -201,7 +221,11 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		{
 			name: "invalid_torrent_with_text-html_header",
 			fields: fields{
-				Indexer:     "mock-indexer",
+				Indexer: IndexerMinimal{
+					ID:         0,
+					Name:       "Mock Indexer",
+					Identifier: "mock-indexer",
+				},
 				TorrentName: "Test.Release-GROUP",
 				DownloadURL: fmt.Sprintf("%s/files/%s", ts.URL, "invalid_torrent_as_html"),
 				Protocol:    ReleaseProtocolTorrent,
