@@ -336,6 +336,12 @@ func (r *Release) ParseString(title string) {
 	if r.Year == 0 {
 		r.Year = rel.Year
 	}
+	if r.Month == 0 {
+		r.Month = rel.Month
+	}
+	if r.Day == 0 {
+		r.Day = rel.Day
+	}
 
 	if r.Group == "" {
 		r.Group = rel.Group

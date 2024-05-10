@@ -106,6 +106,8 @@ CREATE TABLE filter
     match_other                    TEXT []   DEFAULT '{}',
     except_other                   TEXT []   DEFAULT '{}',
     years                          TEXT,
+	months                         TEXT,
+    days                           TEXT,
     artists                        TEXT,
     albums                         TEXT,
     release_types_match            TEXT []   DEFAULT '{}',
@@ -1525,10 +1527,16 @@ ALTER TABLE filter
 	UPDATE indexer
     SET identifier_external = name;
 `,
-  `ALTER TABLE "release"
+	`ALTER TABLE "release"
 ADD COLUMN month INTEGER;
 
 ALTER TABLE "release"
 ADD COLUMN day INTEGER;
+
+ALTER TABLE filter
+ADD COLUMN months TEXT;
+
+ALTER TABLE filter
+ADD COLUMN days TEXT;
 `,
 }

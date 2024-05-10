@@ -106,6 +106,8 @@ CREATE TABLE filter
     match_other                    TEXT []   DEFAULT '{}',
     except_other                   TEXT []   DEFAULT '{}',
     years                          TEXT,
+	months                         TEXT,
+    days                           TEXT,
     artists                        TEXT,
     albums                         TEXT,
     release_types_match            TEXT []   DEFAULT '{}',
@@ -892,5 +894,11 @@ ADD COLUMN month INTEGER;
 
 ALTER TABLE "release"
 ADD COLUMN day INTEGER;
+
+ALTER TABLE filter
+ADD COLUMN months TEXT;
+
+ALTER TABLE filter
+ADD COLUMN days TEXT;
 `,
 }
