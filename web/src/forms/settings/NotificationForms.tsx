@@ -132,6 +132,12 @@ function FormFieldsTelegram() {
         label="Message Thread ID"
         help="Message Thread (topic) of a Supergroup"
       />
+      <TextFieldWide
+        name="host"
+        label="Telegram Api Proxy"
+        help="Reverse proxy domain for api.telegram.org, only needs to be specified if the network you are using has blocked the Telegram API."
+        placeholder="http(s)://ip:port"
+      />
     </div>
   );
 }

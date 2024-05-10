@@ -16,15 +16,16 @@ CREATE TABLE users
 
 CREATE TABLE indexer
 (
-    id             SERIAL PRIMARY KEY,
-    identifier     TEXT,
-	implementation TEXT,
-	base_url       TEXT,
-    enabled        BOOLEAN,
-    name           TEXT NOT NULL,
-    settings       TEXT,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id                  SERIAL PRIMARY KEY,
+    identifier          TEXT,
+    identifier_external TEXT,
+	implementation      TEXT,
+	base_url            TEXT,
+    enabled             BOOLEAN,
+    name                TEXT NOT NULL,
+    settings            TEXT,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (identifier)
 );
 
@@ -197,6 +198,7 @@ CREATE TABLE action
     save_path               TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
+    first_last_piece_prio   BOOLEAN DEFAULT false,
     skip_hash_check         BOOLEAN DEFAULT false,
     content_layout          TEXT,
     limit_upload_speed      INT,
@@ -875,6 +877,15 @@ ALTER TABLE filter
         	ELSE name
         END
 	WHERE server = 'irc.animebytes.tv';
+`,
+	`ALTER TABLE action
+ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
+`,
+	`ALTER TABLE indexer
+    ADD COLUMN identifier_external TEXT;
+
+	UPDATE indexer
+    SET identifier_external = name;
 `,
 	`ALTER TABLE "release"
 ADD COLUMN month INTEGER;
