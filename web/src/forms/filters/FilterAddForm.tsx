@@ -122,6 +122,8 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                                     {...field}
                                     id="name"
                                     type="text"
+                                    data-1p-ignore
+                                    autoComplete="off"
                                     className="block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                                   />
 
