@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -26,15 +27,14 @@ var (
 )
 
 type RSSJob struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	Log               zerolog.Logger
-	URL               string
-	Repo              domain.FeedRepo
-	CacheRepo         domain.FeedCacheRepo
-	ReleaseSvc        release.Service
-	Timeout           time.Duration
+	Feed       *domain.Feed
+	Name       string
+	Log        zerolog.Logger
+	URL        string
+	Repo       domain.FeedRepo
+	CacheRepo  domain.FeedCacheRepo
+	ReleaseSvc release.Service
+	Timeout    time.Duration
 
 	attempts int
 	errors   []error
@@ -42,17 +42,16 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) FeedJob {
+func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) FeedJob {
 	return &RSSJob{
-		Feed:              feed,
-		Name:              name,
-		IndexerIdentifier: indexerIdentifier,
-		Log:               log,
-		URL:               url,
-		Repo:              repo,
-		CacheRepo:         cacheRepo,
-		ReleaseSvc:        releaseSvc,
-		Timeout:           timeout,
+		Feed:       feed,
+		Name:       name,
+		Log:        log,
+		URL:        url,
+		Repo:       repo,
+		CacheRepo:  cacheRepo,
+		ReleaseSvc: releaseSvc,
+		Timeout:    timeout,
 	}
 }
 
@@ -120,7 +119,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 	}
 
-	rls := domain.NewRelease(j.IndexerIdentifier)
+	rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
 	rls.Implementation = domain.ReleaseImplementationRSS
 
 	rls.ParseString(item.Title)
@@ -135,8 +134,15 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if e.Type == "application/x-bittorrent" && e.URL != "" {
 			rls.DownloadURL = e.URL
 		}
-		if e.Length != "" && e.Length != "39399" {
+		if e.Length != "" && e.Length != "1" && e.Length != "39399" {
 			rls.ParseSizeBytesString(e.Length)
+		}
+
+		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+			if !strings.HasPrefix(rls.MagnetURI, "magnet:?") && strings.HasPrefix(e.URL, "magnet:?") {
+				rls.MagnetURI = e.URL
+				rls.DownloadURL = ""
+			}
 		}
 	}
 

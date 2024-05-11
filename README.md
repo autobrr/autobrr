@@ -27,6 +27,7 @@ Full documentation can be found at [https://autobrr.com](https://autobrr.com)
    - [Shared Seedbox](#shared-seedbox)
    - [Docker Compose](#docker-compose)
    - [Windows](#windows)
+   - [MacOS](#macos)
    - [Linux Generic](#linux-generic)
 4. [Community](#community)
 5. [Contributing](#contributing)
@@ -211,6 +212,26 @@ docker compose up -d
 ### Windows
 
 Check the Windows Setup Guide [here](https://autobrr.com/installation/windows).
+
+### MacOS
+
+#### Install Homebrew
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+#### Install autobrr
+
+```bash
+brew install autobrr
+```
+
+#### Run
+
+```bash
+brew services start autobrr
+```
 
 ### Linux Generic
 

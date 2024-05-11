@@ -8,12 +8,11 @@ import { Form, Formik } from "formik";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
 
-import { SettingsAccountRoute } from "@app/routes";
-import { AuthContext } from "@utils/Context";
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
 import Toast from "@components/notifications/Toast";
+import { AuthContext } from "@utils/Context";
 
 const AccountSettings = () => (
   <Section
@@ -35,7 +34,7 @@ interface InputValues {
 }
 
 function Credentials() {
-  const ctx = SettingsAccountRoute.useRouteContext()
+  const username = AuthContext.useSelector((s) => s.username);
 
   const validate = (values: InputValues) => {
     const errors: Record<string, string> = {};
@@ -52,7 +51,7 @@ function Credentials() {
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
-      AuthContext.logout();
+      AuthContext.reset();
 
       toast.custom((t) => (
         <Toast type="success" body="User updated successfully. Please sign in again!" t={t} />
@@ -62,6 +61,11 @@ function Credentials() {
 
   const updateUserMutation = useMutation({
     mutationFn: (data: UserUpdate) => APIClient.auth.updateUser(data),
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Error updating credentials. Did you provide the correct current password?" t={t} />
+      ));
+    },
     onSuccess: () => {
       logoutMutation.mutate();
     }
@@ -75,10 +79,10 @@ function Credentials() {
       description="The username and password can be changed either separately or simultaneously. Note that you will be logged out after changing credentials."
       noLeftPadding
     >
-      <div className="px-2 pb-6 bg-white dark:bg-gray-800">
+      <div className="px-2 pb-0 sm:pb-6 bg-white dark:bg-gray-800">
         <Formik
           initialValues={{
-            username: ctx.auth.username!,
+            username: username,
             newUsername: "",
             oldPassword: "",
             newPassword: "",
@@ -96,7 +100,7 @@ function Credentials() {
         >
           {({ values }) => (
             <Form>
-              <div className="grid grid-cols-2 gap-x-10">
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-x-10 pt-2">
                 <div className={separatorClass}>
                   <TextField name="username" label="Current Username" autoComplete="username" disabled />
                 </div>

@@ -261,6 +261,7 @@ export interface SelectFieldProps {
   options: SelectFieldOption[];
   columns?: COL_WIDTHS;
   tooltip?: JSX.Element;
+  className?: string;
 }
 
 export const Select = ({
@@ -269,12 +270,13 @@ export const Select = ({
   tooltip,
   optionDefaultText,
   options,
-  columns = 6
+  columns = 6,
+  className
 }: SelectFieldProps) => {
   return (
     <div
       className={classNames(
-        "col-span-12",
+        className ?? "col-span-12",
         columns ? `sm:col-span-${columns}` : ""
       )}
     >
@@ -476,3 +478,85 @@ export const SelectWide = ({
     </div>
   );
 };
+
+export const AgeSelect = ({
+  duration,
+  setDuration,
+  setParsedDuration,
+  columns = 6
+}: {
+  duration: string;
+  setDuration: (value: string) => void;
+  setParsedDuration: (value: number) => void;
+  columns?: number;
+}) => {
+  const options = [
+    { value: '1', label: '1 hour' },
+    { value: '12', label: '12 hours' },
+    { value: '24', label: '1 day' },
+    { value: '168', label: '1 week' },
+    { value: '720', label: '1 month' },
+    { value: '2160', label: '3 months' },
+    { value: '4320', label: '6 months' },
+    { value: '8760', label: '1 year' },
+    { value: '0', label: 'Delete everything' }
+  ];
+
+  return (
+    <div className={`col-span-12 ${columns ? `sm:col-span-${columns}` : ""}`}>
+      <Listbox value={duration} onChange={(value) => {
+        const parsedValue = parseInt(value, 10);
+        setParsedDuration(parsedValue);
+        setDuration(value);
+      }}>
+        {({ open }) => (
+          <>
+            <div className="mt-0 relative">
+              <Listbox.Button className="block w-full relative shadow-sm text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-400">
+                <span className="block truncate text-gray-500 dark:text-white">
+                  {duration ? options.find(opt => opt.value === duration)?.label : 'Select...'}
+                </span>
+                <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <ChevronUpDownIcon className="h-5 w-5 text-gray-700 dark:text-gray-500" aria-hidden="true" />
+                </span>
+              </Listbox.Button>
+              <Transition
+                show={open}
+                as={Fragment}
+                leave="transition ease-in duration-100"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <Listbox.Options className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white focus:outline-none text-sm">
+                  {options.map((option) => (
+                    <Listbox.Option
+                      key={option.value}
+                      className={({ active, selected }) =>
+                        `relative cursor-default select-none py-2 pl-3 pr-9 ${selected ? "font-bold text-black dark:text-white bg-gray-300 dark:bg-gray-950" : active ? "text-black dark:text-gray-100 font-normal bg-gray-200 dark:bg-gray-800" : "text-gray-700 dark:text-gray-300 font-normal"
+                        }`
+                      }
+                      value={option.value}
+                    >
+                      {({ selected }) => (
+                        <>
+                          <span className="block truncate">{option.label}</span>
+                          {selected && (
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-4">
+                              <CheckIcon className="h-5 w-5 text-blue-600 dark:text-blue-500" aria-hidden="true" />
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </Listbox.Option>
+                  ))}
+                </Listbox.Options>
+              </Transition>
+            </div>
+          </>
+        )}
+      </Listbox>
+    </div>
+  );
+};
+
+
