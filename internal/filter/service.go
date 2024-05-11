@@ -41,7 +41,7 @@ type Service interface {
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
 	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
-	CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error)
+	CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error)
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
 }
 
@@ -391,7 +391,15 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	if matchedFilter {
 		// smartEpisode check
 		if f.SmartEpisode {
-			canDownloadShow, err := s.CanDownloadShow(ctx, release)
+			params := &domain.SmartEpisodeParams{
+				Title:   release.Title,
+				Season:  release.Season,
+				Episode: release.Episode,
+				Year:    release.Year,
+				Month:   release.Month,
+				Day:     release.Day,
+			}
+			canDownloadShow, err := s.CheckSmartEpisodeCanDownload(ctx, params)
 			if err != nil {
 				l.Trace().Msgf("failed smart episode check: %s", f.Name)
 				return false, nil
@@ -399,7 +407,13 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 			if !canDownloadShow {
 				l.Trace().Msgf("failed smart episode check: %s", f.Name)
-				release.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
+
+				if params.IsDailyEpisode() {
+					f.AddRejectionF("smart episode check: not new: (%s) Daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day)
+				} else {
+					f.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
+				}
+
 				return false, nil
 			}
 		}
@@ -506,8 +520,8 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	return true, nil
 }
 
-func (s *service) CanDownloadShow(ctx context.Context, release *domain.Release) (bool, error) {
-	return s.releaseRepo.CanDownloadShow(ctx, release.Title, release.Season, release.Episode)
+func (s *service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error) {
+	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
 }
 
 func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (bool, error) {

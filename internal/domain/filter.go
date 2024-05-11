@@ -62,6 +62,19 @@ const (
 	FilterMaxDownloadsEver  FilterMaxDownloadsUnit = "EVER"
 )
 
+type SmartEpisodeParams struct {
+	Title   string
+	Season  int
+	Episode int
+	Year    int
+	Month   int
+	Day     int
+}
+
+func (p *SmartEpisodeParams) IsDailyEpisode() bool {
+	return p.Year != 0 && p.Month != 0 && p.Day != 0
+}
+
 type FilterQueryParams struct {
 	Sort    map[string]string
 	Filters struct {
