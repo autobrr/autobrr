@@ -116,6 +116,8 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                                     {...field}
                                     id="name"
                                     type="text"
+                                    data-1p-ignore
+                                    autoComplete="off"
                                     className="block w-full shadow-sm sm:text-sm focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                                   />
                                   {meta.touched && meta.error && <span className="block mt-2 text-red-500">{meta.error}</span>}

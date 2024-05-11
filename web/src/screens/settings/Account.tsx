@@ -61,6 +61,11 @@ function Credentials() {
 
   const updateUserMutation = useMutation({
     mutationFn: (data: UserUpdate) => APIClient.auth.updateUser(data),
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Error updating credentials. Did you provide the correct current password?" t={t} />
+      ));
+    },
     onSuccess: () => {
       logoutMutation.mutate();
     }
@@ -74,7 +79,7 @@ function Credentials() {
       description="The username and password can be changed either separately or simultaneously. Note that you will be logged out after changing credentials."
       noLeftPadding
     >
-      <div className="px-2 pb-6 bg-white dark:bg-gray-800">
+      <div className="px-2 pb-0 sm:pb-6 bg-white dark:bg-gray-800">
         <Formik
           initialValues={{
             username: username,
@@ -95,7 +100,7 @@ function Credentials() {
         >
           {({ values }) => (
             <Form>
-              <div className="grid grid-cols-2 gap-x-10">
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-x-10 pt-2">
                 <div className={separatorClass}>
                   <TextField name="username" label="Current Username" autoComplete="username" disabled />
                 </div>
