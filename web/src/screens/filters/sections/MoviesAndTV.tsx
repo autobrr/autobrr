@@ -16,30 +16,76 @@ const SeasonsAndEpisodes = () => (
     subtitle="Set season and episode match constraints."
   >
     <Components.Layout>
-      <TextField
-        name="seasons"
-        label="Seasons"
-        columns={8}
-        placeholder="eg. 1,3,2-6"
-        tooltip={
-          <div>
-            <p>See docs for information about how to <b>only</b> grab season packs:</p>
-            <DocsLink href="https://autobrr.com/filters/examples#only-season-packs" />
-          </div>
-        }
-      />
-      <TextField
-        name="episodes"
-        label="Episodes"
-        columns={4}
-        placeholder="eg. 2,4,10-20"
-        tooltip={
-          <div>
-            <p>See docs for information about how to <b>only</b> grab episodes:</p>
-            <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs" />
-          </div>
-        }
-      />
+      <Components.Layout gap={Components.WideGridGapClass}>
+        <TextField
+          name="seasons"
+          label="Seasons"
+          columns={6}
+          placeholder="eg. 1,3,2-6"
+          tooltip={
+            <div>
+              <p>See docs for information about how to <b>only</b> grab season packs:</p>
+              <DocsLink href="https://autobrr.com/filters/examples#only-season-packs"/>
+            </div>
+          }
+        />
+        <TextField
+          name="episodes"
+          label="Episodes"
+          columns={6}
+          placeholder="eg. 2,4,10-20"
+          tooltip={
+            <div>
+              <p>See docs for information about how to <b>only</b> grab episodes:</p>
+              <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs"/>
+            </div>
+          }
+        />
+      </Components.Layout>
+
+      <div className="grid grid-cols-12 col-span-12">
+        <h3 className="text-sm leading-5 capitalize font-bold text-gray-900 dark:text-gray-100 mb-3">Daily shows</h3>
+        <div className="grid grid-cols-12 col-span-12 gap-x-0.5 sm:gap-x-6 gap-y-6 sm:gap-y-4">
+          <TextField
+            name="years"
+            label="Years"
+            columns={4}
+            placeholder="eg. 2018,2019-2021"
+            tooltip={
+              <div>
+                <p>This field takes a range of years and/or comma separated single years.</p>
+                <DocsLink href="https://autobrr.com/filters#tvmovies"/>
+              </div>
+            }
+          />
+
+          <TextField
+            name="months"
+            label="Months"
+            columns={4}
+            placeholder="eg. 4,2-9"
+            tooltip={
+              <div>
+                <p>This field takes a range of months and/or comma separated single months.</p>
+                <DocsLink href="https://autobrr.com/filters#tvmovies"/>
+              </div>
+            }
+          />
+
+          <TextField
+            name="days"
+            label="Days"
+            columns={4}
+            placeholder="eg. 1,15-30"
+            tooltip={
+              <div>
+                <p>This field takes a range of days and/or comma separated single days.</p>
+                <DocsLink href="https://autobrr.com/filters#tvmovies"/>
+              </div>
+            }
+          />
+        </div>
+      </div>
 
       <div className="col-span-12 sm:col-span-6">
         <SwitchGroup

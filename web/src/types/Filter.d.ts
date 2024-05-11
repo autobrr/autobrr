@@ -44,6 +44,8 @@ interface Filter {
   match_other: string[];
   except_other: string[];
   years: string;
+  months: string;
+  days: string;
   artists: string;
   albums: string;
   match_release_types: string[];
