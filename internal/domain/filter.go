@@ -71,6 +71,7 @@ type SmartEpisodeParams struct {
 	Day     int
 	Repack  bool
 	Proper  bool
+	Group   string
 }
 
 func (p *SmartEpisodeParams) IsDailyEpisode() bool {

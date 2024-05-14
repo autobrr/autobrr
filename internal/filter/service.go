@@ -400,6 +400,7 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 				Day:     release.Day,
 				Repack:  release.Repack,
 				Proper:  release.Proper,
+				Group:   release.Group,
 			}
 			canDownloadShow, err := s.CheckSmartEpisodeCanDownload(ctx, params)
 			if err != nil {

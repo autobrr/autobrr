@@ -682,7 +682,10 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": p.Proper})
 	}
 	if p.Repack {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": p.Repack})
+		queryBuilder = queryBuilder.Where(sq.And{
+			sq.Eq{"r.repack": p.Repack},
+			repo.db.ILike("r.release_group", p.Group),
+		})
 	}
 
 	if p.Season > 0 && p.Episode > 0 {
