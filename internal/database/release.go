@@ -671,32 +671,43 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error) {
 	queryBuilder := repo.db.squirrel.
 		Select("COUNT(*)").
-		From("release").
-		Where(repo.db.ILike("title", p.Title+"%"))
-
-	if p.Year > 0 && p.Month > 0 && p.Day > 0 {
-		queryBuilder = queryBuilder.Where(sq.Or{
-			sq.And{
-				sq.Eq{"year": p.Year},
-				sq.Eq{"month": p.Month},
-				sq.Gt{"day": p.Day},
-			},
-			sq.And{
-				sq.Eq{"year": p.Year},
-				sq.Gt{"month": p.Month},
-			},
-			sq.Gt{"year": p.Year},
+		From("release r").
+		LeftJoin("release_action_status ras ON r.id = ras.release_id").
+		Where(sq.And{
+			repo.db.ILike("r.title", p.Title+"%"),
+			sq.Eq{"ras.status": "PUSH_APPROVED"},
 		})
-	} else if p.Season > 0 && p.Episode > 0 {
+
+	if p.Proper {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": p.Proper})
+	}
+	if p.Repack {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": p.Repack})
+	}
+
+	if p.Season > 0 && p.Episode > 0 {
 		queryBuilder = queryBuilder.Where(sq.Or{
 			sq.And{
-				sq.Eq{"season": p.Season},
-				sq.Gt{"episode": p.Episode},
+				sq.Eq{"r.season": p.Season},
+				sq.Gt{"r.episode": p.Episode},
 			},
-			sq.Gt{"season": p.Season},
+			sq.Gt{"r.season": p.Season},
 		})
 	} else if p.Season > 0 && p.Episode == 0 {
-		queryBuilder = queryBuilder.Where(sq.Gt{"season": p.Season})
+		queryBuilder = queryBuilder.Where(sq.Gt{"r.season": p.Season})
+	} else if p.Year > 0 && p.Month > 0 && p.Day > 0 {
+		queryBuilder = queryBuilder.Where(sq.Or{
+			sq.And{
+				sq.Eq{"r.year": p.Year},
+				sq.Eq{"r.month": p.Month},
+				sq.Gt{"r.day": p.Day},
+			},
+			sq.And{
+				sq.Eq{"r.year": p.Year},
+				sq.Gt{"r.month": p.Month},
+			},
+			sq.Gt{"r.year": p.Year},
+		})
 	} else {
 		/* No support for this scenario today. Specifically multi-part specials.
 		 * The Database presently does not have Subtitle as a field, but is coming at a future date. */
@@ -707,6 +718,8 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 	if err != nil {
 		return false, errors.Wrap(err, "error building query")
 	}
+
+	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msgf("executing query")
 
 	row := repo.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {

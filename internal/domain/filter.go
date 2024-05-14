@@ -69,6 +69,8 @@ type SmartEpisodeParams struct {
 	Year    int
 	Month   int
 	Day     int
+	Repack  bool
+	Proper  bool
 }
 
 func (p *SmartEpisodeParams) IsDailyEpisode() bool {

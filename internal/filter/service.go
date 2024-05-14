@@ -398,6 +398,8 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 				Year:    release.Year,
 				Month:   release.Month,
 				Day:     release.Day,
+				Repack:  release.Repack,
+				Proper:  release.Proper,
 			}
 			canDownloadShow, err := s.CheckSmartEpisodeCanDownload(ctx, params)
 			if err != nil {

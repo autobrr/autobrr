@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -318,9 +319,13 @@ func (r *Release) ParseString(title string) {
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
-	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	r.Other = rel.Other
+
+	r.Proper = slices.Contains(r.Other, "PROPER")
+	r.Repack = slices.Contains(r.Other, "REPACK")
 
 	if r.Title == "" {
 		r.Title = rel.Title
