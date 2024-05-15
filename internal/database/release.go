@@ -692,7 +692,7 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 		queryBuilder = queryBuilder.Where(sq.Or{
 			sq.And{
 				sq.Eq{"r.season": p.Season},
-				sq.GtOrEq{"r.episode": p.Episode},
+				sq.Gt{"r.episode": p.Episode},
 			},
 			sq.Gt{"r.season": p.Season},
 		})
@@ -703,7 +703,7 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 			sq.And{
 				sq.Eq{"r.year": p.Year},
 				sq.Eq{"r.month": p.Month},
-				sq.GtOrEq{"r.day": p.Day},
+				sq.Gt{"r.day": p.Day},
 			},
 			sq.And{
 				sq.Eq{"r.year": p.Year},
