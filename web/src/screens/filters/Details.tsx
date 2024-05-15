@@ -33,12 +33,12 @@ interface tabType {
 }
 
 const tabs: tabType[] = [
-  { name: "General", href: ".", exact: true },
-  { name: "Movies and TV", href: "movies-tv" },
-  { name: "Music", href: "music" },
-  { name: "Advanced", href: "advanced" },
-  { name: "External", href: "external" },
-  { name: "Actions", href: "actions" }
+  { name: "General", href: "/filters/$filterId", exact: true },
+  { name: "Movies and TV", href: "/filters/$filterId/movies-tv" },
+  { name: "Music", href: "/filters/$filterId/music" },
+  { name: "Advanced", href: "/filters/$filterId/advanced" },
+  { name: "External", href: "/filters/$filterId/external" },
+  { name: "Actions", href: "/filters/$filterId/actions" }
 ];
 
 export interface NavLinkProps {
@@ -387,6 +387,8 @@ export const FilterDetails = () => {
               use_regex: filter.use_regex || false,
               shows: filter.shows,
               years: filter.years,
+              months: filter.months,
+              days: filter.days,
               resolutions: filter.resolutions || [],
               sources: filter.sources || [],
               codecs: filter.codecs || [],

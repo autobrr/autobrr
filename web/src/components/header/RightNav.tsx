@@ -13,7 +13,7 @@ import { RightNavProps } from "./_shared";
 
 import { Cog6ToothIcon, ArrowLeftOnRectangleIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
 import { Link } from "@tanstack/react-router";
-import { SettingsContext } from "@utils/Context";
+import { AuthContext, SettingsContext } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
@@ -56,7 +56,7 @@ export const RightNav = (props: RightNavProps) => {
                   <span className="sr-only">
                     Open user menu for{" "}
                   </span>
-                  {props.auth.username}
+                  {AuthContext.get().username}
                 </span>
                 <UserIcon
                   className="inline ml-1 h-5 w-5"

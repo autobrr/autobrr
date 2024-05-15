@@ -95,6 +95,18 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
             label="Content Layout"
             optionDefaultText="Select content layout"
             options={ActionContentLayoutOptions}
+            className="py-2 pb-4"
+          />
+          <Input.Select
+            name={`actions.${idx}.priority`}
+            label="Priority"
+            optionDefaultText="Disabled"
+            options={ActionPriorityOptions}
+            tooltip={
+              <div>
+                <p>Torrent Queueing will be enabled for you if it is disabled. Ensure you set your preferred limits for it in your client.</p>
+              </div>
+            }
           />
         </FilterSection.HalfRow>
 
@@ -108,24 +120,13 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
             name={`actions.${idx}.skip_hash_check`}
             label="Skip hash check"
             description="Add torrent and skip hash check"
+            className="pt-4 sm:pt-4"
           />
           <Input.SwitchGroup
             name={`actions.${idx}.first_last_piece_prio`}
             label="Download first and last pieces first"
             description="Add torrent and download first and last pieces first"
-          />
-        </FilterSection.HalfRow>
-        <FilterSection.HalfRow>
-        <Input.Select
-            name={`actions.${idx}.priority`}
-            label="Priority"
-            optionDefaultText="Disabled"
-            options={ActionPriorityOptions}
-            tooltip={
-              <div>
-                <p>Torrent Queueing will be enabled for you if it is disabled. Ensure you set your preferred limits for it in your client.</p>
-              </div>
-            }
+            className="pt-6 sm:pt-10"
           />
         </FilterSection.HalfRow>
       </CollapsibleSection>

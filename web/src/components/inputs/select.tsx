@@ -261,6 +261,7 @@ export interface SelectFieldProps {
   options: SelectFieldOption[];
   columns?: COL_WIDTHS;
   tooltip?: JSX.Element;
+  className?: string;
 }
 
 export const Select = ({
@@ -269,12 +270,13 @@ export const Select = ({
   tooltip,
   optionDefaultText,
   options,
-  columns = 6
+  columns = 6,
+  className
 }: SelectFieldProps) => {
   return (
     <div
       className={classNames(
-        "col-span-12",
+        className ?? "col-span-12",
         columns ? `sm:col-span-${columns}` : ""
       )}
     >
