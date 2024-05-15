@@ -582,7 +582,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 	}
 }
 
-func TestReleaseRepo_CanDownloadShow(t *testing.T) {
+func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
@@ -595,7 +595,7 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 		releaseActionMockData := getMockReleaseActionStatus()
 		actionMockData := getMockAction()
 
-		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Check_Smart_Episode_Can_Download [%s]", dbType), func(t *testing.T) {
 			// Setup
 			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
 			assert.NoError(t, err)
@@ -624,8 +624,17 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
 
+			params := &domain.SmartEpisodeParams{
+				Title:   "Example.Torrent.Name",
+				Season:  1,
+				Episode: 2,
+				Year:    0,
+				Month:   0,
+				Day:     0,
+			}
+
 			// Execute
-			canDownload, err := repo.CanDownloadShow(context.Background(), "Example.Torrent.Name", 1, 2)
+			canDownload, err := repo.CheckSmartEpisodeCanDownload(context.Background(), params)
 
 			// Verify
 			assert.NoError(t, err)

@@ -61,6 +61,11 @@ function Credentials() {
 
   const updateUserMutation = useMutation({
     mutationFn: (data: UserUpdate) => APIClient.auth.updateUser(data),
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Error updating credentials. Did you provide the correct current password?" t={t} />
+      ));
+    },
     onSuccess: () => {
       logoutMutation.mutate();
     }

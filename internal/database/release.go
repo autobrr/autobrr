@@ -38,8 +38,8 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
-		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "size", "title", "category", "season", "episode", "year", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack", "website", "type", "origin", "tags", "uploader", "pre_time", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Resolution, r.Source, codecStr, r.Container, hdrStr, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
+		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "size", "title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack", "website", "type", "origin", "tags", "uploader", "pre_time", "filter_id").
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.handler)
 
 	// return values
@@ -801,44 +801,49 @@ func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id i
 	return nil
 }
 
-func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error) {
-	// TODO support non season episode shows
-	// if rls.Day > 0 {
-	//	// Maybe in the future
-	//	// SELECT '' FROM release WHERE Title LIKE %q AND ((Year == %d AND Month == %d AND Day > %d) OR (Year == %d AND Month > %d) OR (Year > %d))"
-	//	qs := sql.Query("SELECT torrent_name FROM release WHERE Title LIKE %q AND Year >= %d", rls.Title, rls.Year)
-	//
-	//	for q := range qs.Rows() {
-	//		r := rls.ParseTitle(q)
-	//		if r.Year > rls.Year {
-	//			return false, fmt.Errorf("stale release year")
-	//		}
-	//
-	//		if r.Month > rls.Month {
-	//			return false, fmt.Errorf("stale release month")
-	//		}
-	//
-	//		if r.Month == rls.Month && r.Day > rls.Day {
-	//			return false, fmt.Errorf("stale release day")
-	//		}
-	//	}
-	//}
-
+func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error) {
 	queryBuilder := repo.db.squirrel.
 		Select("COUNT(*)").
-		From("release").
-		Where(repo.db.ILike("title", title+"%"))
+		From("release r").
+		LeftJoin("release_action_status ras ON r.id = ras.release_id").
+		Where(sq.And{
+			repo.db.ILike("r.title", p.Title+"%"),
+			sq.Eq{"ras.status": "PUSH_APPROVED"},
+		})
 
-	if season > 0 && episode > 0 {
+	if p.Proper {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": p.Proper})
+	}
+	if p.Repack {
+		queryBuilder = queryBuilder.Where(sq.And{
+			sq.Eq{"r.repack": p.Repack},
+			repo.db.ILike("r.release_group", p.Group),
+		})
+	}
+
+	if p.Season > 0 && p.Episode > 0 {
 		queryBuilder = queryBuilder.Where(sq.Or{
 			sq.And{
-				sq.Eq{"season": season},
-				sq.Gt{"episode": episode},
+				sq.Eq{"r.season": p.Season},
+				sq.Gt{"r.episode": p.Episode},
 			},
-			sq.Gt{"season": season},
+			sq.Gt{"r.season": p.Season},
 		})
-	} else if season > 0 && episode == 0 {
-		queryBuilder = queryBuilder.Where(sq.Gt{"season": season})
+	} else if p.Season > 0 && p.Episode == 0 {
+		queryBuilder = queryBuilder.Where(sq.Gt{"r.season": p.Season})
+	} else if p.Year > 0 && p.Month > 0 && p.Day > 0 {
+		queryBuilder = queryBuilder.Where(sq.Or{
+			sq.And{
+				sq.Eq{"r.year": p.Year},
+				sq.Eq{"r.month": p.Month},
+				sq.Gt{"r.day": p.Day},
+			},
+			sq.And{
+				sq.Eq{"r.year": p.Year},
+				sq.Gt{"r.month": p.Month},
+			},
+			sq.Gt{"r.year": p.Year},
+		})
 	} else {
 		/* No support for this scenario today. Specifically multi-part specials.
 		 * The Database presently does not have Subtitle as a field, but is coming at a future date. */
@@ -849,6 +854,8 @@ func (repo *ReleaseRepo) CanDownloadShow(ctx context.Context, title string, seas
 	if err != nil {
 		return false, errors.Wrap(err, "error building query")
 	}
+
+	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msgf("executing query")
 
 	row := repo.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {

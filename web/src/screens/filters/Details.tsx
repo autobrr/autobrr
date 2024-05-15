@@ -387,6 +387,8 @@ export const FilterDetails = () => {
               use_regex: filter.use_regex || false,
               shows: filter.shows,
               years: filter.years,
+              months: filter.months,
+              days: filter.days,
               resolutions: filter.resolutions || [],
               sources: filter.sources || [],
               codecs: filter.codecs || [],

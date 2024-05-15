@@ -128,6 +128,8 @@ CREATE TABLE filter
     match_other                    TEXT []   DEFAULT '{}',
     except_other                   TEXT []   DEFAULT '{}',
     years                          TEXT,
+	months                         TEXT,
+    days                           TEXT,
     artists                        TEXT,
     albums                         TEXT,
     release_types_match            TEXT []   DEFAULT '{}',
@@ -268,6 +270,8 @@ CREATE TABLE "release"
     season            INTEGER,
     episode           INTEGER,
     year              INTEGER,
+    month             INTEGER,
+    day               INTEGER,
     resolution        TEXT,
     source            TEXT,
     codec             TEXT,
@@ -1547,6 +1551,18 @@ ALTER TABLE filter
 	UPDATE indexer
     SET identifier_external = name;
 `,
+	`ALTER TABLE "release"
+ADD COLUMN month INTEGER;
+
+ALTER TABLE "release"
+ADD COLUMN day INTEGER;
+
+ALTER TABLE filter
+ADD COLUMN months TEXT;
+
+ALTER TABLE filter
+ADD COLUMN days TEXT;
+`,
 	`CREATE TABLE release_profile_duplicate
 (
     id            INTEGER PRIMARY KEY,
@@ -1723,6 +1739,5 @@ DROP TABLE filter;
 
 ALTER TABLE filter_dg_tmp
     RENAME TO filter;
-
 `,
 }
