@@ -134,20 +134,20 @@ func (r *Release) Normalized() *ReleaseNormalized {
 		Season:         r.Season,
 		Episode:        r.Episode,
 		Year:           r.Year,
-		//Month:           r.Month,
-		//Day:           r.Day,
-		Resolution:    rls.MustNormalize(r.Resolution),
-		Source:        rls.MustNormalize(r.Source),
-		Codec:         r.Codec,
-		Container:     rls.MustNormalize(r.Container),
-		HDR:           r.HDR,
-		Audio:         r.Audio,
-		AudioChannels: r.AudioChannels,
-		AudioFormat:   r.AudioFormat,
-		Bitrate:       r.Bitrate,
-		Group:         rls.MustNormalize(r.Group),
-		Proper:        r.Proper,
-		Repack:        r.Repack,
+		Month:          r.Month,
+		Day:            r.Day,
+		Resolution:     rls.MustNormalize(r.Resolution),
+		Source:         rls.MustNormalize(r.Source),
+		Codec:          r.Codec,
+		Container:      rls.MustNormalize(r.Container),
+		HDR:            r.HDR,
+		Audio:          r.Audio,
+		AudioChannels:  r.AudioChannels,
+		AudioFormat:    r.AudioFormat,
+		Bitrate:        r.Bitrate,
+		Group:          rls.MustNormalize(r.Group),
+		Proper:         r.Proper,
+		Repack:         r.Repack,
 	}
 }
 
@@ -160,6 +160,8 @@ type ReleaseNormalized struct {
 	Season         int                   `json:"season"`
 	Episode        int                   `json:"episode"`
 	Year           int                   `json:"year"`
+	Month          int                   `json:"month"`
+	Day            int                   `json:"day"`
 	Resolution     string                `json:"resolution"`
 	Source         string                `json:"source"`
 	Codec          []string              `json:"codec"`
