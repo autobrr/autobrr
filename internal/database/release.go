@@ -923,12 +923,12 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	if profile.Year {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.year": release.Year})
 	}
-	//if profile.Month {
-	//	queryBuilder = queryBuilder.Where(sq.Eq{"r.month": release.Month})
-	//}
-	//if profile.Day {
-	//	queryBuilder = queryBuilder.Where(sq.Eq{"r.day": release.Day})
-	//}
+	if profile.Month {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.month": release.Month})
+	}
+	if profile.Day {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.day": release.Day})
+	}
 
 	if profile.Source {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.source)": release.Source})
@@ -937,9 +937,16 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.container)": release.Container})
 	}
 	if profile.Codec {
+		var and sq.And
+		for _, codec := range release.Codec {
+			//queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.codec)": codec})
+			//queryBuilder = queryBuilder.Where(repo.db.ILike("r.codec", "%"+codec+"%"))
+			and = append(and, repo.db.ILike("r.codec", "%"+codec+"%"))
+		}
+		queryBuilder = queryBuilder.Where(and)
+
 		//queryBuilder = queryBuilder.Where(sq.Eq{"r.codec": release.Codec})
 		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.codec", release.Codec))
-		// TODO fix array check
 	}
 	if profile.Resolution {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.resolution)": release.Resolution})
@@ -947,7 +954,11 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	if profile.HDR {
 		//queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.Resolution})
 		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.hdr", release.HDR))
-		// TODO fix array check
+		var and sq.And
+		for _, hdr := range release.HDR {
+			and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
+		}
+		queryBuilder = queryBuilder.Where(and)
 	}
 	if profile.Group {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.release_group)": release.Group})
@@ -962,7 +973,11 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": release.Proper})
 	}
 	if profile.Repack {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": release.Repack})
+		//queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": release.Repack})
+		queryBuilder = queryBuilder.Where(sq.And{
+			sq.Eq{"r.repack": release.Repack},
+			sq.Eq{"LOWER(r.release_group)": release.Group},
+		})
 	}
 
 	query, args, err := queryBuilder.ToSql()
