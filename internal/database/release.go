@@ -943,9 +943,11 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	if profile.Year {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.year": release.Year})
 	}
+
 	if profile.Month {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.month": release.Month})
 	}
+
 	if profile.Day {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.day": release.Day})
 	}
@@ -953,45 +955,47 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	if profile.Source {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.source)": release.Source})
 	}
+
 	if profile.Container {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.container)": release.Container})
 	}
+
 	if profile.Codec {
 		var and sq.And
 		for _, codec := range release.Codec {
-			//queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.codec)": codec})
-			//queryBuilder = queryBuilder.Where(repo.db.ILike("r.codec", "%"+codec+"%"))
 			and = append(and, repo.db.ILike("r.codec", "%"+codec+"%"))
 		}
 		queryBuilder = queryBuilder.Where(and)
-
-		//queryBuilder = queryBuilder.Where(sq.Eq{"r.codec": release.Codec})
-		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.codec", release.Codec))
 	}
+
 	if profile.Resolution {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.resolution)": release.Resolution})
 	}
+
 	if profile.HDR {
-		//queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.Resolution})
-		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.hdr", release.HDR))
 		var and sq.And
 		for _, hdr := range release.HDR {
 			and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
 		}
 		queryBuilder = queryBuilder.Where(and)
 	}
+
 	if profile.Group {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.release_group)": release.Group})
 	}
+
 	if profile.Season {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.season": release.Season})
 	}
+
 	if profile.Episode {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.episode": release.Episode})
 	}
+
 	if profile.Proper {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": release.Proper})
 	}
+
 	if profile.Repack {
 		//queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": release.Repack})
 		queryBuilder = queryBuilder.Where(sq.And{
