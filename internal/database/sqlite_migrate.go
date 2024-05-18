@@ -70,7 +70,7 @@ CREATE TABLE irc_channel
 
 CREATE TABLE release_profile_duplicate
 (
-    id            INTEGER PRIMARY KEY,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL,
     protocol      BOOLEAN DEFAULT FALSE,
     release_name  BOOLEAN DEFAULT FALSE,
@@ -92,7 +92,7 @@ CREATE TABLE release_profile_duplicate
 
 CREATE TABLE filter
 (
-    id                             INTEGER PRIMARY KEY,
+    id                             INTEGER PRIMARY KEY AUTOINCREMENT,
     enabled                        BOOLEAN,
     name                           TEXT NOT NULL,
     min_size                       TEXT,
@@ -1565,7 +1565,7 @@ ADD COLUMN days TEXT;
 `,
 	`CREATE TABLE release_profile_duplicate
 (
-    id            INTEGER PRIMARY KEY,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
     name          TEXT NOT NULL,
     protocol      BOOLEAN DEFAULT FALSE,
     release_name  BOOLEAN DEFAULT FALSE,
@@ -1587,7 +1587,7 @@ ADD COLUMN days TEXT;
 
 CREATE TABLE filter_dg_tmp
 (
-    id                           INTEGER PRIMARY KEY,
+    id                           INTEGER PRIMARY KEY AUTOINCREMENT,
     enabled                      BOOLEAN,
     name                         TEXT                   NOT NULL,
     min_size                     TEXT,
