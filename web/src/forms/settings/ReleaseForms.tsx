@@ -163,6 +163,8 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
           <SwitchGroupWide name="group" label="Group" />
           <SwitchGroupWide name="season" label="Season" />
           <SwitchGroupWide name="episode" label="Episode" />
+          <SwitchGroupWide name="repack" label="Repack" />
+          <SwitchGroupWide name="proper" label="Proper" />
         </div>
       )}
     </SlideOver>
