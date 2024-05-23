@@ -43,7 +43,7 @@ irc:
             torrentName: This Is A New show S00E00 720p WEB H264-Test
             category: TV HD
             torrentSize: 1.40 GB
-            baseUrl: https://finelite.org/
+            baseUrl: finelite.org
             torrentId: "0000000"
         pattern: '(.+) \[(.+)\] (.+) https?\:\/\/([^\/]+)\/details\/(\d+)'
         vars:
