@@ -52,6 +52,8 @@ func getMockFilter() *domain.Filter {
 		MatchOther:           []string{"Atmos"},
 		ExceptOther:          []string{"Atmos"},
 		Years:                "2023",
+		Months:               "",
+		Days:                 "",
 		Artists:              "",
 		Albums:               "",
 		MatchReleaseTypes:    []string{"Remux"},

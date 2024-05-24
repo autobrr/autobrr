@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ type ReleaseRepo interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	Delete(ctx context.Context, req *DeleteReleaseRequest) error
-	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
+	CheckSmartEpisodeCanDownload(ctx context.Context, p *SmartEpisodeParams) (bool, error)
 	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
@@ -68,6 +69,8 @@ type Release struct {
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
 	Year                        int                   `json:"year"`
+	Month                       int                   `json:"month"`
+	Day                         int                   `json:"day"`
 	Resolution                  string                `json:"resolution"`
 	Source                      string                `json:"source"`
 	Codec                       []string              `json:"codec"`
@@ -316,9 +319,13 @@ func (r *Release) ParseString(title string) {
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
-	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	r.Other = rel.Other
+
+	r.Proper = slices.Contains(r.Other, "PROPER")
+	r.Repack = slices.Contains(r.Other, "REPACK")
 
 	if r.Title == "" {
 		r.Title = rel.Title
@@ -333,6 +340,12 @@ func (r *Release) ParseString(title string) {
 
 	if r.Year == 0 {
 		r.Year = rel.Year
+	}
+	if r.Month == 0 {
+		r.Month = rel.Month
+	}
+	if r.Day == 0 {
+		r.Day = rel.Day
 	}
 
 	if r.Group == "" {

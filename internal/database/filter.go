@@ -215,6 +215,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.match_other",
 			"f.except_other",
 			"f.years",
+			"f.months",
+			"f.days",
 			"f.artists",
 			"f.albums",
 			"f.release_types_match",
@@ -265,7 +267,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var f domain.Filter
 
 	// filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, maxDownloads, logScore sql.NullInt32
 
@@ -306,6 +308,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		pq.Array(&f.MatchOther),
 		pq.Array(&f.ExceptOther),
 		&years,
+		&months,
+		&days,
 		&artists,
 		&albums,
 		pq.Array(&f.MatchReleaseTypes),
@@ -361,6 +365,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.Seasons = seasons.String
 	f.Episodes = episodes.String
 	f.Years = years.String
+	f.Months = months.String
+	f.Days = days.String
 	f.Artists = artists.String
 	f.Albums = albums.String
 	f.LogScore = int(logScore.Int32)
@@ -426,6 +432,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.match_other",
 			"f.except_other",
 			"f.years",
+			"f.months",
+			"f.days",
 			"f.artists",
 			"f.albums",
 			"f.release_types_match",
@@ -480,7 +488,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
 
@@ -521,6 +529,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			pq.Array(&f.MatchOther),
 			pq.Array(&f.ExceptOther),
 			&years,
+			&months,
+			&days,
 			&artists,
 			&albums,
 			pq.Array(&f.MatchReleaseTypes),
@@ -572,6 +582,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.Seasons = seasons.String
 		f.Episodes = episodes.String
 		f.Years = years.String
+		f.Months = months.String
+		f.Days = days.String
 		f.Artists = artists.String
 		f.Albums = albums.String
 		f.LogScore = int(logScore.Int32)
@@ -722,6 +734,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"match_other",
 			"except_other",
 			"years",
+			"months",
+			"days",
 			"match_categories",
 			"except_categories",
 			"match_uploaders",
@@ -785,6 +799,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			pq.Array(filter.MatchOther),
 			pq.Array(filter.ExceptOther),
 			filter.Years,
+			filter.Months,
+			filter.Days,
 			filter.MatchCategories,
 			filter.ExceptCategories,
 			filter.MatchUploaders,
@@ -866,6 +882,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("match_other", pq.Array(filter.MatchOther)).
 		Set("except_other", pq.Array(filter.ExceptOther)).
 		Set("years", filter.Years).
+		Set("months", filter.Months).
+		Set("days", filter.Days).
 		Set("match_categories", filter.MatchCategories).
 		Set("except_categories", filter.ExceptCategories).
 		Set("match_uploaders", filter.MatchUploaders).
@@ -1023,6 +1041,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.Years != nil {
 		q = q.Set("years", filter.Years)
+	}
+	if filter.Months != nil {
+		q = q.Set("months", filter.Months)
+	}
+	if filter.Days != nil {
+		q = q.Set("days", filter.Days)
 	}
 	if filter.MatchCategories != nil {
 		q = q.Set("match_categories", filter.MatchCategories)

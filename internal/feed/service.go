@@ -18,7 +18,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/mmcdole/gofeed"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
@@ -255,7 +254,7 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	f, err := gofeed.NewParser().ParseURLWithContext(feed.URL, ctx)
+	f, err := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie).ParseURLWithContext(ctx, feed.URL)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("error fetching rss feed items")
 		return errors.Wrap(err, "error fetching rss feed items")
