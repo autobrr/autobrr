@@ -151,6 +151,7 @@ export async function HttpClient<T = unknown>(
   }
 
   const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
+  const isJson = response.headers.get("Content-Type")?.includes("application/json");
 
   if (response.status >= 200 && response.status < 300) {
     // We received a successful response
@@ -162,7 +163,6 @@ export async function HttpClient<T = unknown>(
     // If Content-Type is application/json, then parse response as JSON
     // otherwise, just resolve the Response object returned by window.fetch
     // and the consumer can call await response.text() if needed.
-    const isJson = response.headers.get("Content-Type")?.includes("application/json");
     if (isJson) {
       return Promise.resolve<T>(await response.json() as T);
     } else {
@@ -195,11 +195,23 @@ export async function HttpClient<T = unknown>(
       break;
     }
 
+    let reason = response.statusText;
+    if (isJson) {
+      const json = await response.json();
+      if (Object.hasOwn(json, "message")) {
+        reason = json.message as string;
+      }
+    }
+
+    if (reason.length) {
+      reason = ` (${reason})`;
+    }
+
     const defaultError = new Error(
-      `HTTP request to '${endpoint}' failed with code ${response.status} (${response.statusText})`
+      `HTTP request to '${endpoint}' failed with code ${response.status}${reason}`
     );
     return Promise.reject(defaultError);
-  }    
+  }
 }
 
 const appClient = {

@@ -1,0 +1,58 @@
+---
+#id: FinElite
+name: FinElite
+identifier: finelite
+description: FinElite (FE) is a finnish private tracker.
+language: fi-fi
+urls:
+  - https://finelite.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+# source: TBDEV
+settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: "Click on Settings > Torrent Settings > Copy the Auth key and paste it here."
+
+irc:
+  network: PreNET
+  server: irc.predataba.se
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - FinElite
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: 'This Is A New show S00E00 720p WEB H264-Test [TV HD] 1.40 GB https://finelite.org/details/0000000'
+          expect:
+            torrentName: This Is A New show S00E00 720p WEB H264-Test
+            category: TV HD
+            torrentSize: 1.40 GB
+            baseUrl: https://finelite.org/
+            torrentId: "0000000"
+        pattern: '(.+) \[(.+)\] (.+) (https?\:\/\/[^\/]+\/)details\/(\d+)'
+        vars:
+          - torrentName
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details/{{ .torrentId }}"
+      torrenturl: "/lataa/{{ .authkey }}/{{ .torrentId }}.torrent"
