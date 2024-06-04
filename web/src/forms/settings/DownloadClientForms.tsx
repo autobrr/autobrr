@@ -5,7 +5,7 @@
 
 import { Fragment, useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Form, Formik, useFormikContext } from "formik";
 import { toast } from "react-hot-toast";
@@ -405,7 +405,7 @@ function FormFieldsRulesBasic() {
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
 
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Rules</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Rules</DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads.
         </p>
@@ -440,9 +440,9 @@ function FormFieldsRulesArr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Download Client
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Override download client to use. Can also be overridden per Filter Action.
         </p>
@@ -463,9 +463,9 @@ function FormFieldsRulesQbit() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads etc.
         </p>
@@ -531,9 +531,9 @@ function FormFieldsRulesTransmission() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads etc.
         </p>
@@ -783,9 +783,9 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add client
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Add download client.
                               </p>
@@ -976,9 +976,9 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                           <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                             <div className="flex items-start justify-between space-x-3">
                               <div className="space-y-1">
-                                <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                   Edit client
-                                </Dialog.Title>
+                                </DialogTitle>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                   Edit download client settings.
                                 </p>

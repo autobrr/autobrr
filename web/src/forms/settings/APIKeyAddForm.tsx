@@ -7,7 +7,7 @@ import { Fragment } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
@@ -73,8 +73,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Create API
-                                key</Dialog.Title>
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Create API key</DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Add new API key.
                               </p>

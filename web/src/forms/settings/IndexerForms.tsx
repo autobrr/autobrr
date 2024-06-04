@@ -50,7 +50,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
       {ind && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
           <div className="px-4 space-y-1">
-            <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
+            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">IRC</DialogTitle>
             <p className="text-sm text-gray-500 dark:text-gray-200">
               Networks and channels are configured automatically in the background.
             </p>
@@ -100,7 +100,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.torznab && ind.torznab.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Torznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Torznab feed
               </p>
@@ -141,7 +141,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.newznab && ind.newznab.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Newznab</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Newznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Newznab feed
               </p>
@@ -174,7 +174,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.rss && ind.rss.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">RSS</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">RSS</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 RSS feed
               </p>

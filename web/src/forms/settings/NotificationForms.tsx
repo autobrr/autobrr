@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { Fragment } from "react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
@@ -28,7 +28,9 @@ function FormFieldsDiscord() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Create a "}
           <ExternalLink
@@ -55,7 +57,9 @@ function FormFieldsNotifiarr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Enable the autobrr integration and optionally create a new API Key.
         </p>
@@ -74,7 +78,9 @@ function FormFieldsLunaSea() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
         LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
         </p>
@@ -104,7 +110,9 @@ function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Read how to "}
           <ExternalLink
@@ -146,7 +154,9 @@ function FormFieldsPushover() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Register a new "}
           <ExternalLink
@@ -183,7 +193,9 @@ function FormFieldsGotify() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
       </div>
 
       <TextFieldWide
@@ -207,7 +219,9 @@ function FormFieldsNtfy() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
       </div>
 
       <TextFieldWide
@@ -249,7 +263,9 @@ function FormFieldsShoutrrr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Settings</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
       </div>
 
       <TextFieldWide
@@ -370,9 +386,9 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add Notifications
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
                                 Trigger notifications on different events.
                               </p>
@@ -461,9 +477,9 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
 
                           <div className="border-t mt-2 border-gray-200 dark:border-gray-700 py-4">
                             <div className="px-4 space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Events
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Select what events to trigger on
                               </p>
@@ -684,8 +700,9 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
             <SwitchGroupWide name="enabled" label="Enabled"/>
             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
               <div className="px-4 space-y-1">
-                <Dialog.Title
-                  className="text-lg font-medium text-gray-900 dark:text-white">Events</Dialog.Title>
+                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                  Events
+                </DialogTitle>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Select what events to trigger on
                 </p>
