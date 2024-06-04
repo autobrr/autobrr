@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
 import { Fragment } from "react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
@@ -330,19 +330,19 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
-        className="fixed inset-0 overflow-hidden"
+        className="absolute inset-0 overflow-hidden"
         open={isOpen}
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
+          <DialogPanel className="absolute inset-0" />
 
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <div className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -507,11 +507,11 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                   )}
                 </Formik>
               </div>
-            </Transition.Child>
+            </TransitionChild>
           </div>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
 

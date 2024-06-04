@@ -5,7 +5,7 @@
 
 import { Fragment, useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Form, Formik, useFormikContext } from "formik";
 import { toast } from "react-hot-toast";
@@ -750,7 +750,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
@@ -759,10 +759,8 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -837,11 +835,11 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                   )}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
 
@@ -934,11 +932,11 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
-        className="fixed inset-0 overflow-hidden"
+        className="absolute inset-0 overflow-hidden"
         open={isOpen}
         onClose={toggle}
         initialFocus={cancelButtonRef}
@@ -953,10 +951,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
           text="Are you sure you want to remove this download client? This action cannot be undone."
         />
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -1034,10 +1030,10 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                   }}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
