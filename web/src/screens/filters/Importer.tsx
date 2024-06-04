@@ -225,23 +225,12 @@ export const Importer = ({
       <Dialog
         as="div"
         static
-        className="fixed z-10 inset-0 overflow-y-auto"
+        className="fixed z-10 inset-0 overflow-y-auto bg-gray-700/60 dark:bg-black/60 transition-opacity"
         initialFocus={textAreaRef}
         open={isOpen}
         onClose={() => setIsOpen(false)}
       >
         <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <TransitionChild
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-          </TransitionChild>
-
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
             &#8203;
           </span>
@@ -254,7 +243,7 @@ export const Importer = ({
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <DialogPanel className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full sm:max-w-6xl">
+            <DialogPanel className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition sm:my-8 sm:align-middle w-full sm:max-w-6xl">
               <ModalUpper>
                 <textarea
                   className="form-input resize-y block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
