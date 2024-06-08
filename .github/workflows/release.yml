@@ -116,7 +116,7 @@ jobs:
 
       - name: Run GoReleaser build
         if: github.event_name == 'pull_request'
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
@@ -126,7 +126,7 @@ jobs:
 
       - name: Run GoReleaser build and publish tags
         if: startsWith(github.ref, 'refs/tags/')
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
