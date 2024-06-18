@@ -7,7 +7,7 @@ import { Fragment } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
@@ -41,13 +41,11 @@ export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+    <Transition show={isOpen} as={Fragment}>
+      <Dialog as="div" static className="absolute inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0"/>
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -71,8 +69,7 @@ export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Create API
-                                key</Dialog.Title>
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Create API key</DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Add new API key.
                               </p>
@@ -147,10 +144,10 @@ export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
                   )}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
