@@ -10,7 +10,7 @@ import Select from "react-select";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
@@ -50,7 +50,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
       {ind && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
           <div className="px-4 space-y-1">
-            <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
+            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">IRC</DialogTitle>
             <p className="text-sm text-gray-500 dark:text-gray-200">
               Networks and channels are configured automatically in the background.
             </p>
@@ -100,7 +100,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.torznab && ind.torznab.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Torznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Torznab feed
               </p>
@@ -141,7 +141,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.newznab && ind.newznab.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Newznab</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Newznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Newznab feed
               </p>
@@ -174,7 +174,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.rss && ind.rss.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">RSS</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">RSS</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 RSS feed
               </p>
@@ -422,13 +422,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+    <Transition show={isOpen} as={Fragment}>
+      <Dialog as="div" static className="absolute inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 pl-10 sm:pl-0 max-w-full flex">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -456,9 +454,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add indexer
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
                                 Add indexer.
                               </p>
@@ -594,12 +592,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                   )}
                 </Formik>
               </div>
-
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
 
