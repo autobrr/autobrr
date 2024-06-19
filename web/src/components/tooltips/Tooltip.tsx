@@ -37,7 +37,6 @@ export const Tooltip = ({
 
   // default tooltip placement to right
   const [placement, setPlacement] = useState<Placement>('right');
-  const [followCursor, setFollowCursor] = useState(false);
 
   // check screen size and update placement if needed
   useEffect(() => {
@@ -45,10 +44,8 @@ export const Tooltip = ({
       const screenWidth = window.innerWidth;
       if (screenWidth < 640) { // tailwind's sm breakpoint
         setPlacement('top');
-        setFollowCursor(false)
       } else {
         setPlacement('right');
-        setFollowCursor(true)
       }
     };
 
@@ -70,7 +67,7 @@ export const Tooltip = ({
     interactive: true,
     delayHide: 200,
     placement,
-    followCursor
+    followCursor: placement === "right"
   });
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
