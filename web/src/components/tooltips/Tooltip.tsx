@@ -67,6 +67,7 @@ export const Tooltip = ({
     interactive: true,
     delayHide: 200,
     placement,
+    followCursor: placement === "right"
   });
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
