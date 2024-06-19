@@ -351,9 +351,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-0" />
-
-          <div className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+          <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
             <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
@@ -520,7 +518,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                 </Formik>
               </div>
             </TransitionChild>
-          </div>
+          </DialogPanel>
         </div>
       </Dialog>
     </Transition>
