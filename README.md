@@ -211,7 +211,7 @@ docker compose up -d
 
 ### Distroless Docker Images
 
-> [!NOTE]
+> [!CAUTION]
 > This image comes without a shell, and external filtering and actions relying on `exec` will therefore not work with anything but compiled static binaries.
 > 
 > To clarify: BASH and SH shell scripts WILL NOT WORK!
