@@ -5,7 +5,7 @@
 
 import { Field } from "formik";
 import Select from "react-select";
-import { Switch } from "@headlessui/react";
+import { Field as Group, Label, Description } from "@headlessui/react";
 import type { FieldProps, FieldValidator } from "formik";
 
 import { classNames } from "@utils";
@@ -255,19 +255,20 @@ export const SwitchGroupWide = ({
   defaultValue
 }: SwitchGroupWideProps) => (
   <ul className="px-4 divide-y divide-gray-200 dark:divide-gray-700">
-    <Switch.Group as="li" className="py-4 flex items-center justify-between">
+    {/* @headlessui/react's <Field> got imported as <Group> to prevent a collision with formik's <Field> */}
+    <Group as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
-        <Switch.Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
+        <Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
           <div className="flex">
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
           </div>
-        </Switch.Label>
+        </Label>
         {description && (
-          <Switch.Description className="text-sm text-gray-500 dark:text-gray-700">
+          <Description className="text-sm text-gray-500 dark:text-gray-700">
             {description}
-          </Switch.Description>
+          </Description>
         )}
       </div>
 
@@ -289,7 +290,7 @@ export const SwitchGroupWide = ({
           />
         )}
       </Field>
-    </Switch.Group>
+    </Group>
   </ul>
 );
 

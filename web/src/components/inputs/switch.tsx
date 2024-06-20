@@ -5,7 +5,7 @@
 
 import type { FieldProps } from "formik";
 import { Field } from "formik";
-import { Switch as HeadlessSwitch } from "@headlessui/react";
+import { Field as Group, Label, Description } from "@headlessui/react";
 
 import { classNames } from "@utils";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
@@ -30,7 +30,8 @@ const SwitchGroup = ({
   disabled,
   className
 }: SwitchGroupProps) => (
-  <HeadlessSwitch.Group
+  // @headlessui/react's <Field> got imported as <Group> to prevent a collision with formik's <Field>
+  <Group
     as="div"
     className={classNames(
       className ?? "py-2",
@@ -38,7 +39,7 @@ const SwitchGroup = ({
     )}
   >
     {label && <div className="flex flex-col">
-      <HeadlessSwitch.Label
+      <Label
         passive
         as={heading ? "h2" : "span"}
         className={classNames(
@@ -51,11 +52,11 @@ const SwitchGroup = ({
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
         </div>
-      </HeadlessSwitch.Label>
+      </Label>
       {description && (
-        <HeadlessSwitch.Description as="span" className="text-sm mt-1 pr-4 text-gray-500 dark:text-gray-400">
+        <Description as="span" className="text-sm mt-1 pr-4 text-gray-500 dark:text-gray-400">
           {description}
-        </HeadlessSwitch.Description>
+        </Description>
       )}
     </div>
     }
@@ -76,7 +77,7 @@ const SwitchGroup = ({
         />
       )}
     </Field>
-  </HeadlessSwitch.Group>
+  </Group>
 );
 
 export { SwitchGroup };
