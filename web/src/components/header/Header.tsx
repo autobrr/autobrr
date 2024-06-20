@@ -6,7 +6,7 @@
 import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { Disclosure } from "@headlessui/react";
+import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
@@ -60,7 +60,7 @@ export const Header = () => {
                 <RightNav logoutMutation={logoutMutation.mutate} />
                 <div className="-mr-2 flex sm:hidden">
                   {/* Mobile menu button */}
-                  <Disclosure.Button className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
+                  <DisclosureButton className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
                     <span className="sr-only">Open main menu</span>
                     {open ? (
                       <XMarkIcon
@@ -73,7 +73,7 @@ export const Header = () => {
                         aria-hidden="true"
                       />
                     )}
-                  </Disclosure.Button>
+                  </DisclosureButton>
                 </div>
               </div>
             </div>
