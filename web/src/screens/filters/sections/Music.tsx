@@ -6,19 +6,20 @@
 import { useFormikContext } from "formik";
 
 import { DocsLink } from "@components/ExternalLink";
-import * as Input from "@components/inputs";
+import { FilterLayout, FilterPage, FilterRow, FilterSection } from "./_components";
+import { MultiSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
 
 import * as CONSTS from "@domain/constants";
-import * as Components from "./_components";
+
 
 export const Music = () => {
   const { values } = useFormikContext<Filter>();
 
   return (
-    <Components.Page>
-      <Components.Section>
-        <Components.Layout>
-          <Input.TextAreaAutoResize
+    <FilterPage>
+      <FilterSection>
+        <FilterLayout>
+          <TextAreaAutoResize
             name="artists"
             label="Artists"
             columns={6}
@@ -30,7 +31,7 @@ export const Music = () => {
               </div>
             }
           />
-          <Input.TextAreaAutoResize
+          <TextAreaAutoResize
             name="albums"
             label="Albums"
             columns={6}
@@ -42,15 +43,15 @@ export const Music = () => {
               </div>
             }
           />
-        </Components.Layout>
-      </Components.Section>
+        </FilterLayout>
+      </FilterSection>
 
-      <Components.Section
+      <FilterSection
         title="Release details"
         subtitle="Type (Album, Single, EP, etc.) and year of release (if announced)"
       >
-        <Components.Layout>
-          <Input.MultiSelect
+        <FilterLayout>
+          <MultiSelect
             name="match_release_types"
             options={CONSTS.RELEASE_TYPE_MUSIC_OPTIONS}
             label="Music Type"
@@ -62,7 +63,7 @@ export const Music = () => {
               </div>
             }
           />
-          <Input.TextField
+          <TextField
             name="years"
             label="Years"
             columns={6}
@@ -74,16 +75,16 @@ export const Music = () => {
               </div>
             }
           />
-        </Components.Layout>
-      </Components.Section>
+        </FilterLayout>
+      </FilterSection>
 
-      <Components.Section
+      <FilterSection
         title="Quality"
         subtitle="Format, source, log, etc."
       >
-        <Components.Layout>
-          <Components.Layout>
-            <Input.MultiSelect
+        <FilterLayout>
+          <FilterLayout>
+            <MultiSelect
               name="formats"
               options={CONSTS.FORMATS_OPTIONS}
               label="Format"
@@ -96,7 +97,7 @@ export const Music = () => {
                 </div>
               }
             />
-            <Input.MultiSelect
+            <MultiSelect
               name="quality"
               options={CONSTS.QUALITY_MUSIC_OPTIONS}
               label="Quality"
@@ -109,7 +110,7 @@ export const Music = () => {
                 </div>
               }
             />
-            <Input.MultiSelect
+            <MultiSelect
               name="media"
               options={CONSTS.SOURCES_MUSIC_OPTIONS}
               label="Media"
@@ -122,31 +123,31 @@ export const Music = () => {
                 </div>
               }
             />
-          </Components.Layout>
+          </FilterLayout>
 
-          <Components.Layout className="items-end sm:!gap-x-6">
-            <Components.Row className="sm:col-span-4">
-              <Input.SwitchGroup
+          <FilterLayout className="items-end sm:!gap-x-6">
+            <FilterRow className="sm:col-span-4">
+              <SwitchGroup
                 name="cue"
                 label="Cue"
                 description="Must include CUE info"
                 disabled={values.perfect_flac}
                 className="sm:col-span-4"
               />
-            </Components.Row>
+            </FilterRow>
 
-            <Components.Row className="sm:col-span-4">
-              <Input.SwitchGroup
+            <FilterRow className="sm:col-span-4">
+              <SwitchGroup
                 name="log"
                 label="Log"
                 description="Must include LOG info"
                 disabled={values.perfect_flac}
                 className="sm:col-span-4"
               />
-            </Components.Row>
+            </FilterRow>
 
-            <Components.Row className="sm:col-span-4">
-              <Input.NumberField
+            <FilterRow className="sm:col-span-4">
+              <NumberField
                 name="log_score"
                 label="Log score"
                 placeholder="eg. 100"
@@ -160,9 +161,9 @@ export const Music = () => {
                   </div>
                 }
               />
-            </Components.Row>
-          </Components.Layout>
-        </Components.Layout>
+            </FilterRow>
+          </FilterLayout>
+        </FilterLayout>
 
         <div className="col-span-12 flex items-center justify-center">
           <span className="border-b border-gray-150 dark:border-gray-750 w-full" />
@@ -172,8 +173,8 @@ export const Music = () => {
           <span className="border-b border-gray-150 dark:border-gray-750 w-full" />
         </div>
 
-        <Components.Layout className="sm:!gap-x-6">
-          <Input.SwitchGroup
+        <FilterLayout className="sm:!gap-x-6">
+          <SwitchGroup
             name="perfect_flac"
             label="Perfect FLAC"
             description="Override all options about quality, source, format, and cue/log/log score."
@@ -189,8 +190,8 @@ export const Music = () => {
           <span className="col-span-12 sm:col-span-6 self-center ml-0 text-center sm:text-left text-sm text-gray-500 dark:text-gray-425 underline underline-offset-2">
           This is what you want in 90% of cases (instead of options above).
         </span>
-        </Components.Layout>
-      </Components.Section>
-    </Components.Page>
+        </FilterLayout>
+      </FilterSection>
+    </FilterPage>
   );
 }
