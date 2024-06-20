@@ -4,8 +4,8 @@
  */
 
 import type { FieldProps } from "formik";
-import { Field } from "formik";
-import { Field as Group, Label, Description } from "@headlessui/react";
+import { Field as FormikField } from "formik";
+import { Field, Label, Description } from "@headlessui/react";
 
 import { classNames } from "@utils";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
@@ -30,8 +30,7 @@ const SwitchGroup = ({
   disabled,
   className
 }: SwitchGroupProps) => (
-  // @headlessui/react's <Field> got imported as <Group> to prevent a collision with formik's <Field>
-  <Group
+  <Field
     as="div"
     className={classNames(
       className ?? "py-2",
@@ -61,7 +60,7 @@ const SwitchGroup = ({
     </div>
     }
 
-    <Field name={name} type="checkbox">
+    <FormikField name={name} type="checkbox">
       {({
         field,
         form: { setFieldValue }
@@ -76,8 +75,8 @@ const SwitchGroup = ({
           disabled={disabled}
         />
       )}
-    </Field>
-  </Group>
+    </FormikField>
+  </Field>
 );
 
 export { SwitchGroup };
