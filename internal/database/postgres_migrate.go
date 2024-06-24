@@ -83,9 +83,11 @@ CREATE TABLE release_profile_duplicate
     codec         BOOLEAN DEFAULT FALSE,
     container     BOOLEAN DEFAULT FALSE,
     hdr           BOOLEAN DEFAULT FALSE,
+    audio         BOOLEAN DEFAULT FALSE,
     release_group BOOLEAN DEFAULT FALSE,
     season        BOOLEAN DEFAULT FALSE,
     episode       BOOLEAN DEFAULT FALSE,
+    website       BOOLEAN DEFAULT FALSE,
     proper        BOOLEAN DEFAULT FALSE,
     repack        BOOLEAN DEFAULT FALSE
 );
@@ -279,6 +281,7 @@ CREATE TABLE "release"
     container         TEXT,
     hdr               TEXT,
     audio             TEXT,
+    audio_channels    TEXT,
     release_group     TEXT,
     region            TEXT,
     language          TEXT,
@@ -940,17 +943,19 @@ ADD COLUMN days TEXT;
     codec         BOOLEAN DEFAULT FALSE,
     container     BOOLEAN DEFAULT FALSE,
     hdr           BOOLEAN DEFAULT FALSE,
+    audio         BOOLEAN DEFAULT FALSE,
     release_group BOOLEAN DEFAULT FALSE,
     season        BOOLEAN DEFAULT FALSE,
     episode       BOOLEAN DEFAULT FALSE,
+    website       BOOLEAN DEFAULT FALSE,
     proper        BOOLEAN DEFAULT FALSE,
     repack        BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, release_group, season, episode, proper, repack) 
-VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1),
-       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1);
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack) 
+VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+       (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1);
 
 ALTER TABLE filter
     ADD release_profile_duplicate_id INTEGER;
@@ -959,5 +964,11 @@ ALTER TABLE filter
     ADD CONSTRAINT filter_release_profile_duplicate_id_fk
         FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate (id)
             ON DELETE SET NULL;
+
+ALTER TABLE "release"
+    ADD COLUMN IF NOT EXISTS audio TEXT;
+
+ALTER TABLE "release"
+    ADD audio_channels TEXT;
 `,
 }

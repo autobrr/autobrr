@@ -44,9 +44,11 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     codec: false,
     container: false,
     hdr: false,
+    audio: false,
     group: false,
     season: false,
     episode: false,
+    website: false,
     proper: false,
     repack: false
   };
@@ -129,9 +131,11 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     codec: profile.codec,
     container: profile.container,
     hdr: profile.hdr,
+    audio: profile.audio,
     group: profile.group,
     season: profile.season,
     episode: profile.episode,
+    website: profile.website,
     proper: profile.proper,
     repack: profile.repack
   };
@@ -150,19 +154,21 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
           <TextFieldWide required name="name" label="Name"/>
 
-          <SwitchGroupWide name="release_name" label="Release name" />
-          <SwitchGroupWide name="title" label="Title" />
+          <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
+          <SwitchGroupWide name="title" label="Title" description="Parsed title" />
           <SwitchGroupWide name="year" label="Year" />
-          <SwitchGroupWide name="month" label="Month" />
-          <SwitchGroupWide name="day" label="Day" />
+          <SwitchGroupWide name="month" label="Month" description="For daily releases" />
+          <SwitchGroupWide name="day" label="Day" description="For daily releases" />
           <SwitchGroupWide name="source" label="Source" />
           <SwitchGroupWide name="resolution" label="Resolution" />
           <SwitchGroupWide name="codec" label="Codec" />
           <SwitchGroupWide name="container" label="Container" />
           <SwitchGroupWide name="hdr" label="HDR" />
-          <SwitchGroupWide name="group" label="Group" />
+          <SwitchGroupWide name="audio" label="Audio" />
+          <SwitchGroupWide name="group" label="Group" description="Release group" />
           <SwitchGroupWide name="season" label="Season" />
           <SwitchGroupWide name="episode" label="Episode" />
+          <SwitchGroupWide name="website" label="Website/Service" description="Services such as AMZN/HULU/NF" />
           <SwitchGroupWide name="repack" label="Repack" />
           <SwitchGroupWide name="proper" label="Proper" />
         </div>

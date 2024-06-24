@@ -63,8 +63,10 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
           {profile.codec && <EnabledPill value={profile.codec} label="Codec" title="Codec" />}
           {profile.container && <EnabledPill value={profile.container} label="Container" title="Container" />}
           {profile.hdr && <EnabledPill value={profile.hdr} label="HDR" title="HDR formats" />}
+          {profile.audio && <EnabledPill value={profile.audio} label="Audio" title="Audio formats" />}
           {profile.season && <EnabledPill value={profile.season} label="Season" title="Season number" />}
           {profile.episode && <EnabledPill value={profile.episode} label="Episode" title="Episode number" />}
+          {profile.website && <EnabledPill value={profile.website} label="Website" title="Website/Service" />}
           {profile.proper && <EnabledPill value={profile.proper} label="Proper" title="Scene proper" />}
           {profile.repack && <EnabledPill value={profile.repack} label="Repack" title="Scene repack" />}
         </div>

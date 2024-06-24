@@ -368,7 +368,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int64) (*domain.Filt
 	f.Seasons = seasons.V
 	f.Episodes = episodes.V
 	f.Years = years.V
-  f.Months = months.V
+	f.Months = months.V
 	f.Days = days.V
 	f.Artists = artists.V
 	f.Albums = albums.V
@@ -479,9 +479,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"rdp.codec",
 			"rdp.container",
 			"rdp.hdr",
+			"rdp.audio",
 			"rdp.release_group",
 			"rdp.season",
 			"rdp.episode",
+			"rdp.website",
 			"rdp.proper",
 			"rdp.repack",
 		).
@@ -518,7 +520,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 		var rdpId sql.Null[int64]
 		var rdpName sql.Null[string]
-		var rdpRelName, rdpTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpHdr, rdpGroup, rdpSeason, rdpEpisode, rdpProper, rdpRepack sql.Null[bool]
+		var rdpRelName, rdpTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpHdr, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack sql.Null[bool]
 
 		err := rows.Scan(
 			&f.ID,
@@ -600,9 +602,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&rdpCodec,
 			&rdpContainer,
 			&rdpHdr,
+			&rdpAudio,
 			&rdpGroup,
 			&rdpSeason,
 			&rdpEpisode,
+			&rdpWebsite,
 			&rdpProper,
 			&rdpRepack,
 		)
@@ -628,7 +632,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.Seasons = seasons.V
 		f.Episodes = episodes.V
 		f.Years = years.V
-    f.Months = months.V
+		f.Months = months.V
 		f.Days = days.V
 		f.Artists = artists.V
 		f.Albums = albums.V
@@ -668,9 +672,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 				Codec:       rdpCodec.V,
 				Container:   rdpContainer.V,
 				HDR:         rdpHdr.V,
+				Audio:       rdpAudio.V,
 				Group:       rdpGroup.V,
 				Season:      rdpSeason.V,
 				Episode:     rdpEpisode.V,
+				Website:     rdpWebsite.V,
 				Proper:      rdpProper.V,
 				Repack:      rdpRepack.V,
 			}

@@ -35,11 +35,12 @@ func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
 func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 	codecStr := strings.Join(r.Codec, ",")
 	hdrStr := strings.Join(r.HDR, ",")
+	audioStr := r.AudioString()
 
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
-		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "size", "title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack", "website", "type", "origin", "tags", "uploader", "pre_time", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
+		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "size", "title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "website", "type", "origin", "tags", "uploader", "pre_time", "filter_id").
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.handler)
 
 	// return values
@@ -101,8 +102,8 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 	if profile.ID == 0 {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_profile_duplicate").
-			Columns("name", "protocol", "release_name", "title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack").
-			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Title, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.HDR, profile.Group, profile.Proper, profile.Repack).
+			Columns("name", "protocol", "release_name", "title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "release_group", "website", "proper", "repack").
+			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Title, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.HDR, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
 			Suffix("RETURNING id").
 			RunWith(repo.db.handler)
 
@@ -132,7 +133,9 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Set("codec", profile.Codec).
 			Set("container", profile.Container).
 			Set("hdr", profile.HDR).
+			Set("audio", profile.Audio).
 			Set("release_group", profile.Group).
+			Set("website", profile.Website).
 			Set("proper", profile.Proper).
 			Set("repack", profile.Repack).
 			Where(sq.Eq{"id": profile.ID}).
@@ -398,9 +401,11 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 			"codec",
 			"container",
 			"hdr",
+			"audio",
 			"release_group",
 			"season",
 			"episode",
+			"website",
 			"proper",
 			"repack",
 		).
@@ -427,7 +432,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 	for rows.Next() {
 		var p domain.DuplicateReleaseProfile
 
-		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Title, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.HDR, &p.Group, &p.Season, &p.Episode, &p.Proper, &p.Repack)
+		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Title, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.HDR, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -980,6 +985,10 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		queryBuilder = queryBuilder.Where(and)
 	}
 
+	if profile.Audio {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.audio": release.Audio})
+	}
+
 	if profile.Group {
 		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.release_group)": release.Group})
 	}
@@ -990,6 +999,10 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 
 	if profile.Episode {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.episode": release.Episode})
+	}
+
+	if profile.Website {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.website": release.Website})
 	}
 
 	if profile.Proper {
