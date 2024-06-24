@@ -141,13 +141,13 @@ func (r *Release) Normalized() *ReleaseNormalized {
 		Codec:          r.Codec,
 		Container:      rls.MustNormalize(r.Container),
 		HDR:            r.HDR,
-		Audio:          r.Audio,
+		Audio:          r.AudioString(),
 		AudioChannels:  r.AudioChannels,
-		AudioFormat:    r.AudioFormat,
 		Bitrate:        r.Bitrate,
 		Group:          rls.MustNormalize(r.Group),
 		Proper:         r.Proper,
 		Repack:         r.Repack,
+		Website:        r.Website,
 	}
 }
 
@@ -167,16 +167,15 @@ type ReleaseNormalized struct {
 	Codec          []string              `json:"codec"`
 	Container      string                `json:"container"`
 	HDR            []string              `json:"hdr"`
-	Audio          []string              `json:"-"`
+	Audio          string                `json:"audio"`
 	AudioChannels  string                `json:"-"`
-	AudioFormat    string                `json:"-"`
 	Bitrate        string                `json:"-"`
 	Group          string                `json:"group"`
 	Proper         bool                  `json:"proper"`
 	Repack         bool                  `json:"repack"`
+	Website        string                `json:"website"`
 	//Region                      string                `json:"-"`
 	//Language                    []string              `json:"-"`
-	//Website                     string                `json:"website"`
 	//Artists                     string                `json:"-"`
 	//Type                        string                `json:"type"` // Album,Single,EP
 	//LogScore                    int                   `json:"-"`
@@ -429,6 +428,10 @@ func (r *Release) ParseString(title string) {
 		r.Group = rel.Group
 	}
 
+	if r.Website == "" {
+		r.Website = rel.Collection
+	}
+
 	r.ParseReleaseTagsString(r.ReleaseTags)
 }
 
@@ -511,6 +514,20 @@ func (r *Release) OpenTorrentFile() error {
 	r.TorrentDataRawBytes = tmpFile
 
 	return nil
+}
+
+// AudioString takes r.Audio and r.AudioChannels and returns a string like "DDP Atmos 5.1"
+func (r *Release) AudioString() string {
+	var audio []string
+
+	audio = append(audio, r.Audio...)
+	audio = append(audio, r.AudioChannels)
+
+	if len(audio) > 0 {
+		return strings.Join(audio, " ")
+	}
+
+	return ""
 }
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
@@ -930,9 +947,11 @@ type DuplicateReleaseProfile struct {
 	Codec       bool `json:"codec"`
 	Container   bool `json:"container"`
 	HDR         bool `json:"hdr"`
+	Audio       bool `json:"audio"`
 	Group       bool `json:"group"`
 	Season      bool `json:"season"`
 	Episode     bool `json:"episode"`
+	Website     bool `json:"website"`
 	Proper      bool `json:"proper"`
 	Repack      bool `json:"repack"`
 }

@@ -89,9 +89,11 @@ interface ReleaseProfileDuplicate {
   codec: boolean;
   container: boolean;
   hdr: boolean;
+  audio: boolean;
   group: boolean;
   season: boolean;
   episode: boolean;
+  website: boolean;
   proper: boolean;
   repack: boolean;
 }

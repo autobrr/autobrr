@@ -52,21 +52,23 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
           {profile.name}
         </div>
         <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
-          <EnabledPill value={profile.release_name} label="RLS" title="Release name" />
-          <EnabledPill value={profile.title} label="Title" title="Parsed titel" />
-          <EnabledPill value={profile.group} label="Group" title="Releae group" />
-          <EnabledPill value={profile.year} label="Year" title="Year" />
-          <EnabledPill value={profile.month} label="Month" title="Month" />
-          <EnabledPill value={profile.day} label="Day" title="Day" />
-          <EnabledPill value={profile.source} label="Source" title="Source" />
-          <EnabledPill value={profile.resolution} label="Resolution" title="Resolution" />
-          <EnabledPill value={profile.codec} label="Codec" title="Codec" />
-          <EnabledPill value={profile.container} label="Container" title="Container" />
-          <EnabledPill value={profile.hdr} label="HDR" title="HDR formats" />
-          <EnabledPill value={profile.season} label="Season" title="Season number" />
-          <EnabledPill value={profile.episode} label="Episode" title="Episode number" />
-          <EnabledPill value={profile.proper} label="Proper" title="Scene proper" />
-          <EnabledPill value={profile.repack} label="Repack" title="Scene repack" />
+          {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title="Release name" />}
+          {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed titel" />}
+          {profile.group && <EnabledPill value={profile.group} label="Group" title="Releae group" />}
+          {profile.year && <EnabledPill value={profile.year} label="Year" title="Year" />}
+          {profile.month && <EnabledPill value={profile.month} label="Month" title="Month" />}
+          {profile.day && <EnabledPill value={profile.day} label="Day" title="Day" />}
+          {profile.source && <EnabledPill value={profile.source} label="Source" title="Source" />}
+          {profile.resolution && <EnabledPill value={profile.resolution} label="Resolution" title="Resolution" />}
+          {profile.codec && <EnabledPill value={profile.codec} label="Codec" title="Codec" />}
+          {profile.container && <EnabledPill value={profile.container} label="Container" title="Container" />}
+          {profile.hdr && <EnabledPill value={profile.hdr} label="HDR" title="HDR formats" />}
+          {profile.audio && <EnabledPill value={profile.audio} label="Audio" title="Audio formats" />}
+          {profile.season && <EnabledPill value={profile.season} label="Season" title="Season number" />}
+          {profile.episode && <EnabledPill value={profile.episode} label="Episode" title="Episode number" />}
+          {profile.website && <EnabledPill value={profile.website} label="Website" title="Website/Service" />}
+          {profile.proper && <EnabledPill value={profile.proper} label="Proper" title="Scene proper" />}
+          {profile.repack && <EnabledPill value={profile.repack} label="Repack" title="Scene repack" />}
         </div>
         <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer"

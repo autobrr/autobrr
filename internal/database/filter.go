@@ -467,9 +467,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"rdp.codec",
 			"rdp.container",
 			"rdp.hdr",
+			"rdp.audio",
 			"rdp.release_group",
 			"rdp.season",
 			"rdp.episode",
+			"rdp.website",
 			"rdp.proper",
 			"rdp.repack",
 		).
@@ -506,7 +508,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 		var rdpId sql.NullInt32
 		var rdpName sql.NullString
-		var rdpRelName, rdpTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpHdr, rdpGroup, rdpSeason, rdpEpisode, rdpProper, rdpRepack sql.NullBool
+		var rdpRelName, rdpTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpHdr, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack sql.NullBool
 
 		err := rows.Scan(
 			&f.ID,
@@ -588,9 +590,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&rdpCodec,
 			&rdpContainer,
 			&rdpHdr,
+			&rdpAudio,
 			&rdpGroup,
 			&rdpSeason,
 			&rdpEpisode,
+			&rdpWebsite,
 			&rdpProper,
 			&rdpRepack,
 		)
@@ -656,9 +660,11 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 				Codec:       rdpCodec.Bool,
 				Container:   rdpContainer.Bool,
 				HDR:         rdpHdr.Bool,
+				Audio:       rdpAudio.Bool,
 				Group:       rdpGroup.Bool,
 				Season:      rdpSeason.Bool,
 				Episode:     rdpEpisode.Bool,
+				Website:     rdpWebsite.Bool,
 				Proper:      rdpProper.Bool,
 				Repack:      rdpRepack.Bool,
 			}
