@@ -13,10 +13,18 @@ import { useToggle } from "@hooks/hooks";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 import { SelectFieldProps } from "./select";
-import * as common from "./common";
 
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { Checkbox } from "@components/Checkbox";
+import {
+  DropdownIndicator,
+  ErrorField, IndicatorSeparator,
+  RequiredField,
+  SelectControl,
+  SelectInput,
+  SelectMenu,
+  SelectOption
+} from "@components/inputs/common.tsx";
 
 interface TextFieldWideProps {
   name: string;
@@ -50,7 +58,7 @@ export const TextFieldWide = ({
           {tooltip ? (
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
-          <common.RequiredField required={required} />
+          <RequiredField required={required} />
         </div>
       </label>
     </div>
@@ -85,7 +93,7 @@ export const TextFieldWide = ({
       {help && (
         <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
       )}
-      <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
+      <ErrorField name={name} classNames="block text-red-500 mt-2" />
     </div>
   </div>
 );
@@ -125,7 +133,7 @@ export const PasswordFieldWide = ({
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
-            <common.RequiredField required={required} />
+            <RequiredField required={required} />
           </div>
         </label>
       </div>
@@ -163,7 +171,7 @@ export const PasswordFieldWide = ({
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}
-        <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
+        <ErrorField name={name} classNames="block text-red-500 mt-2" />
       </div>
     </div>
   );
@@ -198,7 +206,7 @@ export const NumberFieldWide = ({
           {tooltip ? (
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
-          <common.RequiredField required={required} />
+          <RequiredField required={required} />
         </div>
       </label>
     </div>
@@ -233,7 +241,7 @@ export const NumberFieldWide = ({
       {help && (
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
       )}
-      <common.ErrorField name={name} classNames="block text-red-500 mt-2" />
+      <ErrorField name={name} classNames="block text-red-500 mt-2" />
     </div>
   </div>
 );
@@ -325,12 +333,12 @@ export const SelectFieldWide = ({
             isClearable={true}
             isSearchable={true}
             components={{
-              Input: common.SelectInput,
-              Control: common.SelectControl,
-              Menu: common.SelectMenu,
-              Option: common.SelectOption,
-              IndicatorSeparator: common.IndicatorSeparator,
-              DropdownIndicator: common.DropdownIndicator
+              Input: SelectInput,
+              Control: SelectControl,
+              Menu: SelectMenu,
+              Option: SelectOption,
+              IndicatorSeparator: IndicatorSeparator,
+              DropdownIndicator: DropdownIndicator
             }}
             placeholder={optionDefaultText}
             styles={{

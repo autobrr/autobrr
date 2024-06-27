@@ -13,7 +13,7 @@ interface ButtonProps {
     onClick?: () => void;
 }
 
-export const Button = ({ children, className, disabled, onClick }: ButtonProps) => (
+export const TableButton = ({ children, className, disabled, onClick }: ButtonProps) => (
   <button
     type="button"
     className={classNames(
@@ -27,7 +27,7 @@ export const Button = ({ children, className, disabled, onClick }: ButtonProps) 
   </button>
 );
 
-export const PageButton = ({ children, className, disabled, onClick }: ButtonProps) => (
+export const TablePageButton = ({ children, className, disabled, onClick }: ButtonProps) => (
   <button
     type="button"
     className={classNames(
