@@ -156,6 +156,12 @@ Then run all tests:
 go test ./... -tags=integration
 ```
 
+NOTE: The `test_postgres` container runs in timezone UTC.  If your host is not configured in timezone UTC, then the tests will fail.  To configure an Ubuntu host, execute:
+
+```shell
+sudo timedatectl set-timezone Etc/UTC
+```
+
 ## Build Docker image
 
 To build a Docker image, run:
@@ -186,4 +192,3 @@ go run test/mockindexer/main.go
 * Go to Settings -> IRC and toggle the IRC network `Mock Indexer`
 * Add a new Filter or add the indexer to an existing filter
 * Open a new tab and navigate to [http://localhost:3999](http://localhost:3999) and put the example announce in the input then hit enter
-
