@@ -5,7 +5,7 @@
 
 import { Fragment, useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Form, Formik, useFormikContext } from "formik";
 import { toast } from "react-hot-toast";
@@ -405,7 +405,7 @@ function FormFieldsRulesBasic() {
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
 
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Rules</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Rules</DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads.
         </p>
@@ -440,9 +440,9 @@ function FormFieldsRulesArr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Download Client
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Override download client to use. Can also be overridden per Filter Action.
         </p>
@@ -463,9 +463,9 @@ function FormFieldsRulesQbit() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads etc.
         </p>
@@ -531,9 +531,9 @@ function FormFieldsRulesTransmission() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads etc.
         </p>
@@ -750,7 +750,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
@@ -759,10 +759,8 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -785,9 +783,9 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add client
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Add download client.
                               </p>
@@ -837,11 +835,11 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                   )}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
 
@@ -934,11 +932,11 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
-        className="fixed inset-0 overflow-hidden"
+        className="absolute inset-0 overflow-hidden"
         open={isOpen}
         onClose={toggle}
         initialFocus={cancelButtonRef}
@@ -953,10 +951,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
           text="Are you sure you want to remove this download client? This action cannot be undone."
         />
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -980,9 +976,9 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                           <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                             <div className="flex items-start justify-between space-x-3">
                               <div className="space-y-1">
-                                <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                   Edit client
-                                </Dialog.Title>
+                                </DialogTitle>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                   Edit download client settings.
                                 </p>
@@ -1034,10 +1030,10 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                   }}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }

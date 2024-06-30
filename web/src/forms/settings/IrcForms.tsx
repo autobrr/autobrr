@@ -11,7 +11,7 @@ import type { FieldArrayRenderProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Select from "react-select";
-import { Dialog } from "@headlessui/react";
+import { DialogTitle } from "@headlessui/react";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
@@ -219,7 +219,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Channels</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Channels to join.
               </p>
@@ -390,7 +390,7 @@ export function IrcNetworkUpdateForm({
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Identification</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Identification</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Identify with SASL or NickServ. Most networks support SASL but some don't.
               </p>
@@ -420,7 +420,7 @@ export function IrcNetworkUpdateForm({
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Channels</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.
               </p>

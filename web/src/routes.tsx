@@ -336,13 +336,6 @@ export const RootRoute = createRootRouteWithContext<{
 }>()({
   component: RootComponent,
   notFoundComponent: NotFound,
-  pendingComponent: () => (
-    <div className="h-screen">
-      <div className="flex flex-grow items-center justify-center h-screen sm:h-3/5">
-        <RingResizeSpinner className="text-blue-500 size-24"/>
-      </div>
-    </div>
-  ),
 });
 
 const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute])])
@@ -357,7 +350,7 @@ const routeTree = RootRoute.addChildren([
 export const Router = createRouter({
   routeTree,
   defaultPendingComponent: () => (
-    <div className="flex flex-grow items-center justify-center col-span-9">
+    <div className="flex flex-grow items-center justify-center col-span-9 h-full">
       <RingResizeSpinner className="text-blue-500 size-24"/>
     </div>
   ),
