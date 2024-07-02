@@ -9,32 +9,32 @@ import (
 )
 
 type FeedCacheRepo interface {
-	Get(feedId int, key string) ([]byte, error)
-	GetByFeed(ctx context.Context, feedId int) ([]FeedCacheItem, error)
-	GetCountByFeed(ctx context.Context, feedId int) (int, error)
-	Exists(feedId int, key string) (bool, error)
-	Put(feedId int, key string, val []byte, ttl time.Time) error
+	Get(feedId int64, key string) ([]byte, error)
+	GetByFeed(ctx context.Context, feedId int64) ([]FeedCacheItem, error)
+	GetCountByFeed(ctx context.Context, feedId int64) (int64, error)
+	Exists(feedId int64, key string) (bool, error)
+	Put(feedId int64, key string, val []byte, ttl time.Time) error
 	PutMany(ctx context.Context, items []FeedCacheItem) error
-	Delete(ctx context.Context, feedId int, key string) error
-	DeleteByFeed(ctx context.Context, feedId int) error
+	Delete(ctx context.Context, feedId int64, key string) error
+	DeleteByFeed(ctx context.Context, feedId int64) error
 	DeleteStale(ctx context.Context) error
 }
 
 type FeedRepo interface {
-	FindByID(ctx context.Context, id int) (*Feed, error)
+	FindByID(ctx context.Context, id int64) (*Feed, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) (*Feed, error)
 	Find(ctx context.Context) ([]Feed, error)
-	GetLastRunDataByID(ctx context.Context, id int) (string, error)
+	GetLastRunDataByID(ctx context.Context, id int64) (string, error)
 	Store(ctx context.Context, feed *Feed) error
 	Update(ctx context.Context, feed *Feed) error
-	UpdateLastRun(ctx context.Context, feedID int) error
-	UpdateLastRunWithData(ctx context.Context, feedID int, data string) error
-	ToggleEnabled(ctx context.Context, id int, enabled bool) error
-	Delete(ctx context.Context, id int) error
+	UpdateLastRun(ctx context.Context, feedID int64) error
+	UpdateLastRunWithData(ctx context.Context, feedID int64, data string) error
+	ToggleEnabled(ctx context.Context, id int64, enabled bool) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type Feed struct {
-	ID           int               `json:"id"`
+	ID           int64             `json:"id"`
 	Name         string            `json:"name"`
 	Indexer      IndexerMinimal    `json:"indexer"`
 	Type         string            `json:"type"`
@@ -49,7 +49,7 @@ type Feed struct {
 	Settings     *FeedSettingsJSON `json:"settings"`
 	CreatedAt    time.Time         `json:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at"`
-	IndexerID    int               `json:"indexer_id,omitempty"`
+	IndexerID    int64             `json:"indexer_id,omitempty"`
 	LastRun      time.Time         `json:"last_run"`
 	LastRunData  string            `json:"last_run_data"`
 	NextRun      time.Time         `json:"next_run"`

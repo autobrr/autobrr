@@ -39,14 +39,14 @@ func TestIndexerRepo_Store(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Verify
-			indexer, err := repo.FindByID(context.Background(), int(createdIndexer.ID))
+			indexer, err := repo.FindByID(context.Background(), createdIndexer.ID)
 			assert.NoError(t, err)
 			assert.Equal(t, mockData.Name, createdIndexer.Name)
 			assert.Equal(t, mockData.Identifier, createdIndexer.Identifier)
 			assert.Equal(t, mockData.Enabled, indexer.Enabled)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(createdIndexer.ID))
+			_ = repo.Delete(context.Background(), createdIndexer.ID)
 		})
 
 	}
@@ -77,7 +77,7 @@ func TestIndexerRepo_Update(t *testing.T) {
 			assert.Equal(t, createdIndexer.Enabled, updatedIndexer.Enabled)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(updatedIndexer.ID))
+			_ = repo.Delete(context.Background(), updatedIndexer.ID)
 		})
 	}
 }
@@ -113,8 +113,8 @@ func TestIndexerRepo_List(t *testing.T) {
 			assert.Equal(t, 2, len(indexers))
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(createdIndexer1.ID))
-			_ = repo.Delete(context.Background(), int(createdIndexer2.ID))
+			_ = repo.Delete(context.Background(), createdIndexer1.ID)
+			_ = repo.Delete(context.Background(), createdIndexer2.ID)
 		})
 	}
 }
@@ -134,7 +134,7 @@ func TestIndexerRepo_FindByID(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Execute
-			foundIndexer, err := repo.FindByID(context.Background(), int(createdIndexer.ID))
+			foundIndexer, err := repo.FindByID(context.Background(), createdIndexer.ID)
 			assert.NoError(t, err)
 
 			// Verify
@@ -144,7 +144,7 @@ func TestIndexerRepo_FindByID(t *testing.T) {
 			assert.Equal(t, createdIndexer.Enabled, foundIndexer.Enabled)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(createdIndexer.ID))
+			_ = repo.Delete(context.Background(), createdIndexer.ID)
 		})
 	}
 }
@@ -168,7 +168,7 @@ func TestIndexerRepo_FindByFilterID(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, indexer)
 
-			err = filterRepo.StoreIndexerConnection(context.Background(), filterMockData.ID, int(indexer.ID))
+			err = filterRepo.StoreIndexerConnection(context.Background(), filterMockData.ID, indexer.ID)
 			assert.NoError(t, err)
 
 			// Execute
@@ -181,7 +181,7 @@ func TestIndexerRepo_FindByFilterID(t *testing.T) {
 			assert.Equal(t, indexer.Identifier, foundIndexers[0].Identifier)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(indexer.ID))
+			_ = repo.Delete(context.Background(), indexer.ID)
 			_ = filterRepo.Delete(context.Background(), filterMockData.ID)
 		})
 	}
@@ -201,11 +201,11 @@ func TestIndexerRepo_Delete(t *testing.T) {
 			assert.NotNil(t, createdIndexer)
 
 			// Execute
-			err = repo.Delete(context.Background(), int(createdIndexer.ID))
+			err = repo.Delete(context.Background(), createdIndexer.ID)
 			assert.NoError(t, err)
 
 			// Verify
-			_, err = repo.FindByID(context.Background(), int(createdIndexer.ID))
+			_, err = repo.FindByID(context.Background(), createdIndexer.ID)
 			assert.Error(t, err)
 		})
 	}

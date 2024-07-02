@@ -23,10 +23,10 @@ type Service interface {
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error)
+	FindByFilterID(ctx context.Context, filterID int64, active *bool) ([]*domain.Action, error)
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
-	DeleteByFilterID(ctx context.Context, filterID int) error
-	ToggleEnabled(actionID int) error
+	DeleteByFilterID(ctx context.Context, filterID int64) error
+	ToggleEnabled(actionID int64) error
 
 	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error)
 }
@@ -86,7 +86,7 @@ func (s *service) Get(ctx context.Context, req *domain.GetActionRequest) (*domai
 	return a, nil
 }
 
-func (s *service) FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
+func (s *service) FindByFilterID(ctx context.Context, filterID int64, active *bool) ([]*domain.Action, error) {
 	return s.repo.FindByFilterID(ctx, filterID, active)
 }
 
@@ -94,10 +94,10 @@ func (s *service) Delete(ctx context.Context, req *domain.DeleteActionRequest) e
 	return s.repo.Delete(ctx, req)
 }
 
-func (s *service) DeleteByFilterID(ctx context.Context, filterID int) error {
+func (s *service) DeleteByFilterID(ctx context.Context, filterID int64) error {
 	return s.repo.DeleteByFilterID(ctx, filterID)
 }
 
-func (s *service) ToggleEnabled(actionID int) error {
+func (s *service) ToggleEnabled(actionID int64) error {
 	return s.repo.ToggleEnabled(actionID)
 }

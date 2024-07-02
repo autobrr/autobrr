@@ -237,7 +237,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
-          network={network}
+          data={network}
         />
         <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
           <Checkbox

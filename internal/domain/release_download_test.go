@@ -139,7 +139,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		Other                       []string
 		RawCookie                   string
 		AdditionalSizeCheckRequired bool
-		FilterID                    int
+		FilterID                    int64
 		Filter                      *Filter
 		ActionStatus                []ReleaseActionStatus
 	}

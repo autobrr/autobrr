@@ -265,7 +265,7 @@ export const SwitchGroupWide = ({
           </div>
         </Switch.Label>
         {description && (
-          <Switch.Description className="text-sm text-gray-500 dark:text-gray-700">
+          <Switch.Description className="text-sm text-gray-500 dark:text-gray-500">
             {description}
           </Switch.Description>
         )}
