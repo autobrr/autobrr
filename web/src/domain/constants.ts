@@ -206,6 +206,7 @@ export const languageOptions = [
   "PORTUGUESE",
   "ROMANiAN",
   "RUSSiAN",
+  "SLOVAK",
   "SPANiSH",
   "SUBBED",
   "SUBFORCED",
