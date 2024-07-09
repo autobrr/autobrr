@@ -14,7 +14,7 @@ interface StatsItemProps {
   value?: number;
   placeholder?: string;
   to?: string;
-  eventType?: string;
+  eventType?: "" | "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR" | undefined;
 }
 
 const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) => (
