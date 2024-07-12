@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -207,13 +208,22 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	year := vars["year"]
 	releaseTagsString := vars["releaseTags"]
 
-	cleanTags := CleanReleaseTags(releaseTagsString)
-	splittedTags := strings.Split(cleanTags, "/")
-	// Check and replace "100" with "100%" if it's the last tag
-	if len(splittedTags) > 0 && splittedTags[len(splittedTags)-1] == "100" {
-		splittedTags[len(splittedTags)-1] = "100%"
-		strings.Join(splittedTags, " ")
+	splittedTags := strings.Split(releaseTagsString, "/")
+
+	// Check and replace the last tag if it's a number between 0 and 100
+	if len(splittedTags) > 0 {
+		lastTag := splittedTags[len(splittedTags)-1]
+		match, _ := regexp.MatchString(`^\d{1,2}$|^100$`, lastTag)
+		if match {
+			splittedTags[len(splittedTags)-1] = lastTag + "%"
+		}
 	}
+
+	// Join tags back into a string
+	releaseTagsString = strings.Join(splittedTags, " ")
+
+	//cleanTags := strings.ReplaceAll(releaseTagsString, "/", " ")
+	cleanTags := CleanReleaseTags(releaseTagsString)
 
 	tags := ParseReleaseTagString(cleanTags)
 	rls.ReleaseTags = cleanTags
