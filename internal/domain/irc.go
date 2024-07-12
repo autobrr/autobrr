@@ -207,8 +207,12 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	year := vars["year"]
 	releaseTagsString := vars["releaseTags"]
 
-	//cleanTags := strings.ReplaceAll(releaseTagsString, "/", " ")
-	cleanTags := CleanReleaseTags(releaseTagsString)
+	cleanTags := CleanReleaseTags(strings.ReplaceAll(releaseTagsString, "/", " "))
+	splittedTags := strings.Split(cleanTags, " ")
+	// Check and replace "100" with "100%" if it's the last tag
+	if len(splittedTags) > 0 && splittedTags[len(splittedTags)-1] == "100" {
+		splittedTags[len(splittedTags)-1] = "100%"
+	}
 
 	tags := ParseReleaseTagString(cleanTags)
 	rls.ReleaseTags = cleanTags
