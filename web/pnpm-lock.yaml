@@ -35,8 +35,8 @@ importers:
         specifier: ^5.29.2
         version: 5.29.2(@tanstack/react-query@5.40.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-router':
-        specifier: https://pkg.pr.new/@tanstack/react-router@0f34fbe
-        version: https://pkg.pr.new/@tanstack/react-router@0f34fbe(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^1.45.3
+        version: 1.45.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@types/node':
         specifier: ^20.14.1
         version: 20.14.1
@@ -142,7 +142,7 @@ importers:
         version: 4.18.0
       '@tanstack/router-devtools':
         specifier: ^1.34.9
-        version: 1.34.9(@tanstack/react-router@https://pkg.pr.new/@tanstack/react-router@0f34fbe(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(csstype@3.1.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 1.34.9(@tanstack/react-router@1.45.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(csstype@3.1.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       eslint:
         specifier: ^8.57.0
         version: 8.57.0
@@ -1416,9 +1416,8 @@ packages:
     peerDependencies:
       tailwindcss: '>=3.0.0 || >= 3.0.0-alpha.1'
 
-  '@tanstack/history@https://pkg.pr.new/TanStack/router/@tanstack/history@0f34fbe':
-    resolution: {tarball: https://pkg.pr.new/TanStack/router/@tanstack/history@0f34fbe}
-    version: 1.44.2
+  '@tanstack/history@1.45.3':
+    resolution: {integrity: sha512-n4XXInV9irIq0obRvINIkESkGk280Q+xkIIbswmM0z9nAu2wsIRZNvlmPrtYh6bgNWtItOWWoihFUjLTW8g6Jg==}
     engines: {node: '>=12'}
 
   '@tanstack/query-core@5.40.0':
@@ -1438,9 +1437,8 @@ packages:
     peerDependencies:
       react: ^18.3.1
 
-  '@tanstack/react-router@https://pkg.pr.new/@tanstack/react-router@0f34fbe':
-    resolution: {tarball: https://pkg.pr.new/@tanstack/react-router@0f34fbe}
-    version: 1.45.0
+  '@tanstack/react-router@1.45.3':
+    resolution: {integrity: sha512-S6P+bJ4TGytVcl5XvPH5Y4/t491YoxQOAXmSukpV4W4iruB9IawvrKCGYRnLxZwwVcOgKh3q8hDeV4whTwpD/w==}
     engines: {node: '>=12'}
     peerDependencies:
       react: ^18.3.1
@@ -1460,7 +1458,6 @@ packages:
 
   '@tanstack/router-devtools@1.34.9':
     resolution: {integrity: sha512-8gc/ptUjiB/ry1jWCBcPNypfpfQ/eFtC4vqg8dfppvKUm2DwLp0gNM6YvGbcfySTLLei3RLPlmuob0/2vbeS7A==}
-    version: 1.34.9
     engines: {node: '>=12'}
     peerDependencies:
       '@tanstack/react-router': ^1.34.9
@@ -5020,7 +5017,7 @@ snapshots:
       mini-svg-data-uri: 1.4.4
       tailwindcss: 3.4.3(ts-node@10.9.2(@swc/core@1.5.24(@swc/helpers@0.5.11))(@types/node@20.14.1)(typescript@5.4.5))
 
-  '@tanstack/history@https://pkg.pr.new/TanStack/router/@tanstack/history@0f34fbe': {}
+  '@tanstack/history@1.45.3': {}
 
   '@tanstack/query-core@5.40.0': {}
 
@@ -5037,9 +5034,9 @@ snapshots:
       '@tanstack/query-core': 5.40.0
       react: 18.3.1
 
-  '@tanstack/react-router@https://pkg.pr.new/@tanstack/react-router@0f34fbe(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@tanstack/react-router@1.45.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@tanstack/history': https://pkg.pr.new/TanStack/router/@tanstack/history@0f34fbe
+      '@tanstack/history': 1.45.3
       '@tanstack/react-store': 0.5.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -5059,9 +5056,9 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@tanstack/router-devtools@1.34.9(@tanstack/react-router@https://pkg.pr.new/@tanstack/react-router@0f34fbe(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(csstype@3.1.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@tanstack/router-devtools@1.34.9(@tanstack/react-router@1.45.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(csstype@3.1.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@tanstack/react-router': https://pkg.pr.new/@tanstack/react-router@0f34fbe(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@tanstack/react-router': 1.45.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 2.1.1
       date-fns: 2.30.0
       goober: 2.1.14(csstype@3.1.2)
