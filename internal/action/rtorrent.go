@@ -5,12 +5,15 @@ package action
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
 	"os"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/autobrr/go-rtorrent"
+	"github.com/icholy/digest"
 )
 
 func (s *service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
@@ -39,8 +42,19 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 		BasicPass:     client.Settings.Basic.Password,
 	}
 
+	httpClient := &http.Client{
+		Transport: &digest.Transport{
+			Username: client.Settings.Basic.Username,
+			Password: client.Settings.Basic.Password,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		},
+	}
+
 	// create client
-	rt := rtorrent.NewClient(cfg)
+	//rt := rtorrent.NewClient(cfg)
+	rt := rtorrent.NewClientWithOpts(cfg, rtorrent.WithCustomClient(httpClient))
 
 	if release.HasMagnetUri() {
 		var args []*rtorrent.FieldValue
