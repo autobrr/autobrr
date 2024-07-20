@@ -68,6 +68,15 @@ irc:
             uploader: oppie
             baseUrl: https://fearnopeer.com/
             torrentId: "54321"
+        - line: "[FnP] New Upload - Category: [Music] Type: [FLAC] Name: [Live at FnP - Brr 2023 {bootleg} - [FLAC 16bit 44 1kHz]-[daniflix]] Size: [352.91 MiB] Uploader: [uploader] Url: [https://fearnopeer.com/torrents/155493]"
+          expect:
+            category: Music
+            releaseTags: FLAC
+            torrentName: Live at FnP - Brr 2023 {bootleg} - [FLAC 16bit 44 1kHz]-[daniflix]
+            torrentSize: 352.91 MiB
+            uploader: uploader
+            baseUrl: https://fearnopeer.com/
+            torrentId: "155493"
         pattern: '\[FnP\] New Upload - Category: \[(.*)\] Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
         vars:
           - category
