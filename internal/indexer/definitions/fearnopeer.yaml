@@ -68,7 +68,7 @@ irc:
             uploader: oppie
             baseUrl: https://fearnopeer.com/
             torrentId: "54321"
-        pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(https?\:\/\/.*?\/).*\/(\d+)\]'
+        pattern: '\[FnP\] New Upload - Category: \[(.*)\] Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
         vars:
           - category
           - releaseTags
