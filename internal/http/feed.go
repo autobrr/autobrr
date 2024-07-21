@@ -18,12 +18,12 @@ type feedService interface {
 	Find(ctx context.Context) ([]domain.Feed, error)
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
-	Delete(ctx context.Context, id int) error
-	DeleteFeedCache(ctx context.Context, id int) error
-	ToggleEnabled(ctx context.Context, id int, enabled bool) error
+	Delete(ctx context.Context, id int64) error
+	DeleteFeedCache(ctx context.Context, id int64) error
+	ToggleEnabled(ctx context.Context, id int64, enabled bool) error
 	Test(ctx context.Context, feed *domain.Feed) error
-	GetLastRunData(ctx context.Context, id int) (string, error)
-	ForceRun(ctx context.Context, id int) error
+	GetLastRunData(ctx context.Context, id int64) (string, error)
+	ForceRun(ctx context.Context, id int64) error
 }
 
 type feedHandler struct {
@@ -134,7 +134,7 @@ func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.ForceRun(ctx, id); err != nil {
+	if err := h.service.ForceRun(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -162,7 +162,7 @@ func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
+	if err := h.service.ToggleEnabled(ctx, int64(id), data.Enabled); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -182,7 +182,7 @@ func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Delete(ctx, id); err != nil {
+	if err := h.service.Delete(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -202,7 +202,7 @@ func (h feedHandler) deleteCache(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteFeedCache(ctx, id); err != nil {
+	if err := h.service.DeleteFeedCache(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -222,7 +222,7 @@ func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	feed, err := h.service.GetLastRunData(ctx, id)
+	feed, err := h.service.GetLastRunData(ctx, int64(id))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return

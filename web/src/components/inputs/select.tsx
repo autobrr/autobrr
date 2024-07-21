@@ -251,7 +251,7 @@ export function DownloadClientSelect({
 
 export interface SelectFieldOption {
   label: string;
-  value: string;
+  value: string | number | null;
 }
 
 export interface SelectFieldProps {

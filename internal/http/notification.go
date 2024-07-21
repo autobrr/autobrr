@@ -16,10 +16,10 @@ import (
 
 type notificationService interface {
 	Find(context.Context, domain.NotificationQueryParams) ([]domain.Notification, int, error)
-	FindByID(ctx context.Context, id int) (*domain.Notification, error)
+	FindByID(ctx context.Context, id int64) (*domain.Notification, error)
 	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
 	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
-	Delete(ctx context.Context, id int) error
+	Delete(ctx context.Context, id int64) error
 	Test(ctx context.Context, notification domain.Notification) error
 }
 
@@ -106,7 +106,7 @@ func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := strconv.Atoi(notificationID)
 
-	if err := h.service.Delete(ctx, id); err != nil {
+	if err := h.service.Delete(ctx, int64(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

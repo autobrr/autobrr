@@ -42,22 +42,22 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 
 	var n domain.IrcNetwork
 
-	var pass, nick, inviteCmd, bouncerAddr sql.NullString
-	var account, password sql.NullString
-	var tls sql.NullBool
+	var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
+	var account, password sql.Null[string]
+	var tls sql.Null[bool]
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &nick, &n.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &n.UseBouncer, &n.BotMode); err != nil {
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	n.TLS = tls.Bool
-	n.Pass = pass.String
-	n.Nick = nick.String
-	n.InviteCommand = inviteCmd.String
-	n.Auth.Account = account.String
-	n.Auth.Password = password.String
-	n.BouncerAddr = bouncerAddr.String
+	n.TLS = tls.V
+	n.Pass = pass.V
+	n.Nick = nick.V
+	n.InviteCommand = inviteCmd.V
+	n.Auth.Account = account.V
+	n.Auth.Password = password.V
+	n.BouncerAddr = bouncerAddr.V
 
 	return &n, nil
 }
@@ -127,22 +127,22 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 	for rows.Next() {
 		var net domain.IrcNetwork
 
-		var pass, nick, inviteCmd, bouncerAddr sql.NullString
-		var account, password sql.NullString
-		var tls sql.NullBool
+		var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
+		var account, password sql.Null[string]
+		var tls sql.Null[bool]
 
 		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		net.TLS = tls.Bool
-		net.Pass = pass.String
-		net.Nick = nick.String
-		net.InviteCommand = inviteCmd.String
-		net.BouncerAddr = bouncerAddr.String
+		net.TLS = tls.V
+		net.Pass = pass.V
+		net.Nick = nick.V
+		net.InviteCommand = inviteCmd.V
+		net.BouncerAddr = bouncerAddr.V
 
-		net.Auth.Account = account.String
-		net.Auth.Password = password.String
+		net.Auth.Account = account.V
+		net.Auth.Password = password.V
 
 		networks = append(networks, net)
 	}
@@ -175,22 +175,22 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	for rows.Next() {
 		var net domain.IrcNetwork
 
-		var pass, nick, inviteCmd, bouncerAddr sql.NullString
-		var account, password sql.NullString
-		var tls sql.NullBool
+		var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
+		var account, password sql.Null[string]
+		var tls sql.Null[bool]
 
 		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		net.TLS = tls.Bool
-		net.Pass = pass.String
-		net.Nick = nick.String
-		net.InviteCommand = inviteCmd.String
-		net.BouncerAddr = bouncerAddr.String
+		net.TLS = tls.V
+		net.Pass = pass.V
+		net.Nick = nick.V
+		net.InviteCommand = inviteCmd.V
+		net.BouncerAddr = bouncerAddr.V
 
-		net.Auth.Account = account.String
-		net.Auth.Password = password.String
+		net.Auth.Account = account.V
+		net.Auth.Password = password.V
 
 		networks = append(networks, net)
 	}
@@ -221,13 +221,13 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 	var channels []domain.IrcChannel
 	for rows.Next() {
 		var ch domain.IrcChannel
-		var pass sql.NullString
+		var pass sql.Null[string]
 
 		if err := rows.Scan(&ch.ID, &ch.Name, &ch.Enabled, &pass); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		ch.Password = pass.String
+		ch.Password = pass.V
 
 		channels = append(channels, ch)
 	}
@@ -256,9 +256,9 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 
 	var net domain.IrcNetwork
 
-	var pass, nick, inviteCmd, bouncerAddr sql.NullString
-	var account, password sql.NullString
-	var tls sql.NullBool
+	var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
+	var account, password sql.Null[string]
+	var tls sql.Null[bool]
 
 	if err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -269,13 +269,13 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	net.TLS = tls.Bool
-	net.Pass = pass.String
-	net.Nick = nick.String
-	net.InviteCommand = inviteCmd.String
-	net.BouncerAddr = bouncerAddr.String
-	net.Auth.Account = account.String
-	net.Auth.Password = password.String
+	net.TLS = tls.V
+	net.Pass = pass.V
+	net.Nick = nick.V
+	net.InviteCommand = inviteCmd.V
+	net.BouncerAddr = bouncerAddr.V
+	net.Auth.Account = account.V
+	net.Auth.Password = password.V
 
 	return &net, nil
 }

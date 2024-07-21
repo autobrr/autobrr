@@ -74,3 +74,26 @@ interface DeleteParams {
   indexers?: string[];
   releaseStatuses?: string[];
 }
+
+interface ReleaseProfileDuplicate {
+  id: number;
+  name: string;
+  protocol: boolean;
+  release_name: boolean;
+  title: boolean;
+  year: boolean;
+  month: boolean;
+  day: boolean;
+  source: boolean;
+  resolution: boolean;
+  codec: boolean;
+  container: boolean;
+  hdr: boolean;
+  audio: boolean;
+  group: boolean;
+  season: boolean;
+  episode: boolean;
+  website: boolean;
+  proper: boolean;
+  repack: boolean;
+}

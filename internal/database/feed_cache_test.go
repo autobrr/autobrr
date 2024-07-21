@@ -30,7 +30,7 @@ func TestFeedCacheRepo_Get(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
-			mockData.IndexerID = int(indexer.ID)
+			mockData.IndexerID = indexer.ID
 
 			err = feedRepo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
@@ -45,7 +45,7 @@ func TestFeedCacheRepo_Get(t *testing.T) {
 
 			// Cleanup
 			_ = feedRepo.Delete(context.Background(), mockData.ID)
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			_ = repo.Delete(context.Background(), mockData.ID, "test_key")
 		})
 
@@ -83,7 +83,7 @@ func TestFeedCacheRepo_GetByFeed(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
-			mockData.IndexerID = int(indexer.ID)
+			mockData.IndexerID = indexer.ID
 
 			err = feedRepo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
@@ -100,7 +100,7 @@ func TestFeedCacheRepo_GetByFeed(t *testing.T) {
 
 			// Cleanup
 			_ = feedRepo.Delete(context.Background(), mockData.ID)
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			_ = repo.Delete(context.Background(), mockData.ID, "test_key")
 		})
 
@@ -127,7 +127,7 @@ func TestFeedCacheRepo_Exists(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
-			mockData.IndexerID = int(indexer.ID)
+			mockData.IndexerID = indexer.ID
 
 			err = feedRepo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
@@ -142,7 +142,7 @@ func TestFeedCacheRepo_Exists(t *testing.T) {
 
 			// Cleanup
 			_ = feedRepo.Delete(context.Background(), mockData.ID)
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			_ = repo.Delete(context.Background(), mockData.ID, "test_key")
 		})
 
@@ -168,7 +168,7 @@ func TestFeedCacheRepo_Put(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
-			mockData.IndexerID = int(indexer.ID)
+			mockData.IndexerID = indexer.ID
 
 			err = feedRepo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
@@ -184,7 +184,7 @@ func TestFeedCacheRepo_Put(t *testing.T) {
 
 			// Cleanup
 			_ = feedRepo.Delete(context.Background(), mockData.ID)
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 			_ = repo.Delete(context.Background(), mockData.ID, "test_key")
 		})
 
@@ -212,7 +212,7 @@ func TestFeedCacheRepo_Delete(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
-			mockData.IndexerID = int(indexer.ID)
+			mockData.IndexerID = indexer.ID
 
 			err = feedRepo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
@@ -231,7 +231,7 @@ func TestFeedCacheRepo_Delete(t *testing.T) {
 
 			// Cleanup
 			_ = feedRepo.Delete(context.Background(), mockData.ID)
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_NoRecord [%s]", dbType), func(t *testing.T) {
@@ -257,7 +257,7 @@ func TestFeedCacheRepo_DeleteByFeed(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
-			mockData.IndexerID = int(indexer.ID)
+			mockData.IndexerID = indexer.ID
 
 			err = feedRepo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
@@ -276,7 +276,7 @@ func TestFeedCacheRepo_DeleteByFeed(t *testing.T) {
 
 			// Cleanup
 			_ = feedRepo.Delete(context.Background(), mockData.ID)
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 		})
 
 		t.Run(fmt.Sprintf("DeleteByFeed_Fails_NoRecords [%s]", dbType), func(t *testing.T) {
@@ -303,7 +303,7 @@ func TestFeedCacheRepo_DeleteStale(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(context.Background(), indexerMockData)
 			assert.NoError(t, err)
-			mockData.IndexerID = int(indexer.ID)
+			mockData.IndexerID = indexer.ID
 
 			err = feedRepo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
@@ -323,7 +323,7 @@ func TestFeedCacheRepo_DeleteStale(t *testing.T) {
 
 			// Cleanup
 			_ = feedRepo.Delete(context.Background(), mockData.ID)
-			_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			_ = indexerRepo.Delete(context.Background(), indexer.ID)
 		})
 
 		t.Run(fmt.Sprintf("DeleteStale_Fails_NoRecords [%s]", dbType), func(t *testing.T) {

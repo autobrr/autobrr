@@ -272,7 +272,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		j.Log.Debug().Msgf("found new release: %s", i.Title)
 
 		toCache = append(toCache, domain.FeedCacheItem{
-			FeedId: strconv.Itoa(j.Feed.ID),
+			FeedId: strconv.Itoa(int(j.Feed.ID)),
 			Key:    i.GUID,
 			Value:  []byte(i.Title),
 			TTL:    ttl,

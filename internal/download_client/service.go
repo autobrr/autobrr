@@ -18,13 +18,13 @@ import (
 
 type Service interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
-	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
+	FindByID(ctx context.Context, id int64) (*domain.DownloadClient, error)
 	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
 	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
-	Delete(ctx context.Context, clientID int) error
+	Delete(ctx context.Context, clientID int64) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 
-	GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached
+	GetCachedClient(ctx context.Context, clientId int64) *domain.DownloadClientCached
 }
 
 type service struct {
@@ -32,7 +32,7 @@ type service struct {
 	repo      domain.DownloadClientRepo
 	subLogger *log.Logger
 
-	qbitClients map[int32]*domain.DownloadClientCached
+	qbitClients map[int64]*domain.DownloadClientCached
 	m           sync.RWMutex
 }
 
@@ -41,7 +41,7 @@ func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
 		log:  log.With().Str("module", "download_client").Logger(),
 		repo: repo,
 
-		qbitClients: map[int32]*domain.DownloadClientCached{},
+		qbitClients: map[int64]*domain.DownloadClientCached{},
 		m:           sync.RWMutex{},
 	}
 
@@ -60,7 +60,7 @@ func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
 	return clients, nil
 }
 
-func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
+func (s *service) FindByID(ctx context.Context, id int64) (*domain.DownloadClient, error) {
 	client, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find download client by id: %v", id)
@@ -101,21 +101,21 @@ func (s *service) Update(ctx context.Context, client domain.DownloadClient) (*do
 
 	if client.Type == domain.DownloadClientTypeQbittorrent {
 		s.m.Lock()
-		delete(s.qbitClients, int32(client.ID))
+		delete(s.qbitClients, client.ID)
 		s.m.Unlock()
 	}
 
 	return c, err
 }
 
-func (s *service) Delete(ctx context.Context, clientID int) error {
+func (s *service) Delete(ctx context.Context, clientID int64) error {
 	if err := s.repo.Delete(ctx, clientID); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete download client: %v", clientID)
 		return err
 	}
 
 	s.m.Lock()
-	delete(s.qbitClients, int32(clientID))
+	delete(s.qbitClients, clientID)
 	s.m.Unlock()
 
 	return nil
@@ -136,7 +136,7 @@ func (s *service) Test(ctx context.Context, client domain.DownloadClient) error 
 	return nil
 }
 
-func (s *service) GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached {
+func (s *service) GetCachedClient(ctx context.Context, clientId int64) *domain.DownloadClientCached {
 
 	// check if client exists in cache
 	s.m.RLock()

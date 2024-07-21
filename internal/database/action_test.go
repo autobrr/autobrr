@@ -73,7 +73,7 @@ func TestActionRepo_Store(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Actual test for Store
@@ -136,7 +136,7 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Actual test for StoreFilterActions
@@ -214,7 +214,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -288,7 +288,7 @@ func TestActionRepo_List(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -337,7 +337,7 @@ func TestActionRepo_Get(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -393,7 +393,7 @@ func TestActionRepo_Delete(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -446,7 +446,7 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -497,7 +497,7 @@ func TestActionRepo_ToggleEnabled(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = createdClient.ID
 			mockData.FilterID = createdFilters[0].ID
 			mockData.Enabled = false
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})

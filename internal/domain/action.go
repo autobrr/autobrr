@@ -14,16 +14,16 @@ import (
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*Action) ([]*Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*Action, error)
+	FindByFilterID(ctx context.Context, filterID int64, active *bool) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)
 	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
 	Delete(ctx context.Context, req *DeleteActionRequest) error
-	DeleteByFilterID(ctx context.Context, filterID int) error
-	ToggleEnabled(actionID int) error
+	DeleteByFilterID(ctx context.Context, filterID int64) error
+	ToggleEnabled(actionID int64) error
 }
 
 type Action struct {
-	ID                       int                 `json:"id"`
+	ID                       int64               `json:"id"`
 	Name                     string              `json:"name"`
 	Type                     ActionType          `json:"type"`
 	Enabled                  bool                `json:"enabled"`
@@ -53,10 +53,10 @@ type Action struct {
 	WebhookMethod            string              `json:"webhook_method,omitempty"`
 	WebhookData              string              `json:"webhook_data,omitempty"`
 	WebhookHeaders           []string            `json:"webhook_headers,omitempty"`
-	ExternalDownloadClientID int32               `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClientID int64               `json:"external_download_client_id,omitempty"`
 	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
-	FilterID                 int                 `json:"filter_id,omitempty"`
-	ClientID                 int32               `json:"client_id,omitempty"`
+	FilterID                 int64               `json:"filter_id,omitempty"`
+	ClientID                 int64               `json:"client_id,omitempty"`
 	Client                   *DownloadClient     `json:"client,omitempty"`
 }
 
@@ -140,9 +140,9 @@ const (
 )
 
 type GetActionRequest struct {
-	Id int
+	Id int64
 }
 
 type DeleteActionRequest struct {
-	ActionId int
+	ActionId int64
 }

@@ -34,7 +34,7 @@ type Macro struct {
 	CurrentYear               int
 	DownloadUrl               string
 	Episode                   int
-	FilterID                  int
+	FilterID                  int64
 	FilterName                string
 	Freeleech                 bool
 	FreeleechPercent          int

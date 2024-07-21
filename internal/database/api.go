@@ -102,14 +102,14 @@ func (r *APIRepo) GetKeys(ctx context.Context) ([]domain.APIKey, error) {
 	for rows.Next() {
 		var a domain.APIKey
 
-		var name sql.NullString
+		var name sql.Null[string]
 
 		if err := rows.Scan(&name, &a.Key, pq.Array(&a.Scopes), &a.CreatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 
 		}
 
-		a.Name = name.String
+		a.Name = name.V
 
 		keys = append(keys, a)
 	}

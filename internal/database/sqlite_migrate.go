@@ -68,9 +68,33 @@ CREATE TABLE irc_channel
     UNIQUE (network_id, name)
 );
 
+CREATE TABLE release_profile_duplicate
+(
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    protocol      BOOLEAN DEFAULT FALSE,
+    release_name  BOOLEAN DEFAULT FALSE,
+    title         BOOLEAN DEFAULT FALSE,
+    year          BOOLEAN DEFAULT FALSE,
+    month         BOOLEAN DEFAULT FALSE,
+    day           BOOLEAN DEFAULT FALSE,
+    source        BOOLEAN DEFAULT FALSE,
+    resolution    BOOLEAN DEFAULT FALSE,
+    codec         BOOLEAN DEFAULT FALSE,
+    container     BOOLEAN DEFAULT FALSE,
+    hdr           BOOLEAN DEFAULT FALSE,
+    audio         BOOLEAN DEFAULT FALSE,
+    release_group BOOLEAN DEFAULT FALSE,
+    season        BOOLEAN DEFAULT FALSE,
+    episode       BOOLEAN DEFAULT FALSE,
+    website       BOOLEAN DEFAULT FALSE,
+    proper        BOOLEAN DEFAULT FALSE,
+    repack        BOOLEAN DEFAULT FALSE
+);
+
 CREATE TABLE filter
 (
-    id                             INTEGER PRIMARY KEY,
+    id                             INTEGER PRIMARY KEY AUTOINCREMENT,
     enabled                        BOOLEAN,
     name                           TEXT NOT NULL,
     min_size                       TEXT,
@@ -136,7 +160,9 @@ CREATE TABLE filter
     min_seeders                    INTEGER DEFAULT 0,
     max_seeders                    INTEGER DEFAULT 0,
     min_leechers                   INTEGER DEFAULT 0,
-    max_leechers                   INTEGER DEFAULT 0
+    max_leechers                   INTEGER DEFAULT 0,
+    release_profile_duplicate_id   INTEGER,
+    FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate(id) ON DELETE SET NULL
 );
 
 CREATE TABLE filter_external
@@ -253,6 +279,8 @@ CREATE TABLE "release"
     codec             TEXT,
     container         TEXT,
     hdr               TEXT,
+    audio             TEXT,
+    audio_channels    TEXT,
     release_group     TEXT,
     proper            BOOLEAN,
     repack            BOOLEAN,
@@ -1538,5 +1566,195 @@ ADD COLUMN months TEXT;
 
 ALTER TABLE filter
 ADD COLUMN days TEXT;
+`,
+	`CREATE TABLE release_profile_duplicate
+(
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    protocol      BOOLEAN DEFAULT FALSE,
+    release_name  BOOLEAN DEFAULT FALSE,
+    title         BOOLEAN DEFAULT FALSE,
+    year          BOOLEAN DEFAULT FALSE,
+    month         BOOLEAN DEFAULT FALSE,
+    day           BOOLEAN DEFAULT FALSE,
+    source        BOOLEAN DEFAULT FALSE,
+    resolution    BOOLEAN DEFAULT FALSE,
+    codec         BOOLEAN DEFAULT FALSE,
+    container     BOOLEAN DEFAULT FALSE,
+    hdr           BOOLEAN DEFAULT FALSE,
+    audio         BOOLEAN DEFAULT FALSE,
+    release_group BOOLEAN DEFAULT FALSE,
+    season        BOOLEAN DEFAULT FALSE,
+    episode       BOOLEAN DEFAULT FALSE,
+    website       BOOLEAN DEFAULT FALSE,
+    proper        BOOLEAN DEFAULT FALSE,
+    repack        BOOLEAN DEFAULT FALSE
+);
+
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack) 
+VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+       (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1);
+
+CREATE TABLE filter_dg_tmp
+(
+    id                           INTEGER PRIMARY KEY AUTOINCREMENT,
+    enabled                      BOOLEAN,
+    name                         TEXT                   NOT NULL,
+    min_size                     TEXT,
+    max_size                     TEXT,
+    delay                        INTEGER,
+    priority                     INTEGER   DEFAULT 0    NOT NULL,
+    max_downloads                INTEGER   DEFAULT 0,
+    max_downloads_unit           TEXT,
+    match_releases               TEXT,
+    except_releases              TEXT,
+    use_regex                    BOOLEAN,
+    match_release_groups         TEXT,
+    except_release_groups        TEXT,
+    match_release_tags           TEXT,
+    except_release_tags          TEXT,
+    use_regex_release_tags       BOOLEAN   DEFAULT FALSE,
+    match_description            TEXT,
+    except_description           TEXT,
+    use_regex_description        BOOLEAN   DEFAULT FALSE,
+    scene                        BOOLEAN,
+    freeleech                    BOOLEAN,
+    freeleech_percent            TEXT,
+    smart_episode                BOOLEAN   DEFAULT FALSE,
+    shows                        TEXT,
+    seasons                      TEXT,
+    episodes                     TEXT,
+    resolutions                  TEXT      DEFAULT '{}' NOT NULL,
+    codecs                       TEXT      DEFAULT '{}' NOT NULL,
+    sources                      TEXT      DEFAULT '{}' NOT NULL,
+    containers                   TEXT      DEFAULT '{}' NOT NULL,
+    match_hdr                    TEXT      DEFAULT '{}',
+    except_hdr                   TEXT      DEFAULT '{}',
+    match_other                  TEXT      DEFAULT '{}',
+    except_other                 TEXT      DEFAULT '{}',
+    years                        TEXT,
+    artists                      TEXT,
+    albums                       TEXT,
+    release_types_match          TEXT      DEFAULT '{}',
+    release_types_ignore         TEXT      DEFAULT '{}',
+    formats                      TEXT      DEFAULT '{}',
+    quality                      TEXT      DEFAULT '{}',
+    media                        TEXT      DEFAULT '{}',
+    log_score                    INTEGER,
+    has_log                      BOOLEAN,
+    has_cue                      BOOLEAN,
+    perfect_flac                 BOOLEAN,
+    match_categories             TEXT,
+    except_categories            TEXT,
+    match_uploaders              TEXT,
+    except_uploaders             TEXT,
+    match_language               TEXT      DEFAULT '{}',
+    except_language              TEXT      DEFAULT '{}',
+    tags                         TEXT,
+    except_tags                  TEXT,
+    tags_match_logic             TEXT,
+    except_tags_match_logic      TEXT,
+    origins                      TEXT      DEFAULT '{}',
+    except_origins               TEXT      DEFAULT '{}',
+    created_at                   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at                   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    min_seeders                  INTEGER   DEFAULT 0,
+    max_seeders                  INTEGER   DEFAULT 0,
+    min_leechers                 INTEGER   DEFAULT 0,
+    max_leechers                 INTEGER   DEFAULT 0,
+    release_profile_duplicate_id INTEGER
+        CONSTRAINT filter_release_profile_duplicate_id_fk
+            REFERENCES release_profile_duplicate (id)
+            ON DELETE SET NULL
+);
+
+INSERT INTO filter_dg_tmp(id, enabled, name, min_size, max_size, delay, priority, max_downloads, max_downloads_unit,
+                          match_releases, except_releases, use_regex, match_release_groups, except_release_groups,
+                          match_release_tags, except_release_tags, use_regex_release_tags, match_description,
+                          except_description, use_regex_description, scene, freeleech, freeleech_percent, smart_episode,
+                          shows, seasons, episodes, resolutions, codecs, sources, containers, match_hdr, except_hdr,
+                          match_other, except_other, years, artists, albums, release_types_match, release_types_ignore,
+                          formats, quality, media, log_score, has_log, has_cue, perfect_flac, match_categories,
+                          except_categories, match_uploaders, except_uploaders, match_language, except_language, tags,
+                          except_tags, tags_match_logic, except_tags_match_logic, origins, except_origins, created_at,
+                          updated_at, min_seeders, max_seeders, min_leechers, max_leechers)
+SELECT id,
+       enabled,
+       name,
+       min_size,
+       max_size,
+       delay,
+       priority,
+       max_downloads,
+       max_downloads_unit,
+       match_releases,
+       except_releases,
+       use_regex,
+       match_release_groups,
+       except_release_groups,
+       match_release_tags,
+       except_release_tags,
+       use_regex_release_tags,
+       match_description,
+       except_description,
+       use_regex_description,
+       scene,
+       freeleech,
+       freeleech_percent,
+       smart_episode,
+       shows,
+       seasons,
+       episodes,
+       resolutions,
+       codecs,
+       sources,
+       containers,
+       match_hdr,
+       except_hdr,
+       match_other,
+       except_other,
+       years,
+       artists,
+       albums,
+       release_types_match,
+       release_types_ignore,
+       formats,
+       quality,
+       media,
+       log_score,
+       has_log,
+       has_cue,
+       perfect_flac,
+       match_categories,
+       except_categories,
+       match_uploaders,
+       except_uploaders,
+       match_language,
+       except_language,
+       tags,
+       except_tags,
+       tags_match_logic,
+       except_tags_match_logic,
+       origins,
+       except_origins,
+       created_at,
+       updated_at,
+       min_seeders,
+       max_seeders,
+       min_leechers,
+       max_leechers
+FROM filter;
+
+DROP TABLE filter;
+
+ALTER TABLE filter_dg_tmp
+    RENAME TO filter;
+
+ALTER TABLE "release"
+    ADD audio TEXT;
+
+ALTER TABLE "release"
+    ADD audio_channels TEXT;
 `,
 }
