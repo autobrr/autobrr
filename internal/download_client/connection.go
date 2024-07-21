@@ -5,7 +5,9 @@ package download_client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/autobrr/go-rtorrent"
 	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/icholy/digest"
 	"github.com/rs/zerolog"
 )
 
@@ -155,14 +158,26 @@ func (s *service) testDelugeConnection(ctx context.Context, client domain.Downlo
 }
 
 func (s *service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
-	// create client
-	rt := rtorrent.NewClient(rtorrent.Config{
+	cfg := rtorrent.Config{
 		Addr:          client.Host,
 		TLSSkipVerify: client.TLSSkipVerify,
 		BasicUser:     client.Settings.Basic.Username,
 		BasicPass:     client.Settings.Basic.Password,
 		Log:           nil,
-	})
+	}
+
+	httpClient := &http.Client{
+		Transport: &digest.Transport{
+			Username: client.Settings.Basic.Username,
+			Password: client.Settings.Basic.Password,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		},
+	}
+
+	// create client
+	rt := rtorrent.NewClientWithOpts(cfg, rtorrent.WithCustomClient(httpClient))
 
 	name, err := rt.Name(ctx)
 	if err != nil {
