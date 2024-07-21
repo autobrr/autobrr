@@ -116,6 +116,11 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			// if this file exists then the viewer is running
 			// from inside a lxc container so return true
 			host = "0.0.0.0"
+		} else if os.Getpid() == 1 {
+			// if we're running as pid 1, we're honoured.
+			// but there's a good chance this is an isolated namespace
+			// or a container.
+			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
 			b := make([]byte, 4096)
