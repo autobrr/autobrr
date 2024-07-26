@@ -319,7 +319,7 @@ export const AuthIndexRoute = createRoute({
 export const RootComponent = () => {
   const settings = SettingsContext.useValue();
   return (
-    <div className="min-h-screen">
+    <div className="flex flex-col min-h-screen">
       <Outlet/>
       {settings.debug ? (
         <>
@@ -350,7 +350,7 @@ const routeTree = RootRoute.addChildren([
 export const Router = createRouter({
   routeTree,
   defaultPendingComponent: () => (
-    <div className="flex flex-grow items-center justify-center col-span-9 h-full">
+    <div className="flex flex-grow items-center justify-center col-span-9">
       <RingResizeSpinner className="text-blue-500 size-24"/>
     </div>
   ),
