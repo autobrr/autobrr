@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -535,7 +536,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 
 		// Read the body into bytes
-		bodyBytes, err := io.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
 		if err != nil {
 			return errors.Wrap(err, "error reading response body")
 		}

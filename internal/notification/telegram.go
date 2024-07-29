@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -100,7 +101,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
 		return errors.Wrap(err, "could not read data")

@@ -4,10 +4,10 @@
 package ptp
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -160,13 +160,13 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 	defer resp.Body.Close()
 
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body := bufio.NewReader(resp.Body)
+	if _, err := body.Peek(0); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
-	if err = json.Unmarshal(body, &r); err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	if err := json.NewDecoder(body).Decode(&r); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	for _, torrent := range r.Torrents {

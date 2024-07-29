@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -94,7 +95,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
 		return errors.Wrap(err, "could not read data")

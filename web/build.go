@@ -5,6 +5,7 @@
 package web
 
 import (
+	"bufio"
 	"bytes"
 	"embed"
 	"fmt"
@@ -107,7 +108,7 @@ func fsFile(w http.ResponseWriter, r *http.Request, file string, filesystem fs.F
 		return
 	}
 
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(bufio.NewReader(f))
 	if err != nil {
 		http.Error(w, "Failed to read the file", http.StatusInternalServerError)
 		return

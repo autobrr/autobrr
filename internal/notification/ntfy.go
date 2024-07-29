@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"io"
 	"net/http"
 	"strconv"
@@ -77,7 +78,7 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("ntfy client request error: %v", event)
 		return errors.Wrap(err, "could not read data")

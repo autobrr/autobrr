@@ -4,10 +4,10 @@
 package ggn
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -221,12 +221,12 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 	defer resp.Body.Close()
 
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "error reading body")
+	reader := bufio.NewReader(resp.Body)
+	if _, err := reader.Peek(0); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "error reading body")
 	}
 
-	if err = json.Unmarshal(body, &r); err != nil {
+	if err := json.NewDecoder(reader).Decode(&r); err != nil {
 		return nil, errors.Wrap(err, "error unmarshal body")
 	}
 

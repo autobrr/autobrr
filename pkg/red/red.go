@@ -4,10 +4,10 @@
 package red
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -172,16 +172,14 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 	if res.StatusCode != http.StatusOK {
 		var r ErrorResponse
 
-		body, readErr := io.ReadAll(res.Body)
-		if readErr != nil {
-			return res, errors.Wrap(readErr, "could not read body")
+		body := bufio.NewReader(res.Body)
+		if _, err := body.Peek(0); err != nil && err != bufio.ErrBufferFull {
+			return nil, errors.Wrap(err, "could not read body")
 		}
 
-		if err = json.Unmarshal(body, &r); err != nil {
-			return res, errors.Wrap(readErr, "could not unmarshal body")
+		if err := json.NewDecoder(body).Decode(&r); err != nil {
+			return nil, errors.Wrap(err, "could not unmarshal body")
 		}
-
-		res.Body.Close()
 
 		return res, errors.New("status code: %d status: %s error: %s", res.StatusCode, r.Status, r.Error)
 	}
@@ -209,13 +207,13 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 	defer resp.Body.Close()
 
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
+	body := bufio.NewReader(resp.Body)
+	if _, err := body.Peek(0); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
-	if err := json.Unmarshal(body, &r); err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
+	if err := json.NewDecoder(body).Decode(&r); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &domain.TorrentBasic{
