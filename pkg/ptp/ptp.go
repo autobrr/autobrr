@@ -158,9 +158,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		return nil, errors.Wrap(err, "error requesting data")
 	}
 
-	defer func() {
-		resp.Body.Close()
-	}()
+	defer resp.Body.Close()
 
 	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
