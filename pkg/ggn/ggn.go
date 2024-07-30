@@ -222,7 +222,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	defer resp.Body.Close()
 
 	reader := bufio.NewReader(resp.Body)
-	if _, err := reader.Peek(0); err != nil && err != bufio.ErrBufferFull {
+	if _, err := reader.Peek(1); err != nil && err != bufio.ErrBufferFull {
 		return nil, errors.Wrap(err, "error reading body")
 	}
 

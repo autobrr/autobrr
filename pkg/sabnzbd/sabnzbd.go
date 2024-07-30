@@ -100,7 +100,7 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 	defer res.Body.Close()
 
 	body := bufio.NewReader(res.Body)
-	if _, err := body.Peek(0); err != nil && err != bufio.ErrBufferFull {
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
 		return nil, errors.Wrap(err, "could not read body")
 	}
 
@@ -147,7 +147,7 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 	defer res.Body.Close()
 
 	body := bufio.NewReader(res.Body)
-	if _, err := body.Peek(0); err != nil && err != bufio.ErrBufferFull {
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
 		return nil, errors.Wrap(err, "could not read body")
 	}
 

@@ -171,7 +171,7 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 		defer res.Body.Close()
 
 		body := bufio.NewReader(res.Body)
-		if _, err := body.Peek(0); err != nil && err != bufio.ErrBufferFull {
+		if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
 			return nil, errors.Wrap(err, "could not read body")
 		}
 
@@ -206,7 +206,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	defer resp.Body.Close()
 
 	body := bufio.NewReader(resp.Body)
-	if _, err := body.Peek(0); err != nil && err != bufio.ErrBufferFull {
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
 		return nil, errors.Wrap(err, "could not read body")
 	}
 
