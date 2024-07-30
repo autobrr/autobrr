@@ -5,6 +5,7 @@
 package web
 
 import (
+	"bufio"
 	"bytes"
 	"embed"
 	"fmt"
