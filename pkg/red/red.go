@@ -166,7 +166,7 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 		return res, errors.Wrap(err, "could not make request: %+v", req)
 	}
 
-	defer res.Body.Close()
+	// This leaks Body to the caller, impressive.
 
 	// return early if not OK
 	if res.StatusCode != http.StatusOK {
