@@ -5,6 +5,7 @@
 package web
 
 import (
+	"bufio"
 	"bytes"
 	"embed"
 	"fmt"
@@ -107,7 +108,7 @@ func fsFile(w http.ResponseWriter, r *http.Request, file string, filesystem fs.F
 		return
 	}
 
-	data, err := io.ReadAll(f)
+	data, err := io.ReadAll(bufio.NewReader(f))
 	if err != nil {
 		http.Error(w, "Failed to read the file", http.StatusInternalServerError)
 		return
@@ -164,27 +165,7 @@ func RegisterHandler(c *chi.Mux, version, baseUrl string) {
 		}
 
 		// if not valid web route then try and serve files
-		f, err := DistDirFS.Open(file)
-		if err != nil {
-			http.Error(w, "File not found", http.StatusNotFound)
-			return
-		}
-		defer f.Close()
-
-		stat, err := f.Stat()
-		if err != nil {
-			http.Error(w, "File not found", http.StatusNotFound)
-			return
-		}
-
-		data, err := io.ReadAll(f)
-		if err != nil {
-			http.Error(w, "Failed to read the file", http.StatusInternalServerError)
-			return
-		}
-
-		reader := bytes.NewReader(data)
-		http.ServeContent(w, r, file, stat.ModTime(), reader)
+		fsFile(w, r, file, DistDirFS)
 	})
 }
 

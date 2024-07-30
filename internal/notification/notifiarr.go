@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -91,7 +92,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
 		return errors.Wrap(err, "could not read data")

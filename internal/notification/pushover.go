@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
@@ -96,7 +97,7 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
 		return errors.Wrap(err, "could not read data")

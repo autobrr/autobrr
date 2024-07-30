@@ -4,6 +4,7 @@
 package whisparr
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -92,7 +93,7 @@ func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -120,7 +121,7 @@ func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
