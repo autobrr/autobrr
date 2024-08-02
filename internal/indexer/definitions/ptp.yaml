@@ -109,7 +109,7 @@ irc:
             torrentId: "964303"
             torrentName: That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP
             tags: comedy, drama, romance
-        pattern: '.* \[(.*)\] (?:by .*)?\| (.*?(?: \/ (Freeleech)!)?) \| .* \| (.*) \| (.*) \| (.*)'
+        pattern: '.*? \[(.*?)\] (?:by .*?)?\| (.*?(?: \/ (Freeleech)!)?) \| .*? \| (.*?) \| (.*?) \| (.*?(?= \| |$))'
         vars:
           - year
           - releaseTags
