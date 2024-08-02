@@ -109,6 +109,30 @@ irc:
             torrentId: "964303"
             torrentName: That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP
             tags: comedy, drama, romance
+          - line: That Movie [1972] by Some Director | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance | tt12345678
+          expect:
+            year: "1972"
+            releaseTags: x264 / Blu-ray / MKV / 1080p
+            freeleech: ""
+            torrentId: "964303"
+            torrentName: That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP
+            tags: comedy, drama, romance
+        - line: That Other Movie [1972] | x264 / Blu-ray / MKV / 1080p / Freeleech! | 204371 | 964303 | That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance | tt12345678
+          expect:
+            year: "1972"
+            releaseTags: x264 / Blu-ray / MKV / 1080p / Freeleech!
+            freeleech: Freeleech
+            torrentId: "964303"
+            torrentName: That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP
+            tags: comedy, drama, romance
+          - line: That Movie [1972] by Some Director | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance | tt12345678 | foo | bar
+          expect:
+            year: "1972"
+            releaseTags: x264 / Blu-ray / MKV / 1080p
+            freeleech: ""
+            torrentId: "964303"
+            torrentName: That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP
+            tags: comedy, drama, romance
         pattern: '.*? \[(.*?)\] (?:by .*?)?\| (.*?(?: \/ (Freeleech)!)?) \| .*? \| (.*?) \| (.*?) \| (.*?)(?: \| |$)'
         vars:
           - year
