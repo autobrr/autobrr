@@ -165,6 +165,51 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	return &i, nil
 }
 
+func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
+	queryBuilder := r.db.squirrel.
+		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "settings").
+		From("indexer")
+
+	if req.ID > 0 {
+		queryBuilder = queryBuilder.Where(sq.Eq{"id": req.ID})
+	} else if req.Name != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"name": req.Name})
+	} else if req.Identifier != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"identifier": req.Identifier})
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	var i domain.Indexer
+
+	var identifierExternal, implementation, baseURL, settings sql.Null[string]
+
+	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &settings); err != nil {
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	i.IdentifierExternal = identifierExternal.V
+	i.Implementation = implementation.V
+	i.BaseURL = baseURL.V
+
+	var settingsMap map[string]string
+	if err = json.Unmarshal([]byte(settings.V), &settingsMap); err != nil {
+		return nil, errors.Wrap(err, "error unmarshal settings")
+	}
+
+	i.Settings = settingsMap
+
+	return &i, nil
+}
+
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
 		Select("id", "enabled", "name", "identifier", "identifier_external", "base_url", "settings").
