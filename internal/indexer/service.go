@@ -99,6 +99,10 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 		indexer.Identifier = slug.Make(fmt.Sprintf("%s-%s", indexer.Implementation, cleanName))
 	}
 
+	if indexer.IdentifierExternal == "" {
+		indexer.IdentifierExternal = indexer.Name
+	}
+
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("failed to store indexer: %s", indexer.Name)

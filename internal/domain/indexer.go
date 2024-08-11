@@ -44,6 +44,14 @@ type IndexerMinimal struct {
 	IdentifierExternal string `json:"identifier_external"`
 }
 
+func (m IndexerMinimal) GetExternalIdentifier() string {
+	if m.IdentifierExternal != "" {
+		return m.IdentifierExternal
+	}
+
+	return m.Identifier
+}
+
 type IndexerDefinition struct {
 	ID                 int               `json:"id,omitempty"`
 	Name               string            `json:"name"`
