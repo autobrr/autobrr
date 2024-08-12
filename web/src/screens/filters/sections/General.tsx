@@ -9,13 +9,12 @@ import { downloadsPerUnitOptions } from "@domain/constants";
 import { IndexersOptionsQueryOptions } from "@api/queries";
 
 import { DocsLink } from "@components/ExternalLink";
-
-import * as Input from "@components/inputs";
-import * as Components from "./_components";
+import { FilterLayout, FilterPage, FilterSection } from "./_components";
+import { IndexerMultiSelect, MultiSelectOption, NumberField, Select, SwitchGroup, TextField } from "@components/inputs";
 
 
 const MapIndexer = (indexer: Indexer) => (
-  { label: indexer.name, value: indexer.id } as Input.MultiSelectOption
+  { label: indexer.name, value: indexer.id } as MultiSelectOption
 );
 
 export const General = () => {
@@ -25,23 +24,23 @@ export const General = () => {
   // const indexerOptions = data?.map(MapIndexer) ?? [];
 
   return (
-    <Components.Page>
-      <Components.Section>
-        <Components.Layout>
-          <Input.TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
+    <FilterPage>
+      <FilterSection>
+        <FilterLayout>
+          <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
           {/*{!isLoading && (*/}
-            <Input.IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={6} />
+            <IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={6} />
           {/*)}*/}
-        </Components.Layout>
-      </Components.Section>
+        </FilterLayout>
+      </FilterSection>
 
-      <Components.Section
+      <FilterSection
         title="Rules"
         subtitle="Specify rules on how torrents should be handled/selected."
       >
-        <Components.Layout>
-          <Input.TextField
+        <FilterLayout>
+          <TextField
             name="min_size"
             label="Min size"
             columns={6}
@@ -53,7 +52,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.TextField
+          <TextField
             name="max_size"
             label="Max size"
             columns={6}
@@ -65,7 +64,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.NumberField
+          <NumberField
             name="delay"
             label="Delay"
             placeholder="Number of seconds to delay actions"
@@ -76,7 +75,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.NumberField
+          <NumberField
             name="priority"
             label="Priority"
             placeholder="Higher number = higher priority"
@@ -87,7 +86,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.NumberField
+          <NumberField
             name="max_downloads"
             label="Max downloads"
             placeholder="Takes any number (0 is infinite)"
@@ -98,7 +97,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.Select
+          <Select
             name="max_downloads_unit"
             label="Max downloads per"
             options={downloadsPerUnitOptions}
@@ -110,17 +109,17 @@ export const General = () => {
               </div>
             }
           />
-        </Components.Layout>
+        </FilterLayout>
 
-        <Components.Layout>
-          <Input.SwitchGroup
+        <FilterLayout>
+          <SwitchGroup
             name="enabled"
             label="Enabled"
             description="Enable or disable this filter."
             className="pb-2 col-span-12 sm:col-span-6"
           />
-        </Components.Layout>
-      </Components.Section>
-    </Components.Page>
+        </FilterLayout>
+      </FilterSection>
+    </FilterPage>
   );
 };

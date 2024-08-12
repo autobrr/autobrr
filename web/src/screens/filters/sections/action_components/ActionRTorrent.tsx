@@ -4,59 +4,59 @@
  */
 
 import { ActionRtorrentRenameOptions } from "@domain/constants";
-import * as Input from "@components/inputs";
+import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
+import { DownloadClientSelect, Select, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
 
-import * as FilterSection from "../_components";
 
 export const RTorrent = ({ idx, action, clients }: ClientActionProps) => (
   <>
-    <FilterSection.Section
+    <FilterSection
       title="Instance"
       subtitle={
         <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
       }
     >
-      <FilterSection.Layout>
-        <FilterSection.HalfRow>
-          <Input.DownloadClientSelect
+      <FilterLayout>
+        <FilterHalfRow>
+          <DownloadClientSelect
             name={`actions.${idx}.client_id`}
             action={action}
             clients={clients}
           />
-        </FilterSection.HalfRow>
+        </FilterHalfRow>
 
-        <FilterSection.HalfRow>
-          <Input.TextField
+        <FilterHalfRow>
+          <TextField
             name={`actions.${idx}.label`}
             label="Label"
             columns={6}
             placeholder="eg. label1,label2"
           />
-        </FilterSection.HalfRow>
-      </FilterSection.Layout>
+        </FilterHalfRow>
+      </FilterLayout>
 
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name={`actions.${idx}.save_path`}
         label="Save path"
         placeholder="eg. /full/path/to/download_folder"
       />
 
-      <FilterSection.Layout>
-        <FilterSection.HalfRow>
-          <Input.SwitchGroup
+      <FilterLayout>
+        <FilterHalfRow>
+          <SwitchGroup
             name={`actions.${idx}.paused`}
             label="Add paused"
             description="Add torrent as paused"
             className="pt-2 pb-4"
           />
-          <Input.Select
+          <Select
             name={`actions.${idx}.content_layout`}
             label="Do not add torrent name to path"
             optionDefaultText="No"
             options={ActionRtorrentRenameOptions}
           />
-        </FilterSection.HalfRow>
-      </FilterSection.Layout>
-    </FilterSection.Section>
+        </FilterHalfRow>
+      </FilterLayout>
+    </FilterSection>
   </>
 );
