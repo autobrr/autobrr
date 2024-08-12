@@ -79,7 +79,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_2",
 					args: args{
-						announceLines: []string{"TORRENT: Dirty Dike – Bogies & Alcohol – [2024] [EP] CD/FLAC/Lossless – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"},
+						announceLines: []string{"TORRENT: Dirty Dike – Bogies & Alcohol – [2024] [EP] CD/FLAC/Lossless/Cue/Log/100 – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
@@ -89,6 +89,22 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Quality:         []string{"Lossless"},
 									Sources:         []string{"CD"},
 									Formats:         []string{"FLAC"},
+									Artists:         "Dirty Dike",
+									Albums:          "Bogies & Alcohol",
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:            "filter_1",
+									MatchCategories: "EP,Album",
+									Years:           "2024",
+									Quality:         []string{"Lossless"},
+									Sources:         []string{"CD"},
+									Formats:         []string{"FLAC"},
+									Log:             true,
+									LogScore:        100,
+									PerfectFlac:     true,
 									Artists:         "Dirty Dike",
 									Albums:          "Bogies & Alcohol",
 								},
@@ -106,6 +122,30 @@ func TestIndexersParseAndFilter(t *testing.T) {
 								},
 								match:      false,
 								rejections: []string{"albums not matching. got: Bogies & Alcohol want: Best album", "quality not matching. got: [FLAC Lossless] want: [24bit Lossless]"},
+							},
+						},
+					},
+					match: false,
+				},
+				{
+					name: "announce_3",
+					args: args{
+						announceLines: []string{"TORRENT: Dirty Dike – Bogies & Alcohol – [2024] [EP] CD/FLAC/Lossless/Cue/Log/80 – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:            "filter_1",
+									MatchCategories: "EP,Album",
+									Years:           "2024",
+									Quality:         []string{"24bit Lossless"},
+									Sources:         []string{"CD"},
+									Formats:         []string{"FLAC"},
+									Log:             true,
+									LogScore:        100,
+									Albums:          "Best album",
+								},
+								match:      false,
+								rejections: []string{"albums not matching. got: Bogies & Alcohol want: Best album", "quality not matching. got: [Cue FLAC Lossless Log80 Log] want: [24bit Lossless]", "log score. got 80 want: 100"},
 							},
 						},
 					},

@@ -84,9 +84,9 @@ export const Input: FC<InputProps> = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-export type FormInputProps<TFormValues> = {
+export type FormInputProps<TFormValues extends FieldValues> = {
   name: Path<TFormValues>;
-  rules?: RegisterOptions;
+  rules?: RegisterOptions<TFormValues, Path<TFormValues>>;
   register?: UseFormRegister<TFormValues & FieldValues>;
   errors?: Partial<DeepMap<TFormValues, FieldError>>;
 } & Omit<InputProps, "name">;

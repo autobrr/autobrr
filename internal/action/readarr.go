@@ -58,11 +58,11 @@ func (s *service) readarr(ctx context.Context, action *domain.Action, release do
 		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
-		Indexer:          release.Indexer.IdentifierExternal,
+		Indexer:          release.Indexer.GetExternalIdentifier(),
 		DownloadClientId: externalClientId,
 		DownloadClient:   externalClient,
-		DownloadProtocol: string(release.Protocol),
-		Protocol:         string(release.Protocol),
+		DownloadProtocol: release.Protocol.String(),
+		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 

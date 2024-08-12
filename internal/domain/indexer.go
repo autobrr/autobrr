@@ -22,6 +22,7 @@ type IndexerRepo interface {
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
 	FindByID(ctx context.Context, id int) (*Indexer, error)
+	GetBy(ctx context.Context, req GetIndexerRequest) (*Indexer, error)
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
 }
 
@@ -41,6 +42,14 @@ type IndexerMinimal struct {
 	Name               string `json:"name"`
 	Identifier         string `json:"identifier"`
 	IdentifierExternal string `json:"identifier_external"`
+}
+
+func (m IndexerMinimal) GetExternalIdentifier() string {
+	if m.IdentifierExternal != "" {
+		return m.IdentifierExternal
+	}
+
+	return m.Identifier
 }
 
 type IndexerDefinition struct {
@@ -411,4 +420,10 @@ type IndexerTestApiRequest struct {
 	Identifier string `json:"identifier,omitempty"`
 	ApiUser    string `json:"api_user,omitempty"`
 	ApiKey     string `json:"api_key"`
+}
+
+type GetIndexerRequest struct {
+	ID         int
+	Identifier string
+	Name       string
 }
