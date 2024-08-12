@@ -50,7 +50,7 @@ irc:
     type: single
     lines:
       - tests:
-        - line: [Electronic]:[FLAC]:VA-Chilled Beats 033-16BIT-WEB-FLAC-2024-PWT:[885.09 MB]:https://satclubbing.club/download.php?id=492465&name=VA-Chilled_Beats_033-16BIT-WEB-FLAC-2024-PWT.torrent
+        - line: '[Electronic]:[FLAC]:VA-Chilled Beats 033-16BIT-WEB-FLAC-2024-PWT:[885.09 MB]:https://satclubbing.club/download.php?id=492465&name=VA-Chilled_Beats_033-16BIT-WEB-FLAC-2024-PWT.torrent'
           expect:
             category: Electronic
             releaseTags: FLAC
