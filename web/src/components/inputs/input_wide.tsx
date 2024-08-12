@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Field } from "formik";
+import { Field as FormikField } from "formik";
 import Select from "react-select";
-import { Switch } from "@headlessui/react";
+import { Field, Label, Description } from "@headlessui/react";
 import type { FieldProps, FieldValidator } from "formik";
 
 import { classNames } from "@utils";
@@ -63,7 +63,7 @@ export const TextFieldWide = ({
       </label>
     </div>
     <div className="sm:col-span-2">
-      <Field
+      <FormikField
         name={name}
         value={defaultValue}
         required={required}
@@ -89,7 +89,7 @@ export const TextFieldWide = ({
             data-1p-ignore
           />
         )}
-      </Field>
+      </FormikField>
       {help && (
         <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
       )}
@@ -138,7 +138,7 @@ export const PasswordFieldWide = ({
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field
+        <FormikField
           name={name}
           defaultValue={defaultValue}
           validate={validate}
@@ -167,7 +167,7 @@ export const PasswordFieldWide = ({
               </div>
             </div>
           )}
-        </Field>
+        </FormikField>
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}
@@ -211,7 +211,7 @@ export const NumberFieldWide = ({
       </label>
     </div>
     <div className="sm:col-span-2">
-      <Field
+      <FormikField
         name={name}
         defaultValue={defaultValue ?? 0}
       >
@@ -237,7 +237,7 @@ export const NumberFieldWide = ({
             placeholder={placeholder}
           />
         )}
-      </Field>
+      </FormikField>
       {help && (
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
       )}
@@ -263,23 +263,23 @@ export const SwitchGroupWide = ({
   defaultValue
 }: SwitchGroupWideProps) => (
   <ul className="px-4 divide-y divide-gray-200 dark:divide-gray-700">
-    <Switch.Group as="li" className="py-4 flex items-center justify-between">
+    <Field as="li" className="py-4 flex items-center justify-between">
       <div className="flex flex-col">
-        <Switch.Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
+        <Label as="div" passive className="text-sm font-medium text-gray-900 dark:text-white">
           <div className="flex">
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
           </div>
-        </Switch.Label>
+        </Label>
         {description && (
-          <Switch.Description className="text-sm text-gray-500 dark:text-gray-700">
+          <Description className="text-sm text-gray-500 dark:text-gray-700">
             {description}
-          </Switch.Description>
+          </Description>
         )}
       </div>
 
-      <Field
+      <FormikField
         name={name}
         defaultValue={defaultValue as boolean}
         type="checkbox"
@@ -296,8 +296,8 @@ export const SwitchGroupWide = ({
             }}
           />
         )}
-      </Field>
-    </Switch.Group>
+      </FormikField>
+    </Field>
   </ul>
 );
 
@@ -322,7 +322,7 @@ export const SelectFieldWide = ({
       </label>
     </div>
     <div className="sm:col-span-2">
-      <Field name={name} type="select">
+      <FormikField name={name} type="select">
         {({
           field,
           form: { setFieldValue }
@@ -360,7 +360,7 @@ export const SelectFieldWide = ({
             options={options}
           />
         )}
-      </Field>
+      </FormikField>
     </div>
   </div>
 );

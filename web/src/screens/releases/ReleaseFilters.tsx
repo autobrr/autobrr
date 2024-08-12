@@ -5,7 +5,7 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Listbox, Transition } from "@headlessui/react";
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
@@ -36,7 +36,7 @@ const ListboxFilter = ({
       onChange={onChange}
     >
       <div className="relative mt-1">
-        <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer dark:text-gray-400 sm:text-sm">
+        <ListboxButton className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer dark:text-gray-400 sm:text-sm">
           <span className="block truncate">{label}</span>
           <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
             <ChevronDownIcon
@@ -44,19 +44,19 @@ const ListboxFilter = ({
               aria-hidden="true"
             />
           </span>
-        </Listbox.Button>
+        </ListboxButton>
         <Transition
           as={React.Fragment}
           leave="transition ease-in duration-100"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <Listbox.Options
+          <ListboxOptions
             className="absolute z-10 w-full mt-1 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
           >
             <FilterOption label="All" value="" />
             {children}
-          </Listbox.Options>
+          </ListboxOptions>
         </Transition>
       </div>
     </Listbox>
@@ -91,7 +91,7 @@ interface FilterOptionProps {
 }
 
 const FilterOption = ({ label, value }: FilterOptionProps) => (
-  <Listbox.Option
+  <ListboxOption
     className={({ active }) => classNames(
       "cursor-pointer select-none relative py-2 pl-10 pr-4",
       active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
@@ -115,7 +115,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
         ) : null}
       </>
     )}
-  </Listbox.Option>
+  </ListboxOption>
 );
 
 export const PushStatusSelectColumnFilter = ({
