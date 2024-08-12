@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/torznab"
@@ -19,15 +18,28 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type feedRepo interface {
+	UpdateLastRunWithData(ctx context.Context, feedID int, data string) error
+}
+
+type cacheRepo interface {
+	Exists(feedId int, key string) (bool, error)
+	PutMany(ctx context.Context, items []domain.FeedCacheItem) error
+}
+
+type releaseService interface {
+	ProcessMultiple(releases []*domain.Release)
+}
+
 type TorznabJob struct {
 	Feed         *domain.Feed
 	Name         string
 	Log          zerolog.Logger
 	URL          string
 	Client       torznab.Client
-	Repo         domain.FeedRepo
-	CacheRepo    domain.FeedCacheRepo
-	ReleaseSvc   release.Service
+	Repo         feedRepo
+	CacheRepo    cacheRepo
+	ReleaseSvc   releaseService
 	SchedulerSvc scheduler.Service
 
 	attempts int
@@ -41,7 +53,7 @@ type FeedJob interface {
 	RunE(ctx context.Context) error
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo feedRepo, cacheRepo cacheRepo, releaseSvc releaseService) FeedJob {
 	return &TorznabJob{
 		Feed:       feed,
 		Name:       name,

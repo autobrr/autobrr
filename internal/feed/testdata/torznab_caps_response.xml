@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<caps>
+    <server title="Prowlarr" />
+    <limits default="100" max="100" />
+    <searching>
+        <search available="yes" supportedParams="q" searchEngine="raw" />
+        <tv-search available="yes" supportedParams="q,season,ep" searchEngine="raw" />
+        <movie-search available="yes" supportedParams="q,imdbid" searchEngine="raw" />
+        <music-search available="yes" supportedParams="q" searchEngine="raw" />
+        <audio-search available="yes" supportedParams="q" searchEngine="raw" />
+        <book-search available="yes" supportedParams="q" searchEngine="raw" />
+    </searching>
+    <categories>
+        <category id="1000" name="Console">
+            <subcat id="1010" name="Console/NDS" />
+            <subcat id="1020" name="Console/PSP" />
+            <subcat id="1030" name="Console/Wii" />
+            <subcat id="1040" name="Console/XBox" />
+            <subcat id="1050" name="Console/XBox 360" />
+            <subcat id="1080" name="Console/PS3" />
+            <subcat id="1090" name="Console/Other" />
+            <subcat id="1140" name="Console/XBox One" />
+            <subcat id="1180" name="Console/PS4" />
+        </category>
+        <category id="2000" name="Movies">
+            <subcat id="2010" name="Movies/Foreign" />
+            <subcat id="2030" name="Movies/SD" />
+            <subcat id="2040" name="Movies/HD" />
+            <subcat id="2045" name="Movies/UHD" />
+            <subcat id="2050" name="Movies/BluRay" />
+            <subcat id="2070" name="Movies/DVD" />
+            <subcat id="2080" name="Movies/WEB-DL" />
+        </category>
+        <category id="3000" name="Audio">
+            <subcat id="3020" name="Audio/Video" />
+        </category>
+        <category id="4000" name="PC">
+            <subcat id="4010" name="PC/0day" />
+            <subcat id="4020" name="PC/ISO" />
+            <subcat id="4030" name="PC/Mac" />
+            <subcat id="4040" name="PC/Mobile-Other" />
+            <subcat id="4050" name="PC/Games" />
+        </category>
+        <category id="5000" name="TV">
+            <subcat id="5020" name="TV/Foreign" />
+            <subcat id="5030" name="TV/SD" />
+            <subcat id="5040" name="TV/HD" />
+            <subcat id="5070" name="TV/Anime" />
+            <subcat id="5080" name="TV/Documentary" />
+        </category>
+        <category id="7000" name="Books">
+            <subcat id="7020" name="Books/EBook" />
+            <subcat id="7030" name="Books/Comics" />
+        </category>
+        <category id="8000" name="Other" />
+        <category id="100031" name="Audio" />
+        <category id="100046" name="Books Comics" />
+        <category id="100045" name="Books EBooks" />
+        <category id="100029" name="Documentaries" />
+        <category id="100038" name="Education" />
+        <category id="100042" name="Games Mac" />
+        <category id="100021" name="Games Mac" />
+        <category id="100030" name="Games Nintendo DS" />
+        <category id="100048" name="Games Nintendo Switch" />
+        <category id="100017" name="Games PC" />
+        <category id="100020" name="Games PS2" />
+        <category id="100039" name="Games PS4" />
+        <category id="100049" name="Games PS5" />
+        <category id="100022" name="Games PSP" />
+        <category id="100028" name="Games Wii" />
+        <category id="100018" name="Games XBOX" />
+        <category id="100019" name="Games XBOX360" />
+        <category id="100040" name="Games XBOXONE" />
+        <category id="100047" name="Movies 4K" />
+        <category id="100013" name="Movies Bluray" />
+        <category id="100014" name="Movies BlurayRip" />
+        <category id="100015" name="Movies Boxsets" />
+        <category id="100008" name="Movies Cam" />
+        <category id="100012" name="Movies DVD-R" />
+        <category id="100011" name="Movies DVDRip/DVDScreener" />
+        <category id="100036" name="Movies Foreign" />
+        <category id="100043" name="Movies HDRip" />
+        <category id="100009" name="Movies TS/TC" />
+        <category id="100037" name="Movies WEBRip" />
+        <category id="100016" name="Music videos" />
+        <category id="100033" name="PC 0-day" />
+        <category id="100023" name="PC ISO" />
+        <category id="100024" name="PC Mac" />
+        <category id="100025" name="PC Mobile" />
+        <category id="100034" name="TV Anime" />
+        <category id="100027" name="TV Boxsets" />
+        <category id="100035" name="TV Cartoons" />
+        <category id="100026" name="TV Episodes" />
+        <category id="100032" name="TV Episodes HD" />
+        <category id="100044" name="TV Foreign" />
+    </categories>
+    <tags />
+</caps>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="1.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+    <channel>
+        <atom:link rel="self" type="application/rss+xml" />
+        <title>Prowlarr</title>
+        <item>
+            <title>Gigantosaurus (2019) S03 WEBRip EAC3 2 0 1080p x265-iVy</title>
+            <description />
+            <guid>https://mockindexer/download/241330311/Gigantosaurus.(2019).S03.WEBRip.EAC3.2.0.1080p.x265-iVy.torrent</guid>
+            <prowlarrindexer id="13" type="private">MockIndexer</prowlarrindexer>
+            <comments>https://mockindexer/torrent/241330311</comments>
+            <pubDate>Sun, 11 Aug 2024 23:34:49 +0200</pubDate>
+            <size>8968098816</size>
+            <link>https://local/13/download?apikey=key&amp;link=url&amp;file=Gigantosaurus+(2019)+S03+WEBRip+EAC3+2+0+1080p+x265-iVy</link>
+            <category>5000</category>
+            <category>100027</category>
+            <enclosure url="https://local/13/download?apikey=key&amp;link=url&amp;file=Gigantosaurus+(2019)+S03+WEBRip+EAC3+2+0+1080p+x265-iVy" length="8968098816" type="application/x-bittorrent" />
+            <torznab:attr name="category" value="5000" />
+            <torznab:attr name="category" value="100027" />
+            <torznab:attr name="tag" value="freeleech" />
+            <torznab:attr name="seeders" value="1" />
+            <torznab:attr name="grabs" value="0" />
+            <torznab:attr name="peers" value="26" />
+            <torznab:attr name="minimumratio" value="1" />
+            <torznab:attr name="minimumseedtime" value="864000" />
+            <torznab:attr name="downloadvolumefactor" value="0" />
+            <torznab:attr name="uploadvolumefactor" value="1" />
+        </item>
+        <item>
+            <title>Golan The Insatiable (2013) S02 WEBRip EAC3 5 1 1080p x265-iVy</title>
+            <description />
+            <guid>https://mockindexer/download/241330310/Golan.The.Insatiable.(2013).S02.WEBRip.EAC3.5.1.1080p.x265-iVy.torrent</guid>
+            <prowlarrindexer id="13" type="private">MockIndexer</prowlarrindexer>
+            <comments>https://mockindexer/torrent/241330310</comments>
+            <pubDate>Sun, 11 Aug 2024 23:33:09 +0200</pubDate>
+            <size>3064670720</size>
+            <link>https://local/13/download?apikey=key&amp;link=url&amp;file=Golan+The+Insatiable+(2013)+S02+WEBRip+EAC3+5+1+1080p+x265-iVy</link>
+            <category>5000</category>
+            <category>100027</category>
+            <enclosure url="https://local/13/download?apikey=key&amp;link=url&amp;file=Golan+The+Insatiable+(2013)+S02+WEBRip+EAC3+5+1+1080p+x265-iVy" length="3064670720" type="application/x-bittorrent" />
+            <torznab:attr name="category" value="5000" />
+            <torznab:attr name="category" value="100027" />
+            <torznab:attr name="tag" value="freeleech" />
+            <torznab:attr name="seeders" value="33" />
+            <torznab:attr name="grabs" value="42" />
+            <torznab:attr name="peers" value="48" />
+            <torznab:attr name="minimumratio" value="1" />
+            <torznab:attr name="minimumseedtime" value="864000" />
+            <torznab:attr name="downloadvolumefactor" value="0" />
+            <torznab:attr name="uploadvolumefactor" value="1" />
+        </item>
+    </channel>
+</rss>
