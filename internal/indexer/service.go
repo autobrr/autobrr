@@ -31,6 +31,7 @@ type Service interface {
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
+	GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
@@ -96,6 +97,10 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 
 		// torznab-name OR rss-name
 		indexer.Identifier = slug.Make(fmt.Sprintf("%s-%s", indexer.Implementation, cleanName))
+	}
+
+	if indexer.IdentifierExternal == "" {
+		indexer.IdentifierExternal = indexer.Name
 	}
 
 	i, err := s.repo.Store(ctx, indexer)
@@ -215,6 +220,16 @@ func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
 	}
 
 	return indexers, err
+}
+
+func (s *service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
+	indexer, err := s.repo.GetBy(ctx, req)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not get indexer by: %v", req)
+		return nil, err
+	}
+
+	return indexer, err
 }
 
 func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {

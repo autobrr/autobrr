@@ -8,14 +8,19 @@ import { TextAreaAutoResize } from "@components/inputs/input";
 import { MultiSelect, SwitchGroup, TextField } from "@components/inputs";
 
 import * as CONSTS from "@domain/constants";
-import * as Components from "./_components";
+import {
+  FilterLayout,
+  FilterPage,
+  FilterSection,
+  FilterWideGridGapClass
+} from "@screens/filters/sections/_components.tsx";
 
 const SeasonsAndEpisodes = () => (
-  <Components.Section
+  <FilterSection
     title="Seasons, Episodes and Date"
     subtitle="Set season, episode, year, months and day match constraints."
   >
-    <Components.Layout>
+    <FilterLayout>
       <TextField
         name="seasons"
         label="Seasons"
@@ -84,16 +89,16 @@ const SeasonsAndEpisodes = () => (
           description="Do not match episodes older than the last one matched."
         />
       </div>
-    </Components.Layout>
-  </Components.Section>
+    </FilterLayout>
+  </FilterSection>
 );
 
 const Quality = () => (
-  <Components.Section
+  <FilterSection
     title="Quality"
     subtitle="Set resolution, source, codec and related match constraints."
   >
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="resolutions"
         options={CONSTS.RESOLUTION_OPTIONS}
@@ -118,9 +123,9 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
+    </FilterLayout>
 
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="codecs"
         options={CONSTS.CODECS_OPTIONS}
@@ -145,9 +150,9 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
+    </FilterLayout>
 
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="match_hdr"
         options={CONSTS.HDR_OPTIONS}
@@ -172,9 +177,9 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
+    </FilterLayout>
 
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="match_other"
         options={CONSTS.OTHER_OPTIONS}
@@ -199,14 +204,14 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
-  </Components.Section>
+    </FilterLayout>
+  </FilterSection>
 );
 
 export const MoviesTv = () => (
-  <Components.Page>
-    <Components.Section>
-      <Components.Layout>
+  <FilterPage>
+    <FilterSection>
+      <FilterLayout>
         <TextAreaAutoResize
           name="shows"
           label="Movies / Shows"
@@ -231,10 +236,10 @@ export const MoviesTv = () => (
             </div>
           }
         />
-      </Components.Layout>
-    </Components.Section>
+      </FilterLayout>
+    </FilterSection>
 
     <SeasonsAndEpisodes />
     <Quality />
-  </Components.Page>
+  </FilterPage>
 );
