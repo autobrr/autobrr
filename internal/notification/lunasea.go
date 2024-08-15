@@ -34,8 +34,7 @@ type lunaSeaSender struct {
 }
 
 func (s *lunaSeaSender) Name() string {
-	//TODO implement me
-	panic("implement me")
+	return "lunasea"
 }
 
 func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
