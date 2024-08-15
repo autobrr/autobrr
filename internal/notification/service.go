@@ -155,7 +155,9 @@ func (s *service) Send(event domain.NotificationEvent, payload domain.Notificati
 		for _, sender := range s.senders {
 			// check if sender is active and have notification types
 			if sender.CanSend(event) {
-				sender.Send(event, payload)
+				if err := sender.Send(event, payload); err != nil {
+					s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
+				}
 			}
 		}
 	}()

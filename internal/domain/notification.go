@@ -20,6 +20,7 @@ type NotificationRepo interface {
 type NotificationSender interface {
 	Send(event NotificationEvent, payload NotificationPayload) error
 	CanSend(event NotificationEvent) bool
+	Name() string
 }
 
 type Notification struct {

@@ -37,6 +37,10 @@ type telegramSender struct {
 	httpClient *http.Client
 }
 
+func (s *telegramSender) Name() string {
+	return "telegram"
+}
+
 func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	threadID := 0
 	if t := settings.Topic; t != "" {
@@ -70,8 +74,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
 	var host string
@@ -86,8 +89,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -95,26 +97,24 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(bufio.NewReader(res.Body))
-	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
-	}
-
-	s.log.Trace().Msgf("telegram status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("telegram status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to telegram")
+
 	return nil
 }
 

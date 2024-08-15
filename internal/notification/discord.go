@@ -55,6 +55,10 @@ type discordSender struct {
 	httpClient *http.Client
 }
 
+func (a *discordSender) Name() string {
+	return "discord"
+}
+
 func NewDiscordSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &discordSender{
 		log:      log.With().Str("sender", "discord").Logger(),
@@ -74,14 +78,12 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, a.Settings.Webhook, bytes.NewBuffer(jsonData))
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -89,24 +91,21 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	res, err := a.httpClient.Do(req)
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(bufio.NewReader(res.Body))
-	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
-	}
-
-	a.log.Trace().Msgf("discord status: %v response: %v", res.StatusCode, string(body))
+	a.log.Trace().Msgf("discord response status: %d", res.StatusCode)
 
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
-	if res.StatusCode >= 300 {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	a.log.Debug().Msg("notification successfully sent to discord")
