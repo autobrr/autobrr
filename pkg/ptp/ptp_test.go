@@ -7,6 +7,7 @@ package ptp
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -131,7 +132,12 @@ func Test(t *testing.T) {
 		// read json response
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(nil)
+		json.NewEncoder(w).Encode(TorrentListResponse{
+			TotalResults: "10",
+			Movies:       []Movie{},
+			Page:         "1",
+		})
+		//w.Write(nil)
 	}))
 	defer ts.Close()
 
