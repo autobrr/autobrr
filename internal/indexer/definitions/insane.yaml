@@ -1,8 +1,8 @@
 ---
 #id: insane
-name: iNSANE Tracker
-identifier: insanetracker
-description: Insane Tracker is a HUNGARIAN Private Torrent Tracker for 0DAY / GENERAL
+name: iNSANE
+identifier: insane
+description: iNSANE is a HUNGARIAN Private Torrent Tracker for 0DAY / GENERAL
 language: hu
 urls:
   - https://newinsane.info/
