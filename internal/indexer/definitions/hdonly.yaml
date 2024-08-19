@@ -58,7 +58,7 @@ irc:
     type: single
     lines:
       - tests:
-        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - Movie.Title.2002.1080p.WEB.H264 - 13.43 GB - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
@@ -67,10 +67,11 @@ irc:
             freeleech: ""
             releaseGroup: ""
             torrentName: "Movie.Title.2002.1080p.WEB.H264"
+            torrentSize: 13.43 GB
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - FL - Movie.Title.2002.1080p.WEB.H264 - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - FL - Movie.Title.2002.1080p.WEB.H264 - 9.43 GB - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
@@ -79,10 +80,11 @@ irc:
             freeleech: "FL"
             releaseGroup: ""
             torrentName: "Movie.Title.2002.1080p.WEB.H264"
+            torrentSize: 9.43 GB
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - 8.93 GB - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
@@ -91,10 +93,11 @@ irc:
             freeleech: ""
             releaseGroup: "GROUP"
             torrentName: "Movie.Title.2002.1080p.WEB.H264-GROUP"
+            torrentSize: 8.93 GB
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - FL - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - FL - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - 12.23 GB https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
           expect:
             title: "Movie Title"
             year: 2002
@@ -103,10 +106,11 @@ irc:
             freeleech: "FL"
             releaseGroup: "GROUP"
             torrentName: "Movie.Title.2002.1080p.WEB.H264-GROUP"
+            torrentSize: 12.23 GB
             baseUrl: https://hd-only.org/
             torrentId: "00000"
             tags: Aventure, Fantastique
-        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?)(?: - (FL))?(?: - (.*?))? - (.*?) - (https:\/\/hd-only\.org\/).*torrentid=(\d+).* - (.*)'
+        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?)(?: - (FL))?(?: - (.*?))? - (.*?) - (.*?) - (https:\/\/hd-only\.org\/).*torrentid=(\d+).* - (.*)'
         vars:
           - title
           - year
@@ -115,6 +119,7 @@ irc:
           - freeleech
           - releaseGroup
           - torrentName
+          - torrentSize
           - baseUrl
           - torrentId
           - tags
