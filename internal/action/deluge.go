@@ -20,12 +20,7 @@ func (s *service) deluge(ctx context.Context, action *domain.Action, release dom
 
 	var err error
 
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
-	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("error finding client: %d", action.ClientID)
-		return nil, err
-	}
+	client := action.Client
 
 	if client == nil {
 		return nil, errors.New("could not find client by id: %d", action.ClientID)
@@ -33,7 +28,7 @@ func (s *service) deluge(ctx context.Context, action *domain.Action, release dom
 
 	var rejections []string
 
-	switch client.Type {
+	switch action.Client.Type {
 	case "DELUGE_V1":
 		rejections, err = s.delugeV1(ctx, client, action, release)
 

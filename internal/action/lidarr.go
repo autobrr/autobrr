@@ -18,11 +18,7 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 	// TODO validate data
 
 	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("lidarr: error finding client: %v", action.ClientID)
-		return nil, err
-	}
+	client := action.Client
 
 	// return early if no client found
 	if client == nil {

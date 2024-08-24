@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/autobrr/autobrr/internal/action"
 	"io"
 	"net/http"
 	"os"
@@ -46,24 +47,24 @@ type Service interface {
 }
 
 type service struct {
-	log         zerolog.Logger
-	repo        domain.FilterRepo
-	actionRepo  domain.ActionRepo
-	releaseRepo domain.ReleaseRepo
-	indexerSvc  indexer.Service
-	apiService  indexer.APIService
+	log           zerolog.Logger
+	repo          domain.FilterRepo
+	actionService action.Service
+	releaseRepo   domain.ReleaseRepo
+	indexerSvc    indexer.Service
+	apiService    indexer.APIService
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionRepo domain.ActionRepo, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
 	return &service{
-		log:         log.With().Str("module", "filter").Logger(),
-		repo:        repo,
-		actionRepo:  actionRepo,
-		releaseRepo: releaseRepo,
-		apiService:  apiService,
-		indexerSvc:  indexerSvc,
+		log:           log.With().Str("module", "filter").Logger(),
+		repo:          repo,
+		releaseRepo:   releaseRepo,
+		actionService: actionSvc,
+		apiService:    apiService,
+		indexerSvc:    indexerSvc,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
@@ -130,7 +131,7 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	}
 	filter.External = externalFilters
 
-	actions, err := s.actionRepo.FindByFilterID(ctx, filter.ID, nil)
+	actions, err := s.actionService.FindByFilterID(ctx, filter.ID, nil)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filter actions for filter id: %v", filter.ID)
 	}
@@ -222,7 +223,7 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	}
 
 	// take care of filter actions
-	actions, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions)
+	actions, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
 		return err
@@ -267,7 +268,7 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 
 	if filter.Actions != nil {
 		// take care of filter actions
-		if _, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
+		if _, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
 			s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.ID)
 			return err
 		}
@@ -308,7 +309,7 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	}
 
 	// take care of filter actions
-	if _, err := s.actionRepo.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
+	if _, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
 		return nil, err
 	}
@@ -340,7 +341,7 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	}
 
 	// take care of filter actions
-	if err := s.actionRepo.DeleteByFilterID(ctx, filterID); err != nil {
+	if err := s.actionService.DeleteByFilterID(ctx, filterID); err != nil {
 		s.log.Error().Err(err).Msg("could not delete filter actions")
 		return err
 	}

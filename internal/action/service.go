@@ -21,6 +21,7 @@ import (
 
 type Service interface {
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
+	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
 	FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error)
@@ -61,6 +62,10 @@ func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_cl
 
 func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
 	return s.repo.Store(ctx, action)
+}
+
+func (s *service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
+	return s.repo.StoreFilterActions(ctx, filterID, actions)
 }
 
 func (s *service) List(ctx context.Context) ([]domain.Action, error) {

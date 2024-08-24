@@ -21,10 +21,7 @@ import (
 func (s *service) porla(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Porla: %s", action.Name)
 
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
-	if err != nil {
-		return nil, errors.Wrap(err, "error finding client: %d", action.ClientID)
-	}
+	client := action.Client
 
 	if client == nil {
 		return nil, errors.New("could not find client by id: %d", action.ClientID)

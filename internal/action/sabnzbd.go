@@ -18,11 +18,7 @@ func (s *service) sabnzbd(ctx context.Context, action *domain.Action, release do
 		return nil, errors.New("action type: %s invalid protocol: %s", action.Type, release.Protocol)
 	}
 
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
-	if err != nil {
-		return nil, errors.Wrap(err, "sonarr could not find client: %d", action.ClientID)
-	}
+	client := action.Client
 
 	// return early if no client found
 	if client == nil {

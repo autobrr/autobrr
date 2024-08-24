@@ -17,11 +17,7 @@ func (s *service) radarr(ctx context.Context, action *domain.Action, release dom
 
 	// TODO validate data
 
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
-	if err != nil {
-		return nil, errors.Wrap(err, "error finding client: %v", action.ClientID)
-	}
+	client := action.Client
 
 	// return early if no client found
 	if client == nil {

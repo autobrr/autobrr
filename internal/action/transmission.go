@@ -28,14 +28,7 @@ var TrTrue = true
 func (s *service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Transmission: %s", action.Name)
 
-	var err error
-
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
-	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("error finding client: %d", action.ClientID)
-		return nil, err
-	}
+	client := action.Client
 
 	if client == nil {
 		return nil, errors.New("could not find client by id: %d", action.ClientID)

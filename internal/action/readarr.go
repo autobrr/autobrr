@@ -17,11 +17,7 @@ func (s *service) readarr(ctx context.Context, action *domain.Action, release do
 
 	// TODO validate data
 
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
-	if err != nil {
-		return nil, errors.Wrap(err, "readarr could not find client: %v", action.ClientID)
-	}
+	client := action.Client
 
 	// return early if no client found
 	if client == nil {
