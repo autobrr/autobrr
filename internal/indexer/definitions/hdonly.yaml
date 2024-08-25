@@ -13,6 +13,12 @@ supports:
   - rss
 # source: gazelle
 settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
   - name: torrent_pass
     type: secret
     required: true
@@ -126,4 +132,4 @@ irc:
 
     match:
       infourl: "/torrents.php?torrentid={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
