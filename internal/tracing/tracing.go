@@ -9,8 +9,8 @@ import (
 	_ "net/http/pprof"
 )
 
-func New() {
+func New(host string) {
 	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		log.Println(http.ListenAndServe(host+":6060", nil))
 	}()
 }
