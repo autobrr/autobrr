@@ -210,6 +210,7 @@ func (c *AppConfig) defaults() {
 		PostgresPass:        "",
 		PostgresSSLMode:     "disable",
 		PostgresExtraParams: "",
+		Tracing:             false,
 	}
 
 }
@@ -301,6 +302,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "POSTGRES_EXTRA_PARAMS"); v != "" {
 		c.Config.PostgresExtraParams = v
+	}
+
+	if v := os.Getenv(prefix + "TRACING"); v != "" {
+		c.Config.Tracing = strings.EqualFold(strings.ToLower(v), "true")
 	}
 }
 
