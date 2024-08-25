@@ -85,6 +85,10 @@ checkForUpdates = true
 # Session secret
 #
 sessionSecret = "{{ .sessionSecret }}"
+
+# Golang profiling and tracing on port 6060
+#
+#tracing = false
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
