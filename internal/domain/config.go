@@ -24,6 +24,7 @@ type Config struct {
 	PostgresPass        string `toml:"postgresPass"`
 	PostgresSSLMode     string `toml:"postgresSSLMode"`
 	PostgresExtraParams string `toml:"postgresExtraParams"`
+	Tracing             bool   `toml:"tracing"`
 }
 
 type ConfigUpdate struct {

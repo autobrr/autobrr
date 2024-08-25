@@ -26,6 +26,7 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
+	"github.com/autobrr/autobrr/internal/tracing"
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
 
@@ -63,6 +64,10 @@ func main() {
 
 	// init dynamic config
 	cfg.DynamicReload(log)
+
+	if cfg.Config.Tracing {
+		tracing.New(cfg.Config.Host)
+	}
 
 	// setup server-sent-events
 	serverEvents := sse.New()
