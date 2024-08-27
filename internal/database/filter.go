@@ -255,13 +255,12 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
-
-	if row.Err() != nil {
-		if errors.Is(row.Err(), sql.ErrNoRows) {
+	if err := row.Err(); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
 
-		return nil, errors.Wrap(row.Err(), "error row")
+		return nil, errors.Wrap(err, "error row")
 	}
 
 	var f domain.Filter

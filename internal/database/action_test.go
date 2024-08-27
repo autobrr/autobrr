@@ -62,9 +62,10 @@ func TestActionRepo_Store(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -73,7 +74,7 @@ func TestActionRepo_Store(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Actual test for Store
@@ -84,7 +85,7 @@ func TestActionRepo_Store(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("Store_Succeeds_With_Missing_or_empty_fields [%s]", dbType), func(t *testing.T) {
@@ -125,9 +126,10 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreFilterActions_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -136,7 +138,7 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Actual test for StoreFilterActions
@@ -148,7 +150,7 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("StoreFilterActions_Fails_Invalid_FilterID [%s]", dbType), func(t *testing.T) {
@@ -203,9 +205,10 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -214,13 +217,13 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
 
 			// Actual test for FindByFilterID
-			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID, nil)
+			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID, nil, false)
 			assert.NoError(t, err)
 			assert.NotNil(t, actions)
 			assert.Equal(t, 1, len(actions))
@@ -228,7 +231,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByFilterID_Fails_No_Actions [%s]", dbType), func(t *testing.T) {
@@ -241,7 +244,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			// Actual test for FindByFilterID
-			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID, nil)
+			actions, err := repo.FindByFilterID(context.Background(), createdFilters[0].ID, nil, false)
 			assert.NoError(t, err)
 			assert.Equal(t, 0, len(actions))
 
@@ -250,7 +253,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("FindByFilterID_Succeeds_With_Invalid_FilterID [%s]", dbType), func(t *testing.T) {
-			actions, err := repo.FindByFilterID(context.Background(), 9999, nil) // 9999 is an invalid filter ID
+			actions, err := repo.FindByFilterID(context.Background(), 9999, nil, false) // 9999 is an invalid filter ID
 			assert.NoError(t, err)
 			assert.NotNil(t, actions)
 			assert.Equal(t, 0, len(actions))
@@ -260,7 +263,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
 
-			actions, err := repo.FindByFilterID(ctx, 1, nil)
+			actions, err := repo.FindByFilterID(ctx, 1, nil, false)
 			assert.Error(t, err)
 			assert.Nil(t, actions)
 		})
@@ -277,9 +280,10 @@ func TestActionRepo_List(t *testing.T) {
 
 		t.Run(fmt.Sprintf("List_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -288,7 +292,7 @@ func TestActionRepo_List(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -302,7 +306,7 @@ func TestActionRepo_List(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Fails_Context_Timeout [%s]", dbType), func(t *testing.T) {
@@ -326,9 +330,10 @@ func TestActionRepo_Get(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Get_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -337,7 +342,7 @@ func TestActionRepo_Get(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -351,7 +356,7 @@ func TestActionRepo_Get(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("Get_Fails_No_Record [%s]", dbType), func(t *testing.T) {
@@ -382,9 +387,10 @@ func TestActionRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -393,7 +399,7 @@ func TestActionRepo_Delete(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -411,7 +417,7 @@ func TestActionRepo_Delete(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_Context_Timeout [%s]", dbType), func(t *testing.T) {
@@ -435,9 +441,10 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("DeleteByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -446,7 +453,7 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
 			assert.NoError(t, err)
@@ -463,7 +470,7 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("DeleteByFilterID_Fails_Context_Timeout [%s]", dbType), func(t *testing.T) {
@@ -486,9 +493,10 @@ func TestActionRepo_ToggleEnabled(t *testing.T) {
 
 		t.Run(fmt.Sprintf("ToggleEnabled_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -497,7 +505,7 @@ func TestActionRepo_ToggleEnabled(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			mockData.ClientID = int32(createdClient.ID)
+			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 			mockData.Enabled = false
 			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
@@ -515,7 +523,7 @@ func TestActionRepo_ToggleEnabled(t *testing.T) {
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("ToggleEnabled_Fails_No_Record [%s]", dbType), func(t *testing.T) {

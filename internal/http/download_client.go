@@ -17,9 +17,9 @@ import (
 
 type downloadClientService interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
-	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
-	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
-	Delete(ctx context.Context, clientID int) error
+	Store(ctx context.Context, client *domain.DownloadClient) error
+	Update(ctx context.Context, client *domain.DownloadClient) error
+	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 }
 
@@ -56,20 +56,20 @@ func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *htt
 }
 
 func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
-	var data domain.DownloadClient
+	var data *domain.DownloadClient
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	client, err := h.service.Store(r.Context(), data)
+	err := h.service.Store(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, client)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
@@ -89,20 +89,20 @@ func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
-	var data domain.DownloadClient
+	var data *domain.DownloadClient
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	client, err := h.service.Update(r.Context(), data)
+	err := h.service.Update(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, client)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -113,13 +113,13 @@ func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(clientID)
+	id, err := strconv.ParseInt(clientID, 10, 32)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err = h.service.Delete(r.Context(), id); err != nil {
+	if err = h.service.Delete(r.Context(), int32(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
