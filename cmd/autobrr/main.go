@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/diagnostics"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
@@ -63,6 +64,8 @@ func main() {
 
 	// init dynamic config
 	cfg.DynamicReload(log)
+
+	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
 
 	// setup server-sent-events
 	serverEvents := sse.New()
