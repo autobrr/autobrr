@@ -19,7 +19,6 @@ import (
 )
 
 func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
-
 	var (
 		err        error
 		rejections []string
@@ -32,6 +31,10 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 			return
 		}
 	}()
+
+	if action.ClientID > 0 && action.Client != nil && !action.Client.Enabled {
+		return nil, errors.New("action %s client %s %s not enabled, skipping", action.Name, action.Client.Type, action.Client.Name)
+	}
 
 	// if set, try to resolve MagnetURI before parsing macros
 	// to allow webhook and exec to get the magnet_uri

@@ -308,6 +308,13 @@ func (s *service) start() error {
 		return err
 	}
 
+	if len(feeds) == 0 {
+		s.log.Debug().Msg("found 0 feeds to start")
+		return nil
+	}
+
+	s.log.Debug().Msgf("preparing staggered start of %d feeds", len(feeds))
+
 	for _, feed := range feeds {
 		feed := feed
 
@@ -320,6 +327,9 @@ func (s *service) start() error {
 			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
 			continue
 		}
+
+		// add sleep for the next iteration to start staggered which should mitigate sqlite BUSY errors
+		time.Sleep(time.Second * 5)
 	}
 
 	return nil

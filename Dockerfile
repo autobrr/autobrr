@@ -39,7 +39,7 @@ RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISIO
 # build runner
 FROM alpine:latest
 
-LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
+LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 
 ENV HOME="/config" \
     XDG_CONFIG_HOME="/config" \
