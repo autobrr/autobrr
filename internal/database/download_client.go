@@ -111,7 +111,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if row.Err() != nil {
+	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
