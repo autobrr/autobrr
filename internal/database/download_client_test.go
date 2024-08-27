@@ -251,7 +251,7 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 			_ = repo.Store(context.Background(), &mockData)
 
 			cachedClient, _ := repo.FindByID(context.Background(), int32(mockData.ID))
-			assert.Equal(t, mockData, cachedClient)
+			assert.Equal(t, &mockData, cachedClient)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), mockData.ID)
