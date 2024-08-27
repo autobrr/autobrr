@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -18,55 +17,18 @@ import (
 )
 
 type DownloadClientRepo struct {
-	log   zerolog.Logger
-	db    *DB
-	cache *clientCache
-}
-
-type clientCache struct {
-	mu      sync.RWMutex
-	clients map[int]*domain.DownloadClient
-}
-
-func NewClientCache() *clientCache {
-	return &clientCache{
-		clients: make(map[int]*domain.DownloadClient, 0),
-	}
-}
-
-func (c *clientCache) Set(id int, client *domain.DownloadClient) {
-	c.mu.Lock()
-	c.clients[id] = client
-	c.mu.Unlock()
-}
-
-func (c *clientCache) Get(id int) *domain.DownloadClient {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	v, ok := c.clients[id]
-	if ok {
-		return v
-	}
-	return nil
-}
-
-func (c *clientCache) Pop(id int) {
-	c.mu.Lock()
-	delete(c.clients, id)
-	c.mu.Unlock()
+	log zerolog.Logger
+	db  *DB
 }
 
 func NewDownloadClientRepo(log logger.Logger, db *DB) domain.DownloadClientRepo {
 	return &DownloadClientRepo{
-		log:   log.With().Str("repo", "action").Logger(),
-		db:    db,
-		cache: NewClientCache(),
+		log: log.With().Str("repo", "action").Logger(),
+		db:  db,
 	}
 }
 
 func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient, error) {
-	clients := make([]domain.DownloadClient, 0)
-
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -100,6 +62,8 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		}
 	}(rows)
 
+	clients := make([]domain.DownloadClient, 0)
+
 	for rows.Next() {
 		var f domain.DownloadClient
 		var settingsJsonStr string
@@ -124,12 +88,6 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 }
 
 func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
-	// get client from cache
-	c := r.cache.Get(int(id))
-	if c != nil {
-		return c, nil
-	}
-
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -153,7 +111,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err != nil {
+	if row.Err() != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -177,9 +135,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	return &client, nil
 }
 
-func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	var err error
-
+func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadClient) error {
 	settings := domain.DownloadClientSettings{
 		APIKey:                   client.Settings.APIKey,
 		Basic:                    client.Settings.Basic,
@@ -190,7 +146,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 
 	settingsJson, err := json.Marshal(&settings)
 	if err != nil {
-		return nil, errors.Wrap(err, "error marshal download client settings %+v", settings)
+		return errors.Wrap(err, "error marshal download client settings %+v", settings)
 	}
 
 	queryBuilder := r.db.squirrel.
@@ -204,22 +160,17 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client domain.DownloadCl
 
 	err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
 	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
 	client.ID = retID
 
 	r.log.Debug().Msgf("download_client.store: %d", client.ID)
 
-	// save to cache
-	r.cache.Set(client.ID, &client)
-
-	return &client, nil
+	return nil
 }
 
-func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	var err error
-
+func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.DownloadClient) error {
 	settings := domain.DownloadClientSettings{
 		APIKey:                   client.Settings.APIKey,
 		Basic:                    client.Settings.Basic,
@@ -230,7 +181,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 
 	settingsJson, err := json.Marshal(&settings)
 	if err != nil {
-		return nil, errors.Wrap(err, "error marshal download client settings %+v", settings)
+		return errors.Wrap(err, "error marshal download client settings %+v", settings)
 	}
 
 	queryBuilder := r.db.squirrel.
@@ -249,29 +200,26 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client domain.DownloadC
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
+		return errors.Wrap(err, "error building query")
 	}
 
 	result, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return nil, errors.Wrap(err, "error getting rows affected")
+		return errors.Wrap(err, "error getting rows affected")
 	}
 
 	if rowsAffected == 0 {
-		return nil, errors.New("no rows updated")
+		return errors.New("no rows updated")
 	}
 
 	r.log.Debug().Msgf("download_client.update: %d", client.ID)
 
-	// save to cache
-	r.cache.Set(client.ID, &client)
-
-	return &client, nil
+	return nil
 }
 
 func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
@@ -311,6 +259,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 	}
 
 	r.log.Debug().Msgf("delete download client: %d", clientID)
+
 	return nil
 }
 
@@ -329,9 +278,6 @@ func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int) e
 		return errors.Wrap(err, "error executing query")
 	}
 
-	// remove from cache
-	r.cache.Pop(clientID)
-
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
 		return errors.New("no rows affected")
@@ -343,8 +289,6 @@ func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int) e
 }
 
 func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int) error {
-	var err error
-
 	queryBuilder := r.db.squirrel.
 		Update("action").
 		Set("enabled", false).
@@ -355,12 +299,14 @@ func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx,
 	// return values
 	var filterID int
 
-	if err = queryBuilder.QueryRowContext(ctx).Scan(&filterID); err != nil {
+	err := queryBuilder.QueryRowContext(ctx).Scan(&filterID)
+	if err != nil {
 		// this will throw when the client is not connected to any actions
 		// it is not an error in this case
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil
 		}
+
 		return errors.Wrap(err, "error executing query")
 	}
 

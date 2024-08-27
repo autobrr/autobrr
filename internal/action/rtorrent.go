@@ -16,24 +16,18 @@ import (
 func (s *service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action rTorrent: %s", action.Name)
 
-	client := action.Client
-
-	if client == nil {
-		return nil, errors.New("could not find client by id: %d", action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
 	}
+
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
+	}
+
+	rt := client.Client.(*rtorrent.Client)
 
 	var rejections []string
-
-	// create config
-	cfg := rtorrent.Config{
-		Addr:          client.Host,
-		TLSSkipVerify: client.TLSSkipVerify,
-		BasicUser:     client.Settings.Basic.Username,
-		BasicPass:     client.Settings.Basic.Password,
-	}
-
-	// create client
-	rt := rtorrent.NewClient(cfg)
 
 	if release.HasMagnetUri() {
 		var args []*rtorrent.FieldValue

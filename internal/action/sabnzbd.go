@@ -18,25 +18,16 @@ func (s *service) sabnzbd(ctx context.Context, action *domain.Action, release do
 		return nil, errors.New("action type: %s invalid protocol: %s", action.Type, release.Protocol)
 	}
 
-	client := action.Client
-
-	// return early if no client found
-	if client == nil {
-		return nil, errors.New("no sabnzbd client found by id: %d", action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
 	}
 
-	opts := sabnzbd.Options{
-		Addr:   client.Host,
-		ApiKey: client.Settings.APIKey,
-		Log:    nil,
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	if client.Settings.Basic.Auth {
-		opts.BasicUser = client.Settings.Basic.Username
-		opts.BasicPass = client.Settings.Basic.Password
-	}
-
-	sab := sabnzbd.New(opts)
+	sab := client.Client.(*sabnzbd.Client)
 
 	ids, err := sab.AddFromUrl(ctx, sabnzbd.AddNzbRequest{Url: release.DownloadURL, Category: action.Category})
 	if err != nil {

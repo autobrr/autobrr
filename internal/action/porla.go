@@ -13,31 +13,21 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/porla"
-
-	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/rs/zerolog"
 )
 
 func (s *service) porla(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Porla: %s", action.Name)
 
-	client := action.Client
-
-	if client == nil {
-		return nil, errors.New("could not find client by id: %d", action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
 	}
 
-	porlaSettings := porla.Config{
-		Hostname:      client.Host,
-		AuthToken:     client.Settings.APIKey,
-		TLSSkipVerify: client.TLSSkipVerify,
-		BasicUser:     client.Settings.Basic.Username,
-		BasicPass:     client.Settings.Basic.Password,
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	porlaSettings.Log = zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(), zerolog.TraceLevel)
-
-	prl := porla.NewClient(porlaSettings)
+	prl := client.Client.(*porla.Client)
 
 	rejections, err := s.porlaCheckRulesCanDownload(ctx, action, client, prl)
 	if err != nil {

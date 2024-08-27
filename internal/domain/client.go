@@ -9,15 +9,13 @@ import (
 	"net/url"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-
-	"github.com/autobrr/go-qbittorrent"
 )
 
 type DownloadClientRepo interface {
 	List(ctx context.Context) ([]DownloadClient, error)
 	FindByID(ctx context.Context, id int32) (*DownloadClient, error)
-	Store(ctx context.Context, client DownloadClient) (*DownloadClient, error)
-	Update(ctx context.Context, client DownloadClient) (*DownloadClient, error)
+	Store(ctx context.Context, client *DownloadClient) error
+	Update(ctx context.Context, client *DownloadClient) error
 	Delete(ctx context.Context, clientID int) error
 }
 
@@ -33,11 +31,9 @@ type DownloadClient struct {
 	Username      string                 `json:"username"`
 	Password      string                 `json:"password"`
 	Settings      DownloadClientSettings `json:"settings,omitempty"`
-}
 
-type DownloadClientCached struct {
-	Dc  *DownloadClient
-	Qbt *qbittorrent.Client
+	// cached http client
+	Client any
 }
 
 type DownloadClientSettings struct {

@@ -17,37 +17,16 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 
 	// TODO validate data
 
-	// get client for action
-	client := action.Client
-
-	// return early if no client found
-	if client == nil {
-		return nil, errors.New("could not find client by id: %v", action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
 	}
 
-	// initial config
-	cfg := lidarr.Config{
-		Hostname: client.Host,
-		APIKey:   client.Settings.APIKey,
-		Log:      s.subLogger,
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	// only set basic auth if enabled
-	if client.Settings.Basic.Auth {
-		cfg.BasicAuth = client.Settings.Basic.Auth
-		cfg.Username = client.Settings.Basic.Username
-		cfg.Password = client.Settings.Basic.Password
-	}
-
-	externalClientId := client.Settings.ExternalDownloadClientId
-	if action.ExternalDownloadClientID > 0 {
-		externalClientId = int(action.ExternalDownloadClientID)
-	}
-
-	externalClient := client.Settings.ExternalDownloadClient
-	if action.ExternalDownloadClient != "" {
-		externalClient = action.ExternalDownloadClient
-	}
+	arr := client.Client.(lidarr.Client)
 
 	r := lidarr.Release{
 		Title:            release.TorrentName,
@@ -56,14 +35,20 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 		MagnetUrl:        release.MagnetURI,
 		Size:             int64(release.Size),
 		Indexer:          release.Indexer.GetExternalIdentifier(),
-		DownloadClientId: externalClientId,
-		DownloadClient:   externalClient,
+		DownloadClientId: client.Settings.ExternalDownloadClientId,
+		DownloadClient:   client.Settings.ExternalDownloadClient,
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	arr := lidarr.New(cfg)
+	if action.ExternalDownloadClientID > 0 {
+		r.DownloadClientId = int(action.ExternalDownloadClientID)
+	}
+
+	if action.ExternalDownloadClient != "" {
+		r.DownloadClient = action.ExternalDownloadClient
+	}
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {

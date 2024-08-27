@@ -131,7 +131,7 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	}
 	filter.External = externalFilters
 
-	actions, err := s.actionService.FindByFilterID(ctx, filter.ID, nil)
+	actions, err := s.actionService.FindByFilterID(ctx, filter.ID, nil, false)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filter actions for filter id: %v", filter.ID)
 	}

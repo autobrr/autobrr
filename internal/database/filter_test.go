@@ -791,12 +791,14 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			err := repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
 
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mockClient := getMockDownloadClient()
+
+			err = downloadClientRepo.Store(context.Background(), &mockClient)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mockClient)
 
 			mockAction.FilterID = mockData.ID
-			mockAction.ClientID = int32(createdClient.ID)
+			mockAction.ClientID = int32(mockClient.ID)
 
 			action, err := actionRepo.Store(context.Background(), mockAction)
 
@@ -827,7 +829,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			// Cleanup
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: action.ID})
 			_ = repo.Delete(context.Background(), mockData.ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mockClient.ID)
 			_ = releaseRepo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 		})
 

@@ -221,7 +221,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		// found matching filter, lets find the filter actions and attach
 		active := true
-		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active)
+		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active, false)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
 			return err
