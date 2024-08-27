@@ -72,4 +72,4 @@ irc:
 
     match:
       infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download.php?id={{ .torrentId }}&name={{ .encodedName }}?passkey={{ .passkey }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&name={{ .encodedName }}&passkey={{ .passkey }}"
