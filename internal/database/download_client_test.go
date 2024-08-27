@@ -162,13 +162,9 @@ func TestDownloadClientRepo_FindByID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
-			select {
-			case <-ctx.Done():
-				time.Sleep(2 * time.Millisecond)
-				t.Log(ctx.Err()) // prints "context deadline exceeded" }
-				_, err := repo.FindByID(ctx, 1)
-				assert.Error(t, err)
-			}
+
+			_, err := repo.FindByID(ctx, 1)
+			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_After_Client_Deleted [%s]", dbType), func(t *testing.T) {
