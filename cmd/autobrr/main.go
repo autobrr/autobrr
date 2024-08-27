@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/diagnostics"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
@@ -63,6 +64,8 @@ func main() {
 
 	// init dynamic config
 	cfg.DynamicReload(log)
+
+	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
 
 	// setup server-sent-events
 	serverEvents := sse.New()
@@ -114,7 +117,7 @@ func main() {
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
-		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
+		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
