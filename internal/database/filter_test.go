@@ -798,7 +798,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			assert.NotNil(t, mockClient)
 
 			mockAction.FilterID = mockData.ID
-			mockAction.ClientID = int32(mockClient.ID)
+			mockAction.ClientID = mockClient.ID
 
 			action, err := actionRepo.Store(context.Background(), mockAction)
 

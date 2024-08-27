@@ -163,7 +163,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadC
 		return errors.Wrap(err, "error executing query")
 	}
 
-	client.ID = retID
+	client.ID = int32(retID)
 
 	r.log.Debug().Msgf("download_client.store: %d", client.ID)
 
@@ -222,7 +222,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.Download
 	return nil
 }
 
-func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
+func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
@@ -263,7 +263,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int) error {
 	return nil
 }
 
-func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int) error {
+func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int32) error {
 	queryBuilder := r.db.squirrel.
 		Delete("client").
 		Where(sq.Eq{"id": clientID})
@@ -288,7 +288,7 @@ func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int) e
 	return nil
 }
 
-func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int) error {
+func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int32) error {
 	queryBuilder := r.db.squirrel.
 		Update("action").
 		Set("enabled", false).

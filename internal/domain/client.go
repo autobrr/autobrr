@@ -16,11 +16,11 @@ type DownloadClientRepo interface {
 	FindByID(ctx context.Context, id int32) (*DownloadClient, error)
 	Store(ctx context.Context, client *DownloadClient) error
 	Update(ctx context.Context, client *DownloadClient) error
-	Delete(ctx context.Context, clientID int) error
+	Delete(ctx context.Context, clientID int32) error
 }
 
 type DownloadClient struct {
-	ID            int                    `json:"id"`
+	ID            int32                  `json:"id"`
 	Name          string                 `json:"name"`
 	Type          DownloadClientType     `json:"type"`
 	Enabled       bool                   `json:"enabled"`

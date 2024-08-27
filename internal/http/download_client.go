@@ -19,7 +19,7 @@ type downloadClientService interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
 	Store(ctx context.Context, client *domain.DownloadClient) error
 	Update(ctx context.Context, client *domain.DownloadClient) error
-	Delete(ctx context.Context, clientID int) error
+	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 }
 
@@ -113,13 +113,13 @@ func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(clientID)
+	id, err := strconv.ParseInt(clientID, 10, 32)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err = h.service.Delete(r.Context(), id); err != nil {
+	if err = h.service.Delete(r.Context(), int32(id)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

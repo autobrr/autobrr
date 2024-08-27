@@ -102,7 +102,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -158,7 +158,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -214,7 +214,7 @@ func TestReleaseRepo_Find(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -274,7 +274,7 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -323,7 +323,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -382,7 +382,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -442,7 +442,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -502,7 +502,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -562,7 +562,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -619,7 +619,7 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(mock.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)

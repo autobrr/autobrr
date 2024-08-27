@@ -257,7 +257,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
 
-		c.ID = int(clientClientId.V)
+		c.ID = clientClientId.V
 		c.Name = clientName.V
 		c.Type = domain.DownloadClientType(clientType.V)
 		c.Enabled = clientEnabled.V

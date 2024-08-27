@@ -11,7 +11,7 @@ import (
 
 func TestDownloadClient_qbitBuildLegacyHost(t *testing.T) {
 	type fields struct {
-		ID            int
+		ID            int32
 		Name          string
 		Type          DownloadClientType
 		Enabled       bool

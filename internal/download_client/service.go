@@ -35,7 +35,7 @@ type Service interface {
 	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
 	Store(ctx context.Context, client *domain.DownloadClient) error
 	Update(ctx context.Context, client *domain.DownloadClient) error
-	Delete(ctx context.Context, clientID int) error
+	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 
 	//GetCachedClient(ctx context.Context, clientId int32) (*domain.DownloadClientCached, error)
@@ -106,7 +106,7 @@ func (s *service) Store(ctx context.Context, client *domain.DownloadClient) erro
 		return err
 	}
 
-	s.cache.Set(int32(client.ID), client)
+	s.cache.Set(client.ID, client)
 
 	return err
 }
@@ -124,18 +124,18 @@ func (s *service) Update(ctx context.Context, client *domain.DownloadClient) err
 		return err
 	}
 
-	s.cache.Set(int32(client.ID), client)
+	s.cache.Set(client.ID, client)
 
 	return err
 }
 
-func (s *service) Delete(ctx context.Context, clientID int) error {
+func (s *service) Delete(ctx context.Context, clientID int32) error {
 	if err := s.repo.Delete(ctx, clientID); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete download client: %v", clientID)
 		return err
 	}
 
-	s.cache.Pop(int32(clientID))
+	s.cache.Pop(clientID)
 
 	return nil
 }
