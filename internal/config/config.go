@@ -86,9 +86,14 @@ checkForUpdates = true
 #
 sessionSecret = "{{ .sessionSecret }}"
 
-# Golang profiling and tracing on port 6060
+# Golang pprof profiling and tracing
 #
-#tracing = false
+#profiling = false
+#
+#profilingHost = "127.0.0.1"
+#
+# Default: 6060
+#profilingPort = 6060
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -214,7 +219,9 @@ func (c *AppConfig) defaults() {
 		PostgresPass:        "",
 		PostgresSSLMode:     "disable",
 		PostgresExtraParams: "",
-		Tracing:             false,
+		ProfilingEnabled:    false,
+		ProfilingHost:       "127.0.0.1",
+		ProfilingPort:       6060,
 	}
 
 }
@@ -308,8 +315,19 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.PostgresExtraParams = v
 	}
 
-	if v := os.Getenv(prefix + "TRACING"); v != "" {
-		c.Config.Tracing = strings.EqualFold(strings.ToLower(v), "true")
+	if v := os.Getenv(prefix + "PROFILING"); v != "" {
+		c.Config.ProfilingEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_HOST"); v != "" {
+		c.Config.ProfilingHost = v
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_PORT"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.ProfilingPort = int(i)
+		}
 	}
 }
 
