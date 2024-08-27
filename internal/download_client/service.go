@@ -38,8 +38,6 @@ type Service interface {
 	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 
-	//GetCachedClient(ctx context.Context, clientId int32) (*domain.DownloadClientCached, error)
-
 	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
 }
 
@@ -157,9 +155,11 @@ func (s *service) Test(ctx context.Context, client domain.DownloadClient) error 
 
 // GetClient get client from cache or repo and attach downloadClient implementation
 func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error) {
+	l := s.log.With().Str("cache", "download-client").Logger()
+
 	client := s.cache.Get(clientId)
 	if client == nil {
-		s.log.Trace().Msgf("cache miss for client id %d, continue to repo lookup", clientId)
+		l.Trace().Msgf("cache miss for client id %d, continue to repo lookup", clientId)
 
 		var err error
 		client, err = s.repo.FindByID(ctx, clientId)
@@ -170,8 +170,11 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 
 	// if we have the client return it
 	if client.Client != nil {
+		l.Trace().Msgf("cache hit for client id %d %s", clientId, client.Name)
 		return client, nil
 	}
+
+	l.Trace().Msgf("init cache client id %d %s", clientId, client.Name)
 
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
@@ -305,6 +308,8 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			BasicPass: client.Settings.Basic.Password,
 		})
 	}
+
+	l.Trace().Msgf("set cache client id %d %s", clientId, client.Name)
 
 	s.cache.Set(clientId, client)
 
