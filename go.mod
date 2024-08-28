@@ -11,7 +11,7 @@ require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.2.0
 	github.com/autobrr/go-qbittorrent v1.9.0
-	github.com/autobrr/go-rtorrent v1.10.0
+	github.com/autobrr/go-rtorrent v1.11.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/containrrr/shoutrrr v0.8.0
@@ -72,6 +72,7 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hekmon/cunits/v2 v2.1.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
+	github.com/icholy/digest v0.1.23 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect

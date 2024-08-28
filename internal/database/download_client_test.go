@@ -44,6 +44,12 @@ func getMockDownloadClient() domain.DownloadClient {
 			},
 			ExternalDownloadClientId: 0,
 			ExternalDownloadClient:   "",
+			Auth: domain.DownloadClientAuth{
+				Enabled:  true,
+				Type:     domain.DownloadClientAuthTypeBasic,
+				Username: "username",
+				Password: "password",
+			},
 		},
 	}
 }

@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -38,10 +39,72 @@ type DownloadClient struct {
 
 type DownloadClientSettings struct {
 	APIKey                   string              `json:"apikey,omitempty"`
-	Basic                    BasicAuth           `json:"basic,omitempty"`
+	Basic                    BasicAuth           `json:"basic,omitempty"` // Deprecated: Use Auth instead
 	Rules                    DownloadClientRules `json:"rules,omitempty"`
 	ExternalDownloadClientId int                 `json:"external_download_client_id,omitempty"`
 	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
+	Auth                     DownloadClientAuth  `json:"auth,omitempty"`
+}
+
+// MarshalJSON Custom method to translate Basic into Auth without including Basic in JSON output
+func (dcs *DownloadClientSettings) MarshalJSON() ([]byte, error) {
+	// Ensuring Auth is updated with Basic info before marshaling if Basic is set
+	if dcs.Basic.Username != "" || dcs.Basic.Password != "" {
+		dcs.Auth = DownloadClientAuth{
+			Enabled:  dcs.Basic.Auth,
+			Type:     DownloadClientAuthTypeBasic,
+			Username: dcs.Basic.Username,
+			Password: dcs.Basic.Password,
+		}
+	}
+
+	type Alias DownloadClientSettings
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(dcs),
+	})
+}
+
+// UnmarshalJSON Custom method to translate Basic into Auth
+func (dcs *DownloadClientSettings) UnmarshalJSON(data []byte) error {
+	type Alias DownloadClientSettings
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(dcs),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// If Basic fields are not empty, populate Auth fields accordingly
+	if aux.Basic.Username != "" || aux.Basic.Password != "" {
+		dcs.Auth = DownloadClientAuth{
+			Enabled:  aux.Basic.Auth,
+			Type:     DownloadClientAuthTypeBasic,
+			Username: aux.Basic.Username,
+			Password: aux.Basic.Password,
+		}
+	}
+
+	return nil
+}
+
+type DownloadClientAuthType string
+
+const (
+	DownloadClientAuthTypeNone   = "NONE"
+	DownloadClientAuthTypeBasic  = "BASIC_AUTH"
+	DownloadClientAuthTypeDigest = "DIGEST_AUTH"
+)
+
+type DownloadClientAuth struct {
+	Enabled  bool                   `json:"enabled,omitempty"`
+	Type     DownloadClientAuthType `json:"type,omitempty"`
+	Username string                 `json:"username,omitempty"`
+	Password string                 `json:"password,omitempty"`
 }
 
 type DownloadClientRules struct {

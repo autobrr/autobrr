@@ -129,7 +129,7 @@ export const Tooltip = ({
           {...getTooltipProps({
             className: classNames(
               maxWidth,
-              "rounded-md border border-gray-300 text-black text-xs normal-case tracking-normal font-normal shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
+              "z-10 rounded-md border border-gray-300 text-black text-xs normal-case tracking-normal font-normal shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
             ),
             onClick: (e: React.MouseEvent) => e.stopPropagation()
           })}

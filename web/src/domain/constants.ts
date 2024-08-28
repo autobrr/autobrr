@@ -474,6 +474,21 @@ export const DownloadRuleConditionOptions: OptionBasic[] = [
   }
 ];
 
+export const DownloadClientAuthType: OptionBasic[] = [
+  {
+    label: "None",
+    value: "NONE"
+  },
+  {
+    label: "Basic Auth",
+    value: "BASIC_AUTH"
+  },
+  {
+    label: "Digest Auth",
+    value: "DIGEST_AUTH"
+  }
+];
+
 const logLevel = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"] as const;
 
 export const LogLevelOptions = logLevel.map(v => ({ value: v, label: v, key: v }));
