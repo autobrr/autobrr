@@ -23,7 +23,7 @@ export default ({ mode }: ConfigEnv) => {
       react(),
       svgr(),
       legacy({
-        modernTargets: "> 0.2%, iOS > 12, not dead",
+        modernTargets: "> 0.2%, iOS >= 12.2, not dead",
         modernPolyfills: true,
         renderLegacyChunks: false
       }),
@@ -110,7 +110,7 @@ export default ({ mode }: ConfigEnv) => {
       }
     },
     build: {
-      target: "es6", // change it accords to modernTargets
+      target: "ES2019", // min. build target has to be ES2019 - otherwise iOS 12 breaks.
       manifest: true,
       sourcemap: true,
       rollupOptions: {
