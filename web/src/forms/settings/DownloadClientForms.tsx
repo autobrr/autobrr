@@ -14,7 +14,7 @@ import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { DownloadClientKeys } from "@api/query_keys";
-import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
+import { DownloadClientAuthType, DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
@@ -31,6 +31,12 @@ import { SelectFieldBasic } from "@components/inputs/select_wide";
 interface InitialValuesSettings {
   basic?: {
     auth: boolean;
+    username: string;
+    password: string;
+  };
+  auth?: {
+    enabled: boolean;
+    type: string;
     username: string;
     password: string;
   };
@@ -267,12 +273,19 @@ function FormFieldsRTorrent() {
         />
       )}
 
-      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+      <SwitchGroupWide name="settings.auth.enabled" label="Auth" />
 
-      {settings.basic?.auth === true && (
+      {settings.auth?.enabled && (
         <>
-          <TextFieldWide name="settings.basic.username" label="Username" />
-          <PasswordFieldWide name="settings.basic.password" label="Password" />
+          <SelectFieldBasic
+            name="settings.auth.type"
+            label="Auth type"
+            placeholder="Select auth type"
+            options={DownloadClientAuthType}
+            tooltip={<p>This should in most cases be Basic Auth, but some providers use Digest Auth.</p>}
+          />
+          <TextFieldWide name="settings.auth.username" label="Username" />
+          <PasswordFieldWide name="settings.auth.password" label="Password" />
         </>
       )}
     </div>

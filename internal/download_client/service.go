@@ -5,8 +5,10 @@ package download_client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"sync"
 	"time"
@@ -27,6 +29,7 @@ import (
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/autobrr/go-rtorrent"
 	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/icholy/digest"
 	"github.com/rs/zerolog"
 )
 
@@ -184,8 +187,8 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Password:      client.Password,
 			TLSSkipVerify: client.TLSSkipVerify,
 			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicUser:     client.Settings.Basic.Username,
-			BasicPass:     client.Settings.Basic.Password,
+			BasicUser:     client.Settings.Auth.Username,
+			BasicPass:     client.Settings.Auth.Password,
 		})
 
 	case domain.DownloadClientTypePorla:
@@ -193,8 +196,8 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Hostname:      client.Host,
 			AuthToken:     client.Settings.APIKey,
 			TLSSkipVerify: client.TLSSkipVerify,
-			BasicUser:     client.Settings.Basic.Username,
-			BasicPass:     client.Settings.Basic.Password,
+			BasicUser:     client.Settings.Auth.Username,
+			BasicPass:     client.Settings.Auth.Password,
 			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(), zerolog.TraceLevel),
 		})
 
@@ -241,22 +244,46 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		client.Client = tbt
 
 	case domain.DownloadClientTypeRTorrent:
-		client.Client = rtorrent.NewClient(rtorrent.Config{
-			Addr:          client.Host,
-			TLSSkipVerify: client.TLSSkipVerify,
-			BasicUser:     client.Settings.Basic.Username,
-			BasicPass:     client.Settings.Basic.Password,
-			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "rTorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-		})
+		if client.Settings.Auth.Type == domain.DownloadClientAuthTypeDigest {
+			cfg := rtorrent.Config{
+				Addr:          client.Host,
+				TLSSkipVerify: client.TLSSkipVerify,
+				BasicUser:     client.Settings.Auth.Username,
+				BasicPass:     client.Settings.Auth.Password,
+				Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "rTorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			}
+
+			httpClient := &http.Client{
+				Transport: &digest.Transport{
+					Username: client.Settings.Auth.Username,
+					Password: client.Settings.Auth.Password,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: client.TLSSkipVerify},
+					},
+				},
+			}
+
+			// override client
+			client.Client = rtorrent.NewClientWithOpts(cfg, rtorrent.WithCustomClient(httpClient))
+
+		} else {
+			client.Client = rtorrent.NewClient(rtorrent.Config{
+				Addr:          client.Host,
+				TLSSkipVerify: client.TLSSkipVerify,
+				BasicUser:     client.Settings.Auth.Username,
+				BasicPass:     client.Settings.Auth.Password,
+				Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "rTorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			})
+		}
 
 	case domain.DownloadClientTypeLidarr:
 		client.Client = lidarr.New(lidarr.Config{
 			Hostname:  client.Host,
 			APIKey:    client.Settings.APIKey,
 			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Basic.Auth,
-			Username:  client.Settings.Basic.Username,
-			Password:  client.Settings.Basic.Password,
+			BasicAuth: client.Settings.Auth.Enabled,
+			Username:  client.Settings.Auth.Username,
+			Password:  client.Settings.Auth.Password,
 		})
 
 	case domain.DownloadClientTypeRadarr:
@@ -264,9 +291,9 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Hostname:  client.Host,
 			APIKey:    client.Settings.APIKey,
 			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Basic.Auth,
-			Username:  client.Settings.Basic.Username,
-			Password:  client.Settings.Basic.Password,
+			BasicAuth: client.Settings.Auth.Enabled,
+			Username:  client.Settings.Auth.Username,
+			Password:  client.Settings.Auth.Password,
 		})
 
 	case domain.DownloadClientTypeReadarr:
@@ -274,9 +301,9 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Hostname:  client.Host,
 			APIKey:    client.Settings.APIKey,
 			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Basic.Auth,
-			Username:  client.Settings.Basic.Username,
-			Password:  client.Settings.Basic.Password,
+			BasicAuth: client.Settings.Auth.Enabled,
+			Username:  client.Settings.Auth.Username,
+			Password:  client.Settings.Auth.Password,
 		})
 
 	case domain.DownloadClientTypeSonarr:
@@ -284,9 +311,9 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Hostname:  client.Host,
 			APIKey:    client.Settings.APIKey,
 			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Basic.Auth,
-			Username:  client.Settings.Basic.Username,
-			Password:  client.Settings.Basic.Password,
+			BasicAuth: client.Settings.Auth.Enabled,
+			Username:  client.Settings.Auth.Username,
+			Password:  client.Settings.Auth.Password,
 		})
 
 	case domain.DownloadClientTypeWhisparr:
@@ -294,9 +321,9 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Hostname:  client.Host,
 			APIKey:    client.Settings.APIKey,
 			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Basic.Auth,
-			Username:  client.Settings.Basic.Username,
-			Password:  client.Settings.Basic.Password,
+			BasicAuth: client.Settings.Auth.Enabled,
+			Username:  client.Settings.Auth.Username,
+			Password:  client.Settings.Auth.Password,
 		})
 
 	case domain.DownloadClientTypeSabnzbd:
@@ -304,8 +331,8 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Addr:      client.Host,
 			ApiKey:    client.Settings.APIKey,
 			Log:       nil,
-			BasicUser: client.Settings.Basic.Username,
-			BasicPass: client.Settings.Basic.Password,
+			BasicUser: client.Settings.Auth.Username,
+			BasicPass: client.Settings.Auth.Password,
 		})
 	}
 
