@@ -3,11 +3,12 @@ import { defineConfig, loadEnv, ConfigEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
+import legacy from "@vitejs/plugin-legacy";
 
 interface PreRenderedAsset {
   name: string | undefined;
   source: string | Uint8Array;
-  type: 'asset';
+  type: "asset";
 }
 
 // https://vitejs.dev/config/
@@ -18,60 +19,68 @@ export default ({ mode }: ConfigEnv) => {
 
   return defineConfig({
     base: "",
-    plugins: [react(), svgr(), VitePWA({
-      injectRegister: null,
-      selfDestroying: true,
-      scope: "{{.BaseUrl}}",
-      // strategies: "injectManifest",
-      useCredentials: true,
-      includeAssets: [
-        // looks inside "public" folder 
-        // manifest's icons are automatic added
-        "favicon.ico"
-      ],
-      manifest: {
-        name: "autobrr",
-        short_name: "autobrr",
-        description: "Automation for downloads.",
-        theme_color: "#141415",
-        background_color: "#141415",
-        icons: [
-          {
-            src: "logo192.png",
-            sizes: "192x192",
-            type: "image/png"
-          },
-          {
-            src: "apple-touch-icon-iphone-60x60.png",
-            sizes: "60x60",
-            type: "image/png"
-          },
-          {
-            src: "apple-touch-icon-ipad-76x76.png",
-            sizes: "76x76",
-            type: "image/png"
-          },
-          {
-            src: "apple-touch-icon-iphone-retina-120x120.png",
-            sizes: "120x120",
-            type: "image/png"
-          },
-          {
-            src: "apple-touch-icon-ipad-retina-152x152.png",
-            sizes: "152x152",
-            type: "image/png"
-          }
-        ],
-        start_url: "{{.BaseUrl}}",
+    plugins: [
+      react(),
+      svgr(),
+      legacy({
+        modernTargets: "> 0.2%, iOS > 12, not dead",
+        modernPolyfills: true,
+        renderLegacyChunks: false
+      }),
+      VitePWA({
+        injectRegister: null,
+        selfDestroying: true,
         scope: "{{.BaseUrl}}",
-        display: "standalone"
-      },
-      workbox: {
-        // looks inside "dist" folder
-        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
-        sourcemap: true,
-        navigateFallbackDenylist: [/^\/api/]
-      }
+        // strategies: "injectManifest",
+        useCredentials: true,
+        includeAssets: [
+          // looks inside "public" folder
+          // manifest's icons are automatic added
+          "favicon.ico"
+        ],
+        manifest: {
+          name: "autobrr",
+          short_name: "autobrr",
+          description: "Automation for downloads.",
+          theme_color: "#141415",
+          background_color: "#141415",
+          icons: [
+            {
+              src: "logo192.png",
+              sizes: "192x192",
+              type: "image/png"
+            },
+            {
+              src: "apple-touch-icon-iphone-60x60.png",
+              sizes: "60x60",
+              type: "image/png"
+            },
+            {
+              src: "apple-touch-icon-ipad-76x76.png",
+              sizes: "76x76",
+              type: "image/png"
+            },
+            {
+              src: "apple-touch-icon-iphone-retina-120x120.png",
+              sizes: "120x120",
+              type: "image/png"
+            },
+            {
+              src: "apple-touch-icon-ipad-retina-152x152.png",
+              sizes: "152x152",
+              type: "image/png"
+            }
+          ],
+          start_url: "{{.BaseUrl}}",
+          scope: "{{.BaseUrl}}",
+          display: "standalone"
+        },
+        workbox: {
+          // looks inside "dist" folder
+          globPatterns: ["**/*.{js,css,html,svg,woff2}"],
+          sourcemap: true,
+          navigateFallbackDenylist: [/^\/api/]
+        }
     })],
     resolve: {
       alias: [
@@ -101,6 +110,7 @@ export default ({ mode }: ConfigEnv) => {
       }
     },
     build: {
+      target: "es6", // change it accords to modernTargets
       manifest: true,
       sourcemap: true,
       rollupOptions: {
@@ -115,11 +125,11 @@ export default ({ mode }: ConfigEnv) => {
         // This ignores the sourcemap warnings after vite 5.x.x introduced by rollup - an upstream dep of vite
         // ref https://github.com/vitejs/vite/issues/15012#issuecomment-1815854072
         onLog(level, log, handler) {
-          if (log.cause && (log.cause as { message?: string }).message === `Can't resolve original location of error.`) {
+          if (log.cause && (log.cause as { message?: string }).message === "Can't resolve original location of error.") {
             return;
           }
           handler(level, log);
-        },
+        }
       }
     }
   });
