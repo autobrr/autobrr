@@ -28,8 +28,18 @@ export function App() {
       setSettings(prevState => ({ ...prevState, darkTheme: e.matches }));
     };
 
-    themeMediaQuery.addEventListener('change', handleThemeChange);
-    return () => themeMediaQuery.removeEventListener('change', handleThemeChange);
+    if (themeMediaQuery?.addEventListener) {
+      themeMediaQuery.addEventListener('change', handleThemeChange);
+    } else {
+      themeMediaQuery.addListener(handleThemeChange); // This deprecated symbol is needed for compatibility for Safari down to iOS 12
+    }
+    return () =>  {
+      if (themeMediaQuery?.removeEventListener) {
+        themeMediaQuery.removeEventListener('change', handleThemeChange);
+      } else {
+        themeMediaQuery.removeListener(handleThemeChange); // This deprecated symbol is needed for compatibility for Safari down to iOS 12
+      }
+    }
   }, [setSettings]);
 
   return (
