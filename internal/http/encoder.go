@@ -24,6 +24,7 @@ func (e encoder) StatusResponse(w http.ResponseWriter, status int, response inte
 	if response != nil {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(status)
+
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -37,6 +38,7 @@ func (e encoder) StatusResponseMessage(w http.ResponseWriter, status int, messag
 	if message != "" {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(status)
+
 		if err := json.NewEncoder(w).Encode(statusResponse{Message: message}); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -53,6 +55,7 @@ func (e encoder) StatusCreated(w http.ResponseWriter) {
 func (e encoder) StatusCreatedData(w http.ResponseWriter, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
+
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -74,7 +77,11 @@ func (e encoder) NotFoundErr(w http.ResponseWriter, err error) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusNotFound)
-	json.NewEncoder(w).Encode(res)
+
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (e encoder) StatusInternalError(w http.ResponseWriter) {
@@ -88,7 +95,11 @@ func (e encoder) Error(w http.ResponseWriter, err error) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(res)
+
+	if err := json.NewEncoder(w).Encode(res); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (e encoder) StatusError(w http.ResponseWriter, status int, err error) {
@@ -98,6 +109,7 @@ func (e encoder) StatusError(w http.ResponseWriter, status int, err error) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
+
 	if err := json.NewEncoder(w).Encode(res); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -17,7 +17,6 @@ import (
 type apikeyService interface {
 	List(ctx context.Context) ([]domain.APIKey, error)
 	Store(ctx context.Context, key *domain.APIKey) error
-	Update(ctx context.Context, key *domain.APIKey) error
 	Delete(ctx context.Context, key string) error
 	ValidateAPIKey(ctx context.Context, token string) bool
 }
@@ -51,18 +50,14 @@ func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
-
-	var (
-		ctx  = r.Context()
-		data domain.APIKey
-	)
+	var data domain.APIKey
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Store(ctx, &data); err != nil {
+	if err := h.service.Store(r.Context(), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
