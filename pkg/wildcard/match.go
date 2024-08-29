@@ -82,5 +82,5 @@ func deepMatchRune(str, pattern []rune, simple bool) bool {
 		}
 	}
 
-	return k == len(str) && i == len(pattern)
+	return k == len(str) && (i == len(pattern) || i == len(pattern)-1 && pattern[len(pattern)-1] == '*')
 }
