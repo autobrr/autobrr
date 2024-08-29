@@ -112,6 +112,20 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 	return releases, nextCursor, total, nil
 }
 
+var reservedSearch = map[string]*regexp.Regexp{
+	"r.title":         regexp.MustCompile(`(?i)(?:` + `title` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.release_group": regexp.MustCompile(`(?i)(?:` + `release_group` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.category":      regexp.MustCompile(`(?i)(?:` + `r.category` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.season":        regexp.MustCompile(`(?i)(?:` + `r.season` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.episode":       regexp.MustCompile(`(?i)(?:` + `r.episode` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.year":          regexp.MustCompile(`(?i)(?:` + `r.year` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.resolution":    regexp.MustCompile(`(?i)(?:` + `r.resolution` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.source":        regexp.MustCompile(`(?i)(?:` + `r.source` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.codec":         regexp.MustCompile(`(?i)(?:` + `r.codec` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.hdr":           regexp.MustCompile(`(?i)(?:` + `r.hdr` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.filter":        regexp.MustCompile(`(?i)(?:` + `r.filter` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+}
+
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
 	whereQueryBuilder := sq.And{}
 	if params.Cursor > 0 {
@@ -119,27 +133,12 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	if params.Search != "" {
-		reserved := map[string]string{
-			"title":      "r.title",
-			"group":      "r.release_group",
-			"category":   "r.category",
-			"season":     "r.season",
-			"episode":    "r.episode",
-			"year":       "r.year",
-			"resolution": "r.resolution",
-			"source":     "r.source",
-			"codec":      "r.codec",
-			"hdr":        "r.hdr",
-			"filter":     "r.filter",
-		}
-
 		search := strings.TrimSpace(params.Search)
-		for k, v := range reserved {
-			r := regexp.MustCompile(fmt.Sprintf(`(?i)(?:%s:)(?P<value>'.*?'|".*?"|\S+)`, k))
-			if reskey := r.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
+		for dbField, regex := range reservedSearch {
+			if reskey := regex.FindAllStringSubmatch(search, -1); len(reskey) != 0 {
 				filter := sq.Or{}
 				for _, found := range reskey {
-					filter = append(filter, repo.db.ILike(v, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
+					filter = append(filter, repo.db.ILike(dbField, strings.ReplaceAll(strings.Trim(strings.Trim(found[1], `"`), `'`), ".", "_")+"%"))
 				}
 
 				if len(filter) == 0 {
@@ -147,7 +146,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 				}
 
 				whereQueryBuilder = append(whereQueryBuilder, filter)
-				search = strings.TrimSpace(r.ReplaceAllLiteralString(search, ""))
+				search = strings.TrimSpace(regex.ReplaceAllLiteralString(search, ""))
 			}
 		}
 
