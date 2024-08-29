@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { Form, Formik, FormikValues } from "formik";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
@@ -36,13 +36,13 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
   }
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
+          <DialogPanel className="absolute inset-0" />
 
           <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -70,9 +70,9 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add proxy
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
                                 Add proxy to be used with Indexers or IRC.
                               </p>
@@ -138,11 +138,11 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
                 </Formik>
               </div>
 
-            </Transition.Child>
+            </TransitionChild>
           </div>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
 
