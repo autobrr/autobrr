@@ -50,7 +50,7 @@ func deepMatchRune(str, pattern string, simple bool) bool {
 
 	user, err := regexp.Compile(pattern)
 	if err != nil {
-		log.Error().Msgf("deepMatchRune: unable to parse %q | %q", pattern, err.Error())
+		log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
 		return false
 	}
 
