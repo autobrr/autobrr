@@ -115,15 +115,15 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 var reservedSearch = map[string]*regexp.Regexp{
 	"r.title":         regexp.MustCompile(`(?i)(?:` + `title` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.release_group": regexp.MustCompile(`(?i)(?:` + `release_group` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.category":      regexp.MustCompile(`(?i)(?:` + `r.category` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.season":        regexp.MustCompile(`(?i)(?:` + `r.season` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.episode":       regexp.MustCompile(`(?i)(?:` + `r.episode` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.year":          regexp.MustCompile(`(?i)(?:` + `r.year` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.resolution":    regexp.MustCompile(`(?i)(?:` + `r.resolution` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.source":        regexp.MustCompile(`(?i)(?:` + `r.source` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.codec":         regexp.MustCompile(`(?i)(?:` + `r.codec` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.hdr":           regexp.MustCompile(`(?i)(?:` + `r.hdr` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.filter":        regexp.MustCompile(`(?i)(?:` + `r.filter` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.category":      regexp.MustCompile(`(?i)(?:` + `category` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.season":        regexp.MustCompile(`(?i)(?:` + `season` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.episode":       regexp.MustCompile(`(?i)(?:` + `episode` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.year":          regexp.MustCompile(`(?i)(?:` + `year` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.resolution":    regexp.MustCompile(`(?i)(?:` + `resolution` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.source":        regexp.MustCompile(`(?i)(?:` + `source` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.codec":         regexp.MustCompile(`(?i)(?:` + `codec` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.hdr":           regexp.MustCompile(`(?i)(?:` + `hdr` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.filter":        regexp.MustCompile(`(?i)(?:` + `filter` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 }
 
 func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
