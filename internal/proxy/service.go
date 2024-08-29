@@ -40,10 +40,18 @@ func NewService(log logger.Logger, repo domain.ProxyRepo) Service {
 }
 
 func (s *service) Store(ctx context.Context, proxy *domain.Proxy) error {
+	if err := proxy.Validate(); err != nil {
+		return errors.Wrap(err, "validation error")
+	}
+
 	return s.repo.Store(ctx, proxy)
 }
 
 func (s *service) Update(ctx context.Context, proxy *domain.Proxy) error {
+	if err := proxy.Validate(); err != nil {
+		return errors.Wrap(err, "validation error")
+	}
+
 	// TODO update IRC handlers
 	return s.repo.Update(ctx, proxy)
 }
@@ -121,6 +129,8 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 	default:
 		return errors.New("invalid proxy type: %s", proxy.Type)
 	}
+
+	s.log.Debug().Msgf("proxy %s test OK!", proxy.Addr)
 
 	return nil
 }

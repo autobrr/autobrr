@@ -3,7 +3,10 @@
 
 package domain
 
-import "context"
+import (
+	"context"
+	"github.com/autobrr/autobrr/pkg/errors"
+)
 
 type ProxyRepo interface {
 	Store(ctx context.Context, p *Proxy) error
@@ -37,4 +40,20 @@ func (p Proxy) ValidProxyType() bool {
 	}
 
 	return false
+}
+
+func (p Proxy) Validate() error {
+	if !p.ValidProxyType() {
+		return errors.New("invalid proxy type: %s", p.Type)
+	}
+
+	if p.Addr == "" {
+		return errors.New("addr is required")
+	}
+
+	if p.Name == "" {
+		return errors.New("name is required")
+	}
+
+	return nil
 }

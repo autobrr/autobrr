@@ -204,6 +204,15 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
   const deleteFn = () => deleteMutation.mutate(data.id);
 
+  const testMutation = useMutation({
+    mutationFn: (data: Proxy) => APIClient.proxy.test(data),
+    onError: (err) => {
+      console.error(err);
+    }
+  });
+
+  const testProxy = (data: unknown) => testMutation.mutate(data as Proxy);
+
   const initialValues: Proxy = {
     id: data.id,
     enabled: data.enabled,
@@ -220,6 +229,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       initialValues={initialValues}
       onSubmit={onSubmit}
       deleteAction={deleteFn}
+      testFn={testProxy}
       isOpen={isOpen}
       toggle={toggle}
       type="UPDATE"
