@@ -24,4 +24,4 @@ interface ProxyCreate {
   timeout?: number;
 }
 
-type ProxyType = "SOCKS5" | "SOCKS4" | "HTTP";
+type ProxyType = "PROXY_SOCKS5" | "HTTP";

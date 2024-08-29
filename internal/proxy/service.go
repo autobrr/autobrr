@@ -67,6 +67,10 @@ func (s *service) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
+	if !proxy.ValidProxyType() {
+		return errors.New("invalid proxy type %s", proxy.Type)
+	}
+
 	if proxy.Addr == "" {
 		return errors.New("proxy addr missing")
 	}
@@ -82,7 +86,7 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 	}
 
 	switch proxy.Type {
-	case "SOCKS5":
+	case domain.ProxyTypeSocks5:
 		proxyDialer, err := netProxy.FromURL(proxyUrl, netProxy.Direct)
 		if err != nil {
 			return errors.Wrap(err, "could not create proxy dialer from url: %s", proxy.Addr)
@@ -113,6 +117,9 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		if resp.StatusCode != http.StatusOK {
 			return errors.New(resp.Status)
 		}
+
+	default:
+		return errors.New("invalid proxy type: %s", proxy.Type)
 	}
 
 	return nil

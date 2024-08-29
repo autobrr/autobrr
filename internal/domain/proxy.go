@@ -15,12 +15,26 @@ type ProxyRepo interface {
 }
 
 type Proxy struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Enabled bool   `json:"enabled"`
-	Type    string `json:"type"`
-	Addr    string `json:"addr"`
-	User    string `json:"user"`
-	Pass    string `json:"pass"`
-	Timeout int    `json:"timeout"`
+	ID      int64     `json:"id"`
+	Name    string    `json:"name"`
+	Enabled bool      `json:"enabled"`
+	Type    ProxyType `json:"type"`
+	Addr    string    `json:"addr"`
+	User    string    `json:"user"`
+	Pass    string    `json:"pass"`
+	Timeout int       `json:"timeout"`
+}
+
+type ProxyType string
+
+const (
+	ProxyTypeSocks5 = "PROXY_SOCKS5"
+)
+
+func (p Proxy) ValidProxyType() bool {
+	if p.Type == "PROXY_SOCKS5" {
+		return true
+	}
+
+	return false
 }
