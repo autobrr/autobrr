@@ -86,8 +86,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		}
 		defer file.Close()
 
-		reader := bufio.NewReader(file)
-		content, err := io.ReadAll(reader)
+		content, err := io.ReadAll(bufio.NewReader(file))
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read file: %s", release.TorrentTmpFile)
 		}

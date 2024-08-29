@@ -4,15 +4,16 @@
 package sabnzbd
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
@@ -98,16 +99,14 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	body := bufio.NewReader(res.Body)
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
-	fmt.Print(body)
-
 	var data AddFileResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, err
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &data, nil
@@ -147,14 +146,14 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	body := bufio.NewReader(res.Body)
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var data VersionResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, err
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &data, nil

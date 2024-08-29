@@ -773,13 +773,15 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
 
-			body, err := io.ReadAll(res.Body)
-			if err != nil {
-				return res.StatusCode, errors.Wrap(err, "could not read request body")
-			}
+			if s.log.Debug().Enabled() {
+				body, err := io.ReadAll(res.Body)
+				if err != nil {
+					return res.StatusCode, errors.Wrap(err, "could not read request body")
+				}
 
-			if len(body) > 0 {
-				s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+				if len(body) > 0 {
+					s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+				}
 			}
 
 			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
