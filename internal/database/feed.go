@@ -68,6 +68,10 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	var apiKey, cookie, settings sql.NullString
 
 	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -126,6 +130,10 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 	var apiKey, cookie, settings sql.NullString
 
 	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -237,6 +245,10 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 	var data sql.NullString
 
 	if err := row.Scan(&data); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", domain.ErrRecordNotFound
+		}
+
 		return "", errors.Wrap(err, "error scanning row")
 	}
 

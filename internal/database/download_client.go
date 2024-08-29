@@ -120,7 +120,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("no client configured")
+			return nil, domain.ErrRecordNotFound
 		}
 
 		return nil, errors.Wrap(err, "error scanning row")

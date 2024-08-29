@@ -148,6 +148,10 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	var identifierExternal, implementation, baseURL, settings sql.Null[string]
 
 	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &settings); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -193,6 +197,10 @@ func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (
 	var identifierExternal, implementation, baseURL, settings sql.Null[string]
 
 	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &settings); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 

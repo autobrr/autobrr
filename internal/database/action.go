@@ -616,12 +616,8 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
-
 	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows error")
+		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var a domain.Action

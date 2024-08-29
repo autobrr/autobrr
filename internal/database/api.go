@@ -98,7 +98,6 @@ func (r *APIRepo) GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error) {
 
 		if err := rows.Scan(&name, &a.Key, pq.Array(&a.Scopes), &a.CreatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
-
 		}
 
 		a.Name = name.String
@@ -122,9 +121,6 @@ func (r *APIRepo) GetKey(ctx context.Context, key string) (*domain.APIKey, error
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
-		}
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -133,6 +129,10 @@ func (r *APIRepo) GetKey(ctx context.Context, key string) (*domain.APIKey, error
 	var name sql.NullString
 
 	if err := row.Scan(&name, &apiKey.Key, pq.Array(&apiKey.Scopes), &apiKey.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 

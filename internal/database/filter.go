@@ -32,26 +32,15 @@ func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 }
 
 func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
-	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
-	if err != nil {
-		return nil, errors.Wrap(err, "error begin transaction")
-	}
-	defer tx.Rollback()
-
-	filters, err := r.find(ctx, tx, params)
+	filters, err := r.find(ctx, params)
 	if err != nil {
 		return nil, err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "error commit transaction find releases")
 	}
 
 	return filters, nil
 }
 
-func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQueryParams) ([]domain.Filter, error) {
-
+func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
@@ -104,7 +93,7 @@ func (r *FilterRepo) find(ctx context.Context, tx *Tx, params domain.FilterQuery
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := tx.QueryContext(ctx, query, args...)
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -1347,6 +1336,10 @@ WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.s
 	var f domain.FilterDownloads
 
 	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning stats data sqlite")
 	}
 
@@ -1373,6 +1366,10 @@ WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.s
 	var f domain.FilterDownloads
 
 	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning stats data postgres")
 	}
 

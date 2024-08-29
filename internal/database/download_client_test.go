@@ -157,7 +157,7 @@ func TestDownloadClientRepo_FindByID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Nonexistent_ID [%s]", dbType), func(t *testing.T) {
 			_, err := repo.FindByID(context.Background(), 9999)
 			assert.Error(t, err)
-			assert.Equal(t, "no client configured", err.Error())
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Negative_ID [%s]", dbType), func(t *testing.T) {
@@ -179,7 +179,7 @@ func TestDownloadClientRepo_FindByID(t *testing.T) {
 			_ = repo.Delete(context.Background(), mock.ID)
 			_, err := repo.FindByID(context.Background(), mock.ID)
 			assert.Error(t, err)
-			assert.Equal(t, "no client configured", err.Error())
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), mock.ID)
