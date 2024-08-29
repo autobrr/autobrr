@@ -1573,100 +1573,22 @@ ADD COLUMN days TEXT;
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE indexer_dg_tmp
-(
-    id             INTEGER PRIMARY KEY,
-    identifier     TEXT UNIQUE,
-    implementation TEXT,
-    base_url       TEXT,
-    enabled        BOOLEAN,
-    name           TEXT NOT NULL,
-    settings       TEXT,
-    use_proxy      BOOLEAN DEFAULT FALSE,
-    created_at     TIMESTAMP default CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP default CURRENT_TIMESTAMP,
-    proxy_id       INTEGER
+ALTER TABLE indexer
+    ADD proxy_id INTEGER
         CONSTRAINT indexer_proxy_id_fk
-            REFERENCES proxy (id)
-            ON DELETE SET NULL
-);
+            REFERENCES proxy(id)
+            ON DELETE SET NULL;
 
-INSERT INTO indexer_dg_tmp(id, identifier, implementation, base_url, enabled, name, settings, created_at, updated_at)
-SELECT id,
-       identifier,
-       implementation,
-       base_url,
-       enabled,
-       name,
-       settings,
-       created_at,
-       updated_at
-FROM indexer;
+ALTER TABLE indexer
+    ADD use_proxy BOOLEAN DEFAULT FALSE;
 
-DROP TABLE indexer;
+ALTER TABLE irc_network
+    ADD use_proxy BOOLEAN DEFAULT FALSE;
 
-ALTER TABLE indexer_dg_tmp
-    RENAME TO indexer;
-
-CREATE INDEX indexer_identifier_index
-    ON indexer (identifier);
-
-CREATE TABLE irc_network_dg_tmp
-(
-    id              INTEGER PRIMARY KEY,
-    enabled         BOOLEAN,
-    name            TEXT    NOT NULL,
-    server          TEXT    NOT NULL,
-    port            INTEGER NOT NULL,
-    tls             BOOLEAN,
-    pass            TEXT,
-    nick            TEXT,
-    auth_mechanism  TEXT,
-    auth_account    TEXT,
-    auth_password   TEXT,
-    invite_command  TEXT,
-    use_bouncer     BOOLEAN,
-    bouncer_addr    TEXT,
-    bot_mode        BOOLEAN   default FALSE,
-    connected       BOOLEAN,
-    connected_since TIMESTAMP,
-    use_proxy       BOOLEAN DEFAULT FALSE,
-    created_at      TIMESTAMP default CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP default CURRENT_TIMESTAMP,
-    proxy_id        INTEGER
+ALTER TABLE irc_network
+    ADD proxy_id INTEGER
         CONSTRAINT irc_network_proxy_id_fk
-            REFERENCES proxy (id)
-            ON DELETE SET NULL,
-    UNIQUE (server, port, nick)
-);
-
-INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account,
-                               auth_password, invite_command, use_bouncer, bouncer_addr, bot_mode, connected,
-                               connected_since, created_at, updated_at)
-SELECT id,
-       enabled,
-       name,
-       server,
-       port,
-       tls,
-       pass,
-       nick,
-       auth_mechanism,
-       auth_account,
-       auth_password,
-       invite_command,
-       use_bouncer,
-       bouncer_addr,
-       bot_mode,
-       connected,
-       connected_since,
-       created_at,
-       updated_at
-FROM irc_network;
-
-DROP TABLE irc_network;
-
-ALTER TABLE irc_network_dg_tmp
-    RENAME TO irc_network;
+            REFERENCES proxy(id)
+            ON DELETE SET NULL;
 `,
 }
