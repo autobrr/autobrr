@@ -33,12 +33,8 @@ func Match(pattern, name string) (matched bool) {
 }
 
 func deepMatchRune(str, pattern []rune, simple bool) bool {
-	if len(str) < len(pattern) {
-		return false
-	}
-
-	k := 0
-	for i := 0; i < len(pattern); i++ {
+	k, i := 0, 0
+	for ; i < len(pattern) && k < len(str); i++ {
 		switch pattern[i] {
 		case '*':
 			if i == len(pattern)-1 {
@@ -46,16 +42,17 @@ func deepMatchRune(str, pattern []rune, simple bool) bool {
 			}
 
 			var val rune
-			for ; i < len(pattern); i++ {
-				val = pattern[i+1]
+			for i++; i < len(pattern); i++ {
+				val = pattern[i]
 				if !simple && val == '?' || val == '*' {
 					continue
 				}
 
+				i--
 				break
 			}
 
-			if i == len(pattern)-1 {
+			if i >= len(pattern)-1 && val == '*' {
 				return true
 			}
 
@@ -85,5 +82,5 @@ func deepMatchRune(str, pattern []rune, simple bool) bool {
 		}
 	}
 
-	return str[len(str)-1] == pattern[len(pattern)-1]
+	return k == len(str) && i == len(pattern)
 }

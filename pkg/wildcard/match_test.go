@@ -29,6 +29,21 @@ func TestMatch(t *testing.T) {
 			text:    "The.Simps.S12",
 			matched: false,
 		},
+		{
+			pattern: "The?Simp",
+			text:    "The.Simps.S12",
+			matched: false,
+		},
+		{
+			pattern: "The?Simp",
+			text:    "The.Simps.S12",
+			matched: false,
+		},
+		{
+			pattern: "The*Simp",
+			text:    "The.Simp",
+			matched: true,
+		},
 	}
 	// Iterating over the test cases, call the function under test and asert the output.
 	for i, testCase := range testCases {
