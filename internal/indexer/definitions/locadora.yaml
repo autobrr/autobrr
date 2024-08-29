@@ -51,17 +51,19 @@ irc:
     type: single
     lines:
       - tests:
-        - line: '[Filmes] [WEB-DL] [1080p] [Journey to the Center of the Earth 2008 1080p HMAX WEB-DL DD5.1 x264 pt-BR ENG-LCD] [https://locadora.cc/torrents/16896] [5.82 GiB] [100%]'
+        - line: '[Filmes] [WEB-DL] [1080p] [Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)] [https://locadora.cc/torrents/28808] [7.61 GiB] [100%] [Internal:1] [tmdb-39513]'
           expect:
             category: Filmes
             releaseTags: WEB-DL
             resolution: 1080p
-            torrentName: Journey to the Center of the Earth 2008 1080p HMAX WEB-DL DD5.1 x264 pt-BR ENG-LCD
+            torrentName: Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)
             baseUrl: https://locadora.cc/
-            torrentId: "16896"
-            torrentSize: 5.82 GiB
+            torrentId: "28808"
+            torrentSize: 7.61 GiB
             freeleechPercent: 100%
-        pattern: '\[(.+)\] \[(.+)\] \[(.+)\] \[(.+?)\] \[(https?\:\/\/.+\/).+\/(\d+)\] \[(.+?)\] \[(.+?)\]'
+            internal: "1"
+            tags: "39513"
+        pattern: '\[(.+)\] \[(.+)\] \[(.+)\] \[(.+?)\] \[(https?\:\/\/.+\/).+\/(\d+)\] \[(.+?)\] \[(.+?)\] \[Internal:(\d)\] \[[a-z]+-(\d+)\]'
         vars:
           - category
           - releaseTags
@@ -71,6 +73,8 @@ irc:
           - torrentId
           - torrentSize
           - freeleechPercent
+          - internal
+          - tags
 
     match:
       infourl: "/torrents/{{ .torrentId }}"

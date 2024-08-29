@@ -6,7 +6,7 @@
 import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { Disclosure } from "@headlessui/react";
+import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
@@ -16,13 +16,11 @@ import { LeftNav } from "./LeftNav";
 import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
-
-import { AuthIndexRoute } from "@app/routes";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { AuthContext } from "@utils/Context";
 
 export const Header = () => {
   const router = useRouter()
-  const { auth } = AuthIndexRoute.useRouteContext()
 
   const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
@@ -40,9 +38,8 @@ export const Header = () => {
       toast.custom((t) => (
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
-      auth.logout()
-
-      router.history.push("/")
+      AuthContext.reset();
+      router.history.push("/");
     },
     onError: (err) => {
       console.error("logout error", err)
@@ -60,10 +57,10 @@ export const Header = () => {
             <div className="border-b border-gray-300 dark:border-gray-775">
               <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                 <LeftNav />
-                <RightNav logoutMutation={logoutMutation.mutate} auth={auth} />
+                <RightNav logoutMutation={logoutMutation.mutate} />
                 <div className="-mr-2 flex sm:hidden">
                   {/* Mobile menu button */}
-                  <Disclosure.Button className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
+                  <DisclosureButton className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
                     <span className="sr-only">Open main menu</span>
                     {open ? (
                       <XMarkIcon
@@ -76,7 +73,7 @@ export const Header = () => {
                         aria-hidden="true"
                       />
                     )}
-                  </Disclosure.Button>
+                  </DisclosureButton>
                 </div>
               </div>
             </div>
@@ -92,7 +89,7 @@ export const Header = () => {
             )}
           </div>
 
-          <MobileNav logoutMutation={logoutMutation.mutate} auth={auth} />
+          <MobileNav logoutMutation={logoutMutation.mutate} />
         </>
       )}
     </Disclosure>

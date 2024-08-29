@@ -16,16 +16,14 @@ import {
   EyeSlashIcon
 } from "@heroicons/react/24/solid";
 
-import { ReleasesIndexRoute } from "@app/routes";
+import { ReleasesRoute } from "@app/routes";
 import { ReleasesListQueryOptions } from "@api/queries";
 import { RandomLinuxIsos } from "@utils";
-
-import * as Icons from "@components/Icons";
-import { RingResizeSpinner } from "@components/Icons";
-import * as DataTable from "@components/data-table";
-
+import { RingResizeSpinner, SortDownIcon, SortIcon, SortUpIcon } from "@components/Icons";
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
+import { TableButton, TablePageButton } from "@components/data-table/Buttons.tsx";
+import { AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
 
 type TableState = {
   queryPageIndex: number;
@@ -94,36 +92,36 @@ const EmptyReleaseList = () => (
 );
 
 export const ReleaseTable = () => {
-  const search = ReleasesIndexRoute.useSearch()
+  const search = ReleasesRoute.useSearch()
 
   const columns = React.useMemo(() => [
     {
       Header: "Age",
       accessor: "timestamp",
-      Cell: DataTable.AgeCell
+      Cell: AgeCell
     },
     {
       Header: "Release",
       accessor: "name",
-      Cell: DataTable.NameCell,
+      Cell: NameCell,
       Filter: SearchColumnFilter
     },
     {
       Header: "Links",
       accessor: (row) => ({ download_url: row.download_url, info_url: row.info_url }),
       id: "links",
-      Cell: DataTable.LinksCell
+      Cell: LinksCell
     },
     {
       Header: "Actions",
       accessor: "action_status",
-      Cell: DataTable.ReleaseStatusCell,
+      Cell: ReleaseStatusCell,
       Filter: PushStatusSelectColumnFilter
     },
     {
       Header: "Indexer",
-      accessor: "indexer",
-      Cell: DataTable.IndexerCell,
+      accessor: "indexer.identifier",
+      Cell: IndexerCell,
       Filter: IndexerSelectColumnFilter,
       filter: "equal"
     }
@@ -148,7 +146,18 @@ export const ReleaseTable = () => {
       const newData: Release[] = data.data.map((item, index) => ({
         ...item,
         name: `${randomNames[index]}.iso`,
-        indexer: index % 2 === 0 ? "distrowatch" : "linuxtracker"
+        indexer: {
+          id: 0,
+          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+          identifier_external: index % 2 === 0 ? "distrowatch" : "linuxtracker",
+        },
+        category: "Linux ISOs",
+        size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
+        source: "",
+        container: "",
+        codec: "",
+        resolution: "",
       }));
       setModifiedData(newData);
     }
@@ -292,12 +301,12 @@ export const ReleaseTable = () => {
                             <span>
                               {column.isSorted ? (
                                 column.isSortedDesc ? (
-                                  <Icons.SortDownIcon className="w-4 h-4 text-gray-400"/>
+                                  <SortDownIcon className="w-4 h-4 text-gray-400"/>
                                 ) : (
-                                  <Icons.SortUpIcon className="w-4 h-4 text-gray-400"/>
+                                  <SortUpIcon className="w-4 h-4 text-gray-400"/>
                                 )
                               ) : (
-                                <Icons.SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100"/>
+                                <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100"/>
                               )}
                             </span>
                           </div>
@@ -339,8 +348,8 @@ export const ReleaseTable = () => {
             {/* Pagination */}
             <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
               <div className="flex justify-between flex-1 sm:hidden">
-                <DataTable.Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</DataTable.Button>
-                <DataTable.Button onClick={() => nextPage()} disabled={!canNextPage}>Next</DataTable.Button>
+                <TableButton onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</TableButton>
+                <TableButton onClick={() => nextPage()} disabled={!canNextPage}>Next</TableButton>
               </div>
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                 <div className="flex items-baseline gap-x-2">
@@ -367,37 +376,37 @@ export const ReleaseTable = () => {
                 </div>
                 <div>
                   <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                    <DataTable.PageButton
+                    <TablePageButton
                       className="rounded-l-md"
                       onClick={() => gotoPage(0)}
                       disabled={!canPreviousPage}
                     >
                       <span className="sr-only">First</span>
                       <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true"/>
-                    </DataTable.PageButton>
-                    <DataTable.PageButton
+                    </TablePageButton>
+                    <TablePageButton
                       className="pl-1 pr-2"
                       onClick={() => previousPage()}
                       disabled={!canPreviousPage}
                     >
                       <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true"/>
                       <span>Prev</span>
-                    </DataTable.PageButton>
-                    <DataTable.PageButton
+                    </TablePageButton>
+                    <TablePageButton
                       className="pl-2 pr-1"
                       onClick={() => nextPage()}
                       disabled={!canNextPage}>
                       <span>Next</span>
                       <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true"/>
-                    </DataTable.PageButton>
-                    <DataTable.PageButton
+                    </TablePageButton>
+                    <TablePageButton
                       className="rounded-r-md"
                       onClick={() => gotoPage(pageCount - 1)}
                       disabled={!canNextPage}
                     >
                       <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true"/>
                       <span className="sr-only">Last</span>
-                    </DataTable.PageButton>
+                    </TablePageButton>
                   </nav>
                 </div>
               </div>

@@ -1,37 +1,54 @@
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { useFormikContext } from "formik";
 
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
-
-import * as Input from "@components/inputs";
-import * as CONSTS from "@domain/constants";
-
-import { CollapsibleSection } from "./_components";
-import * as Components from "./_components";
+import {
+  CollapsibleSection,
+  FilterHalfRow,
+  FilterLayout,
+  FilterLayoutClass,
+  FilterTightGridGapClass
+} from "./_components";
 import { classNames } from "@utils";
+
+import * as CONSTS from "@domain/constants";
+import {
+  MultiSelect, NumberField, RegexField,
+  RegexTextAreaField,
+  Select,
+  SwitchGroup,
+  TextAreaAutoResize,
+  TextField
+} from "@components/inputs";
 
 // type ValueConsumer = {
 //   values: FormikValues;
 // };
 
 const Releases = () => {
+
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.use_regex || values.match_releases !== "" || values.except_releases !== ""}
+      defaultOpen={values.use_regex || values.match_releases !== undefined || values.except_releases !== undefined}
       title="Release Names"
       subtitle="Match only certain release names and/or ignore other release names."
     >
-      <Components.Layout>
-        <Components.HalfRow>
-          <Input.SwitchGroup name="use_regex" label="Use Regex" className="pt-2" />
-        </Components.HalfRow>
-      </Components.Layout>
+      <FilterLayout>
+        <FilterHalfRow>
+          <SwitchGroup name="use_regex" label="Use Regex" className="pt-2" />
+        </FilterHalfRow>
+      </FilterLayout>
 
-      <Components.Layout>
-        <Components.HalfRow>
-          <Input.RegexTextAreaField
+      <FilterLayout>
+        <FilterHalfRow>
+          <RegexTextAreaField
             name="match_releases"
             label="Match releases"
             useRegex={values.use_regex}
@@ -47,10 +64,10 @@ const Releases = () => {
               </div>
             }
           />
-        </Components.HalfRow>
+        </FilterHalfRow>
 
-        <Components.HalfRow>
-          <Input.RegexTextAreaField
+        <FilterHalfRow>
+          <RegexTextAreaField
             name="except_releases"
             label="Except releases"
             useRegex={values.use_regex}
@@ -66,9 +83,9 @@ const Releases = () => {
               </div>
             }
           />
-        </Components.HalfRow>
+        </FilterHalfRow>
 
-      </Components.Layout>
+      </FilterLayout>
 
       {values.match_releases ? (
         <WarningAlert
@@ -97,15 +114,16 @@ const Releases = () => {
 }
 
 const Groups = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.match_release_groups !== "" || values.except_release_groups !== ""}
+      defaultOpen={values.match_release_groups !== undefined || values.except_release_groups !== undefined}
       title="Groups"
       subtitle="Match only certain groups and/or ignore other groups."
     >
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name="match_release_groups"
         label="Match release groups"
         columns={6}
@@ -117,7 +135,7 @@ const Groups = () => {
           </div>
         }
       />
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name="except_release_groups"
         label="Except release groups"
         columns={6}
@@ -134,15 +152,16 @@ const Groups = () => {
 }
 
 const Categories = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.match_categories.length >0 || values.except_categories !== ""}
+      defaultOpen={values.match_categories !== undefined || values.except_categories !== undefined}
       title="Categories"
       subtitle="Match or exclude categories (if announced)"
     >
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name="match_categories"
         label="Match categories"
         columns={6}
@@ -154,7 +173,7 @@ const Categories = () => {
           </div>
         }
       />
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name="except_categories"
         label="Except categories"
         columns={6}
@@ -171,16 +190,17 @@ const Categories = () => {
 }
 
 const Tags = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.tags !== "" || values.except_tags !== ""}
+      defaultOpen={values.tags !== undefined || values.except_tags !== undefined}
       title="Tags"
       subtitle="Match or exclude tags (if announced)"
     >
-      <div className={classNames("sm:col-span-6", Components.LayoutClass, Components.TightGridGapClass)}>
-        <Input.TextAreaAutoResize
+      <div className={classNames("sm:col-span-6", FilterLayoutClass, FilterTightGridGapClass)}>
+        <TextAreaAutoResize
           name="tags"
           label="Match tags"
           columns={8}
@@ -192,7 +212,7 @@ const Tags = () => {
             </div>
           }
         />
-        <Input.Select
+        <Select
           name="tags_match_logic"
           label="Match logic"
           columns={4}
@@ -206,8 +226,8 @@ const Tags = () => {
           }
         />
       </div>
-      <div className={classNames("sm:col-span-6", Components.LayoutClass, Components.TightGridGapClass)}>
-        <Input.TextAreaAutoResize
+      <div className={classNames("sm:col-span-6", FilterLayoutClass, FilterTightGridGapClass)}>
+        <TextAreaAutoResize
           name="except_tags"
           label="Except tags"
           columns={8}
@@ -219,7 +239,7 @@ const Tags = () => {
             </div>
           }
         />
-        <Input.Select
+        <Select
           name="except_tags_match_logic"
           label="Except logic"
           columns={4}
@@ -238,15 +258,16 @@ const Tags = () => {
 }
 
 const Uploaders = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.match_uploaders !== "" || values.except_uploaders !== ""}
+      defaultOpen={values.match_uploaders !== undefined || values.except_uploaders !== undefined}
       title="Uploaders"
       subtitle="Match or ignore uploaders (if announced)"
     >
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name="match_uploaders"
         label="Match uploaders"
         columns={6}
@@ -258,7 +279,7 @@ const Uploaders = () => {
           </div>
         }
       />
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name="except_uploaders"
         label="Except uploaders"
         columns={6}
@@ -276,21 +297,22 @@ const Uploaders = () => {
 }
 
 const Language = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={(values.match_language && values.match_language.length > 0) || (values.except_language && values.except_language.length > 0)}
+      defaultOpen={values.match_language?.length > 0 || values.except_language?.length > 0}
       title="Language"
       subtitle="Match or ignore languages (if announced)"
     >
-      <Input.MultiSelect
+      <MultiSelect
         name="match_language"
         options={CONSTS.LANGUAGE_OPTIONS}
         label="Match Language"
         columns={6}
       />
-      <Input.MultiSelect
+      <MultiSelect
         name="except_language"
         options={CONSTS.LANGUAGE_OPTIONS}
         label="Except Language"
@@ -301,21 +323,22 @@ const Language = () => {
 }
 
 const Origins = () => {
-  // const { values } = useFormikContext<Filter>();
+
+  const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={(values.origins && values.origins.length > 0 || values.except_origins && values.except_origins.length > 0)}
+      defaultOpen={values.origins?.length > 0 || values.except_origins?.length > 0}
       title="Origins"
       subtitle="Match Internals, Scene, P2P, etc. (if announced)"
     >
-      <Input.MultiSelect
+      <MultiSelect
         name="origins"
         options={CONSTS.ORIGIN_OPTIONS}
         label="Match Origins"
         columns={6}
       />
-      <Input.MultiSelect
+      <MultiSelect
         name="except_origins"
         options={CONSTS.ORIGIN_OPTIONS}
         label="Except Origins"
@@ -326,15 +349,16 @@ const Origins = () => {
 }
 
 const Freeleech = () => {
+
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.freeleech || values.freeleech_percent !== ""}
+      defaultOpen={values.freeleech || values.freeleech_percent !== undefined}
       title="Freeleech"
       subtitle="Match based off freeleech (if announced)"
     >
-      <Input.TextField
+      <TextField
         name="freeleech_percent"
         label="Freeleech percent"
         disabled={values.freeleech}
@@ -355,8 +379,8 @@ const Freeleech = () => {
         columns={6}
         placeholder="eg. 50,75-100"
       />
-      <Components.HalfRow>
-        <Input.SwitchGroup
+      <FilterHalfRow>
+        <SwitchGroup
           name="freeleech"
           label="Freeleech"
           className="py-0"
@@ -376,30 +400,40 @@ const Freeleech = () => {
             </div>
           }
         />
-      </Components.HalfRow>
+      </FilterHalfRow>
     </CollapsibleSection>
   );
 }
 
 const FeedSpecific = () => {
+
   const { values } = useFormikContext<Filter>();
+
   return (
     <CollapsibleSection
-      //defaultOpen={values.use_regex_description || values.match_description || values.except_description}
+      defaultOpen={
+        values.use_regex_description ||
+        values.match_description !== undefined ||
+        values.except_description !== undefined ||
+        values.min_seeders !== undefined ||
+        values.max_seeders !== undefined ||
+        values.min_leechers !== undefined ||
+        values.max_leechers !== undefined
+      }
       title="RSS/Torznab/Newznab-specific"
       subtitle={
         <>These options are <span className="font-bold">only</span> for Feeds such as RSS, Torznab and Newznab</>
       }
     >
-      <Components.Layout>
-        <Input.SwitchGroup
+      <FilterLayout>
+        <SwitchGroup
           name="use_regex_description"
           label="Use Regex"
           className="col-span-12 sm:col-span-6"
         />
-      </Components.Layout>
+      </FilterLayout>
 
-      <Input.RegexTextAreaField
+      <RegexTextAreaField
         name="match_description"
         label="Match description"
         useRegex={values.use_regex_description}
@@ -415,7 +449,7 @@ const FeedSpecific = () => {
           </div>
         }
       />
-      <Input.RegexTextAreaField
+      <RegexTextAreaField
         name="except_description"
         label="Except description"
         useRegex={values.use_regex_description}
@@ -431,7 +465,7 @@ const FeedSpecific = () => {
           </div>
         }
       />
-      <Input.NumberField
+      <NumberField
         name="min_seeders"
         label="Min Seeders"
         placeholder="Takes any number (0 is infinite)"
@@ -442,7 +476,7 @@ const FeedSpecific = () => {
           </div>
         }
       />
-      <Input.NumberField
+      <NumberField
         name="max_seeders"
         label="Max Seeders"
         placeholder="Takes any number (0 is infinite)"
@@ -453,7 +487,7 @@ const FeedSpecific = () => {
           </div>
         }
       />
-      <Input.NumberField
+      <NumberField
         name="min_leechers"
         label="Min Leechers"
         placeholder="Takes any number (0 is infinite)"
@@ -464,7 +498,7 @@ const FeedSpecific = () => {
           </div>
         }
       />
-      <Input.NumberField
+      <NumberField
         name="max_leechers"
         label="Max Leechers"
         placeholder="Takes any number (0 is infinite)"
@@ -479,11 +513,12 @@ const FeedSpecific = () => {
   );
 }
 const RawReleaseTags = () => {
+
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
-      //defaultOpen={values.use_regex_release_tags || values.match_release_tags || values.except_release_tags}
+      defaultOpen={values.use_regex_release_tags || values.match_release_tags !== undefined || values.except_release_tags !== undefined}
       title="Raw Release Tags"
       subtitle={
         <>
@@ -498,22 +533,22 @@ const RawReleaseTags = () => {
         }
       />
 
-      <Components.Layout>
-        <Input.SwitchGroup
+      <FilterLayout>
+        <SwitchGroup
           name="use_regex_release_tags"
           label="Use Regex"
           className="col-span-12 sm:col-span-6"
         />
-      </Components.Layout>
+      </FilterLayout>
 
-      <Input.RegexField
+      <RegexField
         name="match_release_tags"
         label="Match release tags"
         useRegex={values.use_regex_release_tags}
         columns={6}
         placeholder="eg. *mkv*,*foreign*"
       />
-      <Input.RegexField
+      <RegexField
         name="except_release_tags"
         label="Except release tags"
         useRegex={values.use_regex_release_tags}

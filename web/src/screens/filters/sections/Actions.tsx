@@ -23,9 +23,17 @@ import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 
-import * as FilterSection from "./_components";
-import * as FilterActions from "./action_components";
 import { DownloadClientsQueryOptions } from "@api/queries";
+import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
+import {
+  Arr,
+  Deluge, Exec,
+  Porla,
+  QBittorrent,
+  RTorrent,
+  SABnzbd, Test,
+  Transmission, WatchFolder, WebHook
+} from "@screens/filters/sections/action_components";
 
 // interface FilterActionsProps {
 //   filter: Filter;
@@ -51,6 +59,7 @@ export function Actions() {
     save_path: "",
     paused: false,
     ignore_rules: false,
+    first_last_piece_prio: false,
     skip_hash_check: false,
     content_layout: "" || undefined,
     priority: "" || undefined,
@@ -140,35 +149,35 @@ const TypeForm = (props: ClientActionProps) => {
   switch (action.type) {
   // torrent clients
   case "QBITTORRENT":
-    return <FilterActions.QBittorrent {...props} />;
+    return <QBittorrent {...props} />;
   case "DELUGE_V1":
   case "DELUGE_V2":
-    return <FilterActions.Deluge {...props} />;
+    return <Deluge {...props} />;
   case "RTORRENT":
-    return <FilterActions.RTorrent {...props} />;
+    return <RTorrent {...props} />;
   case "TRANSMISSION":
-    return <FilterActions.Transmission {...props} />;
+    return <Transmission {...props} />;
   case "PORLA":
-    return <FilterActions.Porla {...props} />;
+    return <Porla {...props} />;
   // arrs
   case "RADARR":
   case "SONARR":
   case "LIDARR":
   case "WHISPARR":
   case "READARR":
-    return <FilterActions.Arr {...props} />;
+    return <Arr {...props} />;
   // nzb
   case "SABNZBD":
-    return <FilterActions.SABnzbd {...props} />;
+    return <SABnzbd {...props} />;
   // autobrr actions
   case "TEST":
-    return <FilterActions.Test />;
+    return <Test />;
   case "EXEC":
-    return <FilterActions.Exec {...props} />;
+    return <Exec {...props} />;
   case "WATCH_FOLDER":
-    return <FilterActions.WatchFolder {...props} />;
+    return <WatchFolder {...props} />;
   case "WEBHOOK":
-    return <FilterActions.WebHook {...props} />;
+    return <WebHook {...props} />;
   default:
     // TODO(stacksmash76): Indicate error
     return null;
@@ -267,13 +276,13 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             text="Are you sure you want to remove this action? This action cannot be undone."
           />
 
-          <FilterSection.Page gap="sm:gap-y-6">
-            <FilterSection.Section
+          <FilterPage gap="sm:gap-y-6">
+            <FilterSection
               title="Action"
               subtitle="Define the download client for your action and its name"
             >
-              <FilterSection.Layout>
-                <FilterSection.HalfRow>
+              <FilterLayout>
+                <FilterHalfRow>
                   <Select
                     name={`actions.${idx}.type`}
                     label="Action type"
@@ -281,13 +290,13 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                     options={ActionTypeOptions}
                     tooltip={<div><p>Select the action type for this action.</p></div>}
                   />
-                </FilterSection.HalfRow>
+                </FilterHalfRow>
 
-                <FilterSection.HalfRow>
+                <FilterHalfRow>
                   <TextField name={`actions.${idx}.name`} label="Name" />
-                </FilterSection.HalfRow>
-              </FilterSection.Layout>
-            </FilterSection.Section>
+                </FilterHalfRow>
+              </FilterLayout>
+            </FilterSection>
 
             <TypeForm action={action} clients={clients} idx={idx} />
 
@@ -308,7 +317,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 Close
               </button>
             </div>
-          </FilterSection.Page>
+          </FilterPage>
         </div>
       )}
     </li>

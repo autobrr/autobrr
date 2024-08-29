@@ -85,6 +85,15 @@ checkForUpdates = true
 # Session secret
 #
 sessionSecret = "{{ .sessionSecret }}"
+
+# Golang pprof profiling and tracing
+#
+#profilingEnabled = false
+#
+#profilingHost = "127.0.0.1"
+#
+# Default: 6060
+#profilingPort = 6060
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -115,6 +124,11 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			// of the container in every boot.
 			// if this file exists then the viewer is running
 			// from inside a lxc container so return true
+			host = "0.0.0.0"
+		} else if os.Getpid() == 1 {
+			// if we're running as pid 1, we're honoured.
+			// but there's a good chance this is an isolated namespace
+			// or a container.
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
@@ -205,6 +219,9 @@ func (c *AppConfig) defaults() {
 		PostgresPass:        "",
 		PostgresSSLMode:     "disable",
 		PostgresExtraParams: "",
+		ProfilingEnabled:    false,
+		ProfilingHost:       "127.0.0.1",
+		ProfilingPort:       6060,
 	}
 
 }
@@ -296,6 +313,21 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "POSTGRES_EXTRA_PARAMS"); v != "" {
 		c.Config.PostgresExtraParams = v
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_ENABLED"); v != "" {
+		c.Config.ProfilingEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_HOST"); v != "" {
+		c.Config.ProfilingHost = v
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_PORT"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.ProfilingPort = int(i)
+		}
 	}
 }
 

@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"io"
 	"net/http"
 	"strconv"
@@ -30,6 +31,10 @@ type ntfySender struct {
 	httpClient *http.Client
 }
 
+func (s *ntfySender) Name() string {
+	return "ntfy"
+}
+
 func NewNtfySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &ntfySender{
 		log:      log.With().Str("sender", "ntfy").Logger(),
@@ -50,11 +55,10 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 
 	req, err := http.NewRequest(http.MethodPost, s.Settings.Host, strings.NewReader(m.Message))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("ntfy client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
-	req.Header.Set("Content-Type", "text/pain")
+	req.Header.Set("Content-Type", "text/plain")
 	req.Header.Set("User-Agent", "autobrr")
 
 	req.Header.Set("Title", m.Title)
@@ -71,23 +75,20 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 
 	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("ntfy client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("ntfy client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
-	}
-
-	s.log.Trace().Msgf("ntfy status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("ntfy response status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("ntfy client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to ntfy")

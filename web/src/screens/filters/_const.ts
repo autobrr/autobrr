@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 export const FILTER_FIELDS: Record<string, string> = {
   "id": "number",
   "enabled": "boolean",

@@ -23,8 +23,7 @@ import { DeleteModal } from "@components/modals";
 import { DocsLink } from "@components/ExternalLink";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
-
-import * as FilterSection from "./_components";
+import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
 
 export function External() {
   const { values } = useFormikContext<Filter>();
@@ -197,13 +196,13 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
             text="Are you sure you want to remove this external filter? This action cannot be undone."
           />
 
-          <FilterSection.Page gap="sm:gap-y-6">
-            <FilterSection.Section
+          <FilterPage gap="sm:gap-y-6">
+            <FilterSection
               title="External Filter"
               subtitle="Define the type of your filter and its name"
             >
-              <FilterSection.Layout>
-                <FilterSection.HalfRow>
+              <FilterLayout>
+                <FilterHalfRow>
                   <Select
                     name={`external.${idx}.type`}
                     label="Type"
@@ -211,13 +210,13 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                     options={ExternalFilterTypeOptions}
                     tooltip={<div><p>Select the type for this external filter.</p></div>}
                   />
-                </FilterSection.HalfRow>
+                </FilterHalfRow>
 
-                <FilterSection.HalfRow>
+                <FilterHalfRow>
                   <TextField name={`external.${idx}.name`} label="Name" />
-                </FilterSection.HalfRow>
-              </FilterSection.Layout>
-            </FilterSection.Section>
+                </FilterHalfRow>
+              </FilterLayout>
+            </FilterSection>
 
             <TypeForm external={external} idx={idx} />
 
@@ -238,7 +237,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 Close
               </button>
             </div>
-          </FilterSection.Page>
+          </FilterPage>
         </div>
       )}
     </li>
@@ -255,11 +254,11 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
   switch (external.type) {
   case "EXEC": {
     return (
-      <FilterSection.Section
+      <FilterSection
         title="Execute"
         subtitle="Specify the executable, the argument and the expected exit status to run as a pre-filter"
       >
-        <FilterSection.Layout>
+        <FilterLayout>
           <TextAreaAutoResize
             name={`external.${idx}.exec_cmd`}
             label="Path to Executable"
@@ -288,18 +287,18 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
               placeholder="0"
             />
           </div>
-        </FilterSection.Layout>
-      </FilterSection.Section>
+        </FilterLayout>
+      </FilterSection>
     );
   }
   case "WEBHOOK": {
     return (
       <>
-        <FilterSection.Section
+        <FilterSection
           title="Request"
           subtitle="Specify your request destination endpoint, headers and expected return status"
         >
-          <FilterSection.Layout>
+          <FilterLayout>
             <TextField
               name={`external.${idx}.webhook_host`}
               label="Endpoint"
@@ -325,13 +324,13 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
               label="Expected HTTP status code"
               placeholder="200"
             />
-          </FilterSection.Layout>
-        </FilterSection.Section>
-        <FilterSection.Section
+          </FilterLayout>
+        </FilterSection>
+        <FilterSection
           title="Retry"
           subtitle="Retry behavior on request failure"
         >
-          <FilterSection.Layout>
+          <FilterLayout>
             <TextField
               name={`external.${idx}.webhook_retry_status`}
               label="Retry http status code(s)"
@@ -348,20 +347,20 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
               label="Retry delay in seconds"
               placeholder="1"
             />
-          </FilterSection.Layout>
-        </FilterSection.Section>
-        <FilterSection.Section
+          </FilterLayout>
+        </FilterSection>
+        <FilterSection
           title="Payload"
           subtitle="Specify your JSON payload"
         >
-          <FilterSection.Layout>
+          <FilterLayout>
             <TextAreaAutoResize
               name={`external.${idx}.webhook_data`}
               label="Data (json)"
               placeholder={"Request data: { \"key\": \"value\" }"}
             />
-          </FilterSection.Layout>
-        </FilterSection.Section>
+          </FilterLayout>
+        </FilterSection>
       </>
     );
   }

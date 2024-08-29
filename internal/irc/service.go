@@ -37,6 +37,7 @@ type Service interface {
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
+	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
 }
 
 type service struct {
@@ -427,6 +428,26 @@ func (s *service) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	network.Channels = append(network.Channels, channels...)
 
 	return network, nil
+}
+
+func (s *service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error {
+	network, err := s.repo.GetNetworkByID(ctx, req.NetworkId)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("failed to get network: %d", req.NetworkId)
+		return err
+	}
+
+	handler, ok := s.handlers[network.ID]
+	if !ok {
+		return errors.New("could not find irc handler with id: %d", network.ID)
+	}
+
+	err = handler.sendToAnnounceProcessor(req.Channel, req.Message)
+	if err != nil {
+		return errors.Wrap(err, "could not send manual announce to processor")
+	}
+
+	return nil
 }
 
 func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {

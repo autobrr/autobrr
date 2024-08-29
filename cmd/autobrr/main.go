@@ -4,7 +4,6 @@
 package main
 
 import (
-	_ "go.uber.org/automaxprocs"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/diagnostics"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
@@ -32,8 +32,11 @@ import (
 	"github.com/autobrr/autobrr/internal/user"
 
 	"github.com/asaskevich/EventBus"
+	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
+	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 var (
@@ -53,8 +56,17 @@ func main() {
 	// init new logger
 	log := logger.New(cfg.Config)
 
+	// Set GOMAXPROCS to match the Linux container CPU quota (if any)
+	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
+	defer undo()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to set GOMAXPROCS")
+	}
+
 	// init dynamic config
 	cfg.DynamicReload(log)
+
+	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
 
 	// setup server-sent-events
 	serverEvents := sse.New()
@@ -107,9 +119,9 @@ func main() {
 		authService           = auth.NewService(log, userService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, indexerAPIService, schedulingService)
-		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
-		releaseService        = release.NewService(log, releaseRepo, actionService, filterService)
+		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
+		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService)
+		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
 	)

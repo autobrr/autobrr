@@ -14,7 +14,7 @@ import (
 type ActionRepo interface {
 	Store(ctx context.Context, action Action) (*Action, error)
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*Action) ([]*Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*Action, error)
+	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)
 	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
 	Delete(ctx context.Context, req *DeleteActionRequest) error
@@ -36,6 +36,7 @@ type Action struct {
 	SavePath                 string              `json:"save_path,omitempty"`
 	Paused                   bool                `json:"paused,omitempty"`
 	IgnoreRules              bool                `json:"ignore_rules,omitempty"`
+	FirstLastPiecePrio       bool                `json:"first_last_piece_prio,omitempty"`
 	SkipHashCheck            bool                `json:"skip_hash_check,omitempty"`
 	ContentLayout            ActionContentLayout `json:"content_layout,omitempty"`
 	LimitUploadSpeed         int64               `json:"limit_upload_speed,omitempty"`

@@ -5,7 +5,7 @@
 
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { useRouter, useSearch } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 
@@ -18,15 +18,20 @@ import { PasswordInput, TextInput } from "@components/inputs/text";
 import { LoginRoute } from "@app/routes";
 
 import Logo from "@app/logo.svg?react";
+import { AuthContext } from "@utils/Context";
+// import { WarningAlert } from "@components/alerts";
 
 type LoginFormFields = {
   username: string;
   password: string;
 };
 
-export const Login = () => {
+export const Login = () => {  
+  const [auth, setAuth] = AuthContext.use();
+
+  const queryErrorResetBoundary = useQueryErrorResetBoundary()
+
   const router = useRouter()
-  const { auth } = LoginRoute.useRouteContext()
   const search = useSearch({ from: LoginRoute.id })
 
   const { handleSubmit, register, formState } = useForm<LoginFormFields>({
@@ -35,19 +40,24 @@ export const Login = () => {
   });
 
   useEffect(() => {
+    queryErrorResetBoundary.reset()
     // remove user session when visiting login page
-    auth.logout()
-  }, []);
+    AuthContext.reset();
+  }, [queryErrorResetBoundary]);
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
     onSuccess: (_, variables: LoginFormFields) => {
-      auth.login(variables.username)
+      queryErrorResetBoundary.reset()
+      setAuth({
+        isLoggedIn: true,
+        username: variables.username
+      });
       router.invalidate()
     },
-    onError: () => {
+    onError: (error) => {
       toast.custom((t) => (
-        <Toast type="error" body="Wrong password or username!" t={t} />
+        <Toast type="error" body={error.message || "An error occurred!"} t={t} />
       ));
     }
   });
@@ -60,7 +70,7 @@ export const Login = () => {
     } else if (auth.isLoggedIn) {
       router.history.push("/")
     }
-  }, [auth.isLoggedIn, search.redirect])
+  }, [auth.isLoggedIn, search.redirect]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen flex flex-col justify-center px-3">

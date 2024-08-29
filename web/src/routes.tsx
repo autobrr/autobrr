@@ -7,7 +7,7 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
-  ErrorComponent,
+  Navigate,
   notFound,
   Outlet,
   redirect,
@@ -30,7 +30,8 @@ import {
   FilterByIdQueryOptions,
   IndexersQueryOptions,
   IrcQueryOptions,
-  NotificationsQueryOptions, ProxiesQueryOptions
+  NotificationsQueryOptions,
+  ProxiesQueryOptions
 } from "@api/queries";
 import LogSettings from "@screens/settings/Logs";
 import NotificationSettings from "@screens/settings/Notifications";
@@ -46,11 +47,13 @@ import DownloadClientSettings from "@screens/settings/DownloadClient";
 import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
-import { AuthContext, AuthCtx, localStorageUserKey, SettingsContext } from "@utils/Context";
+import { AuthContext, SettingsContext } from "@utils/Context";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
-import ProxySettings from "@screens/settings/Proxy.tsx";
+import ProxySettings from "@screens/settings/Proxy";
+
+import { ErrorPage } from "@components/alerts";
 
 const DashboardRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
@@ -134,16 +137,9 @@ export const FilterActionsRoute = createRoute({
   component: Actions
 });
 
-const ReleasesRoute = createRoute({
+export const ReleasesRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
-  path: 'releases'
-});
-
-// type ReleasesSearch = z.infer<typeof releasesSearchSchema>
-
-export const ReleasesIndexRoute = createRoute({
-  getParentRoute: () => ReleasesRoute,
-  path: '/',
+  path: 'releases',
   component: Releases,
   validateSearch: (search) => z.object({
     offset: z.number().optional(),
@@ -268,7 +264,7 @@ export const LoginRoute = createRoute({
   validateSearch: z.object({
     redirect: z.string().optional(),
   }),
-  beforeLoad: ({ navigate}) => {
+  beforeLoad: ({ navigate }) => {
     // handle canOnboard
     APIClient.auth.canOnboard().then(() => {
       console.info("onboarding available, redirecting")
@@ -285,44 +281,36 @@ export const AuthRoute = createRoute({
   id: 'auth',
   // Before loading, authenticate the user via our auth context
   // This will also happen during prefetching (e.g. hovering over links, etc.)
-  beforeLoad: ({context, location}) => {
+  beforeLoad: ({ context, location }) => {
     // If the user is not logged in, check for item in localStorage
-    if (!context.auth.isLoggedIn) {
-      const storage = localStorage.getItem(localStorageUserKey);
-      if (storage) {
-        try {
-          const json = JSON.parse(storage);
-          if (json === null) {
-            console.warn(`JSON localStorage value for '${localStorageUserKey}' context state is null`);
-          } else {
-            context.auth.isLoggedIn = json.isLoggedIn
-            context.auth.username = json.username
-          }
-        } catch (e) {
-          console.error(`auth Failed to merge ${localStorageUserKey} context state: ${e}`);
-        }
-      } else {
-        // If the user is logged out, redirect them to the login page
-        throw redirect({
-          to: LoginRoute.to,
-          search: {
-            // Use the current location to power a redirect after login
-            // (Do not use `router.state.resolvedLocation` as it can
-            // potentially lag behind the actual current location)
-            redirect: location.href,
-          },
-        })
-      }
+    if (!AuthContext.get().isLoggedIn) {
+      throw redirect({
+        to: LoginRoute.to,
+        search: {
+          // Use the current location to power a redirect after login
+          // (Do not use `router.state.resolvedLocation` as it can
+          // potentially lag behind the actual current location)
+          redirect: location.href,
+        },
+      });
     }
 
     // Otherwise, return the user in context
-    return {
-      username: AuthContext.username,
-    }
+    return context;
   },
 })
 
 function AuthenticatedLayout() {
+  const isLoggedIn = AuthContext.useSelector((s) => s.isLoggedIn);
+  if (!isLoggedIn) {
+    const redirect = (
+      location.pathname.length > 1
+        ? { redirect: location.pathname }
+        : undefined
+    );
+    return <Navigate to="/login" search={redirect} />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header/>
@@ -340,7 +328,7 @@ export const AuthIndexRoute = createRoute({
 export const RootComponent = () => {
   const settings = SettingsContext.useValue();
   return (
-    <div className="min-h-screen">
+    <div className="flex flex-col min-h-screen">
       <Outlet/>
       {settings.debug ? (
         <>
@@ -353,7 +341,6 @@ export const RootComponent = () => {
 }
 
 export const RootRoute = createRootRouteWithContext<{
-  auth: AuthCtx,
   queryClient: QueryClient
 }>()({
   component: RootComponent,
@@ -362,7 +349,7 @@ export const RootRoute = createRootRouteWithContext<{
 
 const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute])])
 const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
-const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute.addChildren([ReleasesIndexRoute]), settingsRouteTree, LogsRoute])])
+const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute])])
 const routeTree = RootRoute.addChildren([
   authenticatedTree,
   LoginRoute,
@@ -376,9 +363,10 @@ export const Router = createRouter({
       <RingResizeSpinner className="text-blue-500 size-24"/>
     </div>
   ),
-  defaultErrorComponent: ({error}) => <ErrorComponent error={error}/>,
+  defaultErrorComponent: (ctx) => (
+    <ErrorPage error={ctx.error} reset={ctx.reset} />
+  ),
   context: {
-    auth: undefined!, // We'll inject this when we render
     queryClient
   },
 });

@@ -1,0 +1,85 @@
+---
+#id: keepfrds
+name: KeepFRDS
+identifier: keepfrds
+description: PT@KEEPFRDS is a CHINESE Private Torrent Tracker for HD MOVIES / TV
+language: zh-cn
+urls:
+  - https://pt.keepfrds.com/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: NexusPHP
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Your passkey."
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#frds.announce"
+  announcers:
+    - mmt
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "mmt !invite IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with the key from https://pt.keepfrds.com/irc.php. Replace IRCKEY.
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: Blu-ray / x265 10bit / 1080p - Trick The Movie 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS - 8.4 GiB - https://pt.keepfrds.com/details.php?id=0000000
+          expect:
+            releaseTags: Blu-ray / x265 10bit / 1080p
+            torrentName: Trick The Movie 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS
+            torrentSize: "8.4 GiB"
+            baseUrl: https://pt.keepfrds.com/
+            torrentId: "0000000"
+        - line: Blu-ray / x265 10bit / 1080p - Trick - With Hyphen 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS - 8.4 GiB - https://pt.keepfrds.com/details.php?id=0000000
+          expect:
+            releaseTags: Blu-ray / x265 10bit / 1080p
+            torrentName: Trick - With Hyphen 2002 1080p BluRay x265 10bit FLAC MNHD-FRDS
+            torrentSize: "8.4 GiB"
+            baseUrl: https://pt.keepfrds.com/
+            torrentId: "0000000"
+        pattern: '(.*?) - (.*) - (.*) - (https?:\/\/.*\/).*?id=(\d+)'
+        vars:
+          - releaseTags
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"

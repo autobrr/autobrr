@@ -18,7 +18,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/mmcdole/gofeed"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
@@ -42,14 +41,14 @@ type Service interface {
 }
 
 type feedInstance struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	URL               string
-	ApiKey            string
-	Implementation    string
-	CronSchedule      time.Duration
-	Timeout           time.Duration
+	Feed           *domain.Feed
+	Name           string
+	Indexer        domain.IndexerMinimal
+	URL            string
+	ApiKey         string
+	Implementation string
+	CronSchedule   time.Duration
+	Timeout        time.Duration
 }
 
 // feedKey creates a unique identifier to be used for controlling jobs in the scheduler
@@ -255,7 +254,7 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	f, err := gofeed.NewParser().ParseURLWithContext(feed.URL, ctx)
+	f, err := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie).ParseURLWithContext(ctx, feed.URL)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("error fetching rss feed items")
 		return errors.Wrap(err, "error fetching rss feed items")
@@ -309,6 +308,13 @@ func (s *service) start() error {
 		return err
 	}
 
+	if len(feeds) == 0 {
+		s.log.Debug().Msg("found 0 feeds to start")
+		return nil
+	}
+
+	s.log.Debug().Msgf("preparing staggered start of %d feeds", len(feeds))
+
 	for _, feed := range feeds {
 		feed := feed
 
@@ -321,6 +327,9 @@ func (s *service) start() error {
 			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
 			continue
 		}
+
+		// add sleep for the next iteration to start staggered which should mitigate sqlite BUSY errors
+		time.Sleep(time.Second * 5)
 	}
 
 	return nil
@@ -349,14 +358,14 @@ func (s *service) restartJob(f *domain.Feed) error {
 func newFeedInstance(f *domain.Feed) feedInstance {
 	// cron schedule to run every X minutes
 	fi := feedInstance{
-		Feed:              f,
-		Name:              f.Name,
-		IndexerIdentifier: f.Indexer,
-		Implementation:    f.Type,
-		URL:               f.URL,
-		ApiKey:            f.ApiKey,
-		CronSchedule:      time.Duration(f.Interval) * time.Minute,
-		Timeout:           time.Duration(f.Timeout) * time.Second,
+		Feed:           f,
+		Name:           f.Name,
+		Indexer:        f.Indexer,
+		Implementation: f.Type,
+		URL:            f.URL,
+		ApiKey:         f.ApiKey,
+		CronSchedule:   time.Duration(f.Interval) * time.Minute,
+		Timeout:        time.Duration(f.Timeout) * time.Second,
 	}
 
 	return fi
@@ -403,11 +412,11 @@ func (s *service) startJob(f *domain.Feed) error {
 
 	job, err := s.initializeFeedJob(fi)
 	if err != nil {
-		return errors.Wrap(err, "initialize job %s failed", f.Indexer)
+		return errors.Wrap(err, "initialize job %s failed", f.Name)
 	}
 
 	if err := s.scheduleJob(fi, job); err != nil {
-		return errors.Wrap(err, "schedule job %s failed", f.Indexer)
+		return errors.Wrap(err, "schedule job %s failed", f.Name)
 	}
 
 	s.log.Debug().Msgf("successfully started feed: %s", f.Name)
@@ -448,7 +457,7 @@ func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
 	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
-	job := NewTorznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
 	return job, nil
 }
@@ -467,7 +476,7 @@ func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
 	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
-	job := NewNewznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
 	return job, nil
 }
@@ -487,7 +496,7 @@ func (s *service) createRSSJob(f feedInstance) (FeedJob, error) {
 	l := s.log.With().Str("feed", f.Name).Logger()
 
 	// create job
-	job := NewRSSJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
+	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
 
 	return job, nil
 }

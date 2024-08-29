@@ -6,7 +6,16 @@
 import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
-import { Listbox, Menu, Transition } from "@headlessui/react";
+import {
+  Listbox,
+  ListboxButton,
+  ListboxOption, ListboxOptions,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuItems,
+  Transition
+} from "@headlessui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowsRightLeftIcon,
@@ -23,7 +32,7 @@ import {
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
 import { FilterListContext, FilterListState } from "@utils/Context";
-import { classNames } from "@utils";
+import { classNames, CopyTextToClipboard } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
@@ -114,9 +123,9 @@ export function Filters() {
                 <PlusIcon className="h-5 w-5 mr-1" />
                 Create Filter
               </button>
-              <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
                 <ChevronDownIcon className="h-5 w-5" />
-              </Menu.Button>
+              </MenuButton>
               <Transition
                 show={open}
                 as={Fragment}
@@ -127,8 +136,8 @@ export function Filters() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Menu.Items className="absolute z-10 right-0 mt-0.5 bg-white dark:bg-gray-700 rounded-md shadow-lg">
-                  <Menu.Item>
+                <MenuItems className="absolute z-10 right-0 mt-0.5 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                  <MenuItem>
                     {({ active }) => (
                       <button
                         type="button"
@@ -142,8 +151,8 @@ export function Filters() {
                         <span>Import filter</span>
                       </button>
                     )}
-                  </Menu.Item>
-                </Menu.Items>
+                  </MenuItem>
+                </MenuItems>
               </Transition>
             </>
           )}
@@ -284,17 +293,6 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         actions: any;
         actions_count: any;
         actions_enabled_count: number;
-        external_script_enabled: any;
-        external_script_cmd: any;
-        external_script_args: any;
-        external_script_expect_status: any;
-        external_webhook_enabled: any;
-        external_webhook_host: any;
-        external_webhook_data: any;
-        external_webhook_expect_status: any;
-        external_webhook_retry_status: any;
-        external_webhook_retry_attempts: any;
-        external_webhook_retry_delay_seconds: any;
       };
 
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
@@ -309,17 +307,6 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.actions_enabled_count;
       delete completeFilter.indexers;
       delete completeFilter.actions;
-      delete completeFilter.external_script_enabled;
-      delete completeFilter.external_script_cmd;
-      delete completeFilter.external_script_args;
-      delete completeFilter.external_script_expect_status;
-      delete completeFilter.external_webhook_enabled;
-      delete completeFilter.external_webhook_host;
-      delete completeFilter.external_webhook_data;
-      delete completeFilter.external_webhook_expect_status;
-      delete completeFilter.external_webhook_retry_status;
-      delete completeFilter.external_webhook_retry_attempts;
-      delete completeFilter.external_webhook_retry_delay_seconds;
 
       // Remove properties with default values from the exported filter to minimize the size of the JSON string
       ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
@@ -346,40 +333,17 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
       const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
 
-      const copyTextToClipboard = (text: string) => {
-        const textarea = document.createElement("textarea");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
+      // Asynchronously call copyTextToClipboard
+      CopyTextToClipboard(finalJson)
+        .then(() => {
+          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard!" t={t} />);
 
-        try {
-          const successful = document.execCommand("copy");
-          if (successful) {
-            toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-          } else {
-            toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-          }
-        } catch (err) {
-          console.error("Unable to copy text", err);
-          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-        }
+        })
+        .catch((err) => {
+          console.error("could not copy filter to clipboard", err);
 
-        document.body.removeChild(textarea);
-      };
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(finalJson).then(() => {
-          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-        }, () => {
           toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
         });
-      } else {
-        copyTextToClipboard(finalJson);
-      }
-
     } catch (error) {
       console.error(error);
       toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
@@ -425,12 +389,12 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         title={`Remove filter: ${filter.name}`}
         text="Are you sure you want to remove this filter? This action cannot be undone."
       />
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -440,11 +404,12 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+        <MenuItems
+          anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <Link
                   // to={filter.id.toString()}
@@ -467,8 +432,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Edit
                 </Link>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -486,8 +451,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Export JSON
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -506,8 +471,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Export JSON to Discord
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -526,8 +491,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Toggle
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -546,10 +511,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Duplicate
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -568,9 +533,9 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Delete
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );
@@ -756,7 +721,7 @@ const ListboxFilter = ({
     onChange={onChange}
   >
     <div className="relative">
-      <Listbox.Button className="relative w-full py-2 pr-4 text-left dark:text-gray-400 text-sm">
+      <ListboxButton className="relative w-full py-2 pr-4 text-left dark:text-gray-400 text-sm">
         <span className="block truncate">{label}</span>
         <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
           <ChevronDownIcon
@@ -764,18 +729,18 @@ const ListboxFilter = ({
             aria-hidden="true"
           />
         </span>
-      </Listbox.Button>
+      </ListboxButton>
       <Transition
         as={Fragment}
         leave="transition ease-in duration-100"
         leaveFrom="opacity-100"
         leaveTo="opacity-0"
       >
-        <Listbox.Options
+        <ListboxOptions
           className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
         >
           {children}
-        </Listbox.Options>
+        </ListboxOptions>
       </Transition>
     </div>
   </Listbox>
@@ -818,7 +783,7 @@ interface FilterOptionProps {
 }
 
 const FilterOption = ({ label, value }: FilterOptionProps) => (
-  <Listbox.Option
+  <ListboxOption
     className={({ active }) => classNames(
       "cursor-pointer select-none relative py-2 px-4",
       active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
@@ -842,7 +807,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
         ) : null}
       </div>
     )}
-  </Listbox.Option>
+  </ListboxOption>
 );
 
 export const SortSelectFilter = ({ dispatch }: any) => {

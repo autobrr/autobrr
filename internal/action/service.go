@@ -21,9 +21,10 @@ import (
 
 type Service interface {
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
+	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error)
+	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
@@ -63,6 +64,10 @@ func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Acti
 	return s.repo.Store(ctx, action)
 }
 
+func (s *service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
+	return s.repo.StoreFilterActions(ctx, filterID, actions)
+}
+
 func (s *service) List(ctx context.Context) ([]domain.Action, error) {
 	return s.repo.List(ctx)
 }
@@ -86,8 +91,8 @@ func (s *service) Get(ctx context.Context, req *domain.GetActionRequest) (*domai
 	return a, nil
 }
 
-func (s *service) FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
-	return s.repo.FindByFilterID(ctx, filterID, active)
+func (s *service) FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error) {
+	return s.repo.FindByFilterID(ctx, filterID, active, withClient)
 }
 
 func (s *service) Delete(ctx context.Context, req *domain.DeleteActionRequest) error {

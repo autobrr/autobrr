@@ -29,7 +29,6 @@ func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 }
 
 func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
-
 	queryBuilder := r.db.squirrel.
 		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "host", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
@@ -75,7 +74,6 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 }
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
-
 	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
@@ -117,7 +115,6 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 }
 
 func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notification, error) {
-
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -158,6 +155,10 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 
 	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic sql.NullString
 	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &n.CreatedAt, &n.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 

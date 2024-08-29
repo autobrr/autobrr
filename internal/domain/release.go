@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +37,8 @@ type ReleaseRepo interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	Delete(ctx context.Context, req *DeleteReleaseRequest) error
-	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
+	CheckSmartEpisodeCanDownload(ctx context.Context, p *SmartEpisodeParams) (bool, error)
+	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
 	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
@@ -45,7 +48,7 @@ type Release struct {
 	ID                          int64                 `json:"id"`
 	FilterStatus                ReleaseFilterStatus   `json:"filter_status"`
 	Rejections                  []string              `json:"rejections"`
-	Indexer                     string                `json:"indexer"`
+	Indexer                     IndexerMinimal        `json:"indexer"`
 	FilterName                  string                `json:"filter"`
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
@@ -67,6 +70,8 @@ type Release struct {
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
 	Year                        int                   `json:"year"`
+	Month                       int                   `json:"month"`
+	Day                         int                   `json:"day"`
 	Resolution                  string                `json:"resolution"`
 	Source                      string                `json:"source"`
 	Codec                       []string              `json:"codec"`
@@ -124,7 +129,9 @@ type ReleaseActionStatus struct {
 }
 
 type DeleteReleaseRequest struct {
-	OlderThan int
+	OlderThan       int
+	Indexers        []string
+	ReleaseStatuses []string
 }
 
 func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
@@ -270,6 +277,12 @@ type ReleaseActionRetryReq struct {
 	ActionId       int
 }
 
+type ReleaseProcessReq struct {
+	IndexerIdentifier     string   `json:"indexer_identifier"`
+	IndexerImplementation string   `json:"indexer_implementation"`
+	AnnounceLines         []string `json:"announce_lines"`
+}
+
 type GetReleaseRequest struct {
 	Id int
 }
@@ -278,7 +291,7 @@ type GetReleaseActionStatusRequest struct {
 	Id int
 }
 
-func NewRelease(indexer string) *Release {
+func NewRelease(indexer IndexerMinimal) *Release {
 	r := &Release{
 		Indexer:        indexer,
 		FilterStatus:   ReleaseStatusFilterPending,
@@ -307,9 +320,13 @@ func (r *Release) ParseString(title string) {
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
-	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	r.Other = rel.Other
+
+	r.Proper = slices.Contains(r.Other, "PROPER")
+	r.Repack = slices.Contains(r.Other, "REPACK")
 
 	if r.Title == "" {
 		r.Title = rel.Title
@@ -324,6 +341,12 @@ func (r *Release) ParseString(title string) {
 
 	if r.Year == 0 {
 		r.Year = rel.Year
+	}
+	if r.Month == 0 {
+		r.Month = rel.Month
+	}
+	if r.Day == 0 {
+		r.Day = rel.Day
 	}
 
 	if r.Group == "" {
@@ -451,10 +474,25 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
 	// Create tmp file
-	tmpFile, err := os.CreateTemp("", "autobrr-")
+	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
 	if err != nil {
-		return errors.Wrap(err, "error creating tmp file")
+		// inverse the err check to make it a bit cleaner
+		if !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "error creating tmp file")
+		}
+
+		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
+			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
+		}
+
+		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
+		if err != nil {
+			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
+		}
 	}
 	defer tmpFile.Close()
 
@@ -472,25 +510,24 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			// Continue processing the response
 		//case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
 		//	// Handle redirect
-		//	return retry.Unrecoverable(errors.New("redirect encountered for torrent (%s) file (%s) - status code: %d - check indexer keys for %s", r.TorrentName, r.DownloadURL, resp.StatusCode, r.Indexer))
+		//	return retry.Unrecoverable(errors.New("redirect encountered for torrent (%s) file (%s) - status code: %d - check indexer keys for %s", r.TorrentName, r.DownloadURL, resp.StatusCode, r.Indexer.Name))
 
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%s) file (%s) - status code: %d - check indexer keys for %s", r.TorrentName, r.DownloadURL, resp.StatusCode, r.Indexer))
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%s) file (%s) - status code: %d - check indexer keys for %s", r.TorrentName, r.DownloadURL, resp.StatusCode, r.Indexer.Name))
 
 		case http.StatusMethodNotAllowed:
-			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%s) file (%s) from '%s' - status code: %d. Check if the request method is correct", r.TorrentName, r.DownloadURL, r.Indexer, resp.StatusCode))
-
+			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%s) file (%s) from '%s' - status code: %d. Check if the request method is correct", r.TorrentName, r.DownloadURL, r.Indexer.Name, resp.StatusCode))
 		case http.StatusNotFound:
-			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer, resp.StatusCode)
+			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer.Name, resp.StatusCode)
 
 		case http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout:
-			return errors.New("server error (%d) encountered while downloading torrent (%s) file (%s) from '%s' - retrying", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer)
+			return errors.New("server error (%d) encountered while downloading torrent (%s) file (%s) from '%s' - retrying", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name)
 
 		case http.StatusInternalServerError:
-			return errors.New("server error (%d) encountered while downloading torrent (%s) file (%s) - check indexer keys for %s", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer)
+			return errors.New("server error (%d) encountered while downloading torrent (%s) file (%s) - check indexer keys for %s", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name)
 
 		default:
-			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer))
+			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer.Name))
 		}
 
 		resetTmpFile := func() {
@@ -499,7 +536,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 
 		// Read the body into bytes
-		bodyBytes, err := io.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
 		if err != nil {
 			return errors.Wrap(err, "error reading response body")
 		}
@@ -516,10 +553,10 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			var bse *bencode.SyntaxError
 			if errors.As(err, &bse) {
 				// regular error so we can retry if we receive html first run
-				return errors.Wrap(err, "metainfo unexpected content type, got HTML expected a bencoded torrent. check indexer keys for %s - %s", r.Indexer, r.TorrentName)
+				return errors.Wrap(err, "metainfo unexpected content type, got HTML expected a bencoded torrent. check indexer keys for %s - %s", r.Indexer.Name, r.TorrentName)
 			}
 
-			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer, r.TorrentName))
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer.Name, r.TorrentName))
 		}
 
 		// Write the body to file

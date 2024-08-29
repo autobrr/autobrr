@@ -1,20 +1,30 @@
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { DocsLink } from "@components/ExternalLink";
 import { TextAreaAutoResize } from "@components/inputs/input";
 import { MultiSelect, SwitchGroup, TextField } from "@components/inputs";
 
 import * as CONSTS from "@domain/constants";
-import * as Components from "./_components";
+import {
+  FilterLayout,
+  FilterPage,
+  FilterSection,
+  FilterWideGridGapClass
+} from "@screens/filters/sections/_components.tsx";
 
 const SeasonsAndEpisodes = () => (
-  <Components.Section
-    title="Seasons and Episodes"
-    subtitle="Set season and episode match constraints."
+  <FilterSection
+    title="Seasons, Episodes and Date"
+    subtitle="Set season, episode, year, months and day match constraints."
   >
-    <Components.Layout>
+    <FilterLayout>
       <TextField
         name="seasons"
         label="Seasons"
-        columns={8}
+        columns={6}
         placeholder="eg. 1,3,2-6"
         tooltip={
           <div>
@@ -26,16 +36,52 @@ const SeasonsAndEpisodes = () => (
       <TextField
         name="episodes"
         label="Episodes"
-        columns={4}
+        columns={6}
         placeholder="eg. 2,4,10-20"
         tooltip={
           <div>
             <p>See docs for information about how to <b>only</b> grab episodes:</p>
-            <DocsLink href="https://autobrr.com/filters/examples/#skip-season-packs" />
+            <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs"/>
           </div>
         }
       />
-
+      <p className="col-span-12 -mb-1 text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">Daily Shows</p>
+      <TextField
+        name="years"
+        label="Years"
+        columns={4}
+        placeholder="eg. 2018,2019-2021"
+        tooltip={
+          <div>
+            <p>This field takes a range of years and/or comma separated single years.</p>
+            <DocsLink href="https://autobrr.com/filters#tvmovies"/>
+          </div>
+        }
+      />
+      <TextField
+        name="months"
+        label="Months"
+        columns={4}
+        placeholder="eg. 4,2-9"
+        tooltip={
+          <div>
+            <p>This field takes a range of years and/or comma separated single months.</p>
+            <DocsLink href="https://autobrr.com/filters#tvmovies"/>
+          </div>
+        }
+      />
+      <TextField
+        name="days"
+        label="Days"
+        columns={4}
+        placeholder="eg. 1,15-30"
+        tooltip={
+          <div>
+            <p>This field takes a range of years and/or comma separated single days.</p>
+            <DocsLink href="https://autobrr.com/filters#tvmovies"/>
+          </div>
+        }
+      />
       <div className="col-span-12 sm:col-span-6">
         <SwitchGroup
           name="smart_episode"
@@ -43,16 +89,16 @@ const SeasonsAndEpisodes = () => (
           description="Do not match episodes older than the last one matched."
         />
       </div>
-    </Components.Layout>
-  </Components.Section>
+    </FilterLayout>
+  </FilterSection>
 );
 
 const Quality = () => (
-  <Components.Section
+  <FilterSection
     title="Quality"
     subtitle="Set resolution, source, codec and related match constraints."
   >
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="resolutions"
         options={CONSTS.RESOLUTION_OPTIONS}
@@ -77,9 +123,9 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
+    </FilterLayout>
 
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="codecs"
         options={CONSTS.CODECS_OPTIONS}
@@ -104,9 +150,9 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
+    </FilterLayout>
 
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="match_hdr"
         options={CONSTS.HDR_OPTIONS}
@@ -131,9 +177,9 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
+    </FilterLayout>
 
-    <Components.Layout gap={Components.WideGridGapClass}>
+    <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="match_other"
         options={CONSTS.OTHER_OPTIONS}
@@ -158,14 +204,14 @@ const Quality = () => (
           </div>
         }
       />
-    </Components.Layout>
-  </Components.Section>
+    </FilterLayout>
+  </FilterSection>
 );
 
 export const MoviesTv = () => (
-  <Components.Page>
-    <Components.Section>
-      <Components.Layout>
+  <FilterPage>
+    <FilterSection>
+      <FilterLayout>
         <TextAreaAutoResize
           name="shows"
           label="Movies / Shows"
@@ -190,10 +236,10 @@ export const MoviesTv = () => (
             </div>
           }
         />
-      </Components.Layout>
-    </Components.Section>
+      </FilterLayout>
+    </FilterSection>
 
     <SeasonsAndEpisodes />
     <Quality />
-  </Components.Page>
+  </FilterPage>
 );

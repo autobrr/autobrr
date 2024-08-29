@@ -1340,6 +1340,44 @@ func TestFilter_CheckFilter(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "match_daily",
+			fields: &Release{
+				TorrentName: "Daily talk show 2022 04 20 Someone 1080p WEB-DL h264-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:         true,
+					MatchCategories: "*tv*",
+					Shows:           "Daily talk show",
+					Years:           "2022",
+					Months:          "04",
+					Days:            "20",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "daily_dont_match",
+			fields: &Release{
+				TorrentName: "Daily talk show 2022 04 20 Someone 1080p WEB-DL h264-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:         true,
+					MatchCategories: "*tv*",
+					Shows:           "Daily talk show",
+					Years:           "2022",
+					Months:          "05",
+				},
+				rejections: []string{"month not matching. got: 4 want: 05"},
+			},
+			want: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1911,6 +1949,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchHDR:             tt.fields.MatchHDR,
 				ExceptHDR:            tt.fields.ExceptHDR,
 				Years:                tt.fields.Years,
+				Months:               tt.fields.Months,
+				Days:                 tt.fields.Days,
 				Artists:              tt.fields.Artists,
 				Albums:               tt.fields.Albums,
 				MatchReleaseTypes:    tt.fields.MatchReleaseTypes,
