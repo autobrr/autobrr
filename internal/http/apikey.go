@@ -70,7 +70,7 @@ func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.Delete(r.Context(), apiKey); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("api key %d not found", apiKey))
+			h.encoder.NotFoundErr(w, errors.New("api key %s not found", apiKey))
 			return
 		}
 
