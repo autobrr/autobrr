@@ -226,9 +226,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 
 func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, error) {
 	queryBuilder := r.db.squirrel.
-		Select(
-			"last_run_data",
-		).
+		Select("last_run_data").
 		From("feed").
 		Where(sq.Eq{"id": id})
 

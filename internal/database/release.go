@@ -331,7 +331,6 @@ func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, err
 }
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
-
 	query := `SELECT DISTINCT indexer FROM "release" UNION SELECT DISTINCT identifier indexer FROM indexer;`
 
 	repo.log.Trace().Str("database", "release.get_indexers").Msgf("query: '%v'", query)
@@ -363,7 +362,6 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 }
 
 func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, releaseID int64) ([]domain.ReleaseActionStatus, error) {
-
 	queryBuilder := repo.db.squirrel.
 		Select("id", "status", "action", "action_id", "type", "client", "filter", "release_id", "rejections", "timestamp").
 		From("release_action_status").

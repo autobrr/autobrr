@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -51,7 +52,6 @@ func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
 
 func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 	var data domain.APIKey
-
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -66,7 +66,14 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {
-	if err := h.service.Delete(r.Context(), chi.URLParam(r, "apikey")); err != nil {
+	apiKey := chi.URLParam(r, "apikey")
+
+	if err := h.service.Delete(r.Context(), apiKey); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("api key %d not found", apiKey))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
