@@ -49,6 +49,16 @@ func TestMatch(t *testing.T) {
 			text:    "tv",
 			matched: true,
 		},
+		{
+			pattern: "*EPUB*",
+			text:    "Translated (Group) / EPUB",
+			matched: true,
+		},
+		{
+			pattern: "*shift*",
+			text:    "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+			matched: true,
+		},
 	}
 	// Iterating over the test cases, call the function under test and asert the output.
 	for i, testCase := range testCases {

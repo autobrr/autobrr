@@ -3,6 +3,12 @@
 
 package wildcard
 
+import (
+	"regexp"
+
+	"github.com/rs/zerolog/log"
+)
+
 // MatchSimple - finds whether the text matches/satisfies the pattern string.
 // supports only '*' wildcard in the pattern.
 // considers a file system path as a flat name space.
@@ -14,7 +20,7 @@ func MatchSimple(pattern, name string) bool {
 		return true
 	}
 	// Does only wildcard '*' match.
-	return deepMatchRune([]rune(name), []rune(pattern), true)
+	return deepMatchRune(name, pattern, true)
 }
 
 // Match -  finds whether the text matches/satisfies the pattern string.
@@ -29,58 +35,29 @@ func Match(pattern, name string) (matched bool) {
 		return true
 	}
 	// Does extended wildcard '*' and '?' match.
-	return deepMatchRune([]rune(name), []rune(pattern), false)
+	return deepMatchRune(name, pattern, false)
 }
 
-func deepMatchRune(str, pattern []rune, simple bool) bool {
-	k, i := 0, 0
-	for ; i < len(pattern) && k < len(str); i++ {
-		switch pattern[i] {
-		case '*':
-			if i == len(pattern)-1 {
-				return true
-			}
+var convSimple = regexp.MustCompile(`\\\*`)
+var convWildChar = regexp.MustCompile(`\\\?`)
 
-			var val rune
-			for i++; i < len(pattern); i++ {
-				val = pattern[i]
-				if !simple && val == '?' || val == '*' {
-					continue
-				}
-
-				i--
-				break
-			}
-
-			if i >= len(pattern)-1 && val == '*' {
-				return true
-			}
-
-			for ; k < len(str); k++ {
-				if str[k] != val {
-					continue
-				}
-
-				break
-			}
-
-			if k == len(str) {
-				return false
-			}
-		case '?':
-			if simple && pattern[i] != str[k] {
-				return false
-			}
-
-			k++
-			continue
-		case str[k]:
-			k++
-			continue
-		default:
-			return false
-		}
+func deepMatchRune(str, pattern string, simple bool) bool {
+	pattern = regexp.QuoteMeta(pattern)
+	pattern = convSimple.ReplaceAllLiteralString(pattern, ".*")
+	if !simple {
+		pattern = convWildChar.ReplaceAllLiteralString(pattern, ".")
 	}
 
-	return k == len(str) && (i == len(pattern) || i == len(pattern)-1 && pattern[len(pattern)-1] == '*')
+	user, err := regexp.Compile(pattern)
+	if err != nil {
+		log.Error().Msgf("deepMatchRune: unable to parse %q | %q", pattern, err.Error())
+		return false
+	}
+
+	idx := user.FindStringIndex(str)
+	if idx == nil {
+		return false
+	}
+
+	return idx[1] == len(str)
 }
