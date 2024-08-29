@@ -24,7 +24,7 @@ type Config struct {
 	PostgresPass        string `toml:"postgresPass"`
 	PostgresSSLMode     string `toml:"postgresSSLMode"`
 	PostgresExtraParams string `toml:"postgresExtraParams"`
-	ProfilingEnabled    bool   `toml:"profiling"`
+	ProfilingEnabled    bool   `toml:"profilingEnabled"`
 	ProfilingHost       string `toml:"profilingHost"`
 	ProfilingPort       int    `toml:"profilingPort"`
 }
