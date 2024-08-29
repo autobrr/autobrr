@@ -20,7 +20,7 @@ type statusResponse struct {
 	Status  int    `json:"status,omitempty"`
 }
 
-func (e encoder) StatusResponse(w http.ResponseWriter, status int, response interface{}) {
+func (e encoder) StatusResponse(w http.ResponseWriter, status int, response any) {
 	if response != nil {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(status)
@@ -52,7 +52,7 @@ func (e encoder) StatusCreated(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (e encoder) StatusCreatedData(w http.ResponseWriter, data interface{}) {
+func (e encoder) StatusCreatedData(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 

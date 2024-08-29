@@ -39,7 +39,7 @@ func (h logsHandler) Routes(r chi.Router) {
 
 func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	response := LogfilesResponse{
-		Files: []logFile{},
+		Files: []LogFile{},
 		Count: 0,
 	}
 
@@ -67,7 +67,7 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 				return err
 			}
 
-			response.Files = append(response.Files, logFile{
+			response.Files = append(response.Files, LogFile{
 				Name:      d.Name(),
 				SizeBytes: i.Size(),
 				Size:      humanize.Bytes(uint64(i.Size())),
@@ -218,17 +218,11 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	logFile := chi.URLParam(r, "logFile")
-	if logFile == "" {
+
+	if !strings.Contains(logFile, ".log") {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, errorResponse{
-			Message: "empty log file",
-			Status:  http.StatusBadRequest,
-		})
-		return
-	} else if !strings.Contains(logFile, ".log") {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, errorResponse{
-			Message: "invalid file",
+			Message: "invalid log file. Must have .log extension",
 			Status:  http.StatusBadRequest,
 		})
 		return
@@ -250,7 +244,7 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type logFile struct {
+type LogFile struct {
 	Name      string    `json:"filename"`
 	SizeBytes int64     `json:"size_bytes"`
 	Size      string    `json:"size"`
@@ -258,6 +252,6 @@ type logFile struct {
 }
 
 type LogfilesResponse struct {
-	Files []logFile `json:"files"`
+	Files []LogFile `json:"files"`
 	Count int       `json:"count"`
 }
