@@ -199,6 +199,8 @@ func (p IRCParserOrpheus) replaceSeparator(s string) string {
 	return strings.ReplaceAll(s, "–", "-")
 }
 
+var lastDecimalTag = regexp.MustCompile(`^\d{1,2}$|^100$`)
+
 func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	// OPS uses en-dashes as separators, which causes moistari/rls to not parse the torrentName properly,
 	// we replace the en-dashes with hyphens here
@@ -213,7 +215,7 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	// Check and replace the last tag if it's a number between 0 and 100
 	if len(splittedTags) > 0 {
 		lastTag := splittedTags[len(splittedTags)-1]
-		match, _ := regexp.MatchString(`^\d{1,2}$|^100$`, lastTag)
+		match := lastDecimalTag.MatchString(lastTag)
 		if match {
 			splittedTags[len(splittedTags)-1] = lastTag + "%"
 		}

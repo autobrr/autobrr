@@ -2,8 +2,8 @@ package indexer
 
 import (
 	"errors"
-	"regexp"
 
+	"github.com/autobrr/autobrr/pkg/regexcache"
 	"github.com/rs/zerolog"
 )
 
@@ -12,7 +12,7 @@ type Logger interface {
 }
 
 func regExMatch(pattern string, value string) ([]string, error) {
-	rxp, err := regexp.Compile(pattern)
+	rxp, err := regexcache.Compile(pattern)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func parseExtract(logger Logger, pattern string, vars []string, tmpVars map[stri
 }
 
 func parseMatchRegexp(pattern string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
-	var re = regexp.MustCompile(`(?mi)` + pattern)
+	var re = regexcache.MustCompile(`(?mi)` + pattern)
 
 	groupNames := re.SubexpNames()
 	for _, match := range re.FindAllStringSubmatch(line, -1) {

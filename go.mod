@@ -74,6 +74,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/icholy/digest v0.1.23 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
+	github.com/jellydator/ttlcache/v3 v3.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
