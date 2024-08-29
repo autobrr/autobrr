@@ -74,7 +74,6 @@ function ProxySettings() {
   const proxies = proxiesQuery.data
 
   return (
-
     <Section
       title="Proxies"
       description={

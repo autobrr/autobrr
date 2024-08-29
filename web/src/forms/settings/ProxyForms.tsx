@@ -35,13 +35,26 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
     createMutation.mutate(formData as ProxyCreate);
   }
 
+  const testMutation = useMutation({
+    mutationFn: (data: Proxy) => APIClient.proxy.test(data),
+    onError: (err) => {
+      console.error(err);
+    }
+  });
+
+  const testProxy = (data: unknown) => testMutation.mutate(data as Proxy);
+
   return (
     <Transition show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+      <Dialog
+        as="div"
+        static
+        className="fixed inset-0 overflow-hidden"
+        open={isOpen}
+        onClose={toggle}
+      >
         <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+          <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
             <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
@@ -119,6 +132,13 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
                           <button
                             type="button"
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            onClick={() => testProxy(values)}
+                          >
+                            Test
+                          </button>
+                          <button
+                            type="button"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
@@ -132,14 +152,14 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
                         </div>
                       </div>
 
-                      <DEBUG values={values} />
+                      <DEBUG values={values}/>
                     </Form>
                   )}
                 </Formik>
               </div>
 
             </TransitionChild>
-          </div>
+          </DialogPanel>
         </div>
       </Dialog>
     </Transition>

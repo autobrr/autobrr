@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -20,6 +21,7 @@ type proxyService interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]domain.Proxy, error)
 	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
+	Test(ctx context.Context, p *domain.Proxy) error
 }
 
 type proxyHandler struct {
@@ -37,6 +39,7 @@ func newProxyHandler(encoder encoder, service proxyService) *proxyHandler {
 func (h proxyHandler) Routes(r chi.Router) {
 	r.Get("/", h.list)
 	r.Post("/", h.store)
+	r.Post("/test", h.test)
 
 	r.Route("/{proxyID}", func(r chi.Router) {
 		r.Get("/", h.findByID)
@@ -88,14 +91,19 @@ func (h proxyHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h proxyHandler) findByID(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
+	proxyID, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	proxies, err := h.service.FindByID(r.Context(), int64(id))
+	proxies, err := h.service.FindByID(r.Context(), int64(proxyID))
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find proxy with id %d", proxyID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -104,14 +112,29 @@ func (h proxyHandler) findByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h proxyHandler) delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
+	proxyID, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	err = h.service.Delete(r.Context(), int64(id))
+	err = h.service.Delete(r.Context(), int64(proxyID))
 	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h proxyHandler) test(w http.ResponseWriter, r *http.Request) {
+	var data domain.Proxy
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.Test(r.Context(), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

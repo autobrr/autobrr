@@ -399,6 +399,9 @@ export const APIClient = {
       body: proxy
     }),
     delete: (id: number) => appClient.Delete(`api/proxy/${id}`),
+    test: (proxy: Proxy) => appClient.Post("api/proxy/test", {
+      body: proxy
+    })
   },
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),

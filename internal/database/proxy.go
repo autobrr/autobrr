@@ -202,8 +202,8 @@ func (r *ProxyRepo) FindByID(ctx context.Context, id int64) (*domain.Proxy, erro
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err != nil {
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -211,8 +211,12 @@ func (r *ProxyRepo) FindByID(ctx context.Context, id int64) (*domain.Proxy, erro
 
 	var user, pass sql.NullString
 
-	err = rows.Scan(&proxy.ID, &proxy.Enabled, &proxy.Name, &proxy.Type, &proxy.Addr, &user, &pass, &proxy.Timeout)
+	err = row.Scan(&proxy.ID, &proxy.Enabled, &proxy.Name, &proxy.Type, &proxy.Addr, &user, &pass, &proxy.Timeout)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
