@@ -50,7 +50,6 @@ func (h proxyHandler) Routes(r chi.Router) {
 
 func (h proxyHandler) store(w http.ResponseWriter, r *http.Request) {
 	var data domain.Proxy
-
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -66,13 +65,17 @@ func (h proxyHandler) store(w http.ResponseWriter, r *http.Request) {
 
 func (h proxyHandler) update(w http.ResponseWriter, r *http.Request) {
 	var data domain.Proxy
-
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
 	if err := h.service.Update(r.Context(), &data); err != nil {
+		if errors.Is(err, domain.ErrUpdateFailed) {
+			h.encoder.StatusError(w, http.StatusBadRequest, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -120,6 +123,11 @@ func (h proxyHandler) delete(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.Delete(r.Context(), int64(proxyID))
 	if err != nil {
+		if errors.Is(err, domain.ErrDeleteFailed) {
+			h.encoder.StatusError(w, http.StatusBadRequest, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
