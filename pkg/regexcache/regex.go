@@ -40,13 +40,13 @@ func MustCompile(pattern string) *regexp.Regexp {
 	return reg
 }
 
-func Compile(pattern string) (*regexp.Regexp, error) {
+func CompilePOSIX(pattern string) (*regexp.Regexp, error) {
 	item := cache.Get(pattern)
 	if item != nil {
 		return item.Value(), nil
 	}
 
-	reg, err := regexp.Compile(pattern)
+	reg, err := regexp.CompilePOSIX(pattern)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func Compile(pattern string) (*regexp.Regexp, error) {
 	return reg, nil
 }
 
-func CompilePOSIX(pattern string) (*regexp.Regexp, error) {
+func Compile(pattern string) (*regexp.Regexp, error) {
 	item := cache.Get(pattern)
 	if item != nil {
 		return item.Value(), nil
