@@ -5,6 +5,7 @@ package wildcard
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/autobrr/autobrr/pkg/regexcache"
 	"github.com/rs/zerolog/log"
@@ -39,13 +40,16 @@ func Match(pattern, name string) (matched bool) {
 	return deepMatchRune(name, pattern, false)
 }
 
-var convSimple = regexp.MustCompile(`\\\*`)
-var convWildChar = regexp.MustCompile(`\\\?`)
+var convSimple = regexp.MustCompile(regexp.QuoteMeta("*"))
+var convWildChar = regexp.MustCompile(regexp.QuoteMeta("?"))
 
 func deepMatchRune(str, pattern string, simple bool) bool {
 	pattern = regexp.QuoteMeta(pattern)
-	pattern = convSimple.ReplaceAllLiteralString(pattern, ".*")
-	if !simple {
+	if strings.Contains(pattern, "*") {
+		pattern = convSimple.ReplaceAllLiteralString(pattern, ".*")
+	}
+
+	if !simple && strings.Contains("?") {
 		pattern = convWildChar.ReplaceAllLiteralString(pattern, ".")
 	}
 
