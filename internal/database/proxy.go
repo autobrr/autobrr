@@ -29,11 +29,6 @@ func NewProxyRepo(log logger.Logger, db *DB) domain.ProxyRepo {
 }
 
 func (r *ProxyRepo) Store(ctx context.Context, p *domain.Proxy) error {
-	addr := toNullString(p.Addr)
-
-	user := toNullString(p.User)
-	pass := toNullString(p.Pass)
-
 	queryBuilder := r.db.squirrel.
 		Insert("proxy").
 		Columns(
@@ -41,7 +36,6 @@ func (r *ProxyRepo) Store(ctx context.Context, p *domain.Proxy) error {
 			"name",
 			"type",
 			"addr",
-			//"auth_type",
 			"auth_user",
 			"auth_pass",
 			"timeout",
@@ -50,9 +44,9 @@ func (r *ProxyRepo) Store(ctx context.Context, p *domain.Proxy) error {
 			p.Enabled,
 			p.Name,
 			p.Type,
-			addr,
-			user,
-			pass,
+			toNullString(p.Addr),
+			toNullString(p.User),
+			toNullString(p.Pass),
 			p.Timeout,
 		).
 		Suffix("RETURNING id").
@@ -70,17 +64,14 @@ func (r *ProxyRepo) Store(ctx context.Context, p *domain.Proxy) error {
 }
 
 func (r *ProxyRepo) Update(ctx context.Context, p *domain.Proxy) error {
-	user := toNullString(p.User)
-	pass := toNullString(p.Pass)
-
 	queryBuilder := r.db.squirrel.
 		Update("proxy").
 		Set("enabled", p.Enabled).
 		Set("name", p.Name).
+		Set("type", p.Type).
 		Set("addr", p.Addr).
-		//Set("auth_type", p.AuthType).
-		Set("auth_user", user).
-		Set("auth_pass", pass).
+		Set("auth_user", toNullString(p.User)).
+		Set("auth_pass", toNullString(p.Pass)).
 		Set("timeout", p.Timeout).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": p.ID})
@@ -91,9 +82,18 @@ func (r *ProxyRepo) Update(ctx context.Context, p *domain.Proxy) error {
 	}
 
 	// update record
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	res, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting affected rows")
+	}
+
+	if rowsAffected == 0 {
+		return domain.ErrUpdateFailed
 	}
 
 	return err
@@ -107,7 +107,6 @@ func (r *ProxyRepo) List(ctx context.Context) ([]domain.Proxy, error) {
 			"name",
 			"type",
 			"addr",
-			//"auth_type",
 			"auth_user",
 			"auth_pass",
 			"timeout",
@@ -168,9 +167,18 @@ func (r *ProxyRepo) Delete(ctx context.Context, id int64) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = tx.ExecContext(ctx, query, args...)
+	res, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting affected rows")
+	}
+
+	if rowsAffected == 0 {
+		return domain.ErrDeleteFailed
 	}
 
 	err = tx.Commit()
@@ -239,9 +247,18 @@ func (r *ProxyRepo) ToggleEnabled(ctx context.Context, id int64, enabled bool) e
 	}
 
 	// update record
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	res, err := r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting affected rows")
+	}
+
+	if rowsAffected == 0 {
+		return domain.ErrUpdateFailed
 	}
 
 	return nil
