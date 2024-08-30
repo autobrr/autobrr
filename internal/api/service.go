@@ -67,7 +67,12 @@ func (s *service) Store(ctx context.Context, apiKey *domain.APIKey) error {
 }
 
 func (s *service) Delete(ctx context.Context, key string) error {
-	err := s.repo.Delete(ctx, key)
+	_, err := s.repo.GetKey(ctx, key)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.Delete(ctx, key)
 	if err != nil {
 		return errors.Wrap(err, "could not delete api key: %s", key)
 	}
