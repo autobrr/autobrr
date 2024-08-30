@@ -44,6 +44,15 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
 
   const testProxy = (data: unknown) => testMutation.mutate(data as Proxy);
 
+  const initialValues: ProxyCreate = {
+    enabled: true,
+    name: "Proxy",
+    type: "SOCKS5",
+    addr: "socks5://ip:port",
+    user: "",
+    pass: "",
+  }
+
   return (
     <Transition show={isOpen} as={Fragment}>
       <Dialog
@@ -67,14 +76,7 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
               <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
                 <Formik
                   enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    type: "",
-                    name: "",
-                    addr: "",
-                    user: "",
-                    pass: "",
-                  }}
+                  initialValues={initialValues}
                   onSubmit={onSubmit}
                 >
                   {({ values }) => (
@@ -104,20 +106,18 @@ export function ProxyAddForm({ isOpen, toggle }: AddProps) {
                         </div>
 
                         <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-
                           <SwitchGroupWide name="enabled" label="Enabled" />
+                          <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
 
-                            <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
+                          <SelectFieldBasic
+                            name="type"
+                            label="Proxy type"
+                            options={ProxyTypeOptions}
+                            tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
+                            help="Usually SOCKS5"
+                          />
 
-                            <SelectFieldBasic
-                              name="type"
-                              label="Proxy type"
-                              options={ProxyTypeOptions}
-                              tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
-                              help="Usually SOCKS5"
-                            />
-                          <TextFieldWide name="addr" label="Addr" required={true} help="Addr: ip:port or domain" autoComplete="off" />
-
+                          <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
                         </div>
 
                         <div>
@@ -245,12 +245,13 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
             <SelectFieldBasic
               name="type"
               label="Proxy type"
+              required={true}
               options={ProxyTypeOptions}
               tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
               help="Usually SOCKS5"
             />
 
-            <TextFieldWide name="addr" label="Addr" required={true} help="Addr: ip:port or domain" autoComplete="off"/>
+            <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
           </div>
 
           <div>

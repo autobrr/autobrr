@@ -17,6 +17,7 @@ interface SelectFieldProps<T> {
   label: string;
   help?: string;
   placeholder?: string;
+  required?: boolean;
   defaultValue?: OptionBasicTyped<T>;
   tooltip?: JSX.Element;
   options: OptionBasicTyped<T>[];
@@ -158,7 +159,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
   );
 }
 
-export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, defaultValue, options }: SelectFieldProps<T>) {
+export function SelectFieldBasic<T>({ name, label, help, placeholder, required, tooltip, defaultValue, options }: SelectFieldProps<T>) {
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -182,6 +183,7 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, d
             <Select
               {...field}
               id={name}
+              required={required}
               components={{
                 Input: common.SelectInput,
                 Control: common.SelectControl,

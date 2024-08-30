@@ -403,6 +403,7 @@ export function IrcNetworkUpdateForm({
                 <SelectField<number>
                   name="proxy_id"
                   label="Select proxy"
+                  placeholder="Select a proxy"
                   options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
                 />
               </div>
@@ -459,9 +460,10 @@ interface SelectFieldProps<T> {
   name: string;
   label: string;
   options: OptionBasicTyped<T>[]
+  placeholder?: string;
 }
 
-function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
+function SelectField<T>({ name, label, options, placeholder }: SelectFieldProps<T>) {
   return (
     <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -491,7 +493,7 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder="Choose a type"
+              placeholder={placeholder ?? "Choose a type"}
               styles={{
                 singleValue: (base) => ({
                   ...base,
