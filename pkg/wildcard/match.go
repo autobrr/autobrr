@@ -49,7 +49,7 @@ func deepMatchRune(str, pattern string, simple bool) bool {
 		pattern = convSimple.ReplaceAllLiteralString(pattern, ".*")
 	}
 
-	if !simple && strings.Contains("?") {
+	if !simple && strings.Contains(pattern, "?") {
 		pattern = convWildChar.ReplaceAllLiteralString(pattern, ".")
 	}
 
