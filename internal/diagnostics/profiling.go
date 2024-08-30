@@ -16,11 +16,11 @@ func SetupProfiling(enabled bool, host string, port int) {
 	if enabled {
 		go func() {
 			// pprof has an init method which adds the following endpoints
-			// http.HandleFunc(prefix+"/debug/pprof/", Index)
-			// http.HandleFunc(prefix+"/debug/pprof/cmdline", Cmdline)
-			// http.HandleFunc(prefix+"/debug/pprof/profile", Profile)
-			// http.HandleFunc(prefix+"/debug/pprof/symbol", Symbol)
-			// http.HandleFunc(prefix+"/debug/pprof/trace", Trace)
+			// GET /debug/pprof/
+			// GET /debug/pprof/cmdline
+			// GET /debug/pprof/profile
+			// GET /debug/pprof/symbol
+			// GET /debug/pprof/trace
 			err := http.ListenAndServe(fmt.Sprintf("%s:%d", host, port), nil)
 			if err != nil {
 				log.Printf("Error starting profiling server: %v", err)

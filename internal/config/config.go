@@ -88,7 +88,7 @@ sessionSecret = "{{ .sessionSecret }}"
 
 # Golang pprof profiling and tracing
 #
-#profiling = false
+#profilingEnabled = false
 #
 #profilingHost = "127.0.0.1"
 #
@@ -315,7 +315,7 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.PostgresExtraParams = v
 	}
 
-	if v := os.Getenv(prefix + "PROFILING"); v != "" {
+	if v := os.Getenv(prefix + "PROFILING_ENABLED"); v != "" {
 		c.Config.ProfilingEnabled = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
