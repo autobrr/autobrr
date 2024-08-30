@@ -6,6 +6,7 @@ package wildcard
 import (
 	"regexp"
 
+	"github.com/autobrr/autobrr/pkg/regexcache"
 	"github.com/rs/zerolog/log"
 )
 
@@ -48,7 +49,7 @@ func deepMatchRune(str, pattern string, simple bool) bool {
 		pattern = convWildChar.ReplaceAllLiteralString(pattern, ".")
 	}
 
-	user, err := regexp.Compile(pattern)
+	user, err := regexcache.Compile(pattern)
 	if err != nil {
 		log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
 		return false
