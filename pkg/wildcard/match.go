@@ -40,8 +40,8 @@ func Match(pattern, name string) (matched bool) {
 	return deepMatchRune(name, pattern, false)
 }
 
-var convSimple = regexp.MustCompile(regexp.QuoteMeta("*"))
-var convWildChar = regexp.MustCompile(regexp.QuoteMeta("?"))
+var convSimple = regexp.MustCompile(regexp.QuoteMeta(`\*`))
+var convWildChar = regexp.MustCompile(regexp.QuoteMeta(`\?`))
 
 func deepMatchRune(str, pattern string, simple bool) bool {
 	pattern = regexp.QuoteMeta(pattern)
