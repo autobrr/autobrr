@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/action"
 	"io"
 	"net/http"
 	"os"
@@ -17,9 +16,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -53,11 +54,12 @@ type service struct {
 	releaseRepo   domain.ReleaseRepo
 	indexerSvc    indexer.Service
 	apiService    indexer.APIService
+	downloadSvc   *release.DownloadService
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *release.DownloadService) Service {
 	return &service{
 		log:           log.With().Str("module", "filter").Logger(),
 		repo:          repo,
@@ -65,6 +67,7 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Serv
 		actionService: actionSvc,
 		apiService:    apiService,
 		indexerSvc:    indexerSvc,
+		downloadSvc:   downloadSvc,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
@@ -504,7 +507,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 		l.Trace().Msgf("(%s) preparing to download torrent metafile", f.Name)
 
 		// if indexer doesn't have api, download torrent and add to tmpPath
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
 			return false, err
 		}
@@ -584,7 +587,7 @@ func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, r
 	s.log.Trace().Msgf("filter exec release: %s", release.TorrentName)
 
 	if release.TorrentTmpFile == "" && strings.Contains(external.ExecArgs, "TorrentPathName") {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			return 0, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
 		}
 	}
@@ -686,7 +689,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
 	if release.TorrentTmpFile == "" && (strings.Contains(external.WebhookData, "TorrentPathName") || strings.Contains(external.WebhookData, "TorrentDataRawBytes")) {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %s", release.TorrentName)
 		}
 	}

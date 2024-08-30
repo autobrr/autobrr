@@ -69,7 +69,7 @@ func (s *service) rtorrent(ctx context.Context, action *domain.Action, release d
 	}
 
 	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+		if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
 			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
 			return nil, err
 		}

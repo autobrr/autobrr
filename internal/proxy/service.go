@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 	netProxy "golang.org/x/net/proxy"
@@ -133,4 +134,45 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 	s.log.Debug().Msgf("proxy %s test OK!", proxy.Addr)
 
 	return nil
+}
+
+func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
+	proxyUrl, err := url.Parse(p.Addr)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse proxy url: %s", p.Addr)
+	}
+
+	// set user and pass if not empty
+	if p.User != "" && p.Pass != "" {
+		proxyUrl.User = url.UserPassword(p.User, p.Pass)
+	}
+
+	transport := sharedhttp.TransportTLSInsecure
+
+	// set user and pass if not empty
+	if p.User != "" && p.Pass != "" {
+		proxyUrl.User = url.UserPassword(p.User, p.Pass)
+	}
+
+	switch p.Type {
+	case domain.ProxyTypeSocks5:
+		proxyDialer, err := netProxy.FromURL(proxyUrl, netProxy.Direct)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not create proxy dialer from url: %s", p.Addr)
+		}
+
+		proxyContextDialer, ok := proxyDialer.(netProxy.ContextDialer)
+		if !ok {
+			return nil, errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
+		}
+
+		transport.DialContext = proxyContextDialer.DialContext
+	}
+
+	client := &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: transport,
+	}
+
+	return client, nil
 }

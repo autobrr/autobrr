@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/asaskevich/EventBus"
@@ -33,21 +34,23 @@ type Service interface {
 }
 
 type service struct {
-	log       zerolog.Logger
-	subLogger *log.Logger
-	repo      domain.ActionRepo
-	clientSvc download_client.Service
-	bus       EventBus.Bus
+	log         zerolog.Logger
+	subLogger   *log.Logger
+	repo        domain.ActionRepo
+	clientSvc   download_client.Service
+	downloadSvc *release.DownloadService
+	bus         EventBus.Bus
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
+func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, downloadSvc *release.DownloadService, bus EventBus.Bus) Service {
 	s := &service{
-		log:       log.With().Str("module", "action").Logger(),
-		repo:      repo,
-		clientSvc: clientSvc,
-		bus:       bus,
+		log:         log.With().Str("module", "action").Logger(),
+		repo:        repo,
+		clientSvc:   clientSvc,
+		downloadSvc: downloadSvc,
+		bus:         bus,
 
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,

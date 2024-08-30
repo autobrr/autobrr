@@ -75,7 +75,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		return nil, nil
 	} else {
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
 				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
 			}
 		}

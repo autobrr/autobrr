@@ -38,6 +38,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	// if set, try to resolve MagnetURI before parsing macros
 	// to allow webhook and exec to get the magnet_uri
+	// TODO change me to downloadSvc.ResolveMagnetURI
 	if err := release.ResolveMagnetUri(ctx); err != nil {
 		return nil, err
 	}

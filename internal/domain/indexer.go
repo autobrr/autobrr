@@ -34,8 +34,9 @@ type Indexer struct {
 	Enabled            bool              `json:"enabled"`
 	Implementation     string            `json:"implementation"`
 	BaseURL            string            `json:"base_url,omitempty"`
-	UseProxy       bool              `json:"use_proxy"`
-	Proxy          *Proxy            `json:"proxy"`
+	UseProxy           bool              `json:"use_proxy"`
+	Proxy              *Proxy            `json:"proxy"`
+	ProxyID            int64             `json:"proxy_id"`
 	Settings           map[string]string `json:"settings,omitempty"`
 }
 
@@ -44,6 +45,7 @@ type IndexerMinimal struct {
 	Name               string `json:"name"`
 	Identifier         string `json:"identifier"`
 	IdentifierExternal string `json:"identifier_external"`
+	ProxyID            int    `json:"-"` // TODO make sure this is written
 }
 
 func (m IndexerMinimal) GetExternalIdentifier() string {

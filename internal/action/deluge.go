@@ -140,7 +140,8 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 		return nil, nil
 	} else {
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			// TODO why is this not a pointer??????
+			if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
 				s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
 				return nil, err
 			}
@@ -244,7 +245,7 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 		return nil, nil
 	} else {
 		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
+			if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
 				s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
 				return nil, err
 			}

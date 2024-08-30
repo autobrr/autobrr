@@ -68,6 +68,7 @@ func (a *Action) ParseMacros(release *Release) error {
 		(strings.Contains(a.ExecArgs, "TorrentPathName") || strings.Contains(a.ExecArgs, "TorrentDataRawBytes") ||
 			strings.Contains(a.WebhookData, "TorrentPathName") || strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
 			strings.Contains(a.SavePath, "TorrentPathName") || a.Type == ActionTypeWatchFolder) {
+		// TODO fix me
 		if err := release.DownloadTorrentFile(); err != nil {
 			return errors.Wrap(err, "webhook: could not download torrent file for release: %v", release.TorrentName)
 		}
