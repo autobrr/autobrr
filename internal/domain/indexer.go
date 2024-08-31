@@ -45,7 +45,6 @@ type IndexerMinimal struct {
 	Name               string `json:"name"`
 	Identifier         string `json:"identifier"`
 	IdentifierExternal string `json:"identifier_external"`
-	ProxyID            int    `json:"-"` // TODO make sure this is written
 }
 
 func (m IndexerMinimal) GetExternalIdentifier() string {
@@ -70,6 +69,8 @@ type IndexerDefinition struct {
 	Protocol           string            `json:"protocol"`
 	URLS               []string          `json:"urls"`
 	Supports           []string          `json:"supports"`
+	UseProxy           bool              `json:"use_proxy"`
+	ProxyID            int64             `json:"proxy_id"`
 	Settings           []IndexerSetting  `json:"settings,omitempty"`
 	SettingsMap        map[string]string `json:"-"`
 	IRC                *IndexerIRC       `json:"irc,omitempty"`

@@ -223,30 +223,34 @@ func (h *Handler) Run() (err error) {
 	}
 
 	if h.network.UseProxy && h.network.Proxy != nil {
-		if h.network.Proxy.Addr == "" {
-			return errors.New("proxy addr missing")
-		}
+		if !h.network.Proxy.Enabled {
+			h.log.Debug().Msgf("proxy disabled, skip")
+		} else {
+			if h.network.Proxy.Addr == "" {
+				return errors.New("proxy addr missing")
+			}
 
-		proxyUrl, err := url.Parse(h.network.Proxy.Addr)
-		if err != nil {
-			return errors.Wrap(err, "could not parse proxy url: %s", h.network.Proxy.Addr)
-		}
+			proxyUrl, err := url.Parse(h.network.Proxy.Addr)
+			if err != nil {
+				return errors.Wrap(err, "could not parse proxy url: %s", h.network.Proxy.Addr)
+			}
 
-		// set user and pass if not empty
-		if h.network.Proxy.User != "" && h.network.Proxy.Pass != "" {
-			proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
-		}
+			// set user and pass if not empty
+			if h.network.Proxy.User != "" && h.network.Proxy.Pass != "" {
+				proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
+			}
 
-		proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
-		if err != nil {
-			return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
-		}
-		proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
-		if !ok {
-			return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
-		}
+			proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
+			if err != nil {
+				return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+			}
+			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
+			if !ok {
+				return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
+			}
 
-		client.DialContext = proxyContextDialer.DialContext
+			client.DialContext = proxyContextDialer.DialContext
+		}
 	}
 
 	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -69,9 +70,13 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 			return err
 		}
 
-		s.log.Debug().Msgf("proxy: %s", proxyConf.Name)
+		if proxyConf.Enabled {
+			s.log.Debug().Msgf("using proxy: %s", proxyConf.Name)
 
-		indexer.Proxy = proxyConf
+			indexer.Proxy = proxyConf
+		} else {
+			s.log.Debug().Msgf("proxy disabled, skip: %s", proxyConf.Name)
+		}
 	}
 
 	// download release
@@ -152,6 +157,9 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		// Get the data
 		resp, err := httpClient.Do(req)
 		if err != nil {
+			if errors.As(err, net.OpError{}) {
+				return retry.Unrecoverable(errors.Wrap(err, "issue from proxy"))
+			}
 			return errors.Wrap(err, "error downloading file")
 		}
 		defer resp.Body.Close()
@@ -248,7 +256,7 @@ func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Releas
 	}
 
 	// get indexer
-	indexer, err := s.indexerRepo.FindByID(ctx, r.Indexer.ProxyID)
+	indexer, err := s.indexerRepo.FindByID(ctx, r.Indexer.ID)
 	if err != nil {
 		return err
 	}
@@ -260,7 +268,7 @@ func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Releas
 
 	// get proxy
 	if indexer.UseProxy {
-		proxyConf, err := s.proxySvc.FindByID(ctx, indexer.Proxy.ID)
+		proxyConf, err := s.proxySvc.FindByID(ctx, indexer.ProxyID)
 		if err != nil {
 			return err
 		}

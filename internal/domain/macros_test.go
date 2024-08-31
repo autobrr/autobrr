@@ -36,7 +36,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
-				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "Print mee {{.TorrentPathName}}"},
 			want:    "Print mee /tmp/a-temporary-file.torrent",
@@ -47,7 +47,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
-				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "Print mee {{TorrentPathName}}"},
 			want:    "",
@@ -58,7 +58,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
-				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "add {{.TorrentPathName}} --category test"},
 			want:    "add /tmp/a-temporary-file.torrent --category test",
@@ -68,7 +68,7 @@ func TestMacros_Parse(t *testing.T) {
 			name: "test_program_arg_bad",
 			release: Release{
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
-				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "add {{.TorrenttPathName}} --category test"},
 			want:    "",
@@ -79,7 +79,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName:    "This movie 2021",
 				TorrentTmpFile: "/tmp/a-temporary-file.torrent",
-				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:        IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "add {{.TorrentPathName}} --category test --other {{.TorrentName}}"},
 			want:    "add /tmp/a-temporary-file.torrent --category test --other This movie 2021",
@@ -90,7 +90,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "{{.TorrentName}} {{.TorrentUrl}} SOME_LONG_TOKEN"},
 			want:    "This movie 2021 https://some.site/download/fakeid SOME_LONG_TOKEN",
@@ -101,7 +101,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "{{.Indexer}} {{.TorrentName}} {{.TorrentUrl}} SOME_LONG_TOKEN"},
 			want:    "mock1 This movie 2021 https://some.site/download/fakeid SOME_LONG_TOKEN",
@@ -112,7 +112,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "{{.Indexer}}-race"},
 			want:    "mock1-race",
@@ -123,7 +123,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "{{.Indexer}}-{{.CurrentYear}}-race"},
 			want:    fmt.Sprintf("mock1-%v-race", currentTime.Year()),
@@ -134,7 +134,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 				Resolution:  "2160p",
 				HDR:         []string{"DV"},
 			},
@@ -147,7 +147,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 				Resolution:  "2160p",
 				HDR:         []string{"HDR"},
 			},
@@ -160,7 +160,7 @@ func TestMacros_Parse(t *testing.T) {
 			release: Release{
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 				Resolution:  "2160p",
 				HDR:         []string{"HDR"},
 				Year:        2021,
@@ -220,7 +220,7 @@ func TestMacros_Parse(t *testing.T) {
 				TorrentName: "This movie 2021",
 				DownloadURL: "https://some.site/download/fakeid",
 				Group:       "thisgrp",
-				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer:     IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 				Year:        2021,
 			},
 			args:    args{text: "movies-{{.Group}}"},
@@ -266,7 +266,7 @@ func TestMacros_Parse(t *testing.T) {
 		{
 			name: "test_args_indexer",
 			release: Release{
-				Indexer: IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer", 0},
+				Indexer: IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "indexer={{.IndexerName}}"},
 			want:    fmt.Sprintf("indexer=Mock Indexer"),
