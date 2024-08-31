@@ -488,7 +488,7 @@ export function SelectField<T>({ name, label, options, placeholder }: SelectFiel
         <Field name={name} type="select">
           {({
               field,
-              form: { setFieldValue, resetForm }
+              form: { setFieldValue }
             }: FieldProps) => (
             <Select
               {...field}
@@ -520,7 +520,7 @@ export function SelectField<T>({ name, label, options, placeholder }: SelectFiel
               })}
               value={field?.value && options.find(o => o.value == field?.value)}
               onChange={(option) => {
-                resetForm();
+                // resetForm();
 
                 if (option !== null) {
                   // const opt = option as SelectOption;

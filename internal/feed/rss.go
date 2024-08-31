@@ -139,7 +139,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
-			if !strings.HasPrefix(rls.MagnetURI, "magnet:?") && strings.HasPrefix(e.URL, "magnet:?") {
+			if !strings.HasPrefix(rls.MagnetURI, domain.MagnetURIPrefix) && strings.HasPrefix(e.URL, domain.MagnetURIPrefix) {
 				rls.MagnetURI = e.URL
 				rls.DownloadURL = ""
 			}

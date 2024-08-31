@@ -4,6 +4,7 @@
 package main
 
 import (
+	"github.com/autobrr/autobrr/internal/releasedownload"
 	"os"
 	"os/signal"
 	"syscall"
@@ -117,7 +118,7 @@ func main() {
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
-		downloadService       = release.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
+		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)

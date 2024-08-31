@@ -1,4 +1,4 @@
-package release
+package releasedownload
 
 import (
 	"bufio"
@@ -64,7 +64,7 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 
 	// get proxy
 	if indexer.UseProxy {
-		proxyConf, err := s.proxySvc.FindByID(ctx, indexer.Proxy.ID)
+		proxyConf, err := s.proxySvc.FindByID(ctx, indexer.ProxyID)
 		if err != nil {
 			return err
 		}
@@ -213,12 +213,6 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer.Name, r.TorrentName))
 		}
 
-		// Write the body to file
-		if _, err := tmpFile.Write(bodyBytes); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
-		}
-
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
 			resetTmpFile()
@@ -229,6 +223,13 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		if len(hashInfoBytes) < 1 {
 			resetTmpFile()
 			return retry.Unrecoverable(errors.New("could not read infohash"))
+		}
+
+		// Write the body to file
+		// TODO move to io.Reader and pass around in the future
+		if _, err := tmpFile.Write(bodyBytes); err != nil {
+			resetTmpFile()
+			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
 		}
 
 		r.TorrentTmpFile = tmpFile.Name()
@@ -242,7 +243,7 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Release) error {
 	if r.MagnetURI == "" {
 		return nil
-	} else if strings.HasPrefix(r.MagnetURI, "magnet:?") {
+	} else if strings.HasPrefix(r.MagnetURI, domain.MagnetURIPrefix) {
 		return nil
 	}
 

@@ -12,7 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/asaskevich/EventBus"
@@ -38,13 +38,13 @@ type service struct {
 	subLogger   *log.Logger
 	repo        domain.ActionRepo
 	clientSvc   download_client.Service
-	downloadSvc *release.DownloadService
+	downloadSvc *releasedownload.DownloadService
 	bus         EventBus.Bus
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, downloadSvc *release.DownloadService, bus EventBus.Bus) Service {
+func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, downloadSvc *releasedownload.DownloadService, bus EventBus.Bus) Service {
 	s := &service{
 		log:         log.With().Str("module", "action").Logger(),
 		repo:        repo,

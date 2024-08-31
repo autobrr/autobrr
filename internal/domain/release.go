@@ -356,8 +356,6 @@ func (r *Release) ParseString(title string) {
 	r.ParseReleaseTagsString(r.ReleaseTags)
 }
 
-var ErrUnrecoverableError = errors.New("unrecoverable error")
-
 func (r *Release) ParseReleaseTagsString(tags string) {
 	cleanTags := CleanReleaseTags(tags)
 	t := ParseReleaseTagString(cleanTags)
@@ -430,10 +428,6 @@ func (r *Release) ParseSizeBytesString(size string) {
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
 	return r.downloadTorrentFile(ctx)
-}
-
-func (r *Release) DownloadTorrentFile() error {
-	return r.downloadTorrentFile(context.Background())
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
@@ -592,7 +586,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 }
 
 func (r *Release) CleanupTemporaryFiles() {
-	if len(r.TorrentTmpFile) == 0 {
+	if r.TorrentTmpFile == "" {
 		return
 	}
 
@@ -600,54 +594,15 @@ func (r *Release) CleanupTemporaryFiles() {
 	r.TorrentTmpFile = ""
 }
 
-// HasMagnetUri check uf MagnetURI is set or empty
+// HasMagnetUri check uf MagnetURI is set and valid or empty
 func (r *Release) HasMagnetUri() bool {
-	return r.MagnetURI != ""
+	if r.MagnetURI != "" && strings.HasPrefix(r.MagnetURI, MagnetURIPrefix) {
+		return true
+	}
+	return false
 }
 
-func (r *Release) ResolveMagnetUri(ctx context.Context) error {
-	if r.MagnetURI == "" {
-		return nil
-	} else if strings.HasPrefix(r.MagnetURI, "magnet:?") {
-		return nil
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.MagnetURI, nil)
-	if err != nil {
-		return errors.Wrap(err, "could not build request to resolve magnet uri")
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "autobrr")
-
-	client := &http.Client{
-		Timeout:   time.Second * 45,
-		Transport: sharedhttp.MagnetTransport,
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "could not make request to resolve magnet uri")
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return errors.New("unexpected status code: %d", res.StatusCode)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return errors.Wrap(err, "could not read response body")
-	}
-
-	magnet := string(body)
-	if magnet != "" {
-		r.MagnetURI = magnet
-	}
-
-	return nil
-}
+const MagnetURIPrefix = "magnet:?"
 
 func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)

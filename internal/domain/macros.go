@@ -163,6 +163,8 @@ func (m Macro) Parse(text string) (string, error) {
 		return "", nil
 	}
 
+	// TODO implement template cache
+
 	// setup template
 	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
 	if err != nil {
