@@ -165,6 +165,7 @@ jobs:
 #       - linux/riscv64
         - linux/s390x
         - windows/amd64
+        - windows/arm64
     needs: [web, test]
     steps:
       - name: Checkout
