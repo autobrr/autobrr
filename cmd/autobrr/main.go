@@ -4,7 +4,6 @@
 package main
 
 import (
-	"github.com/autobrr/autobrr/internal/releasedownload"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,6 +26,7 @@ import (
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
