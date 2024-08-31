@@ -79,4 +79,33 @@ const SwitchGroup = ({
   </Field>
 );
 
-export { SwitchGroup };
+interface SwitchButtonProps {
+  name: string;
+  defaultValue?: boolean;
+  className?: string;
+}
+
+const SwitchButton = ({ name, defaultValue }: SwitchButtonProps) => (
+    <Field as="div" className="flex items-center justify-between">
+      <FormikField
+        name={name}
+        defaultValue={defaultValue as boolean}
+        type="checkbox"
+      >
+        {({
+            field,
+            form: { setFieldValue }
+          }: FieldProps) => (
+          <Checkbox
+            {...field}
+            value={!!field.checked}
+            setValue={(value) => {
+              setFieldValue(field?.name ?? "", value);
+            }}
+          />
+        )}
+      </FormikField>
+    </Field>
+);
+
+export { SwitchGroup, SwitchButton };

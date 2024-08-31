@@ -16,14 +16,15 @@ import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
-import { IndexersSchemaQueryOptions } from "@api/queries";
+import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
+import { SelectField } from "@forms/settings/IrcForms";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
 
@@ -718,6 +719,8 @@ interface IndexerUpdateInitialValues {
   identifier_external: string;
   implementation: string;
   base_url: string;
+  use_proxy?: boolean;
+  proxy_id?: number;
   settings: {
     api_key?: string;
     api_user?: string;
@@ -734,6 +737,8 @@ interface UpdateProps {
 
 export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const queryClient = useQueryClient();
+
+  const proxies = useQuery(ProxiesQueryOptions());
 
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
@@ -813,6 +818,8 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     identifier_external: indexer.identifier_external,
     implementation: indexer.implementation,
     base_url: indexer.base_url,
+    use_proxy: indexer.use_proxy,
+    proxy_id: indexer.proxy_id,
     settings: indexer.settings?.reduce(
       (o: Record<string, string>, obj: IndexerSetting) => ({
         ...o,
@@ -833,7 +840,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       initialValues={initialValues}
       extraButtons={(values) => <TestApiButton values={values as FormikValues} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
     >
-      {() => (
+      {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
           <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
             <label
@@ -863,14 +870,15 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
             tooltip={
               <div>
                 <p>External Identifier for use with ARRs to get features like seed limits working.</p>
-                <br />
-                <p>This needs to match the indexer name in your ARR. If using Prowlarr it will likely be "{indexer.name} (Prowlarr)"</p>
-                <br />
-                <DocsLink href="https://autobrr.com/configuration/indexers#setup" />
+                <br/>
+                <p>This needs to match the indexer name in your ARR. If using Prowlarr it will likely be
+                  "{indexer.name} (Prowlarr)"</p>
+                <br/>
+                <DocsLink href="https://autobrr.com/configuration/indexers#setup"/>
               </div>
             }
           />
-          <SwitchGroupWide name="enabled" label="Enabled" />
+          <SwitchGroupWide name="enabled" label="Enabled"/>
 
           {indexer.implementation == "irc" && (
             <SelectFieldCreatable
@@ -882,6 +890,31 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
           )}
 
           {renderSettingFields(indexer.settings)}
+
+          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+            <div className="flex justify-between px-4">
+              <div className="space-y-1">
+                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                  Proxy
+                </DialogTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Set a proxy to be used for downloads of .torrent files.
+                </p>
+              </div>
+              <SwitchButton name="use_proxy" />
+            </div>
+
+            {values.use_proxy === true && (
+              <div className="py-4 pt-6">
+                <SelectField<number>
+                  name="proxy_id"
+                  label="Select proxy"
+                  placeholder="Select a proxy"
+                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </SlideOver>

@@ -84,51 +84,23 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.New("proxy addr missing")
 	}
 
-	proxyUrl, err := url.Parse(proxy.Addr)
+	httpClient, err := GetProxiedHTTPClient(proxy)
 	if err != nil {
-		return errors.Wrap(err, "could not parse proxy url: %s", proxy.Addr)
+		return errors.Wrap(err, "could not get http client")
 	}
 
-	// set user and pass if not empty
-	if proxy.User != "" && proxy.Pass != "" {
-		proxyUrl.User = url.UserPassword(proxy.User, proxy.Pass)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://autobrr.com", nil)
+	if err != nil {
+		return errors.Wrap(err, "could not create proxy request")
 	}
 
-	switch proxy.Type {
-	case domain.ProxyTypeSocks5:
-		proxyDialer, err := netProxy.FromURL(proxyUrl, netProxy.Direct)
-		if err != nil {
-			return errors.Wrap(err, "could not create proxy dialer from url: %s", proxy.Addr)
-		}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "could not connect to proxy server: %s", proxy.Addr)
+	}
 
-		proxyContextDialer, ok := proxyDialer.(netProxy.ContextDialer)
-		if !ok {
-			return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
-		}
-
-		httpClient := &http.Client{
-			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
-				DialContext: proxyContextDialer.DialContext,
-			},
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://autobrr.com", nil)
-		if err != nil {
-			return errors.Wrap(err, "could not create proxy request")
-		}
-
-		resp, err := httpClient.Do(req)
-		if err != nil {
-			return errors.Wrap(err, "could not connect to proxy server: %s", proxy.Addr)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			return errors.New(resp.Status)
-		}
-
-	default:
-		return errors.New("invalid proxy type: %s", proxy.Type)
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(resp.Status)
 	}
 
 	s.log.Debug().Msgf("proxy %s test OK!", proxy.Addr)
@@ -167,6 +139,9 @@ func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
 		}
 
 		transport.DialContext = proxyContextDialer.DialContext
+
+	default:
+		return nil, errors.New("invalid proxy type: %s", p.Type)
 	}
 
 	client := &http.Client{

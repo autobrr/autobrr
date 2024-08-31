@@ -142,7 +142,13 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 	}
 	defer tmpFile.Close()
 
-	errFunc := retry.Do(func() error {
+	errFunc := retry.Do(retryableRequest(httpClient, req, r, tmpFile), retry.Delay(time.Second*3), retry.Attempts(3), retry.MaxJitter(time.Second*1))
+
+	return errFunc
+}
+
+func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Release, tmpFile *os.File) func() error {
+	return func() error {
 		// Get the data
 		resp, err := httpClient.Do(req)
 		if err != nil {
@@ -154,6 +160,8 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 		switch resp.StatusCode {
 		case http.StatusOK:
 			// Continue processing the response
+			break
+
 		//case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
 		//	// Handle redirect
 		//	return retry.Unrecoverable(errors.New("redirect encountered for torrent (%s) file (%s) - status code: %d - check indexer keys for %s", r.TorrentName, r.DownloadURL, resp.StatusCode, r.Indexer.Name))
@@ -228,13 +236,7 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 		r.Size = uint64(torrentMetaInfo.TotalLength())
 
 		return nil
-	},
-		retry.Delay(time.Second*3),
-		retry.Attempts(3),
-		retry.MaxJitter(time.Second*1),
-	)
-
-	return errFunc
+	}
 }
 
 func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Release) error {
