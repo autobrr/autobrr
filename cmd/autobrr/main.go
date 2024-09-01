@@ -125,7 +125,7 @@ func main() {
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
-		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
+		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 	)
 
 	// register event subscribers
