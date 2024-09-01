@@ -12,6 +12,8 @@ on:
 env:
   REGISTRY: ghcr.io
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  GO_VERSION: '1.23.0'
+  NODE_VERSION: '20.17.0'
 
 permissions:
   contents: write
@@ -30,7 +32,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.10.0'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up corepack
         run: corepack enable
@@ -79,7 +81,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - name: Test
@@ -111,7 +113,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - name: Run GoReleaser build
