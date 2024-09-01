@@ -34,7 +34,7 @@ FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS runner
 
 LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 LABEL org.opencontainers.image.licenses="GPL-2.0-or-later"
-LABEL org.opencontainers.image.base.name="alpine:latest"
+LABEL org.opencontainers.image.base.name="mcr.microsoft.com/windows/nanoserver:ltsc2022"
 
 ENV HOME="/config" \
     XDG_CONFIG_HOME="/config" \
