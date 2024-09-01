@@ -898,7 +898,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                   Proxy
                 </DialogTitle>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Set a proxy to be used for downloads of .torrent files.
+                  Set a proxy to be used for downloads of .torrent files and feeds.
                 </p>
               </div>
               <SwitchButton name="use_proxy" />
