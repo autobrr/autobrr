@@ -30,13 +30,15 @@ type Service interface {
 type service struct {
 	log zerolog.Logger
 
-	repo domain.ProxyRepo
+	repo  domain.ProxyRepo
+	cache map[int64]*domain.Proxy
 }
 
 func NewService(log logger.Logger, repo domain.ProxyRepo) Service {
 	return &service{
-		log:  log.With().Str("module", "proxy").Logger(),
-		repo: repo,
+		log:   log.With().Str("module", "proxy").Logger(),
+		repo:  repo,
+		cache: make(map[int64]*domain.Proxy),
 	}
 }
 
@@ -45,7 +47,14 @@ func (s *service) Store(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.Wrap(err, "validation error")
 	}
 
-	return s.repo.Store(ctx, proxy)
+	err := s.repo.Store(ctx, proxy)
+	if err != nil {
+		return err
+	}
+
+	s.cache[proxy.ID] = proxy
+
+	return nil
 }
 
 func (s *service) Update(ctx context.Context, proxy *domain.Proxy) error {
@@ -53,11 +62,23 @@ func (s *service) Update(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.Wrap(err, "validation error")
 	}
 
+	err := s.repo.Update(ctx, proxy)
+	if err != nil {
+		return err
+	}
+
+	s.cache[proxy.ID] = proxy
+
 	// TODO update IRC handlers
-	return s.repo.Update(ctx, proxy)
+
+	return nil
 }
 
 func (s *service) FindByID(ctx context.Context, id int64) (*domain.Proxy, error) {
+	if proxy, ok := s.cache[id]; ok {
+		return proxy, nil
+	}
+
 	return s.repo.FindByID(ctx, id)
 }
 
@@ -66,13 +87,33 @@ func (s *service) List(ctx context.Context) ([]domain.Proxy, error) {
 }
 
 func (s *service) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {
+	err := s.repo.ToggleEnabled(ctx, id, enabled)
+	if err != nil {
+		return err
+	}
+
+	v, ok := s.cache[id]
+	if !ok {
+		v.Enabled = !enabled
+		s.cache[id] = v
+	}
+
 	// TODO update IRC handlers
-	return s.repo.ToggleEnabled(ctx, id, enabled)
+
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int64) error {
+	err := s.repo.Delete(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	delete(s.cache, id)
+
 	// TODO update IRC handlers
-	return s.repo.Delete(ctx, id)
+
+	return nil
 }
 
 func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {

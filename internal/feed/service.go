@@ -153,6 +153,13 @@ func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 		return err
 	}
 
+	// get Feed again for ProxyID and UseProxy to be correctly populated
+	feed, err := s.repo.FindByID(ctx, feed.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding feed")
+		return err
+	}
+
 	if err := s.restartJob(feed); err != nil {
 		s.log.Error().Err(err).Msg("error restarting feed")
 		return err
