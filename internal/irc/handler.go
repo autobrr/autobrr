@@ -6,18 +6,16 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/net/proxy"
-	"net/url"
-	"slices"
-	"strings"
-	"time"
-	"unicode"
-
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"golang.org/x/net/proxy"
+	"net/url"
+	"slices"
+	"strings"
+	"time"
 
 	"github.com/avast/retry-go"
 	"github.com/dcarbone/zadapters/zstdlog"
@@ -1025,11 +1023,18 @@ func (h *Handler) isValidAnnouncer(nick string) bool {
 		if nick == announcer {
 			return true
 		}
-		// Check if the nick starts with the announcer and has one extra character which is a digit
-		if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 && unicode.IsDigit(rune(nick[len(announcer)])) {
+
+		// Confirm if the nickname starts with the announcer and comprises one additional character
+		if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 {
+			return true
+		}
+
+		// Verify if the nickname concludes with an asterisk and holds the correct prefix
+		if strings.HasSuffix(announcer, "*") && strings.HasPrefix(nick, announcer) {
 			return true
 		}
 	}
+
 	return false
 }
 
