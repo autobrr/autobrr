@@ -780,7 +780,7 @@ func (h *Handler) onNames(msg ircmsg.Message) {
 		}
 	}
 
-	h.log.Error().Msgf("announcer is missing on %s", h.network.Name)
+	h.log.Warn().Msgf("announcer is missing on %s", h.network.Name)
 	h.insecureAnnounce = true
 }
 
@@ -838,6 +838,7 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	if !h.isOurCurrentNick(msg.Nick()) {
 		if !h.insecureAnnounce && h.isValidAnnouncer(msg.Nick(), true) {
+			h.log.Warn().Msgf("%s has left on %s", msg.Nick(), h.network.Name)
 			h.insecureAnnounce = true
 		}
 
@@ -1029,7 +1030,7 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 	}
 
 	if h.insecureAnnounce && h.isValidAnnouncer(msg.Params[0], true) {
-		h.log.Debug().Msgf("announcer returned: %s", msg.Params[0])
+		h.log.Warn().Msgf("announcer returned: %s", msg.Params[0])
 		h.insecureAnnounce = false
 	}
 
