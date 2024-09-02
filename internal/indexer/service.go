@@ -295,6 +295,9 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
 
+	d.UseProxy = indexer.UseProxy
+	d.ProxyID = indexer.ProxyID
+
 	if d.SettingsMap == nil {
 		d.SettingsMap = make(map[string]string)
 	}
@@ -331,6 +334,9 @@ func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefin
 	d.Implementation = indexer.Implementation
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
+
+	d.UseProxy = indexer.UseProxy
+	d.ProxyID = indexer.ProxyID
 
 	if d.SettingsMap == nil {
 		d.SettingsMap = make(map[string]string)

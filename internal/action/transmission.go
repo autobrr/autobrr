@@ -107,11 +107,8 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, nil
 	}
 
-	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
-			return nil, err
-		}
+	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
 	b64, err := transmissionrpc.File2Base64(release.TorrentTmpFile)

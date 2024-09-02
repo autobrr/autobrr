@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-
-	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 var types map[string][]*TagInfo
@@ -261,13 +259,9 @@ func init() {
 	// language `(?i)\b((DK|DKSUBS|DANiSH|DUTCH|NL|NLSUBBED|ENG|FI|FLEMiSH|FiNNiSH|DE|FRENCH|GERMAN|HE|HEBREW|HebSub|HiNDi|iCELANDiC|KOR|MULTi|MULTiSUBS|NORWEGiAN|NO|NORDiC|PL|PO|POLiSH|PLDUB|RO|ROMANiAN|RUS|SPANiSH|SE|SWEDiSH|SWESUB||))\b`)
 	// websites `(?i)\b((AMBC|AS|AMZN|AMC|ANPL|ATVP|iP|CORE|BCORE|CMOR|CN|CBC|CBS|CMAX|CNBC|CC|CRIT|CR|CSPN|CW|DAZN|DCU|DISC|DSCP|DSNY|DSNP|DPLY|ESPN|FOX|FUNI|PLAY|HBO|HMAX|HIST|HS|HOTSTAR|HULU|iT|MNBC|MTV|NATG|NBC|NF|NICK|NRK|PMNT|PMNP|PCOK|PBS|PBSK|PSN|QIBI|SBS|SHO|STAN|STZ|SVT|SYFY|TLC|TRVL|TUBI|TV3|TV4|TVL|VH1|VICE|VMEO|UFC|USAN|VIAP|VIAPLAY|VL|WWEN|XBOX|YHOO|YT|RED))\b`)
 
-	for s, infos := range types {
+	for _, infos := range types {
 		for _, info := range infos {
-			var err error
-			//if info.re, err = regexp.Compile(`(?i)^(?:` + info.RE() + `)$`); err != nil {
-			if info.re, err = regexp.Compile(`(?i)(?:` + info.RE() + `)`); err != nil {
-				errors.Wrap(err, "tag %q has invalid regexp %q\n", s, info.re)
-			}
+			info.re = regexp.MustCompile(`(?i)(?:` + info.RE() + `)`)
 		}
 	}
 }

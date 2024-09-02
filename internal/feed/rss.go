@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -93,7 +94,6 @@ func (j *RSSJob) process(ctx context.Context) error {
 	releases := make([]*domain.Release, 0)
 
 	for _, item := range items {
-		item := item
 		j.Log.Debug().Msgf("item: %v", item.Title)
 
 		rls := j.processItem(item)
@@ -139,7 +139,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
-			if !strings.HasPrefix(rls.MagnetURI, "magnet:?") && strings.HasPrefix(e.URL, "magnet:?") {
+			if !strings.HasPrefix(rls.MagnetURI, domain.MagnetURIPrefix) && strings.HasPrefix(e.URL, domain.MagnetURIPrefix) {
 				rls.MagnetURI = e.URL
 				rls.DownloadURL = ""
 			}
@@ -232,7 +232,20 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	ctx, cancel := context.WithTimeout(ctx, j.Timeout)
 	defer cancel()
 
-	feed, err := NewFeedParser(j.Timeout, j.Feed.Cookie).ParseURLWithContext(ctx, j.URL)
+	feedParser := NewFeedParser(j.Timeout, j.Feed.Cookie)
+
+	if j.Feed.UseProxy && j.Feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get proxy client")
+		}
+
+		feedParser.WithHTTPClient(proxyClient)
+
+		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
+	}
+
+	feed, err := feedParser.ParseURLWithContext(ctx, j.URL)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching rss feed items")
 	}
@@ -257,9 +270,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	// set ttl to 1 month
 	ttl := time.Now().AddDate(0, 1, 0)
 
-	for _, i := range feed.Items {
-		item := i
-
+	for _, item := range feed.Items {
 		key := item.GUID
 		if len(key) == 0 {
 			key = item.Link
@@ -278,12 +289,12 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 			continue
 		}
 
-		j.Log.Debug().Msgf("found new release: %s", i.Title)
+		j.Log.Debug().Msgf("found new release: %s", item.Title)
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
 			Key:    key,
-			Value:  []byte(i.Title),
+			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})
 

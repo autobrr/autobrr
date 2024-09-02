@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/regexcache"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
@@ -774,7 +774,7 @@ func matchRegex(tag string, filterList string) bool {
 		if filter == "" {
 			continue
 		}
-		re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
+		re, err := regexcache.Compile(`(?i)(?:` + filter + `)`)
 		if err != nil {
 			return false
 		}

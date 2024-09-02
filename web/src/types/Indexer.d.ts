@@ -11,6 +11,8 @@ interface Indexer {
   enabled: boolean;
   implementation: string;
   base_url: string;
+  use_proxy?: boolean;
+  proxy_id?: number;
   settings: Array<IndexerSetting>;
 }
 
@@ -35,6 +37,8 @@ interface IndexerDefinition {
   protocol: string;
   urls: string[];
   supports: string[];
+  use_proxy?: boolean;
+  proxy_id?: number;
   settings: IndexerSetting[];
   irc: IndexerIRC;
   torznab: IndexerTorznab;

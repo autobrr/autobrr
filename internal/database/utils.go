@@ -16,10 +16,10 @@ func dataSourceName(configPath string, name string) string {
 	return name
 }
 
-func toNullString(s string) sql.NullString {
-	return sql.NullString{
-		String: s,
-		Valid:  s != "",
+func toNullString(s string) sql.Null[string] {
+	return sql.Null[string]{
+		V:     s,
+		Valid: s != "",
 	}
 }
 

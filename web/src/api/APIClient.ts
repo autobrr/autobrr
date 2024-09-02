@@ -389,6 +389,20 @@ export const APIClient = {
       body: notification
     })
   },
+  proxy: {
+    list: () => appClient.Get<Proxy[]>("api/proxy"),
+    getByID: (id: number) => appClient.Get<Proxy>(`api/proxy/${id}`),
+    store: (proxy: ProxyCreate) => appClient.Post("api/proxy", {
+      body: proxy
+    }),
+    update: (proxy: Proxy) => appClient.Put(`api/proxy/${proxy.id}`, {
+      body: proxy
+    }),
+    delete: (id: number) => appClient.Delete(`api/proxy/${id}`),
+    test: (proxy: Proxy) => appClient.Post("api/proxy/test", {
+      body: proxy
+    })
+  },
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
     findRecent: () => appClient.Get<ReleaseFindResponse>("api/release/recent"),

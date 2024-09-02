@@ -57,10 +57,8 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		return nil, nil
 	}
 
-	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
-		}
+	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
 	options, err := s.prepareQbitOptions(action)

@@ -3,6 +3,14 @@
 
 package wildcard
 
+import (
+	"regexp"
+	"strings"
+
+	"github.com/autobrr/autobrr/pkg/regexcache"
+	"github.com/rs/zerolog/log"
+)
+
 // MatchSimple - finds whether the text matches/satisfies the pattern string.
 // supports only '*' wildcard in the pattern.
 // considers a file system path as a flat name space.
@@ -14,7 +22,7 @@ func MatchSimple(pattern, name string) bool {
 		return true
 	}
 	// Does only wildcard '*' match.
-	return deepMatchRune([]rune(name), []rune(pattern), true)
+	return deepMatchRune(name, pattern, true)
 }
 
 // Match -  finds whether the text matches/satisfies the pattern string.
@@ -29,26 +37,32 @@ func Match(pattern, name string) (matched bool) {
 		return true
 	}
 	// Does extended wildcard '*' and '?' match.
-	return deepMatchRune([]rune(name), []rune(pattern), false)
+	return deepMatchRune(name, pattern, false)
 }
 
-func deepMatchRune(str, pattern []rune, simple bool) bool {
-	for len(pattern) > 0 {
-		switch pattern[0] {
-		default:
-			if len(str) == 0 || str[0] != pattern[0] {
-				return false
-			}
-		case '?':
-			if len(str) == 0 && !simple {
-				return false
-			}
-		case '*':
-			return deepMatchRune(str, pattern[1:], simple) ||
-				(len(str) > 0 && deepMatchRune(str[1:], pattern, simple))
-		}
-		str = str[1:]
-		pattern = pattern[1:]
+var convSimple = regexp.MustCompile(regexp.QuoteMeta(`\*`))
+var convWildChar = regexp.MustCompile(regexp.QuoteMeta(`\?`))
+
+func deepMatchRune(str, pattern string, simple bool) bool {
+	pattern = regexp.QuoteMeta(pattern)
+	if strings.Contains(pattern, "*") {
+		pattern = convSimple.ReplaceAllLiteralString(pattern, ".*")
 	}
-	return len(str) == 0 && len(pattern) == 0
+
+	if !simple && strings.Contains(pattern, "?") {
+		pattern = convWildChar.ReplaceAllLiteralString(pattern, ".")
+	}
+
+	user, err := regexcache.Compile(pattern)
+	if err != nil {
+		log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
+		return false
+	}
+
+	idx := user.FindStringIndex(str)
+	if idx == nil {
+		return false
+	}
+
+	return idx[1] == len(str)
 }
