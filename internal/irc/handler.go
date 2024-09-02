@@ -780,7 +780,7 @@ func (h *Handler) onNames(msg ircmsg.Message) {
 		}
 	}
 
-	h.log.Warn().Msgf("announcer is missing on %s", h.network.Name)
+	h.log.Warn().Msgf("announcer is missing on %s/%s", h.network.Name, channel)
 	h.insecureAnnounce = true
 }
 
