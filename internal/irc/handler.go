@@ -762,7 +762,7 @@ func (h *Handler) onNames(msg ircmsg.Message) {
 
 	channel := msg.Params[2]
 	if !h.isValidChannel(channel) {
-		h.log.Error().Msgf("Ignoring invalid channel %s", channel)
+		h.log.Trace().Msgf("names ignoring extra channel %s", channel)
 		return
 	}
 
