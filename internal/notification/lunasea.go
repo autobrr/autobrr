@@ -37,9 +37,10 @@ func (s *lunaSeaSender) Name() string {
 	return "lunasea"
 }
 
+var lunaWebhook = regexp.MustCompile(`/(radarr|sonarr|lidarr|tautulli|overseerr)/`)
+
 func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
-	re := regexp.MustCompile(`/(radarr|sonarr|lidarr|tautulli|overseerr)/`)
-	return re.ReplaceAllString(url, "/custom/")
+	return lunaWebhook.ReplaceAllString(url, "/custom/")
 } // `custom` is not mentioned in their docs, so I thought this would be a good idea to add to avoid user errors
 
 func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
