@@ -42,8 +42,21 @@ func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
 	}
 
 	c.http.Timeout = timeout
+	c.parser.Client = httpClient
 
 	return c
+}
+
+func (c *RSSParser) WithHTTPClient(client *http.Client) {
+	httpClient := client
+	if client.Jar == nil {
+		jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
+		jar, _ := cookiejar.New(jarOptions)
+		httpClient.Jar = jar
+	}
+
+	c.http = httpClient
+	c.parser.Client = httpClient
 }
 
 func (c *RSSParser) ParseURLWithContext(ctx context.Context, feedURL string) (feed *gofeed.Feed, err error) {

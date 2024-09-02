@@ -11,6 +11,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -68,16 +69,18 @@ type service struct {
 	repo       domain.FeedRepo
 	cacheRepo  domain.FeedCacheRepo
 	releaseSvc release.Service
+	proxySvc   proxy.Service
 	scheduler  scheduler.Service
 }
 
-func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, proxySvc proxy.Service, scheduler scheduler.Service) Service {
 	return &service{
 		log:        log.With().Str("module", "feed").Logger(),
 		jobs:       map[string]int{},
 		repo:       repo,
 		cacheRepo:  cacheRepo,
 		releaseSvc: releaseSvc,
+		proxySvc:   proxySvc,
 		scheduler:  scheduler,
 	}
 }
@@ -147,6 +150,13 @@ func (s *service) Start() error {
 func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 	if err := s.repo.Update(ctx, feed); err != nil {
 		s.log.Error().Err(err).Msg("error updating feed")
+		return err
+	}
+
+	// get Feed again for ProxyID and UseProxy to be correctly populated
+	feed, err := s.repo.FindByID(ctx, feed.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding feed")
 		return err
 	}
 
@@ -227,6 +237,18 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 	// create sub logger
 	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
 
+	// add proxy conf
+	if feed.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
+		if err != nil {
+			return errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			feed.Proxy = proxyConf
+		}
+	}
+
 	// test feeds
 	switch feed.Type {
 	case string(domain.FeedTypeTorznab):
@@ -254,13 +276,27 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	f, err := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie).ParseURLWithContext(ctx, feed.URL)
+	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie)
+
+	// add proxy if enabled and exists
+	if feed.UseProxy && feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+		if err != nil {
+			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		feedParser.WithHTTPClient(proxyClient)
+
+		s.log.Debug().Msgf("using proxy %s for feed %s", feed.Proxy.Name, feed.Name)
+	}
+
+	feedResponse, err := feedParser.ParseURLWithContext(ctx, feed.URL)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("error fetching rss feed items")
 		return errors.Wrap(err, "error fetching rss feed items")
 	}
 
-	s.log.Info().Msgf("refreshing rss feed: %s, found (%d) items", feed.Name, len(f.Items))
+	s.log.Info().Msgf("refreshing rss feed: %s, found (%d) items", feed.Name, len(feedResponse.Items))
 
 	return nil
 }
@@ -268,6 +304,18 @@ func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
 func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
 	// setup torznab Client
 	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+
+	// add proxy if enabled and exists
+	if feed.UseProxy && feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+		if err != nil {
+			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		c.WithHTTPClient(proxyClient)
+
+		s.log.Debug().Msgf("using proxy %s for feed %s", feed.Proxy.Name, feed.Name)
+	}
 
 	items, err := c.FetchFeed(ctx)
 	if err != nil {
@@ -283,6 +331,18 @@ func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 func (s *service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
 	// setup newznab Client
 	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+
+	// add proxy if enabled and exists
+	if feed.UseProxy && feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+		if err != nil {
+			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		c.WithHTTPClient(proxyClient)
+
+		s.log.Debug().Msgf("using proxy %s for feed %s", feed.Proxy.Name, feed.Name)
+	}
 
 	items, err := c.GetFeed(ctx)
 	if err != nil {
@@ -316,8 +376,6 @@ func (s *service) start() error {
 	s.log.Debug().Msgf("preparing staggered start of %d feeds", len(feeds))
 
 	for _, feed := range feeds {
-		feed := feed
-
 		if !feed.Enabled {
 			s.log.Trace().Msgf("feed disabled, skipping... %s", feed.Name)
 			continue
@@ -406,6 +464,18 @@ func (s *service) startJob(f *domain.Feed) error {
 	// get url from settings
 	if f.URL == "" {
 		return errors.New("no URL provided for feed: %s", f.Name)
+	}
+
+	// add proxy conf
+	if f.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(context.Background(), f.ProxyID)
+		if err != nil {
+			return errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			f.Proxy = proxyConf
+		}
 	}
 
 	fi := newFeedInstance(f)

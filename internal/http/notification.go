@@ -6,11 +6,11 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"github.com/autobrr/autobrr/pkg/errors"
 	"net/http"
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 )

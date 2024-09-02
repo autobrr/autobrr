@@ -34,6 +34,9 @@ type Indexer struct {
 	Enabled            bool              `json:"enabled"`
 	Implementation     string            `json:"implementation"`
 	BaseURL            string            `json:"base_url,omitempty"`
+	UseProxy           bool              `json:"use_proxy"`
+	Proxy              *Proxy            `json:"proxy"`
+	ProxyID            int64             `json:"proxy_id"`
 	Settings           map[string]string `json:"settings,omitempty"`
 }
 
@@ -66,6 +69,8 @@ type IndexerDefinition struct {
 	Protocol           string            `json:"protocol"`
 	URLS               []string          `json:"urls"`
 	Supports           []string          `json:"supports"`
+	UseProxy           bool              `json:"use_proxy"`
+	ProxyID            int64             `json:"proxy_id"`
 	Settings           []IndexerSetting  `json:"settings,omitempty"`
 	SettingsMap        map[string]string `json:"-"`
 	IRC                *IndexerIRC       `json:"irc,omitempty"`

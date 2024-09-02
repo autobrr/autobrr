@@ -53,6 +53,11 @@ type Feed struct {
 	LastRun      time.Time         `json:"last_run"`
 	LastRunData  string            `json:"last_run_data"`
 	NextRun      time.Time         `json:"next_run"`
+
+	// belongs to Indexer
+	ProxyID  int64
+	UseProxy bool
+	Proxy    *Proxy
 }
 
 type FeedSettingsJSON struct {

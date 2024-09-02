@@ -577,3 +577,10 @@ export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>
   { label: "PATCH", value: "PATCH" },
   { label: "DELETE", value: "DELETE" }
 ];
+
+export const ProxyTypeOptions: OptionBasicTyped<ProxyType>[] = [
+  {
+    label: "SOCKS5",
+    value: "SOCKS5"
+  },
+];
