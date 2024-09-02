@@ -64,9 +64,12 @@ func (a *Action) CheckMacrosNeedTorrentTmpFile(release *Release) bool {
 	if release.TorrentTmpFile == "" &&
 		(strings.Contains(a.ExecArgs, "TorrentPathName") ||
 			strings.Contains(a.ExecArgs, "TorrentDataRawBytes") ||
+			strings.Contains(a.ExecArgs, "TorrentHash") ||
 			strings.Contains(a.WebhookData, "TorrentPathName") ||
 			strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
+			strings.Contains(a.WebhookData, "TorrentHash") ||
 			strings.Contains(a.SavePath, "TorrentPathName") ||
+			strings.Contains(a.SavePath, "TorrentHash") ||
 			a.Type == ActionTypeWatchFolder) {
 		return true
 	}

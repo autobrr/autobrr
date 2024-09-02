@@ -149,12 +149,9 @@ func (s *service) CheckActionPreconditions(ctx context.Context, action *domain.A
 	}
 
 	if action.CheckMacrosNeedRawDataBytes(release) {
-		tmpFile, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return errors.Wrap(err, "could not read torrent file: %v", release.TorrentTmpFile)
+		if err := release.OpenTorrentFile(); err != nil {
+			return errors.Wrap(err, "could not open torrent file for release: %s", release.TorrentName)
 		}
-
-		release.TorrentDataRawBytes = tmpFile
 	}
 
 	return nil

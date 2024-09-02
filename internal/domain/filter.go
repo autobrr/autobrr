@@ -186,6 +186,22 @@ type FilterExternal struct {
 	FilterId                 int                `json:"-"`
 }
 
+func (f FilterExternal) NeedTorrentDownloaded() bool {
+	if strings.Contains(f.ExecArgs, "TorrentHash") || strings.Contains(f.WebhookData, "TorrentHash") {
+		return true
+	}
+
+	if strings.Contains(f.ExecArgs, "TorrentPathName") || strings.Contains(f.WebhookData, "TorrentPathName") {
+		return true
+	}
+
+	if strings.Contains(f.WebhookData, "TorrentDataRawBytes") {
+		return true
+	}
+
+	return false
+}
+
 type FilterExternalType string
 
 const (

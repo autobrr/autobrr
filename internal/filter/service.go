@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -551,6 +550,12 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			continue
 		}
 
+		if external.NeedTorrentDownloaded() {
+			if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+				return false, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
+			}
+		}
+
 		switch external.Type {
 		case domain.ExternalFilterTypeExec:
 			// run external script
@@ -583,23 +588,14 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 	return true, nil
 }
 
-func (s *service) execCmd(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
+func (s *service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
 	s.log.Trace().Msgf("filter exec release: %s", release.TorrentName)
-
-	if release.TorrentTmpFile == "" && strings.Contains(external.ExecArgs, "TorrentPathName") {
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
-			return 0, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
-		}
-	}
 
 	// read the file into bytes we can then use in the macro
 	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return 0, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
+		if err := release.OpenTorrentFile(); err != nil {
+			return 0, errors.Wrap(err, "could not open torrent file for release: %s", release.TorrentName)
 		}
-
-		release.TorrentDataRawBytes = t
 	}
 
 	// check if program exists
@@ -687,21 +683,11 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		return 0, errors.New("external filter: missing host for webhook")
 	}
 
-	// if webhook data contains TorrentPathName or TorrentDataRawBytes, lets download the torrent file
-	if release.TorrentTmpFile == "" && (strings.Contains(external.WebhookData, "TorrentPathName") || strings.Contains(external.WebhookData, "TorrentDataRawBytes")) {
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
-			return 0, errors.Wrap(err, "webhook: could not download torrent file for release: %s", release.TorrentName)
-		}
-	}
-
 	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
 	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(external.WebhookData, "TorrentDataRawBytes") {
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return 0, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
+		if err := release.OpenTorrentFile(); err != nil {
+			return 0, errors.Wrap(err, "could not open torrent file for release: %s", release.TorrentName)
 		}
-
-		release.TorrentDataRawBytes = t
 	}
 
 	m := domain.NewMacro(*release)

@@ -426,6 +426,17 @@ func (r *Release) ParseSizeBytesString(size string) {
 	}
 }
 
+func (r *Release) OpenTorrentFile() error {
+	tmpFile, err := os.ReadFile(r.TorrentTmpFile)
+	if err != nil {
+		return errors.Wrap(err, "could not read torrent file: %v", r.TorrentTmpFile)
+	}
+
+	r.TorrentDataRawBytes = tmpFile
+
+	return nil
+}
+
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
 	return r.downloadTorrentFile(ctx)
 }
