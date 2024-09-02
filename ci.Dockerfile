@@ -1,5 +1,5 @@
 # build app
-FROM --platform=$BUILDPLATFORM golang:1.22-alpine3.19 AS app-builder
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine3.20 AS app-builder
 RUN apk add --no-cache git tzdata
 
 ENV SERVICE=autobrr
@@ -15,7 +15,9 @@ COPY . ./
 ARG VERSION=dev
 ARG REVISION=dev
 ARG BUILDTIME
-ARG TARGETOS TARGETARCH TARGETVARIANT
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 RUN --network=none --mount=target=. \
 export GOOS=$TARGETOS; \
@@ -30,9 +32,9 @@ go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -
 # build runner
 FROM alpine:latest AS runner
 
-LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
-LABEL org.opencontainers.image.licenses = "GPL-2.0-or-later"
-LABEL org.opencontainers.image.base.name = "alpine:latest"
+LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
+LABEL org.opencontainers.image.licenses="GPL-2.0-or-later"
+LABEL org.opencontainers.image.base.name="alpine:latest"
 
 ENV HOME="/config" \
     XDG_CONFIG_HOME="/config" \

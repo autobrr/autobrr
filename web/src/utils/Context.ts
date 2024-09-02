@@ -8,7 +8,6 @@ import { newRidgeState } from "react-ridge-state";
 
 interface SettingsType {
   debug: boolean;
-  checkForUpdates: boolean;
   darkTheme: boolean;
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
@@ -34,7 +33,6 @@ const AuthContextDefaults: AuthInfo = {
 
 const SettingsContextDefaults: SettingsType = {
   debug: false,
-  checkForUpdates: true,
   darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
   scrollOnNewLog: false,
   indentLogLines: false,

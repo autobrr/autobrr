@@ -221,7 +221,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		// found matching filter, lets find the filter actions and attach
 		active := true
-		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active)
+		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active, false)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
 			return err
@@ -375,19 +375,31 @@ func (s *service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	// get release
 	release, err := s.Get(ctx, &domain.GetReleaseRequest{Id: req.ReleaseId})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "retry error: could not find release by id: %d", req.ReleaseId)
+	}
+
+	indexerInfo, err := s.indexerSvc.GetBy(ctx, domain.GetIndexerRequest{Identifier: release.Indexer.Identifier})
+	if err != nil {
+		return errors.Wrap(err, "retry error: could not get indexer by identifier: %s", release.Indexer.Identifier)
+	}
+
+	release.Indexer = domain.IndexerMinimal{
+		ID:                 int(indexerInfo.ID),
+		Name:               indexerInfo.Name,
+		Identifier:         indexerInfo.Identifier,
+		IdentifierExternal: indexerInfo.IdentifierExternal,
 	}
 
 	// get release filter action status
 	status, err := s.GetActionStatus(ctx, &domain.GetReleaseActionStatusRequest{Id: req.ActionStatusId})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "retry error: could not get release action")
 	}
 
 	// get filter action with action id from status
 	filterAction, err := s.actionSvc.Get(ctx, &domain.GetActionRequest{Id: int(status.ActionID)})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "retry error: could not get filter action for release")
 	}
 
 	// run filterAction

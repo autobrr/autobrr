@@ -14,6 +14,20 @@ CREATE TABLE users
     UNIQUE (username)
 );
 
+CREATE TABLE proxy
+(
+    id             SERIAL PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    type           TEXT NOT NULL,
+    addr           TEXT NOT NULL,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE indexer
 (
     id                  SERIAL PRIMARY KEY,
@@ -24,8 +38,11 @@ CREATE TABLE indexer
     enabled             BOOLEAN,
     name                TEXT NOT NULL,
     settings            TEXT,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
 
@@ -51,8 +68,11 @@ CREATE TABLE irc_network
     bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (server, port, nick)
 );
 
@@ -106,6 +126,8 @@ CREATE TABLE filter
     match_other                    TEXT []   DEFAULT '{}',
     except_other                   TEXT []   DEFAULT '{}',
     years                          TEXT,
+	months                         TEXT,
+    days                           TEXT,
     artists                        TEXT,
     albums                         TEXT,
     release_types_match            TEXT []   DEFAULT '{}',
@@ -245,6 +267,8 @@ CREATE TABLE "release"
     season            INTEGER,
     episode           INTEGER,
     year              INTEGER,
+    month             INTEGER,
+    day               INTEGER,
     resolution        TEXT,
     source            TEXT,
     codec             TEXT,
@@ -884,5 +908,51 @@ ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
 
 	UPDATE indexer
     SET identifier_external = name;
+`,
+	`ALTER TABLE "release"
+ADD COLUMN month INTEGER;
+
+ALTER TABLE "release"
+ADD COLUMN day INTEGER;
+
+ALTER TABLE filter
+ADD COLUMN months TEXT;
+
+ALTER TABLE filter
+ADD COLUMN days TEXT;
+`,
+	`CREATE TABLE proxy
+(
+    id             SERIAL PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    type           TEXT NOT NULL,
+    addr           TEXT NOT NULL,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE indexer
+    ADD COLUMN proxy_id INTEGER;
+
+ALTER TABLE indexer
+    ADD COLUMN use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE indexer
+    ADD FOREIGN KEY (proxy_id) REFERENCES proxy
+        ON DELETE SET NULL;
+
+ALTER TABLE irc_network
+    ADD COLUMN proxy_id INTEGER;
+
+ALTER TABLE irc_network
+    ADD COLUMN use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+    ADD FOREIGN KEY (proxy_id) REFERENCES proxy
+        ON DELETE SET NULL;
 `,
 }

@@ -1,8 +1,10 @@
 package notification
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"regexp"
 	"time"
@@ -31,9 +33,14 @@ type lunaSeaSender struct {
 	httpClient *http.Client
 }
 
+func (s *lunaSeaSender) Name() string {
+	return "lunasea"
+}
+
+var lunaWebhook = regexp.MustCompile(`/(radarr|sonarr|lidarr|tautulli|overseerr)/`)
+
 func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
-	re := regexp.MustCompile(`/(radarr|sonarr|lidarr|tautulli|overseerr)/`)
-	return re.ReplaceAllString(url, "/custom/")
+	return lunaWebhook.ReplaceAllString(url, "/custom/")
 } // `custom` is not mentioned in their docs, so I thought this would be a good idea to add to avoid user errors
 
 func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
@@ -57,31 +64,32 @@ func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		s.log.Error().Err(err).Msg("lunasea client could not marshal data")
-		return errors.Wrap(err, "could not marshal data")
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
 	rewrittenURL := s.rewriteWebhookURL(s.Settings.Webhook)
 
 	req, err := http.NewRequest(http.MethodPost, rewrittenURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		s.log.Error().Err(err).Msg("lunasea client request error")
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msg("lunasea client request error")
-		return errors.Wrap(err, "could not make request")
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	if res.StatusCode >= 300 {
-		s.log.Error().Msgf("bad status from lunasea: %v", res.StatusCode)
-		return errors.New("bad status: %v", res.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to lunasea")

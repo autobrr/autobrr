@@ -11,7 +11,7 @@ import {
   notFound,
   Outlet,
   redirect,
-  } from "@tanstack/react-router";
+} from "@tanstack/react-router";
 import { z } from "zod";
 import { QueryClient } from "@tanstack/react-query";
 
@@ -30,7 +30,8 @@ import {
   FilterByIdQueryOptions,
   IndexersQueryOptions,
   IrcQueryOptions,
-  NotificationsQueryOptions
+  NotificationsQueryOptions,
+  ProxiesQueryOptions
 } from "@api/queries";
 import LogSettings from "@screens/settings/Logs";
 import NotificationSettings from "@screens/settings/Notifications";
@@ -50,6 +51,7 @@ import { AuthContext, SettingsContext } from "@utils/Context";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
+import ProxySettings from "@screens/settings/Proxy";
 
 import { ErrorPage } from "@components/alerts";
 
@@ -212,6 +214,13 @@ export const SettingsApiRoute = createRoute({
   component: APISettings
 });
 
+export const SettingsProxiesRoute = createRoute({
+  getParentRoute: () => SettingsRoute,
+  path: 'proxies',
+  loader: (opts) => opts.context.queryClient.ensureQueryData(ProxiesQueryOptions()),
+  component: ProxySettings
+});
+
 export const SettingsReleasesRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'releases',
@@ -319,7 +328,7 @@ export const AuthIndexRoute = createRoute({
 export const RootComponent = () => {
   const settings = SettingsContext.useValue();
   return (
-    <div className="min-h-screen">
+    <div className="flex flex-col min-h-screen">
       <Outlet/>
       {settings.debug ? (
         <>
@@ -336,17 +345,10 @@ export const RootRoute = createRootRouteWithContext<{
 }>()({
   component: RootComponent,
   notFoundComponent: NotFound,
-  pendingComponent: () => (
-    <div className="h-screen">
-      <div className="flex flex-grow items-center justify-center h-screen sm:h-3/5">
-        <RingResizeSpinner className="text-blue-500 size-24"/>
-      </div>
-    </div>
-  ),
 });
 
 const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute])])
-const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsReleasesRoute, SettingsAccountRoute])
+const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
 const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute])])
 const routeTree = RootRoute.addChildren([
   authenticatedTree,

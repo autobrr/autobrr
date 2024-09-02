@@ -286,9 +286,21 @@ const indexerSchema = z.object({
 // Define the schema for the entire object
 const schema = z.object({
   name: z.string(),
+  max_downloads: z.number().optional(),
+  max_downloads_unit: z.string().optional(),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
   actions: z.array(actionSchema),
   external: z.array(externalFilterSchema)
+}).superRefine((value, ctx) => {
+  if (value.max_downloads && value.max_downloads > 0) {
+    if (!value.max_downloads_unit) {
+      ctx.addIssue({
+        message: "Must select Max Downloads Per unit when Max Downloads is greater than 0",
+        code: z.ZodIssueCode.custom,
+        path: ["max_downloads_unit"]
+      });
+    }
+  }
 });
 
 export const FilterDetails = () => {
@@ -387,6 +399,8 @@ export const FilterDetails = () => {
               use_regex: filter.use_regex || false,
               shows: filter.shows,
               years: filter.years,
+              months: filter.months,
+              days: filter.days,
               resolutions: filter.resolutions || [],
               sources: filter.sources || [],
               codecs: filter.codecs || [],

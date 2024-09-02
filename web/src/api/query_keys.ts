@@ -80,3 +80,10 @@ export const NotificationKeys = {
   details: () => [...NotificationKeys.all, "detail"] as const,
   detail: (id: number) => [...NotificationKeys.details(), id] as const
 };
+
+export const ProxyKeys = {
+  all: ["proxy"] as const,
+  lists: () => [...ProxyKeys.all, "list"] as const,
+  details: () => [...ProxyKeys.all, "detail"] as const,
+  detail: (id: number) => [...ProxyKeys.details(), id] as const
+};

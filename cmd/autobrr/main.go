@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/diagnostics"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
@@ -23,7 +24,9 @@ import (
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
@@ -64,6 +67,8 @@ func main() {
 	// init dynamic config
 	cfg.DynamicReload(log)
 
+	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
+
 	// setup server-sent-events
 	serverEvents := sse.New()
 	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
@@ -100,24 +105,27 @@ func main() {
 		notificationRepo   = database.NewNotificationRepo(log, db)
 		releaseRepo        = database.NewReleaseRepo(log, db)
 		userRepo           = database.NewUserRepo(log, db)
+		proxyRepo          = database.NewProxyRepo(log, db)
 	)
 
 	// setup services
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
-		notificationService   = notification.NewService(log, notificationRepo)
 		updateService         = update.NewUpdate(log, cfg.Config)
+		notificationService   = notification.NewService(log, notificationRepo)
 		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
 		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
+		proxyService          = proxy.NewService(log, proxyRepo)
+		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
-		actionService         = action.NewService(log, actionRepo, downloadClientService, bus)
+		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
-		filterService         = filter.NewService(log, filterRepo, actionRepo, releaseRepo, indexerAPIService, indexerService)
+		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
-		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService)
-		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, schedulingService)
+		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
+		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 	)
 
 	// register event subscribers
@@ -143,6 +151,7 @@ func main() {
 			indexerService,
 			ircService,
 			notificationService,
+			proxyService,
 			releaseService,
 			updateService,
 		)

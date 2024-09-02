@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/regexcache"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 	"github.com/autobrr/autobrr/pkg/wildcard"
 
@@ -62,6 +62,22 @@ const (
 	FilterMaxDownloadsEver  FilterMaxDownloadsUnit = "EVER"
 )
 
+type SmartEpisodeParams struct {
+	Title   string
+	Season  int
+	Episode int
+	Year    int
+	Month   int
+	Day     int
+	Repack  bool
+	Proper  bool
+	Group   string
+}
+
+func (p *SmartEpisodeParams) IsDailyEpisode() bool {
+	return p.Year != 0 && p.Month != 0 && p.Day != 0
+}
+
 type FilterQueryParams struct {
 	Sort    map[string]string
 	Filters struct {
@@ -106,6 +122,8 @@ type Filter struct {
 	MatchOther           []string               `json:"match_other,omitempty"`
 	ExceptOther          []string               `json:"except_other,omitempty"`
 	Years                string                 `json:"years,omitempty"`
+	Months               string                 `json:"months,omitempty"`
+	Days                 string                 `json:"days,omitempty"`
 	Artists              string                 `json:"artists,omitempty"`
 	Albums               string                 `json:"albums,omitempty"`
 	MatchReleaseTypes    []string               `json:"match_release_types,omitempty"` // Album,Single,EP
@@ -215,6 +233,8 @@ type FilterUpdate struct {
 	MatchOther           *[]string               `json:"match_other,omitempty"`
 	ExceptOther          *[]string               `json:"except_other,omitempty"`
 	Years                *string                 `json:"years,omitempty"`
+	Months               *string                 `json:"months,omitempty"`
+	Days                 *string                 `json:"days,omitempty"`
 	Artists              *string                 `json:"artists,omitempty"`
 	Albums               *string                 `json:"albums,omitempty"`
 	MatchReleaseTypes    *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
@@ -309,6 +329,8 @@ func (f *Filter) Sanitize() error {
 	}
 
 	f.Years = sanitize.FilterString(f.Years)
+	f.Months = sanitize.FilterString(f.Months)
+	f.Days = sanitize.FilterString(f.Days)
 
 	f.Artists = sanitize.FilterString(f.Artists)
 	f.Albums = sanitize.FilterString(f.Albums)
@@ -458,6 +480,14 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 
 	if f.Years != "" && !containsIntStrings(r.Year, f.Years) {
 		f.addRejectionF("year not matching. got: %d want: %v", r.Year, f.Years)
+	}
+
+	if f.Months != "" && !containsIntStrings(r.Month, f.Months) {
+		f.addRejectionF("month not matching. got: %d want: %v", r.Month, f.Months)
+	}
+
+	if f.Days != "" && !containsIntStrings(r.Day, f.Days) {
+		f.addRejectionF("day not matching. got: %d want: %v", r.Day, f.Days)
 	}
 
 	if f.MatchCategories != "" {
@@ -744,7 +774,7 @@ func matchRegex(tag string, filterList string) bool {
 		if filter == "" {
 			continue
 		}
-		re, err := regexp.Compile(`(?i)(?:` + filter + `)`)
+		re, err := regexcache.Compile(`(?i)(?:` + filter + `)`)
 		if err != nil {
 			return false
 		}

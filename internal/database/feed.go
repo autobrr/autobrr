@@ -36,6 +36,8 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 			"i.identifier",
 			"i.identifier_external",
 			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -66,11 +68,17 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	var f domain.Feed
 
 	var apiKey, cookie, settings sql.NullString
+	var proxyID sql.NullInt64
 
-	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
+	f.ProxyID = proxyID.Int64
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
 
@@ -94,6 +102,8 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 			"i.identifier",
 			"i.identifier_external",
 			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -124,11 +134,17 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 	var f domain.Feed
 
 	var apiKey, cookie, settings sql.NullString
+	var proxyID sql.NullInt64
 
-	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
+	f.ProxyID = proxyID.Int64
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
 
@@ -150,6 +166,8 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			"i.identifier",
 			"i.identifier_external",
 			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -188,10 +206,13 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		var apiKey, cookie, lastRunData, settings sql.NullString
 		var lastRun sql.NullTime
 
-		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		var proxyID sql.NullInt64
+
+		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
+		f.ProxyID = proxyID.Int64
 		f.LastRun = lastRun.Time
 		f.LastRunData = lastRunData.String
 		f.ApiKey = apiKey.String
@@ -218,9 +239,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 
 func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, error) {
 	queryBuilder := r.db.squirrel.
-		Select(
-			"last_run_data",
-		).
+		Select("last_run_data").
 		From("feed").
 		Where(sq.Eq{"id": id})
 
@@ -237,6 +256,10 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 	var data sql.NullString
 
 	if err := row.Scan(&data); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", domain.ErrRecordNotFound
+		}
+
 		return "", errors.Wrap(err, "error scanning row")
 	}
 

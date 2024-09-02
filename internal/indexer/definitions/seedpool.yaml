@@ -1,0 +1,59 @@
+---
+#id: seedpool
+name: SeedPool
+identifier: seedpool
+description: SeedPool is a private torrent tracker for 0DAY / GENERAL
+language: en-us
+urls:
+  - https://seedpool.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to Settings > RSS Keys and then copy RSS Key (RID)"
+
+irc:
+  network: SeedPool
+  server: irc.seedpool.org
+  port: 6669
+  tls: false
+  channels:
+    - "#announce"
+  announcers:
+    - seedpool
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: Movie The.Best.Show.Ever.2024.1080p.WEB.h264-EDITH https://seedpool.org/torrents/23463 3.27 GiB
+          expect:
+            category: Movie
+            torrentName: The.Best.Show.Ever.2024.1080p.WEB.h264-EDITH
+            baseUrl: https://seedpool.org/
+            torrentId: "23463"
+            torrentSize: 3.27 GiB
+        pattern: '(.+) (.+) (https?\:\/\/.+\/)torrents\/(\d+) (.*)'
+        vars:
+          - category
+          - torrentName
+          - baseUrl
+          - torrentId
+          - torrentSize
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

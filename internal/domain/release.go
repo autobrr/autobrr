@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +37,7 @@ type ReleaseRepo interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
 	Delete(ctx context.Context, req *DeleteReleaseRequest) error
-	CanDownloadShow(ctx context.Context, title string, season int, episode int) (bool, error)
+	CheckSmartEpisodeCanDownload(ctx context.Context, p *SmartEpisodeParams) (bool, error)
 	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
@@ -68,6 +70,8 @@ type Release struct {
 	Season                      int                   `json:"season"`
 	Episode                     int                   `json:"episode"`
 	Year                        int                   `json:"year"`
+	Month                       int                   `json:"month"`
+	Day                         int                   `json:"day"`
 	Resolution                  string                `json:"resolution"`
 	Source                      string                `json:"source"`
 	Codec                       []string              `json:"codec"`
@@ -316,9 +320,13 @@ func (r *Release) ParseString(title string) {
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
-	r.Other = rel.Other
 	r.Artists = rel.Artist
 	r.Language = rel.Language
+
+	r.Other = rel.Other
+
+	r.Proper = slices.Contains(r.Other, "PROPER")
+	r.Repack = slices.Contains(r.Other, "REPACK")
 
 	if r.Title == "" {
 		r.Title = rel.Title
@@ -334,6 +342,12 @@ func (r *Release) ParseString(title string) {
 	if r.Year == 0 {
 		r.Year = rel.Year
 	}
+	if r.Month == 0 {
+		r.Month = rel.Month
+	}
+	if r.Day == 0 {
+		r.Day = rel.Day
+	}
 
 	if r.Group == "" {
 		r.Group = rel.Group
@@ -341,8 +355,6 @@ func (r *Release) ParseString(title string) {
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
 }
-
-var ErrUnrecoverableError = errors.New("unrecoverable error")
 
 func (r *Release) ParseReleaseTagsString(tags string) {
 	cleanTags := CleanReleaseTags(tags)
@@ -416,10 +428,6 @@ func (r *Release) ParseSizeBytesString(size string) {
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
 	return r.downloadTorrentFile(ctx)
-}
-
-func (r *Release) DownloadTorrentFile() error {
-	return r.downloadTorrentFile(context.Background())
 }
 
 func (r *Release) downloadTorrentFile(ctx context.Context) error {
@@ -522,7 +530,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		}
 
 		// Read the body into bytes
-		bodyBytes, err := io.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
 		if err != nil {
 			return errors.Wrap(err, "error reading response body")
 		}
@@ -578,7 +586,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 }
 
 func (r *Release) CleanupTemporaryFiles() {
-	if len(r.TorrentTmpFile) == 0 {
+	if r.TorrentTmpFile == "" {
 		return
 	}
 
@@ -586,54 +594,15 @@ func (r *Release) CleanupTemporaryFiles() {
 	r.TorrentTmpFile = ""
 }
 
-// HasMagnetUri check uf MagnetURI is set or empty
+// HasMagnetUri check uf MagnetURI is set and valid or empty
 func (r *Release) HasMagnetUri() bool {
-	return r.MagnetURI != ""
+	if r.MagnetURI != "" && strings.HasPrefix(r.MagnetURI, MagnetURIPrefix) {
+		return true
+	}
+	return false
 }
 
-func (r *Release) ResolveMagnetUri(ctx context.Context) error {
-	if r.MagnetURI == "" {
-		return nil
-	} else if strings.HasPrefix(r.MagnetURI, "magnet:?") {
-		return nil
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.MagnetURI, nil)
-	if err != nil {
-		return errors.Wrap(err, "could not build request to resolve magnet uri")
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "autobrr")
-
-	client := &http.Client{
-		Timeout:   time.Second * 45,
-		Transport: sharedhttp.MagnetTransport,
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "could not make request to resolve magnet uri")
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return errors.New("unexpected status code: %d", res.StatusCode)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return errors.Wrap(err, "could not read response body")
-	}
-
-	magnet := string(body)
-	if magnet != "" {
-		r.MagnetURI = magnet
-	}
-
-	return nil
-}
+const MagnetURIPrefix = "magnet:?"
 
 func (r *Release) addRejection(reason string) {
 	r.Rejections = append(r.Rejections, reason)

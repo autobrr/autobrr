@@ -13,6 +13,10 @@ type shoutrrrSender struct {
 	builder  MessageBuilderPlainText
 }
 
+func (s *shoutrrrSender) Name() string {
+	return "shoutrrr"
+}
+
 func NewShoutrrrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
 	return &shoutrrrSender{
 		log:      log.With().Str("sender", "shoutrrr").Logger(),
