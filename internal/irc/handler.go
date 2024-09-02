@@ -6,7 +6,6 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/net/proxy"
 	"net/url"
 	"slices"
 	"strings"
@@ -26,6 +25,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
+	"golang.org/x/net/proxy"
 )
 
 var (
@@ -1019,8 +1019,24 @@ func (h *Handler) isValidAnnouncer(nick string) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
 
-	_, ok := h.validAnnouncers[strings.ToLower(nick)]
-	return ok
+	nick = strings.ToLower(nick)
+	for announcer := range h.validAnnouncers {
+		if nick == announcer {
+			return true
+		}
+
+		// Confirm if the nickname starts with the announcer and comprises one additional character
+		if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 {
+			return true
+		}
+
+		// Verify if the nickname concludes with an asterisk and holds the correct prefix
+		if strings.HasSuffix(announcer, "*") && strings.HasPrefix(nick, announcer) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // check if channel is one from the list in the definition
