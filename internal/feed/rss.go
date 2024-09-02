@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 )
@@ -182,9 +183,30 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Uploader += v.Name
 	}
 
+	if item.Description != "" {
+		rls.Description = item.Description
+
+		if readSizeFromDescription(item.Description, rls) {
+			j.Log.Trace().Msgf("Set new size %d from description", rls.Size)
+		}
+	}
+
 	// When custom->size and enclosures->size differ, `ParseSizeBytesString` will pick the largest one.
 	if size, ok := item.Custom["size"]; ok {
 		rls.ParseSizeBytesString(size)
+	}
+
+	if customContentLength, ok := item.Custom["contentlength"]; ok {
+		if customContentLength != "" {
+			size, err := strconv.ParseUint(customContentLength, 10, 64)
+			if err != nil {
+				j.Log.Error().Err(err).Msgf("could not parse item.Custom.ContentLength: %s", customContentLength)
+			}
+
+			if size > rls.Size {
+				rls.Size = size
+			}
+		}
 	}
 
 	// additional size parsing
@@ -211,13 +233,6 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if isFreeleech([]string{item.Title, item.Description}) {
 		rls.Freeleech = true
 		rls.Bonus = []string{"Freeleech"}
-	}
-
-	if item.Description != "" {
-		rls.Description = item.Description
-
-		readSizeFromDescription(item.Description, rls)
-		j.Log.Trace().Msgf("Set new size %d from description", rls.Size)
 	}
 
 	// add cookie to release for download if needed
@@ -340,16 +355,33 @@ func isFreeleech(str []string) bool {
 }
 
 // readSizeFromDescription get size from description
-func readSizeFromDescription(str string, r *domain.Release) {
+func readSizeFromDescription(str string, r *domain.Release) bool {
 	clean := rxpHTML.ReplaceAllString(str, " ")
+
+	found := false
+
 	for _, sz := range rxpSize.FindAllString(clean, -1) {
-		r.ParseSizeBytesString(sz)
+		if sz == "" {
+			continue
+		}
+
+		s, err := humanize.ParseBytes(sz)
+		if err != nil {
+			continue
+		}
+
+		if s > r.Size {
+			found = true
+			r.Size = s
+		}
 	}
+
+	return found
 }
 
 // itemCustomElement
 // used for some feeds like Aviztas network
 type itemCustomElement struct {
-	ContentLength int64  `xml:"contentLength"`
+	ContentLength int64  `xml:"contentLength,contentlength"`
 	InfoHash      string `xml:"infoHash"`
 }
