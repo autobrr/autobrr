@@ -102,8 +102,9 @@ type Handler struct {
 
 	botModeChar string
 
-	authenticated bool
-	saslauthed    bool
+	authenticated    bool
+	saslauthed       bool
+	insecureAnnounce bool
 }
 
 func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
@@ -288,6 +289,7 @@ func (h *Handler) Run() (err error) {
 		client.AddCallback("501", h.handleModeUnknownFlag)
 	}
 	client.AddCallback("INVITE", h.handleInvite)
+	client.AddCallback("353", h.onNames)
 	client.AddCallback("366", h.handleJoined)
 	client.AddCallback("PART", h.handlePart)
 	client.AddCallback("PRIVMSG", h.onMessage)
@@ -738,7 +740,7 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	}
 
 	// check if message is from announce bot, if not return
-	if validAnnouncer := h.isValidAnnouncer(nick); !validAnnouncer {
+	if validAnnouncer := h.isValidAnnouncer(nick, false); !validAnnouncer {
 		return
 	}
 
@@ -750,6 +752,36 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 	}
 
 	return
+}
+
+// onNames handles NAMES events
+func (h *Handler) onNames(msg ircmsg.Message) {
+	if len(msg.Params) < 3 || !h.isOurCurrentNick(msg.Params[0]) {
+		return
+	}
+
+	channel := msg.Params[2]
+	if !h.isValidChannel(channel) {
+		h.log.Error().Msgf("Ignoring invalid channel %s", channel)
+		return
+	}
+
+	for i := 3; i < len(msg.Params); i++ {
+		users := strings.Split(msg.Params[i], " ")
+		for _, name := range users {
+			if len(name) > 1 && name[0] == '@' || name[0] == '+' || name[0] == '&' {
+				name = name[1:]
+			}
+
+			if h.isValidAnnouncer(name, true) {
+				h.log.Debug().Msgf("announcer found %s in %s", name, channel)
+				return
+			}
+		}
+	}
+
+	h.log.Error().Msgf("announcer is missing on %s", h.network.Name)
+	h.insecureAnnounce = true
 }
 
 func (h *Handler) SendToAnnounceProcessor(channel string, msg string) error {
@@ -805,6 +837,10 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 // handlePart listens for PART events
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	if !h.isOurCurrentNick(msg.Nick()) {
+		if !h.insecureAnnounce && h.isValidAnnouncer(msg.Nick(), true) {
+			h.insecureAnnounce = true
+		}
+
 		h.log.Trace().Msgf("PART other user: %+v", msg)
 		return
 	}
@@ -852,7 +888,7 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	// check if channel is valid and if not lets part
 	if valid := h.isValidHandlerChannel(channel); !valid {
 		if err := h.PartChannel(msg.Params[1]); err != nil {
-			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
+			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", channel)
 			return
 		}
 		return
@@ -992,6 +1028,11 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		return
 	}
 
+	if h.insecureAnnounce && h.isValidAnnouncer(msg.Params[0], true) {
+		h.log.Debug().Msgf("announcer returned: %s", msg.Params[0])
+		h.insecureAnnounce = false
+	}
+
 	if h.network.BotMode && h.botModeChar != "" && h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+"+h.botModeChar) {
 		h.authenticate()
 	}
@@ -1015,7 +1056,7 @@ func (h *Handler) SendMsg(channel, msg string) error {
 }
 
 // check if announcer is one from the list in the definition
-func (h *Handler) isValidAnnouncer(nick string) bool {
+func (h *Handler) isValidAnnouncer(nick string, secure bool) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
 
@@ -1025,14 +1066,16 @@ func (h *Handler) isValidAnnouncer(nick string) bool {
 			return true
 		}
 
-		// Confirm if the nickname starts with the announcer and comprises one additional character
-		if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 {
-			return true
-		}
+		if h.insecureAnnounce && !secure {
+			// Confirm if the nickname starts with the announcer and comprises one additional character
+			if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 {
+				return true
+			}
 
-		// Verify if the nickname concludes with an asterisk and holds the correct prefix
-		if strings.HasSuffix(announcer, "*") && strings.HasPrefix(nick, announcer) {
-			return true
+			// Verify if the nickname concludes with an asterisk and holds the correct prefix
+			if strings.HasSuffix(announcer, "*") && strings.HasPrefix(nick, announcer) {
+				return true
+			}
 		}
 	}
 
