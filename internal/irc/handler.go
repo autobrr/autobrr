@@ -6,16 +6,16 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
+	"net/url"
+	"slices"
+	"strings"
+	"time"
+
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"golang.org/x/net/proxy"
-	"net/url"
-	"slices"
-	"strings"
-	"time"
 
 	"github.com/avast/retry-go"
 	"github.com/dcarbone/zadapters/zstdlog"
@@ -25,6 +25,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
+	"golang.org/x/net/proxy"
 )
 
 var (
