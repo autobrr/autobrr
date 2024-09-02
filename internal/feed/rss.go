@@ -6,7 +6,6 @@ package feed
 import (
 	"context"
 	"encoding/xml"
-	"github.com/dustin/go-humanize"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -18,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 )
