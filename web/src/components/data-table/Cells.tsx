@@ -110,9 +110,7 @@ export const AgeCell = ({value}: CellProps<Release>) => (
   </div>
 );
 
-export const IndexerCell = (props: CellProps<Release>) => {
-  console.log("props: ", props)
-  return (
+export const IndexerCell = (props: CellProps<Release>) => (
     <div
       className={classNames(
         "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -129,8 +127,7 @@ export const IndexerCell = (props: CellProps<Release>) => {
       </span>
       </Tooltip>
     </div>
-  );
-}
+);
 
 export const TitleCell = ({value}: CellProps<Release>) => (
   <div
