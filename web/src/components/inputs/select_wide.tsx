@@ -11,6 +11,57 @@ import type { FieldProps } from "formik";
 import { OptionBasicTyped } from "@domain/constants";
 import * as common from "@components/inputs/common";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
+import { JSX } from "react/jsx-runtime";
+
+// Non-Formik Fields
+
+interface SelectProps<T> {
+  placeholder?: string,
+  options: OptionBasicTyped<T>[],
+  value: any;
+  onChange: any;
+}
+
+export function MultiSelect<T>({ placeholder, options, value, onChange }: SelectProps<T>) {
+  return (
+    <Select
+      isMulti
+      closeMenuOnSelect={ false }
+      components={ {
+        Input: common.SelectInput,
+        Control: common.SelectControl,
+        Menu: common.SelectMenu,
+        Option: common.MultiSelectOption,
+        IndicatorSeparator: common.IndicatorSeparator,
+        DropdownIndicator: common.DropdownIndicator,
+        MultiValue: common.MultiValue
+      } }
+      hideSelectedOptions={ false }
+      isSearchable={ false }
+      placeholder={ placeholder ?? "Choose an option" }
+      onChange={onChange}
+      options={ options }
+      styles={ {
+        singleValue: (base) => ({
+          ...base,
+          color: "unset"
+        })
+      } }
+      theme={ (theme) => ({
+        ...theme,
+        spacing: {
+          ...theme.spacing,
+          controlHeight: 30,
+          baseUnit: 2
+        }
+      }) }
+      value={ value }
+    />
+  );
+}
+
+
+// Formik Fields
 
 interface SelectFieldProps<T> {
   name: string;

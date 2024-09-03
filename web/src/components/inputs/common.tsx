@@ -4,7 +4,7 @@
  */
 
 import { Field, FieldProps } from "formik";
-import { components } from "react-select";
+import { components, MultiValueProps } from "react-select";
 import type {
   InputProps,
   ControlProps,
@@ -75,9 +75,38 @@ export const SelectOption = (props: OptionProps) => (
   />
 );
 
+export const MultiSelectOption = (props: OptionProps) => (
+  <components.Option
+    {...props}
+    className={classNames(
+      "transition dark:hover:bg-gray-900 dark:focus:bg-gray-900",
+      props.isSelected ? "dark:bg-gray-875 dark:text-gray-200" : "dark:bg-gray-800 dark:text-gray-400"
+    )}
+    children={
+      <div>
+        <input
+          type="checkbox"
+          checked={ props.isSelected }
+          className="mr-2"
+        />
+        { props.children }
+      </div>
+    }
+  />
+);
+
+export const MultiValue = (props: MultiValueProps) => (
+  <components.MultiValue
+    {...props}
+    className="!bg-transparent text-gray-400 dark:text-gray-100"
+    children={props.children}
+  />
+
+);
+
 export const IndicatorSeparator = (props: IndicatorSeparatorProps) => (
   <components.IndicatorSeparator
-    {...props}
+    { ...props }
     className="!bg-gray-400 dark:!bg-gray-700"
   />
 );

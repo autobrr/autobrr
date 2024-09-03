@@ -6,8 +6,8 @@
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { MultiSelect as RMSC } from "react-multi-select-component";
 import { AgeSelect } from "@components/inputs"
+import { MultiValue } from "react-select"
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
@@ -15,6 +15,7 @@ import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
 import { Section } from "./_components";
+import { MultiSelect } from "@components/inputs/select_wide.tsx";
 
 const ReleaseSettings = () => (
   <Section
@@ -61,8 +62,8 @@ function DeleteReleases() {
   const queryClient = useQueryClient();
   const [duration, setDuration] = useState<string>("");
   const [parsedDuration, setParsedDuration] = useState<number>();
-  const [indexers, setIndexers] = useState<Indexer[]>([]);
-  const [releaseStatuses, setReleaseStatuses] = useState<ReleaseStatus[]>([]);
+  const [indexers, setIndexers] = useState<MultiValue<Indexer>>([]);
+  const [releaseStatuses, setReleaseStatuses] = useState<MultiValue<ReleaseStatus>>([]);
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
@@ -150,11 +151,11 @@ function DeleteReleases() {
             },
             {
               label: 'Indexers:',
-              content: <RMSC options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" />
+              content: <MultiSelect options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} placeholder="Select indexers" />
             },
             {
               label: 'Release statuses:',
-              content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" />
+              content: <MultiSelect options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} placeholder="Select release statuses" />
             }
           ].map((item, index) => (
             <div key={index} className="flex flex-col w-full">
