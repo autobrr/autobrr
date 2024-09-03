@@ -18,8 +18,7 @@ import (
 )
 
 type releaseService interface {
-	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error)
-	FindRecent(ctx context.Context) (res []*domain.Release, err error)
+	Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error)
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
@@ -128,7 +127,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		Search: search,
 	}
 
-	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
+	resp, err := h.service.Find(r.Context(), query)
 	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
 			"code":    "INTERNAL_SERVER_ERROR",
@@ -137,21 +136,11 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ret := struct {
-		Data       []*domain.Release `json:"data"`
-		NextCursor int64             `json:"next_cursor"`
-		Count      int64             `json:"count"`
-	}{
-		Data:       releases,
-		NextCursor: nextCursor,
-		Count:      count,
-	}
-
-	h.encoder.StatusResponse(w, http.StatusOK, ret)
+	h.encoder.StatusResponse(w, http.StatusOK, resp)
 }
 
 func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
-	releases, err := h.service.FindRecent(r.Context())
+	resp, err := h.service.Find(r.Context(), domain.ReleaseQueryParams{Limit: 10})
 	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
 			"code":    "INTERNAL_SERVER_ERROR",
@@ -160,13 +149,7 @@ func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ret := struct {
-		Data []*domain.Release `json:"data"`
-	}{
-		Data: releases,
-	}
-
-	h.encoder.StatusResponse(w, http.StatusOK, ret)
+	h.encoder.StatusResponse(w, http.StatusOK, resp)
 }
 
 func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {

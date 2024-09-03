@@ -31,8 +31,7 @@ import (
 
 type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) error
-	Find(ctx context.Context, params ReleaseQueryParams) (res []*Release, nextCursor int64, count int64, err error)
-	FindRecent(ctx context.Context) ([]*Release, error)
+	Find(ctx context.Context, params ReleaseQueryParams) (*FindReleasesResponse, error)
 	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*ReleaseStats, error)
@@ -269,6 +268,12 @@ type ReleaseQueryParams struct {
 		PushStatus string
 	}
 	Search string
+}
+
+type FindReleasesResponse struct {
+	Data       []*Release `json:"data"`
+	TotalCount uint64     `json:"count"`
+	NextCursor int64      `json:"next_cursor"`
 }
 
 type ReleaseActionRetryReq struct {

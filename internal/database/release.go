@@ -97,19 +97,19 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 	return nil
 }
 
-func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
+func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
 	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error begin transaction")
+		return nil, errors.Wrap(err, "error begin transaction")
 	}
 	defer tx.Rollback()
 
-	releases, nextCursor, total, err := repo.findReleases(ctx, tx, params)
+	resp, err := repo.findReleases(ctx, tx, params)
 	if err != nil {
-		return nil, nextCursor, total, err
+		return nil, err
 	}
 
-	return releases, nextCursor, total, nil
+	return resp, nil
 }
 
 var reservedSearch = map[string]*regexp.Regexp{
@@ -126,7 +126,7 @@ var reservedSearch = map[string]*regexp.Regexp{
 	"r.filter":        regexp.MustCompile(`(?i)(?:` + `filter` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 }
 
-func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) ([]*domain.Release, int64, int64, error) {
+func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
 	whereQueryBuilder := sq.And{}
 	if params.Cursor > 0 {
 		whereQueryBuilder = append(whereQueryBuilder, sq.Lt{"r.id": params.Cursor})
@@ -172,7 +172,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	whereQuery, _, err := whereQueryBuilder.ToSql()
 	if err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error building wherequery")
+		return nil, errors.Wrap(err, "error building wherequery")
 	}
 
 	subQueryBuilder := repo.db.squirrel.
@@ -206,53 +206,57 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	subQuery, subArgs, err := subQueryBuilder.ToSql()
 	if err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error building subquery")
+		return nil, errors.Wrap(err, "error building subquery")
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.timestamp",
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "i.id", "i.name", "i.identifier_external", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.timestamp",
 			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
 		OrderBy("r.id DESC").
 		Where("r.id IN ("+subQuery+")", subArgs...).
-		LeftJoin("release_action_status ras ON r.id = ras.release_id")
+		LeftJoin("release_action_status ras ON r.id = ras.release_id").
+		LeftJoin("indexer i ON r.indexer = i.identifier")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error building query")
+		return nil, errors.Wrap(err, "error building query")
 	}
 
 	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
 
-	res := make([]*domain.Release, 0)
+	resp := &domain.FindReleasesResponse{
+		Data:       make([]*domain.Release, 0),
+		TotalCount: 0,
+		NextCursor: 0,
+	}
 
 	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, 0, 0, errors.Wrap(err, "error executing query")
+		return resp, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
-		return res, 0, 0, errors.Wrap(err, "error rows findreleases")
+		return resp, errors.Wrap(err, "error rows findreleases")
 	}
-
-	var countItems int64 = 0
 
 	for rows.Next() {
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsindexer, rlsfilter, infoUrl, downloadUrl, codec sql.NullString
+		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, infoUrl, downloadUrl, codec sql.NullString
 
+		var rlsIndexerID sql.NullInt64
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
 		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
-			return res, 0, 0, errors.Wrap(err, "error scanning row")
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsIndexer, &rlsIndexerID, &rlsIndexerName, &rlsIndexerExternalName, &rlsFilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &resp.TotalCount); err != nil {
+			return resp, errors.Wrap(err, "error scanning row")
 		}
 
 		//for _, codec := range codecs {
@@ -277,21 +281,25 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		}
 
 		idx := 0
-		for ; idx < len(res); idx++ {
-			if res[idx].ID != rls.ID {
+		for ; idx < len(resp.Data); idx++ {
+			if resp.Data[idx].ID != rls.ID {
 				continue
 			}
 
-			res[idx].ActionStatus = append(res[idx].ActionStatus, ras)
+			resp.Data[idx].ActionStatus = append(resp.Data[idx].ActionStatus, ras)
 			break
 		}
 
-		if idx != len(res) {
+		if idx != len(resp.Data) {
 			continue
 		}
 
-		rls.Indexer.Identifier = rlsindexer.String
-		rls.FilterName = rlsfilter.String
+		rls.Indexer.Identifier = rlsIndexer.String
+		rls.Indexer.ID = int(rlsIndexerID.Int64)
+		rls.Indexer.Name = rlsIndexerName.String
+		rls.Indexer.IdentifierExternal = rlsIndexerExternalName.String
+
+		rls.FilterName = rlsFilter.String
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 		rls.InfoURL = infoUrl.String
 		rls.DownloadURL = downloadUrl.String
@@ -302,31 +310,15 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			rls.ActionStatus = append(rls.ActionStatus, ras)
 		}
 
-		res = append(res, &rls)
+		resp.Data = append(resp.Data, &rls)
 	}
 
-	nextCursor := int64(0)
-	if len(res) > 0 {
-		lastID := res[len(res)-1].ID
-		nextCursor = lastID
+	if len(resp.Data) > 0 {
+		lastID := resp.Data[len(resp.Data)-1].ID
+		resp.NextCursor = lastID
 	}
 
-	return res, nextCursor, countItems, nil
-}
-
-func (repo *ReleaseRepo) FindRecent(ctx context.Context) ([]*domain.Release, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
-	if err != nil {
-		return nil, errors.Wrap(err, "error begin transaction")
-	}
-	defer tx.Rollback()
-
-	releases, _, _, err := repo.findReleases(ctx, tx, domain.ReleaseQueryParams{Limit: 10})
-	if err != nil {
-		return nil, err
-	}
-
-	return releases, nil
+	return resp, nil
 }
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {

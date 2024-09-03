@@ -231,12 +231,12 @@ func TestReleaseRepo_Find(t *testing.T) {
 				Search: "",
 			}
 
-			releases, nextCursor, total, err := repo.Find(context.Background(), queryParams)
+			resp, err := repo.Find(context.Background(), queryParams)
 
 			// Verify
-			assert.NotNil(t, releases)
-			assert.NotEqual(t, int64(0), total)
-			assert.True(t, nextCursor >= 0)
+			assert.NotNil(t, resp)
+			assert.NotEqual(t, int64(0), resp.TotalCount)
+			assert.True(t, resp.NextCursor >= 0)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -281,11 +281,11 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
 
-			releases, err := repo.FindRecent(context.Background())
+			resp, err := repo.Find(context.Background(), domain.ReleaseQueryParams{Limit: 10})
 
 			// Verify
-			assert.NotNil(t, releases)
-			assert.Lenf(t, releases, 1, "Expected 1 release, got %d", len(releases))
+			assert.NotNil(t, resp.Data)
+			assert.Lenf(t, resp.Data, 1, "Expected 1 release, got %d", len(resp.Data))
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
