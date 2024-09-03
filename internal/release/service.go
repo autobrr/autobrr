@@ -19,8 +19,7 @@ import (
 )
 
 type Service interface {
-	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error)
-	FindRecent(ctx context.Context) ([]*domain.Release, error)
+	Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error)
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
 	GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
@@ -58,12 +57,8 @@ func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Ser
 	}
 }
 
-func (s *service) Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error) {
+func (s *service) Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
 	return s.repo.Find(ctx, query)
-}
-
-func (s *service) FindRecent(ctx context.Context) (res []*domain.Release, err error) {
-	return s.repo.FindRecent(ctx)
 }
 
 func (s *service) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {

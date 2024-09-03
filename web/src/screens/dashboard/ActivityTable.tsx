@@ -20,6 +20,7 @@ import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
 import { ReleasesLatestQueryOptions } from "@api/queries";
+import { IndexerCell } from "@components/data-table";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
@@ -208,7 +209,7 @@ export const ActivityTable = () => {
     {
       Header: "Indexer",
       accessor: "indexer.identifier",
-      Cell: DataTable.TitleCell,
+      Cell: IndexerCell,
       Filter: SelectColumnFilter,
       filter: "includes"
     }
