@@ -210,13 +210,14 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.timestamp",
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "i.id", "i.name", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.timestamp",
 			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
 		OrderBy("r.id DESC").
 		Where("r.id IN ("+subQuery+")", subArgs...).
-		LeftJoin("release_action_status ras ON r.id = ras.release_id")
+		LeftJoin("release_action_status ras ON r.id = ras.release_id").
+		LeftJoin("indexer i ON r.indexer = i.identifier")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -244,14 +245,15 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsindexer, rlsfilter, infoUrl, downloadUrl, codec sql.NullString
+		var rlsindexer, rlsIndexerName, rlsfilter, infoUrl, downloadUrl, codec sql.NullString
 
+		var rlsIndexerID sql.NullInt64
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
 		var rasStatus, rasAction, rasType, rasClient, rasFilter sql.NullString
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsindexer, &rlsIndexerID, &rlsIndexerName, &rlsfilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &countItems); err != nil {
 			return res, 0, 0, errors.Wrap(err, "error scanning row")
 		}
 
@@ -291,6 +293,9 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		}
 
 		rls.Indexer.Identifier = rlsindexer.String
+		rls.Indexer.ID = int(rlsIndexerID.Int64)
+		rls.Indexer.Name = rlsIndexerName.String
+
 		rls.FilterName = rlsfilter.String
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 		rls.InfoURL = infoUrl.String

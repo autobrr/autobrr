@@ -110,24 +110,27 @@ export const AgeCell = ({value}: CellProps<Release>) => (
   </div>
 );
 
-export const IndexerCell = ({value}: CellProps<Release>) => (
-  <div
-    className={classNames(
-      "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
-    )}
-  >
-    <Tooltip
-      requiresClick
-      label={value}
-      maxWidth="max-w-[90vw]"
+export const IndexerCell = (props: CellProps<Release>) => {
+  console.log("props: ", props)
+  return (
+    <div
+      className={classNames(
+        "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+        "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+      )}
     >
+      <Tooltip
+        requiresClick
+        label={props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
+        maxWidth="max-w-[90vw]"
+      >
       <span className="whitespace-pre-wrap break-words">
-        {value}
+        {props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
       </span>
-    </Tooltip>
-  </div>
-);
+      </Tooltip>
+    </div>
+  );
+}
 
 export const TitleCell = ({value}: CellProps<Release>) => (
   <div
