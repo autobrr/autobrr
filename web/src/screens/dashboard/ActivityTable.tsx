@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { Suspense, useState } from "react";
+import React, { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   useTable,
@@ -18,7 +18,6 @@ import { EmptyListState } from "@components/emptystates";
 import * as Icons from "@components/Icons";
 import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos } from "@utils";
-import { RingResizeSpinner } from "@components/Icons";
 import { ReleasesLatestQueryOptions } from "@api/queries";
 import { IndexerCell } from "@components/data-table";
 
@@ -165,28 +164,6 @@ function Table({ columns, data }: TableProps) {
       </div>
     </div>
   );
-}
-
-export const RecentActivityTable = () => {
-  return (
-    <div className="flex flex-col mt-12">
-      <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
-        Recent activity
-      </h3>
-      <div className="animate-pulse text-black dark:text-white">
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center lg:col-span-9">
-              <RingResizeSpinner className="text-blue-500 size-12" />
-            </div>
-          }
-        >
-        {/*<EmptyListState text="Loading..."/>*/}
-          <ActivityTableContent />
-        </Suspense>
-      </div>
-    </div>
-  )
 }
 
 export const ActivityTable = () => {
