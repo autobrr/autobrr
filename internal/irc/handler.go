@@ -1019,24 +1019,9 @@ func (h *Handler) isValidAnnouncer(nick string) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
 
-	nick = strings.ToLower(nick)
-	for announcer := range h.validAnnouncers {
-		if nick == announcer {
-			return true
-		}
+	_, ok := h.validAnnouncers[strings.ToLower(nick)]
+	return ok
 
-		// Confirm if the nickname starts with the announcer and comprises one additional character
-		if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 {
-			return true
-		}
-
-		// Verify if the nickname concludes with an asterisk and holds the correct prefix
-		if strings.HasSuffix(announcer, "*") && strings.HasPrefix(nick, announcer) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // check if channel is one from the list in the definition
