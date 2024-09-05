@@ -755,6 +755,7 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 }
 
 // onNames handles NAMES events
+// network = channel nick1 nick2 nick3
 func (h *Handler) onNames(msg ircmsg.Message) {
 	if len(msg.Params) < 3 || !h.isOurCurrentNick(msg.Params[0]) {
 		return
@@ -769,7 +770,7 @@ func (h *Handler) onNames(msg ircmsg.Message) {
 	for i := 3; i < len(msg.Params); i++ {
 		users := strings.Split(msg.Params[i], " ")
 		for _, name := range users {
-			if len(name) > 1 && name[0] == '@' || name[0] == '+' || name[0] == '&' {
+			if len(name) > 0 && (name[0] == '@' || name[0] == '+' || name[0] == '&') {
 				name = name[1:]
 			}
 
