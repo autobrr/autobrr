@@ -755,7 +755,7 @@ func (h *Handler) onMessage(msg ircmsg.Message) {
 }
 
 // onNames handles NAMES events
-// network = channel nick1 nick2 nick3
+// network nick = channel nick1 nick2 nick3
 func (h *Handler) onNames(msg ircmsg.Message) {
 	if len(msg.Params) < 3 || !h.isOurCurrentNick(msg.Params[0]) {
 		return
