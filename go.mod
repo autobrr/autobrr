@@ -58,6 +58,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
+	github.com/alphadose/haxmap v1.4.0 // indirect
 	github.com/anacrolix/dht/v2 v2.21.1 // indirect
 	github.com/anacrolix/generics v0.0.2-0.20240227122613-f95486179cab // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
