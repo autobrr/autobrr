@@ -393,9 +393,10 @@ func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 
 func (h *Handler) resetChannelState() {
 	h.channels.ForEach(func(s string, channel *Channel) bool {
-		channel.Monitoring = false
-		channel.MonitoringSince = time.Time{}
+		//channel.Monitoring = false
+		//channel.MonitoringSince = time.Time{}
 		//channel.LastAnnounce = time.Time{}
+		channel.ResetMonitoring()
 
 		h.channels.Set(s, channel)
 
@@ -493,9 +494,10 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 
 	// reset channels monitored status
 	h.channels.ForEach(func(s string, channel *Channel) bool {
-		channel.Monitoring = false
-		channel.MonitoringSince = time.Time{}
-		channel.LastAnnounce = time.Time{}
+		//channel.Monitoring = false
+		//channel.MonitoringSince = time.Time{}
+		//channel.LastAnnounce = time.Time{}
+		channel.ResetMonitoring()
 
 		h.channels.Set(s, channel)
 
@@ -707,9 +709,10 @@ func (h *Handler) onKick(msg ircmsg.Message) {
 	if !found {
 		return
 	}
+	channel.ResetMonitoring()
 
-	channel.Monitoring = false
-	channel.MonitoringSince = time.Time{}
+	//channel.Monitoring = false
+	//channel.MonitoringSince = time.Time{}
 
 	// TODO set again or swap?
 	h.channels.Swap(channelName, channel)
@@ -965,8 +968,9 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 
 	if ircChannel != nil {
-		ircChannel.Monitoring = true
-		ircChannel.MonitoringSince = time.Now()
+		ircChannel.SetMonitoring()
+		//ircChannel.Monitoring = true
+		//ircChannel.MonitoringSince = time.Now()
 
 		h.channels.Swap(channel, ircChannel)
 
