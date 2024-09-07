@@ -30,11 +30,11 @@ go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -
 go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl.exe cmd/autobrrctl/main.go
 
 # build runner
-FROM mcr.microsoft.com/windows/nanoserver:1803-amd64 AS runner
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2019 AS runner
 
 LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 LABEL org.opencontainers.image.licenses="GPL-2.0-or-later"
-LABEL org.opencontainers.image.base.name="mcr.microsoft.com/windows/nanoserver:ltsc2022"
+LABEL org.opencontainers.image.base.name="mcr.microsoft.com/windows/nanoserver:ltsc2019"
 
 ENV HOME="C:\config" \
     XDG_CONFIG_HOME="C:\config" \
