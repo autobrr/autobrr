@@ -26,8 +26,8 @@ export GOARCH=$TARGETARCH; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v6" ]] && export GOARM=6; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v7" ]] && export GOARM=7; \
 echo $GOARCH $GOOS $GOARM$GOAMD64; \
-go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
-go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
+go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr.exe cmd/autobrr/main.go && \
+go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl.exe cmd/autobrrctl/main.go
 
 # build runner
 FROM mcr.microsoft.com/windows/nanoserver:1803-amd64 AS runner
@@ -44,6 +44,6 @@ WORKDIR "C:\app"
 VOLUME "C:\config"
 EXPOSE 7474
 
-COPY --from=app-builder /out/bin/autobrr* /
+COPY --from=app-builder /out/bin/autobrr* C:\
 
-ENTRYPOINT cmd /C /autobrr --config C:\config
+ENTRYPOINT C:\autobrr.exe --config C:\config
