@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -129,6 +130,10 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			// if we're running as pid 1, we're honoured.
 			// but there's a good chance this is an isolated namespace
 			// or a container.
+			host = "0.0.0.0"
+		} else if u, err := user.Current(); err == nil && u != nil &&
+			(u.Name == "ContainerAdministrator" || u.Name == "ContainerUser") {
+			// Windows conatiners run containers as ContainerAdministrator
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
