@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -94,6 +95,8 @@ func backupDatabaseSQLite(base string, db *sql.DB) (bool, error) {
 	return false, nil
 }
 
+var findNumber = regexp.MustCompile(`(\d+)`)
+
 func cleanupDatabaseSQLite(base string, db *DB, retain int) error {
 	files, err := os.ReadDir(base)
 	if err != nil {
@@ -108,6 +111,7 @@ func cleanupDatabaseSQLite(base string, db *DB, retain int) error {
 		}
 
 		strNum := strings.TrimPrefix(f.Name(), backupPrefix)
+		strNum = findNumber.FindString(strNum)
 		i, err := strconv.ParseInt(strNum, 10, 64)
 		if err != nil {
 			db.log.Err(err).Msgf("backup fatal number parsing on %q", f.Name())
