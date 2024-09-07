@@ -44,6 +44,6 @@ WORKDIR /app
 VOLUME /config
 EXPOSE 7474
 
-#COPY --link --from=app-builder /out/bin/autobrr* /autobrr
+COPY --from=app-builder /out/bin/autobrr /autobrr/
 
 ENTRYPOINT ["/autobrr/autobrr", "--config", "/config"]
