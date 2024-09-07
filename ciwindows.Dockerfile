@@ -40,10 +40,10 @@ ENV HOME="/config" \
     XDG_CONFIG_HOME="/config" \
     XDG_DATA_HOME="/config"
 
-WORKDIR /app
-VOLUME /config
+WORKDIR "C:\app"
+VOLUME "C:\config"
 EXPOSE 7474
 
-COPY --from=app-builder /out/bin/autobrr /autobrr/
+COPY --from=app-builder /out/bin/autobrr* /
 
-ENTRYPOINT ["/autobrr/autobrr", "--config", "/config"]
+ENTRYPOINT ["/autobrr.exe", "--config", "/config"]
