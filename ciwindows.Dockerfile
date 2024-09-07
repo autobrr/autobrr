@@ -36,9 +36,9 @@ LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 LABEL org.opencontainers.image.licenses="GPL-2.0-or-later"
 LABEL org.opencontainers.image.base.name="mcr.microsoft.com/windows/nanoserver:ltsc2022"
 
-ENV HOME="/config" \
-    XDG_CONFIG_HOME="/config" \
-    XDG_DATA_HOME="/config"
+ENV HOME="C:\config" \
+    XDG_CONFIG_HOME="C:\config" \
+    XDG_DATA_HOME="C:\config"
 
 WORKDIR "C:\app"
 VOLUME "C:\config"
@@ -46,4 +46,4 @@ EXPOSE 7474
 
 COPY --from=app-builder /out/bin/autobrr* /
 
-ENTRYPOINT ["/autobrr.exe", "--config", "/config"]
+ENTRYPOINT ["/autobrr", "--config", "C:\config"]
