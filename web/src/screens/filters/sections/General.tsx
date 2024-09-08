@@ -10,7 +10,7 @@ import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/q
 
 import { DocsLink } from "@components/ExternalLink";
 import { FilterLayout, FilterPage, FilterSection } from "./_components";
-import { IndexerMultiSelect, MultiSelectOption, NumberField, Select, SwitchGroup, TextField } from "@components/inputs";
+import { IndexerMultiSelect, MultiSelectOption, NumberField, Select, SelectFieldOption, SwitchGroup, TextField } from "@components/inputs";
 
 
 const MapIndexer = (indexer: Indexer) => (
@@ -18,7 +18,7 @@ const MapIndexer = (indexer: Indexer) => (
 );
 
 const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
-  { label: profile.name, value: profile.id } as Input.SelectFieldOption
+  { label: profile.name, value: profile.id } as SelectFieldOption
 );
 
 export const General = () => {
