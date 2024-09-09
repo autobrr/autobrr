@@ -1196,6 +1196,9 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	if filter.MaxLeechers != nil {
 		q = q.Set("max_leechers", filter.MaxLeechers)
 	}
+	if filter.ReleaseProfileDuplicateID != nil {
+		q = q.Set("release_profile_duplicate_id", filter.ReleaseProfileDuplicateID)
+	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})
 
