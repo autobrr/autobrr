@@ -129,6 +129,11 @@ func (c *Channel) SetTopic(topic string) {
 
 func (c *Channel) SetUsers(users []string) {
 	for _, nick := range users {
+		if strings.ContainsAny(nick, "@+&") {
+			// announcers usually have one of these as usermode, but not always
+			c.log.Debug().Msgf("usermode %s", nick)
+		}
+
 		// check if user is expected announcer/bot and add to announcers
 		if announcer, ok := c.announcers.Get(nick); ok {
 			announcer.InChannel = true
