@@ -478,7 +478,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
 		Join("indexer i ON i.id = fi.indexer_id").
-		Join("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
+		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
 		Where(sq.Eq{"f.enabled": true}).
@@ -979,7 +979,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("max_seeders", filter.MaxSeeders).
 		Set("min_leechers", filter.MinLeechers).
 		Set("max_leechers", filter.MaxLeechers).
-		Set("release_profile_duplicate_id", filter.ReleaseProfileDuplicateID).
+		Set("release_profile_duplicate_id", toNullInt64(filter.ReleaseProfileDuplicateID)).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
