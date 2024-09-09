@@ -130,6 +130,15 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			// but there's a good chance this is an isolated namespace
 			// or a container.
 			host = "0.0.0.0"
+		} else if user := os.Getenv("USERNAME"); user == "ContainerAdministrator" || user == "ContainerUser" {
+			/* this is the correct code below, but golang helpfully Panics when it can't find netapi32.dll
+			   the issue was first reported 7 years ago, but is fixed in go 1.24 where the below code works.
+			*/
+			/*
+				 u, err := user.Current(); err == nil && u != nil &&
+				(u.Name == "ContainerAdministrator" || u.Name == "ContainerUser") {
+				// Windows conatiners run containers as ContainerAdministrator by default */
+			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
 			b := make([]byte, 4096)
