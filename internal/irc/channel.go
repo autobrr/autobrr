@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package irc
 
 import (
@@ -5,6 +8,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/announce"
+	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/alphadose/haxmap"
 	"github.com/ergochat/irc-go/ircmsg"
@@ -26,8 +30,8 @@ type Channel struct {
 	LastAnnounce    time.Time
 
 	Members            map[string]struct{}
-	users              *haxmap.Map[string, *User]
-	announcers         *haxmap.Map[string, *Announcer]
+	users              *haxmap.Map[string, *domain.IrcUser]
+	announcers         *haxmap.Map[string, *domain.IrcUser]
 	DefaultChannel     bool
 	AnnouncerInChannel bool
 
@@ -47,8 +51,8 @@ func NewChannel(log zerolog.Logger, name string, defaultChannel bool, announcePr
 		MonitoringSince:    time.Time{},
 		LastAnnounce:       time.Time{},
 		Members:            make(map[string]struct{}),
-		users:              haxmap.New[string, *User](),
-		announcers:         haxmap.New[string, *Announcer](),
+		users:              haxmap.New[string, *domain.IrcUser](),
+		announcers:         haxmap.New[string, *domain.IrcUser](),
 		DefaultChannel:     defaultChannel,
 		AnnouncerInChannel: false,
 		announceProcessor:  announceProcessor,
@@ -68,14 +72,6 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	// clean message
 	cleanedMsg := cleanMessage(message)
 
-	// publish to SSE stream
-	//h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
-
-	// check if message is from a valid channel, if not return
-	//if validChannel := h.isValidChannel(channel); !validChannel {
-	//	return
-	//}
-
 	// check if message is from announce bot, if not return
 	if !c.IsValidAnnouncer(nick) {
 		c.log.Trace().Str("nick", nick).Str("msg", cleanedMsg).Msg("not a valid announcer, ignoring")
@@ -86,7 +82,6 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	if err := c.QueueAnnounceLine(cleanedMsg); err != nil {
 		return
 	}
-	//c.LastAnnounce = time.Now()
 	c.SetLastAnnounce()
 
 	c.log.Debug().Str("nick", nick).Msg(cleanedMsg)
@@ -116,9 +111,9 @@ func (c *Channel) SetLastAnnounce() {
 
 func (c *Channel) SetAnnouncers(announcers []string) {
 	for _, announcer := range announcers {
-		c.announcers.Set(announcer, &Announcer{
-			Nick:      announcer,
-			InChannel: false,
+		c.announcers.Set(announcer, &domain.IrcUser{
+			Nick:    announcer,
+			Present: false,
 		})
 	}
 }
@@ -129,28 +124,37 @@ func (c *Channel) SetTopic(topic string) {
 
 func (c *Channel) SetUsers(users []string) {
 	for _, nick := range users {
+		u := &domain.IrcUser{Nick: nick}
+
+		// announcers usually have one of these as user mode, but not always
 		if strings.ContainsAny(nick, "@+&") {
-			// announcers usually have one of these as usermode, but not always
-			c.log.Debug().Msgf("usermode %s", nick)
+			c.log.Trace().Msgf("usermode %s", nick)
+
+			if ok := u.ParseMode(nick); !ok {
+				c.log.Error().Msgf("could not parse mode for nick %s", nick)
+				continue
+			}
+
+			c.users.Set(nick, u)
 		}
 
 		// check if user is expected announcer/bot and add to announcers
-		if announcer, ok := c.announcers.Get(nick); ok {
-			announcer.InChannel = true
+		if announcer, ok := c.announcers.Get(u.Nick); ok {
+			announcer.Present = true
+			announcer.Mode = u.Mode
 
-			c.announcers.Set(nick, announcer)
+			c.announcers.Set(u.Nick, announcer)
 		}
 
-		c.users.Set(nick, &User{
-			Nick: nick,
-		})
+		// we are not interested in all users otherwise we would add them here
+		//c.users.Set(nick, u)
 	}
 }
 
 func (c *Channel) RemoveUser(nick string) {
 	// check if user is announcer/bot and remove from announcers
 	if announcer, ok := c.announcers.Get(nick); ok {
-		announcer.InChannel = false
+		announcer.Present = false
 		c.announcers.Set(nick, announcer)
 	}
 
@@ -164,14 +168,4 @@ func (c *Channel) QueueAnnounceLine(line string) error {
 	}
 
 	return nil
-}
-
-type Announcer struct {
-	Nick      string `json:"nick"`
-	InChannel bool   `json:"in_channel"`
-}
-
-type User struct {
-	Nick string
-	Mode string
 }

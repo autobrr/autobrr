@@ -58,32 +58,33 @@ type IrcNetwork struct {
 }
 
 type IrcNetworkWithHealth struct {
-	ID               int64               `json:"id"`
-	Name             string              `json:"name"`
-	Enabled          bool                `json:"enabled"`
-	Server           string              `json:"server"`
-	Port             int                 `json:"port"`
-	TLS              bool                `json:"tls"`
-	Pass             string              `json:"pass"`
-	Nick             string              `json:"nick"`
-	Auth             IRCAuth             `json:"auth,omitempty"`
-	InviteCommand    string              `json:"invite_command"`
-	UseBouncer       bool                `json:"use_bouncer"`
-	BouncerAddr      string              `json:"bouncer_addr"`
-	BotMode          bool                `json:"bot_mode"`
-	CurrentNick      string              `json:"current_nick"`
-	PreferredNick    string              `json:"preferred_nick"`
-	UseProxy         bool                `json:"use_proxy"`
-	ProxyId          int64               `json:"proxy_id"`
-	Proxy            *Proxy              `json:"proxy"`
-	Channels         []ChannelWithHealth `json:"channels"`
-	Connected        bool                `json:"connected"`
-	ConnectedSince   time.Time           `json:"connected_since"`
-	ConnectionErrors []string            `json:"connection_errors"`
-	Healthy          bool                `json:"healthy"`
+	ID               int64                  `json:"id"`
+	Name             string                 `json:"name"`
+	Enabled          bool                   `json:"enabled"`
+	Server           string                 `json:"server"`
+	Port             int                    `json:"port"`
+	TLS              bool                   `json:"tls"`
+	Pass             string                 `json:"pass"`
+	Nick             string                 `json:"nick"`
+	Auth             IRCAuth                `json:"auth,omitempty"`
+	InviteCommand    string                 `json:"invite_command"`
+	UseBouncer       bool                   `json:"use_bouncer"`
+	BouncerAddr      string                 `json:"bouncer_addr"`
+	BotMode          bool                   `json:"bot_mode"`
+	CurrentNick      string                 `json:"current_nick"`
+	PreferredNick    string                 `json:"preferred_nick"`
+	UseProxy         bool                   `json:"use_proxy"`
+	ProxyId          int64                  `json:"proxy_id"`
+	Proxy            *Proxy                 `json:"proxy"`
+	Channels         []IrcChannelWithHealth `json:"channels"`
+	Connected        bool                   `json:"connected"`
+	ConnectedSince   time.Time              `json:"connected_since"`
+	ConnectionErrors []string               `json:"connection_errors"`
+	Healthy          bool                   `json:"healthy"`
+	Bots             []IrcUser              `json:"bots"`
 }
 
-type ChannelWithHealth struct {
+type IrcChannelWithHealth struct {
 	ID              int64     `json:"id"`
 	Enabled         bool      `json:"enabled"`
 	Name            string    `json:"name"`
@@ -92,13 +93,26 @@ type ChannelWithHealth struct {
 	Monitoring      bool      `json:"monitoring"`
 	MonitoringSince time.Time `json:"monitoring_since"`
 	LastAnnounce    time.Time `json:"last_announce"`
+	Announcers      []IrcUser `json:"announcers"`
 }
 
-type ChannelHealth struct {
-	Name            string    `json:"name"`
-	Monitoring      bool      `json:"monitoring"`
-	MonitoringSince time.Time `json:"monitoring_since"`
-	LastAnnounce    time.Time `json:"last_announce"`
+type IrcUser struct {
+	Nick    string `json:"nick"`
+	Mode    string `json:"mode"`
+	Online  bool   `json:"online"`
+	Present bool   `json:"present"`
+}
+
+func (u *IrcUser) ParseMode(nick string) bool {
+	index := strings.IndexAny(nick, "@+&")
+	if index == -1 {
+		return false
+	}
+
+	u.Mode = nick[:index+1]
+	u.Nick = nick[index+1:]
+
+	return true
 }
 
 type IRCManualProcessRequest struct {

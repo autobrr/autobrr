@@ -21,6 +21,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 )
@@ -53,6 +54,7 @@ type service struct {
 	notificationService notification.Service
 	proxyService        proxy.Service
 
+	networkCache    *ttlcache.Cache[int64, *domain.IrcNetwork]
 	networkHandlers *haxmap.Map[int64, *Handler]
 
 	stopWG sync.WaitGroup
@@ -70,6 +72,7 @@ func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, release
 		indexerService:      indexerSvc,
 		notificationService: notificationSvc,
 		proxyService:        proxySvc,
+		networkCache:        ttlcache.New[int64, *domain.IrcNetwork](ttlcache.WithTTL[int64, *domain.IrcNetwork](5 * time.Minute)),
 		networkHandlers:     haxmap.New[int64, *Handler](),
 	}
 }
@@ -410,7 +413,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 
 	ret := make([]domain.IrcNetwork, len(networks))
 
-	for _, n := range networks {
+	for idx, n := range networks {
 		channels, err := s.repo.ListChannels(n.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", n.Server)
@@ -418,14 +421,58 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		}
 		n.Channels = append(n.Channels, channels...)
 
-		ret = append(ret, n)
+		ret[idx] = n
+	}
+
+	return ret, nil
+}
+
+func (s *service) listNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+	if s.networkCache.Len() > 0 {
+		s.log.Trace().Msgf("found %d networks in cache", s.networkCache.Len())
+
+		ret := make([]domain.IrcNetwork, s.networkCache.Len())
+		idx := 0
+		s.networkCache.Range(func(item *ttlcache.Item[int64, *domain.IrcNetwork]) bool {
+			ret[idx] = *item.Value()
+			idx++
+
+			return true
+		})
+
+		return ret, nil
+	}
+
+	s.log.Trace().Msg("no networks in cache, fetching from db")
+
+	networks, err := s.repo.ListNetworks(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to list networks")
+		return nil, err
+	}
+
+	ret := make([]domain.IrcNetwork, len(networks))
+
+	for idx, ircNetwork := range networks {
+		channels, err := s.repo.ListChannels(ircNetwork.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", ircNetwork.Server)
+			return nil, err
+		}
+
+		ircNetwork.Channels = channels
+
+		s.networkCache.Set(ircNetwork.ID, &ircNetwork, ttlcache.DefaultTTL)
+
+		ret[idx] = ircNetwork
 	}
 
 	return ret, nil
 }
 
 func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error) {
-	networks, err := s.repo.ListNetworks(ctx)
+	// add ttl cache
+	networks, err := s.listNetworks(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to list networks")
 		return nil, err
@@ -433,7 +480,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 	ret := make([]domain.IrcNetworkWithHealth, len(networks))
 
-	for _, n := range networks {
+	for networkIdx, n := range networks {
 		netw := domain.IrcNetworkWithHealth{
 			ID:               n.ID,
 			Name:             n.Name,
@@ -451,8 +498,9 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			UseProxy:         n.UseProxy,
 			ProxyId:          n.ProxyId,
 			Connected:        false,
-			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
+			Bots:             make([]domain.IrcUser, 0),
+			//Channels:         []domain.IrcChannelWithHealth{},
 		}
 
 		if n.Enabled {
@@ -460,8 +508,11 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			if found {
 				handler.ReportStatus(&netw)
 
+				netw.Channels = make([]domain.IrcChannelWithHealth, handler.channels.Len())
+				chanIdx := 0
+
 				handler.channels.ForEach(func(name string, channel *Channel) bool {
-					ch := domain.ChannelWithHealth{
+					ch := domain.IrcChannelWithHealth{
 						ID:              channel.ID,
 						Enabled:         channel.Enabled,
 						Name:            channel.Name,
@@ -472,8 +523,19 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 						LastAnnounce:    channel.LastAnnounce,
 					}
 
-					netw.Channels = append(netw.Channels, ch)
+					channel.announcers.ForEach(func(nick string, announcer *domain.IrcUser) bool {
+						ch.Announcers = append(ch.Announcers, *announcer)
+						return true
+					})
 
+					netw.Channels[chanIdx] = ch
+					chanIdx++
+
+					return true
+				})
+
+				handler.bots.ForEach(func(name string, user *domain.IrcUser) bool {
+					netw.Bots = append(netw.Bots, *user)
 					return true
 				})
 
@@ -483,15 +545,12 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 				})
 			}
 		} else {
-			channels, err := s.repo.ListChannels(n.ID)
-			if err != nil {
-				s.log.Error().Err(err).Msgf("failed to list channels for network: %s", n.Server)
-				return nil, err
-			}
+			// add ttl cache
+			netw.Channels = make([]domain.IrcChannelWithHealth, len(n.Channels))
 
 			// combine from repo and handler
-			for _, channel := range channels {
-				ch := domain.ChannelWithHealth{
+			for channelIndex, channel := range n.Channels {
+				ch := domain.IrcChannelWithHealth{
 					ID:              channel.ID,
 					Enabled:         channel.Enabled,
 					Name:            channel.Name,
@@ -500,13 +559,14 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 					Monitoring:      false,
 					MonitoringSince: time.Time{},
 					LastAnnounce:    time.Time{},
+					Announcers:      []domain.IrcUser{},
 				}
 
-				netw.Channels = append(netw.Channels, ch)
+				netw.Channels[channelIndex] = ch
 			}
 		}
 
-		ret = append(ret, netw)
+		ret[networkIdx] = netw
 	}
 
 	return ret, nil

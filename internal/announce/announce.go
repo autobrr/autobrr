@@ -93,7 +93,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 			}
 
 			if !match {
-				a.log.Debug().Msgf("line did not match expected regex pattern: %s %v", parseLine.Pattern, line)
+				a.log.Debug().Msgf("line did not match expected regex pattern: got %q expected %q", line, parseLine.Pattern)
 				parseFailed = true
 				break
 			}

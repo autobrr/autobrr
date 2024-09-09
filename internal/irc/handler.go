@@ -46,6 +46,8 @@ const (
 )
 
 type Handler struct {
+	m deadlock.RWMutex
+
 	log                 zerolog.Logger
 	sse                 *sse.Server
 	network             *domain.IrcNetwork
@@ -53,14 +55,15 @@ type Handler struct {
 	notificationService notification.Service
 	definitions         map[string]*domain.IndexerDefinition
 
-	client      *ircevent.Connection
-	clientState ircState
-	m           deadlock.RWMutex
-
+	client           *ircevent.Connection
+	clientState      ircState
 	connectedSince   time.Time
 	haveDisconnected bool
+	authenticated    bool
+	saslauthed       bool
 
 	channels *haxmap.Map[string, *Channel]
+	bots     *haxmap.Map[string, *domain.IrcUser]
 
 	connectionErrors       []string
 	failedNickServAttempts int
@@ -68,9 +71,6 @@ type Handler struct {
 	capabilities map[string]struct{}
 
 	botModeChar string
-
-	authenticated bool
-	saslauthed    bool
 }
 
 func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
@@ -86,6 +86,7 @@ func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, 
 		saslauthed:          false,
 		connectionErrors:    []string{},
 		channels:            haxmap.New[string, *Channel](),
+		bots:                haxmap.New[string, *domain.IrcUser](),
 	}
 
 	// init indexer, announceProcessor
@@ -133,6 +134,25 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			ircChannel := NewChannel(h.log, channel.Name, false, nil)
 
 			h.channels.Set(channel.Name, ircChannel)
+		}
+
+		for _, announcer := range definition.IRC.Announcers {
+			h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
+		}
+
+		if h.network.InviteCommand != "" {
+			connectCommands := strings.Split(strings.ReplaceAll(h.network.InviteCommand, "/msg", ""), ",")
+			for _, cmd := range connectCommands {
+				cmd = strings.TrimSpace(cmd)
+
+				parts := strings.Split(cmd, " ")
+				if len(parts) > 2 {
+					nick := parts[0]
+					h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
+
+					h.bots.Set(nick, &domain.IrcUser{Nick: nick})
+				}
+			}
 		}
 	}
 }
@@ -393,9 +413,6 @@ func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 
 func (h *Handler) resetChannelState() {
 	h.channels.ForEach(func(s string, channel *Channel) bool {
-		//channel.Monitoring = false
-		//channel.MonitoringSince = time.Time{}
-		//channel.LastAnnounce = time.Time{}
 		channel.ResetMonitoring()
 
 		h.channels.Set(s, channel)
@@ -494,9 +511,6 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 
 	// reset channels monitored status
 	h.channels.ForEach(func(s string, channel *Channel) bool {
-		//channel.Monitoring = false
-		//channel.MonitoringSince = time.Time{}
-		//channel.LastAnnounce = time.Time{}
 		channel.ResetMonitoring()
 
 		h.channels.Set(s, channel)
@@ -711,9 +725,6 @@ func (h *Handler) onKick(msg ircmsg.Message) {
 	}
 	channel.ResetMonitoring()
 
-	//channel.Monitoring = false
-	//channel.MonitoringSince = time.Time{}
-
 	// TODO set again or swap?
 	h.channels.Swap(channelName, channel)
 }
@@ -737,7 +748,6 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	message := msg.Params[1]
 
 	// clean message
-	//cleanedMsg := ircfmt.Strip(message)
 	cleanedMsg := cleanMessage(message)
 
 	if message == "CLIENTINFO" {
@@ -748,7 +758,7 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 		// this is a DM from another user
 		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Msg(cleanedMsg)
 
-		h.SendMsg(nick, fmt.Sprintf("pingpong: %s", cleanedMsg))
+		//h.SendMsg(nick, fmt.Sprintf("pingpong: %s", cleanedMsg))
 
 		// TODO create buffer with user
 		return
@@ -969,8 +979,6 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 
 	if ircChannel != nil {
 		ircChannel.SetMonitoring()
-		//ircChannel.Monitoring = true
-		//ircChannel.MonitoringSince = time.Now()
 
 		h.channels.Swap(channel, ircChannel)
 
@@ -982,6 +990,34 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 			h.log.Info().Msgf("Joined extra channel %s", channel)
 		}
 	}
+}
+
+// sendConnectCommands sends invite commands
+func parseInviteCommands(msg string) ([]string, error) {
+	connectCommands := strings.Split(strings.ReplaceAll(msg, "/msg", ""), ",")
+
+	parsedCommands := make([]string, 0)
+
+	for _, command := range connectCommands {
+		cmd := strings.TrimSpace(command)
+
+		// if there's an extra , (comma) the command will be empty so lets skip that
+		if cmd == "" {
+			continue
+		}
+
+		parsedCommands = append(parsedCommands, cmd)
+
+		//params := strings.SplitN(cmd, " ", 2)
+
+		//if err := h.Send("PRIVMSG", params...); err != nil {
+		//	h.log.Error().Err(err).Msgf("error handling connect command: %s", cmd)
+		//	return nil, err
+		//}
+
+	}
+
+	return parsedCommands, nil
 }
 
 // sendConnectCommands sends invite commands
@@ -1153,6 +1189,11 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 
 		return true
 	})
+
+	//h.bots.ForEach(func(botName string, user *User) bool {
+	//	netw.Bots = append(netw.Bots, domain.IrcUser{Nick: user.Nick})
+	//	return true
+	//})
 
 	netw.Healthy = channelsHealthy
 
