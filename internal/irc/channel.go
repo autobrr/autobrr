@@ -82,7 +82,7 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	if err := c.QueueAnnounceLine(cleanedMsg); err != nil {
 		return
 	}
-	c.SetLastAnnounce()
+	c.UpdateLastAnnounce()
 
 	c.log.Debug().Str("nick", nick).Msg(cleanedMsg)
 }
@@ -105,12 +105,14 @@ func (c *Channel) ResetMonitoring() {
 	//c.announceProcessor = nil
 }
 
-func (c *Channel) SetLastAnnounce() {
+func (c *Channel) UpdateLastAnnounce() {
 	c.LastAnnounce = time.Now()
 }
 
-func (c *Channel) SetAnnouncers(announcers []string) {
+func (c *Channel) RegisterAnnouncers(announcers []string) {
 	for _, announcer := range announcers {
+		announcer = strings.ToLower(announcer)
+
 		c.announcers.Set(announcer, &domain.IrcUser{
 			Nick:    announcer,
 			Present: false,
@@ -122,8 +124,11 @@ func (c *Channel) SetTopic(topic string) {
 	c.Topic = topic
 }
 
+// SetUsers sets user and announcers on channel
 func (c *Channel) SetUsers(users []string) {
 	for _, nick := range users {
+		nick = strings.ToLower(nick)
+
 		u := &domain.IrcUser{Nick: nick}
 
 		// announcers usually have one of these as user mode, but not always
@@ -135,6 +140,7 @@ func (c *Channel) SetUsers(users []string) {
 				continue
 			}
 
+			// we only set special users
 			c.users.Set(nick, u)
 		}
 
@@ -151,7 +157,10 @@ func (c *Channel) SetUsers(users []string) {
 	}
 }
 
+// RemoveUser remove user and handle announcer status if valid
 func (c *Channel) RemoveUser(nick string) {
+	nick = strings.ToLower(nick)
+
 	// check if user is announcer/bot and remove from announcers
 	if announcer, ok := c.announcers.Get(nick); ok {
 		announcer.Present = false

@@ -569,6 +569,11 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 		ret[networkIdx] = netw
 	}
 
+	// sort alphabetically so the ui doesn't jump around randomly between auto-refresh
+	sort.SliceStable(ret, func(i, j int) bool {
+		return ret[i].Name < ret[j].Name
+	})
+
 	return ret, nil
 }
 
@@ -591,6 +596,8 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 		s.log.Error().Err(err).Msgf("could not delete network: %s", network.Name)
 		return err
 	}
+
+	s.networkCache.Delete(id)
 
 	return nil
 }
@@ -618,6 +625,8 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		}
 		network.Proxy = networkProxy
 	}
+
+	s.networkCache.Set(network.ID, network, ttlcache.DefaultTTL)
 
 	// stop or start network
 	// TODO get current state to see if enabled or not?
@@ -665,6 +674,8 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			}
 		}
 
+		s.networkCache.Set(network.ID, network, ttlcache.DefaultTTL)
+
 		return nil
 	}
 
@@ -674,6 +685,8 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		s.log.Error().Err(err).Msgf("failed to list channels for network: %s", existingNetwork.Server)
 	}
 	existingNetwork.Channels = existingChannels
+
+	s.networkCache.Set(network.ID, existingNetwork, ttlcache.DefaultTTL)
 
 	if network.Channels != nil {
 		for _, channel := range network.Channels {

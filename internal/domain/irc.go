@@ -99,8 +99,8 @@ type IrcChannelWithHealth struct {
 type IrcUser struct {
 	Nick    string `json:"nick"`
 	Mode    string `json:"mode"`
-	Online  bool   `json:"online"`
 	Present bool   `json:"present"`
+	Online  bool
 }
 
 func (u *IrcUser) ParseMode(nick string) bool {

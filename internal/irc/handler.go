@@ -114,29 +114,32 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 			ircChannel := NewChannel(h.log, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 
-			ircChannel.SetAnnouncers(definition.IRC.Announcers)
+			ircChannel.RegisterAnnouncers(definition.IRC.Announcers)
 
 			h.channels.Set(channelName, ircChannel)
 		}
 
 		// look for user defined channels and add
 		for _, channel := range h.network.Channels {
-			if ch, found := h.channels.Get(channel.Name); found {
+			channelName := strings.ToLower(channel.Name)
+
+			if ch, found := h.channels.Get(channelName); found {
 
 				ch.ID = channel.ID
 				ch.Enabled = channel.Enabled
 
-				h.channels.Swap(channel.Name, ch)
+				h.channels.Swap(channelName, ch)
 
 				continue
 			}
 
-			ircChannel := NewChannel(h.log, channel.Name, false, nil)
+			ircChannel := NewChannel(h.log, channelName, false, nil)
 
-			h.channels.Set(channel.Name, ircChannel)
+			h.channels.Set(channelName, ircChannel)
 		}
 
 		for _, announcer := range definition.IRC.Announcers {
+			announcer = strings.ToLower(announcer)
 			h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
 		}
 
@@ -147,7 +150,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 				parts := strings.Split(cmd, " ")
 				if len(parts) > 2 {
-					nick := parts[0]
+					nick := strings.ToLower(parts[0])
 					h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
 
 					h.bots.Set(nick, &domain.IrcUser{Nick: nick})
@@ -717,7 +720,7 @@ func (h *Handler) onKick(msg ircmsg.Message) {
 		return
 	}
 
-	channelName := msg.Params[0]
+	channelName := strings.ToLower(msg.Params[0])
 
 	channel, found := h.channels.Get(channelName)
 	if !found {
@@ -744,7 +747,7 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	}
 	// parse announce
 	nick := msg.Nick()
-	channel := msg.Params[0]
+	channel := strings.ToLower(msg.Params[0])
 	message := msg.Params[1]
 
 	// clean message
@@ -760,12 +763,13 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 
 		//h.SendMsg(nick, fmt.Sprintf("pingpong: %s", cleanedMsg))
 
-		// TODO create buffer with user
+		// TODO create buffer with user/invite bot
 		return
 	}
 
 	ircChannel, found := h.channels.Get(channel)
 	if !found {
+		h.log.Error().Msgf("channel %s not found", channel)
 		return
 	}
 
@@ -821,23 +825,12 @@ func (h *Handler) handleJoin(msg ircmsg.Message) {
 		ircChannel.SetUsers([]string{msg.Nick()})
 
 		// TODO set or swap ircChannel on handler?
+		//h.channels.Swap(channel, ircChannel)
 
 		return
 	}
 
-	//channel := strings.ToLower(msg.Params[0])
-
 	h.log.Debug().Msgf("JOIN channel %s %s", channel, msg.Nick())
-	//h.log.Debug().Msgf("JOIN channel %s", channel)
-
-	//ircChannel, found := h.channels.Get(channel)
-	//if !found {
-	//	return
-	//}
-	//
-	//ircChannel.ResetMonitoring()
-	//
-	//h.channels.Swap(channel, ircChannel)
 
 	h.log.Info().Msgf("Join channel %s", channel)
 }
@@ -858,8 +851,6 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 		return
 	}
-
-	//channel := strings.ToLower(msg.Params[0])
 
 	h.log.Debug().Msgf("PART channel %s", channel)
 
@@ -892,70 +883,45 @@ func (h *Handler) PartChannel(channel string) error {
 
 // handleTopic listens for 332
 func (h *Handler) handleTopic(msg ircmsg.Message) {
-	if !h.isOurCurrentNick(msg.Params[0]) {
-		h.log.Trace().Msgf("JOINED other user: %+v", msg)
-		return
-	}
-
-	// get channel
 	channel := strings.ToLower(msg.Params[1])
+	topic := msg.Params[2]
 
-	//message := msg.Params[1]
+	h.log.Trace().Msgf("TOPIC: %s %s", channel, topic)
 
-	h.log.Debug().Msgf("TOPIC: %s", channel)
-
-	// check if channel is valid and if not lets part
+	// set topic for channel
 	ircChannel, found := h.channels.Get(channel)
-	if !found {
-		if err := h.PartChannel(msg.Params[1]); err != nil {
-			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
-			return
-		}
-		return
-	}
+	if found {
+		h.log.Trace().Msgf("set channel %s topic: %s", ircChannel.Name, topic)
 
-	if ircChannel != nil {
-		ircChannel.SetTopic(msg.Params[2])
+		ircChannel.SetTopic(topic)
 
 		h.channels.Swap(channel, ircChannel)
 
-		h.log.Trace().Msgf("set topic: %s", ircChannel.Name)
+		return
 	}
 }
 
 // handleNames listens for ircevent.RPL_NAMREPLY
 func (h *Handler) handleNames(msg ircmsg.Message) {
-	if !h.isOurCurrentNick(msg.Params[0]) {
-		h.log.Trace().Msgf("NAMES other user: %+v", msg)
-		return
-	}
-
-	// get channel
 	channel := strings.ToLower(msg.Params[2])
 
 	if len(msg.Params) >= 3 {
 		names := strings.ToLower(msg.Params[3])
 
-		h.log.Debug().Msgf("CHANNEL NAMES START: %s %s", channel, names)
-		// check if channel is valid and if not lets part
+		h.log.Trace().Msgf("CHANNEL NAMES START: %s %s", channel, names)
+
 		ircChannel, found := h.channels.Get(channel)
-		if !found {
-			if err := h.PartChannel(msg.Params[1]); err != nil {
-				h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
-				return
-			}
-			return
+		if found {
+			ircChannel.SetUsers(strings.Split(names, " "))
+
+			h.channels.Swap(channel, ircChannel)
+
+			h.log.Trace().Msgf("set names: %s", ircChannel.Name)
 		}
-
-		ircChannel.SetUsers(strings.Split(names, " "))
-
-		h.channels.Swap(channel, ircChannel)
-
-		h.log.Trace().Msgf("set names: %s", ircChannel.Name)
 	}
 }
 
-// handleJoined listens for 366 JOIN events
+// handleJoined listens for ENF OF NAMES event, this is where we know we are monitoring a channel
 func (h *Handler) handleJoined(msg ircmsg.Message) {
 	if !h.isOurCurrentNick(msg.Params[0]) {
 		h.log.Trace().Msgf("JOINED other user: %+v", msg)
@@ -969,15 +935,7 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 
 	// check if channel is valid and if not lets part
 	ircChannel, found := h.channels.Get(channel)
-	if !found {
-		if err := h.PartChannel(msg.Params[1]); err != nil {
-			h.log.Error().Err(err).Msgf("error handling part for unwanted channel: %s", msg.Params[1])
-			return
-		}
-		return
-	}
-
-	if ircChannel != nil {
+	if found {
 		ircChannel.SetMonitoring()
 
 		h.channels.Swap(channel, ircChannel)
@@ -989,6 +947,8 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 		} else {
 			h.log.Info().Msgf("Joined extra channel %s", channel)
 		}
+
+		return
 	}
 }
 
@@ -1060,14 +1020,14 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	_, found := h.channels.Get(channel)
 	if !found {
-		h.log.Trace().Msgf("invite from %s to join: %s - invalid channel, skip joining", msg.Nick(), channel)
+		h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", msg.Nick(), channel)
 		return
 	}
 
 	h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
 
-	if err := h.Send("JOIN", msg.Params[1]); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error handling join: %s", msg.Params[1])
+	if err := h.Send("JOIN", channel); err != nil {
+		h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
 		return
 	}
 
@@ -1117,14 +1077,18 @@ func (h *Handler) PreferredNick() string {
 func (h *Handler) handleMode(msg ircmsg.Message) {
 	h.log.Trace().Msgf("MODE: %+v", msg)
 
+	nick := msg.Params[0]
+	//channel := msg.Params[1]
+	channel := strings.ToLower(msg.Params[1])
+
 	// if our nick and user mode +r (Identifies the nick as being Registered (settable by services only)) then return
-	if h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+r") {
+	if h.isOurCurrentNick(nick) && strings.Contains(channel, "+r") {
 		h.setAuthenticated()
 
 		return
 	}
 
-	if h.network.BotMode && h.botModeChar != "" && h.isOurCurrentNick(msg.Params[0]) && strings.Contains(msg.Params[1], "+"+h.botModeChar) {
+	if h.network.BotMode && h.botModeChar != "" && h.isOurCurrentNick(nick) && strings.Contains(channel, "+"+h.botModeChar) {
 		h.authenticate()
 	}
 }
