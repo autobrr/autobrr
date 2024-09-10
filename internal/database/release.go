@@ -985,15 +985,15 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.website": release.Website})
 	}
 
-	if release.Proper {
-		// a proper is a new release that fixes a problem with the original release, so it not a duplicate
-		return false, nil
+	if profile.Proper {
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": release.Proper})
 	}
 
-	if release.Repack {
-		// a repack is a new release that fixes a problem with the original release,
-		// so it is a duplicate only if we took that release from a DIFFERENT group
-		queryBuilder = queryBuilder.Where(sq.NotEq{"LOWER(r.release_group)": release.Group})
+	if profile.Repack {
+		queryBuilder = queryBuilder.Where(sq.And{
+			sq.Eq{"r.repack": release.Repack},
+			sq.Eq{"LOWER(r.release_group)": release.Group},
+		})
 	}
 
 	query, args, err := queryBuilder.ToSql()
