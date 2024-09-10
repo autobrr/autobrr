@@ -26,24 +26,24 @@ export GOARCH=$TARGETARCH; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v6" ]] && export GOARM=6; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v7" ]] && export GOARM=7; \
 echo $GOARCH $GOOS $GOARM$GOAMD64; \
-go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr cmd/autobrr/main.go && \
-go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
+go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrr.exe cmd/autobrr/main.go && \
+go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl.exe cmd/autobrrctl/main.go
 
 # build runner
-FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS runner
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2019 AS runner
 
 LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 LABEL org.opencontainers.image.licenses="GPL-2.0-or-later"
-LABEL org.opencontainers.image.base.name="mcr.microsoft.com/windows/nanoserver:ltsc2022"
+LABEL org.opencontainers.image.base.name="mcr.microsoft.com/windows/nanoserver:ltsc2019"
 
-ENV HOME="/config" \
-    XDG_CONFIG_HOME="/config" \
-    XDG_DATA_HOME="/config"
+ENV HOME="C:\config" \
+    XDG_CONFIG_HOME="C:\config" \
+    XDG_DATA_HOME="C:\config"
 
-WORKDIR /app
-VOLUME /config
+WORKDIR "C:\\app"
+VOLUME "C:\\config"
 EXPOSE 7474
 
-COPY --link --from=app-builder /out/bin/autobrr* /
+COPY --from=app-builder /out/bin/autobrr* /
 
-ENTRYPOINT ["/autobrr", "--config", "/config"]
+ENTRYPOINT C:\autobrr.exe --config C:\config
