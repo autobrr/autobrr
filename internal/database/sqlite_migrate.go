@@ -115,9 +115,7 @@ CREATE TABLE release_profile_duplicate
 INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack)
 VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
        (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0),
-       (4, 'Daily TV show', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (5, 'Episodic TV show', 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0);
+       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0);
 
 CREATE TABLE filter
 (
@@ -1653,9 +1651,7 @@ ALTER TABLE irc_network
 INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack)
 VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
        (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0),
-       (4, 'Daily TV show', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (5, 'Episodic TV show', 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0);
+       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0);
 
 ALTER TABLE filter
     ADD COLUMN release_profile_duplicate_id INTEGER

@@ -115,9 +115,7 @@ CREATE TABLE release_profile_duplicate
 INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack)
 VALUES (1, 'Exact release', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
        (2, 'Movie', 'f', 'f', 't', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (3, 'TV', 'f', 'f', 't', 't', 't', 't', 'f', 't', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f'),
-       (4, 'Daily TV show', 'f', 'f', 't', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (5, 'Episodic TV show', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f');
+       (3, 'TV', 'f', 'f', 't', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f');
 
 CREATE TABLE filter
 (
@@ -1016,9 +1014,7 @@ ALTER TABLE irc_network
 INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack)
 VALUES (1, 'Exact release', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
        (2, 'Movie', 'f', 'f', 't', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (3, 'TV', 'f', 'f', 't', 't', 't', 't', 'f', 't', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f'),
-       (4, 'Daily TV show', 'f', 'f', 't', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (5, 'Episodic TV show', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f');
+       (3, 'TV', 'f', 'f', 't', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f');
 
 ALTER TABLE filter
     ADD release_profile_duplicate_id INTEGER;
