@@ -187,7 +187,7 @@ CREATE TABLE filter_external
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
 
-CREATE INDEX filter_external_filter_id
+CREATE INDEX filter_external_filter_id_index
     ON filter_external(filter_id);
 
 CREATE TABLE filter_indexer
@@ -1601,7 +1601,7 @@ ALTER TABLE irc_network
             ON DELETE SET NULL;
 `,
 `
-CREATE INDEX filter_external_filter_id
+CREATE INDEX filter_external_filter_id_index
     ON filter_external(filter_id);
 
 CREATE INDEX filter_enabled_index
