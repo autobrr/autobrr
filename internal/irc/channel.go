@@ -29,7 +29,6 @@ type Channel struct {
 	MonitoringSince time.Time
 	LastAnnounce    time.Time
 
-	Members            map[string]struct{}
 	users              *haxmap.Map[string, *domain.IrcUser]
 	announcers         *haxmap.Map[string, *domain.IrcUser]
 	DefaultChannel     bool
@@ -50,7 +49,6 @@ func NewChannel(log zerolog.Logger, name string, defaultChannel bool, announcePr
 		Monitoring:         false,
 		MonitoringSince:    time.Time{},
 		LastAnnounce:       time.Time{},
-		Members:            make(map[string]struct{}),
 		users:              haxmap.New[string, *domain.IrcUser](),
 		announcers:         haxmap.New[string, *domain.IrcUser](),
 		DefaultChannel:     defaultChannel,
@@ -89,8 +87,44 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 
 // IsValidAnnouncer check if announcer is one from the list in the definition
 func (c *Channel) IsValidAnnouncer(nick string) bool {
-	_, ok := c.announcers.Get(strings.ToLower(nick))
-	return ok
+	nick = strings.ToLower(nick)
+
+	announcer, ok := c.announcers.Get(nick)
+	if ok {
+		if !announcer.Present {
+			c.log.Warn().Str("nick", nick).Msg("announcer not present")
+			return false
+		}
+
+		// announcer found and is present
+		return true
+
+	}
+
+	found := false
+	c.announcers.ForEach(func(s string, user *domain.IrcUser) bool {
+		// if nick is not an expected announcer lets check for variants
+		if strings.HasPrefix(nick, user.Nick) && len(nick) == len(user.Nick)+1 {
+			found = true
+
+			c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
+
+			return false // exit foreach on match
+		}
+
+		// check if nick is a variant of announcer with * in front
+		if strings.HasSuffix(nick, "*") && strings.HasPrefix(nick, user.Nick) {
+			found = true
+
+			c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
+
+			return false // exit foreach on match
+		}
+
+		return true
+	})
+
+	return found
 }
 
 func (c *Channel) SetMonitoring() {

@@ -827,6 +827,12 @@ func (h *Handler) handleJoin(msg ircmsg.Message) {
 		// TODO set or swap ircChannel on handler?
 		//h.channels.Swap(channel, ircChannel)
 
+		botUser, found := h.bots.Get(msg.Nick())
+		if found {
+			botUser.Present = true
+			h.bots.Swap(msg.Nick(), botUser)
+		}
+
 		return
 	}
 
@@ -848,6 +854,12 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 		}
 
 		ircChannel.RemoveUser(msg.Nick())
+
+		botUser, found := h.bots.Get(msg.Nick())
+		if found {
+			botUser.Present = false
+			h.bots.Swap(msg.Nick(), botUser)
+		}
 
 		return
 	}
