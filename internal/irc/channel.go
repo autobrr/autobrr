@@ -102,7 +102,8 @@ func (c *Channel) IsValidAnnouncer(nick string) bool {
 	}
 
 	found := false
-	c.announcers.ForEach(func(s string, user *domain.IrcUser) bool {
+
+	foundFunc := func(s string, user *domain.IrcUser) bool {
 		// if nick is not an expected announcer lets check for variants
 		if strings.HasPrefix(nick, user.Nick) && len(nick) == len(user.Nick)+1 {
 			found = true
@@ -122,7 +123,9 @@ func (c *Channel) IsValidAnnouncer(nick string) bool {
 		}
 
 		return true
-	})
+	}
+
+	c.announcers.ForEach(foundFunc)
 
 	return found
 }
