@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment } from "react";
+import { Fragment, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
@@ -19,6 +19,7 @@ import Toast from "@components/notifications/Toast";
 import { AddFormProps } from "@forms/_shared";
 
 export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
+  const inputRef = useRef(null)
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const mutation = useMutation({
@@ -46,7 +47,7 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
 
   return (
     <Transition show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="absolute inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+      <Dialog as="div" static className="absolute inset-0 overflow-hidden" open={isOpen} onClose={toggle} initialFocus={inputRef}>
         <div className="absolute inset-0 overflow-hidden">
           <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
             <TransitionChild
@@ -122,6 +123,7 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                                     type="text"
                                     data-1p-ignore
                                     autoComplete="off"
+                                    ref={inputRef}
                                     className="block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                                   />
 
