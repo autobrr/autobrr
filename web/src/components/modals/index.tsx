@@ -4,7 +4,7 @@
  */
 
 
-import { FC, Fragment, MutableRefObject, useRef, useState } from "react";
+import { FC, Fragment, MutableRefObject, useState } from "react";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 
@@ -125,7 +125,6 @@ export const DeleteModal: FC<DeleteModalProps> = (props: DeleteModalProps) => (
 export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps) => {
   const [inputValue, setInputValue] = useState("");
   const isInputCorrect = inputValue.trim().toLowerCase() === "i understand";
-  const inputRef = useRef(null)
 
   // A function to reset the input and handle any necessary cleanup
   const resetAndClose = () => {
@@ -164,7 +163,6 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
         as="div"
         static
         className="fixed z-10 inset-0 overflow-y-auto"
-        initialFocus={inputRef}
         open={props.isOpen}
         onClose={handleClose}
       >
@@ -184,7 +182,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
               <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 flex justify-center">
                 <input
                   type="text"
-                  ref={inputRef}
+                  data-autofocus
                   className="w-96 shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-400 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 dark:text-gray-100"
                   placeholder="Type 'I understand' to enable the button"
                   value={inputValue}
