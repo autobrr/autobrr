@@ -32,10 +32,6 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		}
 	}()
 
-	if action.ClientID > 0 && action.Client != nil && !action.Client.Enabled {
-		return nil, errors.New("action %s client %s %s not enabled, skipping", action.Name, action.Client.Type, action.Client.Name)
-	}
-
 	// Check preconditions: download torrent file if needed
 	if err := s.CheckActionPreconditions(ctx, action, release); err != nil {
 		return nil, err

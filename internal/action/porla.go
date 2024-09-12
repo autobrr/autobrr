@@ -22,6 +22,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
 	}
+	action.Client = client
 
 	if !client.Enabled {
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
