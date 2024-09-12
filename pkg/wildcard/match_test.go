@@ -100,6 +100,11 @@ func TestMatchSlice(t *testing.T) {
 			text:    "guacamole Tornado",
 			matched: false,
 		},
+		{
+			pattern: []string{"??**mole*", "The?S?mpson"},
+			text:    "guacamole Tornado",
+			matched: true,
+		},
 	}
 	// Iterating over the test cases, call the function under test and asert the output.
 	for i, testCase := range testCases {
