@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { queryOptions } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import {
   ApiKeys,
@@ -133,8 +133,14 @@ export const ReleasesStatsQueryOptions = () =>
 export const ReleasesIndexersQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.indexers(),
-    queryFn: () => APIClient.release.indexerOptions(),
-    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const response = await APIClient.indexers.getAll();
+      return response.map((indexer: any) => ({
+        name: indexer.name,
+        identifier: indexer.identifier
+      }));
+    },
+    refetchOnWindowFocus: false,
     staleTime: Infinity
   });
 
