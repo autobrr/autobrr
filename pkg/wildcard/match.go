@@ -33,7 +33,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 		return true
 	}
 
-	return deepMatchRune(name, prepForRegex(pattern), simple, pattern)
+	return deepMatchRune(name, pattern, simple, pattern, false)
 }
 
 func MatchSliceSimple(pattern []string, name string) (matched bool) {
@@ -45,20 +45,23 @@ func MatchSlice(pattern []string, name string) (matched bool) {
 }
 
 func matchSlice(pattern []string, name string, simple bool) (matched bool) {
-	if len(pattern) < 368 || len(pattern) > 998 {
-		for i := 0; i < len(pattern); i++ {
-			if match(pattern[i], name, simple) {
-				return true
-			}
+	for i := 0; i < len(pattern); i++ {
+		if match(pattern[i], name, simple) {
+			return true
 		}
-		return false
 	}
-	var build strings.Builder
 
-	if len(pattern) > 32 {
+	return false
+}
+
+// go 1.23 seems to still be too slow for regex.
+// the single case now skips almost all allocations.
+/* func matchSlice(pattern []string, name string, simple bool) (matched bool) {
+	var build strings.Builder
+	{
 		grow := 0
 		for i := 0; i < len(pattern); i++ {
-			grow += len(pattern[i]) + 6 /* ^\?\*$ */
+			grow += len(pattern[i]) + 6 // ^\?\*$
 		}
 
 		build.Grow(grow)
@@ -80,8 +83,8 @@ func matchSlice(pattern []string, name string, simple bool) (matched bool) {
 		return name == ""
 	}
 
-	return deepMatchRune(name, build.String(), simple, build.String())
-}
+	return deepMatchRune(name, build.String(), simple, build.String(), true)
+} */
 
 var convSimple = regexp.QuoteMeta("*")
 var convWildChar = regexp.QuoteMeta("?")
@@ -102,7 +105,7 @@ func prepForRegex(pattern string) string {
 	return `^` + regexp.QuoteMeta(pattern) + `$`
 }
 
-func deepMatchRune(str, pattern string, simple bool, original string) bool {
+func deepMatchRune(str, pattern string, simple bool, original string, bulk bool) bool {
 	salt := ""
 	if simple {
 		salt = "//" // invalid regex.
@@ -110,12 +113,18 @@ func deepMatchRune(str, pattern string, simple bool, original string) bool {
 
 	user, ok := regexcache.FindOriginal(original + salt)
 	if !ok {
-		var err error
+		if !bulk {
+			pattern = prepForRegex(pattern)
+		}
+
 		pattern = cleanForRegex(pattern, simple)
-		user, err = regexcache.Compile(pattern)
-		if err != nil {
-			log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
-			return false
+		{
+			var err error
+			user, err = regexcache.Compile(pattern)
+			if err != nil {
+				log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
+				return false
+			}
 		}
 
 		regexcache.SubmitOriginal(original+salt, user)
