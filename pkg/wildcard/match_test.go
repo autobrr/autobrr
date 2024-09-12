@@ -71,71 +71,90 @@ func TestMatch(t *testing.T) {
 	}
 }
 
-func TestMatchSlice(t *testing.T) {
-	testCases := []struct {
-		pattern []string
-		text    string
-		matched bool
+func TestMatchSimple(t *testing.T) {
+	tests := []struct {
+		pattern string
+		name    string
+		want    bool
 	}{
-		{
-			pattern: []string{"guacamole", "The?Simpsons*"},
-			text:    "The Simpsons S12",
-			matched: true,
-		},
-		{
-			pattern: []string{"guacamole*", "The?Sompsons*"},
-			text:    "The Simpsons S12",
-			matched: false,
-		},
-		{
-			pattern: []string{"guac?mole*", "The?S?mpson"},
-			text:    "The Simpsons S12",
-			matched: false,
-		},
-		{
-			pattern: []string{"guac?mole*", "The?S?mpson"},
-			text:    "guacamole Tornado",
-			matched: true,
-		},
-		{
-			pattern: []string{"mole*", "The?S?mpson"},
-			text:    "guacamole Tornado",
-			matched: false,
-		},
-		{
-			pattern: []string{"??**mole*", "The?S?mpson"},
-			text:    "guacamole Tornado",
-			matched: true,
-		},
+		{"", "", true},
+		{"*", "test", true},
+		{"t*t", "test", true},
+		{"t*t", "tost", true},
+		{"t?st", "test", false},
+		{"t?st", "tast", false},
+		{"test", "test", true},
+		{"test", "toast", false},
+		{"", "non-empty", false},
+		{"*", "", true},
+		{"te*t", "test", true},
+		{"te*", "te", true},
+		{"te*", "ten", true},
+		{"?est", "test", false},
+		{"best", "best", true},
 	}
-	// Iterating over the test cases, call the function under test and asert the output.
-	for i, testCase := range testCases {
-		actualResult := MatchSlice(testCase.pattern, testCase.text)
-		if testCase.matched != actualResult {
-			t.Errorf("Test %d: Expected the result to be `%v`, but instead found it to be `%v`", i+1, testCase.matched, actualResult)
+
+	for _, tt := range tests {
+		if got := MatchSimple(tt.pattern, tt.name); got != tt.want {
+			t.Errorf("MatchSimple(%q, %q) = %v, want %v", tt.pattern, tt.name, got, tt.want)
 		}
 	}
 }
 
-var matchBenchResult bool
-var matchSliceBenchResult bool
+func TestMatchSliceSimple(t *testing.T) {
+	tests := []struct {
+		patterns []string
+		name     string
+		want     bool
+	}{
+		{[]string{"*", "test"}, "test", true},
+		{[]string{"te?t", "tost", "random"}, "tost", true},
+		{[]string{"*st", "n?st", "l*st"}, "list", true},
+		{[]string{"?", "?*", "?**"}, "t", false},
+		{[]string{"a", "b", "c"}, "d", false},
+		{[]string{}, "test", false},
+		{[]string{"*"}, "any", true},
+		{[]string{"abc", "def", "ghi"}, "ghi", true},
+		{[]string{"abc", "def", "ghi"}, "xyz", false},
+		{[]string{"abc*", "def*", "ghi*"}, "ghi-test", true},
+	}
 
-var benchTitles = []string{"bench?*", "me?*", "to?*", "the?*", "moon?*"}
-
-func BenchmarkMatch(b *testing.B) {
-	for k := 0; k < b.N; k++ {
-		b.StartTimer()
-		for i := 0; i < len(benchTitles); i++ {
-			matchBenchResult = Match(benchTitles[i], "Loving.S00E01.1883.The.Road.West.1080p.AMZN.Webrip.x265.10bit.EAC3.5.1-ze0s")
+	for _, tt := range tests {
+		if got := MatchSliceSimple(tt.patterns, tt.name); got != tt.want {
+			t.Errorf("MatchSliceSimple(%v, %q) = %v, want %v", tt.patterns, tt.name, got, tt.want)
 		}
-		b.StopTimer()
 	}
 }
 
-func BenchmarkMatchSlice(b *testing.B) {
-	for k := 0; k < b.N; k++ {
-		b.StartTimer()
-		matchSliceBenchResult = MatchSlice(benchTitles, "Loving.S00E01.1883.The.Road.West.1080p.AMZN.Webrip.x265.10bit.EAC3.5.1-ze0s")
-		b.StopTimer()
+func TestMatchSlice(t *testing.T) {
+	tests := []struct {
+		patterns []string
+		name     string
+		want     bool
+	}{
+		{[]string{"*", "test", "t?st"}, "test", true},
+		{[]string{"te?t", "t?st", "random"}, "tost", true},
+		{[]string{"*st", "n?st", "l*st"}, "list", true},
+		{[]string{"?", "??", "???"}, "t", true},
+		{[]string{"a", "b", "c"}, "d", false},
+		{[]string{}, "test", false},
+		{[]string{"*"}, "any", true},
+		{[]string{"abc", "def", "ghi"}, "ghi", true},
+		{[]string{"abc", "def", "ghi"}, "xyz", false},
+		{[]string{"abc*", "def*", "ghi*"}, "ghi-test", true},
+		{[]string{"abc?", "def?", "ghi?"}, "ghiz", true},
+		{[]string{"abc?", "def?", "ghi?"}, "ghizz", false},
+		{[]string{"a*?", "b*?", "c*?"}, "cwhatever", true},
+		{[]string{"a*?", "b*?", "c*?"}, "dwhatever", false},
+		{[]string{"*"}, "", true},
+		{[]string{"abc"}, "abc", true},
+		{[]string{"?bc"}, "abc", true},
+		{[]string{"abc*"}, "abcd", true},
+	}
+
+	for _, tt := range tests {
+		if got := MatchSlice(tt.patterns, tt.name); got != tt.want {
+			t.Errorf("MatchSlice(%v, %q) = %v, want %v", tt.patterns, tt.name, got, tt.want)
+		}
 	}
 }
