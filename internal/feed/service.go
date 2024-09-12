@@ -375,20 +375,23 @@ func (s *service) start() error {
 
 	s.log.Debug().Msgf("preparing staggered start of %d feeds", len(feeds))
 
-	for _, feed := range feeds {
-		if !feed.Enabled {
-			s.log.Trace().Msgf("feed disabled, skipping... %s", feed.Name)
-			continue
-		}
+	// start in background to not block startup and signal.Notify signals until all feeds are started
+	go func(feeds []domain.Feed) {
+		for _, feed := range feeds {
+			if !feed.Enabled {
+				s.log.Trace().Msgf("feed disabled, skipping... %s", feed.Name)
+				continue
+			}
 
-		if err := s.startJob(&feed); err != nil {
-			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
-			continue
-		}
+			if err := s.startJob(&feed); err != nil {
+				s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
+				continue
+			}
 
-		// add sleep for the next iteration to start staggered which should mitigate sqlite BUSY errors
-		time.Sleep(time.Second * 5)
-	}
+			// add sleep for the next iteration to start staggered which should mitigate sqlite BUSY errors
+			time.Sleep(time.Second * 5)
+		}
+	}(feeds)
 
 	return nil
 }
