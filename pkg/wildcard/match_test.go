@@ -61,6 +61,11 @@ func TestMatch(t *testing.T) {
 			text:    "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
 			matched: true,
 		},
+		{
+			pattern: "The Lord of the Rings*The Rings of Power",
+			text:    "The Rings of Power S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+			matched: false,
+		},
 	}
 	// Iterating over the test cases, call the function under test and asert the output.
 	for i, testCase := range testCases {
