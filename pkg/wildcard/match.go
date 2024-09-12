@@ -4,7 +4,6 @@
 package wildcard
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -83,7 +82,6 @@ func cleanForRegex(pattern string, simple bool) string {
 }
 
 func deepMatchRune(str, pattern string, simple bool) bool {
-	fmt.Printf("")
 	user, err := regexcache.Compile(pattern)
 	if err != nil {
 		log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
