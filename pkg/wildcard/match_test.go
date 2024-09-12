@@ -155,6 +155,12 @@ func TestMatchSlice(t *testing.T) {
 		{[]string{"abc"}, "abc", true},
 		{[]string{"?bc"}, "abc", true},
 		{[]string{"abc*"}, "abcd", true},
+		{[]string{"guacamole", "The?Simpsons*"}, "The Simpsons S12", true},
+		{[]string{"guacamole*", "The?Sompsons*"}, "The Simpsons S12", false},
+		{[]string{"guac?mole*", "The?S?mpson"}, "The Simpsons S12", false},
+		{[]string{"guac?mole*", "The?S?mpson"}, "guacamole Tornado", true},
+		{[]string{"mole*", "The?S?mpson"}, "guacamole Tornado", false},
+		{[]string{"??**mole*", "The?S?mpson"}, "guacamole Tornado", true},
 	}
 
 	for _, tt := range tests {
