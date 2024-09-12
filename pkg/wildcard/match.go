@@ -27,8 +27,8 @@ func Match(pattern, name string) (matched bool) {
 }
 
 func match(pattern, name string, simple bool) (matched bool) {
-	if len(pattern) == 0 {
-		return pattern == name
+	if pattern == "" {
+		return name == ""
 	} else if pattern == "*" {
 		return true
 	}
@@ -57,7 +57,7 @@ func matchSlice(pattern []string, name string, simple bool) (matched bool) {
 	}
 
 	for i := 0; i < len(pattern); i++ {
-		if len(pattern[i]) == 0 {
+		if pattern[i] == "" {
 			continue
 		}
 
@@ -69,7 +69,7 @@ func matchSlice(pattern []string, name string, simple bool) (matched bool) {
 	}
 
 	if build.Len() == 0 {
-		return len(name) == 0
+		return name == ""
 	}
 
 	return deepMatchRune(name, cleanForRegex(build.String(), simple), simple)
