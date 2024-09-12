@@ -8,7 +8,8 @@ import (
 )
 
 // TestMatch - Tests validate the logic of wild card matching.
-// `Match` supports '*' and '?' wildcards.
+// `Match` supports '*' (zero or more characters) and '?' (one character) wildcards in typical glob style filtering.
+// A '*' in a provided string will not result in matching the strings before and after the '*' of the string provided.
 // Sample usage: In resource matching for bucket policy validation.
 func TestMatch(t *testing.T) {
 	testCases := []struct {
@@ -62,12 +63,32 @@ func TestMatch(t *testing.T) {
 			matched: true,
 		},
 		{
-			pattern: "The Lord of the Rings*The Rings of Power",
-			text:    "The Rings of Power S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+			pattern: "The God of the Brr*The Power of Brr",
+			text:    "The Power of Brr",
 			matched: false,
 		},
+		{
+			pattern: "The God of the Brr*The Power of Brr",
+			text:    "The God of the Brr",
+			matched: false,
+		},
+		{
+			pattern: "The God of the Brr*The Power of Brr",
+			text:    "The God of the Brr The Power of Brr",
+			matched: true,
+		},
+		{
+			pattern: "The God of the Brr*The Power of Brr",
+			text:    "The God of the Brr - The Power of Brr",
+			matched: true,
+		},
+		{
+			pattern: "The God of the Brr*The Power of Brr",
+			text:    "The God of the BrrThe Power of Brr",
+			matched: true,
+		},
 	}
-	// Iterating over the test cases, call the function under test and asert the output.
+	// Iterating over the test cases, call the function under test and assert the output.
 	for i, testCase := range testCases {
 		actualResult := Match(testCase.pattern, testCase.text)
 		if testCase.matched != actualResult {
