@@ -3,7 +3,9 @@
 
 package wildcard
 
-import "testing"
+import (
+	"testing"
+)
 
 // TestMatch - Tests validate the logic of wild card matching.
 // `Match` supports '*' and '?' wildcards.
@@ -116,13 +118,24 @@ func TestMatchSlice(t *testing.T) {
 }
 
 var matchBenchResult bool
+var matchSliceBenchResult bool
+
+var benchTitles = []string{"bench?*", "me?*", "to?*", "the?*", "moon?*"}
 
 func BenchmarkMatch(b *testing.B) {
-	for i := 0; i < 80; i++ {
-		matchBenchResult = Match(`cat?*`, "dog")
+	for k := 0; k < b.N; k++ {
+		b.StartTimer()
+		for i := 0; i < len(benchTitles); i++ {
+			matchBenchResult = Match(benchTitles[i], "Loving.S00E01.1883.The.Road.West.1080p.AMZN.Webrip.x265.10bit.EAC3.5.1-ze0s")
+		}
+		b.StopTimer()
 	}
 }
 
 func BenchmarkMatchSlice(b *testing.B) {
-	matchBenchResult = MatchSlice([]string{"dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*"}, "cat")
+	for k := 0; k < b.N; k++ {
+		b.StartTimer()
+		matchSliceBenchResult = MatchSlice(benchTitles, "Loving.S00E01.1883.The.Road.West.1080p.AMZN.Webrip.x265.10bit.EAC3.5.1-ze0s")
+		b.StopTimer()
+	}
 }

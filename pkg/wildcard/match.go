@@ -33,7 +33,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 		return true
 	}
 
-	return deepMatchRune(name, cleanForRegex(pattern, simple), simple)
+	return deepMatchRune(name, cleanForRegex(prepForRegex(pattern), simple), simple)
 }
 
 func MatchSliceSimple(pattern []string, name string) (matched bool) {
@@ -46,6 +46,16 @@ func MatchSlice(pattern []string, name string) (matched bool) {
 
 func matchSlice(pattern []string, name string, simple bool) (matched bool) {
 	var build strings.Builder
+
+	if len(pattern) > 32 {
+		grow := 0
+		for i := 0; i < len(pattern); i++ {
+			grow += len(pattern[i]) + 6 /* ^\?\*$ */
+		}
+
+		build.Grow(grow)
+	}
+
 	for i := 0; i < len(pattern); i++ {
 		if len(pattern[i]) == 0 {
 			continue
@@ -55,30 +65,33 @@ func matchSlice(pattern []string, name string, simple bool) (matched bool) {
 			build.WriteString("|")
 		}
 
-		build.WriteString(cleanForRegex(pattern[i], simple))
+		build.WriteString(prepForRegex(pattern[i]))
 	}
 
 	if build.Len() == 0 {
 		return len(name) == 0
 	}
 
-	return deepMatchRune(name, build.String(), simple)
+	return deepMatchRune(name, cleanForRegex(build.String(), simple), simple)
 }
 
-var convSimple = regexp.MustCompile(regexp.QuoteMeta(`\*`))
-var convWildChar = regexp.MustCompile(regexp.QuoteMeta(`\?`))
+var convSimple = regexp.QuoteMeta("*")
+var convWildChar = regexp.QuoteMeta("?")
 
 func cleanForRegex(pattern string, simple bool) string {
-	pattern = regexp.QuoteMeta(pattern)
-	if strings.Contains(pattern, "*") {
-		pattern = convSimple.ReplaceAllLiteralString(pattern, ".*")
+	if strings.Contains(pattern, convSimple) {
+		pattern = strings.ReplaceAll(pattern, convSimple, ".*")
 	}
 
-	if !simple && strings.Contains(pattern, "?") {
-		pattern = convWildChar.ReplaceAllLiteralString(pattern, ".")
+	if !simple && strings.Contains(pattern, convWildChar) {
+		pattern = strings.ReplaceAll(pattern, convWildChar, ".")
 	}
 
-	return `^` + pattern + `$`
+	return pattern
+}
+
+func prepForRegex(pattern string) string {
+	return `^` + regexp.QuoteMeta(pattern) + `$`
 }
 
 func deepMatchRune(str, pattern string, simple bool) bool {
