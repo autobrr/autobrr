@@ -69,23 +69,23 @@ export const IndexerSelectColumnFilter = ({
 }: FilterProps<object>) => {
   const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
+  const options = isSuccess && data.map((indexer, idx) => (
+    <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
+  ));
+
   // Assign indexer name based on the filterValue (indexer.identifier)
-  const currentIndexerName = isSuccess && data 
-    ? data.find(indexer => indexer.identifier === filterValue)?.name 
-    : "Indexer";
+  const currentIndexerName = data?.find(indexer => indexer.identifier === filterValue)?.name ?? "Indexer";
 
   // Render a multi-select box
   return (
     <ListboxFilter
       id={id}
       key={id}
-      label={currentIndexerName ?? "Indexer"}
+      label={currentIndexerName}
       currentValue={filterValue ?? ""}
       onChange={setFilter}
     >
-      {isSuccess && data && data.map((indexer, idx) => (
-        <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
-      ))}
+      {options}
     </ListboxFilter>
   );
 };

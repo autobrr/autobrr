@@ -134,10 +134,14 @@ export const ReleasesIndexersQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.indexers(),
     queryFn: async () => {
-      const response = await APIClient.indexers.getAll();
-      return response.map((indexer: IndexerMinimal) => ({
-        name: indexer.name,
-        identifier: indexer.identifier
+      const indexersResponse: IndexerDefinition[] = await APIClient.indexers.getAll();
+      const indexerOptionsResponse: string[] = await APIClient.release.indexerOptions();
+      
+      const indexersMap = new Map(indexersResponse.map((indexer: IndexerDefinition) => [indexer.identifier, indexer.name]));
+      
+      return indexerOptionsResponse.map((identifier: string) => ({
+        name: indexersMap.get(identifier) || "Unknown",
+        identifier: identifier
       }));
     },
     refetchOnWindowFocus: false,
