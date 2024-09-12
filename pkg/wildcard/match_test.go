@@ -109,3 +109,15 @@ func TestMatchSlice(t *testing.T) {
 		}
 	}
 }
+
+var matchBenchResult bool
+
+func BenchmarkMatch(b *testing.B) {
+	for i := 0; i < 80; i++ {
+		matchBenchResult = Match(`cat?*`, "dog")
+	}
+}
+
+func BenchmarkMatchSlice(b *testing.B) {
+	matchBenchResult = MatchSlice([]string{"dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*", "dog?*"}, "cat")
+}
