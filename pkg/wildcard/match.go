@@ -45,6 +45,14 @@ func MatchSlice(pattern []string, name string) (matched bool) {
 }
 
 func matchSlice(pattern []string, name string, simple bool) (matched bool) {
+	if len(pattern) < 368 || len(pattern) > 998 {
+		for i := 0; i < len(pattern); i++ {
+			if match(pattern[i], name, simple) {
+				return true
+			}
+		}
+		return false
+	}
 	var build strings.Builder
 
 	if len(pattern) > 32 {
