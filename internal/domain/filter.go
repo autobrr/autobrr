@@ -1008,6 +1008,7 @@ func containsAnySlice(tags []string, filters []string) bool {
 			continue
 		}
 		tag = strings.ToLower(tag)
+		clear(advanced)
 
 		for _, filter := range filters {
 			if filter == "" {
