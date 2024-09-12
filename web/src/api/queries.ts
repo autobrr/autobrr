@@ -135,7 +135,7 @@ export const ReleasesIndexersQueryOptions = () =>
     queryKey: ReleaseKeys.indexers(),
     queryFn: async () => {
       const response = await APIClient.indexers.getAll();
-      return response.map((indexer: any) => ({
+      return response.map((indexer: IndexerMinimal) => ({
         name: indexer.name,
         identifier: indexer.identifier
       }));
