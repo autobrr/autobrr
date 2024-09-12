@@ -69,3 +69,16 @@ func Compile(pattern string) (*regexp.Regexp, error) {
 	cache.Set(pattern, reg, ttlcache.DefaultTTL)
 	return reg, nil
 }
+
+func SubmitOriginal(plain string, reg *regexp.Regexp) {
+	cache.Set(plain, reg, ttlcache.DefaultTTL)
+}
+
+func FindOriginal(plain string) (*regexp.Regexp, bool) {
+	item := cache.Get(plain)
+	if item != nil {
+		return item.Value(), true
+	}
+
+	return nil, false
+}

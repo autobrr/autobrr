@@ -33,7 +33,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 		return true
 	}
 
-	return deepMatchRune(name, cleanForRegex(prepForRegex(pattern), simple), simple)
+	return deepMatchRune(name, prepForRegex(pattern), simple, pattern)
 }
 
 func MatchSliceSimple(pattern []string, name string) (matched bool) {
@@ -72,7 +72,7 @@ func matchSlice(pattern []string, name string, simple bool) (matched bool) {
 		return name == ""
 	}
 
-	return deepMatchRune(name, cleanForRegex(build.String(), simple), simple)
+	return deepMatchRune(name, build.String(), simple, build.String())
 }
 
 var convSimple = regexp.QuoteMeta("*")
@@ -94,11 +94,23 @@ func prepForRegex(pattern string) string {
 	return `^` + regexp.QuoteMeta(pattern) + `$`
 }
 
-func deepMatchRune(str, pattern string, simple bool) bool {
-	user, err := regexcache.Compile(pattern)
-	if err != nil {
-		log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
-		return false
+func deepMatchRune(str, pattern string, simple bool, original string) bool {
+	salt := ""
+	if simple {
+		salt = "//" // invalid regex.
+	}
+
+	user, ok := regexcache.FindOriginal(original + salt)
+	if !ok {
+		var err error
+		pattern = cleanForRegex(pattern, simple)
+		user, err = regexcache.Compile(pattern)
+		if err != nil {
+			log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
+			return false
+		}
+
+		regexcache.SubmitOriginal(original+salt, user)
 	}
 
 	idx := user.FindStringIndex(str)
