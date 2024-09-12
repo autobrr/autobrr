@@ -68,3 +68,44 @@ func TestMatch(t *testing.T) {
 		}
 	}
 }
+
+func TestMatchSlice(t *testing.T) {
+	testCases := []struct {
+		pattern []string
+		text    string
+		matched bool
+	}{
+		{
+			pattern: []string{"guacamole", "The?Simpsons*"},
+			text:    "The Simpsons S12",
+			matched: true,
+		},
+		{
+			pattern: []string{"guacamole*", "The?Sompsons*"},
+			text:    "The Simpsons S12",
+			matched: false,
+		},
+		{
+			pattern: []string{"guac?mole*", "The?S?mpson"},
+			text:    "The Simpsons S12",
+			matched: false,
+		},
+		{
+			pattern: []string{"guac?mole*", "The?S?mpson"},
+			text:    "guacamole Tornado",
+			matched: true,
+		},
+		{
+			pattern: []string{"mole*", "The?S?mpson"},
+			text:    "guacamole Tornado",
+			matched: false,
+		},
+	}
+	// Iterating over the test cases, call the function under test and asert the output.
+	for i, testCase := range testCases {
+		actualResult := MatchSlice(testCase.pattern, testCase.text)
+		if testCase.matched != actualResult {
+			t.Errorf("Test %d: Expected the result to be `%v`, but instead found it to be `%v`", i+1, testCase.matched, actualResult)
+		}
+	}
+}

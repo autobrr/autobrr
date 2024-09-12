@@ -878,12 +878,14 @@ func sliceContainsSlice(tags []string, filters []string) bool {
 }
 
 func containsMatchFuzzy(tags []string, filters []string) bool {
+	advanced := make([]string, 0, len(filters))
 	for _, tag := range tags {
 		if tag == "" {
 			continue
 		}
 		tag = strings.ToLower(tag)
 
+		clear(advanced)
 		for _, filter := range filters {
 			if filter == "" {
 				continue
@@ -893,13 +895,14 @@ func containsMatchFuzzy(tags []string, filters []string) bool {
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
-				match := wildcard.Match(filter, tag)
-				if match {
-					return true
-				}
+				advanced = append(advanced, filter)
 			} else if strings.Contains(tag, filter) {
 				return true
 			}
+		}
+
+		if wildcard.MatchSlice(advanced, tag) {
+			return true
 		}
 	}
 
@@ -907,6 +910,7 @@ func containsMatchFuzzy(tags []string, filters []string) bool {
 }
 
 func containsMatch(tags []string, filters []string) bool {
+	advanced := make([]string, 0, len(filters))
 	for _, tag := range tags {
 		if tag == "" {
 			continue
@@ -914,6 +918,7 @@ func containsMatch(tags []string, filters []string) bool {
 		tag = strings.ToLower(tag)
 		tag = strings.Trim(tag, " ")
 
+		clear(advanced)
 		for _, filter := range filters {
 			if filter == "" {
 				continue
@@ -923,13 +928,14 @@ func containsMatch(tags []string, filters []string) bool {
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
-				match := wildcard.Match(filter, tag)
-				if match {
-					return true
-				}
+				advanced = append(advanced, filter)
 			} else if tag == filter {
 				return true
 			}
+		}
+
+		if wildcard.MatchSlice(advanced, tag) {
+			return true
 		}
 	}
 
@@ -945,6 +951,8 @@ func containsAllMatch(tags []string, filters []string) bool {
 		filter = strings.Trim(filter, " ")
 		found := false
 
+		wildFilter := strings.ContainsAny(filter, "?|*")
+
 		for _, tag := range tags {
 			if tag == "" {
 				continue
@@ -955,7 +963,7 @@ func containsAllMatch(tags []string, filters []string) bool {
 			if tag == filter {
 				found = true
 				break
-			} else if strings.ContainsAny(filter, "?|*") {
+			} else if wildFilter {
 				if wildcard.Match(filter, tag) {
 					found = true
 					break
@@ -994,6 +1002,7 @@ func containsMatchBasic(tags []string, filters []string) bool {
 }
 
 func containsAnySlice(tags []string, filters []string) bool {
+	advanced := make([]string, 0, len(filters))
 	for _, tag := range tags {
 		if tag == "" {
 			continue
@@ -1007,15 +1016,16 @@ func containsAnySlice(tags []string, filters []string) bool {
 			filter = strings.ToLower(filter)
 			filter = strings.Trim(filter, " ")
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
-			wild := strings.ContainsAny(filter, "?|*")
-			if wild {
-				match := wildcard.Match(filter, tag)
-				if match {
-					return true
-				}
+			a := strings.ContainsAny(filter, "?|*")
+			if a {
+				advanced = append(advanced, filter)
 			} else if tag == filter {
 				return true
 			}
+		}
+
+		if wildcard.MatchSlice(advanced, tag) {
+			return true
 		}
 	}
 
