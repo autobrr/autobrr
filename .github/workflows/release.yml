@@ -136,6 +136,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create web-dist artifact
+        working-directory: web/dist
+        run: tar czf ../../dist/web-dist.tar.gz ./*
+
       - name: Upload assets
         uses: actions/upload-artifact@v4
         with:
