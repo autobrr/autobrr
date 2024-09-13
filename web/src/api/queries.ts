@@ -140,7 +140,7 @@ export const ReleasesIndexersQueryOptions = () =>
       const indexersMap = new Map(indexersResponse.map((indexer: IndexerDefinition) => [indexer.identifier, indexer.name]));
       
       return indexerOptionsResponse.map((identifier: string) => ({
-        name: indexersMap.get(identifier) || "Unknown",
+        name: indexersMap.get(identifier) || identifier,
         identifier: identifier
       }));
     },
