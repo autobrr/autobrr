@@ -26,6 +26,7 @@ type MessageBuilderPlainText struct{}
 // BuildBody constructs the body of the notification message.
 func (b *MessageBuilderPlainText) BuildBody(payload domain.NotificationPayload) string {
 	messageParts := []ConditionMessagePart{
+		{payload.Sender != "", "%v\n", []interface{}{payload.Sender}},
 		{payload.Subject != "" && payload.Message != "", "%v\n%v", []interface{}{payload.Subject, payload.Message}},
 		{payload.ReleaseName != "", "New release: %v\n", []interface{}{payload.ReleaseName}},
 		{payload.Size > 0, "Size: %v\n", []interface{}{humanize.Bytes(payload.Size)}},
@@ -45,6 +46,7 @@ type MessageBuilderHTML struct{}
 
 func (b *MessageBuilderHTML) BuildBody(payload domain.NotificationPayload) string {
 	messageParts := []ConditionMessagePart{
+		{payload.Sender != "", "<b>%v</b>\n", []interface{}{html.EscapeString(payload.Sender)}},
 		{payload.Subject != "" && payload.Message != "", "<b>%v</b> %v\n", []interface{}{html.EscapeString(payload.Subject), html.EscapeString(payload.Message)}},
 		{payload.ReleaseName != "", "<b>New release:</b> %v\n", []interface{}{html.EscapeString(payload.ReleaseName)}},
 		{payload.Size > 0, "<b>Size:</b> %v\n", []interface{}{humanize.Bytes(payload.Size)}},
