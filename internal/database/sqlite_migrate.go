@@ -1591,4 +1591,8 @@ ALTER TABLE irc_network
             REFERENCES proxy(id)
             ON DELETE SET NULL;
 `,
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
 }
