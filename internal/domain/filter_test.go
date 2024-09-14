@@ -42,7 +42,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 			args: args{
 				filter: Filter{
 					Enabled:            true,
-					MatchCategories:    "Movies",
+					MatchCategories:    "TV*,Movies*",
 					Freeleech:          true,
 					MinSize:            "10 GB",
 					MaxSize:            "40GB",
@@ -1910,6 +1910,20 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: ""}},
 			wantRejections: []string{"match release tags regex not matching. got:  want: foreign - 17"},
 			wantMatch:      false,
+		},
+		{
+			name: "test_43",
+			fields: fields{
+				Shows:       ",Dutchess,Preacher",
+				Seasons:     "1",
+				Episodes:    "0",
+				Resolutions: []string{"2160p"},
+				Sources:     []string{"WEB-DL"},
+				Codecs:      []string{"x265"},
+			},
+			args:           args{&Release{TorrentName: "Preacher.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			wantRejections: nil,
+			wantMatch:      true,
 		},
 	}
 	for _, tt := range tests {
