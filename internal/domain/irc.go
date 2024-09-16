@@ -104,7 +104,7 @@ type IrcUser struct {
 }
 
 func (u *IrcUser) ParseMode(nick string) bool {
-	index := strings.IndexAny(nick, "@+&")
+	index := strings.IndexAny(nick, "~!@+&")
 	if index == -1 {
 		return false
 	}

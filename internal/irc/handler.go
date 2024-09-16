@@ -812,31 +812,35 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 func (h *Handler) handleJoin(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
 
-	//h.log.Debug().Msgf("JOIN channel %s %s", channel, msg.Nick())
+	ircChannel, found := h.channels.Get(channel)
+	if !found {
+		if h.isOurCurrentNick(msg.Nick()) {
+			h.log.Debug().Msgf("Joined unwanted channel %s, lets part it..", channel)
+
+			if err := h.PartChannel(channel); err != nil {
+				h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channel)
+			}
+		}
+
+		return
+	}
 
 	if !h.isOurCurrentNick(msg.Nick()) {
 		h.log.Trace().Msgf("JOIN channel %s other user: %s", channel, msg.Nick())
-
-		ircChannel, found := h.channels.Get(channel)
-		if !found {
-			return
-		}
 
 		ircChannel.SetUsers([]string{msg.Nick()})
 
 		// TODO set or swap ircChannel on handler?
 		//h.channels.Swap(channel, ircChannel)
 
-		botUser, found := h.bots.Get(msg.Nick())
-		if found {
+		botUser, foundBot := h.bots.Get(msg.Nick())
+		if foundBot {
 			botUser.Present = true
 			h.bots.Swap(msg.Nick(), botUser)
 		}
 
 		return
 	}
-
-	h.log.Debug().Msgf("JOIN channel %s %s", channel, msg.Nick())
 
 	h.log.Info().Msgf("Join channel %s", channel)
 }
@@ -855,8 +859,8 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 		ircChannel.RemoveUser(msg.Nick())
 
-		botUser, found := h.bots.Get(msg.Nick())
-		if found {
+		botUser, foundBot := h.bots.Get(msg.Nick())
+		if foundBot {
 			botUser.Present = false
 			h.bots.Swap(msg.Nick(), botUser)
 		}

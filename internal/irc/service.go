@@ -419,7 +419,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", n.Server)
 			return nil, err
 		}
-		n.Channels = append(n.Channels, channels...)
+		n.Channels = channels
 
 		ret[idx] = n
 	}
@@ -471,8 +471,7 @@ func (s *service) listNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 }
 
 func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error) {
-	// add ttl cache
-	networks, err := s.listNetworks(ctx)
+	networks, err := s.ListNetworks(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to list networks")
 		return nil, err
@@ -500,16 +499,13 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			Connected:        false,
 			ConnectionErrors: []string{},
 			Bots:             make([]domain.IrcUser, 0),
-			//Channels:         []domain.IrcChannelWithHealth{},
+			Channels:         []domain.IrcChannelWithHealth{},
 		}
 
 		if n.Enabled {
 			handler, found := s.networkHandlers.Get(n.ID)
 			if found {
 				handler.ReportStatus(&netw)
-
-				netw.Channels = make([]domain.IrcChannelWithHealth, handler.channels.Len())
-				chanIdx := 0
 
 				handler.channels.ForEach(func(name string, channel *Channel) bool {
 					ch := domain.IrcChannelWithHealth{
@@ -528,8 +524,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 						return true
 					})
 
-					netw.Channels[chanIdx] = ch
-					chanIdx++
+					netw.Channels = append(netw.Channels, ch)
 
 					return true
 				})
@@ -545,11 +540,8 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 				})
 			}
 		} else {
-			// add ttl cache
-			netw.Channels = make([]domain.IrcChannelWithHealth, len(n.Channels))
-
 			// combine from repo and handler
-			for channelIndex, channel := range n.Channels {
+			for _, channel := range n.Channels {
 				ch := domain.IrcChannelWithHealth{
 					ID:              channel.ID,
 					Enabled:         channel.Enabled,
@@ -562,17 +554,12 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 					Announcers:      []domain.IrcUser{},
 				}
 
-				netw.Channels[channelIndex] = ch
+				netw.Channels = append(netw.Channels, ch)
 			}
 		}
 
 		ret[networkIdx] = netw
 	}
-
-	// sort alphabetically so the ui doesn't jump around randomly between auto-refresh
-	sort.SliceStable(ret, func(i, j int) bool {
-		return ret[i].Name < ret[j].Name
-	})
 
 	return ret, nil
 }

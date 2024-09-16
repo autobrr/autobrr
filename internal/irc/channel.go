@@ -169,7 +169,7 @@ func (c *Channel) SetUsers(users []string) {
 		u := &domain.IrcUser{Nick: nick}
 
 		// announcers usually have one of these as user mode, but not always
-		if strings.ContainsAny(nick, "@+&") {
+		if strings.ContainsAny(nick, "~!@+&") {
 			c.log.Trace().Msgf("usermode %s", nick)
 
 			if ok := u.ParseMode(nick); !ok {
