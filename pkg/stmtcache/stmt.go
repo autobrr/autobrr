@@ -29,7 +29,7 @@ func ToSql[T sq.CaseBuilder | sq.DeleteBuilder | sq.InsertBuilder | sq.SelectBui
 	abstract = &queryBuilder // so fucking stupid this is a thing. was supposed to be fixed in 1.19.
 
 	var query string
-	args := make([]interface{}, 0)
+	var args []interface{}
 	var err error
 
 	switch abstract.(type) {
