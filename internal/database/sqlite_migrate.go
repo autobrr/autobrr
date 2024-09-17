@@ -1600,8 +1600,11 @@ ALTER TABLE irc_network
             REFERENCES proxy(id)
             ON DELETE SET NULL;
 `,
-`
-CREATE INDEX filter_external_filter_id_index
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
+	`CREATE INDEX filter_external_filter_id_index
     ON filter_external(filter_id);
 
 CREATE INDEX filter_enabled_index

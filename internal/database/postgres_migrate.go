@@ -955,4 +955,8 @@ ALTER TABLE irc_network
     ADD FOREIGN KEY (proxy_id) REFERENCES proxy
         ON DELETE SET NULL;
 `,
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
 }
