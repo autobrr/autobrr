@@ -30,7 +30,7 @@ func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 
 func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "host", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
+		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "host", "username", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
 		OrderBy("name")
 
@@ -51,9 +51,9 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 	for rows.Next() {
 		var n domain.Notification
 
-		var webhook, token, apiKey, channel, host, topic sql.NullString
+		var webhook, token, apiKey, channel, host, topic, username sql.NullString
 
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &host, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &host, &username, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
 			return nil, 0, errors.Wrap(err, "error scanning row")
 		}
 
@@ -63,6 +63,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		n.Channel = channel.String
 		n.Topic = topic.String
 		n.Host = host.String
+		n.Username = username.String
 
 		notifications = append(notifications, n)
 	}
@@ -185,6 +186,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 	channel := toNullString(notification.Channel)
 	topic := toNullString(notification.Topic)
 	host := toNullString(notification.Host)
+	username := toNullString(notification.Username)
 
 	queryBuilder := r.db.squirrel.
 		Insert("notification").
@@ -200,6 +202,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 			"priority",
 			"topic",
 			"host",
+			"username",
 		).
 		Values(
 			notification.Name,
@@ -213,6 +216,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 			notification.Priority,
 			topic,
 			host,
+			username,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -236,6 +240,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 	channel := toNullString(notification.Channel)
 	topic := toNullString(notification.Topic)
 	host := toNullString(notification.Host)
+	username := toNullString(notification.Username)
 
 	queryBuilder := r.db.squirrel.
 		Update("notification").
@@ -250,6 +255,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notif
 		Set("priority", notification.Priority).
 		Set("topic", topic).
 		Set("host", host).
+		Set("username", username).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": notification.ID})
 
