@@ -789,7 +789,8 @@ const IRCLogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          className="absolute z-10 right-0 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-none"
+          anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-none"
         >
           <MenuItem>
             {() => (

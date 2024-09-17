@@ -23,6 +23,7 @@ func (s *service) deluge(ctx context.Context, action *domain.Action, release dom
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
 	}
+	action.Client = client
 
 	if !client.Enabled {
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
@@ -30,7 +31,7 @@ func (s *service) deluge(ctx context.Context, action *domain.Action, release dom
 
 	var rejections []string
 
-	switch action.Client.Type {
+	switch client.Type {
 	case "DELUGE_V1":
 		rejections, err = s.delugeV1(ctx, client, action, release)
 

@@ -190,6 +190,12 @@ CREATE TABLE filter
     FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate(id) ON DELETE SET NULL
 );
 
+CREATE INDEX filter_enabled_index
+    ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+    ON filter (priority);
+
 CREATE TABLE filter_external
 (
     id                                  SERIAL PRIMARY KEY,
@@ -986,6 +992,16 @@ ALTER TABLE irc_network
 ALTER TABLE irc_network
     ADD FOREIGN KEY (proxy_id) REFERENCES proxy
         ON DELETE SET NULL;
+`,
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
+	`CREATE INDEX filter_enabled_index
+	ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+	ON filter (priority);
 `,
 	`CREATE TABLE release_profile_duplicate
 (
