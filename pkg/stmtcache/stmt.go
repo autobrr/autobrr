@@ -51,7 +51,7 @@ func ToSql[T sq.CaseBuilder | sq.DeleteBuilder | sq.InsertBuilder | sq.SelectBui
 	if item == nil {
 		stmt, err := db.PrepareContext(ctx, query)
 		if err != nil {
-			return &sql.Stmt{}, []interface{}{}, err
+			return nil, nil, err
 		}
 
 		item = cache.Set(query, stmt, ttlcache.DefaultTTL)
