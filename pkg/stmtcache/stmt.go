@@ -24,7 +24,7 @@ func init() {
 	})
 }
 
-func ToSql[T sq.CaseBuilder | sq.DeleteBuilder | sq.InsertBuilder | sq.SelectBuilder | sq.StatementBuilderType | sq.UpdateBuilder](ctx context.Context, db *sql.DB, queryBuilder T) (sql.Stmt, []interface{}, error) {
+func ToSql[T sq.CaseBuilder | sq.DeleteBuilder | sq.InsertBuilder | sq.SelectBuilder | sq.StatementBuilderType | sq.UpdateBuilder](ctx context.Context, db *sql.DB, queryBuilder T) (*sql.Stmt, []interface{}, error) {
 	var abstract interface{}
 	abstract = &queryBuilder // so fucking stupid this is a thing. was supposed to be fixed in 1.19.
 
@@ -51,11 +51,11 @@ func ToSql[T sq.CaseBuilder | sq.DeleteBuilder | sq.InsertBuilder | sq.SelectBui
 	if item == nil {
 		stmt, err := db.PrepareContext(ctx, query)
 		if err != nil {
-			return sql.Stmt{}, []interface{}{}, err
+			return &sql.Stmt{}, []interface{}{}, err
 		}
 
 		item = cache.Set(query, stmt, ttlcache.DefaultTTL)
 	}
 
-	return *item.Value(), args, err
+	return item.Value(), args, err
 }
