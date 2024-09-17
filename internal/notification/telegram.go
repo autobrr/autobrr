@@ -64,7 +64,7 @@ func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.
 
 func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 
-	payload.Sender = "autobrr"
+	payload.Sender = s.Settings.Username
 
 	message := s.builder.BuildBody(payload)
 	m := TelegramMessage{
