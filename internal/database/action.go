@@ -11,6 +11,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/stmtcache"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
@@ -81,12 +82,12 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
 	}
 
-	query, args, err := queryBuilder.ToSql()
+	query, args, err := stmtcache.ToSql(ctx, r.db.handler, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := query.QueryContext(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
