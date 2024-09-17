@@ -424,9 +424,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
 
   return (
     <Transition show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="absolute inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
         <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 pl-10 sm:pl-0 max-w-full flex">
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
             <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
