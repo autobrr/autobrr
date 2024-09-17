@@ -147,6 +147,12 @@ function FormFieldsTelegram() {
         help="Reverse proxy domain for api.telegram.org, only needs to be specified if the network you are using has blocked the Telegram API."
         placeholder="http(s)://ip:port"
       />
+      <TextFieldWide
+        name="username"
+        label="Sender"
+        help="Custom sender name to show at the top of a notification"
+        placeholder="autobrr"
+      />
     </div>
   );
 }
@@ -369,7 +375,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                     type: "",
                     name: "",
                     webhook: "",
-                    events: []
+                    events: [],
+                    username: ""
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -567,6 +574,7 @@ interface InitialValues {
   topic?: string;
   host?: string;
   events: NotificationEvent[];
+  username?: string
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
@@ -616,7 +624,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     channel: notification.channel,
     topic: notification.topic,
     host: notification.host,
-    events: notification.events || []
+    events: notification.events || [],
+    username: notification.username
   };
 
   return (
