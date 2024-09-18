@@ -11,7 +11,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/stmtcache"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
@@ -82,7 +81,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
 	}
 
-	query, args, err := stmtcache.ToSql(ctx, r.db.handler, queryBuilder)
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
@@ -200,12 +199,12 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
 	}
 
-	query, args, err := queryBuilder.ToSql()
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := query.QueryContext(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -512,12 +511,12 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		).
 		From("action")
 
-	query, args, err := queryBuilder.ToSql()
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := query.QueryContext(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -611,12 +610,12 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 		From("action").
 		Where(sq.Eq{"id": req.Id})
 
-	query, args, err := queryBuilder.ToSql()
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := query.QueryRowContext(ctx, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}

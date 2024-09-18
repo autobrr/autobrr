@@ -28,7 +28,8 @@ type DB struct {
 	Driver string
 	DSN    string
 
-	squirrel sq.StatementBuilderType
+	squirrel  sq.StatementBuilderType
+	Statement *StatementCache
 }
 
 func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
@@ -47,6 +48,10 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		} else {
 			db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
 		}
+	case "sqlite:memory":
+		db.Driver = "sqlite"
+		db.DSN = "file::memory:"
+		//db.DSN = ":memory:"
 	case "postgres":
 		if cfg.PostgresHost == "" || cfg.PostgresPort == 0 || cfg.PostgresDatabase == "" {
 			return nil, errors.New("postgres: bad variables")
@@ -82,6 +87,8 @@ func (db *DB) Open() error {
 			return err
 		}
 	}
+
+	db.Statement = NewStatementCache(db.handler)
 
 	return nil
 }

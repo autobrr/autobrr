@@ -12,7 +12,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/stmtcache"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/rs/zerolog"
@@ -96,7 +95,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 		From("indexer").
 		OrderBy("name ASC")
 
-	query, args, err := stmtcache.ToSql(ctx, r.db.handler, queryBuilder)
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
@@ -148,12 +147,12 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 		From("indexer").
 		Where(sq.Eq{"id": id})
 
-	query, args, err := queryBuilder.ToSql()
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := query.QueryRowContext(ctx, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -199,12 +198,12 @@ func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (
 		queryBuilder = queryBuilder.Where(sq.Eq{"identifier": req.Identifier})
 	}
 
-	query, args, err := queryBuilder.ToSql()
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := query.QueryRowContext(ctx, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -244,12 +243,12 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 		Join("filter_indexer ON indexer.id = filter_indexer.indexer_id").
 		Where(sq.Eq{"filter_indexer.filter_id": id})
 
-	query, args, err := queryBuilder.ToSql()
+	query, args, err := r.db.Statement.ToSql(ctx, queryBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := query.QueryContext(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}

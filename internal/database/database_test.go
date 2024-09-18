@@ -31,7 +31,7 @@ func setupPostgresForTest() *DB {
 	}
 
 	cfg := &domain.Config{
-		LogLevel:         "INFO",
+		LogLevel:         "DISABLED",
 		DatabaseType:     dbtype,
 		PostgresHost:     "localhost",
 		PostgresPort:     5437,
@@ -78,6 +78,8 @@ GRANT ALL ON SCHEMA public TO public;
 		log.Fatalf("Could not migrate postgres database: %q", err)
 	}
 
+	db.Statement = NewStatementCache(db.handler)
+
 	testDBs[dbtype] = db
 
 	return db
@@ -91,8 +93,8 @@ func setupSqliteForTest() *DB {
 	}
 
 	cfg := &domain.Config{
-		LogLevel:     "INFO",
-		DatabaseType: dbtype,
+		LogLevel:     "DISABLED",
+		DatabaseType: "sqlite:memory",
 	}
 
 	// Init a new logger
@@ -105,9 +107,15 @@ func setupSqliteForTest() *DB {
 	}
 
 	// Open the database connection
-	if err := db.Open(); err != nil {
-		log.Fatalf("Could not open db connection: %v", err)
+	//if err := db.Open(); err != nil {
+	//	log.Fatalf("Could not open db connection: %v", err)
+	//}
+
+	if err = db.openSQLite(); err != nil {
+		log.Fatal("could not open sqlite db connection")
 	}
+
+	db.Statement = NewStatementCache(db.handler)
 
 	testDBs[dbtype] = db
 
@@ -118,9 +126,8 @@ func setupLoggerForTest() logger.Logger {
 	cfg := &domain.Config{
 		LogLevel: "ERROR",
 	}
-	log := logger.New(cfg)
 
-	return log
+	return logger.New(cfg)
 }
 
 func TestPingDatabase(t *testing.T) {
