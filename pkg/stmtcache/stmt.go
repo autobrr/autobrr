@@ -6,6 +6,7 @@ package stmtcache
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -44,7 +45,7 @@ func ToSql[T sq.CaseBuilder | sq.DeleteBuilder | sq.InsertBuilder | sq.SelectBui
 	case *sq.UpdateBuilder:
 		query, args, err = abstract.(*sq.UpdateBuilder).ToSql()
 	default:
-		panic(nil)
+		return nil, nil, errors.New("unimplemented type for ToSql")
 	}
 
 	item := cache.Get(query)
@@ -58,4 +59,18 @@ func ToSql[T sq.CaseBuilder | sq.DeleteBuilder | sq.InsertBuilder | sq.SelectBui
 	}
 
 	return item.Value(), args, err
+}
+
+func ToStmt(ctx context.Context, db *sql.DB, query string) (*sql.Stmt, error) {
+	item := cache.Get(query)
+	if item == nil {
+		stmt, err := db.PrepareContext(ctx, query)
+		if err != nil {
+			return nil, err
+		}
+
+		item = cache.Set(query, stmt, ttlcache.DefaultTTL)
+	}
+
+	return item.Value(), nil
 }

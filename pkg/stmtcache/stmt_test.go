@@ -13,6 +13,34 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+func Test_SQLiteStmt(t *testing.T) {
+	db, err := sql.Open("sqlite", "file::memory:")
+	if err != nil {
+		t.Logf("Error opening sqlite: %#v", err)
+		return
+	}
+
+	defer db.Close()
+
+	ctx := context.Background()
+	query, err := ToStmt(ctx, db, "SELECT 1 WHERE 1=$1")
+	if err != nil {
+		t.Logf("fail: %q", err)
+		t.Fail()
+	}
+
+	rows, err := query.QueryContext(ctx, 1)
+	if err != nil {
+		t.Logf("fail: %q", err)
+		t.Fail()
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		t.Logf("Row!")
+	}
+}
+
 func BenchmarkSQLiteCache(b *testing.B) {
 	db, err := sql.Open("sqlite", "file::memory:")
 	if err != nil {
