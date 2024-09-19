@@ -1,19 +1,17 @@
 package sanitize
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 func String(str string) string {
 	str = strings.TrimSpace(str)
 	return str
 }
 
+var interestingChars = regexp.MustCompile(`([^,\s]+)`)
+
 func FilterString(str string) string {
-	str = strings.TrimSpace(str)
-	str = strings.Trim(str, ",")
-
-	// replace newline with comma
-	str = strings.ReplaceAll(str, "\n", ",")
-	str = strings.ReplaceAll(str, ",,", ",")
-
-	return str
+	return strings.Join(interestingChars.FindAllString(str, -1), ",")
 }
