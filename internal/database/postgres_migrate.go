@@ -300,6 +300,7 @@ CREATE TABLE "release"
     size              BIGINT,
     raw               TEXT,
     title             TEXT,
+    sub_title         TEXT,
     category          TEXT,
     season            INTEGER,
     episode           INTEGER,
@@ -353,6 +354,60 @@ CREATE INDEX release_timestamp_index
 
 CREATE INDEX release_torrent_name_index
     ON "release" (torrent_name);
+
+CREATE INDEX release_title_index
+    ON "release" (title);
+
+CREATE INDEX release_sub_title_index
+    ON "release" (sub_title);
+
+CREATE INDEX release_season_index
+    ON "release" (season);
+
+CREATE INDEX release_episode_index
+    ON "release" (episode);
+
+CREATE INDEX release_year_index
+    ON "release" (year);
+
+CREATE INDEX release_month_index
+    ON "release" (month);
+
+CREATE INDEX release_day_index
+    ON "release" (day);
+
+CREATE INDEX release_resolution_index
+    ON "release" (resolution);
+
+CREATE INDEX release_source_index
+    ON "release" (source);
+
+CREATE INDEX release_codec_index
+    ON "release" (codec);
+
+CREATE INDEX release_container_index
+    ON "release" (container);
+
+CREATE INDEX release_hdr_index
+    ON "release" (hdr);
+
+CREATE INDEX release_audio_index
+    ON "release" (audio);
+
+CREATE INDEX release_audio_channels_index
+    ON "release" (audio_channels);
+
+CREATE INDEX release_release_group_index
+    ON "release" (release_group);
+
+CREATE INDEX release_proper_index
+    ON "release" (proper);
+
+CREATE INDEX release_repack_index
+    ON "release" (repack);
+
+CREATE INDEX release_website_index
+    ON "release" (website);
 
 CREATE TABLE release_action_status
 (
@@ -1041,9 +1096,66 @@ ALTER TABLE filter
             ON DELETE SET NULL;
 
 ALTER TABLE "release"
+    ADD sub_title TEXT;
+
+ALTER TABLE "release"
     ADD COLUMN IF NOT EXISTS audio TEXT;
 
 ALTER TABLE "release"
     ADD audio_channels TEXT;
+
+CREATE INDEX release_title_index
+    ON "release" (title);
+
+CREATE INDEX release_sub_title_index
+    ON "release" (sub_title);
+
+CREATE INDEX release_season_index
+    ON "release" (season);
+
+CREATE INDEX release_episode_index
+    ON "release" (episode);
+
+CREATE INDEX release_year_index
+    ON "release" (year);
+
+CREATE INDEX release_month_index
+    ON "release" (month);
+
+CREATE INDEX release_day_index
+    ON "release" (day);
+
+CREATE INDEX release_resolution_index
+    ON "release" (resolution);
+
+CREATE INDEX release_source_index
+    ON "release" (source);
+
+CREATE INDEX release_codec_index
+    ON "release" (codec);
+
+CREATE INDEX release_container_index
+    ON "release" (container);
+
+CREATE INDEX release_hdr_index
+    ON "release" (hdr);
+
+CREATE INDEX release_audio_index
+    ON "release" (audio);
+
+CREATE INDEX release_audio_channels_index
+    ON "release" (audio_channels);
+
+CREATE INDEX release_release_group_index
+    ON "release" (release_group);
+
+CREATE INDEX release_proper_index
+    ON "release" (proper);
+
+CREATE INDEX release_repack_index
+    ON "release" (repack);
+
+CREATE INDEX release_website_index
+    ON "release" (website);
 `,
 }

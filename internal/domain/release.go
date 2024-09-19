@@ -67,7 +67,8 @@ type Release struct {
 	TorrentHash                 string                `json:"-"`
 	TorrentName                 string                `json:"name"` // full release name
 	Size                        uint64                `json:"size"`
-	Title                       string                `json:"title"` // Parsed title
+	Title                       string                `json:"title"`     // Parsed title
+	SubTitle                    string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
 	Description                 string                `json:"-"`
 	Category                    string                `json:"category"`
 	Categories                  []string              `json:"categories,omitempty"`
@@ -131,6 +132,7 @@ func (r *Release) Normalized() *ReleaseNormalized {
 		Timestamp:      r.Timestamp,
 		TorrentName:    rls.MustNormalize(r.TorrentName),
 		Title:          rls.MustNormalize(r.Title),
+		SubTitle:       rls.MustNormalize(r.SubTitle),
 		Season:         r.Season,
 		Episode:        r.Episode,
 		Year:           r.Year,
@@ -155,8 +157,9 @@ type ReleaseNormalized struct {
 	Protocol       ReleaseProtocol       `json:"protocol"`
 	Implementation ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp      time.Time             `json:"timestamp"`
-	TorrentName    string                `json:"name"`  // full release name
-	Title          string                `json:"title"` // Parsed title
+	TorrentName    string                `json:"name"`      // full release name
+	Title          string                `json:"title"`     // Parsed title
+	SubTitle       string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
 	Season         int                   `json:"season"`
 	Episode        int                   `json:"episode"`
 	Year           int                   `json:"year"`
@@ -406,6 +409,7 @@ func (r *Release) ParseString(title string) {
 	if r.Title == "" {
 		r.Title = rel.Title
 	}
+	r.SubTitle = rel.Subtitle
 
 	if r.Season == 0 {
 		r.Season = rel.Series
