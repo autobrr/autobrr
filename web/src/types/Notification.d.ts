@@ -25,4 +25,5 @@ interface ServiceNotification {
   priority?: number;
   topic?: string;
   host?: string;
+  username?: string;
 }

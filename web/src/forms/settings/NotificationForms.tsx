@@ -146,6 +146,12 @@ function FormFieldsTelegram() {
         help="Reverse proxy domain for api.telegram.org, only needs to be specified if the network you are using has blocked the Telegram API."
         placeholder="http(s)://ip:port"
       />
+      <TextFieldWide
+        name="username"
+        label="Sender"
+        help="Custom sender name to show at the top of a notification"
+        placeholder="autobrr"
+      />
     </div>
   );
 }
@@ -350,12 +356,12 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
       <Dialog
         as="div"
         static
-        className="absolute inset-0 overflow-hidden"
+        className="fixed inset-0 overflow-hidden"
         open={isOpen}
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
             <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
@@ -373,7 +379,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddProps) {
                     type: "",
                     name: "",
                     webhook: "",
-                    events: []
+                    events: [],
+                    username: ""
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -577,6 +584,7 @@ interface InitialValues {
   topic?: string;
   host?: string;
   events: NotificationEvent[];
+  username?: string
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateProps) {
@@ -626,7 +634,8 @@ export function NotificationUpdateForm({ isOpen, toggle, notification }: UpdateP
     channel: notification.channel,
     topic: notification.topic,
     host: notification.host,
-    events: notification.events || []
+    events: notification.events || [],
+    username: notification.username
   };
 
   return (
