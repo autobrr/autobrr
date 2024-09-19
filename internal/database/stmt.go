@@ -30,7 +30,8 @@ func NewStatementCache(db *sql.DB) *StatementCache {
 	//	}
 	//})
 
-	// TODO cache eviction needs to be started
+	// cache eviction needs to be started
+	go s.cache.Start()
 
 	return s
 }
