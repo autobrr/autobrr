@@ -1914,7 +1914,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_43",
 			fields: fields{
-				Shows:       ",Dutchess,Preacher",
+				Shows:       ",Dutchess, preacher",
 				Seasons:     "1",
 				Episodes:    "0",
 				Resolutions: []string{"2160p"},
