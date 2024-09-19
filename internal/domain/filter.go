@@ -890,8 +890,8 @@ func containsMatchFuzzy(tags []string, filters []string) bool {
 			if filter == "" {
 				continue
 			}
+
 			filter = strings.ToLower(filter)
-			filter = strings.Trim(filter, " ")
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -916,15 +916,14 @@ func containsMatch(tags []string, filters []string) bool {
 			continue
 		}
 		tag = strings.ToLower(tag)
-		tag = strings.Trim(tag, " ")
 
 		clear(advanced)
 		for _, filter := range filters {
 			if filter == "" {
 				continue
 			}
+
 			filter = strings.ToLower(filter)
-			filter = strings.Trim(filter, " ")
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -948,7 +947,6 @@ func containsAllMatch(tags []string, filters []string) bool {
 			continue
 		}
 		filter = strings.ToLower(filter)
-		filter = strings.Trim(filter, " ")
 		found := false
 
 		wildFilter := strings.ContainsAny(filter, "?|*")
@@ -958,7 +956,6 @@ func containsAllMatch(tags []string, filters []string) bool {
 				continue
 			}
 			tag = strings.ToLower(tag)
-			tag = strings.Trim(tag, " ")
 
 			if tag == filter {
 				found = true
@@ -990,7 +987,6 @@ func containsMatchBasic(tags []string, filters []string) bool {
 				continue
 			}
 			filter = strings.ToLower(filter)
-			filter = strings.Trim(filter, " ")
 
 			if tag == filter {
 				return true
@@ -1008,14 +1004,14 @@ func containsAnySlice(tags []string, filters []string) bool {
 			continue
 		}
 		tag = strings.ToLower(tag)
-		clear(advanced)
 
+		clear(advanced)
 		for _, filter := range filters {
 			if filter == "" {
 				continue
 			}
+
 			filter = strings.ToLower(filter)
-			filter = strings.Trim(filter, " ")
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -1038,7 +1034,6 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 
 	for _, s := range filters {
 		s = strings.Replace(s, "%", "", -1)
-		s = strings.Trim(s, " ")
 
 		if strings.Contains(s, "-") {
 			minMax := strings.Split(s, "-")
@@ -1085,7 +1080,6 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 			continue
 		}
 		filter = strings.ToLower(filter)
-		filter = strings.Trim(filter, " ")
 
 		parts := strings.Split(filter, " ")
 		if len(parts) == 2 {
