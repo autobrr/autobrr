@@ -27,7 +27,7 @@ func TestStringAndFilterString(t *testing.T) {
 			name:           "Multiple Words with Tabs",
 			input:          "Hello\tWorld",
 			expectedString: "Hello\tWorld",
-			expectedFilter: "Hello,World",
+			expectedFilter: "Hello World",
 		},
 		{
 			name:           "Comma Separation",
@@ -57,13 +57,13 @@ func TestStringAndFilterString(t *testing.T) {
 			name:           "Form Feeds and Vertical Tabs",
 			input:          "Hello\fWorld\vTest",
 			expectedString: "Hello\fWorld\vTest",
-			expectedFilter: "Hello,World,Test",
+			expectedFilter: "HelloWorld,Test",
 		},
 		{
 			name:           "Multiple Special Characters",
 			input:          "Test,\nWorld\tForm\fFeed\vVertical",
 			expectedString: "Test,\nWorld\tForm\fFeed\vVertical",
-			expectedFilter: "Test,World,Form,Feed,Vertical",
+			expectedFilter: "Test,World FormFeed,Vertical",
 		},
 		{
 			name:           "Whitespace with Newlines and Tabs",
@@ -101,15 +101,21 @@ func TestStringAndFilterString(t *testing.T) {
 			expectedString: "Hello    World",
 			expectedFilter: "Hello World",
 		},
+		{
+			name:           "To the Moon Commas",
+			input:          "Hello,,,,,World",
+			expectedString: "Hello,,,,,World",
+			expectedFilter: "Hello,World",
+		},
 	}
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := String(tt.input); got != tt.expectedString {
-				t.Errorf("%d String() = %v, want %v", i, got, tt.expectedString)
+				t.Errorf("%d String() = %q, want %q", i, got, tt.expectedString)
 			}
 			if got := FilterString(tt.input); got != tt.expectedFilter {
-				t.Errorf("%d FilterString() = %v, want %v", i, got, tt.expectedFilter)
+				t.Errorf("%d FilterString() = %q, want %q", i, got, tt.expectedFilter)
 			}
 		})
 	}
