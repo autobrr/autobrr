@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getMockAction() domain.Action {
-	return domain.Action{
+func getMockAction() *domain.Action {
+	return &domain.Action{
 		Name:                     "randomAction",
 		Type:                     domain.ActionTypeTest,
 		Enabled:                  true,
@@ -78,29 +78,29 @@ func TestActionRepo_Store(t *testing.T) {
 			mockData.FilterID = createdFilters[0].ID
 
 			// Actual test for Store
-			createdAction, err := repo.Store(context.Background(), mockData)
+			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdAction)
+			assert.NotNil(t, mockData)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: mockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("Store_Succeeds_With_Missing_or_empty_fields [%s]", dbType), func(t *testing.T) {
-			mockData := domain.Action{}
-			createdAction, err := repo.Store(context.Background(), mockData)
+			mockData := &domain.Action{}
+			err := repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = repo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: mockData.ID})
 		})
 
 		t.Run(fmt.Sprintf("Store_Fails_With_Invalid_ClientID [%s]", dbType), func(t *testing.T) {
 			mockData := getMockAction()
 			mockData.ClientID = 9999
-			_, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), mockData)
 			assert.Error(t, err)
 		})
 
@@ -110,7 +110,7 @@ func TestActionRepo_Store(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
 
-			_, err := repo.Store(ctx, mockData)
+			err := repo.Store(ctx, mockData)
 			assert.Error(t, err)
 		})
 	}
@@ -142,7 +142,7 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 			mockData.FilterID = createdFilters[0].ID
 
 			// Actual test for StoreFilterActions
-			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{mockData})
 
 			assert.NoError(t, err)
 			assert.NotNil(t, createdActions)
@@ -154,7 +154,7 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("StoreFilterActions_Fails_Invalid_FilterID [%s]", dbType), func(t *testing.T) {
-			_, err := repo.StoreFilterActions(context.Background(), 9999, []*domain.Action{&mockData})
+			_, err := repo.StoreFilterActions(context.Background(), 9999, []*domain.Action{mockData})
 			assert.NoError(t, err)
 		})
 
@@ -186,7 +186,7 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
-			_, err = repo.StoreFilterActions(ctx, int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			_, err = repo.StoreFilterActions(ctx, int64(createdFilters[0].ID), []*domain.Action{mockData})
 			assert.Error(t, err)
 
 			// Cleanup
@@ -219,7 +219,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 
 			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
-			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{mockData})
 			assert.NoError(t, err)
 
 			// Actual test for FindByFilterID
@@ -294,7 +294,7 @@ func TestActionRepo_List(t *testing.T) {
 
 			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
-			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{mockData})
 			assert.NoError(t, err)
 
 			// Actual test for List
@@ -344,7 +344,7 @@ func TestActionRepo_Get(t *testing.T) {
 
 			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
-			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{mockData})
 			assert.NoError(t, err)
 
 			// Actual test for Get
@@ -401,7 +401,7 @@ func TestActionRepo_Delete(t *testing.T) {
 
 			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
-			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{mockData})
 			assert.NoError(t, err)
 
 			// Actual test for Delete
@@ -455,7 +455,7 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 
 			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
-			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{mockData})
 			assert.NoError(t, err)
 
 			err = repo.DeleteByFilterID(context.Background(), mockData.FilterID)
@@ -508,7 +508,7 @@ func TestActionRepo_ToggleEnabled(t *testing.T) {
 			mockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 			mockData.Enabled = false
-			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{&mockData})
+			createdActions, err := repo.StoreFilterActions(context.Background(), int64(createdFilters[0].ID), []*domain.Action{mockData})
 			assert.NoError(t, err)
 
 			// Actual test for ToggleEnabled

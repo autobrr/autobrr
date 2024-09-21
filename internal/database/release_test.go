@@ -108,11 +108,11 @@ func TestReleaseRepo_Store(t *testing.T) {
 			// Execute
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -123,7 +123,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
@@ -164,11 +164,11 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 			// Execute
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -179,7 +179,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
@@ -328,11 +328,11 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -347,7 +347,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
@@ -387,11 +387,11 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -407,7 +407,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
@@ -447,11 +447,11 @@ func TestReleaseRepo_Get(t *testing.T) {
 
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -467,7 +467,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
@@ -507,11 +507,11 @@ func TestReleaseRepo_Stats(t *testing.T) {
 
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -527,7 +527,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
@@ -567,11 +567,11 @@ func TestReleaseRepo_Delete(t *testing.T) {
 
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -584,7 +584,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Cleanup
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
@@ -624,11 +624,11 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
-			createdAction, err := actionRepo.Store(context.Background(), actionMockData)
+			err = actionRepo.Store(context.Background(), actionMockData)
 			assert.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(createdAction.ID)
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
@@ -652,9 +652,253 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
+	}
+}
+
+func getMockDuplicateReleaseProfileTV() *domain.DuplicateReleaseProfile {
+	return &domain.DuplicateReleaseProfile{
+		ID:          0,
+		Name:        "TV",
+		Protocol:    false,
+		ReleaseName: false,
+		Exact:       false,
+		Title:       true,
+		Year:        false,
+		Month:       false,
+		Day:         false,
+		Source:      false,
+		Resolution:  false,
+		Codec:       false,
+		Container:   false,
+		HDR:         false,
+		Audio:       false,
+		Group:       false,
+		Season:      true,
+		Episode:     true,
+		Website:     false,
+		Proper:      false,
+		Repack:      false,
+	}
+}
+
+func getMockDuplicateReleaseProfileTVDaily() *domain.DuplicateReleaseProfile {
+	return &domain.DuplicateReleaseProfile{
+		ID:          0,
+		Name:        "TV",
+		Protocol:    false,
+		ReleaseName: false,
+		Exact:       false,
+		Title:       true,
+		Year:        true,
+		Month:       true,
+		Day:         true,
+		Source:      false,
+		Resolution:  false,
+		Codec:       false,
+		Container:   false,
+		HDR:         false,
+		Audio:       false,
+		Group:       false,
+		Season:      false,
+		Episode:     false,
+		Website:     false,
+		Proper:      false,
+		Repack:      false,
+	}
+}
+
+func getMockFilterDuplicates() *domain.Filter {
+	return &domain.Filter{
+		Name:                 "New Filter",
+		Enabled:              true,
+		CreatedAt:            time.Now(),
+		UpdatedAt:            time.Now(),
+		MinSize:              "10mb",
+		MaxSize:              "20mb",
+		Delay:                60,
+		Priority:             1,
+		MaxDownloads:         100,
+		MaxDownloadsUnit:     domain.FilterMaxDownloadsHour,
+		MatchReleases:        "BRRip",
+		ExceptReleases:       "BRRip",
+		UseRegex:             false,
+		MatchReleaseGroups:   "AMIABLE",
+		ExceptReleaseGroups:  "NTb",
+		Scene:                false,
+		Origins:              nil,
+		ExceptOrigins:        nil,
+		Bonus:                nil,
+		Freeleech:            false,
+		FreeleechPercent:     "100%",
+		SmartEpisode:         false,
+		Shows:                "Is It Wrong to Try to Pick Up Girls in a Dungeon?",
+		Seasons:              "4",
+		Episodes:             "500",
+		Resolutions:          []string{"1080p"},
+		Codecs:               []string{"x264"},
+		Sources:              []string{"BluRay"},
+		Containers:           []string{"mkv"},
+		MatchHDR:             []string{"HDR10"},
+		ExceptHDR:            []string{"HDR10"},
+		MatchOther:           []string{"Atmos"},
+		ExceptOther:          []string{"Atmos"},
+		Years:                "2023",
+		Months:               "",
+		Days:                 "",
+		Artists:              "",
+		Albums:               "",
+		MatchReleaseTypes:    []string{"Remux"},
+		ExceptReleaseTypes:   "Remux",
+		Formats:              []string{"FLAC"},
+		Quality:              []string{"Lossless"},
+		Media:                []string{"CD"},
+		PerfectFlac:          true,
+		Cue:                  true,
+		Log:                  true,
+		LogScore:             100,
+		MatchCategories:      "Anime",
+		ExceptCategories:     "Anime",
+		MatchUploaders:       "SubsPlease",
+		ExceptUploaders:      "SubsPlease",
+		MatchLanguage:        []string{"English", "Japanese"},
+		ExceptLanguage:       []string{"English", "Japanese"},
+		Tags:                 "Anime, x264",
+		ExceptTags:           "Anime, x264",
+		TagsAny:              "Anime, x264",
+		ExceptTagsAny:        "Anime, x264",
+		TagsMatchLogic:       "AND",
+		ExceptTagsMatchLogic: "AND",
+		MatchReleaseTags:     "Anime, x264",
+		ExceptReleaseTags:    "Anime, x264",
+		UseRegexReleaseTags:  true,
+		MatchDescription:     "Anime, x264",
+		ExceptDescription:    "Anime, x264",
+		UseRegexDescription:  true,
+	}
+}
+
+func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+
+		downloadClientRepo := NewDownloadClientRepo(log, db)
+		filterRepo := NewFilterRepo(log, db)
+		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		releaseRepo := NewReleaseRepo(log, db)
+
+		// reset
+		//db.handler.Exec("DELETE FROM release")
+		//db.handler.Exec("DELETE FROM action")
+		//db.handler.Exec("DELETE FROM release_action_status")
+
+		mockIndexer := domain.IndexerMinimal{ID: 0, Name: "Mock", Identifier: "mock", IdentifierExternal: "Mock"}
+		actionMock := &domain.Action{Name: "Test", Type: domain.ActionTypeTest, Enabled: true}
+		filterMock := getMockFilterDuplicates()
+
+		// Setup
+		err := filterRepo.Store(context.Background(), filterMock)
+		assert.NoError(t, err)
+
+		createdFilters, err := filterRepo.ListFilters(context.Background())
+		assert.NoError(t, err)
+		assert.NotNil(t, createdFilters)
+
+		actionMock.FilterID = filterMock.ID
+
+		err = actionRepo.Store(context.Background(), actionMock)
+		assert.NoError(t, err)
+
+		type fields struct {
+			releaseTitles []string
+			releaseTitle  string
+			profile       *domain.DuplicateReleaseProfile
+		}
+
+		tests := []struct {
+			name        string
+			fields      fields
+			isDuplicate bool
+		}{
+			{
+				name: "1",
+				fields: fields{
+					releaseTitles: []string{
+						"Inkheart 2008 BluRay 1080p DD5.1 x264-BADGROUP",
+					},
+					releaseTitle: "Inkheart 2008 BluRay 1080p DD5.1 x264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "2",
+				fields: fields{
+					releaseTitles: []string{
+						"That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.BluRay.720p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.WEB.2160p.x265.DTS-HD-GROUP",
+					},
+					releaseTitle: "That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP1",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Source: true, Resolution: true},
+				},
+				isDuplicate: true,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("Check_Is_Duplicate_Release %s [%s]", tt.name, dbType), func(t *testing.T) {
+				ctx := context.Background()
+
+				// Setup
+				for _, rel := range tt.fields.releaseTitles {
+					mockRel := domain.NewRelease(mockIndexer)
+					mockRel.ParseString(rel)
+
+					mockRel.FilterID = filterMock.ID
+
+					err = releaseRepo.Store(ctx, mockRel)
+					assert.NoError(t, err)
+
+					ras := &domain.ReleaseActionStatus{
+						ID:         0,
+						Status:     domain.ReleasePushStatusApproved,
+						Action:     "test",
+						ActionID:   int64(actionMock.ID),
+						Type:       domain.ActionTypeTest,
+						Client:     "",
+						Filter:     "Test filter",
+						FilterID:   int64(filterMock.ID),
+						Rejections: []string{},
+						ReleaseID:  mockRel.ID,
+						Timestamp:  time.Now(),
+					}
+
+					err = releaseRepo.StoreReleaseActionStatus(ctx, ras)
+					assert.NoError(t, err)
+				}
+
+				compareRel := domain.NewRelease(mockIndexer)
+				compareRel.ParseString(tt.fields.releaseTitle)
+
+				// Execute
+				isDuplicate, err := releaseRepo.CheckIsDuplicateRelease(ctx, tt.fields.profile, compareRel.Normalized())
+
+				// Verify
+				assert.NoError(t, err)
+				assert.Equal(t, tt.isDuplicate, isDuplicate)
+
+				// Cleanup
+				_ = releaseRepo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
+			})
+		}
+
+		// Cleanup
+		//_ = releaseRepo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMock.ID})
+		_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
 	}
 }

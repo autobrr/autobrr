@@ -706,7 +706,7 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 	return nil
 }
 
-func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
+func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 	queryBuilder := r.db.squirrel.
 		Insert("action").
 		Columns(
@@ -783,14 +783,14 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 	var retID int64
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
 	action.ID = int(retID)
 
 	r.log.Debug().Msgf("action.store: added new %d", retID)
 
-	return &action, nil
+	return nil
 }
 
 func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.Action, error) {
