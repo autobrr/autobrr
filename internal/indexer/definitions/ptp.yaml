@@ -11,7 +11,6 @@ protocol: torrent
 supports:
   - irc
   - rss
-  - api
 # source: gazelle
 settings:
   - name: authkey
@@ -25,34 +24,6 @@ settings:
     required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
-
-  - name: api_user
-    type: secret
-    required: true
-    label: API User
-    help: Edit profile -> Security -> Generate new api keys
-
-  - name: api_key
-    type: secret
-    required: true
-    label: API Key
-    help: Edit profile -> Security -> Generate new api keys
-
-# api:
-#   url: https://passthepopcorn.me/
-#   type: json
-#   limits:
-#     max: 60
-#     per: minute
-#   settings:
-#     - name: api_user
-#       type: secret
-#       label: API User
-#       help: Edit profile -> Security -> Generate new api keys
-#     - name: api_key
-#       type: secret
-#       label: API Key
-#       help: Edit profile -> Security -> Generate new api keys
 
 irc:
   network: PassThePopcorn
@@ -93,28 +64,50 @@ irc:
     type: single
     lines:
       - tests:
-        - line: That Movie [1972] by Some Director | x264 / Blu-ray / MKV / 1080p | 204371 | 964303 | That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance
+        - line: 1:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p|2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
-            year: "1972"
-            releaseTags: x264 / Blu-ray / MKV / 1080p
+            new: 1
+            category: 1
+            groupId: "357805"
+            torrentId: "1332009"
+            key: "9k6p"
+            imdb: "tt24249072"
+            torrentSize: "1899875175"
+            releaseTags: H.264/MKV/WEB/720p
             freeleech: ""
-            torrentId: "964303"
-            torrentName: That.Movie.1972.1080p.BluRay.FLAC.x264-GROUP
-            tags: comedy, drama, romance
-        - line: That Other Movie [1972] | x264 / Blu-ray / MKV / 1080p / Freeleech! | 204371 | 964303 | That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP | comedy, drama, romance
+            year: "2023"
+            title: "Last Straw"
+            torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
+            tags: thriller,horror
+        - line: 1:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p/FL|2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
-            year: "1972"
-            releaseTags: x264 / Blu-ray / MKV / 1080p / Freeleech!
-            freeleech: Freeleech
-            torrentId: "964303"
-            torrentName: That.Other.Movie.1972.1080p.BluRay.FLAC.x264-GROUP
-            tags: comedy, drama, romance
-        pattern: '.* \[(.*)\] (?:by .*)?\| (.*?(?: \/ (Freeleech)!)?) \| .* \| (.*) \| (.*) \| (.*)'
+            new: 1
+            category: 1
+            groupId: "357805"
+            torrentId: "1332009"
+            key: "9k6p"
+            imdb: "tt24249072"
+            torrentSize: "1899875175"
+            releaseTags: H.264/MKV/WEB/720p
+            freeleech: "FL"
+            year: "2023"
+            title: "Last Straw"
+            torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
+            tags: thriller,horror
+        # <boolnew>:<category>:<gid>:<tid>:<key>:tt<imdbid]>:<sizebytes>|<format>/<container>/<source>/<resolution>(/S)?(/(FL/HL/NL)?|<year>|<title>|<releasename>|<taglist>
+        pattern: '(\d):(\d):(\d+):(\d+):(.+):(tt?\d+):(\d+)\|(.*?(?:\/(FL|HL|NL))*?)\|(\d+)\|(.+)\|(.+)\|(.+)'
         vars:
-          - year
+          - new
+          - category
+          - groupId
+          - torrentId
+          - key
+          - imdb
+          - torrentSize
           - releaseTags
           - freeleech
-          - torrentId
+          - year
+          - title
           - torrentName
           - tags
 
