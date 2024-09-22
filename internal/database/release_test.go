@@ -847,6 +847,245 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				},
 				isDuplicate: true,
 			},
+			{
+				name: "3",
+				fields: fields{
+					releaseTitles: []string{
+						"That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.BluRay.720p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.WEB.2160p.x265.DTS-HD-GROUP",
+					},
+					releaseTitle: "That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP1",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "4",
+				fields: fields{
+					releaseTitles: []string{
+						"That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.BluRay.720p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.WEB.2160p.x265.DTS-HD-GROUP",
+					},
+					releaseTitle: "That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP1",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "5",
+				fields: fields{
+					releaseTitles: []string{
+						"That.Tv.Show.2023.S01E01.BluRay.2160p.x265.DTS-HD-GROUP",
+					},
+					releaseTitle: "That.Tv.Show.2023.S01E01.BluRay.2160p.x265.DTS-HD-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Group: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "6",
+				fields: fields{
+					releaseTitles: []string{
+						"That.Tv.Show.2023.S01E01.BluRay.2160p.x265.DTS-HD-GROUP",
+					},
+					releaseTitle: "That.Tv.Show.2023.S01E02.BluRay.2160p.x265.DTS-HD-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "7",
+				fields: fields{
+					releaseTitles: []string{
+						"That.Tv.Show.2023.S01.BluRay.2160p.x265.DTS-HD-GROUP",
+					},
+					releaseTitle: "That.Tv.Show.2023.S01.BluRay.2160p.x265.DTS-HD-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Group: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "8",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 SDR H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 SDR H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, Group: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "9",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.HULU.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 SDR H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "10",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, HDR: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "11",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+						"The Best Show 2020 S04E10 1080p amzn web-dl ddp 5.1 hdr dv h.264-group",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 HDR DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, HDR: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "12",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, HDR: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "13",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 Episode Title 1080p AMZN WEB-DL DDP 5.1 HDR DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, SubTitle: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, HDR: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "14",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.Episode.Title.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 Episode Title 1080p AMZN WEB-DL DDP 5.1 HDR DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, SubTitle: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, HDR: true, Group: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "15",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.Episode.Title.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 Episode Title 1080p AMZN WEB-DL DDP 5.1 HDR DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, SubTitle: true, Season: true, Episode: true, HDR: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "16",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.Episode.Title.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E11 Episode Title 1080p AMZN WEB-DL DDP 5.1 HDR DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, SubTitle: true, Season: true, Episode: true, HDR: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "17",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.Episode.Title.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 Episode Title REPACK 1080p AMZN WEB-DL DDP 5.1 HDR DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, SubTitle: true, Season: true, Episode: true, HDR: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "18",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.Episode.Title.REPACK.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP1",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 Episode Title REPACK 1080p AMZN WEB-DL DDP 5.1 DV H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "19",
+				fields: fields{
+					releaseTitles: []string{
+						"The Daily Show 2024-09-21 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The Daily Show 2024-09-21.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The Daily Show 2024-09-21.Guest.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP1",
+					},
+					releaseTitle: "The Daily Show 2024-09-21.Other.Guest.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP1",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Year: true, Month: true, Day: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "20",
+				fields: fields{
+					releaseTitles: []string{
+						"The Daily Show 2024-09-21 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The Daily Show 2024-09-21.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The Daily Show 2024-09-21.Guest.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP1",
+					},
+					releaseTitle: "The Daily Show 2024-09-21 Other Guest 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP1",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Year: true, Month: true, Day: true, SubTitle: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "21",
+				fields: fields{
+					releaseTitles: []string{
+						"The Daily Show 2024-09-21 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+						"The Daily Show 2024-09-21.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
+						"The Daily Show 2024-09-21.Guest.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP1",
+					},
+					releaseTitle: "The Daily Show 2024-09-22 Other Guest 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP1",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Year: true, Month: true, Day: true, SubTitle: true},
+				},
+				isDuplicate: false,
+			},
 		}
 
 		for _, tt := range tests {
@@ -880,6 +1119,10 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 					err = releaseRepo.StoreReleaseActionStatus(ctx, ras)
 					assert.NoError(t, err)
 				}
+
+				releases, err := releaseRepo.Find(ctx, domain.ReleaseQueryParams{})
+				assert.NoError(t, err)
+				assert.Len(t, releases.Data, len(tt.fields.releaseTitles))
 
 				compareRel := domain.NewRelease(mockIndexer)
 				compareRel.ParseString(tt.fields.releaseTitle)

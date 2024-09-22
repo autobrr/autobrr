@@ -265,7 +265,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "i.id", "i.name", "i.identifier_external", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.sub_title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.website", "r.timestamp",
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "i.id", "i.name", "i.identifier_external", "r.filter", "r.protocol", "r.info_url", "r.download_url", "r.title", "r.sub_title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.website", "r.hdr", "r.timestamp",
 			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
@@ -302,7 +302,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, infoUrl, downloadUrl, subTitle, codec, website sql.NullString
+		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, infoUrl, downloadUrl, subTitle, codec, hdr, website sql.NullString
 
 		var rlsIndexerID sql.NullInt64
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
@@ -310,7 +310,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsIndexer, &rlsIndexerID, &rlsIndexerName, &rlsIndexerExternalName, &rlsFilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &subTitle, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &website, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &resp.TotalCount); err != nil {
+		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsIndexer, &rlsIndexerID, &rlsIndexerName, &rlsIndexerExternalName, &rlsFilter, &rls.Protocol, &infoUrl, &downloadUrl, &rls.Title, &subTitle, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &website, &hdr, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &resp.TotalCount); err != nil {
 			return resp, errors.Wrap(err, "error scanning row")
 		}
 
@@ -360,6 +360,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		rls.DownloadURL = downloadUrl.String
 		rls.SubTitle = subTitle.String
 		rls.Codec = strings.Split(codec.String, ",")
+		rls.HDR = strings.Split(hdr.String, ",")
 		rls.Website = website.String
 
 		// only add ActionStatus if it's not empty
@@ -920,17 +921,16 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		LeftJoin("release_action_status ras ON r.id = ras.release_id").
 		Where("ras.status = 'PUSH_APPROVED'")
 
-	//var whereEq sq.And
 	if profile.Title {
-		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.title)": release.Title})
-		//whereEq = append(whereEq, sq.Eq{"r.title": release.Title})
+		queryBuilder = queryBuilder.Where(repo.db.ILike("r.title", release.Title))
 	}
-	//if profile.Title {
-	//	queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.sub_title)": release.SubTitle})
-	//}
+
+	if profile.SubTitle {
+		queryBuilder = queryBuilder.Where(repo.db.ILike("r.sub_title", release.SubTitle))
+	}
 
 	if profile.ReleaseName {
-		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.torrent_name)": release.TorrentName})
+		queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
 	}
 
 	if profile.Year {
@@ -946,31 +946,39 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	}
 
 	if profile.Source {
-		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.source)": release.Source})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.source": release.Source})
 	}
 
 	if profile.Container {
-		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.container)": release.Container})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.container": release.Container})
 	}
 
 	if profile.Codec {
-		var and sq.And
-		for _, codec := range release.Codec {
-			and = append(and, repo.db.ILike("r.codec", "%"+codec+"%"))
+		if len(release.Codec) > 1 {
+			var and sq.And
+			for _, codec := range release.Codec {
+				and = append(and, repo.db.ILike("r.codec", "%"+codec+"%"))
+			}
+			queryBuilder = queryBuilder.Where(and)
+		} else {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.codec": release.Codec})
 		}
-		queryBuilder = queryBuilder.Where(and)
 	}
 
 	if profile.Resolution {
-		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.resolution)": release.Resolution})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.resolution": release.Resolution})
 	}
 
 	if profile.HDR {
-		var and sq.And
-		for _, hdr := range release.HDR {
-			and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
+		if len(release.HDR) > 1 {
+			var and sq.And
+			for _, hdr := range release.HDR {
+				and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
+			}
+			queryBuilder = queryBuilder.Where(and)
+		} else {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.HDR})
 		}
-		queryBuilder = queryBuilder.Where(and)
 	}
 
 	if profile.Audio {
@@ -978,7 +986,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	}
 
 	if profile.Group {
-		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.release_group)": release.Group})
+		queryBuilder = queryBuilder.Where(repo.db.ILike("r.release_group", release.Group))
 	}
 
 	if profile.Season {
@@ -990,7 +998,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	}
 
 	if profile.Website {
-		queryBuilder = queryBuilder.Where(sq.Eq{"LOWER(r.website)": release.Website})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.website": release.Website})
 	}
 
 	if profile.Proper {
@@ -1000,7 +1008,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	if profile.Repack {
 		queryBuilder = queryBuilder.Where(sq.And{
 			sq.Eq{"r.repack": release.Repack},
-			sq.Eq{"LOWER(r.release_group)": release.Group},
+			repo.db.ILike("r.release_group", release.Group),
 		})
 	}
 

@@ -130,23 +130,23 @@ func (r *Release) Normalized() *ReleaseNormalized {
 		Protocol:       r.Protocol,
 		Implementation: r.Implementation,
 		Timestamp:      r.Timestamp,
-		TorrentName:    rls.MustNormalize(r.TorrentName),
-		Title:          rls.MustNormalize(r.Title),
-		SubTitle:       rls.MustNormalize(r.SubTitle),
+		TorrentName:    r.TorrentName,
+		Title:          r.Title,
+		SubTitle:       r.SubTitle,
 		Season:         r.Season,
 		Episode:        r.Episode,
 		Year:           r.Year,
 		Month:          r.Month,
 		Day:            r.Day,
-		Resolution:     rls.MustNormalize(r.Resolution),
-		Source:         rls.MustNormalize(r.Source),
+		Resolution:     r.Resolution,
+		Source:         r.Source,
 		Codec:          r.Codec,
-		Container:      rls.MustNormalize(r.Container),
+		Container:      r.Container,
 		HDR:            r.HDR,
 		Audio:          r.AudioString(),
 		AudioChannels:  r.AudioChannels,
 		Bitrate:        r.Bitrate,
-		Group:          rls.MustNormalize(r.Group),
+		Group:          r.Group,
 		Proper:         r.Proper,
 		Repack:         r.Repack,
 		Website:        r.Website,
@@ -943,6 +943,7 @@ type DuplicateReleaseProfile struct {
 	ReleaseName bool `json:"release_name"`
 	Exact       bool `json:"exact"`
 	Title       bool `json:"title"`
+	SubTitle    bool `json:"sub_title"`
 	Year        bool `json:"year"`
 	Month       bool `json:"month"`
 	Day         bool `json:"day"`
