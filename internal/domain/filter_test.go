@@ -1914,7 +1914,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 		{
 			name: "test_43",
 			fields: fields{
-				Shows:       ",Dutchess,Preacher",
+				Shows:       ",Dutchess, preacher",
 				Seasons:     "1",
 				Episodes:    "0",
 				Resolutions: []string{"2160p"},
@@ -1990,6 +1990,8 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Indexers:             tt.fields.Indexers,
 				Downloads:            tt.fields.Downloads,
 			}
+
+			f.Sanitize()
 			tt.args.r.ParseString(tt.args.r.TorrentName)
 			rejections, match := f.CheckFilter(tt.args.r)
 			assert.Equalf(t, tt.wantRejections, rejections, "CheckFilter(%v)", tt.args.r)
