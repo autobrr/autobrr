@@ -66,7 +66,7 @@ irc:
       - tests:
         - line: 1:0:0:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
-            new: 1
+            announceType: 1
             ptpFL: 0
             scene: 0
             category: 1
@@ -83,7 +83,7 @@ irc:
             tags: thriller,horror
         - line: 1:0:0:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
-            new: 1
+            announceType: 1
             ptpFL: 0
             scene: 0
             category: 1
@@ -100,7 +100,7 @@ irc:
             tags: thriller,horror
         - line: 1:0:0:1:21108:1332339:ncfe:tt0107426:63996413804|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
           expect:
-            new: 1
+            announceType: 1
             ptpFL: 0
             scene: 0
             category: 1
@@ -118,7 +118,7 @@ irc:
         # <boolnew>:<enum_fl>:<boolscene>:<category>:<gid>:<tid>:<key>:tt<imdbid>:<sizebytes>|<format>/<container>/<source>/<resolution>|<edition_tags>|<year>|<title>|<releasename>|<taglist>
         pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(.+):(tt?\d+):(\d+)\|(.*)\|(.*)\|(\d+)\|(.+)\|(.+)\|(.+)'
         vars:
-          - new
+          - announceType
           - ptpFL
           - scene
           - category
