@@ -64,9 +64,11 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 1:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p|2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+        - line: 1:0:0:0:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
             new: 1
+            ptpFL: 0
+            scene: 0
             category: 1
             groupId: "357805"
             torrentId: "1332009"
@@ -74,30 +76,51 @@ irc:
             imdb: "tt24249072"
             torrentSize: "1899875175"
             releaseTags: H.264/MKV/WEB/720p
-            freeleech: ""
+            editionTags: ""
             year: "2023"
             title: "Last Straw"
             torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
             tags: thriller,horror
-        - line: 1:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p/FL|2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+        - line: 1:0:0:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
             new: 1
+            ptpFL: 0
+            scene: 0
             category: 1
             groupId: "357805"
             torrentId: "1332009"
             key: "9k6p"
             imdb: "tt24249072"
             torrentSize: "1899875175"
-            releaseTags: H.264/MKV/WEB/720p/FL
-            freeleech: "FL"
+            releaseTags: H.264/MKV/WEB/720p
+            editionTags: ""
             year: "2023"
             title: "Last Straw"
             torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
             tags: thriller,horror
-        # <boolnew>:<category>:<gid>:<tid>:<key>:tt<imdbid]>:<sizebytes>|<format>/<container>/<source>/<resolution>(/S)?(/(FL/HL/NL)?|<year>|<title>|<releasename>|<taglist>
-        pattern: '(\d):(\d):(\d+):(\d+):(.+):(tt?\d+):(\d+)\|(.*?(?:\/(FL|HL|NL))*?)\|(\d+)\|(.+)\|(.+)\|(.+)'
+        - line: 1:0:0:1:21108:1332339:ncfe:tt0107426:63996413804|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
+          expect:
+            new: 1
+            ptpFL: 0
+            scene: 0
+            category: 1
+            groupId: "21108"
+            torrentId: "1332339"
+            key: "ncfe"
+            imdb: "tt0107426"
+            torrentSize: "63996413804"
+            releaseTags: BD66/m2ts/Blu-ray/2160p
+            editionTags: "Dolby Atmos/Dolby Vision"
+            year: "1993"
+            title: "Little Buddha"
+            torrentName: Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1
+            tags: drama,italian
+        # <boolnew>:<enum_fl>:<boolscene>:<category>:<gid>:<tid>:<key>:tt<imdbid>:<sizebytes>|<format>/<container>/<source>/<resolution>|<edition_tags>|<year>|<title>|<releasename>|<taglist>
+        pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(.+):(tt?\d+):(\d+)\|(.*)\|(.*)\|(\d+)\|(.+)\|(.+)\|(.+)'
         vars:
           - new
+          - ptpFL
+          - scene
           - category
           - groupId
           - torrentId
@@ -105,7 +128,7 @@ irc:
           - imdb
           - torrentSize
           - releaseTags
-          - freeleech
+          - editionTags
           - year
           - title
           - torrentName
