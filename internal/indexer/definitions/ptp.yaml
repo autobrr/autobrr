@@ -134,42 +134,42 @@ irc:
           - torrentName
           - tags
 
-        mapCustomVars:
-          announceType:
-            "0":
-              announceType: NEW
-            "1":
-              announceType: PROMO
+    mapCustomVars:
+      announceType:
+        "0":
+          announceType: NEW
+        "1":
+          announceType: PROMO
 
-          ptpFL:
-            "0": # Normal
-              downloadVolumeFactor: 1
-              uploadVolumeFactor: 1
-            "1": # Freeleech
-              downloadVolumeFactor: 1
-              uploadVolumeFactor: 1
-            "2": # Halfleech
-              downloadVolumeFactor: 0.5
-              uploadVolumeFactor: 1
-            "3": # Neutral
-              downloadVolumeFactor: 0
-              uploadVolumeFactor: 0
-          
-          # Category IDs are Zero+1 indexed from:
-          # ( 'Feature Film', 'Short Film', 'Miniseries', 'Stand-up Comedy', 'Live Performance', 'Movie Collection' )
-          category:
-            "0": 
-              category: "Feature Film"
-            "1": 
-              category: "Short Film"
-            "2": 
-              category: "Miniseries"
-            "3": 
-              category: "Stand-up Comedy"
-            "4": 
-              category: "Live Performance"
-            "5": 
-              category: "Movie Collection"
+      ptpFL:
+        "0": # Normal
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+        "1": # Freeleech
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+        "2": # Halfleech
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 1
+        "3": # Neutral
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 0
+      
+      # Category IDs are Zero+1 indexed from:
+      # ( 'Feature Film', 'Short Film', 'Miniseries', 'Stand-up Comedy', 'Live Performance', 'Movie Collection' )
+      category:
+        "0": 
+          category: "Feature Film"
+        "1": 
+          category: "Short Film"
+        "2": 
+          category: "Miniseries"
+        "3": 
+          category: "Stand-up Comedy"
+        "4": 
+          category: "Live Performance"
+        "5": 
+          category: "Movie Collection"
 
     match:
       infourl: "/torrents.php?torrentid={{ .torrentId }}"

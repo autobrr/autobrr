@@ -224,10 +224,11 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 }
 
 type IndexerIRCParse struct {
-	Type          string                `json:"type"`
-	ForceSizeUnit string                `json:"forcesizeunit"`
-	Lines         []IndexerIRCParseLine `json:"lines"`
-	Match         IndexerIRCParseMatch  `json:"match"`
+	Type          string                                  `json:"type"`
+	ForceSizeUnit string                                  `json:"forcesizeunit"`
+	Lines         []IndexerIRCParseLine                   `json:"lines"`
+	Match         IndexerIRCParseMatch                    `json:"match"`
+	MapCustomVars map[string]map[string]map[string]string `json:"mapCustomVars"`
 }
 
 type LineTest struct {
