@@ -64,7 +64,7 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 1:0:0:0:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+        - line: 1:0:0:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
             new: 1
             ptpFL: 0
