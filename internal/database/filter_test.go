@@ -846,5 +846,69 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			})
 		})
 
+		t.Run(fmt.Sprintf("GetDownloadsByFilterId_Multiple_Actions [%s]", dbType), func(t *testing.T) {
+			// Setup
+			err := repo.Store(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+
+			err = downloadClientRepo.Store(context.Background(), &mockClient)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockClient)
+
+			mockAction1 := getMockAction()
+			mockAction1.FilterID = mockData.ID
+			mockAction1.ClientID = mockClient.ID
+
+			action1, err := actionRepo.Store(context.Background(), mockAction1)
+
+			mockAction2 := getMockAction()
+			mockAction2.FilterID = mockData.ID
+			mockAction2.ClientID = mockClient.ID
+
+			action2, err := actionRepo.Store(context.Background(), mockAction2)
+
+			mockRelease.FilterID = mockData.ID
+
+			err = releaseRepo.Store(context.Background(), mockRelease)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus1 := getMockReleaseActionStatus()
+			mockReleaseActionStatus1.ActionID = int64(action1.ID)
+			mockReleaseActionStatus1.FilterID = int64(mockData.ID)
+			mockReleaseActionStatus1.ReleaseID = mockRelease.ID
+
+			err = releaseRepo.StoreReleaseActionStatus(context.Background(), mockReleaseActionStatus1)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus2 := getMockReleaseActionStatus()
+			mockReleaseActionStatus2.ActionID = int64(action2.ID)
+			mockReleaseActionStatus2.FilterID = int64(mockData.ID)
+			mockReleaseActionStatus2.ReleaseID = mockRelease.ID
+
+			err = releaseRepo.StoreReleaseActionStatus(context.Background(), mockReleaseActionStatus2)
+			assert.NoError(t, err)
+
+			// Execute
+			downloads, err := repo.GetDownloadsByFilterId(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+			assert.NotNil(t, downloads)
+			assert.Equal(t, downloads, &domain.FilterDownloads{
+				HourCount:  1,
+				DayCount:   1,
+				WeekCount:  1,
+				MonthCount: 1,
+				TotalCount: 1,
+			})
+
+			// Cleanup
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: action1.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: action2.ID})
+			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mockClient.ID)
+			_ = releaseRepo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
 	}
 }
