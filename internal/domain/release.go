@@ -52,6 +52,7 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
+	AnnounceType                string                `json:"announce_type"`
 	InfoURL                     string                `json:"info_url"`
 	DownloadURL                 string                `json:"download_url"`
 	MagnetURI                   string                `json:"-"`
@@ -666,6 +667,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Category = category
 	}
 
+	if announceType, err := getStringMapValue(varMap, "announceTypeEnum"); err == nil {
+		r.AnnounceType = announceType
+	}
+
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
 		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP")
 		if fl {
@@ -714,6 +719,49 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		}
 	}
 
+	//if downloadVolumeFactor, err := getStringMapValue(varMap, "downloadVolumeFactor"); err == nil {
+	if downloadVolumeFactor, ok := varMap["downloadVolumeFactor"]; ok {
+		// special handling for BHD to map their freeleech into percent
+		//if def.Identifier == "beyondhd" {
+		//	if freeleechPercent == "Capped FL" {
+		//		freeleechPercent = "100%"
+		//	} else if strings.Contains(freeleechPercent, "% FL") {
+		//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+		//	}
+		//}
+
+		//r.downloadVolumeFactor = downloadVolumeFactor
+
+		value, _ := strconv.ParseInt(downloadVolumeFactor, 10, 64)
+		percentage := value * 100
+		r.FreeleechPercent = int(percentage)
+
+		r.Freeleech = true
+	}
+
+	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
+	//	// special handling for BHD to map their freeleech into percent
+	//	//if def.Identifier == "beyondhd" {
+	//	//	if freeleechPercent == "Capped FL" {
+	//	//		freeleechPercent = "100%"
+	//	//	} else if strings.Contains(freeleechPercent, "% FL") {
+	//	//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+	//	//	}
+	//	//}
+	//
+	//	r.uploadVolumeFactor = uploadVolumeFactor
+	//
+	//	//freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
+	//	//if err != nil {
+	//	//	//log.Debug().Msgf("bad freeleechPercent var: %v", year)
+	//	//}
+	//	//
+	//	//if freeleechPercentInt > 0 {
+	//	//	r.Freeleech = true
+	//	//	r.FreeleechPercent = freeleechPercentInt
+	//	//}
+	//}
+
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
 		r.Uploader = uploader
 	}
@@ -727,6 +775,14 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		size, err := humanize.ParseBytes(torrentSize)
 		if err != nil {
 			// log could not parse into bytes
+		}
+		r.Size = size
+	}
+
+	if torrentSizeBytes, err := getStringMapValue(varMap, "torrentSizeBytes"); err == nil {
+		size, err := strconv.ParseUint(torrentSizeBytes, 10, 64)
+		if err != nil {
+			// could not parse into bytes
 		}
 		r.Size = size
 	}
@@ -757,16 +813,20 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
-		tagsArr := []string{}
-		s := strings.Split(tags, ",")
-		for _, t := range s {
-			tagsArr = append(tagsArr, strings.Trim(t, " "))
+		if tags != "" && tags != "*" {
+			tagsArr := []string{}
+			s := strings.Split(tags, ",")
+			for _, t := range s {
+				tagsArr = append(tagsArr, strings.Trim(t, " "))
+			}
+			r.Tags = tagsArr
 		}
-		r.Tags = tagsArr
 	}
 
 	if title, err := getStringMapValue(varMap, "title"); err == nil {
-		r.Title = title
+		if title != "" && title != "*" {
+			r.Title = title
+		}
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful
@@ -786,6 +846,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		episode, _ := strconv.Atoi(episodeVal)
 		r.Episode = episode
 	}
+
+	//if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
+	//	r.MetaIMDB = metaImdb
+	//}
 
 	return nil
 }

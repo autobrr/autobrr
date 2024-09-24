@@ -64,69 +64,69 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 1:0:0:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+        - line: 0:0:0:0:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
-            announceType: 1
-            ptpFL: 0
-            scene: 0
-            category: 1
+            announceTypeEnum: 0
+            categoryEnum: 0
+            originEnum: 0
+            freeleechEnum: 0
             groupId: "357805"
             torrentId: "1332009"
             key: "9k6p"
             imdb: "tt24249072"
-            torrentSize: "1899875175"
+            torrentSizeBytes: "1899875175"
             releaseTags: H.264/MKV/WEB/720p
             editionTags: ""
             year: "2023"
             title: "Last Straw"
             torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
             tags: thriller,horror
-        - line: 1:0:0:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+        - line: 2:0:0:1:357805:1332009:9k6p:tt24249072:1899875175|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
-            announceType: 1
-            ptpFL: 0
-            scene: 0
-            category: 1
+            announceTypeEnum: 2
+            categoryEnum: 0
+            originEnum: 0
+            freeleechEnum: 1
             groupId: "357805"
             torrentId: "1332009"
             key: "9k6p"
             imdb: "tt24249072"
-            torrentSize: "1899875175"
+            torrentSizeBytes: "1899875175"
             releaseTags: H.264/MKV/WEB/720p
             editionTags: ""
             year: "2023"
             title: "Last Straw"
             torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
             tags: thriller,horror
-        - line: 1:0:0:1:21108:1332339:ncfe:tt0107426:63996413804|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
+        - line: 1:0:2:1:21108:1332339:ncfe:tt0107426:63996413804|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
           expect:
-            announceType: 1
-            ptpFL: 0
-            scene: 0
-            category: 1
+            announceTypeEnum: 1
+            categoryEnum: 0
+            originEnum: 2
+            freeleechEnum: 1
             groupId: "21108"
             torrentId: "1332339"
             key: "ncfe"
             imdb: "tt0107426"
-            torrentSize: "63996413804"
+            torrentSizeBytes: "63996413804"
             releaseTags: BD66/m2ts/Blu-ray/2160p
             editionTags: "Dolby Atmos/Dolby Vision"
             year: "1993"
             title: "Little Buddha"
             torrentName: Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1
             tags: drama,italian
-        # <boolnew>:<enum_fl>:<boolscene>:<category>:<gid>:<tid>:<key>:tt<imdbid>:<sizebytes>|<format>/<container>/<source>/<resolution>|<edition_tags>|<year>|<title>|<releasename>|<taglist>
+        # <announceType>:<category>:<origin>:<freeleech_type>:<gid>:<tid>:<key>:tt<imdbid>:<sizebytes>|<format>/<container>/<source>/<resolution>|<edition_tags>|<year>|<title>|<releasename>|<taglist>
         pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\w+):(tt\d+)?:(\d+)\|(.*)\|(.*)\|(\d+)\|(.+)\|(.+)\|(.+)'
         vars:
-          - announceType
-          - ptpFL
-          - scene
-          - category
+          - announceTypeEnum
+          - categoryEnum
+          - originEnum
+          - freeleechEnum
           - groupId
           - torrentId
           - key
           - imdb
-          - torrentSize
+          - torrentSizeBytes
           - releaseTags
           - editionTags
           - year
@@ -134,19 +134,49 @@ irc:
           - torrentName
           - tags
 
-    mapCustomVars:
-      announceType:
+    mappings:
+      announceTypeEnum:
         "0":
           announceType: NEW
         "1":
-          announceType: PROMO
+          announceType: CHECKED
+        "2":
+          announceType: PROMO # X-leeched (could be neutral/half/free)
+        "3":
+          announceType: PROMO_GP # marked golden popcorn
+        "4":
+          announceType: RESURRECTED # reseeded/revived from dead
 
-      ptpFL:
+      # Category IDs are Zero+1 indexed from:
+      # ( 'Feature Film', 'Short Film', 'Miniseries', 'Stand-up Comedy', 'Live Performance', 'Movie Collection' )
+      categoryEnum:
+        "0":
+          category: "Feature Film"
+        "1":
+          category: "Short Film"
+        "2":
+          category: "Miniseries"
+        "3":
+          category: "Stand-up Comedy"
+        "4":
+          category: "Live Performance"
+        "5":
+          category: "Movie Collection"
+
+      originEnum:
+        "0":
+          origin: "P2P"
+        "1":
+          origin: "SCENE"
+        "2":
+          origin: "INTERNAL" # PERSONAL RIP
+
+      freeleechEnum:
         "0": # Normal
           downloadVolumeFactor: 1
           uploadVolumeFactor: 1
         "1": # Freeleech
-          downloadVolumeFactor: 1
+          downloadVolumeFactor: 0
           uploadVolumeFactor: 1
         "2": # Halfleech
           downloadVolumeFactor: 0.5
@@ -154,22 +184,6 @@ irc:
         "3": # Neutral
           downloadVolumeFactor: 0
           uploadVolumeFactor: 0
-      
-      # Category IDs are Zero+1 indexed from:
-      # ( 'Feature Film', 'Short Film', 'Miniseries', 'Stand-up Comedy', 'Live Performance', 'Movie Collection' )
-      category:
-        "0": 
-          category: "Feature Film"
-        "1": 
-          category: "Short Film"
-        "2": 
-          category: "Miniseries"
-        "3": 
-          category: "Stand-up Comedy"
-        "4": 
-          category: "Live Performance"
-        "5": 
-          category: "Movie Collection"
 
     match:
       infourl: "/torrents.php?torrentid={{ .torrentId }}"
