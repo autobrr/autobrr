@@ -116,7 +116,7 @@ irc:
             torrentName: Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1
             tags: drama,italian
         # <boolnew>:<enum_fl>:<boolscene>:<category>:<gid>:<tid>:<key>:tt<imdbid>:<sizebytes>|<format>/<container>/<source>/<resolution>|<edition_tags>|<year>|<title>|<releasename>|<taglist>
-        pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(.+):(tt?\d+):(\d+)\|(.*)\|(.*)\|(\d+)\|(.+)\|(.+)\|(.+)'
+        pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\w+):(tt\d+)?:(\d+)\|(.*)\|(.*)\|(\d+)\|(.+)\|(.+)\|(.+)'
         vars:
           - announceType
           - ptpFL
