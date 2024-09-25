@@ -143,7 +143,8 @@ func (r *Release) Normalized() *ReleaseNormalized {
 		Codec:          r.Codec,
 		Container:      r.Container,
 		HDR:            r.HDR,
-		Audio:          r.AudioString(),
+		AudioString:    r.AudioString(),
+		Audio:          strings.Join(r.Audio, " "),
 		AudioChannels:  r.AudioChannels,
 		Bitrate:        r.Bitrate,
 		Group:          r.Group,
@@ -170,8 +171,9 @@ type ReleaseNormalized struct {
 	Codec          []string              `json:"codec"`
 	Container      string                `json:"container"`
 	HDR            []string              `json:"hdr"`
+	AudioString    string                `json:"-"`
 	Audio          string                `json:"audio"`
-	AudioChannels  string                `json:"-"`
+	AudioChannels  string                `json:"audio_channels"`
 	Bitrate        string                `json:"-"`
 	Group          string                `json:"group"`
 	Proper         bool                  `json:"proper"`

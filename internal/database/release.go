@@ -35,7 +35,7 @@ func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
 func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 	codecStr := strings.Join(r.Codec, ",")
 	hdrStr := strings.Join(r.HDR, ",")
-	audioStr := r.AudioString()
+	audioStr := strings.Join(r.Audio, " ")
 
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
@@ -983,6 +983,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 
 	if profile.Audio {
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.audio": release.Audio})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.audio_channels": release.AudioChannels})
 	}
 
 	if profile.Group {
