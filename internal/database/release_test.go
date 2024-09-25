@@ -1112,6 +1112,19 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				},
 				isDuplicate: true,
 			},
+			{
+				name: "24",
+				fields: fields{
+					releaseTitles: []string{
+						"That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.BluRay.720p.x265.DTS-HD-GROUP",
+						"That.Movie.2023.2160p.BluRay.DDP.5.1.x265-GROUP",
+					},
+					releaseTitle: "That.Movie.2023.2160p.BluRay.DD+.5.1.x265-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Audio: true, Group: true},
+				},
+				isDuplicate: true,
+			},
 		}
 
 		for _, tt := range tests {
