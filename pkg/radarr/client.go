@@ -42,6 +42,10 @@ func (c *client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	defer resp.Body.Close()
 
+	if resp.Body == nil {
+		return resp.StatusCode, nil, errors.New("response body is nil")
+	}
+
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
 		return resp.StatusCode, nil, errors.Wrap(err, "radarr.io.Copy")
@@ -126,6 +130,10 @@ func (c *client) postBody(ctx context.Context, endpoint string, data interface{}
 	}
 
 	defer resp.Body.Close()
+
+	if resp.Body == nil {
+		return resp.StatusCode, nil, errors.New("response body is nil")
+	}
 
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
