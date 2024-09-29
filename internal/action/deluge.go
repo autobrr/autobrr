@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"os"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -88,7 +89,15 @@ func (s *service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.De
 }
 
 func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
-	downloadClient := client.Client.(*deluge.Client)
+	//downloadClient := client.Client.(*deluge.Client)
+	downloadClient := deluge.NewV1(deluge.Settings{
+		Hostname:             client.Host,
+		Port:                 uint(client.Port),
+		Login:                client.Username,
+		Password:             client.Password,
+		DebugServerResponses: true,
+		ReadWriteTimeout:     time.Second * 60,
+	})
 
 	// perform connection to Deluge server
 	err := downloadClient.Connect(ctx)
@@ -191,7 +200,15 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 }
 
 func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
-	downloadClient := client.Client.(*deluge.ClientV2)
+	//downloadClient := client.Client.(*deluge.ClientV2)
+	downloadClient := deluge.NewV2(deluge.Settings{
+		Hostname:             client.Host,
+		Port:                 uint(client.Port),
+		Login:                client.Username,
+		Password:             client.Password,
+		DebugServerResponses: true,
+		ReadWriteTimeout:     time.Second * 60,
+	})
 
 	// perform connection to Deluge server
 	err := downloadClient.Connect(ctx)
