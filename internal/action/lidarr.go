@@ -34,7 +34,7 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 		InfoUrl:          release.InfoURL,
 		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
-		Size:             int64(release.Size),
+		Size:             release.Size,
 		Indexer:          release.Indexer.GetExternalIdentifier(),
 		DownloadClientId: client.Settings.ExternalDownloadClientId,
 		DownloadClient:   client.Settings.ExternalDownloadClient,
