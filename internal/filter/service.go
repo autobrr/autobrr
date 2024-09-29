@@ -44,7 +44,7 @@ type Service interface {
 	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error)
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
-	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.ReleaseNormalized) (bool, error)
+	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
 }
 
 type service struct {
@@ -427,7 +427,7 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		// TODO run before or after CheckFilter?
 		// make more efficient? check if id != 0 and only load profile then
 		if f.DuplicateHandling != nil {
-			isDuplicate, err := s.CheckIsDuplicateRelease(ctx, f.DuplicateHandling, release.Normalized())
+			isDuplicate, err := s.CheckIsDuplicateRelease(ctx, f.DuplicateHandling, release)
 			if err != nil {
 				return false, errors.Wrap(err, "error finding duplicate handle")
 			}
@@ -545,7 +545,7 @@ func (s *service) CheckSmartEpisodeCanDownload(ctx context.Context, params *doma
 	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
 }
 
-func (s *service) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.ReleaseNormalized) (bool, error) {
+func (s *service) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
 	return s.releaseRepo.CheckIsDuplicateRelease(ctx, profile, release)
 }
 

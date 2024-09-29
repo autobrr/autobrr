@@ -45,7 +45,7 @@ type ReleaseRepo interface {
 	StoreDuplicateProfile(ctx context.Context, profile *DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
-	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *ReleaseNormalized) (bool, error)
+	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *Release) (bool, error)
 }
 
 type Release struct {
@@ -57,6 +57,7 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
+	Type                        rls.Type              `json:"type"` // rls.Type
 	InfoURL                     string                `json:"info_url"`
 	DownloadURL                 string                `json:"download_url"`
 	MagnetURI                   string                `json:"-"`
@@ -92,8 +93,11 @@ type Release struct {
 	Proper                      bool                  `json:"proper"`
 	Repack                      bool                  `json:"repack"`
 	Website                     string                `json:"website"`
+	Hybrid                      bool                  `json:"hybrid"`
+	Edition                     []string              `json:"edition"`
+	Cut                         []string              `json:"cut"`
+	MediaProcessing             string                `json:"media_processing"` // Remux, Encode, Untouched
 	Artists                     string                `json:"-"`
-	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
 	HasCue                      bool                  `json:"-"`
 	HasLog                      bool                  `json:"-"`
@@ -113,79 +117,18 @@ type Release struct {
 	FilterID                    int                   `json:"-"`
 	Filter                      *Filter               `json:"-"`
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
-
-	normalized *ReleaseNormalized
 }
 
 func (r *Release) Raw(s string) rls.Release {
 	return rls.ParseString(s)
 }
 
-func (r *Release) Normalized() *ReleaseNormalized {
-	if r.normalized != nil {
-		return r.normalized
-	}
-
-	return &ReleaseNormalized{
-		Protocol:       r.Protocol,
-		Implementation: r.Implementation,
-		Timestamp:      r.Timestamp,
-		TorrentName:    r.TorrentName,
-		Title:          r.Title,
-		SubTitle:       r.SubTitle,
-		Season:         r.Season,
-		Episode:        r.Episode,
-		Year:           r.Year,
-		Month:          r.Month,
-		Day:            r.Day,
-		Resolution:     r.Resolution,
-		Source:         r.Source,
-		Codec:          r.Codec,
-		Container:      r.Container,
-		HDR:            r.HDR,
-		AudioString:    r.AudioString(),
-		Audio:          strings.Join(r.Audio, " "),
-		AudioChannels:  r.AudioChannels,
-		Bitrate:        r.Bitrate,
-		Group:          r.Group,
-		Proper:         r.Proper,
-		Repack:         r.Repack,
-		Website:        r.Website,
-	}
+func (r *Release) ParseType(s string) {
+	r.Type = rls.ParseType(s)
 }
 
-type ReleaseNormalized struct {
-	Protocol       ReleaseProtocol       `json:"protocol"`
-	Implementation ReleaseImplementation `json:"implementation"` // irc, rss, api
-	Timestamp      time.Time             `json:"timestamp"`
-	TorrentName    string                `json:"name"`      // full release name
-	Title          string                `json:"title"`     // Parsed title
-	SubTitle       string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
-	Season         int                   `json:"season"`
-	Episode        int                   `json:"episode"`
-	Year           int                   `json:"year"`
-	Month          int                   `json:"month"`
-	Day            int                   `json:"day"`
-	Resolution     string                `json:"resolution"`
-	Source         string                `json:"source"`
-	Codec          []string              `json:"codec"`
-	Container      string                `json:"container"`
-	HDR            []string              `json:"hdr"`
-	AudioString    string                `json:"-"`
-	Audio          string                `json:"audio"`
-	AudioChannels  string                `json:"audio_channels"`
-	Bitrate        string                `json:"-"`
-	Group          string                `json:"group"`
-	Proper         bool                  `json:"proper"`
-	Repack         bool                  `json:"repack"`
-	Website        string                `json:"website"`
-	//Region                      string                `json:"-"`
-	//Language                    []string              `json:"-"`
-	//Artists                     string                `json:"-"`
-	//Type                        string                `json:"type"` // Album,Single,EP
-	//LogScore                    int                   `json:"-"`
-	//HasCue                      bool                  `json:"-"`
-	//HasLog                      bool                  `json:"-"`
+func (r *Release) IsTypeVideo() bool {
+	return r.Type.Is(rls.Movie, rls.Series, rls.Episode)
 }
 
 type ReleaseActionStatus struct {
@@ -380,6 +323,10 @@ func NewRelease(indexer IndexerMinimal) *Release {
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
 		Tags:           []string{},
+		Language:       []string{},
+		Edition:        []string{},
+		Cut:            []string{},
+		Other:          []string{},
 		Size:           0,
 	}
 
@@ -389,24 +336,36 @@ func NewRelease(indexer IndexerMinimal) *Release {
 func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
-	r.Type = rel.Type.String()
+	r.Type = rel.Type
 
 	r.TorrentName = title
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region
+
+	if rel.Language != nil {
+		r.Language = rel.Language
+	}
+
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
 	r.Artists = rel.Artist
-	r.Language = rel.Language
 
-	r.Other = rel.Other
+	if rel.Edition != nil {
+		r.Other = rel.Other
+	}
 
-	r.Proper = slices.Contains(r.Other, "PROPER")
-	r.Repack = slices.Contains(r.Other, "REPACK")
+	r.Proper = slices.Contains(rel.Other, "PROPER")
+	r.Repack = slices.Contains(rel.Other, "REPACK") || slices.Contains(rel.Other, "REREPACK")
+	r.Hybrid = slices.Contains(rel.Other, "HYBRiD")
+
+	// TODO default to Encode and set Untouched for discs
+	if slices.Contains(rel.Other, "REMUX") {
+		r.MediaProcessing = "REMUX"
+	}
 
 	if r.Title == "" {
 		r.Title = rel.Title
@@ -438,10 +397,22 @@ func (r *Release) ParseString(title string) {
 		r.Website = rel.Collection
 	}
 
+	if rel.Cut != nil {
+		r.Cut = rel.Cut
+	}
+
+	if rel.Edition != nil {
+		r.Edition = rel.Edition
+	}
+
 	r.ParseReleaseTagsString(r.ReleaseTags)
 }
 
 func (r *Release) ParseReleaseTagsString(tags string) {
+	if tags == "" {
+		return
+	}
+
 	cleanTags := CleanReleaseTags(tags)
 	t := ParseReleaseTagString(cleanTags)
 
@@ -938,27 +909,29 @@ func getUniqueTags(target []string, source []string) []string {
 }
 
 type DuplicateReleaseProfile struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-	//Protocol    ReleaseProtocol `json:"protocol"`
-	Protocol    bool `json:"protocol"`
-	ReleaseName bool `json:"release_name"`
-	Exact       bool `json:"exact"`
-	Title       bool `json:"title"`
-	SubTitle    bool `json:"sub_title"`
-	Year        bool `json:"year"`
-	Month       bool `json:"month"`
-	Day         bool `json:"day"`
-	Source      bool `json:"source"`
-	Resolution  bool `json:"resolution"`
-	Codec       bool `json:"codec"`
-	Container   bool `json:"container"`
-	HDR         bool `json:"hdr"`
-	Audio       bool `json:"audio"`
-	Group       bool `json:"group"`
-	Season      bool `json:"season"`
-	Episode     bool `json:"episode"`
-	Website     bool `json:"website"`
-	Proper      bool `json:"proper"`
-	Repack      bool `json:"repack"`
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Protocol     bool   `json:"protocol"`
+	ReleaseName  bool   `json:"release_name"`
+	Exact        bool   `json:"exact"`
+	Title        bool   `json:"title"`
+	SubTitle     bool   `json:"sub_title"`
+	Year         bool   `json:"year"`
+	Month        bool   `json:"month"`
+	Day          bool   `json:"day"`
+	Source       bool   `json:"source"`
+	Resolution   bool   `json:"resolution"`
+	Codec        bool   `json:"codec"`
+	Container    bool   `json:"container"`
+	HDR          bool   `json:"hdr"`
+	DynamicRange bool   `json:"dynamic_range"`
+	Audio        bool   `json:"audio"`
+	Group        bool   `json:"group"`
+	Season       bool   `json:"season"`
+	Episode      bool   `json:"episode"`
+	Website      bool   `json:"website"`
+	Proper       bool   `json:"proper"`
+	Repack       bool   `json:"repack"`
+	Edition      bool   `json:"edition"`
+	Language     bool   `json:"language"`
 }

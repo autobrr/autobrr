@@ -6,6 +6,7 @@ package domain
 import (
 	"testing"
 
+	"github.com/moistari/rls"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 				Website:       "ATVP",
-				Type:          "series",
+				Type:          rls.Series,
 			},
 		},
 		{
@@ -54,7 +55,7 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 				Website:       "ATVP",
-				Type:          "series",
+				Type:          rls.Series,
 			},
 		},
 		{
@@ -78,7 +79,7 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 				Website:       "ATVP",
-				Type:          "series",
+				Type:          rls.Series,
 			},
 		},
 		{
@@ -102,7 +103,7 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 				Website:       "ATVP",
-				Type:          "series",
+				Type:          rls.Series,
 			},
 		},
 		{
@@ -126,7 +127,7 @@ func TestRelease_Parse(t *testing.T) {
 				HDR:           []string{"DV"},
 				Group:         "FLUX",
 				Website:       "ATVP",
-				Type:          "series",
+				Type:          rls.Series,
 			},
 		},
 		{
@@ -152,7 +153,7 @@ func TestRelease_Parse(t *testing.T) {
 				Freeleech:     true,
 				Bonus:         []string{"Freeleech"},
 				Website:       "ATVP",
-				Type:          "series",
+				Type:          rls.Series,
 			},
 		},
 		{
@@ -169,7 +170,7 @@ func TestRelease_Parse(t *testing.T) {
 				Source:      "BluRay",
 				Codec:       []string{"MPEG-2"},
 				Group:       "GROUP",
-				Type:        "movie",
+				Type:        rls.Movie,
 			},
 		},
 		{
@@ -184,7 +185,7 @@ func TestRelease_Parse(t *testing.T) {
 				Source:      "AHDTV",
 				Codec:       []string{"H.264"},
 				Group:       "ABCDEF",
-				Type:        "movie",
+				Type:        rls.Movie,
 			},
 		},
 		{
@@ -319,7 +320,7 @@ func TestRelease_Parse(t *testing.T) {
 				Year:          2007,
 				Group:         "GROUP1",
 				Other:         []string{"HYBRiD", "REMUX"},
-				Type:          "movie",
+				Type:          rls.Movie,
 			},
 		},
 		{
@@ -341,7 +342,7 @@ func TestRelease_Parse(t *testing.T) {
 				Season:        1,
 				Language:      []string{"ENGLiSH"},
 				Website:       "AMZN",
-				Type:          "series",
+				Type:          rls.Series,
 			},
 		},
 	}
@@ -787,6 +788,61 @@ func Test_getUniqueTags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, getUniqueTags(tt.args.target, tt.args.source), "getUniqueTags(%v, %v)", tt.args.target, tt.args.source)
+		})
+	}
+}
+
+func TestRelease_Hash(t *testing.T) {
+	type fields struct {
+		TorrentName string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "1",
+			fields: fields{
+				TorrentName: "That.Movie.2023.2160p.BluRay.DTS-HD.5.1.x265-GROUP",
+			},
+			want: "8861965eefd168acbc03f71ab94a3c1e",
+		},
+		{
+			name: "2",
+			fields: fields{
+				TorrentName: "That Movie 2023 2160p BluRay DTS-HD 5.1 x265-GROUP",
+			},
+			want: "8861965eefd168acbc03f71ab94a3c1e",
+		},
+		{
+			name: "3",
+			fields: fields{
+				TorrentName: "That Movie 2023 2160p BluRay DTS-HD 5 1 x265-GROUP",
+			},
+			want: "8861965eefd168acbc03f71ab94a3c1e",
+		},
+		{
+			name: "4",
+			fields: fields{
+				TorrentName: "That Movie 2023 2160p BluRay DDP 5.1 x265-GROUP",
+			},
+			want: "fd4fc455d16d9f6c41c6dd349f95b865",
+		},
+		{
+			name: "5",
+			fields: fields{
+				TorrentName: "That Movie 2023 2160p BluRay DD+ 5.1 x265-GROUP",
+			},
+			want: "fd4fc455d16d9f6c41c6dd349f95b865",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Release{
+				TorrentName: tt.fields.TorrentName,
+			}
+			assert.Equalf(t, tt.want, r.Hash(), "Hash()")
 		})
 	}
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/moistari/rls"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +50,7 @@ func getMockRelease() *domain.Release {
 		Proper:         true,
 		Repack:         false,
 		Website:        "https://example.com",
-		Type:           "Movie",
+		Type:           rls.Movie,
 		Origin:         "P2P",
 		Tags:           []string{"Action", "Adventure"},
 		Uploader:       "john_doe",
@@ -940,7 +941,7 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
 					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Season: true, Episode: true, Source: true, Codec: true, Resolution: true, Website: true, HDR: true, Group: true},
 				},
-				isDuplicate: false,
+				isDuplicate: true,
 			},
 			{
 				name: "11",
@@ -1040,12 +1041,12 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 					releaseTitles: []string{
 						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
 						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.SDR.H.264-GROUP",
-						"The.Best.Show.2020.S04E10.Episode.Title.REPACK.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP1",
+						"The.Best.Show.2020.S04E10.Episode.Title.REPACK.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
 					},
-					releaseTitle: "The Best Show 2020 S04E10 Episode Title REPACK 1080p AMZN WEB-DL DDP 5.1 DV H.264-GROUP",
+					releaseTitle: "The Best Show 2020 S04E10 Episode Title REPACK 1080p AMZN WEB-DL DDP 5.1 DV H.264-OTHERGROUP",
 					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true},
 				},
-				isDuplicate: false,
+				isDuplicate: false, // not a match because REPACK checks for the same group
 			},
 			{
 				name: "19",
@@ -1118,10 +1119,57 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 					releaseTitles: []string{
 						"That.Movie.2023.BluRay.2160p.x265.DTS-HD-GROUP",
 						"That.Movie.2023.BluRay.720p.x265.DTS-HD-GROUP",
-						"That.Movie.2023.2160p.BluRay.DDP.5.1.x265-GROUP",
+						"That.Movie.2023.2160p.BluRay.DD.5.1.x265-GROUP",
 					},
-					releaseTitle: "That.Movie.2023.2160p.BluRay.DD+.5.1.x265-GROUP",
+					releaseTitle: "That.Movie.2023.2160p.BluRay.AC3.5.1.x265-GROUP",
 					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Audio: true, Group: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "25",
+				fields: fields{
+					releaseTitles: []string{
+						//"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Audio: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "26",
+				fields: fields{
+					releaseTitles: []string{
+						//"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 Collectors Edition UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Audio: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "27",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 Collectors Edition UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Edition: false, Source: true, Codec: true, Resolution: true, Audio: true, Group: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "28",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX-FraMeSToR",
+						"Despicable Me 4 2024 Collectors Edition UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 Collectors Edition UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Edition: true, Source: true, Codec: true, Resolution: true, Audio: true, Group: true},
 				},
 				isDuplicate: true,
 			},
@@ -1167,7 +1215,7 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				compareRel.ParseString(tt.fields.releaseTitle)
 
 				// Execute
-				isDuplicate, err := releaseRepo.CheckIsDuplicateRelease(ctx, tt.fields.profile, compareRel.Normalized())
+				isDuplicate, err := releaseRepo.CheckIsDuplicateRelease(ctx, tt.fields.profile, compareRel)
 
 				// Verify
 				assert.NoError(t, err)

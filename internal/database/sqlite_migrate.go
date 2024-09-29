@@ -317,14 +317,21 @@ CREATE TABLE "release"
     audio             TEXT,
     audio_channels    TEXT,
     release_group     TEXT,
+    region            TEXT,
+    language          TEXT,
+    edition           TEXT,
+    cut               TEXT,
+    hybrid            BOOLEAN,
     proper            BOOLEAN,
     repack            BOOLEAN,
     website           TEXT,
+    media_processing  TEXT,
     type              TEXT,
     origin            TEXT,
     tags              TEXT []   DEFAULT '{}' NOT NULL,
     uploader          TEXT,
     pre_time          TEXT,
+    other             TEXT []   DEFAULT '{}' NOT NULL,
     filter_id         INTEGER
         REFERENCES filter
             ON DELETE SET NULL
@@ -387,6 +394,9 @@ CREATE INDEX release_audio_channels_index
 CREATE INDEX release_release_group_index
     ON "release" (release_group);
 
+CREATE INDEX release_language_index
+    ON "release" (language);
+
 CREATE INDEX release_proper_index
     ON "release" (proper);
 
@@ -395,6 +405,21 @@ CREATE INDEX release_repack_index
 
 CREATE INDEX release_website_index
     ON "release" (website);
+
+CREATE INDEX release_media_processing_index
+    ON "release" (media_processing);
+
+CREATE INDEX release_region_index
+    ON "release" (region);
+
+CREATE INDEX release_edition_index
+    ON "release" (edition);
+
+CREATE INDEX release_cut_index
+    ON "release" (cut);
+
+CREATE INDEX release_hybrid_index
+    ON "release" (hybrid);
 
 CREATE TABLE release_action_status
 (
@@ -1722,7 +1747,9 @@ CREATE INDEX filter_priority_index
     episode       BOOLEAN DEFAULT FALSE,
     website       BOOLEAN DEFAULT FALSE,
     proper        BOOLEAN DEFAULT FALSE,
-    repack        BOOLEAN DEFAULT FALSE
+    repack        BOOLEAN DEFAULT FALSE,
+    edition       BOOLEAN DEFAULT FALSE,
+    language      BOOLEAN DEFAULT FALSE
 );
 
 INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack)
@@ -1744,6 +1771,27 @@ ALTER TABLE "release"
 
 ALTER TABLE "release"
     ADD audio_channels TEXT;
+
+ALTER TABLE "release"
+    ADD language TEXT;
+
+ALTER TABLE "release"
+    ADD media_processing TEXT;
+
+ALTER TABLE "release"
+    ADD edition TEXT;
+
+ALTER TABLE "release"
+    ADD cut TEXT;
+
+ALTER TABLE "release"
+    ADD hybrid TEXT;
+
+ALTER TABLE "release"
+    ADD region TEXT;
+
+ALTER TABLE "release"
+    ADD other TEXT []   DEFAULT '{}' NOT NULL;
 
 CREATE INDEX release_title_index
     ON "release" (title);
@@ -1798,5 +1846,23 @@ CREATE INDEX release_repack_index
 
 CREATE INDEX release_website_index
     ON "release" (website);
+
+CREATE INDEX release_media_processing_index
+    ON "release" (media_processing);
+
+CREATE INDEX release_language_index
+    ON "release" (language);
+
+CREATE INDEX release_region_index
+    ON "release" (region);
+
+CREATE INDEX release_edition_index
+    ON "release" (edition);
+
+CREATE INDEX release_cut_index
+    ON "release" (cut);
+
+CREATE INDEX release_hybrid_index
+    ON "release" (hybrid);
 `,
 }

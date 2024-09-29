@@ -425,8 +425,13 @@ func ParseReleaseTags(tags []string) ReleaseTags {
 
 	return releaseTags
 }
+
 func ParseReleaseTagString(tags string) ReleaseTags {
 	releaseTags := ReleaseTags{}
+
+	if tags == "" {
+		return releaseTags
+	}
 
 	for tagType, tagInfos := range types {
 

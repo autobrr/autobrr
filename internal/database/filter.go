@@ -474,6 +474,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"rdp.website",
 			"rdp.proper",
 			"rdp.repack",
+			"rdp.edition",
+			"rdp.language",
 		).
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
@@ -504,11 +506,10 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
-		var releaseProfileDuplicateID sql.NullInt64
+		var releaseProfileDuplicateID, rdpId sql.NullInt64
 
-		var rdpId sql.NullInt32
 		var rdpName sql.NullString
-		var rdpRelName, rdpTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpHdr, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack sql.NullBool
+		var rdpRelName, rdpTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpHdr, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage sql.NullBool
 
 		err := rows.Scan(
 			&f.ID,
@@ -597,6 +598,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&rdpWebsite,
 			&rdpProper,
 			&rdpRepack,
+			&rdpEdition,
+			&rdpLanguage,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
@@ -645,11 +648,10 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 		if releaseProfileDuplicateID.Valid {
 			profile := domain.DuplicateReleaseProfile{
-				//ID:          releaseProfileDuplicateID.Int32,
+				ID: rdpId.Int64,
 				//Protocol:    rdpName.String,
+				Name: rdpName.String,
 				//Exact:       rdpRelName.Bool,
-				ID:          int(rdpId.Int32),
-				Name:        rdpName.String,
 				ReleaseName: rdpRelName.Bool,
 				Title:       rdpTitle.Bool,
 				Year:        rdpYear.Bool,
@@ -667,6 +669,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 				Website:     rdpWebsite.Bool,
 				Proper:      rdpProper.Bool,
 				Repack:      rdpRepack.Bool,
+				Edition:     rdpEdition.Bool,
+				Language:    rdpLanguage.Bool,
 			}
 			f.DuplicateHandling = &profile
 		}
