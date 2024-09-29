@@ -119,6 +119,14 @@ type Release struct {
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
 }
 
+// Hash return md5 hashed normalized release name
+func (r *Release) Hash() string {
+	normalized := rls.MustNormalize(r.TorrentName)
+	h := md5.Sum([]byte(normalized))
+	str := hex.EncodeToString(h[:])
+	return str
+}
+
 func (r *Release) Raw(s string) rls.Release {
 	return rls.ParseString(s)
 }
@@ -354,16 +362,16 @@ func (r *Release) ParseString(title string) {
 	r.HDR = rel.HDR
 	r.Artists = rel.Artist
 
-	if rel.Edition != nil {
+	if rel.Other != nil {
 		r.Other = rel.Other
 	}
 
-	r.Proper = slices.Contains(rel.Other, "PROPER")
-	r.Repack = slices.Contains(rel.Other, "REPACK") || slices.Contains(rel.Other, "REREPACK")
-	r.Hybrid = slices.Contains(rel.Other, "HYBRiD")
+	r.Proper = slices.Contains(r.Other, "PROPER")
+	r.Repack = slices.Contains(r.Other, "REPACK") || slices.Contains(r.Other, "REREPACK")
+	r.Hybrid = slices.Contains(r.Other, "HYBRiD")
 
 	// TODO default to Encode and set Untouched for discs
-	if slices.Contains(rel.Other, "REMUX") {
+	if slices.Contains(r.Other, "REMUX") {
 		r.MediaProcessing = "REMUX"
 	}
 

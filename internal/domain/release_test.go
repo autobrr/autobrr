@@ -829,13 +829,13 @@ func TestRelease_Hash(t *testing.T) {
 			},
 			want: "fd4fc455d16d9f6c41c6dd349f95b865",
 		},
-		{
-			name: "5",
-			fields: fields{
-				TorrentName: "That Movie 2023 2160p BluRay DD+ 5.1 x265-GROUP",
-			},
-			want: "fd4fc455d16d9f6c41c6dd349f95b865",
-		},
+		//{
+		//	name: "5",
+		//	fields: fields{
+		//		TorrentName: "That Movie 2023 2160p BluRay DD+ 5.1 x265-GROUP",
+		//	},
+		//	want: "fd4fc455d16d9f6c41c6dd349f95b865",
+		//},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

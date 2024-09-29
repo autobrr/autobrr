@@ -109,13 +109,15 @@ CREATE TABLE release_profile_duplicate
     episode       BOOLEAN DEFAULT FALSE,
     website       BOOLEAN DEFAULT FALSE,
     proper        BOOLEAN DEFAULT FALSE,
-    repack        BOOLEAN DEFAULT FALSE
+    repack        BOOLEAN DEFAULT FALSE,
+    edition       BOOLEAN DEFAULT FALSE,
+    language      BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack)
-VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0);
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack, edition, language)
+VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+       (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0);
 
 CREATE TABLE filter
 (
@@ -1752,10 +1754,10 @@ CREATE INDEX filter_priority_index
     language      BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack)
-VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0);
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack, edition, language)
+VALUES (1, 'Exact release', 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+       (2, 'Movie', 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+       (3, 'TV', 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0);
 
 ALTER TABLE filter
     ADD COLUMN release_profile_duplicate_id INTEGER

@@ -56,6 +56,7 @@ func getMockRelease() *domain.Release {
 		Uploader:       "john_doe",
 		PreTime:        "10m",
 		FilterID:       1,
+		Other:          []string{},
 	}
 }
 
