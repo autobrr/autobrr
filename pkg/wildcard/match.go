@@ -31,6 +31,8 @@ func match(pattern, name string, simple bool) (matched bool) {
 		return name == ""
 	} else if pattern == "*" {
 		return true
+	} else if !simple && pattern == "?" {
+		return len(name) == 1
 	} else if idx := strings.IndexAny(pattern, "*?"); idx == -1 {
 		return name == pattern
 	} else if idx != 0 && idx == len(pattern)-1 {
