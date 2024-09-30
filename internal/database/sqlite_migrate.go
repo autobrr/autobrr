@@ -303,6 +303,7 @@ CREATE TABLE "release"
     group_id          TEXT,
     torrent_id        TEXT,
     torrent_name      TEXT,
+    normalized_hash   TEXT,
     size              INTEGER,
     title             TEXT,
     sub_title         TEXT,
@@ -351,6 +352,9 @@ CREATE INDEX release_timestamp_index
 
 CREATE INDEX release_torrent_name_index
     ON "release" (torrent_name);
+
+CREATE INDEX release_normalized_hash_index
+    ON "release" (normalized_hash);
 
 CREATE INDEX release_title_index
     ON "release" (title);
@@ -1768,6 +1772,9 @@ ALTER TABLE filter
             ON DELETE SET NULL;
 
 ALTER TABLE "release"
+    ADD normalized_hash TEXT;
+
+ALTER TABLE "release"
     ADD sub_title TEXT;
 
 ALTER TABLE "release"
@@ -1796,6 +1803,9 @@ ALTER TABLE "release"
 
 ALTER TABLE "release"
     ADD other TEXT []   DEFAULT '{}' NOT NULL;
+
+CREATE INDEX release_normalized_hash_index
+    ON "release" (normalized_hash);
 
 CREATE INDEX release_title_index
     ON "release" (title);

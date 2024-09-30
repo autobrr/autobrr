@@ -68,7 +68,8 @@ type Release struct {
 	TorrentTmpFile              string                `json:"-"`
 	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
-	TorrentName                 string                `json:"name"` // full release name
+	TorrentName                 string                `json:"name"`            // full release name
+	NormalizedHash              string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
 	Size                        uint64                `json:"size"`
 	Title                       string                `json:"title"`     // Parsed title
 	SubTitle                    string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
@@ -349,6 +350,8 @@ func (r *Release) ParseString(title string) {
 	r.Type = rel.Type
 
 	r.TorrentName = title
+	r.NormalizedHash = r.Hash()
+
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region

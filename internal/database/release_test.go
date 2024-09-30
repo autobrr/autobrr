@@ -1180,6 +1180,142 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				},
 				isDuplicate: true,
 			},
+			{
+				name: "29",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR10 HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR DV HEVC REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, DynamicRange: true, Audio: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "30",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR10 HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR DV HEVC REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, DynamicRange: true, Audio: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "31",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR10 HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 DV HEVC REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HEVC REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, DynamicRange: true, Audio: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "32",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR10 HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HDR HEVC REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HEVC REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, DynamicRange: true, Audio: true, Group: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "33",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 FRENCH UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 GERMAN UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, DynamicRange: true, Audio: true, Group: true, Language: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "34",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 FRENCH UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 GERMAN UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 GERMAN UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, DynamicRange: true, Audio: true, Group: true, Language: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "35",
+				fields: fields{
+					releaseTitles: []string{
+						"Despicable Me 4 2024 FRENCH UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+						"Despicable Me 4 2024 GERMAN UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+					},
+					releaseTitle: "Despicable Me 4 2024 UHD BluRay 2160p TrueHD Atmos 7.1 HEVC DV REMUX Hybrid-FraMeSToR",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, DynamicRange: true, Audio: true, Group: true, Language: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "36",
+				fields: fields{
+					releaseTitles: []string{
+						"Road House 1989 1080p GER Blu-ray AVC LPCM 2.0-MONUMENT",
+					},
+					releaseTitle: "Road House 1989 1080p Blu-ray AVC LPCM 2.0-MONUMENT",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Group: true, Language: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "37",
+				fields: fields{
+					releaseTitles: []string{
+						"Road House 1989 1080p ITA Blu-ray AVC LPCM 2.0-MONUMENT",
+						"Road House 1989 1080p GER Blu-ray AVC LPCM 2.0-MONUMENT",
+					},
+					releaseTitle: "Road House 1989 1080p NOR Blu-ray AVC LPCM 2.0-MONUMENT",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Group: true, Language: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "38",
+				fields: fields{
+					releaseTitles: []string{
+						"Road House 1989 1080p GER Blu-ray AVC LPCM 2.0-MONUMENT",
+					},
+					releaseTitle: "Road House 1989 1080p GER Blu-ray AVC LPCM 2.0-MONUMENT",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Year: true, Source: true, Codec: true, Resolution: true, Group: true, Language: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "39",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.HDR.DV.H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{ReleaseName: true},
+				},
+				isDuplicate: true,
+			},
 		}
 
 		for _, tt := range tests {
