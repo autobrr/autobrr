@@ -933,7 +933,6 @@ type DuplicateReleaseProfile struct {
 	Resolution   bool   `json:"resolution"`
 	Codec        bool   `json:"codec"`
 	Container    bool   `json:"container"`
-	HDR          bool   `json:"hdr"`
 	DynamicRange bool   `json:"dynamic_range"`
 	Audio        bool   `json:"audio"`
 	Group        bool   `json:"group"`

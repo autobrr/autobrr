@@ -81,6 +81,7 @@ interface ReleaseProfileDuplicate {
   protocol: boolean;
   release_name: boolean;
   title: boolean;
+  sub_title: boolean;
   year: boolean;
   month: boolean;
   day: boolean;
@@ -88,7 +89,7 @@ interface ReleaseProfileDuplicate {
   resolution: boolean;
   codec: boolean;
   container: boolean;
-  hdr: boolean;
+  dynamic_range: boolean;
   audio: boolean;
   group: boolean;
   season: boolean;
@@ -96,4 +97,6 @@ interface ReleaseProfileDuplicate {
   website: boolean;
   proper: boolean;
   repack: boolean;
+  edition: boolean;
+  language: boolean;
 }

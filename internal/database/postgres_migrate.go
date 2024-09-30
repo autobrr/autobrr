@@ -95,6 +95,7 @@ CREATE TABLE release_profile_duplicate
     protocol      BOOLEAN DEFAULT FALSE,
     release_name  BOOLEAN DEFAULT FALSE,
     title         BOOLEAN DEFAULT FALSE,
+    sub_title     BOOLEAN DEFAULT FALSE,
     year          BOOLEAN DEFAULT FALSE,
     month         BOOLEAN DEFAULT FALSE,
     day           BOOLEAN DEFAULT FALSE,
@@ -102,7 +103,7 @@ CREATE TABLE release_profile_duplicate
     resolution    BOOLEAN DEFAULT FALSE,
     codec         BOOLEAN DEFAULT FALSE,
     container     BOOLEAN DEFAULT FALSE,
-    hdr           BOOLEAN DEFAULT FALSE,
+    dynamic_range BOOLEAN DEFAULT FALSE,
     audio         BOOLEAN DEFAULT FALSE,
     release_group BOOLEAN DEFAULT FALSE,
     season        BOOLEAN DEFAULT FALSE,
@@ -114,10 +115,10 @@ CREATE TABLE release_profile_duplicate
     language      BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack, edition, language)
-VALUES (1, 'Exact release', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (2, 'Movie', 'f', 'f', 't', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (3, 'TV', 'f', 'f', 't', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f');
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, sub_title, year, month, day, source, resolution, codec, container, dynamic_range, audio, release_group, season, episode, website, proper, repack, edition, language)
+VALUES (1, 'Exact release', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (2, 'Movie', 'f', 'f', 't', 'f', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (3, 'TV', 'f', 'f', 't', 'f', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f');
 
 CREATE TABLE filter
 (
@@ -1088,6 +1089,7 @@ CREATE INDEX filter_priority_index
     protocol      BOOLEAN DEFAULT FALSE,
     release_name  BOOLEAN DEFAULT FALSE,
     title         BOOLEAN DEFAULT FALSE,
+    sub_title     BOOLEAN DEFAULT FALSE,
     year          BOOLEAN DEFAULT FALSE,
     month         BOOLEAN DEFAULT FALSE,
     day           BOOLEAN DEFAULT FALSE,
@@ -1095,7 +1097,7 @@ CREATE INDEX filter_priority_index
     resolution    BOOLEAN DEFAULT FALSE,
     codec         BOOLEAN DEFAULT FALSE,
     container     BOOLEAN DEFAULT FALSE,
-    hdr           BOOLEAN DEFAULT FALSE,
+    dynamic_range BOOLEAN DEFAULT FALSE,
     audio         BOOLEAN DEFAULT FALSE,
     release_group BOOLEAN DEFAULT FALSE,
     season        BOOLEAN DEFAULT FALSE,
@@ -1107,10 +1109,10 @@ CREATE INDEX filter_priority_index
     language      BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, year, month, day, source, resolution, codec, container, hdr, audio, release_group, season, episode, website, proper, repack, edition, language)
-VALUES (1, 'Exact release', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (2, 'Movie', 'f', 'f', 't', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
-       (3, 'TV', 'f', 'f', 't', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f');
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, title, sub_title, year, month, day, source, resolution, codec, container, dynamic_range, audio, release_group, season, episode, website, proper, repack, edition, language)
+VALUES (1, 'Exact release', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (2, 'Movie', 'f', 'f', 't', 'f', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (3, 'TV', 'f', 'f', 't', 'f', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f');
 
 ALTER TABLE filter
     ADD release_profile_duplicate_id INTEGER;

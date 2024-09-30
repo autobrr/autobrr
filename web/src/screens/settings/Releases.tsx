@@ -54,6 +54,7 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
         <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
           {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title="Release name" />}
           {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed titel" />}
+          {profile.sub_title && <EnabledPill value={profile.sub_title} label="Sub Title" title="Parsed sub titel like Episode name" />}
           {profile.group && <EnabledPill value={profile.group} label="Group" title="Releae group" />}
           {profile.year && <EnabledPill value={profile.year} label="Year" title="Year" />}
           {profile.month && <EnabledPill value={profile.month} label="Month" title="Month" />}
@@ -62,13 +63,15 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
           {profile.resolution && <EnabledPill value={profile.resolution} label="Resolution" title="Resolution" />}
           {profile.codec && <EnabledPill value={profile.codec} label="Codec" title="Codec" />}
           {profile.container && <EnabledPill value={profile.container} label="Container" title="Container" />}
-          {profile.hdr && <EnabledPill value={profile.hdr} label="HDR" title="HDR formats" />}
+          {profile.dynamic_range && <EnabledPill value={profile.dynamic_range} label="Dynamic Range" title="Dynamic Range (HDR,DV)" />}
           {profile.audio && <EnabledPill value={profile.audio} label="Audio" title="Audio formats" />}
           {profile.season && <EnabledPill value={profile.season} label="Season" title="Season number" />}
           {profile.episode && <EnabledPill value={profile.episode} label="Episode" title="Episode number" />}
           {profile.website && <EnabledPill value={profile.website} label="Website" title="Website/Service" />}
           {profile.proper && <EnabledPill value={profile.proper} label="Proper" title="Scene proper" />}
           {profile.repack && <EnabledPill value={profile.repack} label="Repack" title="Scene repack" />}
+          {profile.edition && <EnabledPill value={profile.edition} label="Edition" title="Edition (eg. Collectors Edition) and Cut (eg. Directors Cut)" />}
+          {profile.language && <EnabledPill value={profile.language} label="Language" title="Language and Region" />}
         </div>
         <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer"

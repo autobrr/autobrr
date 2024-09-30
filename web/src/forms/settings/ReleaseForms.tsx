@@ -36,6 +36,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     protocol: false,
     release_name: false,
     title: false,
+    sub_title: false,
     year: false,
     month: false,
     day: false,
@@ -43,14 +44,16 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     resolution: false,
     codec: false,
     container: false,
-    hdr: false,
+    dynamic_range: false,
     audio: false,
     group: false,
     season: false,
     episode: false,
     website: false,
     proper: false,
-    repack: false
+    repack: false,
+    edition: false,
+    language: false,
   };
 
   return (
@@ -68,6 +71,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
 
           <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
           <SwitchGroupWide name="title" label="Title" description="Parsed title" />
+          <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
           <SwitchGroupWide name="year" label="Year" />
           <SwitchGroupWide name="month" label="Month" description="For daily releases" />
           <SwitchGroupWide name="day" label="Day" description="For daily releases" />
@@ -75,14 +79,16 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
           <SwitchGroupWide name="resolution" label="Resolution" />
           <SwitchGroupWide name="codec" label="Codec" />
           <SwitchGroupWide name="container" label="Container" />
-          <SwitchGroupWide name="hdr" label="HDR" />
+          <SwitchGroupWide name="dynamic_range" label="Dynamic Range" />
           <SwitchGroupWide name="audio" label="Audio" />
           <SwitchGroupWide name="group" label="Group" description="Release group" />
           <SwitchGroupWide name="season" label="Season" />
           <SwitchGroupWide name="episode" label="Episode" />
           <SwitchGroupWide name="website" label="Website/Service" description="Services such as AMZN/HULU/NF" />
-          <SwitchGroupWide name="repack" label="Repack" />
           <SwitchGroupWide name="proper" label="Proper" />
+          <SwitchGroupWide name="repack" label="Repack" />
+          <SwitchGroupWide name="edition" label="Edition" />
+          <SwitchGroupWide name="language" label="Language" />
         </div>
       )}
     </SlideOver>
@@ -127,6 +133,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     protocol: profile.protocol,
     release_name: profile.release_name,
     title: profile.title,
+    sub_title: profile.sub_title,
     year: profile.year,
     month: profile.month,
     day: profile.day,
@@ -134,14 +141,16 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     resolution: profile.resolution,
     codec: profile.codec,
     container: profile.container,
-    hdr: profile.hdr,
+    dynamic_range: profile.dynamic_range,
     audio: profile.audio,
     group: profile.group,
     season: profile.season,
     episode: profile.episode,
     website: profile.website,
     proper: profile.proper,
-    repack: profile.repack
+    repack: profile.repack,
+    edition: profile.edition,
+    language: profile.language,
   };
 
   return (
@@ -160,6 +169,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
 
           <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
           <SwitchGroupWide name="title" label="Title" description="Parsed title" />
+          <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
           <SwitchGroupWide name="year" label="Year" />
           <SwitchGroupWide name="month" label="Month" description="For daily releases" />
           <SwitchGroupWide name="day" label="Day" description="For daily releases" />
@@ -167,7 +177,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
           <SwitchGroupWide name="resolution" label="Resolution" />
           <SwitchGroupWide name="codec" label="Codec" />
           <SwitchGroupWide name="container" label="Container" />
-          <SwitchGroupWide name="hdr" label="HDR" />
+          <SwitchGroupWide name="dynamic_range" label="Dynamic Range (HDR,DV etc)" />
           <SwitchGroupWide name="audio" label="Audio" />
           <SwitchGroupWide name="group" label="Group" description="Release group" />
           <SwitchGroupWide name="season" label="Season" />
@@ -175,6 +185,8 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
           <SwitchGroupWide name="website" label="Website/Service" description="Services such as AMZN/HULU/NF" />
           <SwitchGroupWide name="repack" label="Repack" />
           <SwitchGroupWide name="proper" label="Proper" />
+          <SwitchGroupWide name="edition" label="Edition and Cut" />
+          <SwitchGroupWide name="language" label="Language and Region" />
         </div>
       )}
     </SlideOver>

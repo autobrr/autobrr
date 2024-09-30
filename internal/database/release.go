@@ -104,8 +104,8 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 	if profile.ID == 0 {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_profile_duplicate").
-			Columns("name", "protocol", "release_name", "title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "release_group", "website", "proper", "repack").
-			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Title, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.HDR, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
+			Columns("name", "protocol", "release_name", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack").
+			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
 			Suffix("RETURNING id").
 			RunWith(repo.db.handler)
 
@@ -125,6 +125,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Set("protocol", profile.Protocol).
 			Set("release_name", profile.ReleaseName).
 			Set("title", profile.Title).
+			Set("sub_title", profile.SubTitle).
 			Set("season", profile.Season).
 			Set("episode", profile.Episode).
 			Set("year", profile.Year).
@@ -134,7 +135,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Set("source", profile.Source).
 			Set("codec", profile.Codec).
 			Set("container", profile.Container).
-			Set("hdr", profile.HDR).
+			Set("dynamic_range", profile.DynamicRange).
 			Set("audio", profile.Audio).
 			Set("release_group", profile.Group).
 			Set("website", profile.Website).
@@ -476,6 +477,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 			"protocol",
 			"release_name",
 			"title",
+			"sub_title",
 			"year",
 			"month",
 			"day",
@@ -483,7 +485,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 			"resolution",
 			"codec",
 			"container",
-			"hdr",
+			"dynamic_range",
 			"audio",
 			"release_group",
 			"season",
@@ -515,7 +517,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 	for rows.Next() {
 		var p domain.DuplicateReleaseProfile
 
-		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Title, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.HDR, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
+		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -1110,17 +1112,17 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.resolution": release.Resolution})
 	}
 
-	if exact || profile.HDR {
-		//if len(release.HDR) > 1 {
+	if exact || profile.DynamicRange {
+		//if len(release.DynamicRange) > 1 {
 		//	var and sq.And
-		//	for _, hdr := range release.HDR {
+		//	for _, hdr := range release.DynamicRange {
 		//		and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
 		//	}
 		//	queryBuilder = queryBuilder.Where(and)
 		//} else {
-		//	queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.HDR})
+		//	queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.DynamicRange})
 		//}
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": strings.Join(release.HDR, ",")})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.dynamic_range": strings.Join(release.HDR, ",")})
 	}
 
 	if exact || profile.Audio {
