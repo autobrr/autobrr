@@ -53,6 +53,11 @@ func TestMatch(t *testing.T) {
 			matched: true,
 		},
 		{
+			pattern: "t?",
+			text:    "tv",
+			matched: true,
+		},
+		{
 			pattern: "*EPUB*",
 			text:    "Translated (Group) / EPUB",
 			matched: true,
