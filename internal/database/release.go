@@ -1122,7 +1122,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		//} else {
 		//	queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.DynamicRange})
 		//}
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.dynamic_range": strings.Join(release.HDR, ",")})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": strings.Join(release.HDR, ",")})
 	}
 
 	if exact || profile.Audio {
