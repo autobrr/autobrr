@@ -59,7 +59,9 @@ func match(pattern, name string, simple bool) (matched bool) {
 		}
 
 		return base == len(name)
-	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && strings.Count(pattern, "*") == 2 {
+	} else if !simple && !strings.Contains(pattern, "?") &&
+		strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") &&
+		strings.Count(pattern, "*") == 2 {
 		return strings.Contains(name, pattern[1:len(pattern)-1])
 	}
 

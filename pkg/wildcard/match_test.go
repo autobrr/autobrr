@@ -68,6 +68,11 @@ func TestMatch(t *testing.T) {
 			matched: true,
 		},
 		{
+			pattern: "*EP?B*",
+			text:    "Translated (Group) / EPUB",
+			matched: true,
+		},
+		{
 			pattern: "*shift*",
 			text:    "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
 			matched: true,
@@ -120,6 +125,8 @@ func TestMatchSimple(t *testing.T) {
 		{"t?st", "test", false},
 		{"t?st", "tast", false},
 		{"test", "test", true},
+		{"*te?t*", "test", false},
+		{"*test*", "test", true},
 		{"test", "toast", false},
 		{"", "non-empty", false},
 		{"*", "", true},
