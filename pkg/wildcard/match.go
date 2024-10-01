@@ -41,6 +41,30 @@ func match(pattern, name string, simple bool) (matched bool) {
 		} else if pattern[idx] == '?' && idx == len(name)-1 {
 			return pattern[:idx-1] == name[:idx-1]
 		}
+	} else if !simple && len(pattern) == len(name) && !strings.Contains(pattern, "*") {
+		base := 0
+		for {
+			i := strings.IndexRune(pattern[base:], '?')
+			if i == -1 {
+				if name[base:] != pattern[base:] {
+					break
+				}
+
+				base = len(name)
+				break
+			}
+
+			offset := base + i
+			if name[base:offset] != pattern[base:offset] {
+				break
+			}
+
+			base = offset + 1
+		}
+
+		return base == len(name)
+	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && strings.Count(pattern, "*") == 2 {
+		return strings.Contains(name, pattern[1:len(pattern)-1])
 	}
 
 	return deepMatchRune(name, pattern, simple, pattern, false)

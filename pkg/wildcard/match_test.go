@@ -170,6 +170,7 @@ func TestMatchSlice(t *testing.T) {
 	}{
 		{[]string{"*", "test", "t?st"}, "test", true},
 		{[]string{"te?t", "t?st", "random"}, "tost", true},
+		{[]string{"te?t", "t??e?", "random"}, "toser", true},
 		{[]string{"*st", "n?st", "l*st"}, "list", true},
 		{[]string{"?", "??", "???"}, "t", true},
 		{[]string{"a", "b", "c"}, "d", false},
