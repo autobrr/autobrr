@@ -35,12 +35,8 @@ func match(pattern, name string, simple bool) (matched bool) {
 		return len(name) == 1
 	} else if idx := strings.IndexAny(pattern, "*?"); idx == -1 {
 		return name == pattern
-	} else if idx != 0 && idx == len(pattern)-1 {
-		if pattern[idx] == '*' {
-			return strings.HasPrefix(name, pattern[:idx-1])
-		} else if pattern[idx] == '?' && idx == len(name)-1 {
-			return pattern[:idx-1] == name[:idx-1]
-		}
+	} else if idx == len(pattern)-1 && pattern[idx] == '*' {
+		return strings.HasPrefix(name, pattern[:idx-1])
 	} else if !simple && len(pattern) == len(name) && !strings.Contains(pattern, "*") {
 		base := 0
 		for {
