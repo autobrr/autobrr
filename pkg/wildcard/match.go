@@ -39,7 +39,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 		return strings.HasPrefix(name, pattern[:idx-1])
 	} else if !simple && len(pattern) == len(name) && !strings.Contains(pattern, "*") {
 		base := 0
-		for {
+		for base < len(name) {
 			i := strings.IndexRune(pattern[base:], '?')
 			if i == -1 {
 				if name[base:] != pattern[base:] {
@@ -47,7 +47,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 				}
 
 				base = len(name)
-				break
+				continue
 			}
 
 			offset := base + i
