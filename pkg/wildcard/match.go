@@ -59,8 +59,9 @@ func match(pattern, name string, simple bool) (matched bool) {
 		}
 
 		return base == len(name)
-	} else if !simple && strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") &&
-		!strings.Contains(pattern, "?") && strings.Count(pattern, "*") == 2 {
+	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && // *egg*
+		(simple || (!simple && !strings.Contains(pattern, "?"))) && // simple is fine, if not we need to check for ? and skip if so.
+		strings.Count(pattern, "*") == 2 { // make sure that we have no other wildcards.
 		return strings.Contains(name, pattern[1:len(pattern)-1])
 	}
 
