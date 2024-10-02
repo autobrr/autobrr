@@ -356,7 +356,14 @@ export const SelectFieldWide = ({
               }
             })}
             value={field?.value && field.value.value}
-            onChange={(option) => setFieldValue(field.name, option?.value ?? "")}
+            onChange={(newValue: unknown) => {
+              if (newValue) {
+                setFieldValue(field.name, (newValue as { value: string }).value);
+              }
+              else {
+                setFieldValue(field.name, "")
+              }
+            }}
             options={options}
           />
         )}
