@@ -37,12 +37,16 @@ func match(pattern, name string, simple bool) (matched bool) {
 		return name == pattern
 	} else if idx == len(pattern)-1 && pattern[idx] == '*' {
 		return strings.HasPrefix(name, pattern[:idx-1])
-	} else if !simple && len(pattern) == len(name) && !strings.Contains(pattern, "*") {
+	} else if wildEnd := pattern[len(pattern)-1] == '*'; !simple &&
+		((wildEnd && strings.Count(pattern, "*") == 1) || // egg?bert*
+			(len(pattern) == len(name) && !strings.Contains(pattern, "*"))) { // egg?bert?
+
 		base := 0
 		for base < len(name) {
 			i := strings.IndexRune(pattern[base:], '?')
 			if i == -1 {
-				if name[base:] != pattern[base:] {
+				if (wildEnd && !strings.HasPrefix(name[base:], pattern[base:len(pattern)-1])) || // egg*
+					(!wildEnd && name[base:] != pattern[base:]) { // egg
 					break
 				}
 

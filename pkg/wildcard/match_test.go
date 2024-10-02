@@ -208,3 +208,11 @@ func TestMatchSlice(t *testing.T) {
 		}
 	}
 }
+
+func Benchmark_Regex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		TestMatchSlice(nil)
+		b.StopTimer()
+	}
+}
