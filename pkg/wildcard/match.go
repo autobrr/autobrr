@@ -27,15 +27,15 @@ func Match(pattern, name string) (matched bool) {
 }
 
 func match(pattern, name string, simple bool) (matched bool) {
-	if pattern == "" {
+	if pattern == "" { //
 		return name == ""
-	} else if pattern == "*" {
+	} else if pattern == "*" { // *
 		return true
-	} else if !simple && pattern == "?" {
+	} else if !simple && pattern == "?" { // ?
 		return len(name) == 1
-	} else if idx := strings.IndexAny(pattern, "*?"); idx == -1 {
+	} else if idx := strings.IndexAny(pattern, "*?"); idx == -1 { // egg
 		return name == pattern
-	} else if idx == len(pattern)-1 && pattern[idx] == '*' {
+	} else if idx == len(pattern)-1 && pattern[idx] == '*' { // egg*
 		return strings.HasPrefix(name, pattern[:idx-1])
 	} else if wildEnd := pattern[len(pattern)-1] == '*'; !simple &&
 		((wildEnd && strings.Count(pattern, "*") == 1) || // egg?bert*
