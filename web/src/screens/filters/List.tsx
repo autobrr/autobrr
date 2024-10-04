@@ -825,7 +825,11 @@ export const SortSelectFilter = ({ dispatch }: any) => {
     { label: "Name A-Z", value: "name-asc" },
     { label: "Name Z-A", value: "name-desc" },
     { label: "Priority highest", value: "priority-desc" },
-    { label: "Priority lowest", value: "priority-asc" }
+    { label: "Priority lowest", value: "priority-asc" },
+    { label: "Recently created first", value: "created_at-desc" },
+    { label: "Recently created last", value: "created_at-asc" },
+    { label: "Recently updated first", value: "updated_at-desc" },
+    { label: "Recently updated last", value: "updated_at-asc" }
   ];
 
   // Render a multi-select box
