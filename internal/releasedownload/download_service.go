@@ -237,6 +237,10 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 				if retryAfter <= 0 {
 					return retry.Unrecoverable(errors.New("rate-limit reached (%d) while downloading torrent (%s) file (%s) indexer (%s)", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name))
 				}
+				if retryAfter > 7200 {
+					return retry.Unrecoverable(errors.New("rate-limit reached (%d) while downloading torrent (%s) file (%s) indexer (%s) retry-after %d seconds is higher than allowed limit of 2h, aborting", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name, retryAfter))
+				}
+
 				rateLimitErr := errors.New("rate-limit reached (%d) while downloading torrent (%s) file (%s) indexer (%s), retrying in %d seconds", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name, retryAfter)
 
 				return &RetriableError{
