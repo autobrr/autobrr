@@ -926,18 +926,33 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 
 			action, err := actionRepo.Store(context.Background(), mockAction)
 
-			mockReleaseActionStatus = getMockReleaseActionStatus()
-			mockReleaseActionStatus.FilterID = int64(mockData.ID)
-			mockReleaseActionStatus.Timestamp = mockReleaseActionStatus.Timestamp.AddDate(0, -1, 0)
+			mockAction2 := getMockAction()
+			mockAction2.FilterID = mockData.ID
+			mockAction2.ClientID = mockClient.ID
+
+			action2, err := actionRepo.Store(context.Background(), mockAction2)
+
 			mockRelease.FilterID = mockData.ID
 
 			err = releaseRepo.Store(context.Background(), mockRelease)
 			assert.NoError(t, err)
 
+			mockReleaseActionStatus = getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(action.ID)
+			mockReleaseActionStatus.FilterID = int64(mockData.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
+			mockReleaseActionStatus.Timestamp = mockReleaseActionStatus.Timestamp.AddDate(0, -1, 0)
 
 			err = releaseRepo.StoreReleaseActionStatus(context.Background(), mockReleaseActionStatus)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus2 := getMockReleaseActionStatus()
+			mockReleaseActionStatus2.ActionID = int64(action2.ID)
+			mockReleaseActionStatus2.FilterID = int64(mockData.ID)
+			mockReleaseActionStatus2.ReleaseID = mockRelease.ID
+			mockReleaseActionStatus2.Timestamp = mockReleaseActionStatus2.Timestamp.AddDate(0, -1, 0)
+
+			err = releaseRepo.StoreReleaseActionStatus(context.Background(), mockReleaseActionStatus2)
 			assert.NoError(t, err)
 
 			// Execute
