@@ -18,10 +18,10 @@ import (
 type notificationService interface {
 	Find(context.Context, domain.NotificationQueryParams) ([]domain.Notification, int, error)
 	FindByID(ctx context.Context, id int) (*domain.Notification, error)
-	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
-	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
+	Store(ctx context.Context, notification *domain.Notification) error
+	Update(ctx context.Context, notification *domain.Notification) error
 	Delete(ctx context.Context, id int) error
-	Test(ctx context.Context, notification domain.Notification) error
+	Test(ctx context.Context, notification *domain.Notification) error
 }
 
 type notificationHandler struct {
@@ -59,19 +59,19 @@ func (h notificationHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h notificationHandler) store(w http.ResponseWriter, r *http.Request) {
-	var data domain.Notification
+	var data *domain.Notification
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	filter, err := h.service.Store(r.Context(), data)
+	err := h.service.Store(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, filter)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
@@ -96,19 +96,19 @@ func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
-	var data domain.Notification
+	var data *domain.Notification
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	filter, err := h.service.Update(r.Context(), data)
+	err := h.service.Update(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusOK, filter)
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -127,7 +127,7 @@ func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
-	var data domain.Notification
+	var data *domain.Notification
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
