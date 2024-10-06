@@ -30,7 +30,7 @@ type TelegramMessage struct {
 
 type telegramSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	ThreadID int
 	builder  MessageBuilderHTML
 
@@ -41,7 +41,7 @@ func (s *telegramSender) Name() string {
 	return "telegram"
 }
 
-func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	threadID := 0
 	if t := settings.Topic; t != "" {
 		var err error

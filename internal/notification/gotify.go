@@ -26,7 +26,7 @@ type gotifyMessage struct {
 
 type gotifySender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	builder  MessageBuilderPlainText
 
 	httpClient *http.Client
@@ -36,7 +36,7 @@ func (s *gotifySender) Name() string {
 	return "gotify"
 }
 
-func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func NewGotifySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &gotifySender{
 		log:      log.With().Str("sender", "gotify").Logger(),
 		Settings: settings,

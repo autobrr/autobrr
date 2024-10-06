@@ -44,7 +44,7 @@ type notifiarrMessageData struct {
 
 type notifiarrSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	baseUrl  string
 
 	httpClient *http.Client
@@ -54,7 +54,7 @@ func (s *notifiarrSender) Name() string {
 	return "notifiarr"
 }
 
-func NewNotifiarrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func NewNotifiarrSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &notifiarrSender{
 		log:      log.With().Str("sender", "notifiarr").Logger(),
 		Settings: settings,
