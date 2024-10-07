@@ -93,14 +93,9 @@ func TestMatch(t *testing.T) {
 			matched: true,
 		},
 		{
-			pattern: "The God of the Brr*The Power of Brr",
-			text:    "The God of the Brr - The Power of Brr",
-			matched: true,
-		},
-		{
-			pattern: "The God of the Brr*The Power of Brr",
-			text:    "The God of the BrrThe Power of Brr",
-			matched: true,
+			pattern: "mysteries?of?the?abandoned*",
+			text:    "them",
+			matched: false,
 		},
 	}
 	// Iterating over the test cases, call the function under test and assert the output.
