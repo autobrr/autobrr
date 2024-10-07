@@ -55,7 +55,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 			}
 
 			offset := base + i
-			if name[base:offset] != pattern[base:offset] {
+			if len(name) < offset || name[base:offset] != pattern[base:offset] {
 				break
 			}
 
