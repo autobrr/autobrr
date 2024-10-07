@@ -286,7 +286,7 @@ func (db *DB) backupDatabase() error {
 	}
 
 	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format("2006-01-02T15:04:05"))
-	_, err := db.handler.Exec(fmt.Sprintf("VACUUM INTO '%s';", backupFile))
+	_, err := db.handler.Exec("VACUUM INTO ?;", backupFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to backup database")
 	}
