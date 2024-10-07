@@ -7,6 +7,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -113,6 +117,18 @@ func (db *DB) migrateSQLite() error {
 
 	db.log.Info().Msgf("Beginning database schema upgrade from version %v to version: %v", version, len(sqliteMigrations))
 
+	if version != 0 && version != len(sqliteMigrations) {
+
+		if err := db.databaseConsistencyCheckSQLite(); err != nil {
+			return errors.Wrap(err, "database image malformed")
+		}
+
+		if err := db.backupDatabase(); err != nil {
+			return errors.Wrap(err, "failed to create database backup")
+		}
+
+	}
+
 	tx, err := db.handler.Begin()
 	if err != nil {
 		return err
@@ -148,6 +164,10 @@ func (db *DB) migrateSQLite() error {
 	}
 
 	db.log.Info().Msgf("Database schema upgraded to version: %v", len(sqliteMigrations))
+
+	if err := db.cleanupBackups(); err != nil {
+		return err
+	}
 
 	return tx.Commit()
 }
@@ -240,4 +260,81 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 	}
 
 	return nil
+}
+
+func (db *DB) databaseConsistencyCheckSQLite() error {
+	row := db.handler.QueryRow("PRAGMA integrity_check;")
+
+	var status string
+
+	if err := row.Scan(&status); err != nil {
+		return errors.Wrap(err, "backup integrity unexpected state")
+	}
+
+	if status != "ok" {
+		return errors.New("backup integrity check failed: %q", status)
+	}
+
+	return nil
+}
+
+func (db *DB) backupDatabase() error {
+
+	var version int
+	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+		return errors.Wrap(err, "failed to query schema version")
+	}
+
+	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format("2006-01-02T15:04:05"))
+	_, err := db.handler.Exec(fmt.Sprintf("VACUUM INTO '%s';", backupFile))
+	if err != nil {
+		return errors.Wrap(err, "failed to backup database")
+	}
+	db.log.Info().Msgf("Database backup created at: %s", backupFile)
+
+	return nil
+}
+
+func (db *DB) cleanupBackups() error {
+
+	backupDir := filepath.Dir(db.DSN)
+
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		return errors.Wrap(err, "failed to read backup directory")
+	}
+
+	var backups []string
+
+	// Parse the filenames to extract timestamps
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".backup") {
+			// Extract timestamp from filename
+			parts := strings.Split(file.Name(), "_")
+			if len(parts) < 3 {
+				continue
+			}
+			timestamp := strings.TrimSuffix(parts[2], ".backup")
+			if _, err := time.Parse("2006-01-02T15:04:05", timestamp); err == nil {
+				backups = append(backups, file.Name())
+			}
+		}
+	}
+
+	// Sort backups by timestamp
+	sort.Slice(backups, func(i, j int) bool {
+		t1, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
+		t2, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
+		return t1.After(t2)
+	})
+
+	for i := db.cfg.DbMaxBackups; i < len(backups); i++ {
+		if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
+			return errors.Wrap(err, "failed to remove old backups")
+		}
+		db.log.Info().Msgf("Removed backup: %s", backups[i])
+	}
+
+	return nil
+
 }
