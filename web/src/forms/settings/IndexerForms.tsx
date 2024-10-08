@@ -25,6 +25,7 @@ import { FeedDownloadTypeOptions } from "@domain/constants";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
 import { SelectField } from "@forms/settings/IrcForms";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
 
@@ -255,12 +256,7 @@ type SelectValue = {
   value: string;
 };
 
-export interface AddProps {
-  isOpen: boolean;
-  toggle: () => void;
-}
-
-export function IndexerAddForm({ isOpen, toggle }: AddProps) {
+export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
   const queryClient = useQueryClient();
@@ -729,13 +725,7 @@ interface IndexerUpdateInitialValues {
   }
 }
 
-interface UpdateProps {
-  isOpen: boolean;
-  toggle: () => void;
-  indexer: IndexerDefinition;
-}
-
-export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
+export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormProps<IndexerDefinition>) {
   const queryClient = useQueryClient();
 
   const proxies = useQuery(ProxiesQueryOptions());

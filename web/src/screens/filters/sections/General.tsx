@@ -6,20 +6,27 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { downloadsPerUnitOptions } from "@domain/constants";
-import { IndexersOptionsQueryOptions } from "@api/queries";
+import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 
 import { DocsLink } from "@components/ExternalLink";
 import { FilterLayout, FilterPage, FilterSection } from "./_components";
-import { IndexerMultiSelect, MultiSelectOption, NumberField, Select, SwitchGroup, TextField } from "@components/inputs";
+import { IndexerMultiSelect, MultiSelectOption, NumberField, Select, SelectFieldOption, SwitchGroup, TextField } from "@components/inputs";
 
 
 const MapIndexer = (indexer: Indexer) => (
   { label: indexer.name, value: indexer.id } as MultiSelectOption
 );
 
+const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
+  { label: profile.name, value: profile.id } as SelectFieldOption
+);
+
 export const General = () => {
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
   const indexerOptions = indexersQuery.data && indexersQuery.data.map(MapIndexer)
+
+  const duplicateProfilesQuery = useSuspenseQuery(ReleaseProfileDuplicateList())
+  const duplicateProfilesOptions = duplicateProfilesQuery.data && duplicateProfilesQuery.data.map(MapReleaseProfile)
 
   // const indexerOptions = data?.map(MapIndexer) ?? [];
 
@@ -108,6 +115,13 @@ export const General = () => {
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
+          />
+          <Select
+            name={`release_profile_duplicate_id`}
+            label="Skip Duplicates profile"
+            optionDefaultText="Select profile"
+            options={[{label: "Select profile", value: null}, ...duplicateProfilesOptions]}
+            tooltip={<div><p>Select the skip duplicate profile.</p></div>}
           />
         </FilterLayout>
 

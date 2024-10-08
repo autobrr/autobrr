@@ -232,6 +232,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.max_seeders",
 			"f.min_leechers",
 			"f.max_leechers",
+			"f.release_profile_duplicate_id",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -258,6 +259,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, maxDownloads, logScore sql.NullInt32
+	var releaseProfileDuplicateId sql.NullInt64
 
 	err = row.Scan(
 		&f.ID,
@@ -324,6 +326,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&f.MaxSeeders,
 		&f.MinLeechers,
 		&f.MaxLeechers,
+		&releaseProfileDuplicateId,
 		&f.CreatedAt,
 		&f.UpdatedAt,
 	)
@@ -372,6 +375,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.UseRegex = useRegex.Bool
 	f.Scene = scene.Bool
 	f.Freeleech = freeleech.Bool
+	f.ReleaseProfileDuplicateID = releaseProfileDuplicateId.Int64
 
 	return &f, nil
 }
@@ -450,10 +454,34 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.max_leechers",
 			"f.created_at",
 			"f.updated_at",
+			"f.release_profile_duplicate_id",
+			"rdp.id",
+			"rdp.name",
+			"rdp.release_name",
+			"rdp.title",
+			"rdp.sub_title",
+			"rdp.year",
+			"rdp.month",
+			"rdp.day",
+			"rdp.source",
+			"rdp.resolution",
+			"rdp.codec",
+			"rdp.container",
+			"rdp.dynamic_range",
+			"rdp.audio",
+			"rdp.release_group",
+			"rdp.season",
+			"rdp.episode",
+			"rdp.website",
+			"rdp.proper",
+			"rdp.repack",
+			"rdp.edition",
+			"rdp.language",
 		).
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
 		Join("indexer i ON i.id = fi.indexer_id").
+		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
 		Where(sq.Eq{"f.enabled": true}).
@@ -479,6 +507,10 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
+		var releaseProfileDuplicateID, rdpId sql.NullInt64
+
+		var rdpName sql.NullString
+		var rdpRelName, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage sql.NullBool
 
 		err := rows.Scan(
 			&f.ID,
@@ -547,6 +579,29 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&f.MaxLeechers,
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&releaseProfileDuplicateID,
+			&rdpId,
+			&rdpName,
+			&rdpRelName,
+			&rdpTitle,
+			&rdpSubTitle,
+			&rdpYear,
+			&rdpMonth,
+			&rdpDay,
+			&rdpSource,
+			&rdpResolution,
+			&rdpCodec,
+			&rdpContainer,
+			&rdpDynRange,
+			&rdpAudio,
+			&rdpGroup,
+			&rdpSeason,
+			&rdpEpisode,
+			&rdpWebsite,
+			&rdpProper,
+			&rdpRepack,
+			&rdpEdition,
+			&rdpLanguage,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
@@ -589,8 +644,39 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.UseRegex = useRegex.Bool
 		f.Scene = scene.Bool
 		f.Freeleech = freeleech.Bool
+		f.ReleaseProfileDuplicateID = releaseProfileDuplicateID.Int64
 
 		f.Rejections = []string{}
+
+		if releaseProfileDuplicateID.Valid {
+			profile := domain.DuplicateReleaseProfile{
+				ID: rdpId.Int64,
+				//Protocol:    rdpName.String,
+				Name: rdpName.String,
+				//Exact:       rdpRelName.Bool,
+				ReleaseName:  rdpRelName.Bool,
+				Title:        rdpTitle.Bool,
+				SubTitle:     rdpSubTitle.Bool,
+				Year:         rdpYear.Bool,
+				Month:        rdpMonth.Bool,
+				Day:          rdpDay.Bool,
+				Source:       rdpSource.Bool,
+				Resolution:   rdpResolution.Bool,
+				Codec:        rdpCodec.Bool,
+				Container:    rdpContainer.Bool,
+				DynamicRange: rdpDynRange.Bool,
+				Audio:        rdpAudio.Bool,
+				Group:        rdpGroup.Bool,
+				Season:       rdpSeason.Bool,
+				Episode:      rdpEpisode.Bool,
+				Website:      rdpWebsite.Bool,
+				Proper:       rdpProper.Bool,
+				Repack:       rdpRepack.Bool,
+				Edition:      rdpEdition.Bool,
+				Language:     rdpLanguage.Bool,
+			}
+			f.DuplicateHandling = &profile
+		}
 
 		filters = append(filters, &f)
 	}
@@ -750,6 +836,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"max_seeders",
 			"min_leechers",
 			"max_leechers",
+			"release_profile_duplicate_id",
 		).
 		Values(
 			filter.Name,
@@ -815,6 +902,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MaxSeeders,
 			filter.MinLeechers,
 			filter.MaxLeechers,
+			toNullInt64(filter.ReleaseProfileDuplicateID),
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -898,6 +986,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("max_seeders", filter.MaxSeeders).
 		Set("min_leechers", filter.MinLeechers).
 		Set("max_leechers", filter.MaxLeechers).
+		Set("release_profile_duplicate_id", toNullInt64(filter.ReleaseProfileDuplicateID)).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
@@ -1113,6 +1202,9 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.MaxLeechers != nil {
 		q = q.Set("max_leechers", filter.MaxLeechers)
+	}
+	if filter.ReleaseProfileDuplicateID != nil {
+		q = q.Set("release_profile_duplicate_id", filter.ReleaseProfileDuplicateID)
 	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})

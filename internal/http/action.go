@@ -17,7 +17,7 @@ import (
 
 type actionService interface {
 	List(ctx context.Context) ([]domain.Action, error)
-	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
+	Store(ctx context.Context, action *domain.Action) error
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	ToggleEnabled(actionID int) error
 }
@@ -56,35 +56,35 @@ func (h actionHandler) getActions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
-	var data domain.Action
+	var data *domain.Action
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	action, err := h.service.Store(r.Context(), data)
+	err := h.service.Store(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, action)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
-	var data domain.Action
+	var data *domain.Action
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	action, err := h.service.Store(r.Context(), data)
+	err := h.service.Store(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, action)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {

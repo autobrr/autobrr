@@ -7,6 +7,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"html"
 	"io"
@@ -41,6 +43,11 @@ type ReleaseRepo interface {
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
 	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
+
+	StoreDuplicateProfile(ctx context.Context, profile *DuplicateReleaseProfile) error
+	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
+	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *Release) (bool, error)
 }
 
 type Release struct {
@@ -52,6 +59,7 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
+	Type                        rls.Type              `json:"type"` // rls.Type
 	InfoURL                     string                `json:"info_url"`
 	DownloadURL                 string                `json:"download_url"`
 	MagnetURI                   string                `json:"-"`
@@ -60,9 +68,11 @@ type Release struct {
 	TorrentTmpFile              string                `json:"-"`
 	TorrentDataRawBytes         []byte                `json:"-"`
 	TorrentHash                 string                `json:"-"`
-	TorrentName                 string                `json:"name"` // full release name
+	TorrentName                 string                `json:"name"`            // full release name
+	NormalizedHash              string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
 	Size                        uint64                `json:"size"`
-	Title                       string                `json:"title"` // Parsed title
+	Title                       string                `json:"title"`     // Parsed title
+	SubTitle                    string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
 	Description                 string                `json:"-"`
 	Category                    string                `json:"category"`
 	Categories                  []string              `json:"categories,omitempty"`
@@ -86,8 +96,11 @@ type Release struct {
 	Proper                      bool                  `json:"proper"`
 	Repack                      bool                  `json:"repack"`
 	Website                     string                `json:"website"`
+	Hybrid                      bool                  `json:"hybrid"`
+	Edition                     []string              `json:"edition"`
+	Cut                         []string              `json:"cut"`
+	MediaProcessing             string                `json:"media_processing"` // Remux, Encode, Untouched
 	Artists                     string                `json:"-"`
-	Type                        string                `json:"type"` // Album,Single,EP
 	LogScore                    int                   `json:"-"`
 	HasCue                      bool                  `json:"-"`
 	HasLog                      bool                  `json:"-"`
@@ -109,8 +122,24 @@ type Release struct {
 	ActionStatus                []ReleaseActionStatus `json:"action_status"`
 }
 
+// Hash return md5 hashed normalized release name
+func (r *Release) Hash() string {
+	normalized := rls.MustNormalize(r.TorrentName)
+	h := md5.Sum([]byte(normalized))
+	str := hex.EncodeToString(h[:])
+	return str
+}
+
 func (r *Release) Raw(s string) rls.Release {
 	return rls.ParseString(s)
+}
+
+func (r *Release) ParseType(s string) {
+	r.Type = rls.ParseType(s)
+}
+
+func (r *Release) IsTypeVideo() bool {
+	return r.Type.Is(rls.Movie, rls.Series, rls.Episode)
 }
 
 type ReleaseActionStatus struct {
@@ -305,6 +334,10 @@ func NewRelease(indexer IndexerMinimal) *Release {
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
 		Tags:           []string{},
+		Language:       []string{},
+		Edition:        []string{},
+		Cut:            []string{},
+		Other:          []string{},
 		Size:           0,
 	}
 
@@ -314,28 +347,43 @@ func NewRelease(indexer IndexerMinimal) *Release {
 func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
-	r.Type = rel.Type.String()
+	r.Type = rel.Type
 
 	r.TorrentName = title
+	r.NormalizedHash = r.Hash()
+
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region
+
+	if rel.Language != nil {
+		r.Language = rel.Language
+	}
+
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
 	r.Artists = rel.Artist
-	r.Language = rel.Language
 
-	r.Other = rel.Other
+	if rel.Other != nil {
+		r.Other = rel.Other
+	}
 
 	r.Proper = slices.Contains(r.Other, "PROPER")
-	r.Repack = slices.Contains(r.Other, "REPACK")
+	r.Repack = slices.Contains(r.Other, "REPACK") || slices.Contains(r.Other, "REREPACK")
+	r.Hybrid = slices.Contains(r.Other, "HYBRiD")
+
+	// TODO default to Encode and set Untouched for discs
+	if slices.Contains(r.Other, "REMUX") {
+		r.MediaProcessing = "REMUX"
+	}
 
 	if r.Title == "" {
 		r.Title = rel.Title
 	}
+	r.SubTitle = rel.Subtitle
 
 	if r.Season == 0 {
 		r.Season = rel.Series
@@ -358,10 +406,26 @@ func (r *Release) ParseString(title string) {
 		r.Group = rel.Group
 	}
 
+	if r.Website == "" {
+		r.Website = rel.Collection
+	}
+
+	if rel.Cut != nil {
+		r.Cut = rel.Cut
+	}
+
+	if rel.Edition != nil {
+		r.Edition = rel.Edition
+	}
+
 	r.ParseReleaseTagsString(r.ReleaseTags)
 }
 
 func (r *Release) ParseReleaseTagsString(tags string) {
+	if tags == "" {
+		return
+	}
+
 	cleanTags := CleanReleaseTags(tags)
 	t := ParseReleaseTagString(cleanTags)
 
@@ -440,6 +504,20 @@ func (r *Release) OpenTorrentFile() error {
 	r.TorrentDataRawBytes = tmpFile
 
 	return nil
+}
+
+// AudioString takes r.Audio and r.AudioChannels and returns a string like "DDP Atmos 5.1"
+func (r *Release) AudioString() string {
+	var audio []string
+
+	audio = append(audio, r.Audio...)
+	audio = append(audio, r.AudioChannels)
+
+	if len(audio) > 0 {
+		return strings.Join(audio, " ")
+	}
+
+	return ""
 }
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
@@ -841,4 +919,31 @@ func getUniqueTags(target []string, source []string) []string {
 	target = append(target, toAppend...)
 
 	return target
+}
+
+type DuplicateReleaseProfile struct {
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Protocol     bool   `json:"protocol"`
+	ReleaseName  bool   `json:"release_name"`
+	Exact        bool   `json:"exact"`
+	Title        bool   `json:"title"`
+	SubTitle     bool   `json:"sub_title"`
+	Year         bool   `json:"year"`
+	Month        bool   `json:"month"`
+	Day          bool   `json:"day"`
+	Source       bool   `json:"source"`
+	Resolution   bool   `json:"resolution"`
+	Codec        bool   `json:"codec"`
+	Container    bool   `json:"container"`
+	DynamicRange bool   `json:"dynamic_range"`
+	Audio        bool   `json:"audio"`
+	Group        bool   `json:"group"`
+	Season       bool   `json:"season"`
+	Episode      bool   `json:"episode"`
+	Website      bool   `json:"website"`
+	Proper       bool   `json:"proper"`
+	Repack       bool   `json:"repack"`
+	Edition      bool   `json:"edition"`
+	Language     bool   `json:"language"`
 }
