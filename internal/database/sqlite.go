@@ -123,7 +123,7 @@ func (db *DB) migrateSQLite() error {
 			return errors.Wrap(err, "database image malformed")
 		}
 
-		if err := db.backupDatabase(); err != nil {
+		if err := db.backupSQLiteDatabase(); err != nil {
 			return errors.Wrap(err, "failed to create database backup")
 		}
 
@@ -165,7 +165,7 @@ func (db *DB) migrateSQLite() error {
 
 	db.log.Info().Msgf("Database schema upgraded to version: %v", len(sqliteMigrations))
 
-	if err := db.cleanupBackups(); err != nil {
+	if err := db.cleanupSQLiteBackups(); err != nil {
 		return err
 	}
 
@@ -278,7 +278,7 @@ func (db *DB) databaseConsistencyCheckSQLite() error {
 	return nil
 }
 
-func (db *DB) backupDatabase() error {
+func (db *DB) backupSQLiteDatabase() error {
 
 	var version int
 	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
@@ -295,7 +295,7 @@ func (db *DB) backupDatabase() error {
 	return nil
 }
 
-func (db *DB) cleanupBackups() error {
+func (db *DB) cleanupSQLiteBackups() error {
 
 	backupDir := filepath.Dir(db.DSN)
 
@@ -328,11 +328,13 @@ func (db *DB) cleanupBackups() error {
 		return t1.After(t2)
 	})
 
-	for i := db.cfg.DbMaxBackups; i < len(backups); i++ {
-		if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
-			return errors.Wrap(err, "failed to remove old backups")
+	if db.cfg.DbMaxBackups > 0 { // Retain all backups when db.cfg.DbMaxBackups is 0 or less
+		for i := db.cfg.DbMaxBackups; i < len(backups); i++ {
+			if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
+				return errors.Wrap(err, "failed to remove old backups")
+			}
+			db.log.Info().Msgf("Removed backup: %s", backups[i])
 		}
-		db.log.Info().Msgf("Removed backup: %s", backups[i])
 	}
 
 	return nil
