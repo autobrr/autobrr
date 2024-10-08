@@ -117,16 +117,13 @@ func (db *DB) migrateSQLite() error {
 
 	db.log.Info().Msgf("Beginning database schema upgrade from version %v to version: %v", version, len(sqliteMigrations))
 
-	if version != 0 && version != len(sqliteMigrations) {
-
+	if version != 0 && version != len(sqliteMigrations) && db.cfg.DbMaxBackups != 0 {
 		if err := db.databaseConsistencyCheckSQLite(); err != nil {
 			return errors.Wrap(err, "database image malformed")
 		}
-
 		if err := db.backupSQLiteDatabase(); err != nil {
 			return errors.Wrap(err, "failed to create database backup")
 		}
-
 	}
 
 	tx, err := db.handler.Begin()
@@ -165,16 +162,13 @@ func (db *DB) migrateSQLite() error {
 
 	db.log.Info().Msgf("Database schema upgraded to version: %v", len(sqliteMigrations))
 
-	if db.cfg.DbMaxBackups > 0 { // Retain all backups when db.cfg.DbMaxBackups is 0 or less
-
+	if db.cfg.DbMaxBackups >= 0 {
 		if err := db.cleanupSQLiteBackups(); err != nil {
 			return err
 		}
-
 	}
 
 	return tx.Commit()
-
 }
 
 // customMigrateCopySourcesToMedia move music specific sources to media
@@ -271,11 +265,9 @@ func (db *DB) databaseConsistencyCheckSQLite() error {
 	row := db.handler.QueryRow("PRAGMA integrity_check;")
 
 	var status string
-
 	if err := row.Scan(&status); err != nil {
 		return errors.Wrap(err, "backup integrity unexpected state")
 	}
-
 	if status != "ok" {
 		return errors.New("backup integrity check failed: %q", status)
 	}
@@ -341,5 +333,4 @@ func (db *DB) cleanupSQLiteBackups() error {
 	}
 
 	return nil
-
 }
