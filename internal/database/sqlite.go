@@ -165,11 +165,16 @@ func (db *DB) migrateSQLite() error {
 
 	db.log.Info().Msgf("Database schema upgraded to version: %v", len(sqliteMigrations))
 
-	if err := db.cleanupSQLiteBackups(); err != nil {
-		return err
+	if db.cfg.DbMaxBackups > 0 { // Retain all backups when db.cfg.DbMaxBackups is 0 or less
+
+		if err := db.cleanupSQLiteBackups(); err != nil {
+			return err
+		}
+
 	}
 
 	return tx.Commit()
+
 }
 
 // customMigrateCopySourcesToMedia move music specific sources to media
@@ -297,45 +302,42 @@ func (db *DB) backupSQLiteDatabase() error {
 
 func (db *DB) cleanupSQLiteBackups() error {
 
-	if db.cfg.DbMaxBackups > 0 { // Retain all backups when db.cfg.DbMaxBackups is 0 or less
+	backupDir := filepath.Dir(db.DSN)
 
-		backupDir := filepath.Dir(db.DSN)
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		return errors.Wrap(err, "failed to read backup directory")
+	}
 
-		files, err := os.ReadDir(backupDir)
-		if err != nil {
-			return errors.Wrap(err, "failed to read backup directory")
-		}
+	var backups []string
 
-		var backups []string
-
-		// Parse the filenames to extract timestamps
-		for _, file := range files {
-			if !file.IsDir() && strings.HasSuffix(file.Name(), ".backup") {
-				// Extract timestamp from filename
-				parts := strings.Split(file.Name(), "_")
-				if len(parts) < 3 {
-					continue
-				}
-				timestamp := strings.TrimSuffix(parts[2], ".backup")
-				if _, err := time.Parse("2006-01-02T15:04:05", timestamp); err == nil {
-					backups = append(backups, file.Name())
-				}
+	// Parse the filenames to extract timestamps
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".backup") {
+			// Extract timestamp from filename
+			parts := strings.Split(file.Name(), "_")
+			if len(parts) < 3 {
+				continue
+			}
+			timestamp := strings.TrimSuffix(parts[2], ".backup")
+			if _, err := time.Parse("2006-01-02T15:04:05", timestamp); err == nil {
+				backups = append(backups, file.Name())
 			}
 		}
+	}
 
-		// Sort backups by timestamp
-		sort.Slice(backups, func(i, j int) bool {
-			t1, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
-			t2, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
-			return t1.After(t2)
-		})
+	// Sort backups by timestamp
+	sort.Slice(backups, func(i, j int) bool {
+		t1, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
+		t2, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
+		return t1.After(t2)
+	})
 
-		for i := db.cfg.DbMaxBackups; i < len(backups); i++ {
-			if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
-				return errors.Wrap(err, "failed to remove old backups")
-			}
-			db.log.Info().Msgf("Removed backup: %s", backups[i])
+	for i := db.cfg.DbMaxBackups; i < len(backups); i++ {
+		if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
+			return errors.Wrap(err, "failed to remove old backups")
 		}
+		db.log.Info().Msgf("Removed backup: %s", backups[i])
 	}
 
 	return nil
