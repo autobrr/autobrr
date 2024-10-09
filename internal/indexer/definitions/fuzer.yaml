@@ -25,7 +25,7 @@ settings:
 
 irc:
   network: Fuzer
-  server: irc.fuzer.me
+  server: irc.fuzer.xyz
   port: 6697
   tls: true
   channels:
