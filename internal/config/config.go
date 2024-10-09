@@ -216,6 +216,7 @@ func (c *AppConfig) defaults() {
 		LogPath:             "",
 		LogMaxSize:          50,
 		LogMaxBackups:       3,
+		DbMaxBackups:        5,
 		BaseURL:             "/",
 		SessionSecret:       api.GenerateSecureToken(16),
 		CustomDefinitions:   "",
@@ -272,6 +273,13 @@ func (c *AppConfig) loadFromEnv() {
 		i, _ := strconv.ParseInt(v, 10, 32)
 		if i > 0 {
 			c.Config.LogMaxBackups = int(i)
+		}
+	}
+
+	if v := os.Getenv(prefix + "DB_MAX_BACKUPS"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.DbMaxBackups = int(i)
 		}
 	}
 
