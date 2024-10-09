@@ -137,10 +137,17 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
 				err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
 				if err != nil {
-					return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
+					if rpcErr, ok := err.(deluge.RPCError); ok && rpcErr.ExceptionMessage == "Unknown Label" {
+						if addErr := labelPluginActive.AddLabel(ctx, action.Label); addErr != nil {
+							return nil, errors.Wrap(addErr, "could not add label: %s on client: %s", action.Label, client.Name)
+						}
+						err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
+					}
+					if err != nil {
+						return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
+					}
 				}
 			}
 		}
@@ -185,10 +192,17 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
 				err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
 				if err != nil {
-					return nil, errors.Wrap(err, "could not set label: %v on client: %s", action.Label, client.Name)
+					if rpcErr, ok := err.(deluge.RPCError); ok && rpcErr.ExceptionMessage == "Unknown Label" {
+						if addErr := labelPluginActive.AddLabel(ctx, action.Label); addErr != nil {
+							return nil, errors.Wrap(addErr, "could not add label: %s on client: %s", action.Label, client.Name)
+						}
+						err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
+					}
+					if err != nil {
+						return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
+					}
 				}
 			}
 		}
@@ -248,10 +262,17 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
 				err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
 				if err != nil {
-					return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
+					if rpcErr, ok := err.(deluge.RPCError); ok && rpcErr.ExceptionMessage == "Unknown Label" {
+						if addErr := labelPluginActive.AddLabel(ctx, action.Label); addErr != nil {
+							return nil, errors.Wrap(addErr, "could not add label: %s on client: %s", action.Label, client.Name)
+						}
+						err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
+					}
+					if err != nil {
+						return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
+					}
 				}
 			}
 		}
@@ -295,10 +316,17 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
 				err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
 				if err != nil {
-					return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
+					if rpcErr, ok := err.(deluge.RPCError); ok && rpcErr.ExceptionMessage == "Unknown Label" {
+						if addErr := labelPluginActive.AddLabel(ctx, action.Label); addErr != nil {
+							return nil, errors.Wrap(addErr, "could not add label: %s on client: %s", action.Label, client.Name)
+						}
+						err = labelPluginActive.SetTorrentLabel(ctx, torrentHash, action.Label)
+					}
+					if err != nil {
+						return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
+					}
 				}
 			}
 		}
