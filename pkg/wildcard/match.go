@@ -65,7 +65,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 			consumedPattern = offset
 		}
 
-		return base == len(name) && consumedPattern = len(pattern)
+		return base == len(name) && consumedPattern == len(pattern)
 	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && // *egg*
 		(simple || (!simple && !strings.Contains(pattern, "?"))) && // simple is fine, if not we need to check for ? and skip if so.
 		strings.Count(pattern, "*") == 2 { // make sure that we have no other wildcards.
