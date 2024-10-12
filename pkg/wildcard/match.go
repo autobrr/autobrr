@@ -62,7 +62,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 			}
 
 			base = offset + 1
-			consumedPattern = offset
+			consumedPattern = base
 		}
 
 		return base == len(name) && consumedPattern == len(pattern)
