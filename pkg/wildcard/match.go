@@ -42,6 +42,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 			(len(pattern) == len(name) && !strings.Contains(pattern, "*"))) { // egg?bert?
 
 		base := 0
+		consumedPattern := 0
 		for base < len(name) {
 			i := strings.IndexRune(pattern[base:], '?')
 			if i == -1 {
@@ -51,6 +52,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 				}
 
 				base = len(name)
+				consumedPattern = len(pattern)
 				continue
 			}
 
@@ -60,9 +62,10 @@ func match(pattern, name string, simple bool) (matched bool) {
 			}
 
 			base = offset + 1
+			consumedPattern = offset
 		}
 
-		return base == len(name)
+		return base == len(name) && consumedPattern = len(pattern)
 	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && // *egg*
 		(simple || (!simple && !strings.Contains(pattern, "?"))) && // simple is fine, if not we need to check for ? and skip if so.
 		strings.Count(pattern, "*") == 2 { // make sure that we have no other wildcards.
