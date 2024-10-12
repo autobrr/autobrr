@@ -112,6 +112,11 @@ func TestMatch(t *testing.T) {
 			text:    "tam e",
 			matched: false,
 		},
+		{
+			pattern: "Hard?Quiz*",
+			text:    "HardX 24 10 12 Ella Reese XXX 1080p MP4-WRB",
+			matched: false,
+		},
 	}
 	// Iterating over the test cases, call the function under test and assert the output.
 	for i, testCase := range testCases {
