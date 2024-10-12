@@ -41,31 +41,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 		((wildEnd && strings.Count(pattern, "*") == 1) || // egg?bert*
 			(len(pattern) == len(name) && !strings.Contains(pattern, "*"))) { // egg?bert?
 
-		base := 0
-		consumedPattern := 0
-		for base < len(name) && consumedPattern < len(pattern) {
-			i := strings.IndexRune(pattern[base:], '?')
-			if i == -1 {
-				if (wildEnd && !strings.HasPrefix(name[base:], pattern[base:len(pattern)-1])) || // egg*
-					(!wildEnd && name[base:] != pattern[base:]) { // egg
-					break
-				}
-
-				base = len(name)
-				consumedPattern = len(pattern)
-				continue
-			}
-
-			offset := base + i
-			if len(name) < offset || name[base:offset] != pattern[base:offset] {
-				break
-			}
-
-			base = offset + 1
-			consumedPattern = base
-		}
-
-		return base == len(name) && consumedPattern == len(pattern)
+		return matchWildEnd(name, pattern)
 	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && // *egg*
 		(simple || (!simple && !strings.Contains(pattern, "?"))) && // simple is fine, if not we need to check for ? and skip if so.
 		strings.Count(pattern, "*") == 2 { // make sure that we have no other wildcards.
@@ -73,6 +49,36 @@ func match(pattern, name string, simple bool) (matched bool) {
 	}
 
 	return deepMatchRune(name, pattern, simple, pattern, false)
+}
+
+func matchWildEnd(name, pattern string) bool {
+	base := 0
+	consumedPattern := 0
+	wildEnd := pattern[len(pattern)-1] == '*'
+
+	for base < len(name) && consumedPattern < len(pattern) {
+		i := strings.IndexRune(pattern[base:], '?')
+		if i == -1 {
+			return validateEnding(name, pattern, base, wildEnd)
+		}
+
+		offset := base + i
+		if len(name) < offset || name[base:offset] != pattern[base:offset] {
+			break
+		}
+
+		base = offset + 1
+		consumedPattern += i + 1
+	}
+
+	return base == len(name) && consumedPattern == len(pattern)
+}
+
+func validateEnding(name, pattern string, base int, wildEnd bool) bool {
+	if wildEnd {
+		return strings.HasPrefix(name[base:], pattern[base:len(pattern)-1])
+	}
+	return name[base:] == pattern[base:]
 }
 
 func MatchSliceSimple(pattern []string, name string) (matched bool) {
