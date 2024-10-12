@@ -43,7 +43,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 
 		base := 0
 		consumedPattern := 0
-		for base < len(name) {
+		for base < len(name) && consumedPattern < len(pattern) {
 			i := strings.IndexRune(pattern[base:], '?')
 			if i == -1 {
 				if (wildEnd && !strings.HasPrefix(name[base:], pattern[base:len(pattern)-1])) || // egg*
