@@ -78,6 +78,7 @@ func (db *DB) openSQLite() error {
 		return err
 	}
 
+	db.BackupDatabase(false)
 	return nil
 }
 
@@ -91,6 +92,10 @@ func (db *DB) closingSQLite() error {
 	// help tweak the performance of the database on the next run.
 	if _, err := db.handler.Exec(`PRAGMA optimize;`); err != nil {
 		return errors.Wrap(err, "query planner optimization")
+	}
+
+	if err := db.BackupDatabase(true); err != nil {
+		return errors.Wrap(err, "backup")
 	}
 
 	return nil
