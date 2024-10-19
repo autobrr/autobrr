@@ -4,7 +4,6 @@
  */
 
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
 import Select from "react-select";
 
@@ -80,14 +79,7 @@ function LogSettings() {
       title="Logs"
       description={
         <>
-          Configure log level, log size rotation, etc. You can download your old log files
-          {" "}
-          <Link
-            to="/settings/logs"
-            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-blue-500 decoration hover:text-black hover:dark:text-gray-100"
-          >
-            on the Logs page
-          </Link>.
+          Configure log level, log size rotation, etc. You can download your old log files below.
         </>
       }
     >
