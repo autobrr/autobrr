@@ -77,11 +77,7 @@ function LogSettings() {
   return (
     <Section
       title="Logs"
-      description={
-        <>
-          Configure log level, log size rotation, etc. You can download your old log files below.
-        </>
-      }
+      description="Configure log level, log size rotation, etc. You can download your old log files below."
     >
       <div className="-mx-4 lg:col-span-9">
         <div className="divide-y divide-gray-200 dark:divide-gray-750">
