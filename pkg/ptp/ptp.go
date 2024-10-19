@@ -104,6 +104,33 @@ type Torrent struct {
 	RemasterYear  *string `json:"RemasterYear,omitempty"`
 }
 
+// custom unmarshal method for Torrent
+func (t *Torrent) UnmarshalJSON(data []byte) error {
+	type Alias Torrent
+
+	aux := &struct {
+		Id interface{} `json:"Id"`
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	switch id := aux.Id.(type) {
+	case float64:
+		t.Id = fmt.Sprintf("%.0f", id)
+	case string:
+		t.Id = id
+	default:
+		return fmt.Errorf("unexpected type for Id: %T", aux.Id)
+	}
+
+	return nil
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
 	err := c.rateLimiter.Wait(ctx) // This is a blocking call. Honors the rate limit

@@ -13,7 +13,7 @@
   "ImdbVoteCount": 1859,
   "Torrents": [
     {
-      "Id": "000001",
+      "Id": 1,
       "InfoHash": "F57AA86DFB03F87FCC7636E310D35918442EAE5C",
       "Quality": "Standard Definition",
       "Source": "DVD",
