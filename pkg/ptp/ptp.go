@@ -120,7 +120,7 @@ func (t *Torrent) UnmarshalJSON(data []byte) error {
 	}
 
 	switch id := aux.Id.(type) {
-	case float64:
+	case int64:
 		t.Id = fmt.Sprintf("%.0f", id)
 	case string:
 		t.Id = id
