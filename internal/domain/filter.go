@@ -52,6 +52,10 @@ type FilterDownloads struct {
 	TotalCount int
 }
 
+func (f *FilterDownloads) String() string {
+	return fmt.Sprintf("Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
+}
+
 type FilterMaxDownloadsUnit string
 
 const (
@@ -164,6 +168,7 @@ type Filter struct {
 	Indexers             []Indexer              `json:"indexers"`
 	Downloads            *FilterDownloads       `json:"-"`
 	Rejections           []string               `json:"-"`
+	RejectReasons        *RejectionReasons      `json:"-"`
 }
 
 type FilterExternal struct {
@@ -354,156 +359,156 @@ func (f *Filter) Sanitize() error {
 	return nil
 }
 
-func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
+func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
+	f.RejectReasons = NewRejectionReasons()
+
 	// max downloads check. If reached return early so other filters can be checked as quick as possible.
 	if f.MaxDownloads > 0 && !f.checkMaxDownloads() {
-		f.addRejectionF("max downloads (%d) this (%v) reached", f.MaxDownloads, f.MaxDownloadsUnit)
-		return f.Rejections, false
+		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), f.Downloads.String(), fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
+		return f.RejectReasons, false
 	}
 
 	if len(f.Bonus) > 0 && !sliceContainsSlice(r.Bonus, f.Bonus) {
-		r.addRejectionF("bonus not matching. got: %v want: %v", r.Bonus, f.Bonus)
+		f.RejectReasons.Add("bonus", r.Bonus, f.Bonus)
 	}
 
 	if f.Freeleech && r.Freeleech != f.Freeleech {
-		f.addRejection("wanted: freeleech")
+		f.RejectReasons.Add("freeleech", r.Freeleech, f.Freeleech)
 	}
 
 	if f.FreeleechPercent != "" && !checkFreeleechPercent(r.FreeleechPercent, f.FreeleechPercent) {
-		f.addRejectionF("freeleech percent not matching. got: %v want: %v", r.FreeleechPercent, f.FreeleechPercent)
+		f.RejectReasons.Add("freeleech percent", r.FreeleechPercent, f.FreeleechPercent)
 	}
 
 	if len(f.Origins) > 0 && !containsSlice(r.Origin, f.Origins) {
-		f.addRejectionF("origin not matching. got: %v want: %v", r.Origin, f.Origins)
+		f.RejectReasons.Add("match origin", r.Origin, f.Origins)
 	}
 	if len(f.ExceptOrigins) > 0 && containsSlice(r.Origin, f.ExceptOrigins) {
-		f.addRejectionF("except origin not matching. got: %v unwanted: %v", r.Origin, f.ExceptOrigins)
+		f.RejectReasons.Add("except origin", r.Origin, f.ExceptOrigins)
 	}
 
 	// title is the parsed title
 	if f.Shows != "" && !contains(r.Title, f.Shows) {
-		f.addRejectionF("shows not matching. got: %v want: %v", r.Title, f.Shows)
+		f.RejectReasons.Add("shows", r.Title, f.Shows)
 	}
 
 	if f.Seasons != "" && !containsIntStrings(r.Season, f.Seasons) {
-		f.addRejectionF("season not matching. got: %d want: %v", r.Season, f.Seasons)
+		f.RejectReasons.Add("season", r.Season, f.Seasons)
 	}
 
 	if f.Episodes != "" && !containsIntStrings(r.Episode, f.Episodes) {
-		f.addRejectionF("episodes not matching. got: %d want: %v", r.Episode, f.Episodes)
+		f.RejectReasons.Add("episodes", r.Episode, f.Episodes)
 	}
 
 	// matchRelease
 	// match against regex
 	if f.UseRegex {
 		if f.MatchReleases != "" && !matchRegex(r.TorrentName, f.MatchReleases) {
-			f.addRejectionF("match release regex not matching. got: %v want: %v", r.TorrentName, f.MatchReleases)
+			f.RejectReasons.Add("match releases: REGEX", r.TorrentName, f.MatchReleases)
 		}
 
 		if f.ExceptReleases != "" && matchRegex(r.TorrentName, f.ExceptReleases) {
-			f.addRejectionF("except releases regex: unwanted release. got: %v want: %v", r.TorrentName, f.ExceptReleases)
+			f.RejectReasons.Add("except releases: REGEX", r.TorrentName, f.ExceptReleases)
 		}
 
 	} else {
 		if f.MatchReleases != "" && !containsFuzzy(r.TorrentName, f.MatchReleases) {
-			f.addRejectionF("match release not matching. got: %v want: %v", r.TorrentName, f.MatchReleases)
+			f.RejectReasons.Add("match releases", r.TorrentName, f.MatchReleases)
 		}
 
 		if f.ExceptReleases != "" && containsFuzzy(r.TorrentName, f.ExceptReleases) {
-			f.addRejectionF("except releases: unwanted release. got: %v want: %v", r.TorrentName, f.ExceptReleases)
+			f.RejectReasons.Add("except releases", r.TorrentName, f.ExceptReleases)
 		}
 	}
 
 	if f.MatchReleaseGroups != "" && !contains(r.Group, f.MatchReleaseGroups) {
-		f.addRejectionF("release groups not matching. got: %v want: %v", r.Group, f.MatchReleaseGroups)
+		f.RejectReasons.Add("match release groups", r.Group, f.MatchReleaseGroups)
 	}
 
 	if f.ExceptReleaseGroups != "" && contains(r.Group, f.ExceptReleaseGroups) {
-		f.addRejectionF("unwanted release group. got: %v unwanted: %v", r.Group, f.ExceptReleaseGroups)
+		f.RejectReasons.Add("except release groups", r.Group, f.ExceptReleaseGroups)
 	}
 
 	// check raw releaseTags string
 	if f.UseRegexReleaseTags {
 		if f.MatchReleaseTags != "" && !matchRegex(r.ReleaseTags, f.MatchReleaseTags) {
-			f.addRejectionF("match release tags regex not matching. got: %v want: %v", r.ReleaseTags, f.MatchReleaseTags)
+			f.RejectReasons.Add("match release tags: REGEX", r.ReleaseTags, f.MatchReleaseTags)
 		}
 
 		if f.ExceptReleaseTags != "" && matchRegex(r.ReleaseTags, f.ExceptReleaseTags) {
-			f.addRejectionF("except release tags regex: unwanted release. got: %v want: %v", r.ReleaseTags, f.ExceptReleaseTags)
+			f.RejectReasons.Add("except release tags: REGEX", r.ReleaseTags, f.ExceptReleaseTags)
 		}
 
 	} else {
 		if f.MatchReleaseTags != "" && !containsFuzzy(r.ReleaseTags, f.MatchReleaseTags) {
-			f.addRejectionF("match release tags not matching. got: %v want: %v", r.ReleaseTags, f.MatchReleaseTags)
+			f.RejectReasons.Add("match release tags", r.ReleaseTags, f.MatchReleaseTags)
 		}
 
 		if f.ExceptReleaseTags != "" && containsFuzzy(r.ReleaseTags, f.ExceptReleaseTags) {
-			f.addRejectionF("except release tags: unwanted release. got: %v want: %v", r.ReleaseTags, f.ExceptReleaseTags)
+			f.RejectReasons.Add("except release tags", r.ReleaseTags, f.ExceptReleaseTags)
 		}
 	}
 
 	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
-		f.addRejectionF("uploaders not matching. got: %v want: %v", r.Uploader, f.MatchUploaders)
+		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
 	}
 
 	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
-		f.addRejectionF("unwanted uploaders. got: %v unwanted: %v", r.Uploader, f.ExceptUploaders)
+		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
 	}
 
 	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
-		f.addRejectionF("language not matching. got: %v want: %v", r.Language, f.MatchLanguage)
+		f.RejectReasons.Add("match language", r.Language, f.MatchLanguage)
 	}
 
 	if len(f.ExceptLanguage) > 0 && sliceContainsSlice(r.Language, f.ExceptLanguage) {
-		f.addRejectionF("language unwanted. got: %v want: %v", r.Language, f.ExceptLanguage)
+		f.RejectReasons.Add("except language", r.Language, f.ExceptLanguage)
 	}
 
 	if len(f.Resolutions) > 0 && !containsSlice(r.Resolution, f.Resolutions) {
-		f.addRejectionF("resolution not matching. got: %v want: %v", r.Resolution, f.Resolutions)
+		f.RejectReasons.Add("resolution", r.Resolution, f.Resolutions)
 	}
 
 	if len(f.Codecs) > 0 && !sliceContainsSlice(r.Codec, f.Codecs) {
-		f.addRejectionF("codec not matching. got: %v want: %v", r.Codec, f.Codecs)
+		f.RejectReasons.Add("codec", r.Codec, f.Codecs)
 	}
 
 	if len(f.Sources) > 0 && !containsSlice(r.Source, f.Sources) {
-		f.addRejectionF("source not matching. got: %v want: %v", r.Source, f.Sources)
+		f.RejectReasons.Add("source", r.Source, f.Sources)
 	}
 
 	if len(f.Containers) > 0 && !containsSlice(r.Container, f.Containers) {
-		f.addRejectionF("container not matching. got: %v want: %v", r.Container, f.Containers)
+		f.RejectReasons.Add("container", r.Container, f.Containers)
 	}
 
-	// HDR is parsed into the Codec slice from rls
 	if len(f.MatchHDR) > 0 && !matchHDR(r.HDR, f.MatchHDR) {
-		f.addRejectionF("hdr not matching. got: %v want: %v", r.HDR, f.MatchHDR)
+		f.RejectReasons.Add("match hdr", r.HDR, f.MatchHDR)
 	}
 
-	// HDR is parsed into the Codec slice from rls
 	if len(f.ExceptHDR) > 0 && matchHDR(r.HDR, f.ExceptHDR) {
-		f.addRejectionF("hdr unwanted. got: %v want: %v", r.HDR, f.ExceptHDR)
+		f.RejectReasons.Add("except hdr", r.HDR, f.ExceptHDR)
 	}
 
 	// Other is parsed into the Other slice from rls
 	if len(f.MatchOther) > 0 && !sliceContainsSlice(r.Other, f.MatchOther) {
-		f.addRejectionF("match other not matching. got: %v want: %v", r.Other, f.MatchOther)
+		f.RejectReasons.Add("match other", r.Other, f.MatchOther)
 	}
 
 	// Other is parsed into the Other slice from rls
 	if len(f.ExceptOther) > 0 && sliceContainsSlice(r.Other, f.ExceptOther) {
-		f.addRejectionF("except other unwanted. got: %v unwanted: %v", r.Other, f.ExceptOther)
+		f.RejectReasons.Add("except other", r.Other, f.ExceptOther)
 	}
 
 	if f.Years != "" && !containsIntStrings(r.Year, f.Years) {
-		f.addRejectionF("year not matching. got: %d want: %v", r.Year, f.Years)
+		f.RejectReasons.Add("year", r.Year, f.Years)
 	}
 
 	if f.Months != "" && !containsIntStrings(r.Month, f.Months) {
-		f.addRejectionF("month not matching. got: %d want: %v", r.Month, f.Months)
+		f.RejectReasons.Add("month", r.Month, f.Months)
 	}
 
 	if f.Days != "" && !containsIntStrings(r.Day, f.Days) {
-		f.addRejectionF("day not matching. got: %d want: %v", r.Day, f.Days)
+		f.RejectReasons.Add("day", r.Day, f.Days)
 	}
 
 	if f.MatchCategories != "" {
@@ -513,7 +518,7 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 			categories = append(categories, r.Category)
 		}
 		if !contains(r.Category, f.MatchCategories) && !containsAny(categories, f.MatchCategories) {
-			f.addRejectionF("category not matching. got: %v want: %v", strings.Join(categories, ","), f.MatchCategories)
+			f.RejectReasons.Add("match category", strings.Join(categories, ","), f.MatchCategories)
 		}
 	}
 
@@ -524,121 +529,126 @@ func (f *Filter) CheckFilter(r *Release) ([]string, bool) {
 			categories = append(categories, r.Category)
 		}
 		if contains(r.Category, f.ExceptCategories) && containsAny(categories, f.ExceptCategories) {
-			f.addRejectionF("category unwanted. got: %v unwanted: %v", strings.Join(categories, ","), f.ExceptCategories)
+			f.RejectReasons.Add("except category", strings.Join(categories, ","), f.ExceptCategories)
 		}
 	}
 
+	// music related
 	if len(f.MatchReleaseTypes) > 0 && !containsSlice(r.Category, f.MatchReleaseTypes) {
-		f.addRejectionF("release type not matching. got: %v want: %v", r.Category, f.MatchReleaseTypes)
+		f.RejectReasons.Add("release type", r.Category, f.MatchReleaseTypes)
 	}
 
-	if (f.MinSize != "" || f.MaxSize != "") && !f.checkSizeFilter(r) {
-		f.addRejectionF("size not matching. got: %v want min: %v max: %v", r.Size, f.MinSize, f.MaxSize)
+	if f.MinSize != "" && !f.checkSizeFilter(r) {
+		f.RejectReasons.Add("min size", r.Size, f.MinSize)
+	}
+
+	if f.MaxSize != "" && !f.checkSizeFilter(r) {
+		f.RejectReasons.Add("max size", r.Size, f.MaxSize)
 	}
 
 	if f.Tags != "" {
 		if f.TagsMatchLogic == "ALL" && !containsAll(r.Tags, f.Tags) {
-			f.addRejectionF("tags not matching. got: %v want(all): %v", r.Tags, f.Tags)
+			f.RejectReasons.Add("match tags: ALL", r.Tags, f.Tags)
 		} else if !containsAny(r.Tags, f.Tags) { // TagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
-			f.addRejectionF("tags not matching. got: %v want: %v", r.Tags, f.Tags)
+			f.RejectReasons.Add("match tags: ANY", r.Tags, f.Tags)
 		}
 	}
 
 	if f.ExceptTags != "" {
 		if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
-			f.addRejectionF("tags unwanted. got: %v don't want: %v", r.Tags, f.ExceptTags)
+			f.RejectReasons.Add("except tags: ALL", r.Tags, f.ExceptTags)
 		} else if containsAny(r.Tags, f.ExceptTags) { // ExceptTagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
-			f.addRejectionF("tags unwanted. got: %v don't want: %v", r.Tags, f.ExceptTags)
+			f.RejectReasons.Add("except tags: ANY", r.Tags, f.ExceptTags)
 		}
 	}
 
 	if len(f.Artists) > 0 && !contains(r.Artists, f.Artists) {
-		f.addRejectionF("artists not matching. got: %v want: %v", r.Artists, f.Artists)
+		f.RejectReasons.Add("artists", r.Artists, f.Artists)
 	}
 
 	if len(f.Albums) > 0 && !contains(r.Title, f.Albums) {
-		f.addRejectionF("albums not matching. got: %v want: %v", r.Title, f.Albums)
+		f.RejectReasons.Add("albums", r.Title, f.Albums)
 	}
 
 	// Perfect flac requires Cue, Log, Log Score 100, FLAC and 24bit Lossless
 	if f.PerfectFlac && !f.isPerfectFLAC(r) {
-		f.addRejectionF("wanted: perfect flac. got: %v", r.Audio)
+		f.RejectReasons.Add("perfect flac", r.Audio, "Cue, Log, Log Score 100, FLAC and 24bit Lossless")
 	}
 
 	if len(f.Formats) > 0 && !sliceContainsSlice(r.Audio, f.Formats) {
-		f.addRejectionF("formats not matching. got: %v want: %v", r.Audio, f.Formats)
+		f.RejectReasons.Add("formats", r.Audio, f.Formats)
 	}
 
 	if len(f.Quality) > 0 && !containsMatchBasic(r.Audio, f.Quality) {
-		f.addRejectionF("quality not matching. got: %v want: %v", r.Audio, f.Quality)
+		f.RejectReasons.Add("quality", r.Audio, f.Quality)
 	}
 
 	if len(f.Media) > 0 && !containsSlice(r.Source, f.Media) {
-		f.addRejectionF("media not matching. got: %v want: %v", r.Source, f.Media)
+		f.RejectReasons.Add("media", r.Source, f.Media)
 	}
 
 	if f.Cue && !containsAny(r.Audio, "Cue") {
-		f.addRejection("wanted: cue")
+		f.RejectReasons.Add("cue", r.Audio, "Cue")
 	}
 
 	if f.Log && !containsAny(r.Audio, "Log") {
-		f.addRejection("wanted: log")
+		f.RejectReasons.Add("log", r.Audio, "Log")
 	}
 
 	if f.Log && f.LogScore != 0 && r.LogScore != f.LogScore {
-		f.addRejectionF("log score. got: %v want: %v", r.LogScore, f.LogScore)
+		f.RejectReasons.Add("log score", r.LogScore, f.LogScore)
 	}
 
 	// check description string
 	if f.UseRegexDescription {
 		if f.MatchDescription != "" && !matchRegex(r.Description, f.MatchDescription) {
-			f.addRejectionF("match description regex not matching. got: %v want: %v", r.Description, f.MatchDescription)
+			f.RejectReasons.Add("match description: REGEX", r.Description, f.MatchDescription)
 		}
 
 		if f.ExceptDescription != "" && matchRegex(r.Description, f.ExceptDescription) {
-			f.addRejectionF("except description regex: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+			f.RejectReasons.Add("except description: REGEX", r.Description, f.ExceptDescription)
 		}
 
 	} else {
 		if f.MatchDescription != "" && !containsFuzzy(r.Description, f.MatchDescription) {
-			f.addRejectionF("match description not matching. got: %v want: %v", r.Description, f.MatchDescription)
+			f.RejectReasons.Add("match description", r.Description, f.MatchDescription)
 		}
 
 		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
-			f.addRejectionF("except description: unwanted release. got: %v want: %v", r.Description, f.ExceptDescription)
+			f.RejectReasons.Add("except description", r.Description, f.ExceptDescription)
 		}
 	}
 
 	// Min and Max Seeders/Leechers is only for Torznab feeds
 	if f.MinSeeders > 0 {
 		if f.MinSeeders > r.Seeders {
-			f.addRejectionF("min seeders not matcing. got: %d want %d", r.Seeders, f.MinSeeders)
+			f.RejectReasons.Add("min seeders", r.Seeders, f.MinSeeders)
 		}
 	}
 
 	if f.MaxSeeders > 0 {
 		if f.MaxSeeders < r.Seeders {
-			f.addRejectionF("max seeders not matcing. got: %d want %d", r.Seeders, f.MaxSeeders)
+			f.RejectReasons.Add("max seeders", r.Seeders, f.MaxSeeders)
 		}
 	}
 
 	if f.MinLeechers > 0 {
 		if f.MinLeechers > r.Leechers {
-			f.addRejectionF("min leechers not matcing. got: %d want %d", r.Leechers, f.MinLeechers)
+			f.RejectReasons.Add("min leechers", r.Leechers, f.MinLeechers)
 		}
 	}
 
 	if f.MaxLeechers > 0 {
 		if f.MaxLeechers < r.Leechers {
-			f.addRejectionF("max leechers not matcing. got: %d want %d", r.Leechers, f.MaxLeechers)
+			f.RejectReasons.Add("max leechers", r.Leechers, f.MaxLeechers)
 		}
 	}
 
-	if len(f.Rejections) > 0 {
-		return f.Rejections, false
+	if f.RejectReasons.Len() > 0 {
+		return f.RejectReasons, false
 	}
 
-	return nil, true
+	return f.RejectReasons, true
 }
 
 func (f *Filter) checkMaxDownloads() bool {
@@ -699,7 +709,7 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 
 	sizeOK, err := f.CheckReleaseSize(r.Size)
 	if err != nil {
-		f.addRejectionF("size: error checking release size against filter: %+v", err)
+		f.RejectReasons.Add("size: error checking release size against filter", r.Size, f.MinSize)
 		return false
 	}
 
@@ -734,35 +744,6 @@ func (f *Filter) IsPerfectFLAC(r *Release) ([]string, bool) {
 	}
 
 	return rejections, len(rejections) == 0
-}
-
-func (f *Filter) addRejection(reason string) {
-	f.Rejections = append(f.Rejections, reason)
-}
-
-func (f *Filter) AddRejectionF(format string, v ...interface{}) {
-	f.addRejectionF(format, v...)
-}
-
-func (f *Filter) addRejectionF(format string, v ...interface{}) {
-	f.Rejections = append(f.Rejections, fmt.Sprintf(format, v...))
-}
-
-// ResetRejections reset rejections
-func (f *Filter) resetRejections() {
-	f.Rejections = []string{}
-}
-
-func (f *Filter) RejectionsString(trim bool) string {
-	if len(f.Rejections) > 0 {
-		out := strings.Join(f.Rejections, ", ")
-		if trim && len(out) > 1024 {
-			out = out[:1024]
-		}
-
-		return out
-	}
-	return ""
 }
 
 func matchRegex(tag string, filterList string) bool {
@@ -1121,12 +1102,12 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 	}
 
 	if minBytes != nil && releaseSize <= *minBytes {
-		f.addRejectionF("release size %d bytes smaller than filter min size %d bytes", releaseSize, *minBytes)
+		f.RejectReasons.Addf("release size", "release size %d bytes is smaller than filter min size %d bytes", releaseSize, *minBytes)
 		return false, nil
 	}
 
 	if maxBytes != nil && releaseSize >= *maxBytes {
-		f.addRejectionF("release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
+		f.RejectReasons.Addf("release size", "release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
 		return false, nil
 	}
 
