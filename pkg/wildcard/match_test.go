@@ -107,6 +107,26 @@ func TestMatch(t *testing.T) {
 			text:    "them",
 			matched: false,
 		},
+		{
+			pattern: "t?q*",
+			text:    "tam e",
+			matched: false,
+		},
+		{
+			pattern: "Hard?Quiz*",
+			text:    "HardX 24 10 12 Ella Reese XXX 1080p MP4-WRB",
+			matched: false,
+		},
+		{
+			pattern: "Hard?Quiz*",
+			text:    "HardX",
+			matched: false,
+		},
+		{
+			pattern: "T?Q*",
+			text:    "T?Q",
+			matched: true,
+		},
 	}
 	// Iterating over the test cases, call the function under test and assert the output.
 	for i, testCase := range testCases {
@@ -157,6 +177,7 @@ func TestMatchSliceSimple(t *testing.T) {
 	}{
 		{[]string{"*", "test"}, "test", true},
 		{[]string{"te?t", "tost", "random"}, "tost", true},
+		{[]string{"te?t", "t?s?", "random"}, "tost", false},
 		{[]string{"*st", "n?st", "l*st"}, "list", true},
 		{[]string{"?", "?*", "?**"}, "t", false},
 		{[]string{"a", "b", "c"}, "d", false},
@@ -182,6 +203,7 @@ func TestMatchSlice(t *testing.T) {
 	}{
 		{[]string{"*", "test", "t?st"}, "test", true},
 		{[]string{"te?t", "t?st", "random"}, "tost", true},
+		{[]string{"te?t", "t?s?", "random"}, "tost", true},
 		{[]string{"te?t", "t??e?", "random"}, "toser", true},
 		{[]string{"*st", "n?st", "l*st"}, "list", true},
 		{[]string{"?", "??", "???"}, "t", true},
