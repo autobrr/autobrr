@@ -41,28 +41,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 		((wildEnd && strings.Count(pattern, "*") == 1) || // egg?bert*
 			(len(pattern) == len(name) && !strings.Contains(pattern, "*"))) { // egg?bert?
 
-		base := 0
-		for base < len(name) {
-			i := strings.IndexRune(pattern[base:], '?')
-			if i == -1 {
-				if (wildEnd && !strings.HasPrefix(name[base:], pattern[base:len(pattern)-1])) || // egg*
-					(!wildEnd && name[base:] != pattern[base:]) { // egg
-					break
-				}
-
-				base = len(name)
-				continue
-			}
-
-			offset := base + i
-			if len(name) < offset || name[base:offset] != pattern[base:offset] {
-				break
-			}
-
-			base = offset + 1
-		}
-
-		return base == len(name)
+		return matchComplex(name, pattern, wildEnd)
 	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && // *egg*
 		(simple || (!simple && !strings.Contains(pattern, "?"))) && // simple is fine, if not we need to check for ? and skip if so.
 		strings.Count(pattern, "*") == 2 { // make sure that we have no other wildcards.
@@ -70,6 +49,35 @@ func match(pattern, name string, simple bool) (matched bool) {
 	}
 
 	return deepMatchRune(name, pattern, simple, pattern, false)
+}
+
+func matchComplex(name, pattern string, wildEnd bool) bool {
+	base := 0
+	consumedPattern := 0
+
+	for base < len(name) && consumedPattern < len(pattern) {
+		i := strings.IndexRune(pattern[base:], '?')
+		if i == -1 {
+			if (wildEnd && !strings.HasPrefix(name[base:], pattern[base:len(pattern)-1])) || // egg*
+				(!wildEnd && name[base:] != pattern[base:]) { // egg
+				break
+			}
+
+			base = len(name)
+			consumedPattern = len(pattern)
+			continue
+		}
+
+		offset := base + i
+		if len(name) < offset || name[base:offset] != pattern[base:offset] {
+			break
+		}
+
+		base = offset + 1
+		consumedPattern = base
+	}
+
+	return base == len(name) && consumedPattern == len(pattern)
 }
 
 func MatchSliceSimple(pattern []string, name string) (matched bool) {
