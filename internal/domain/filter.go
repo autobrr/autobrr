@@ -709,7 +709,7 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 
 	sizeOK, err := f.CheckReleaseSize(r.Size)
 	if err != nil {
-		f.RejectReasons.Add("size: error checking release size against filter", r.Size, f.MinSize)
+		f.RejectReasons.Add("size: ERROR", fmt.Sprintf("error checking release size against filter: %v", err), f.MinSize)
 		return false
 	}
 
