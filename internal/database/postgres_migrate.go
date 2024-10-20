@@ -971,4 +971,8 @@ ALTER TABLE irc_network
 CREATE INDEX filter_priority_index
 	ON filter (priority);
 `,
+	`UPDATE irc_network
+    SET server = 'irc.fuzer.xyz'
+    WHERE server = 'irc.fuzer.me';
+`,
 }

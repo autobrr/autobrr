@@ -25,7 +25,7 @@ type ntfyMessage struct {
 
 type ntfySender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	builder  MessageBuilderPlainText
 
 	httpClient *http.Client
@@ -35,7 +35,7 @@ func (s *ntfySender) Name() string {
 	return "ntfy"
 }
 
-func NewNtfySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func NewNtfySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &ntfySender{
 		log:      log.With().Str("sender", "ntfy").Logger(),
 		Settings: settings,

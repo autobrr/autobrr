@@ -1320,13 +1320,13 @@ func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (
 
 func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
 	query := `SELECT
-	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN 1 END) as "hour_count",
-	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN 1 END) as "day_count",
-	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN 1 END) as "week_count",
-	COUNT(CASE WHEN CAST(strftime('%s', datetime(release_action_status.timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN 1 END) as "month_count",
-	COUNT(*) as "total_count"
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
+	COUNT(DISTINCT release_id) as "total_count"
 FROM release_action_status
-WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.status = 'PENDING') AND release_action_status.filter_id = ?;`
+WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = ?;`
 
 	row := r.db.handler.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {
@@ -1350,13 +1350,13 @@ WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.s
 
 func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
 	query := `SELECT
-    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN 1 ELSE 0 END),0) as "hour_count",
-    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('day', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "day_count",
-    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('week', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "week_count",
-    COALESCE(SUM(CASE WHEN release_action_status.timestamp >= date_trunc('month', CURRENT_DATE) THEN 1 ELSE 0 END),0) as "month_count",
-    count(*) as "total_count"
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
+    COUNT(DISTINCT release_id) as "total_count"
 FROM release_action_status
-WHERE (release_action_status.status = 'PUSH_APPROVED' OR release_action_status.status = 'PENDING') AND release_action_status.filter_id = $1;`
+WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = $1;`
 
 	row := r.db.handler.QueryRowContext(ctx, query, filterID)
 	if err := row.Err(); err != nil {

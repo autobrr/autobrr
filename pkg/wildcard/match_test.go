@@ -53,7 +53,22 @@ func TestMatch(t *testing.T) {
 			matched: true,
 		},
 		{
+			pattern: "t?",
+			text:    "tv",
+			matched: true,
+		},
+		{
+			pattern: "?",
+			text:    "z",
+			matched: true,
+		},
+		{
 			pattern: "*EPUB*",
+			text:    "Translated (Group) / EPUB",
+			matched: true,
+		},
+		{
+			pattern: "*EP?B*",
 			text:    "Translated (Group) / EPUB",
 			matched: true,
 		},
@@ -87,6 +102,31 @@ func TestMatch(t *testing.T) {
 			text:    "The God of the BrrThe Power of Brr",
 			matched: true,
 		},
+		{
+			pattern: "mysteries?of?the?abandoned*",
+			text:    "them",
+			matched: false,
+		},
+		{
+			pattern: "t?q*",
+			text:    "tam e",
+			matched: false,
+		},
+		{
+			pattern: "Hard?Quiz*",
+			text:    "HardX 24 10 12 Ella Reese XXX 1080p MP4-WRB",
+			matched: false,
+		},
+		{
+			pattern: "Hard?Quiz*",
+			text:    "HardX",
+			matched: false,
+		},
+		{
+			pattern: "T?Q*",
+			text:    "T?Q",
+			matched: true,
+		},
 	}
 	// Iterating over the test cases, call the function under test and assert the output.
 	for i, testCase := range testCases {
@@ -110,6 +150,8 @@ func TestMatchSimple(t *testing.T) {
 		{"t?st", "test", false},
 		{"t?st", "tast", false},
 		{"test", "test", true},
+		{"*te?t*", "test", false},
+		{"*test*", "test", true},
 		{"test", "toast", false},
 		{"", "non-empty", false},
 		{"*", "", true},
@@ -135,6 +177,7 @@ func TestMatchSliceSimple(t *testing.T) {
 	}{
 		{[]string{"*", "test"}, "test", true},
 		{[]string{"te?t", "tost", "random"}, "tost", true},
+		{[]string{"te?t", "t?s?", "random"}, "tost", false},
 		{[]string{"*st", "n?st", "l*st"}, "list", true},
 		{[]string{"?", "?*", "?**"}, "t", false},
 		{[]string{"a", "b", "c"}, "d", false},
@@ -160,6 +203,8 @@ func TestMatchSlice(t *testing.T) {
 	}{
 		{[]string{"*", "test", "t?st"}, "test", true},
 		{[]string{"te?t", "t?st", "random"}, "tost", true},
+		{[]string{"te?t", "t?s?", "random"}, "tost", true},
+		{[]string{"te?t", "t??e?", "random"}, "toser", true},
 		{[]string{"*st", "n?st", "l*st"}, "list", true},
 		{[]string{"?", "??", "???"}, "t", true},
 		{[]string{"a", "b", "c"}, "d", false},
@@ -188,5 +233,13 @@ func TestMatchSlice(t *testing.T) {
 		if got := MatchSlice(tt.patterns, tt.name); got != tt.want {
 			t.Errorf("MatchSlice(%v, %q) = %v, want %v", tt.patterns, tt.name, got, tt.want)
 		}
+	}
+}
+
+func Benchmark_Regex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b.StartTimer()
+		TestMatchSlice(nil)
+		b.StopTimer()
 	}
 }
