@@ -1966,6 +1966,15 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			wantMatch:        true,
 		},
+		{
+			name: "test_44",
+			fields: fields{
+				MatchDescription: "*black?metal*",
+			},
+			args:             args{&Release{Description: "dog\ncat\r\nblack metalo\negg"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1989,6 +1998,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseTags:     tt.fields.MatchReleaseTags,
 				ExceptReleaseTags:    tt.fields.ExceptReleaseTags,
 				UseRegexReleaseTags:  tt.fields.UseRegexReleaseTags,
+				MatchDescription:     tt.fields.MatchDescription,
+				ExceptDescription:    tt.fields.ExceptDescription,
+				UseRegexDescription:  tt.fields.UseRegexDescription,
 				Scene:                tt.fields.Scene,
 				Origins:              tt.fields.Origins,
 				ExceptOrigins:        tt.fields.ExceptOrigins,

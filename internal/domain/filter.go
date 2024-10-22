@@ -332,6 +332,11 @@ func (f *Filter) Sanitize() error {
 		f.ExceptReleases = sanitize.FilterString(f.ExceptReleases)
 	}
 
+	if !f.UseRegexDescription {
+		f.MatchDescription = sanitize.FilterString(f.MatchDescription)
+		f.ExceptDescription = sanitize.FilterString(f.ExceptDescription)
+	}
+
 	f.MatchReleaseGroups = sanitize.FilterString(f.MatchReleaseGroups)
 	f.ExceptReleaseGroups = sanitize.FilterString(f.ExceptReleaseGroups)
 
