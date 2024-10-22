@@ -4,6 +4,7 @@
 package wildcard
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -146,7 +147,7 @@ func cleanForRegex(pattern string, simple bool) string {
 }
 
 func prepForRegex(pattern string) string {
-	return `^` + regexp.QuoteMeta(pattern) + `$`
+	return fmt.Sprintf("(?m)(^%s$)", regexp.QuoteMeta(pattern))
 }
 
 func deepMatchRune(str, pattern string, simple bool, original string, bulk bool) bool {
@@ -174,10 +175,5 @@ func deepMatchRune(str, pattern string, simple bool, original string, bulk bool)
 		regexcache.SubmitOriginal(original+salt, user)
 	}
 
-	idx := user.FindStringIndex(str)
-	if idx == nil {
-		return false
-	}
-
-	return idx[1] == len(str)
+	return user.MatchString(str)
 }
