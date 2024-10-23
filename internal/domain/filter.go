@@ -332,6 +332,11 @@ func (f *Filter) Sanitize() error {
 		f.ExceptReleases = sanitize.FilterString(f.ExceptReleases)
 	}
 
+	if !f.UseRegexDescription {
+		f.MatchDescription = sanitize.FilterString(f.MatchDescription)
+		f.ExceptDescription = sanitize.FilterString(f.ExceptDescription)
+	}
+
 	f.MatchReleaseGroups = sanitize.FilterString(f.MatchReleaseGroups)
 	f.ExceptReleaseGroups = sanitize.FilterString(f.ExceptReleaseGroups)
 
@@ -788,36 +793,38 @@ func matchRegex(tag string, filterList string) bool {
 func containsIntStrings(value int, filterList string) bool {
 	filters := strings.Split(filterList, ",")
 
-	for _, s := range filters {
-		s = strings.Replace(s, "%", "", -1)
-		s = strings.Trim(s, " ")
+	for _, filter := range filters {
+		filter = strings.Replace(filter, "%", "", -1)
+		filter = strings.TrimSpace(filter)
 
-		if strings.Contains(s, "-") {
-			minMax := strings.Split(s, "-")
+		if strings.Contains(filter, "-") {
+			minMax := strings.Split(filter, "-")
 
-			// to int
-			min, err := strconv.ParseInt(minMax[0], 10, 32)
-			if err != nil {
-				return false
-			}
+			if len(minMax) == 2 {
+				// to int
+				minValue, err := strconv.ParseInt(minMax[0], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			max, err := strconv.ParseInt(minMax[1], 10, 32)
-			if err != nil {
-				return false
-			}
+				maxValue, err := strconv.ParseInt(minMax[1], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			if min > max {
-				// handle error
-				return false
-			} else {
-				// if announcePercent is greater than min and less than max return true
-				if value >= int(min) && value <= int(max) {
-					return true
+				if minValue > maxValue {
+					// handle error
+					return false
+				} else {
+					// if announcePercent is greater than minValue and less than maxValue return true
+					if value >= int(minValue) && value <= int(maxValue) {
+						return true
+					}
 				}
 			}
 		}
 
-		filterInt, err := strconv.ParseInt(s, 10, 32)
+		filterInt, err := strconv.ParseInt(filter, 10, 32)
 		if err != nil {
 			return false
 		}
@@ -872,7 +879,9 @@ func containsMatchFuzzy(tags []string, filters []string) bool {
 				continue
 			}
 
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
+
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -904,7 +913,9 @@ func containsMatch(tags []string, filters []string) bool {
 				continue
 			}
 
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
+
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -927,7 +938,10 @@ func containsAllMatch(tags []string, filters []string) bool {
 		if filter == "" {
 			continue
 		}
+
+		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
+
 		found := false
 
 		wildFilter := strings.ContainsAny(filter, "?|*")
@@ -936,6 +950,7 @@ func containsAllMatch(tags []string, filters []string) bool {
 			if tag == "" {
 				continue
 			}
+
 			tag = strings.ToLower(tag)
 
 			if tag == filter {
@@ -948,6 +963,7 @@ func containsAllMatch(tags []string, filters []string) bool {
 				}
 			}
 		}
+
 		if !found {
 			return false
 		}
@@ -967,6 +983,8 @@ func containsMatchBasic(tags []string, filters []string) bool {
 			if filter == "" {
 				continue
 			}
+
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
 
 			if tag == filter {
@@ -992,7 +1010,9 @@ func containsAnySlice(tags []string, filters []string) bool {
 				continue
 			}
 
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
+
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -1013,35 +1033,38 @@ func containsAnySlice(tags []string, filters []string) bool {
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 	filters := strings.Split(filterPercent, ",")
 
-	for _, s := range filters {
-		s = strings.Replace(s, "%", "", -1)
+	for _, filter := range filters {
+		filter = strings.Replace(filter, "%", "", -1)
+		filter = strings.TrimSpace(filter)
 
-		if strings.Contains(s, "-") {
-			minMax := strings.Split(s, "-")
+		if strings.Contains(filter, "-") {
+			minMax := strings.Split(filter, "-")
 
-			// to int
-			min, err := strconv.ParseInt(minMax[0], 10, 32)
-			if err != nil {
-				return false
-			}
+			if len(minMax) == 2 {
+				// to int
+				minValue, err := strconv.ParseInt(minMax[0], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			max, err := strconv.ParseInt(minMax[1], 10, 32)
-			if err != nil {
-				return false
-			}
+				maxValue, err := strconv.ParseInt(minMax[1], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			if min > max {
-				// handle error
-				return false
-			} else {
-				// if announcePercent is greater than min and less than max return true
-				if announcePercent >= int(min) && announcePercent <= int(max) {
-					return true
+				if minValue > maxValue {
+					// handle error
+					return false
+				} else {
+					// if announcePercent is greater than minValue and less than maxValue return true
+					if announcePercent >= int(minValue) && announcePercent <= int(maxValue) {
+						return true
+					}
 				}
 			}
 		}
 
-		filterPercentInt, err := strconv.ParseInt(s, 10, 32)
+		filterPercentInt, err := strconv.ParseInt(filter, 10, 32)
 		if err != nil {
 			return false
 		}
@@ -1055,11 +1078,12 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 }
 
 func matchHDR(releaseValues []string, filterValues []string) bool {
-
 	for _, filter := range filterValues {
 		if filter == "" {
 			continue
 		}
+
+		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
 
 		parts := strings.Split(filter, " ")
