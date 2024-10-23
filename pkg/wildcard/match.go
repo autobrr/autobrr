@@ -4,7 +4,6 @@
 package wildcard
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
