@@ -398,7 +398,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 							//match, err := filterSvc.CheckFilter(ctx, filter, rls)
 
 							rejections, matchedFilter := filter.CheckFilter(rls)
-							assert.Len(t, rejections, len(filterT.rejections))
+							assert.Equal(t, rejections.Len(), len(filterT.rejections))
 							assert.Equal(t, filterT.match, matchedFilter)
 						})
 					}

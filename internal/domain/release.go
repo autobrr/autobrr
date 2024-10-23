@@ -620,35 +620,6 @@ func (r *Release) HasMagnetUri() bool {
 
 const MagnetURIPrefix = "magnet:?"
 
-func (r *Release) addRejection(reason string) {
-	r.Rejections = append(r.Rejections, reason)
-}
-
-func (r *Release) AddRejectionF(format string, v ...interface{}) {
-	r.addRejectionF(format, v...)
-}
-
-func (r *Release) addRejectionF(format string, v ...interface{}) {
-	r.Rejections = append(r.Rejections, fmt.Sprintf(format, v...))
-}
-
-// ResetRejections reset rejections between filter checks
-func (r *Release) resetRejections() {
-	r.Rejections = []string{}
-}
-
-func (r *Release) RejectionsString(trim bool) string {
-	if len(r.Rejections) > 0 {
-		out := strings.Join(r.Rejections, ", ")
-		if trim && len(out) > 1024 {
-			out = out[:1024]
-		}
-
-		return out
-	}
-	return ""
-}
-
 // MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
 

@@ -387,8 +387,10 @@ func (c *AppConfig) load(configPath string) {
 }
 
 func (c *AppConfig) DynamicReload(log logger.Logger) {
+	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		c.m.Lock()
+		defer c.m.Unlock()
 
 		logLevel := viper.GetString("logLevel")
 		c.Config.LogLevel = logLevel
@@ -401,10 +403,7 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		c.Config.CheckForUpdates = checkUpdates
 
 		log.Debug().Msg("config file reloaded!")
-
-		c.m.Unlock()
 	})
-	viper.WatchConfig()
 }
 
 func (c *AppConfig) UpdateConfig() error {
