@@ -793,36 +793,38 @@ func matchRegex(tag string, filterList string) bool {
 func containsIntStrings(value int, filterList string) bool {
 	filters := strings.Split(filterList, ",")
 
-	for _, s := range filters {
-		s = strings.Replace(s, "%", "", -1)
-		s = strings.Trim(s, " ")
+	for _, filter := range filters {
+		filter = strings.Replace(filter, "%", "", -1)
+		filter = strings.TrimSpace(filter)
 
-		if strings.Contains(s, "-") {
-			minMax := strings.Split(s, "-")
+		if strings.Contains(filter, "-") {
+			minMax := strings.Split(filter, "-")
 
-			// to int
-			min, err := strconv.ParseInt(minMax[0], 10, 32)
-			if err != nil {
-				return false
-			}
+			if len(minMax) == 2 {
+				// to int
+				minValue, err := strconv.ParseInt(minMax[0], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			max, err := strconv.ParseInt(minMax[1], 10, 32)
-			if err != nil {
-				return false
-			}
+				maxValue, err := strconv.ParseInt(minMax[1], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			if min > max {
-				// handle error
-				return false
-			} else {
-				// if announcePercent is greater than min and less than max return true
-				if value >= int(min) && value <= int(max) {
-					return true
+				if minValue > maxValue {
+					// handle error
+					return false
+				} else {
+					// if announcePercent is greater than minValue and less than maxValue return true
+					if value >= int(minValue) && value <= int(maxValue) {
+						return true
+					}
 				}
 			}
 		}
 
-		filterInt, err := strconv.ParseInt(s, 10, 32)
+		filterInt, err := strconv.ParseInt(filter, 10, 32)
 		if err != nil {
 			return false
 		}
@@ -1018,35 +1020,38 @@ func containsAnySlice(tags []string, filters []string) bool {
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 	filters := strings.Split(filterPercent, ",")
 
-	for _, s := range filters {
-		s = strings.Replace(s, "%", "", -1)
+	for _, filter := range filters {
+		filter = strings.Replace(filter, "%", "", -1)
+		filter = strings.TrimSpace(filter)
 
-		if strings.Contains(s, "-") {
-			minMax := strings.Split(s, "-")
+		if strings.Contains(filter, "-") {
+			minMax := strings.Split(filter, "-")
 
-			// to int
-			min, err := strconv.ParseInt(minMax[0], 10, 32)
-			if err != nil {
-				return false
-			}
+			if len(minMax) == 2 {
+				// to int
+				minValue, err := strconv.ParseInt(minMax[0], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			max, err := strconv.ParseInt(minMax[1], 10, 32)
-			if err != nil {
-				return false
-			}
+				maxValue, err := strconv.ParseInt(minMax[1], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			if min > max {
-				// handle error
-				return false
-			} else {
-				// if announcePercent is greater than min and less than max return true
-				if announcePercent >= int(min) && announcePercent <= int(max) {
-					return true
+				if minValue > maxValue {
+					// handle error
+					return false
+				} else {
+					// if announcePercent is greater than minValue and less than maxValue return true
+					if announcePercent >= int(minValue) && announcePercent <= int(maxValue) {
+						return true
+					}
 				}
 			}
 		}
 
-		filterPercentInt, err := strconv.ParseInt(s, 10, 32)
+		filterPercentInt, err := strconv.ParseInt(filter, 10, 32)
 		if err != nil {
 			return false
 		}
