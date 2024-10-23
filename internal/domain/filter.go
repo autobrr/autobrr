@@ -879,7 +879,9 @@ func containsMatchFuzzy(tags []string, filters []string) bool {
 				continue
 			}
 
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
+
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -911,7 +913,9 @@ func containsMatch(tags []string, filters []string) bool {
 				continue
 			}
 
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
+
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -934,7 +938,10 @@ func containsAllMatch(tags []string, filters []string) bool {
 		if filter == "" {
 			continue
 		}
+
+		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
+
 		found := false
 
 		wildFilter := strings.ContainsAny(filter, "?|*")
@@ -943,6 +950,7 @@ func containsAllMatch(tags []string, filters []string) bool {
 			if tag == "" {
 				continue
 			}
+
 			tag = strings.ToLower(tag)
 
 			if tag == filter {
@@ -955,6 +963,7 @@ func containsAllMatch(tags []string, filters []string) bool {
 				}
 			}
 		}
+
 		if !found {
 			return false
 		}
@@ -974,6 +983,8 @@ func containsMatchBasic(tags []string, filters []string) bool {
 			if filter == "" {
 				continue
 			}
+
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
 
 			if tag == filter {
@@ -999,7 +1010,9 @@ func containsAnySlice(tags []string, filters []string) bool {
 				continue
 			}
 
+			filter = strings.TrimSpace(filter)
 			filter = strings.ToLower(filter)
+
 			// check if line contains * or ?, if so try wildcard match, otherwise try substring match
 			a := strings.ContainsAny(filter, "?|*")
 			if a {
@@ -1065,11 +1078,12 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 }
 
 func matchHDR(releaseValues []string, filterValues []string) bool {
-
 	for _, filter := range filterValues {
 		if filter == "" {
 			continue
 		}
+
+		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
 
 		parts := strings.Split(filter, " ")
