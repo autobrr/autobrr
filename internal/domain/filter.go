@@ -800,24 +800,26 @@ func containsIntStrings(value int, filterList string) bool {
 		if strings.Contains(s, "-") {
 			minMax := strings.Split(s, "-")
 
-			// to int
-			min, err := strconv.ParseInt(minMax[0], 10, 32)
-			if err != nil {
-				return false
-			}
+			if len(minMax) == 2 {
+				// to int
+				minValue, err := strconv.ParseInt(minMax[0], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			max, err := strconv.ParseInt(minMax[1], 10, 32)
-			if err != nil {
-				return false
-			}
+				maxValue, err := strconv.ParseInt(minMax[1], 10, 32)
+				if err != nil {
+					return false
+				}
 
-			if min > max {
-				// handle error
-				return false
-			} else {
-				// if announcePercent is greater than min and less than max return true
-				if value >= int(min) && value <= int(max) {
-					return true
+				if minValue > maxValue {
+					// handle error
+					return false
+				} else {
+					// if announcePercent is greater than minValue and less than maxValue return true
+					if value >= int(minValue) && value <= int(maxValue) {
+						return true
+					}
 				}
 			}
 		}
