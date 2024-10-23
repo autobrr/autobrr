@@ -22,6 +22,11 @@ type authService interface {
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
+	Get2FAStatus(ctx context.Context, username string) (bool, error)
+	Enable2FA(ctx context.Context, username string) (string, string, error)
+	Verify2FA(ctx context.Context, username string, code string) error
+	Verify2FALogin(ctx context.Context, username string, code string) error
+	Disable2FA(ctx context.Context, username string) error
 }
 
 type authHandler struct {
@@ -50,6 +55,9 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
+	// 2FA verification endpoint - not behind authentication
+	r.Post("/2fa/verify", h.verify2FA)
+
 	// Group for authenticated routes
 	r.Group(func(r chi.Router) {
 		r.Use(h.server.IsAuthenticated)
@@ -57,6 +65,11 @@ func (h authHandler) Routes(r chi.Router) {
 		r.Post("/logout", h.logout)
 		r.Get("/validate", h.validate)
 		r.Patch("/user/{username}", h.updateUser)
+
+		// 2FA routes that require authentication
+		r.Get("/2fa/status", h.get2FAStatus)
+		r.Post("/2fa/enable", h.enable2FA)
+		r.Post("/2fa/disable", h.disable2FA)
 	})
 }
 
@@ -67,9 +80,38 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := h.service.Login(r.Context(), data.Username, data.Password); err != nil {
+	user, err := h.service.Login(r.Context(), data.Username, data.Password)
+	if err != nil {
 		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, r.RemoteAddr)
 		h.encoder.StatusError(w, http.StatusForbidden, errors.New("could not login: bad credentials"))
+		return
+	}
+
+	// Check if 2FA is enabled
+	requires2FA, err := h.service.Get2FAStatus(r.Context(), data.Username)
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not check 2FA status"))
+		return
+	}
+
+	if requires2FA {
+		// Create temporary session for 2FA verification
+		session, err := h.cookieStore.Get(r, "user_session")
+		if err != nil {
+			h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not create session"))
+			return
+		}
+
+		session.Values["temp_username"] = user.Username
+		session.Values["awaiting_2fa"] = true
+		session.Values["created"] = time.Now().Unix()
+
+		if err := session.Save(r, w); err != nil {
+			h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
+			return
+		}
+
+		h.encoder.StatusResponse(w, http.StatusOK, map[string]bool{"requires2FA": true})
 		return
 	}
 
@@ -84,6 +126,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	// Set user as authenticated
 	session.Values["authenticated"] = true
 	session.Values["created"] = time.Now().Unix()
+	session.Values["username"] = user.Username
 
 	// Set cookie options
 	session.Options.HttpOnly = true
@@ -104,7 +147,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.NoContent(w)
+	h.encoder.StatusResponse(w, http.StatusOK, map[string]bool{"requires2FA": false})
 }
 
 func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
@@ -117,6 +160,9 @@ func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 	if session != nil {
 		session.Values["authenticated"] = false
+		session.Values["username"] = ""
+		session.Values["awaiting_2fa"] = false
+		session.Values["temp_username"] = ""
 
 		// MaxAge<0 means delete cookie immediately
 		session.Options.MaxAge = -1
@@ -185,7 +231,6 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	session := r.Context().Value("session").(*sessions.Session)
 	if session != nil {
 		h.log.Debug().Msgf("found user session: %+v", session)
-
 	}
 	// send empty response as ok
 	h.encoder.NoContent(w)
@@ -207,4 +252,132 @@ func (h authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	// send response as ok
 	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
+}
+
+func (h authHandler) get2FAStatus(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value("session").(*sessions.Session)
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
+		return
+	}
+
+	enabled, err := h.service.Get2FAStatus(r.Context(), username)
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not get 2FA status"))
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, map[string]bool{"enabled": enabled})
+}
+
+func (h authHandler) enable2FA(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value("session").(*sessions.Session)
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
+		return
+	}
+
+	url, secret, err := h.service.Enable2FA(r.Context(), username)
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not enable 2FA"))
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, map[string]string{
+		"url":    url,
+		"secret": secret,
+	})
+}
+
+func (h authHandler) verify2FA(w http.ResponseWriter, r *http.Request) {
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
+		return
+	}
+
+	var data struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
+		return
+	}
+
+	// Check if this is a login verification
+	if awaiting2FA, ok := session.Values["awaiting_2fa"].(bool); ok && awaiting2FA {
+		username, ok := session.Values["temp_username"].(string)
+		if !ok || username == "" {
+			h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
+			return
+		}
+
+		h.log.Debug().
+			Str("username", username).
+			Str("code", data.Code).
+			Bool("awaiting_2fa", awaiting2FA).
+			Msg("attempting 2FA login verification")
+
+		if err := h.service.Verify2FALogin(r.Context(), username, data.Code); err != nil {
+			h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not verify 2FA code"))
+			return
+		}
+
+		// 2FA verified, create full session
+		session.Values["authenticated"] = true
+		session.Values["username"] = username
+		session.Values["awaiting_2fa"] = false
+		session.Values["temp_username"] = ""
+		session.Values["created"] = time.Now().Unix()
+
+		// Set cookie options
+		session.Options.HttpOnly = true
+		session.Options.SameSite = http.SameSiteLaxMode
+		session.Options.Path = h.config.BaseURL
+
+		if r.Header.Get("X-Forwarded-Proto") == "https" {
+			session.Options.Secure = true
+			session.Options.SameSite = http.SameSiteStrictMode
+		}
+
+		if err := session.Save(r, w); err != nil {
+			h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
+			return
+		}
+
+		h.encoder.StatusResponseMessage(w, http.StatusOK, "2FA verification successful")
+		return
+	}
+
+	// Regular 2FA setup verification
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
+		return
+	}
+
+	if err := h.service.Verify2FA(r.Context(), username, data.Code); err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not verify 2FA code"))
+		return
+	}
+
+	h.encoder.StatusResponseMessage(w, http.StatusOK, "2FA successfully verified")
+}
+
+func (h authHandler) disable2FA(w http.ResponseWriter, r *http.Request) {
+	session := r.Context().Value("session").(*sessions.Session)
+	username, ok := session.Values["username"].(string)
+	if !ok || username == "" {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
+		return
+	}
+
+	if err := h.service.Disable2FA(r.Context(), username); err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not disable 2FA"))
+		return
+	}
+
+	h.encoder.StatusResponseMessage(w, http.StatusOK, "2FA successfully disabled")
 }

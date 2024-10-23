@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { useRouter, useSearch } from "@tanstack/react-router";
@@ -19,15 +19,17 @@ import { LoginRoute } from "@app/routes";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext } from "@utils/Context";
-// import { WarningAlert } from "@components/alerts";
 
 type LoginFormFields = {
   username: string;
   password: string;
+  code?: string;
 };
 
 export const Login = () => {  
   const [auth, setAuth] = AuthContext.use();
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempUsername, setTempUsername] = useState("");
 
   const queryErrorResetBoundary = useQueryErrorResetBoundary()
 
@@ -35,7 +37,7 @@ export const Login = () => {
   const search = useSearch({ from: LoginRoute.id })
 
   const { handleSubmit, register, formState } = useForm<LoginFormFields>({
-    defaultValues: { username: "", password: "" },
+    defaultValues: { username: "", password: "", code: "" },
     mode: "onBlur"
   });
 
@@ -47,13 +49,21 @@ export const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
-    onSuccess: (_, variables: LoginFormFields) => {
-      queryErrorResetBoundary.reset()
-      setAuth({
-        isLoggedIn: true,
-        username: variables.username
-      });
-      router.invalidate()
+    onSuccess: (response, variables: LoginFormFields) => {
+      if (response.requires2FA) {
+        setRequires2FA(true);
+        setTempUsername(variables.username);
+        toast.custom((t) => (
+          <Toast type="info" body="Please enter your 2FA verification code" t={t} />
+        ));
+      } else {
+        queryErrorResetBoundary.reset()
+        setAuth({
+          isLoggedIn: true,
+          username: variables.username
+        });
+        router.invalidate()
+      }
     },
     onError: (error) => {
       toast.custom((t) => (
@@ -62,7 +72,30 @@ export const Login = () => {
     }
   });
 
-  const onSubmit = (data: LoginFormFields) => loginMutation.mutate(data);
+  const verify2FAMutation = useMutation({
+    mutationFn: (data: { code: string }) => APIClient.auth.verify2FA(data),
+    onSuccess: () => {
+      queryErrorResetBoundary.reset()
+      setAuth({
+        isLoggedIn: true,
+        username: tempUsername
+      });
+      router.invalidate()
+    },
+    onError: () => {
+      toast.custom((t) => (
+        <Toast type="error" body="Invalid verification code. Please try again." t={t} />
+      ));
+    }
+  });
+
+  const onSubmit = (data: LoginFormFields) => {
+    if (requires2FA && data.code) {
+      verify2FAMutation.mutate({ code: data.code });
+    } else {
+      loginMutation.mutate(data);
+    }
+  };
 
   React.useLayoutEffect(() => {
     if (auth.isLoggedIn && search.redirect) {
@@ -83,31 +116,46 @@ export const Login = () => {
       <div className="mx-auto w-full max-w-md rounded-2xl shadow-lg">
         <div className="px-8 pt-8 pb-4 rounded-2xl bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <TextInput<LoginFormFields>
-              name="username"
-              id="username"
-              label="username"
-              type="text"
-              register={register}
-              rules={{ required: "Username is required" }}
-              errors={formState.errors}
-              autoComplete="username"
-            />
-            <PasswordInput<LoginFormFields>
-              name="password"
-              id="password"
-              label="password"
-              register={register}
-              rules={{ required: "Password is required" }}
-              errors={formState.errors}
-              autoComplete="current-password"
-            />
+            {!requires2FA ? (
+              <>
+                <TextInput<LoginFormFields>
+                  name="username"
+                  id="username"
+                  label="username"
+                  type="text"
+                  register={register}
+                  rules={{ required: "Username is required" }}
+                  errors={formState.errors}
+                  autoComplete="username"
+                />
+                <PasswordInput<LoginFormFields>
+                  name="password"
+                  id="password"
+                  label="password"
+                  register={register}
+                  rules={{ required: "Password is required" }}
+                  errors={formState.errors}
+                  autoComplete="current-password"
+                />
+              </>
+            ) : (
+              <TextInput<LoginFormFields>
+                name="code"
+                id="code"
+                label="2FA Code"
+                type="text"
+                register={register}
+                rules={{ required: "Verification code is required" }}
+                errors={formState.errors}
+                placeholder="Enter 6-digit code"
+              />
+            )}
             <button
               type="submit"
               className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             >
               <RocketLaunchIcon className="w-4 h-4 mr-1.5" />
-              Sign in
+              {requires2FA ? "Verify" : "Sign in"}
             </button>
           </form>
           <div

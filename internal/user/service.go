@@ -15,6 +15,10 @@ type Service interface {
 	FindByUsername(ctx context.Context, username string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
 	Update(ctx context.Context, req domain.UpdateUserRequest) error
+	Enable2FA(ctx context.Context, username string, secret string) error
+	Verify2FA(ctx context.Context, username string, code string) error
+	Disable2FA(ctx context.Context, username string) error
+	Get2FASecret(ctx context.Context, username string) (string, error)
 }
 
 type service struct {
@@ -55,4 +59,20 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 
 func (s *service) Update(ctx context.Context, req domain.UpdateUserRequest) error {
 	return s.repo.Update(ctx, req)
+}
+
+func (s *service) Enable2FA(ctx context.Context, username string, secret string) error {
+	return s.repo.Enable2FA(ctx, username, secret)
+}
+
+func (s *service) Verify2FA(ctx context.Context, username string, code string) error {
+	return s.repo.Verify2FA(ctx, username, code)
+}
+
+func (s *service) Disable2FA(ctx context.Context, username string) error {
+	return s.repo.Disable2FA(ctx, username)
+}
+
+func (s *service) Get2FASecret(ctx context.Context, username string) (string, error) {
+	return s.repo.Get2FASecret(ctx, username)
 }

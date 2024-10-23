@@ -4,7 +4,10 @@
 package auth
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"image/png"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -12,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/argon2id"
 
 	"github.com/pkg/errors"
+	"github.com/pquerna/otp/totp"
 	"github.com/rs/zerolog"
 )
 
@@ -22,6 +26,11 @@ type Service interface {
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
 	CreateHash(password string) (hash string, err error)
 	ComparePasswordAndHash(password string, hash string) (match bool, err error)
+	Get2FAStatus(ctx context.Context, username string) (bool, error)
+	Enable2FA(ctx context.Context, username string) (string, string, error)
+	Verify2FA(ctx context.Context, username string, code string) error
+	Verify2FALogin(ctx context.Context, username string, code string) error
+	Disable2FA(ctx context.Context, username string) error
 }
 
 type service struct {
@@ -161,4 +170,115 @@ func (s *service) CreateHash(password string) (hash string, err error) {
 	}
 
 	return argon2id.CreateHash(password, argon2id.DefaultParams)
+}
+
+func (s *service) Get2FAStatus(ctx context.Context, username string) (bool, error) {
+	user, err := s.userSvc.FindByUsername(ctx, username)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get user")
+	}
+
+	return user.TwoFactorAuth, nil
+}
+
+func (s *service) Enable2FA(ctx context.Context, username string) (string, string, error) {
+	// Generate QR code
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "autobrr",
+		AccountName: username,
+		SecretSize:  20,
+	})
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to generate TOTP key")
+	}
+
+	// Generate QR code image
+	var buf bytes.Buffer
+	img, err := key.Image(200, 200)
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to generate QR code image")
+	}
+
+	if err := png.Encode(&buf, img); err != nil {
+		return "", "", errors.Wrap(err, "failed to encode QR code image")
+	}
+
+	// Convert to base64
+	dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	// Store secret in database (but don't enable 2FA yet - that happens after verification)
+	if err := s.userSvc.Enable2FA(ctx, username, key.Secret()); err != nil {
+		return "", "", errors.Wrap(err, "failed to store 2FA secret")
+	}
+
+	return dataURL, key.Secret(), nil
+}
+
+// Verify2FA verifies the 2FA code during setup
+func (s *service) Verify2FA(ctx context.Context, username string, code string) error {
+	// Get user's secret
+	secret, err := s.userSvc.Get2FASecret(ctx, username)
+	if err != nil {
+		return errors.Wrap(err, "failed to get 2FA secret")
+	}
+
+	s.log.Debug().
+		Str("username", username).
+		Str("code", code).
+		Str("secret", secret).
+		Msg("attempting 2FA verification during setup")
+
+	// Use simple validation for setup
+	valid := totp.Validate(code, secret)
+
+	if !valid {
+		s.log.Debug().
+			Str("username", username).
+			Str("code", code).
+			Msg("invalid 2FA code during setup")
+		return errors.New("invalid verification code")
+	}
+
+	// Enable 2FA for the user
+	if err := s.userSvc.Enable2FA(ctx, username, secret); err != nil {
+		return errors.Wrap(err, "failed to enable 2FA")
+	}
+
+	return nil
+}
+
+// Verify2FALogin verifies the 2FA code during login
+func (s *service) Verify2FALogin(ctx context.Context, username string, code string) error {
+	// Get user's secret
+	secret, err := s.userSvc.Get2FASecret(ctx, username)
+	if err != nil {
+		return errors.Wrap(err, "failed to get 2FA secret")
+	}
+
+	s.log.Debug().
+		Str("username", username).
+		Str("code", code).
+		Str("secret", secret).
+		Msg("attempting 2FA login verification")
+
+	// Use simple validation for login
+	valid := totp.Validate(code, secret)
+
+	if !valid {
+		s.log.Debug().
+			Str("username", username).
+			Str("code", code).
+			Msg("invalid 2FA code during login")
+		return errors.New("invalid verification code")
+	}
+
+	return nil
+}
+
+func (s *service) Disable2FA(ctx context.Context, username string) error {
+	if err := s.userSvc.Disable2FA(ctx, username); err != nil {
+		return errors.Wrap(err, "failed to disable 2FA")
+	}
+
+	return nil
 }

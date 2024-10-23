@@ -6,11 +6,13 @@ package database
 const sqliteSchema = `
 CREATE TABLE users
 (
-    id         INTEGER PRIMARY KEY,
-    username   TEXT NOT NULL,
-    password   TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id              INTEGER PRIMARY KEY,
+    username        TEXT NOT NULL,
+    password        TEXT NOT NULL,
+    two_factor_auth BOOLEAN DEFAULT FALSE,
+    tfa_secret      TEXT,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (username)
 );
 

@@ -50,7 +50,7 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 
 func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "username", "password").
+		Select("id", "username", "password", "two_factor_auth", "tfa_secret").
 		From("users").
 		Where(sq.Eq{"username": username})
 
@@ -66,7 +66,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 
 	var user domain.User
 
-	if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
+	if err := row.Scan(&user.ID, &user.Username, &user.Password, &user.TwoFactorAuth, &user.TFASecret); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -80,8 +80,8 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) error {
 	queryBuilder := r.db.squirrel.
 		Insert("users").
-		Columns("username", "password").
-		Values(req.Username, req.Password)
+		Columns("username", "password", "two_factor_auth", "tfa_secret").
+		Values(req.Username, req.Password, false, "")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -132,14 +132,85 @@ func (r *UserRepo) Delete(ctx context.Context, username string) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	// Execute the query.
 	_, err = r.db.handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	// Log the deletion.
 	r.log.Debug().Msgf("user.delete: successfully deleted user: %s", username)
 
 	return nil
+}
+
+func (r *UserRepo) Enable2FA(ctx context.Context, username string, secret string) error {
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("two_factor_auth", true).
+		Set("tfa_secret", secret).
+		Where(sq.Eq{"username": username})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+func (r *UserRepo) Verify2FA(ctx context.Context, username string, code string) error {
+	// Implementation will be handled in the service layer
+	// This is just a placeholder to satisfy the interface
+	return nil
+}
+
+func (r *UserRepo) Disable2FA(ctx context.Context, username string) error {
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("two_factor_auth", false).
+		Set("tfa_secret", "").
+		Where(sq.Eq{"username": username})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+func (r *UserRepo) Get2FASecret(ctx context.Context, username string) (string, error) {
+	queryBuilder := r.db.squirrel.
+		Select("tfa_secret").
+		From("users").
+		Where(sq.Eq{"username": username})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return "", errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return "", errors.Wrap(err, "error executing query")
+	}
+
+	var secret string
+	if err := row.Scan(&secret); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", domain.ErrRecordNotFound
+		}
+		return "", errors.Wrap(err, "error scanning row")
+	}
+
+	return secret, nil
 }

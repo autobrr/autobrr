@@ -33,6 +33,7 @@ require (
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/moistari/rls v0.5.12
 	github.com/pkg/errors v0.9.1
+	github.com/pquerna/otp v1.4.0
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.11.1
@@ -63,6 +64,7 @@ require (
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.7.4 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.16.0 // indirect
