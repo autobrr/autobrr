@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -189,9 +190,16 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		// Get the data
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			if errors.As(err, net.OpError{}) {
+			var opErr *net.OpError
+			if errors.As(err, &opErr) {
 				return retry.Unrecoverable(errors.Wrap(err, "issue from proxy"))
 			}
+
+			var urlErr *url.Error
+			if errors.As(err, &urlErr) {
+				return retry.Unrecoverable(errors.Wrap(err, "url parse error"))
+			}
+
 			return errors.Wrap(err, "error downloading file")
 		}
 		defer resp.Body.Close()
