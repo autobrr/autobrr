@@ -143,7 +143,7 @@ export function TwoFactorAuth() {
     if (setupMode && setupStartTime && !verificationSuccessful.current) {
       timeoutInterval = setInterval(() => {
         const elapsedTime = Date.now() - setupStartTime;
-        
+
         if (elapsedTime >= SETUP_TIMEOUT_MS && !isProcessing.current) {
           handleCancel();
           toast.custom((t) => (
@@ -158,7 +158,7 @@ export function TwoFactorAuth() {
         clearInterval(timeoutInterval);
       }
     };
-  }, [SETUP_TIMEOUT_MS, setupMode, setupStartTime, handleCancel]);
+  }, [setupMode, setupStartTime, handleCancel]);
 
   const validateVerificationCode = (values: VerificationValues) => {
     const errors: Record<string, string> = {};
@@ -178,25 +178,25 @@ export function TwoFactorAuth() {
     >
       <div className="px-2 pb-6 bg-white dark:bg-gray-800">
         {!setupMode ? (
-          <div className="flex items-center justify-between">
+          <div className="flex mt-10 items-center justify-between">
             <div>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {twoFactorStatus?.enabled
-                  ? "Two-factor authentication is enabled"
-                  : "Two-factor authentication is disabled"}
+                  ? "Two-factor authentication is enabled."
+                  : "Two-factor authentication is disabled."}
               </p>
             </div>
             <button
               onClick={() => {
                 if (!isProcessing.current) {
-                  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-                  twoFactorStatus?.enabled 
-                    ? disable2FAMutation.mutate({ silent: false }) 
-                    : startSetupMutation.mutate();
+                  if (twoFactorStatus?.enabled) {
+                    disable2FAMutation.mutate({ silent: false });
+                  } else {
+                    startSetupMutation.mutate();
+                  }
                 }
               }}
-              disabled={isProcessing.current}
-              className="flex items-center py-2 px-4 transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 disabled:opacity-50"
+              className="flex items-center py-2 px-4 transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             >
               <QrCodeIcon className="w-4 h-4 mr-1" />
               {twoFactorStatus?.enabled ? "Disable 2FA" : "Enable 2FA"}
