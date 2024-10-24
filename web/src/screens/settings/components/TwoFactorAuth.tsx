@@ -182,7 +182,7 @@ export function TwoFactorAuth() {
       setSetupStartTime(Date.now());
       verificationSuccessful.current = false;
       toast.custom((t) => (
-        <Toast type="success" body="Scan the QR code with your authenticator app" t={t} />
+        <Toast type="info" body="Scan the QR code with your authenticator app" t={t} />
       ));
     },
     onError: () => {
