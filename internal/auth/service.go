@@ -40,7 +40,13 @@ type service struct {
 	userSvc user.Service
 }
 
-const ntpServer = "pool.ntp.org"
+var (
+	ntpServer = "pool.ntp.org"
+	// internal package variable for testing
+	internalNTPQuery = func() (*ntp.Response, error) {
+		return ntp.Query(ntpServer)
+	}
+)
 
 func NewService(log logger.Logger, userSvc user.Service) Service {
 	return &service{
@@ -52,7 +58,7 @@ func NewService(log logger.Logger, userSvc user.Service) Service {
 // checkTimeSync verifies system time is in sync with NTP
 // returns the time offset and any error that occurred
 func (s *service) checkTimeSync() (time.Duration, error) {
-	resp, err := ntp.Query(ntpServer)
+	resp, err := internalNTPQuery()
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to query NTP server")
 	}
