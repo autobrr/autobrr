@@ -142,6 +142,26 @@ func (r *UserRepo) Delete(ctx context.Context, username string) error {
 	return nil
 }
 
+func (r *UserRepo) Store2FASecret(ctx context.Context, username string, secret string) error {
+	// Store the provided secret but don't enable 2FA yet
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("tfa_secret", secret).
+		Where(sq.Eq{"username": username})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
 func (r *UserRepo) Enable2FA(ctx context.Context, username string, secret string) error {
 	queryBuilder := r.db.squirrel.
 		Update("users").
@@ -163,28 +183,7 @@ func (r *UserRepo) Enable2FA(ctx context.Context, username string, secret string
 }
 
 func (r *UserRepo) Verify2FA(ctx context.Context, username string, code string) error {
-	// Implementation will be handled in the service layer
-	// This is just a placeholder to satisfy the interface
-	return nil
-}
-
-func (r *UserRepo) Disable2FA(ctx context.Context, username string) error {
-	queryBuilder := r.db.squirrel.
-		Update("users").
-		Set("two_factor_auth", false).
-		Set("tfa_secret", "").
-		Where(sq.Eq{"username": username})
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
-		return errors.Wrap(err, "error executing query")
-	}
-
+	// This is handled at the service layer
 	return nil
 }
 
@@ -213,4 +212,24 @@ func (r *UserRepo) Get2FASecret(ctx context.Context, username string) (string, e
 	}
 
 	return secret, nil
+}
+
+func (r *UserRepo) Disable2FA(ctx context.Context, username string) error {
+	queryBuilder := r.db.squirrel.
+		Update("users").
+		Set("two_factor_auth", false).
+		Set("tfa_secret", "").
+		Where(sq.Eq{"username": username})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
 }

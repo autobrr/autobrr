@@ -15,6 +15,7 @@ type UserRepo interface {
 	Verify2FA(ctx context.Context, username string, code string) error
 	Disable2FA(ctx context.Context, username string) error
 	Get2FASecret(ctx context.Context, username string) (string, error)
+	Store2FASecret(ctx context.Context, username string, secret string) error
 }
 
 type User struct {
@@ -38,7 +39,7 @@ type CreateUserRequest struct {
 	Password string `json:"password"`
 }
 
-type Enable2FARequest struct {
+type Store2FASecret struct {
 	Username string `json:"username"`
 	Secret   string `json:"secret"`
 	Code     string `json:"code"`

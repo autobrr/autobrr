@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/base64"
 	"image/png"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -206,10 +207,15 @@ func (s *service) Enable2FA(ctx context.Context, username string) (string, strin
 	// Convert to base64
 	dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
 
-	// Store secret in database (but don't enable 2FA yet - that happens after verification)
-	if err := s.userSvc.Enable2FA(ctx, username, key.Secret()); err != nil {
+	// Store secret in database but don't enable 2FA yet
+	if err := s.userSvc.Store2FASecret(ctx, username, key.Secret()); err != nil {
 		return "", "", errors.Wrap(err, "failed to store 2FA secret")
 	}
+
+	s.log.Debug().
+		Str("username", username).
+		Str("secret", key.Secret()).
+		Msg("stored 2FA secret")
 
 	return dataURL, key.Secret(), nil
 }
@@ -222,13 +228,27 @@ func (s *service) Verify2FA(ctx context.Context, username string, code string) e
 		return errors.Wrap(err, "failed to get 2FA secret")
 	}
 
-	s.log.Debug().
-		Str("username", username).
-		Str("code", code).
-		Str("secret", secret).
-		Msg("attempting 2FA verification during setup")
+	s.log.Debug(). // unsure if this is a helpful log or not
+			Str("username", username).
+			Str("code", code).
+			Str("secret", secret).
+			Msg("attempting 2FA verification during setup")
 
-	// Use simple validation for setup
+	// Generate current valid codes for debugging
+	validCodes := make([]string, 3)
+	now := time.Now()
+	for i := -1; i <= 1; i++ {
+		if validCode, err := totp.GenerateCode(secret, now.Add(30*time.Duration(i)*time.Second)); err == nil {
+			validCodes[i+1] = validCode
+		}
+	}
+
+	s.log.Debug(). // unsure if this is a helpful log or not
+			Str("username", username).
+			Strs("valid_codes", validCodes).
+			Msg("valid codes for current time window")
+
+	// Validate the code with a wider window during setup
 	valid := totp.Validate(code, secret)
 
 	if !valid {
@@ -239,7 +259,7 @@ func (s *service) Verify2FA(ctx context.Context, username string, code string) e
 		return errors.New("invalid verification code")
 	}
 
-	// Enable 2FA for the user
+	// Enable 2FA after successful verification
 	if err := s.userSvc.Enable2FA(ctx, username, secret); err != nil {
 		return errors.Wrap(err, "failed to enable 2FA")
 	}
@@ -261,7 +281,7 @@ func (s *service) Verify2FALogin(ctx context.Context, username string, code stri
 		Str("secret", secret).
 		Msg("attempting 2FA login verification")
 
-	// Use simple validation for login
+	// Validate the code
 	valid := totp.Validate(code, secret)
 
 	if !valid {
