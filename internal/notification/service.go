@@ -19,11 +19,11 @@ import (
 type Service interface {
 	Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error)
 	FindByID(ctx context.Context, id int) (*domain.Notification, error)
-	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
-	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
+	Store(ctx context.Context, notification *domain.Notification) error
+	Update(ctx context.Context, notification *domain.Notification) error
 	Delete(ctx context.Context, id int) error
 	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
-	Test(ctx context.Context, notification domain.Notification) error
+	Test(ctx context.Context, notification *domain.Notification) error
 }
 
 type service struct {
@@ -64,30 +64,30 @@ func (s *service) FindByID(ctx context.Context, id int) (*domain.Notification, e
 	return notification, err
 }
 
-func (s *service) Store(ctx context.Context, notification domain.Notification) (*domain.Notification, error) {
-	_, err := s.repo.Store(ctx, notification)
+func (s *service) Store(ctx context.Context, notification *domain.Notification) error {
+	err := s.repo.Store(ctx, notification)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store notification: %+v", notification)
-		return nil, err
+		return err
 	}
 
 	// register sender
 	s.registerSender(notification)
 
-	return nil, nil
+	return nil
 }
 
-func (s *service) Update(ctx context.Context, notification domain.Notification) (*domain.Notification, error) {
-	_, err := s.repo.Update(ctx, notification)
+func (s *service) Update(ctx context.Context, notification *domain.Notification) error {
+	err := s.repo.Update(ctx, notification)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not update notification: %+v", notification)
-		return nil, err
+		return err
 	}
 
 	// register sender
 	s.registerSender(notification)
 
-	return nil, nil
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
@@ -111,33 +111,36 @@ func (s *service) registerSenders() {
 	}
 
 	for _, notificationSender := range notificationSenders {
-		s.registerSender(notificationSender)
+		s.registerSender(&notificationSender)
 	}
 
 	return
 }
 
 // registerSender registers an enabled notification via it's id
-func (s *service) registerSender(notification domain.Notification) {
-	if notification.Enabled {
-		switch notification.Type {
-		case domain.NotificationTypeDiscord:
-			s.senders[notification.ID] = NewDiscordSender(s.log, notification)
-		case domain.NotificationTypeGotify:
-			s.senders[notification.ID] = NewGotifySender(s.log, notification)
-		case domain.NotificationTypeLunaSea:
-			s.senders[notification.ID] = NewLunaSeaSender(s.log, notification)
-		case domain.NotificationTypeNotifiarr:
-			s.senders[notification.ID] = NewNotifiarrSender(s.log, notification)
-		case domain.NotificationTypeNtfy:
-			s.senders[notification.ID] = NewNtfySender(s.log, notification)
-		case domain.NotificationTypePushover:
-			s.senders[notification.ID] = NewPushoverSender(s.log, notification)
-		case domain.NotificationTypeShoutrrr:
-			s.senders[notification.ID] = NewShoutrrrSender(s.log, notification)
-		case domain.NotificationTypeTelegram:
-			s.senders[notification.ID] = NewTelegramSender(s.log, notification)
-		}
+func (s *service) registerSender(notification *domain.Notification) {
+	if !notification.Enabled {
+		delete(s.senders, notification.ID)
+		return
+	}
+
+	switch notification.Type {
+	case domain.NotificationTypeDiscord:
+		s.senders[notification.ID] = NewDiscordSender(s.log, notification)
+	case domain.NotificationTypeGotify:
+		s.senders[notification.ID] = NewGotifySender(s.log, notification)
+	case domain.NotificationTypeLunaSea:
+		s.senders[notification.ID] = NewLunaSeaSender(s.log, notification)
+	case domain.NotificationTypeNotifiarr:
+		s.senders[notification.ID] = NewNotifiarrSender(s.log, notification)
+	case domain.NotificationTypeNtfy:
+		s.senders[notification.ID] = NewNtfySender(s.log, notification)
+	case domain.NotificationTypePushover:
+		s.senders[notification.ID] = NewPushoverSender(s.log, notification)
+	case domain.NotificationTypeShoutrrr:
+		s.senders[notification.ID] = NewShoutrrrSender(s.log, notification)
+	case domain.NotificationTypeTelegram:
+		s.senders[notification.ID] = NewTelegramSender(s.log, notification)
 	}
 
 	return
@@ -163,7 +166,7 @@ func (s *service) Send(event domain.NotificationEvent, payload domain.Notificati
 	return
 }
 
-func (s *service) Test(ctx context.Context, notification domain.Notification) error {
+func (s *service) Test(ctx context.Context, notification *domain.Notification) error {
 	var agent domain.NotificationSender
 
 	// send test events

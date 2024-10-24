@@ -772,7 +772,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+          <DialogPanel className="fixed inset-y-0 right-0 max-w-full flex">
             <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
@@ -949,7 +949,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
       <Dialog
         as="div"
         static
-        className="absolute inset-0 overflow-hidden"
+        className="fixed inset-0 overflow-hidden"
         open={isOpen}
         onClose={toggle}
         initialFocus={cancelButtonRef}
@@ -964,7 +964,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
           text="Are you sure you want to remove this download client? This action cannot be undone."
         />
         <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
             <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"

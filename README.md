@@ -21,7 +21,7 @@ Full documentation can be found at [https://autobrr.com](https://autobrr.com)
    - [Available Download Clients and Actions](#available-download-clients-and-actions)
    - [RSS and Usenet Support](#rss-and-usenet-support)
 3. [Installation](#installation)
-   - [Swizzin](#swizzin)
+   - [Swizzin](#swizzin-dedi)
    - [Saltbox](#saltbox)
    - [QuickBox](#quickbox)
    - [Shared Seedbox](#shared-seedbox)
@@ -321,7 +321,7 @@ Whether you're fixing a bug, adding a feature, or improving documentation, your 
 ### Reporting Issues and Suggestions
 
 - **Report Bugs:** Encountered a bug? Please report it using our [bug report template](/.github/ISSUE_TEMPLATE/bug_report.md). Include detailed steps to reproduce, expected behavior, and any relevant screenshots or logs.
-- **Feature Requests:** Submit it using our [feature request template](/.github/ISSUE_TEMPLATE/feature_request.md). Describe your idea and how it will improve `autobrr`.
+- **Feature Requests:** Submit your feature request by [opening a new idea in our discussions](https://github.com/autobrr/autobrr/discussions/new?category=ideas). Describe your idea and how it will improve `autobrr`.
 
 ### Code Contributions
 

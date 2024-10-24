@@ -126,7 +126,7 @@ CREATE TABLE filter
     match_other                    TEXT []   DEFAULT '{}',
     except_other                   TEXT []   DEFAULT '{}',
     years                          TEXT,
-	months                         TEXT,
+    months                         TEXT,
     days                           TEXT,
     artists                        TEXT,
     albums                         TEXT,
@@ -159,6 +159,12 @@ CREATE TABLE filter
     max_leechers                   INTEGER DEFAULT 0
 );
 
+CREATE INDEX filter_enabled_index
+    ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+    ON filter (priority);
+
 CREATE TABLE filter_external
 (
     id                                  INTEGER PRIMARY KEY,
@@ -180,6 +186,9 @@ CREATE TABLE filter_external
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
+
+CREATE INDEX filter_external_filter_id_index
+    ON filter_external(filter_id);
 
 CREATE TABLE filter_indexer
 (
@@ -1590,5 +1599,22 @@ ALTER TABLE irc_network
         CONSTRAINT irc_network_proxy_id_fk
             REFERENCES proxy(id)
             ON DELETE SET NULL;
+`,
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
+	`CREATE INDEX filter_external_filter_id_index
+    ON filter_external(filter_id);
+
+CREATE INDEX filter_enabled_index
+    ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+    ON filter (priority);
+`,
+	`UPDATE irc_network
+    SET server = 'irc.fuzer.xyz'
+    WHERE server = 'irc.fuzer.me';
 `,
 }

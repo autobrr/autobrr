@@ -12,7 +12,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
-  GO_VERSION: '1.23.0'
+  GO_VERSION: '1.23'
   NODE_VERSION: '20.17.0'
 
 permissions:
@@ -135,6 +135,17 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create web-dist artifact
+        if: startsWith(github.ref, 'refs/tags/')
+        run: mkdir -p dist && tar czf dist/web-dist.tar.gz web/dist
+
+      - name: Upload web-dist to release assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/web-dist.tar.gz
 
       - name: Upload assets
         uses: actions/upload-artifact@v4

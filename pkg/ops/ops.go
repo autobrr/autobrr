@@ -165,7 +165,7 @@ type Userstats struct {
 	Uploaded           int64   `json:"uploaded"`
 	Downloaded         int64   `json:"downloaded"`
 	Ratio              float64 `json:"ratio"`
-	Requiredratio      int64   `json:"requiredratio"`
+	Requiredratio      float64 `json:"requiredratio"`
 	BonusPoints        int64   `json:"bonusPoints"`
 	BonusPointsPerHour float64 `json:"bonusPointsPerHour"`
 	Class              string  `json:"class"`

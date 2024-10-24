@@ -71,7 +71,7 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 		order := ""
 
 		s := strings.Split(sort, "-")
-		if s[0] == "name" || s[0] == "priority" {
+		if s[0] == "name" || s[0] == "priority" || s[0] == "created_at" || s[0] == "updated_at" {
 			field = s[0]
 		}
 

@@ -159,6 +159,12 @@ CREATE TABLE filter
     max_leechers                   INTEGER DEFAULT 0
 );
 
+CREATE INDEX filter_enabled_index
+    ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+    ON filter (priority);
+
 CREATE TABLE filter_external
 (
     id                                  SERIAL PRIMARY KEY,
@@ -954,5 +960,19 @@ ALTER TABLE irc_network
 ALTER TABLE irc_network
     ADD FOREIGN KEY (proxy_id) REFERENCES proxy
         ON DELETE SET NULL;
+`,
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
+	`CREATE INDEX filter_enabled_index
+	ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+	ON filter (priority);
+`,
+	`UPDATE irc_network
+    SET server = 'irc.fuzer.xyz'
+    WHERE server = 'irc.fuzer.me';
 `,
 }

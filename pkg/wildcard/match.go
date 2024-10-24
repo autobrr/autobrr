@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/regexcache"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -27,13 +28,61 @@ func Match(pattern, name string) (matched bool) {
 }
 
 func match(pattern, name string, simple bool) (matched bool) {
-	if pattern == "" {
+	if pattern == "" { //
 		return name == ""
-	} else if pattern == "*" {
+
+	} else if pattern == "*" { // *
 		return true
+
+	} else if !simple && pattern == "?" { // ?
+		return len(name) == 1
+
+	} else if idx := strings.IndexAny(pattern, "*?"); idx == -1 || (simple && pattern[idx] == '?' && !strings.Contains(pattern, "*")) { // egg
+		return name == pattern
+
+	} else if idx == len(pattern)-1 && pattern[idx] == '*' { // egg*
+		return strings.HasPrefix(name, pattern[:idx-1])
+
+		// egg?bert*
+	} else if wildEnd := pattern[len(pattern)-1] == '*'; !simple && ((wildEnd && strings.Count(pattern, "*") == 1) || (len(pattern) == len(name) && !strings.Contains(pattern, "*"))) { // egg?bert?
+		return matchComplex(name, pattern, wildEnd)
+
+		// *egg*
+		// simple is fine, if not we need to check for ? and skip if so.
+	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && (simple || (!simple && !strings.Contains(pattern, "?"))) && strings.Count(pattern, "*") == 2 { // make sure that we have no other wildcards.
+		return strings.Contains(name, pattern[1:len(pattern)-1])
 	}
 
 	return deepMatchRune(name, pattern, simple, pattern, false)
+}
+
+func matchComplex(name, pattern string, wildEnd bool) bool {
+	base := 0
+	consumedPattern := 0
+
+	for base < len(name) && consumedPattern < len(pattern) {
+		i := strings.IndexRune(pattern[base:], '?')
+		if i == -1 {
+			if (wildEnd && !strings.HasPrefix(name[base:], pattern[base:len(pattern)-1])) || // egg*
+				(!wildEnd && name[base:] != pattern[base:]) { // egg
+				break
+			}
+
+			base = len(name)
+			consumedPattern = len(pattern)
+			continue
+		}
+
+		offset := base + i
+		if len(name) < offset || name[base:offset] != pattern[base:offset] {
+			break
+		}
+
+		base = offset + 1
+		consumedPattern = base
+	}
+
+	return base == len(name) && consumedPattern == len(pattern)
 }
 
 func MatchSliceSimple(pattern []string, name string) (matched bool) {
@@ -102,7 +151,7 @@ func cleanForRegex(pattern string, simple bool) string {
 }
 
 func prepForRegex(pattern string) string {
-	return `^` + regexp.QuoteMeta(pattern) + `$`
+	return `(?m)^` + regexp.QuoteMeta(pattern) + `$`
 }
 
 func deepMatchRune(str, pattern string, simple bool, original string, bulk bool) bool {
@@ -130,10 +179,5 @@ func deepMatchRune(str, pattern string, simple bool, original string, bulk bool)
 		regexcache.SubmitOriginal(original+salt, user)
 	}
 
-	idx := user.FindStringIndex(str)
-	if idx == nil {
-		return false
-	}
-
-	return idx[1] == len(str)
+	return user.MatchString(str)
 }
