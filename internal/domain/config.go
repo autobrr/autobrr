@@ -12,6 +12,7 @@ type Config struct {
 	LogPath             string `toml:"logPath"`
 	LogMaxSize          int    `toml:"logMaxSize"`
 	LogMaxBackups       int    `toml:"logMaxBackups"`
+	DbMaxBackups        int    `toml:"dbMaxBackups"`
 	BaseURL             string `toml:"baseUrl"`
 	SessionSecret       string `toml:"sessionSecret"`
 	CustomDefinitions   string `toml:"customDefinitions"`
