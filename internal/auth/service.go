@@ -4,14 +4,20 @@
 package auth
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"image/png"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/argon2id"
 
+	"github.com/beevik/ntp"
 	"github.com/pkg/errors"
+	"github.com/pquerna/otp/totp"
 	"github.com/rs/zerolog"
 )
 
@@ -22,6 +28,11 @@ type Service interface {
 	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
 	CreateHash(password string) (hash string, err error)
 	ComparePasswordAndHash(password string, hash string) (match bool, err error)
+	Get2FAStatus(ctx context.Context, username string) (bool, error)
+	Enable2FA(ctx context.Context, username string) (string, string, error)
+	Verify2FA(ctx context.Context, username string, code string) error
+	Verify2FALogin(ctx context.Context, username string, code string) error
+	Disable2FA(ctx context.Context, username string) error
 }
 
 type service struct {
@@ -29,11 +40,34 @@ type service struct {
 	userSvc user.Service
 }
 
+var (
+	ntpServer = "pool.ntp.org"
+	// internal package variable for testing
+	internalNTPQuery = func() (*ntp.Response, error) {
+		return ntp.Query(ntpServer)
+	}
+)
+
 func NewService(log logger.Logger, userSvc user.Service) Service {
 	return &service{
 		log:     log.With().Str("module", "auth").Logger(),
 		userSvc: userSvc,
 	}
+}
+
+// checkTimeSync verifies system time is in sync with NTP
+// returns the time offset and any error that occurred
+func (s *service) checkTimeSync() (time.Duration, error) {
+	resp, err := internalNTPQuery()
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to query NTP server")
+	}
+
+	if err := resp.Validate(); err != nil {
+		return 0, errors.Wrap(err, "invalid NTP response")
+	}
+
+	return resp.ClockOffset, nil
 }
 
 func (s *service) GetUserCount(ctx context.Context) (int, error) {
@@ -161,4 +195,157 @@ func (s *service) CreateHash(password string) (hash string, err error) {
 	}
 
 	return argon2id.CreateHash(password, argon2id.DefaultParams)
+}
+
+func (s *service) Get2FAStatus(ctx context.Context, username string) (bool, error) {
+	user, err := s.userSvc.FindByUsername(ctx, username)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get user")
+	}
+
+	return user.TwoFactorAuth, nil
+}
+
+func (s *service) Enable2FA(ctx context.Context, username string) (string, string, error) {
+	// Check time sync before allowing 2FA setup
+	offset, err := s.checkTimeSync()
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to verify time synchronization")
+	}
+
+	// If time is off by more than 30 seconds, don't allow 2FA setup
+	if offset.Abs() > 30*time.Second {
+		return "", "", errors.Errorf("system time is off by %v - please sync your system time before enabling 2FA", offset)
+	}
+
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "autobrr",
+		AccountName: username,
+		SecretSize:  20,
+	})
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to generate TOTP key")
+	}
+
+	// Generate QR code image
+	var buf bytes.Buffer
+	img, err := key.Image(200, 200)
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to generate QR code image")
+	}
+
+	if err := png.Encode(&buf, img); err != nil {
+		return "", "", errors.Wrap(err, "failed to encode QR code image")
+	}
+
+	// Convert to base64
+	dataURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	// Store secret in database but don't enable 2FA yet
+	if err := s.userSvc.Store2FASecret(ctx, username, key.Secret()); err != nil {
+		return "", "", errors.Wrap(err, "failed to store 2FA secret")
+	}
+
+	s.log.Debug().
+		Str("username", username).
+		Str("secret", key.Secret()).
+		Msg("stored 2FA secret")
+
+	return dataURL, key.Secret(), nil
+}
+
+func (s *service) Verify2FA(ctx context.Context, username string, code string) error {
+	// Get user's secret
+	secret, err := s.userSvc.Get2FASecret(ctx, username)
+	if err != nil {
+		return errors.Wrap(err, "failed to get 2FA secret")
+	}
+
+	s.log.Debug().
+		Str("username", username).
+		Str("code", code).
+		Str("secret", secret).
+		Msg("attempting 2FA verification during setup")
+
+	validCodes := make([]string, 3)
+	now := time.Now()
+	for i := -1; i <= 1; i++ {
+		if validCode, err := totp.GenerateCode(secret, now.Add(30*time.Duration(i)*time.Second)); err == nil {
+			validCodes[i+1] = validCode
+		}
+	}
+
+	s.log.Debug().
+		Str("username", username).
+		Strs("valid_codes", validCodes).
+		Msg("valid codes for current time window")
+
+	// Validate the code with a wider window during setup
+	valid := totp.Validate(code, secret)
+
+	if !valid {
+		s.log.Debug().
+			Str("username", username).
+			Str("code", code).
+			Msg("invalid 2FA code during setup")
+		return errors.New("invalid verification code")
+	}
+
+	// Enable 2FA after successful verification
+	if err := s.userSvc.Enable2FA(ctx, username, secret); err != nil {
+		return errors.Wrap(err, "failed to enable 2FA")
+	}
+
+	return nil
+}
+
+// Verify2FALogin verifies the 2FA code during login
+func (s *service) Verify2FALogin(ctx context.Context, username string, code string) error {
+	// Get user's secret
+	secret, err := s.userSvc.Get2FASecret(ctx, username)
+	if err != nil {
+		return errors.Wrap(err, "failed to get 2FA secret")
+	}
+
+	s.log.Debug().
+		Str("username", username).
+		Str("code", code).
+		Str("secret", secret).
+		Msg("attempting 2FA login verification")
+
+	// First try normal validation
+	valid := totp.Validate(code, secret)
+
+	// If validation fails, check if it's due to time sync issues
+	if !valid {
+		offset, err := s.checkTimeSync()
+		if err != nil {
+			s.log.Error().Err(err).Msg("failed to check time sync during 2FA login")
+		} else if offset.Abs() > 30*time.Second {
+			s.log.Warn().Msgf("system time is off by %v during 2FA login", offset)
+			// Try validation again with the corrected time
+			now := time.Now().Add(offset)
+			if validCode, err := totp.GenerateCode(secret, now); err == nil {
+				valid = (code == validCode)
+			}
+		}
+	}
+
+	if !valid {
+		s.log.Debug().
+			Str("username", username).
+			Str("code", code).
+			Msg("invalid 2FA code during login")
+		return errors.New("invalid verification code")
+	}
+
+	return nil
+}
+
+func (s *service) Disable2FA(ctx context.Context, username string) error {
+	if err := s.userSvc.Disable2FA(ctx, username); err != nil {
+		return errors.Wrap(err, "failed to disable 2FA")
+	}
+
+	return nil
 }

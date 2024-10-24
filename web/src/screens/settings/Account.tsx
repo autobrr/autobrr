@@ -13,6 +13,7 @@ import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
 import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
+import { TwoFactorAuth } from "./components/TwoFactorAuth";
 
 const AccountSettings = () => (
   <Section
@@ -21,6 +22,7 @@ const AccountSettings = () => (
   >
     <div className="py-0.5">
       <Credentials />
+      <TwoFactorAuth />
     </div>
   </Section>
 );
@@ -31,6 +33,13 @@ interface InputValues {
   oldPassword: string;
   newPassword: string;
   confirmPassword: string;
+}
+
+interface UserUpdate {
+  username_current: string;
+  username_new: string;
+  password_current: string;
+  password_new: string;
 }
 
 function Credentials() {
