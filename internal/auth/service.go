@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/argon2id"
 
+	"github.com/beevik/ntp"
 	"github.com/pkg/errors"
 	"github.com/pquerna/otp/totp"
 	"github.com/rs/zerolog"
@@ -39,11 +40,28 @@ type service struct {
 	userSvc user.Service
 }
 
+const ntpServer = "pool.ntp.org"
+
 func NewService(log logger.Logger, userSvc user.Service) Service {
 	return &service{
 		log:     log.With().Str("module", "auth").Logger(),
 		userSvc: userSvc,
 	}
+}
+
+// checkTimeSync verifies system time is in sync with NTP
+// returns the time offset and any error that occurred
+func (s *service) checkTimeSync() (time.Duration, error) {
+	resp, err := ntp.Query(ntpServer)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to query NTP server")
+	}
+
+	if err := resp.Validate(); err != nil {
+		return 0, errors.Wrap(err, "invalid NTP response")
+	}
+
+	return resp.ClockOffset, nil
 }
 
 func (s *service) GetUserCount(ctx context.Context) (int, error) {
@@ -183,6 +201,17 @@ func (s *service) Get2FAStatus(ctx context.Context, username string) (bool, erro
 }
 
 func (s *service) Enable2FA(ctx context.Context, username string) (string, string, error) {
+	// Check time sync before allowing 2FA setup
+	offset, err := s.checkTimeSync()
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to verify time synchronization")
+	}
+
+	// If time is off by more than 30 seconds, don't allow 2FA setup
+	if offset.Abs() > 30*time.Second {
+		return "", "", errors.Errorf("system time is off by %v - please sync your system time before enabling 2FA", offset)
+	}
+
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "autobrr",
 		AccountName: username,
@@ -226,11 +255,11 @@ func (s *service) Verify2FA(ctx context.Context, username string, code string) e
 		return errors.Wrap(err, "failed to get 2FA secret")
 	}
 
-	s.log.Debug(). // unsure if this is a helpful log or not
-			Str("username", username).
-			Str("code", code).
-			Str("secret", secret).
-			Msg("attempting 2FA verification during setup")
+	s.log.Debug().
+		Str("username", username).
+		Str("code", code).
+		Str("secret", secret).
+		Msg("attempting 2FA verification during setup")
 
 	validCodes := make([]string, 3)
 	now := time.Now()
@@ -240,10 +269,10 @@ func (s *service) Verify2FA(ctx context.Context, username string, code string) e
 		}
 	}
 
-	s.log.Debug(). // unsure if this is a helpful log or not
-			Str("username", username).
-			Strs("valid_codes", validCodes).
-			Msg("valid codes for current time window")
+	s.log.Debug().
+		Str("username", username).
+		Strs("valid_codes", validCodes).
+		Msg("valid codes for current time window")
 
 	// Validate the code with a wider window during setup
 	valid := totp.Validate(code, secret)
@@ -278,8 +307,23 @@ func (s *service) Verify2FALogin(ctx context.Context, username string, code stri
 		Str("secret", secret).
 		Msg("attempting 2FA login verification")
 
-	// Validate the code
+	// First try normal validation
 	valid := totp.Validate(code, secret)
+
+	// If validation fails, check if it's due to time sync issues
+	if !valid {
+		offset, err := s.checkTimeSync()
+		if err != nil {
+			s.log.Error().Err(err).Msg("failed to check time sync during 2FA login")
+		} else if offset.Abs() > 30*time.Second {
+			s.log.Warn().Msgf("system time is off by %v during 2FA login", offset)
+			// Try validation again with the corrected time
+			now := time.Now().Add(offset)
+			if validCode, err := totp.GenerateCode(secret, now); err == nil {
+				valid = (code == validCode)
+			}
+		}
+	}
 
 	if !valid {
 		s.log.Debug().

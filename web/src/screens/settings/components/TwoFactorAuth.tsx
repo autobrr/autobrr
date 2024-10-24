@@ -28,6 +28,16 @@ interface Verify2FAVariables {
   code: string;
 }
 
+class APIError extends Error {
+  status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'APIError';
+    this.status = status;
+  }
+}
+
 // Constants for setup timeout
 const SETUP_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const CLEANUP_CHECK_INTERVAL_MS = 1000; // 1 second
@@ -38,7 +48,7 @@ interface SetupModalContentProps {
   formikRef: React.RefObject<FormikProps<VerificationValues>>;
   isProcessing: React.MutableRefObject<boolean>;
   handleCancel: () => void;
-  verify2FAMutation: UseMutationResult<void, Error, Verify2FAVariables, unknown>;
+  verify2FAMutation: UseMutationResult<void, APIError, Verify2FAVariables, unknown>;
 }
 
 const SetupModalContent = ({ 
@@ -151,7 +161,7 @@ export function TwoFactorAuth() {
   }, []);
 
   // Disable 2FA with silent option
-  const disable2FAMutation = useMutation<void, Error, Disable2FAVariables>({
+  const disable2FAMutation = useMutation<void, APIError, Disable2FAVariables>({
     mutationFn: APIClient.auth.disable2FA,
     onSuccess: (_, { silent } = { silent: false }) => {
       queryClient.invalidateQueries({ queryKey: ["2fa-status"] });
@@ -162,10 +172,10 @@ export function TwoFactorAuth() {
       }
       setShowDisableModal(false);
     },
-    onError: (_, { silent } = { silent: false }) => {
+    onError: (error, { silent } = { silent: false }) => {
       if (!silent) {
         toast.custom((t) => (
-          <Toast type="error" body="Failed to disable 2FA" t={t} />
+          <Toast type="error" body={error.message || "Failed to disable 2FA"} t={t} />
         ));
       }
       setShowDisableModal(false);
@@ -173,7 +183,7 @@ export function TwoFactorAuth() {
   });
 
   // Start 2FA setup
-  const startSetupMutation = useMutation({
+  const startSetupMutation = useMutation<{ url: string; secret: string }, APIError>({
     mutationFn: APIClient.auth.enable2FA,
     onSuccess: (data) => {
       setQrCode(data.url);
@@ -185,15 +195,21 @@ export function TwoFactorAuth() {
         <Toast type="info" body="Scan the QR code with your authenticator app" t={t} />
       ));
     },
-    onError: () => {
+    onError: (error) => {
+      const errorMessage = error.message || "Failed to start 2FA setup";
+      const isTimeSyncError = errorMessage.toLowerCase().includes("time") && errorMessage.toLowerCase().includes("sync");
+
       toast.custom((t) => (
-        <Toast type="error" body="Failed to start 2FA setup" t={t} />
-      ));
+        <Toast type="error" body={errorMessage} t={t} />
+      ), {
+        // Show time sync errors for longer
+        duration: isTimeSyncError ? 8000 : 4000
+      });
     }
   });
 
   // Verify 2FA code
-  const verify2FAMutation = useMutation<void, Error, Verify2FAVariables>({
+  const verify2FAMutation = useMutation<void, APIError, Verify2FAVariables>({
     mutationFn: APIClient.auth.verify2FA,
     onMutate: () => {
       isProcessing.current = true;
@@ -206,17 +222,23 @@ export function TwoFactorAuth() {
       ));
       cleanupUIState();
     },
-    onError: () => {
+    onError: (error) => {
       isProcessing.current = false;
+      const errorMessage = error.message || "Invalid verification code. Please try again.";
+      const isTimeSyncError = errorMessage.toLowerCase().includes("time") && errorMessage.toLowerCase().includes("sync");
+
       // Set the field error using Formik
       if (formikRef.current) {
-        formikRef.current.setFieldError('code', 'Invalid verification code');
+        formikRef.current.setFieldError('code', errorMessage);
         formikRef.current.setFieldValue('code', '', false);
       }
-      // You can keep the toast as well, or remove it if you prefer just the field error
+
       toast.custom((t) => (
-        <Toast type="error" body="Invalid verification code. Please check your authenticator app and try again." t={t} />
-      ));
+        <Toast type="error" body={errorMessage} t={t} />
+      ), {
+        // Show time sync errors for longer
+        duration: isTimeSyncError ? 8000 : 4000
+      });
     }
   });
 

@@ -26,6 +26,11 @@ type LoginFormFields = {
   code?: string;
 };
 
+interface APIError {
+  message: string;
+  status?: number;
+}
+
 export const Login = () => {  
   const [auth, setAuth] = AuthContext.use();
   const [requires2FA, setRequires2FA] = useState(false);
@@ -82,10 +87,22 @@ export const Login = () => {
       });
       router.invalidate()
     },
-    onError: () => {
+    onError: (error: APIError) => {
+      // Check if the error message contains time sync information
+      const errorMessage = error.message || "Invalid verification code. Please try again.";
+      
       toast.custom((t) => (
-        <Toast type="error" body="Invalid verification code. Please try again." t={t} />
-      ));
+        <Toast 
+          type="error" 
+          body={errorMessage}
+          t={t} 
+        />
+      ), {
+        // time sync errors
+        duration: errorMessage.toLowerCase().includes("time") && errorMessage.toLowerCase().includes("sync") 
+          ? 8000 
+          : 4000
+      });
     }
   });
 

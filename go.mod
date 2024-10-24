@@ -14,6 +14,7 @@ require (
 	github.com/autobrr/go-rtorrent v1.11.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.0
+	github.com/beevik/ntp v1.4.3
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/dcarbone/zadapters/zstdlog v1.0.0
 	github.com/dustin/go-humanize v1.0.1
