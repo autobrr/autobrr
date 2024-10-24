@@ -183,7 +183,6 @@ func (s *service) Get2FAStatus(ctx context.Context, username string) (bool, erro
 }
 
 func (s *service) Enable2FA(ctx context.Context, username string) (string, string, error) {
-	// Generate QR code
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "autobrr",
 		AccountName: username,
@@ -220,7 +219,6 @@ func (s *service) Enable2FA(ctx context.Context, username string) (string, strin
 	return dataURL, key.Secret(), nil
 }
 
-// Verify2FA verifies the 2FA code during setup
 func (s *service) Verify2FA(ctx context.Context, username string, code string) error {
 	// Get user's secret
 	secret, err := s.userSvc.Get2FASecret(ctx, username)
@@ -234,7 +232,6 @@ func (s *service) Verify2FA(ctx context.Context, username string, code string) e
 			Str("secret", secret).
 			Msg("attempting 2FA verification during setup")
 
-	// Generate current valid codes for debugging
 	validCodes := make([]string, 3)
 	now := time.Now()
 	for i := -1; i <= 1; i++ {
