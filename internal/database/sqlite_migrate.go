@@ -1619,4 +1619,9 @@ CREATE INDEX filter_priority_index
     SET server = 'irc.fuzer.xyz'
     WHERE server = 'irc.fuzer.me';
 `,
+	`
+ALTER TABLE users
+    ADD COLUMN two_factor_auth BOOLEAN DEFAULT FALSE;
+    ADD COLUMN tfa_secret TEXT DEFAULT NULL;
+`,
 }
