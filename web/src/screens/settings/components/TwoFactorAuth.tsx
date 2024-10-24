@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, Fragment } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 import { Form, Formik, FormikProps } from "formik";
 import toast from "react-hot-toast";
 import { QrCodeIcon } from "@heroicons/react/24/solid";
@@ -32,7 +32,23 @@ interface Verify2FAVariables {
 const SETUP_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const CLEANUP_CHECK_INTERVAL_MS = 1000; // 1 second
 
-const SetupModalContent = ({ qrCode, secret, formikRef, isProcessing, handleCancel, verify2FAMutation }: any) => (
+interface SetupModalContentProps {
+  qrCode: string;
+  secret: string;
+  formikRef: React.RefObject<FormikProps<VerificationValues>>;
+  isProcessing: React.MutableRefObject<boolean>;
+  handleCancel: () => void;
+  verify2FAMutation: UseMutationResult<void, Error, Verify2FAVariables, unknown>;
+}
+
+const SetupModalContent = ({ 
+  qrCode, 
+  secret, 
+  formikRef, 
+  isProcessing, 
+  handleCancel, 
+  verify2FAMutation 
+}: SetupModalContentProps) => (
   <>
     <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:py-6 sm:px-4 sm:pb-4">
       <div className="mt-3 text-left sm:mt-0">
