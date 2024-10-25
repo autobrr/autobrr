@@ -352,12 +352,17 @@ func (h authHandler) verify2FA(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Regular 2FA setup verification
-	username, ok := session.Values["username"].(string)
-	if !ok || username == "" {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
+	usernameValue, exists := session.Values["username"]
+	if !exists {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("username not found in session"))
 		return
 	}
 
+	username, ok := usernameValue.(string)
+	if !ok || username == "" {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("invalid username in session"))
+		return
+	}
 	if err := h.service.Verify2FA(r.Context(), username, data.Code); err != nil {
 		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not verify 2FA code"))
 		return
