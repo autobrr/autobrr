@@ -228,7 +228,12 @@ func (h authHandler) onboardEligible(ctx context.Context) (int, error) {
 // validate sits behind the IsAuthenticated middleware which takes care of checking for a valid session
 // If there is a valid session return OK, otherwise the middleware returns early with a 401
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
-	session := r.Context().Value("session").(*sessions.Session)
+	session, ok := r.Context().Value("session").(*sessions.Session)
+	if !ok {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session from context"))
+		return
+	}
+
 	if session != nil {
 		h.log.Debug().Msgf("found user session: %+v", session)
 	}
@@ -255,7 +260,12 @@ func (h authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) get2FAStatus(w http.ResponseWriter, r *http.Request) {
-	session := r.Context().Value("session").(*sessions.Session)
+	session, ok := r.Context().Value("session").(*sessions.Session)
+	if !ok {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session from context"))
+		return
+	}
+
 	username, ok := session.Values["username"].(string)
 	if !ok || username == "" {
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
@@ -272,7 +282,12 @@ func (h authHandler) get2FAStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) enable2FA(w http.ResponseWriter, r *http.Request) {
-	session := r.Context().Value("session").(*sessions.Session)
+	session, ok := r.Context().Value("session").(*sessions.Session)
+	if !ok {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session from context"))
+		return
+	}
+
 	username, ok := session.Values["username"].(string)
 	if !ok || username == "" {
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
@@ -372,7 +387,12 @@ func (h authHandler) verify2FA(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h authHandler) disable2FA(w http.ResponseWriter, r *http.Request) {
-	session := r.Context().Value("session").(*sessions.Session)
+	session, ok := r.Context().Value("session").(*sessions.Session)
+	if !ok {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session from context"))
+		return
+	}
+
 	username, ok := session.Values["username"].(string)
 	if !ok || username == "" {
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get username from session"))
