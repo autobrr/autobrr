@@ -32,7 +32,7 @@ irc:
       type: text
       required: true
       label: Nick
-      help: Bot nick. Eg. user|autodl
+      help: Bot nick. Eg. user_bot
 
     - name: auth.account
       type: text
