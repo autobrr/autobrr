@@ -72,24 +72,32 @@ irc:
             torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
             baseUrl: https://digitalcore.club/api/v1/torrents/
             torrentId: "00000"
-            tags: p2p,unrar
-            releaseTags: ""
-        - line: 'NEW TORRENT in Movies/1080p :: Meridian 1990 1080p BluRay x264-OFT :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Genre: [Drama, Fantasy, Horror]'
+            tags: ""
+            releaseTags: p2p,unrar
+        - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Genre: [Drama, Fantasy, Horror]'
           expect:
             category: Movies/1080p
-            torrentName: Meridian 1990 1080p BluRay x264-OFT
+            torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
             baseUrl: https://digitalcore.club/api/v1/torrents/
             torrentId: "00000"
-            tags: p2p,unrar
-            releaseTags: "Drama, Fantasy, Horror"
+            tags: "Drama, Fantasy, Horror"
+            releaseTags: p2p,unrar
+        - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Genre: [Drama, Fantasy, Horror]'
+          expect:
+            category: Movies/1080p
+            torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
+            baseUrl: https://digitalcore.club/api/v1/torrents/
+            torrentId: "00000"
+            tags: "Drama, Fantasy, Horror"
+            releaseTags: ""
         pattern: 'NEW TORRENT in (.+) :: (.+) :: (https:\/\/.+\/).+\/([0-9a-zA-Z]+)(?: :: Tags: )?(?:\[([0-9a-zA-Z ,\-&]+)\])?(?: :: Genre: )?(?:\[([0-9a-zA-Z ,\-&]+)\])?'
         vars:
           - category
           - torrentName
           - baseUrl
           - torrentId
-          - tags
           - releaseTags
+          - tags
 
     match:
       infourl: "/torrent/{{ .torrentId }}/"
