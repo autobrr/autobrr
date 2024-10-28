@@ -91,8 +91,8 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => (
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.reannounce_skip`}
-            label="Skip reannounce"
-            description="If reannounce is not needed, skip it completely"
+            label="Disable reannounce"
+            description="Reannounce is enabled by default. Disable if it's not needed"
             className="pt-2 pb-4"
           />
           <NumberField
