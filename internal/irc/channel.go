@@ -91,6 +91,14 @@ func (c *Channel) IsValidAnnouncer(nick string) bool {
 
 	announcer, ok := c.announcers.Get(nick)
 	if ok {
+		if !announcer.Present && announcer.State == domain.IrcUserStateUninitialized {
+			c.log.Trace().Str("nick", nick).Msg("announcer not present and uninitialized, setting to present")
+			announcer.Present = true
+			announcer.State = domain.IrcUserStatePresent
+			c.announcers.Set(nick, announcer)
+			return true
+		}
+
 		if !announcer.Present {
 			c.log.Warn().Str("nick", nick).Msg("announcer not present")
 			return false
@@ -153,6 +161,7 @@ func (c *Channel) RegisterAnnouncers(announcers []string) {
 		c.announcers.Set(announcer, &domain.IrcUser{
 			Nick:    announcer,
 			Present: false,
+			State:   domain.IrcUserStateUninitialized,
 		})
 	}
 }
@@ -184,6 +193,7 @@ func (c *Channel) SetUsers(users []string) {
 		// check if user is expected announcer/bot and add to announcers
 		if announcer, ok := c.announcers.Get(u.Nick); ok {
 			announcer.Present = true
+			announcer.State = domain.IrcUserStatePresent
 			announcer.Mode = u.Mode
 
 			c.announcers.Set(u.Nick, announcer)
@@ -201,6 +211,7 @@ func (c *Channel) RemoveUser(nick string) {
 	// check if user is announcer/bot and remove from announcers
 	if announcer, ok := c.announcers.Get(nick); ok {
 		announcer.Present = false
+		announcer.State = domain.IrcUserStateNotPresent
 		c.announcers.Set(nick, announcer)
 	}
 

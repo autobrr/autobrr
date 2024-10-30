@@ -153,7 +153,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 					nick := strings.ToLower(parts[0])
 					h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
 
-					h.bots.Set(nick, &domain.IrcUser{Nick: nick})
+					h.bots.Set(nick, &domain.IrcUser{Nick: nick, State: domain.IrcUserStateUninitialized})
 				}
 			}
 		}
@@ -836,6 +836,7 @@ func (h *Handler) handleJoin(msg ircmsg.Message) {
 		botUser, foundBot := h.bots.Get(msg.Nick())
 		if foundBot {
 			botUser.Present = true
+			botUser.State = domain.IrcUserStatePresent
 			h.bots.Swap(msg.Nick(), botUser)
 		}
 
@@ -862,6 +863,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 		botUser, foundBot := h.bots.Get(msg.Nick())
 		if foundBot {
 			botUser.Present = false
+			botUser.State = domain.IrcUserStateNotPresent
 			h.bots.Swap(msg.Nick(), botUser)
 		}
 

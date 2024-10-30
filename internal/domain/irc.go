@@ -97,11 +97,19 @@ type IrcChannelWithHealth struct {
 }
 
 type IrcUser struct {
-	Nick    string `json:"nick"`
-	Mode    string `json:"mode"`
-	Present bool   `json:"present"`
-	Online  bool
+	Nick    string       `json:"nick"`
+	Mode    string       `json:"mode"`
+	Present bool         `json:"present"`
+	State   IrcUserState `json:"state"`
 }
+
+type IrcUserState string
+
+const (
+	IrcUserStatePresent       IrcUserState = "PRESENT"
+	IrcUserStateNotPresent    IrcUserState = "NOT_PRESENT"
+	IrcUserStateUninitialized IrcUserState = "UNINITIALIZED"
+)
 
 func (u *IrcUser) ParseMode(nick string) bool {
 	index := strings.IndexAny(nick, "~!@+&")
