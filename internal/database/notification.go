@@ -179,15 +179,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 	return &n, nil
 }
 
-func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notification) (*domain.Notification, error) {
-	webhook := toNullString(notification.Webhook)
-	token := toNullString(notification.Token)
-	apiKey := toNullString(notification.APIKey)
-	channel := toNullString(notification.Channel)
-	topic := toNullString(notification.Topic)
-	host := toNullString(notification.Host)
-	username := toNullString(notification.Username)
-
+func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notification) error {
 	queryBuilder := r.db.squirrel.
 		Insert("notification").
 		Columns(
@@ -209,68 +201,56 @@ func (r *NotificationRepo) Store(ctx context.Context, notification domain.Notifi
 			notification.Type,
 			notification.Enabled,
 			pq.Array(notification.Events),
-			webhook,
-			token,
-			apiKey,
-			channel,
+			toNullString(notification.Webhook),
+			toNullString(notification.Token),
+			toNullString(notification.APIKey),
+			toNullString(notification.Channel),
 			notification.Priority,
-			topic,
-			host,
-			username,
+			toNullString(notification.Topic),
+			toNullString(notification.Host),
+			toNullString(notification.Username),
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
-	// return values
-	var retID int64
-
-	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&notification.ID); err != nil {
+		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("notification.store: added new %v", retID)
-	notification.ID = int(retID)
+	r.log.Debug().Msgf("notification.store: added new %v", notification.ID)
 
-	return &notification, nil
+	return nil
 }
 
-func (r *NotificationRepo) Update(ctx context.Context, notification domain.Notification) (*domain.Notification, error) {
-	webhook := toNullString(notification.Webhook)
-	token := toNullString(notification.Token)
-	apiKey := toNullString(notification.APIKey)
-	channel := toNullString(notification.Channel)
-	topic := toNullString(notification.Topic)
-	host := toNullString(notification.Host)
-	username := toNullString(notification.Username)
-
+func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Notification) error {
 	queryBuilder := r.db.squirrel.
 		Update("notification").
 		Set("name", notification.Name).
 		Set("type", notification.Type).
 		Set("enabled", notification.Enabled).
 		Set("events", pq.Array(notification.Events)).
-		Set("webhook", webhook).
-		Set("token", token).
-		Set("api_key", apiKey).
-		Set("channel", channel).
+		Set("webhook", toNullString(notification.Webhook)).
+		Set("token", toNullString(notification.Token)).
+		Set("api_key", toNullString(notification.APIKey)).
+		Set("channel", toNullString(notification.Channel)).
 		Set("priority", notification.Priority).
-		Set("topic", topic).
-		Set("host", host).
-		Set("username", username).
+		Set("topic", toNullString(notification.Topic)).
+		Set("host", toNullString(notification.Host)).
+		Set("username", toNullString(notification.Username)).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": notification.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
+		return errors.Wrap(err, "error building query")
 	}
 
 	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
 	r.log.Debug().Msgf("notification.update: %v", notification.Name)
 
-	return &notification, nil
+	return nil
 }
 
 func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error {

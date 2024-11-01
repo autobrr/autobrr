@@ -50,7 +50,7 @@ const (
 
 type discordSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 
 	httpClient *http.Client
 }
@@ -59,7 +59,7 @@ func (a *discordSender) Name() string {
 	return "discord"
 }
 
-func NewDiscordSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &discordSender{
 		log:      log.With().Str("sender", "discord").Logger(),
 		Settings: settings,

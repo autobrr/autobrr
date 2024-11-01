@@ -509,18 +509,12 @@ export function SelectField<T>({ name, label, options, placeholder }: SelectFiel
                 }
               })}
               value={field?.value && options.find(o => o.value == field?.value)}
-              onChange={(option) => {
-                // resetForm();
-
-                if (option !== null) {
-                  // const opt = option as SelectOption;
-                  // setFieldValue("name", option?.label ?? "")
-                  setFieldValue(
-                    field.name,
-                    option.value ?? ""
-                  );
-                } else {
-                  setFieldValue(field.name, undefined);
+              onChange={(newValue: unknown) => {
+                if (newValue) {
+                  setFieldValue(field.name, (newValue as { value: number }).value);
+                }
+                else {
+                  setFieldValue(field.name, 0)
                 }
               }}
               options={options}

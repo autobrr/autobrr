@@ -72,16 +72,16 @@ func TestPTPClient_GetTorrentByID(t *testing.T) {
 				APIUser: user,
 				APIKey:  key,
 			},
-			args: args{torrentID: "000001"},
+			args: args{torrentID: "1"},
 			want: &domain.TorrentBasic{
-				Id:       "000001",
+				Id:       "1",
 				InfoHash: "F57AA86DFB03F87FCC7636E310D35918442EAE5C",
 				Size:     "1344512700",
 			},
 			wantErr: false,
 		},
 		{
-			name: "get_by_id_2",
+			name: "get_by_id_not_found",
 			fields: fields{
 				Url:     ts.URL,
 				APIUser: user,
@@ -89,7 +89,7 @@ func TestPTPClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -97,8 +97,10 @@ func TestPTPClient_GetTorrentByID(t *testing.T) {
 			c := NewClient(tt.fields.APIUser, tt.fields.APIKey, WithUrl(ts.URL))
 
 			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
-			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 
 			assert.Equal(t, tt.want, got)

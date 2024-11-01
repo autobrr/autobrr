@@ -1733,6 +1733,10 @@ CREATE INDEX filter_enabled_index
 CREATE INDEX filter_priority_index
     ON filter (priority);
 `,
+	`UPDATE irc_network
+    SET server = 'irc.fuzer.xyz'
+    WHERE server = 'irc.fuzer.me';
+`,
 	`CREATE TABLE release_profile_duplicate
 (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
