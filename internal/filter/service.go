@@ -434,7 +434,7 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 			if isDuplicate {
 				l.Debug().Msgf("filter %s rejected release %q as duplicate with profile %q", f.Name, release.TorrentName, f.DuplicateHandling.Name)
-				f.AddRejectionF("found duplicate release")
+				f.RejectReasons.Add("duplicate", "duplicate", "not duplicate")
 				return false, nil
 			}
 		}

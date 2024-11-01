@@ -170,7 +170,7 @@ type Filter struct {
 	DuplicateHandling         *DuplicateReleaseProfile `json:"release_profile_duplicate"`
 	Downloads                 *FilterDownloads         `json:"-"`
 	Rejections                []string                 `json:"-"`
-  RejectReasons             *RejectionReasons        `json:"-"`
+	RejectReasons             *RejectionReasons        `json:"-"`
 }
 
 type FilterExternal struct {

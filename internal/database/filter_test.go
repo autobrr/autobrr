@@ -861,13 +861,15 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			mockAction1.FilterID = mockData.ID
 			mockAction1.ClientID = mockClient.ID
 
-			action1, err := actionRepo.Store(context.Background(), mockAction1)
+			actionErr := actionRepo.Store(context.Background(), mockAction1)
+			assert.NoError(t, actionErr)
 
 			mockAction2 := getMockAction()
 			mockAction2.FilterID = mockData.ID
 			mockAction2.ClientID = mockClient.ID
 
-			action2, err := actionRepo.Store(context.Background(), mockAction2)
+			actionErr := actionRepo.Store(context.Background(), mockAction2)
+			assert.NoError(t, actionErr)
 
 			mockRelease.FilterID = mockData.ID
 
@@ -924,13 +926,15 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			mockAction.FilterID = mockData.ID
 			mockAction.ClientID = mockClient.ID
 
-			action, err := actionRepo.Store(context.Background(), mockAction)
+			err = actionRepo.Store(context.Background(), mockAction)
+			assert.NoError(t, err)
 
 			mockAction2 := getMockAction()
 			mockAction2.FilterID = mockData.ID
 			mockAction2.ClientID = mockClient.ID
 
-			action2, err := actionRepo.Store(context.Background(), mockAction2)
+			err = actionRepo.Store(context.Background(), mockAction2)
+			assert.NoError(t, err)
 
 			mockRelease.FilterID = mockData.ID
 
