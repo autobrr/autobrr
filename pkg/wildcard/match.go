@@ -50,7 +50,7 @@ func match(pattern, name string, simple bool) (matched bool) {
 		// *egg*
 		// simple is fine, if not we need to check for ? and skip if so.
 	} else if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && (simple || (!simple && !strings.Contains(pattern, "?"))) && strings.Count(pattern, "*") == 2 { // make sure that we have no other wildcards.
-		return strings.Contains(name, pattern[1:len(pattern)])
+		return strings.Contains(name, pattern[1:len(pattern)-1])
 	}
 
 	return deepMatchRune(name, pattern, simple, pattern, false)
