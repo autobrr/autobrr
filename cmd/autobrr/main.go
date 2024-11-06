@@ -4,6 +4,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
 	"runtime/pprof"
@@ -59,11 +60,11 @@ func main() {
 	if len(profilePath) != 0 {
 		f, err := os.Create(profilePath)
 		if err != nil {
-			log.Fatal().Err(err).Msg("could not create CPU profile")
+			log.Fatalf("could not create CPU profile: %v", err)
 		}
 
 		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatal().Err(err).Msg("could not start CPU profile")
+			log.Fatalf("could not create CPU profile: %v", err)
 		}
 
 		shutdownFunc = func() {
@@ -142,7 +143,8 @@ func main() {
 		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
+		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
+		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
