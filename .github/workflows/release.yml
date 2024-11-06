@@ -93,10 +93,10 @@ jobs:
           paths: "unit-tests.xml"
         if: always()
 
-  goreleaserbuild:
-    name: Build distribution binaries
+  pgo:
+    name: Create PGO profile
     runs-on: ubuntu-latest
-    needs: [web, test]
+    needs: [web]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -108,6 +108,42 @@ jobs:
         with:
           name: web-dist
           path: web/dist
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Generate Profile
+        run: go run cmd/autobrr/main.go --pgo cpu.pprof
+
+      - name: Upload web production build
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof
+          path: cpu.pprof
+
+  goreleaserbuild:
+    name: Build distribution binaries
+    runs-on: ubuntu-latest
+    needs: [web, test, pgo]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Download pprof profile
+        uses: actions/download-artifact@v4
+        with:
+          name: pprof
 
 #     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
