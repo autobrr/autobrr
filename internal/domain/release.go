@@ -31,6 +31,7 @@ import (
 
 type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) error
+	Update(ctx context.Context, r *Release) error
 	Find(ctx context.Context, params ReleaseQueryParams) (*FindReleasesResponse, error)
 	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
@@ -690,6 +691,9 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
+		// Some indexers like BTFiles announces size with comma. Humanize does not handle that well and strips it.
+		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
+
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
 		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
 			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
