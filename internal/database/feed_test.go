@@ -205,7 +205,7 @@ func TestFeedRepo_FindByID(t *testing.T) {
 	}
 }
 
-func TestFeedRepo_FindByIndexerIdentifier(t *testing.T) {
+func TestFeedRepo_FindOne(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewFeedRepo(log, db)
@@ -222,7 +222,7 @@ func TestFeedRepo_FindByIndexerIdentifier(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Execute
-			feed, err := repo.FindByIndexerIdentifier(context.Background(), indexer.Identifier)
+			feed, err := repo.FindOne(context.Background(), domain.FindOneParams{IndexerIdentifier: indexer.Identifier})
 			assert.NoError(t, err)
 
 			// Verify
@@ -240,7 +240,7 @@ func TestFeedRepo_FindByIndexerIdentifier(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByIndexerIdentifier_Fails_Wrong_Identifier [%s]", dbType), func(t *testing.T) {
 			// Execute
-			feed, err := repo.FindByIndexerIdentifier(context.Background(), "wrong-identifier")
+			feed, err := repo.FindOne(context.Background(), domain.FindOneParams{IndexerIdentifier: "wrong-identifier"})
 			assert.Error(t, err)
 			assert.Nil(t, feed)
 		})

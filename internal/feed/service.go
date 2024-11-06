@@ -24,8 +24,8 @@ import (
 )
 
 type Service interface {
+	FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error)
 	FindByID(ctx context.Context, id int) (*domain.Feed, error)
-	FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error)
 	Find(ctx context.Context) ([]domain.Feed, error)
 	GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error)
 	Store(ctx context.Context, feed *domain.Feed) error
@@ -85,12 +85,12 @@ func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCa
 	}
 }
 
-func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
-	return s.repo.FindByID(ctx, id)
+func (s *service) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {
+	return s.repo.FindOne(ctx, params)
 }
 
-func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
-	return s.repo.FindByIndexerIdentifier(ctx, indexer)
+func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+	return s.repo.FindByID(ctx, id)
 }
 
 func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
@@ -154,7 +154,7 @@ func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 	}
 
 	// get Feed again for ProxyID and UseProxy to be correctly populated
-	feed, err := s.repo.FindByID(ctx, feed.ID)
+	feed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
@@ -169,7 +169,7 @@ func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *service) delete(ctx context.Context, id int) error {
-	f, err := s.repo.FindByID(ctx, id)
+	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: id})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
@@ -192,7 +192,7 @@ func (s *service) delete(ctx context.Context, id int) error {
 }
 
 func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
-	f, err := s.repo.FindByID(ctx, id)
+	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: id})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
