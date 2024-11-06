@@ -4,9 +4,12 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"syscall"
+	"time"
 	_ "time/tzdata"
 
 	"github.com/autobrr/autobrr/internal/action"
@@ -47,9 +50,28 @@ var (
 )
 
 func main() {
-	var configPath string
+	var configPath, profilePath string
 	pflag.StringVar(&configPath, "config", "", "path to configuration file")
+	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
 	pflag.Parse()
+
+	var shutdownFunc func()
+
+	if len(profilePath) != 0 {
+		f, err := os.Create(profilePath)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+
+		shutdownFunc = func() {
+			defer f.Close()
+			defer pprof.StopCPUProfile()
+		}
+	}
 
 	// read config
 	cfg := config.New(configPath, version)
@@ -121,7 +143,7 @@ func main() {
 		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
+		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
@@ -129,7 +151,7 @@ func main() {
 	)
 
 	// register event subscribers
-	events.NewSubscribers(log, bus, feedService, notificationService, releaseService)
+	events.NewSubscribers(log, bus, notificationService, releaseService)
 
 	errorChannel := make(chan error)
 
@@ -167,6 +189,11 @@ func main() {
 		return
 	}
 
+	if shutdownFunc != nil {
+		time.Sleep(5 * time.Second)
+		sigCh <- syscall.SIGQUIT
+	}
+
 	for sig := range sigCh {
 		log.Info().Msgf("received signal: %v, shutting down server.", sig)
 
@@ -174,8 +201,10 @@ func main() {
 
 		if err := db.Close(); err != nil {
 			log.Error().Err(err).Msg("failed to close the database connection properly")
+			shutdownFunc()
 			os.Exit(1)
 		}
+		shutdownFunc()
 		os.Exit(0)
 	}
 }
