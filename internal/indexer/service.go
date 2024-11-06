@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/asaskevich/EventBus"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
