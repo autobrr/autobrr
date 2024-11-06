@@ -50,14 +50,15 @@ func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*d
 			"f.settings",
 			"f.created_at",
 			"f.updated_at",
+			"f.indexer_id",
 		).
 		From("feed f").
-		Join("indexer i ON f.indexer_id = i.id")
+		LeftJoin("indexer i ON f.indexer_id = i.id")
 
 	if params.FeedID != 0 {
 		queryBuilder = queryBuilder.Where(sq.Eq{"f.id": params.FeedID})
 	} else if params.IndexerID != 0 {
-		queryBuilder = queryBuilder.Where(sq.Eq{"i.id": params.IndexerID})
+		queryBuilder = queryBuilder.Where(sq.Eq{"f.indexer_id": params.IndexerID})
 	} else if params.IndexerIdentifier != "" {
 		queryBuilder = queryBuilder.Where(sq.Eq{"i.identifier": params.IndexerIdentifier})
 	} else {
@@ -77,9 +78,11 @@ func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*d
 	var f domain.Feed
 
 	var apiKey, cookie, settings sql.NullString
-	var proxyID sql.NullInt64
+	var indexerID, indexerProxyID sql.NullInt64
+	var indexerIdentifier, indexerIdentifierExternal, indexerName sql.NullString
+	var indexerUseProxy sql.NullBool
 
-	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &indexerID, &indexerIdentifier, &indexerIdentifierExternal, &indexerName, &indexerUseProxy, &indexerProxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt, &f.IndexerID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -87,7 +90,15 @@ func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*d
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
-	f.ProxyID = proxyID.Int64
+	if indexerID.Valid {
+		f.Indexer.ID = int(indexerID.Int64)
+		f.Indexer.Identifier = indexerIdentifier.String
+		f.Indexer.IdentifierExternal = indexerIdentifierExternal.String
+		f.Indexer.Name = indexerName.String
+		f.UseProxy = indexerUseProxy.Bool
+		f.ProxyID = indexerProxyID.Int64
+	}
+
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
 

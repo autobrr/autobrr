@@ -192,7 +192,7 @@ func (s *service) Delete(ctx context.Context, id int) error {
 		s.log.Error().Err(err).Msgf("could not delete indexer api client: %s", indexer.Identifier)
 	}
 
-	s.bus.Publish(domain.EventIndexerDelete, id)
+	s.bus.Publish(domain.EventIndexerDelete, indexer)
 
 	return nil
 }
