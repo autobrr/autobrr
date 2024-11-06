@@ -690,6 +690,9 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
+		// Some indexers like BTFiles announces size with comma. Humanize does not handle that well and strips it.
+		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
+
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
 		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
 			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
