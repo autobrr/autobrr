@@ -24,8 +24,8 @@ import (
 )
 
 type Service interface {
+	FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error)
 	FindByID(ctx context.Context, id int) (*domain.Feed, error)
-	FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error)
 	Find(ctx context.Context) ([]domain.Feed, error)
 	GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error)
 	Store(ctx context.Context, feed *domain.Feed) error
@@ -85,12 +85,12 @@ func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCa
 	}
 }
 
-func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
-	return s.repo.FindByID(ctx, id)
+func (s *service) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {
+	return s.repo.FindOne(ctx, params)
 }
 
-func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
-	return s.repo.FindByIndexerIdentifier(ctx, indexer)
+func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+	return s.repo.FindByID(ctx, id)
 }
 
 func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
