@@ -116,7 +116,7 @@ jobs:
           cache: true
 
       - name: Generate Profile
-        run: go run cmd/autobrr/main.go --pgo cpu.pprof
+        run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo cpu.pprof
 
       - name: Upload web production build
         uses: actions/upload-artifact@v4
