@@ -127,7 +127,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	// send separate event for notifications
-	s.bus.Publish("events:notification", &payload.Event, payload)
+	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
 
 	return rejections, err
 }
