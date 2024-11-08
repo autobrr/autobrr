@@ -120,10 +120,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: [web]
     env:
-      GOPATH: ${{ startsWith(matrix.runs-on, 'windows') && 'D:\golang\go' || '' }}
-      GOCACHE: ${{ startsWith(matrix.runs-on, 'windows') && 'D:\golang\cache' || '' }}
-      GOMODCACHE: ${{ startsWith(matrix.runs-on, 'windows') && 'D:\golang\modcache' || '' }}
-      USERPROFILE: ${{ startsWith(matrix.runs-on, 'windows') && 'D:\homedir' || '' }}
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
