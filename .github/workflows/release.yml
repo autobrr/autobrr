@@ -173,10 +173,7 @@ jobs:
           cache: false
 
       - name: Merge Profiles
-        run: go run github.com/rakyll/pprof-merge@latest profile/*.pprof
-
-      - name: Rename to pprof
-        run: mv merged.data cpu.pprof
+        run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
