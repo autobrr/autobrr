@@ -124,33 +124,25 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Setup Profile
-        run: mkdir profile
-
       - name: Generate Profile
-        run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo profile/cpu.pprof
+        run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo cpu.pprof
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
         with:
           name: pprof-pgo
-          path: profile
+          path: cpu.pprof
 
   goprofilecombine:
     name: Combine pprof profiles
     runs-on: ubuntu-latest
     needs: [pgo, test]
     steps:
-      - name: Download pprof-test profile
+      - name: Download pprof profiles
         uses: actions/download-artifact@v4
         with:
-          name: pprof-test
-          path: profile
-
-      - name: Download pprof-pgo profile
-        uses: actions/download-artifact@v4
-        with:
-          name: pprof-pgo
+          pattern: pprof-*
+          merge-multiple: true
           path: profile
 
       - name: List contents
