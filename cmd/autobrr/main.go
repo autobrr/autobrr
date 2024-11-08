@@ -55,23 +55,7 @@ func main() {
 	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
 	pflag.Parse()
 
-	var shutdownFunc func()
-
-	if len(profilePath) != 0 {
-		f, err := os.Create(profilePath)
-		if err != nil {
-			log.Fatalf("could not create CPU profile: %v", err)
-		}
-
-		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatalf("could not create CPU profile: %v", err)
-		}
-
-		shutdownFunc = func() {
-			defer f.Close()
-			defer pprof.StopCPUProfile()
-		}
-	}
+	shutdownFunc := pgoRun(profilePath)
 
 	// read config
 	cfg := config.New(configPath, version)
@@ -206,5 +190,25 @@ func main() {
 		}
 		shutdownFunc()
 		os.Exit(0)
+	}
+}
+
+func pgoRun(file string) func() {
+	if len(file) == 0 {
+		return nil
+	}
+
+	f, err := os.Create(profilePath)
+	if err != nil {
+		log.Fatalf("could not create CPU profile: %v", err)
+	}
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		log.Fatalf("could not create CPU profile: %v", err)
+	}
+
+	return func() {
+		defer f.Close()
+		defer pprof.StopCPUProfile()
 	}
 }
