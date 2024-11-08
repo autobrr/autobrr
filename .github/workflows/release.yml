@@ -103,8 +103,11 @@ jobs:
         if: always()
 
   pgo:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
     name: Automated run profile (PGO)
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: [web]
     steps:
       - name: Checkout
@@ -125,13 +128,13 @@ jobs:
           cache: true
 
       - name: Generate Profile
-        run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo cpu.pprof
+        run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
         with:
-          name: pprof-pgo
-          path: cpu.pprof
+          name: pprof-pgo-${{ matrix.os }}
+          path: cpu-${{ matrix.os }}.pprof
 
   goprofilecombine:
     name: Combine pprof profiles
