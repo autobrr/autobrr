@@ -91,9 +91,11 @@ jobs:
       - name: Test
         run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
 
-      - name: visibility
-        id: viz
-        run: ls -la profile/
+      - name: Upload pprof
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: pprof
+          path: profile
 
       - name: Test Summary
         uses: test-summary/action@v2
@@ -123,14 +125,17 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Generate Profile
-        run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo cpu.pprof
+      - name: Setup Profile
+        run: mkdir profile
 
-      - name: Upload web production build
-        uses: actions/upload-artifact@v4
+      - name: Generate Profile
+        run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo profile/cpu.pprof
+
+      - name: Upload pprof
+        uses: actions/upload-artifact/merge@v4
         with:
           name: pprof
-          path: cpu.pprof
+          path: profile
 
   goreleaserbuild:
     name: Build distribution binaries
