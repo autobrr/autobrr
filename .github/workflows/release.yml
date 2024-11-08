@@ -131,6 +131,7 @@ jobs:
           cache: true
 
       - name: Create Profile environment
+        shell: bash
         run:
           |
           printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tCGO_ENABLED=${{ matrix.cgo }} go test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ matrix.os == 'ubuntu-latest' && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
@@ -138,7 +139,8 @@ jobs:
           mkdir profile;
 
       - name: Profile
-        run: ./profile.sh ./...
+        shell: bash
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
