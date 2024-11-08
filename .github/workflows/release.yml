@@ -147,10 +147,10 @@ jobs:
         with:
           name: pprof-test
 
-      - name: Download pprof-cpu profile
+      - name: Download pprof-pgo profile
         uses: actions/download-artifact@v4
         with:
-          name: pprof-cpu
+          name: pprof-pgo
 
       - name: Set up Go
         uses: actions/setup-go@v5
