@@ -101,7 +101,7 @@ jobs:
       - name: Upload pprof
         uses: actions/upload-artifact@v4
         with:
-          name: pprof-test
+          name: pprof-test-${{ matrix.cgo }}
           path: profile
 
       - name: Test Summary
