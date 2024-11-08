@@ -104,9 +104,10 @@ jobs:
 
   pgo:
     strategy:
+      fail-fast: true
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-    name: Automated run profile (PGO)
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    name: Automated (PGO) run
     runs-on: ${{ matrix.os }}
     needs: [web]
     steps:
