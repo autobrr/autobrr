@@ -86,7 +86,7 @@ jobs:
 
       - name: profile.sh
         id: profile
-        run: printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr -d /).profile" -tags=integration "$pkg"\ndone' | tee -a profile.sh && chmod +x profile.sh
+        run: printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tCGO_ENABLED=0 go test -json -broken -cpuprofile="profile/$(echo $pkg | tr -d /).profile" -tags=integration "$pkg"\ndone' | tee -a profile.sh && chmod +x profile.sh
 
       - name: Test
         run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
