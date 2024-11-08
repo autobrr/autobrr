@@ -146,11 +146,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: pprof-test
+          path: profile
 
       - name: Download pprof-pgo profile
         uses: actions/download-artifact@v4
         with:
           name: pprof-pgo
+          path: profile
+
+      - name: List contents
+        run: ls -la profile
 
       - name: Set up Go
         uses: actions/setup-go@v5
