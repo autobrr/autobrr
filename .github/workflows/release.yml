@@ -84,7 +84,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: profile.sh
+      - name: Create Profile environment
         id: profile
         run: printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tCGO_ENABLED=0 go test -json -cpuprofile="profile/$(echo $pkg | tr -d /).pprof" -tags=integration "$pkg"\ndone' | tee -a profile.sh && chmod +x profile.sh && mkdir profile
 
@@ -137,10 +137,10 @@ jobs:
           name: pprof
           path: profile
 
-  profilecombine:
+  goprofilecombine:
     name: Combine pprof profiles
     runs-on: ubuntu-latest
-    needs: [web, test]
+    needs: [pgo, test]
     steps:
       - name: Download pprof profile
         uses: actions/download-artifact@v4
@@ -171,7 +171,7 @@ jobs:
   goreleaserbuild:
     name: Build distribution binaries
     runs-on: ubuntu-latest
-    needs: [web, profilecombine]
+    needs: [web, goprofilecombine]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -258,7 +258,7 @@ jobs:
 #       - linux/riscv64
         - linux/s390x
         - windows/amd64
-    needs: [web, profilecombine]
+    needs: [web, goprofilecombine]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
