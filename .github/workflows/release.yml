@@ -158,11 +158,8 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Download pprof-merge
-        run: go get github.com/rakyll/pprof-merge
-
       - name: Merge Profiles
-        run: go run github.com/rakyll/pprof-merge profile/*.pprof
+        run: go run github.com/rakyll/pprof-merge@latest profile/*.pprof
 
       - name: Rename to pprof
         run: mv merged.data cpu.pprof
