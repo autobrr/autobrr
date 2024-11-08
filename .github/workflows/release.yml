@@ -140,7 +140,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: ${{ matrix.os != 'windows-latest'}}
+          cache: true
 
       - name: Generate Profile
         shell: bash
