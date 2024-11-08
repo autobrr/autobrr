@@ -128,6 +128,7 @@ jobs:
           cache: true
 
       - name: Generate Profile
+        shell: bash
         run: CGO_ENABLED=0 go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
 
       - name: Upload pprof
