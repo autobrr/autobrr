@@ -135,7 +135,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+          cache: ${{ matrix.os != 'windows-latest'}}
 
       - name: Generate Profile
         shell: bash
@@ -166,7 +166,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+          cache: false
 
       - name: Merge Profiles
         run: go run github.com/rakyll/pprof-merge@latest profile/*.pprof
