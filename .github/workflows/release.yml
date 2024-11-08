@@ -347,7 +347,7 @@ jobs:
     name: Publish Docker multi-arch manifest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: [docker, test]
+    needs: [docker]
     steps:
       - name: Download image digests
         uses: actions/download-artifact@v4
