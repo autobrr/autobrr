@@ -153,6 +153,12 @@ jobs:
           name: pprof-test-${{ matrix.os }}-${{ matrix.cgo }}
           path: profile
 
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests.xml"
+        if: ${{ startsWith(matrix.os, 'windows') == false }} && always()
+
   pgo:
     strategy:
       fail-fast: true
