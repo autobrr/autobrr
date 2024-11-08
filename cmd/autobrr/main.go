@@ -198,7 +198,7 @@ func pgoRun(file string) func() {
 		return nil
 	}
 
-	f, err := os.Create(profilePath)
+	f, err := os.Create(file)
 	if err != nil {
 		log.Fatalf("could not create CPU profile: %v", err)
 	}
