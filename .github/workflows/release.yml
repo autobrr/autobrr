@@ -85,7 +85,7 @@ jobs:
           cache: true
 
       - name: Create Profile environment
-        run: printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tCGO_ENABLED=0 go test -json -cpuprofile="profile/$(echo $pkg | tr -d /).pprof" -tags=integration "$pkg"\ndone' | tee -a profile.sh && chmod +x profile.sh && mkdir profile
+        run: printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tCGO_ENABLED=0 go test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" -tags=integration "$pkg"\ndone' | tee -a profile.sh && chmod +x profile.sh && mkdir profile
 
       - name: Test
         run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
