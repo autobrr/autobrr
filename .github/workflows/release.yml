@@ -157,7 +157,7 @@ jobs:
         uses: test-summary/action@v2
         with:
           paths: "unit-tests.xml"
-        if: always() && ${{ startsWith(matrix.os, 'windows') == false }}
+        if: always() && startsWith(matrix.os, 'windows') == false
 
   pgo:
     strategy:
