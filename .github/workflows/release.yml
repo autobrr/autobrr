@@ -103,7 +103,7 @@ jobs:
         if: always()
 
   pgo:
-    name: Create PGO profile
+    name: Automated run profile (PGO)
     runs-on: ubuntu-latest
     needs: [web]
     steps:
