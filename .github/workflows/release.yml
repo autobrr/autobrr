@@ -118,6 +118,11 @@ jobs:
         cgo: [ 1, 0 ]
     name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
