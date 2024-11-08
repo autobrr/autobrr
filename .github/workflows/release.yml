@@ -93,7 +93,7 @@ jobs:
           |
           printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tCGO_ENABLED=${{ matrix.cgo }} go test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" -tags=integration "$pkg"\ndone' | tee -a profile.sh;
           chmod +x profile.sh;
-          mkdir profile
+          mkdir profile;
 
       - name: Test
         run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
