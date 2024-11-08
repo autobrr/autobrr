@@ -67,6 +67,7 @@ jobs:
     name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }}
     runs-on: ${{ matrix.os }}
     services:
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       test_postgres:
         image: postgres:12.10
         ports:
