@@ -145,7 +145,7 @@ jobs:
 
       - name: Profile
         shell: bash
-        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
+        run: ${{ matrix.os == 'windows-latest' && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
