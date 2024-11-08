@@ -89,7 +89,7 @@ jobs:
         run: printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr -d /).profile" "$pkg"\ndone' | tee -a profile.sh && chmod +x profile.sh
 
       - name: Test
-        run: go run gotest.tools/gotestsum@latest --raw-command ./profile.sh --junitfile unit-tests.xml --format pkgname -- ./... -tags=integration
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./... -tags=integration
 
       - name: visibility
         id: viz
