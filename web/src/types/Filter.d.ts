@@ -117,7 +117,7 @@ interface Action {
   filter_id?: number;
 }
 
-type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
+type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | "";
 
 type ActionPriorityLayout = "MAX" | "MIN" | "";
 

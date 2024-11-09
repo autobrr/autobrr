@@ -121,7 +121,7 @@ func main() {
 		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
+		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
@@ -129,7 +129,7 @@ func main() {
 	)
 
 	// register event subscribers
-	events.NewSubscribers(log, bus, notificationService, releaseService)
+	events.NewSubscribers(log, bus, feedService, notificationService, releaseService)
 
 	errorChannel := make(chan error)
 

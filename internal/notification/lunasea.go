@@ -1,3 +1,6 @@
+// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package notification
 
 import (
@@ -27,7 +30,7 @@ type LunaSeaMessage struct {
 
 type lunaSeaSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	builder  MessageBuilderPlainText
 
 	httpClient *http.Client
@@ -43,7 +46,7 @@ func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
 	return lunaWebhook.ReplaceAllString(url, "/custom/")
 } // `custom` is not mentioned in their docs, so I thought this would be a good idea to add to avoid user errors
 
-func NewLunaSeaSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func NewLunaSeaSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &lunaSeaSender{
 		log:      log.With().Str("sender", "lunasea").Logger(),
 		Settings: settings,

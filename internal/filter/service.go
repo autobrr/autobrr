@@ -386,8 +386,8 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	}
 
 	rejections, matchedFilter := f.CheckFilter(release)
-	if len(rejections) > 0 {
-		l.Debug().Msgf("(%s) for release: %v rejections: (%s)", f.Name, release.TorrentName, f.RejectionsString(true))
+	if rejections.Len() > 0 {
+		l.Debug().Msgf("(%s) for release: %v rejections: (%s)", f.Name, release.TorrentName, rejections.StringTruncated())
 		return false, nil
 	}
 
@@ -415,9 +415,9 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 				l.Trace().Msgf("failed smart episode check: %s", f.Name)
 
 				if params.IsDailyEpisode() {
-					f.AddRejectionF("smart episode check: not new: (%s) Daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day)
+					f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day), fmt.Sprintf("expected newer than (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day))
 				} else {
-					f.AddRejectionF("smart episode check: not new: (%s) season: %d ep: %d", release.Title, release.Season, release.Episode)
+					f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) season: %d ep: %d", release.Title, release.Season, release.Episode), fmt.Sprintf("expected newer than (%s) season: %d ep: %d", release.Title, release.Season, release.Episode))
 				}
 
 				return false, nil
@@ -566,7 +566,7 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 
 			if exitCode != external.ExecExpectStatus {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: external script unexpected exit code. got: %d want: %d", exitCode, external.ExecExpectStatus)
-				f.AddRejectionF("external script unexpected exit code. got: %d want: %d", exitCode, external.ExecExpectStatus)
+				f.RejectReasons.Add("external script exit code", exitCode, external.ExecExpectStatus)
 				return false, nil
 			}
 
@@ -579,7 +579,7 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 
 			if statusCode != external.WebhookExpectStatus {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: external webhook unexpected status code. got: %d want: %d", statusCode, external.WebhookExpectStatus)
-				f.AddRejectionF("external webhook unexpected status code. got: %d want: %d", statusCode, external.WebhookExpectStatus)
+				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
 				return false, nil
 			}
 		}

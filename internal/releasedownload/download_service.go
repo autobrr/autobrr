@@ -1,14 +1,20 @@
+// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package releasedownload
 
 import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +30,19 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/net/publicsuffix"
 )
+
+// RetriableError is a custom error that contains a positive duration for the next retry
+type RetriableError struct {
+	Err        error
+	RetryAfter time.Duration
+}
+
+// Error returns error message and a Retry-After duration
+func (e *RetriableError) Error() string {
+	return fmt.Sprintf("%s (retry after %v)", e.Err.Error(), e.RetryAfter)
+}
+
+var _ error = (*RetriableError)(nil)
 
 type DownloadService struct {
 	log  zerolog.Logger
@@ -147,7 +166,24 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 	}
 	defer tmpFile.Close()
 
-	errFunc := retry.Do(retryableRequest(httpClient, req, r, tmpFile), retry.Delay(time.Second*3), retry.Attempts(3), retry.MaxJitter(time.Second*1))
+	errFunc := retry.Do(
+		retryableRequest(httpClient, req, r, tmpFile),
+		retry.Attempts(3),
+		retry.MaxJitter(time.Second*1),
+		//retry.Delay(time.Second*3),
+		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
+			s.log.Error().Err(err).Msg("http call encountered error")
+
+			var retriable *RetriableError
+			if errors.As(err, &retriable) {
+				s.log.Debug().Msgf("http call rate-limited, retry after %v", retriable.RetryAfter)
+				return retriable.RetryAfter
+			}
+			return time.Second * 3
+			// apply a default exponential back off strategy
+			//return retry.BackOffDelay(n, err, config)
+		}),
+	)
 
 	return errFunc
 }
@@ -157,9 +193,16 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		// Get the data
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			if errors.As(err, net.OpError{}) {
+			var opErr *net.OpError
+			if errors.As(err, &opErr) {
 				return retry.Unrecoverable(errors.Wrap(err, "issue from proxy"))
 			}
+
+			var urlErr *url.Error
+			if errors.As(err, &urlErr) {
+				return retry.Unrecoverable(errors.Wrap(err, "url parse error"))
+			}
+
 			return errors.Wrap(err, "error downloading file")
 		}
 		defer resp.Body.Close()
@@ -179,6 +222,7 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 
 		case http.StatusMethodNotAllowed:
 			return retry.Unrecoverable(errors.New("unrecoverable error downloading torrent (%s) file (%s) from '%s' - status code: %d. Check if the request method is correct", r.TorrentName, r.DownloadURL, r.Indexer.Name, resp.StatusCode))
+
 		case http.StatusNotFound:
 			return errors.New("torrent %s not found on %s (%d) - retrying", r.TorrentName, r.Indexer.Name, resp.StatusCode)
 
@@ -187,6 +231,34 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 
 		case http.StatusInternalServerError:
 			return errors.New("server error (%d) encountered while downloading torrent (%s) file (%s) - check indexer keys for %s", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name)
+
+		case http.StatusTooManyRequests:
+			// check Retry-After header if it contains seconds to wait for the next retry
+			after := resp.Header.Get("Retry-After")
+			if after == "" {
+				delay := 3
+				return &RetriableError{
+					Err:        errors.New("rate-limit reached (%d) while downloading torrent (%s) file (%s) indexer (%s), retrying in %d seconds...", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name, delay),
+					RetryAfter: time.Duration(delay) * time.Second,
+				}
+			}
+
+			if retryAfter, e := strconv.ParseInt(after, 10, 32); e == nil {
+				// the server returns 0 to inform that the operation cannot be retried
+				if retryAfter <= 0 {
+					return retry.Unrecoverable(errors.New("rate-limit reached (%d) while downloading torrent (%s) file (%s) indexer (%s)", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name))
+				}
+				if retryAfter > 7200 {
+					return retry.Unrecoverable(errors.New("rate-limit reached (%d) while downloading torrent (%s) file (%s) indexer (%s) retry-after %d seconds is higher than allowed limit of 2h, aborting", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name, retryAfter))
+				}
+
+				rateLimitErr := errors.New("rate-limit reached (%d) while downloading torrent (%s) file (%s) indexer (%s), retrying in %d seconds", resp.StatusCode, r.TorrentName, r.DownloadURL, r.Indexer.Name, retryAfter)
+
+				return &RetriableError{
+					Err:        rateLimitErr,
+					RetryAfter: time.Duration(retryAfter) * time.Second,
+				}
+			}
 
 		default:
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer.Name))

@@ -19,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
@@ -50,6 +51,7 @@ type service struct {
 	releaseRepo domain.ReleaseRepo
 	ApiService  APIService
 	scheduler   scheduler.Service
+	bus         EventBus.Bus
 
 	// contains all raw indexer definitions
 	definitions map[string]domain.IndexerDefinition
@@ -65,7 +67,7 @@ type service struct {
 	rssIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, releaseRepo domain.ReleaseRepo, apiService APIService, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo domain.IndexerRepo, releaseRepo domain.ReleaseRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
@@ -73,6 +75,7 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 		releaseRepo:               releaseRepo,
 		ApiService:                apiService,
 		scheduler:                 scheduler,
+		bus:                       bus,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
 		newznabIndexers:           make(map[string]*domain.IndexerDefinition),
@@ -188,6 +191,8 @@ func (s *service) Delete(ctx context.Context, id int) error {
 	if err := s.ApiService.RemoveClient(indexer.Identifier); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete indexer api client: %s", indexer.Identifier)
 	}
+
+	s.bus.Publish(domain.EventIndexerDelete, indexer)
 
 	return nil
 }

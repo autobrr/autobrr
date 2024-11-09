@@ -32,7 +32,7 @@ type pushoverMessage struct {
 
 type pushoverSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	baseUrl  string
 	builder  MessageBuilderHTML
 
@@ -43,7 +43,7 @@ func (s *pushoverSender) Name() string {
 	return "pushover"
 }
 
-func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &pushoverSender{
 		log:      log.With().Str("sender", "pushover").Logger(),
 		Settings: settings,

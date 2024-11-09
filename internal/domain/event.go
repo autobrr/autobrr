@@ -5,6 +5,13 @@ package domain
 
 import "time"
 
+const (
+	EventReleaseStoreActionStatus = "release:store-action-status"
+	EventReleasePushStatus        = "release:push"
+	EventNotificationSend         = "events:notification"
+	EventIndexerDelete            = "indexer:delete"
+)
+
 type EventsReleasePushed struct {
 	ReleaseName    string
 	Filter         string
