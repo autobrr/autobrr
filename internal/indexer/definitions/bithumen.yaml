@@ -19,7 +19,7 @@ settings:
 
 irc:
   network: IRCNet
-  server: irc.ircnet.com
+  server: irc.atw-inter.net
   port: 6697
   tls: true
   channels:
