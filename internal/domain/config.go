@@ -12,12 +12,12 @@ type Config struct {
 	LogPath             string `toml:"logPath"`
 	LogMaxSize          int    `toml:"logMaxSize"`
 	LogMaxBackups       int    `toml:"logMaxBackups"`
-	DbMaxBackups        int    `toml:"dbMaxBackups"`
 	BaseURL             string `toml:"baseUrl"`
 	SessionSecret       string `toml:"sessionSecret"`
 	CustomDefinitions   string `toml:"customDefinitions"`
 	CheckForUpdates     bool   `toml:"checkForUpdates"`
 	DatabaseType        string `toml:"databaseType"`
+	DatabaseMaxBackups  int    `toml:"databaseMaxBackups"`
 	PostgresHost        string `toml:"postgresHost"`
 	PostgresPort        int    `toml:"postgresPort"`
 	PostgresDatabase    string `toml:"postgresDatabase"`
