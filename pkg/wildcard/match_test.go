@@ -4,7 +4,10 @@
 package wildcard
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestMatch - Tests validate the logic of wild card matching.
@@ -12,7 +15,7 @@ import (
 // A '*' in a provided string will not result in matching the strings before and after the '*' of the string provided.
 // Sample usage: In resource matching for bucket policy validation.
 func TestMatch(t *testing.T) {
-	testCases := []struct {
+	tests := []struct {
 		pattern string
 		text    string
 		matched bool
@@ -69,7 +72,7 @@ func TestMatch(t *testing.T) {
 		},
 		{
 			pattern: "*EP?B*",
-			text:    "Translated (Group) / EPUB",
+			text:    "ARG THIS IS A STUPID LONG ONG LONG LONG STRING BEFORE AND AFTER \\n ARG THIS IS A STUPID LONG ONG LONG LONG STRING BEFORE AND AFTER \\n ARG THIS IS A STUPID LONG ONG LONG LONG STRING BEFORE AND AFTER \\n ARG THIS IS A STUPID LONG ONG LONG LONG STRING BEFORE AND AFTER \\n Translated (Group) / EPUB WITH OTHER STUFF ON THE OTHER END ARG THIS IS A STUPID LONG ONG LONG LONG STRING BEFORE AND AFTER \\n ARG THIS IS A STUPID LONG ONG LONG LONG STRING BEFORE AND AFTER \\n ARG THIS IS A STUPID LONG ONG LONG LONG STRING BEFORE AND AFTER \\n ",
 			matched: true,
 		},
 		{
@@ -102,13 +105,48 @@ func TestMatch(t *testing.T) {
 			text:    "The God of the BrrThe Power of Brr",
 			matched: true,
 		},
+		{
+			pattern: "mysteries?of?the?abandoned*",
+			text:    "them",
+			matched: false,
+		},
+		{
+			pattern: "t?q*",
+			text:    "tam e",
+			matched: false,
+		},
+		{
+			pattern: "Hard?Quiz*",
+			text:    "HardX 24 10 12 Ella Reese XXX 1080p MP4-WRB",
+			matched: false,
+		},
+		{
+			pattern: "Hard?Quiz*",
+			text:    "HardX",
+			matched: false,
+		},
+		{
+			pattern: "T?Q*",
+			text:    "T?Q",
+			matched: true,
+		},
+		{
+			pattern: "Lee*",
+			text:    "Let Go",
+			matched: false,
+		},
+		{
+			pattern: "*black?metal*",
+			text:    "   ||  Artist......: Vredehammer                                        ||\n   ||  Album.......: Mintaka                                            ||\n   ||  Year........: 2013                                               ||\n   ||                                                                   ||\n   ||  Genre.......: black metal                                        ||\n   ||  Label.......: Indie Recordings                                   ||\n   ||                                                                   ||\n   ||  Source......: FLAC/WEB (16bit)                                   ||\n   ||  Encoder.....: libFLAC                                            ||\n   ||  Bitrate.....: 948 kbps avg.                                      ||\n   ||  F.Rate......: 44.1kHz                                            ||\n   ||                                                                   ||\n   ||  Playtime....: 00:19:27 / 138.70MB                                ||\n   ||  R.Date......: 2024-10-22                                         ||\n   ||  S.Date......: 2013-03-27                                         ||\n   ||                                                                   ||\n   ||                                                                   ||\n   ||  01. The King Has Risen                                  3:53     ||\n   ||  02. H├╕ster av sjeler                                    4:17     ||\n   ||  03. Mintaka                                             4:10     ||\n   ||  04. Ditt siste aandedrag                                7:07     ||\n   ||                                                                   ||\n   ||                                                                   ||\n   ||  Vredehammer combines aggressive guitars and Norse melodies.      ||\n   ",
+			matched: true,
+		},
 	}
-	// Iterating over the test cases, call the function under test and assert the output.
-	for i, testCase := range testCases {
-		actualResult := Match(testCase.pattern, testCase.text)
-		if testCase.matched != actualResult {
-			t.Errorf("Test %d: Expected the result to be `%v`, but instead found it to be `%v`", i+1, testCase.matched, actualResult)
-		}
+	for idx, tt := range tests {
+		t.Run(fmt.Sprintf("match: %d", idx), func(t *testing.T) {
+			actualResult := Match(tt.pattern, tt.text)
+			assert.Equal(t, tt.matched, actualResult)
+
+		})
 	}
 }
 
@@ -152,6 +190,7 @@ func TestMatchSliceSimple(t *testing.T) {
 	}{
 		{[]string{"*", "test"}, "test", true},
 		{[]string{"te?t", "tost", "random"}, "tost", true},
+		{[]string{"te?t", "t?s?", "random"}, "tost", false},
 		{[]string{"*st", "n?st", "l*st"}, "list", true},
 		{[]string{"?", "?*", "?**"}, "t", false},
 		{[]string{"a", "b", "c"}, "d", false},
@@ -177,6 +216,7 @@ func TestMatchSlice(t *testing.T) {
 	}{
 		{[]string{"*", "test", "t?st"}, "test", true},
 		{[]string{"te?t", "t?st", "random"}, "tost", true},
+		{[]string{"te?t", "t?s?", "random"}, "tost", true},
 		{[]string{"te?t", "t??e?", "random"}, "toser", true},
 		{[]string{"*st", "n?st", "l*st"}, "list", true},
 		{[]string{"?", "??", "???"}, "t", true},
