@@ -4,9 +4,12 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"syscall"
+	"time"
 	_ "time/tzdata"
 
 	"github.com/autobrr/autobrr/internal/action"
@@ -47,9 +50,12 @@ var (
 )
 
 func main() {
-	var configPath string
+	var configPath, profilePath string
 	pflag.StringVar(&configPath, "config", "", "path to configuration file")
+	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
 	pflag.Parse()
+
+	shutdownFunc := pgoRun(profilePath)
 
 	// read config
 	cfg := config.New(configPath, version)
@@ -167,6 +173,11 @@ func main() {
 		return
 	}
 
+	if shutdownFunc != nil {
+		time.Sleep(5 * time.Second)
+		sigCh <- syscall.SIGQUIT
+	}
+
 	for sig := range sigCh {
 		log.Info().Msgf("received signal: %v, shutting down server.", sig)
 
@@ -174,8 +185,30 @@ func main() {
 
 		if err := db.Close(); err != nil {
 			log.Error().Err(err).Msg("failed to close the database connection properly")
+			shutdownFunc()
 			os.Exit(1)
 		}
+		shutdownFunc()
 		os.Exit(0)
+	}
+}
+
+func pgoRun(file string) func() {
+	if len(file) == 0 {
+		return nil
+	}
+
+	f, err := os.Create(file)
+	if err != nil {
+		log.Fatalf("could not create CPU profile: %v", err)
+	}
+
+	if err := pprof.StartCPUProfile(f); err != nil {
+		log.Fatalf("could not create CPU profile: %v", err)
+	}
+
+	return func() {
+		defer f.Close()
+		defer pprof.StopCPUProfile()
 	}
 }
