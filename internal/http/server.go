@@ -46,14 +46,11 @@ type Server struct {
 	proxyService          proxyService
 	releaseService        releaseService
 	updateService         updateService
-
-	logger logger.Logger
 }
 
 func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, proxySvc proxyService, releaseSvc releaseService, updateSvc updateService) Server {
 	return Server{
 		log:     log.With().Str("module", "http").Logger(),
-		logger:  log,
 		config:  config,
 		sse:     sse,
 		db:      db,
@@ -128,7 +125,7 @@ func (s Server) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	encoder := newEncoder(s.logger)
+	encoder := newEncoder(s.log)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
