@@ -9,17 +9,17 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/web"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
-
-	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/database"
-	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/web"
 )
 
 type Server struct {
