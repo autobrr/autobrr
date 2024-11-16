@@ -19,8 +19,8 @@ settings:
     help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
 
 irc:
-  network: LibraIRC
-  server: irc.librairc.net
+  network: P2P-Network
+  server: irc.p2p-network.net
   port: 6697
   tls: true
   channels:
