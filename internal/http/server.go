@@ -9,17 +9,17 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/database"
-	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/web"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
+
+	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/web"
 )
 
 type Server struct {
@@ -46,11 +46,14 @@ type Server struct {
 	proxyService          proxyService
 	releaseService        releaseService
 	updateService         updateService
+
+	logger logger.Logger
 }
 
 func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, proxySvc proxyService, releaseSvc releaseService, updateSvc updateService) Server {
 	return Server{
 		log:     log.With().Str("module", "http").Logger(),
+		logger:  log,
 		config:  config,
 		sse:     sse,
 		db:      db,
@@ -125,7 +128,7 @@ func (s Server) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	encoder := encoder{}
+	encoder := newEncoder(s.logger)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
