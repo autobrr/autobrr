@@ -56,6 +56,21 @@ func TestFilter_CheckFilter(t *testing.T) {
 			},
 			want: true,
 		},
+		{
+			name: "movie_parse_1",
+			fields: &Release{
+				TorrentName: "White Christmas 1954 2160p Remux DoVi HDR10 HEVC DTS-HD MA 5.1-VHS",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					Sources:            []string{"BluRay", "UHD.BluRay"},
+					MatchReleaseGroups: "VHS",
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			},
+			want: true,
+		},
 
 		{
 			name: "movie_parse_2",
