@@ -7,14 +7,14 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/rs/zerolog"
 )
 
 type encoder struct {
-	log logger.Logger
+	log zerolog.Logger
 }
 
-func newEncoder(log logger.Logger) encoder {
+func newEncoder(log zerolog.Logger) encoder {
 	return encoder{
 		log: log,
 	}
@@ -98,17 +98,12 @@ func (e encoder) NotFoundErr(w http.ResponseWriter, err error) {
 	}
 }
 
-func (e encoder) StatusInternalError(w http.ResponseWriter) {
-	e.log.Error().Msg("internal server error")
-	w.WriteHeader(http.StatusInternalServerError)
-}
-
 func (e encoder) Error(w http.ResponseWriter, err error) {
 	res := errorResponse{
 		Message: err.Error(),
 	}
 
-	e.log.Error().Stack().Err(err).Msg("internal server error")
+	e.log.Error().Err(err).Msg("internal server error")
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusInternalServerError)
@@ -124,9 +119,7 @@ func (e encoder) StatusError(w http.ResponseWriter, status int, err error) {
 		Message: err.Error(),
 	}
 
-	if status >= 500 {
-		e.log.Error().Stack().Err(err).Int("status", status).Msg("server error")
-	}
+	e.log.Error().Err(err).Int("status", status).Msg("server error")
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
