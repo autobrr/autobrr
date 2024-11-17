@@ -9,19 +9,17 @@ func (c *Cache[K, V]) startExpirations() {
 	var timeSleep time.Time
 	for {
 		select {
-		case d, ok := <-c.ch:
+		case t, ok := <-c.ch:
 			if !ok {
 				timer.Stop()
 				return
-			} else if d == NoTTL {
+			} else if t.IsZero() {
 				continue
-			} else if d == DefaultTTL {
-				d = c.o.defaultTTL
 			}
 
-			t := c.tc.Now()
-			if timeSleep.IsZero() || timeSleep.After(t.Add(d)) {
-				timeSleep = t.Add(d)
+			if timeSleep.IsZero() || timeSleep.After(t) {
+				timeSleep = t
+				d := t.Sub(c.tc.Now())
 				if !timer.Reset(d) {
 					timer = time.NewTimer(d)
 				}
@@ -54,7 +52,7 @@ func (c *Cache[K, V]) expire() {
 		c.deleteUnsafe(k, v, ReasonTimedOut)
 	}
 
-	if !soon.IsZero() {
-		c.ch <- soon.Sub(t)
+	if !soon.IsZero() { // wake-up feedback loop
+		c.ch <- soon
 	}
 }

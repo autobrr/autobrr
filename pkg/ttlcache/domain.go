@@ -14,7 +14,7 @@ type Cache[K comparable, V any] struct {
 	tc timecache.Cache
 	l  sync.RWMutex
 	o  Options[K, V]
-	ch chan time.Duration
+	ch chan time.Time
 	m  map[K]item[V]
 }
 

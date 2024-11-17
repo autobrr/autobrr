@@ -8,7 +8,7 @@ func (c *Cache[K, V]) get(key K) (item[V], bool) {
 	v, ok := c.m[key]
 
 	if !ok {
-		return item[V]{}, ok
+		return v, ok
 	}
 
 	return v, ok
@@ -20,7 +20,7 @@ func (c *Cache[K, V]) set(key K, it item[V]) {
 	c.l.Lock()
 	defer c.l.Unlock()
 	c.m[key] = it
-	c.ch <- it.d
+	c.ch <- it.t
 }
 
 func (c *Cache[K, V]) delete(key K, reason DeallocationReason) {
@@ -40,11 +40,11 @@ func (c *Cache[K, V]) delete(key K, reason DeallocationReason) {
 }
 
 func (c *Cache[K, V]) deleteUnsafe(key K, v item[V], reason DeallocationReason) {
+	delete(c.m, key)
+
 	if c.o.deallocationFunc != nil {
 		c.o.deallocationFunc(key, v.v, reason)
 	}
-
-	delete(c.m, key)
 }
 
 func (c *Cache[K, V]) getDuration(d time.Duration) time.Time {

@@ -9,7 +9,7 @@ import (
 func New[K comparable, V any](options Options[K, V]) *Cache[K, V] {
 	c := Cache[K, V]{
 		o:  options,
-		ch: make(chan time.Duration, 1000),
+		ch: make(chan time.Time, 1000),
 		m:  make(map[K]item[V]),
 	}
 
