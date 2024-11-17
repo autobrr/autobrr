@@ -11,7 +11,7 @@ import (
 )
 
 var cache = ttlcache.New[string, *regexp.Regexp](
-	ttlcache.Options{DefaultTTL: 5 * time.Minute},
+	ttlcache.Options{}.SetDefaultTTL(5 * time.Minute),
 )
 
 func MustCompilePOSIX(pattern string) *regexp.Regexp {
