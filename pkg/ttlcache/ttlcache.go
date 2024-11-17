@@ -62,7 +62,7 @@ func (c *Cache[K, V]) Set(key K, value V, duration time.Duration) bool {
 }
 
 func (c *Cache[K, V]) Delete(key K) {
-	c.delete(key))
+	c.delete(key)
 	return true
 }
 
