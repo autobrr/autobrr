@@ -61,6 +61,11 @@ func (c *Cache[K, V]) Set(key K, value V, duration time.Duration) bool {
 	return true
 }
 
+func (c *Cache[K, V]) Delete(key K) {
+	c.delete(key))
+	return true
+}
+
 func (c *Cache[K, V]) get(key K) (item[V], bool) {
 	c.l.RLock()
 	defer c.l.RUnlock()
@@ -80,6 +85,12 @@ func (c *Cache[K, V]) set(key K, it item[V]) {
 	defer c.l.Unlock()
 	c.m[key] = it
 	c.ch <- it.d
+}
+
+func (c *Cache[K, V]) delete(key K) {
+	c.l.Lock()
+	defer c.l.Unlock()
+	delete(c.m, key)
 }
 
 func (c *Cache[K, V]) getDuration(d time.Duration) time.Time {
