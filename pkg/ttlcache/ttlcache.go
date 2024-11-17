@@ -2,6 +2,8 @@ package ttlcache
 
 import (
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/timecache"
 )
 
 func New[K comparable, V any](options Options[K, V]) *Cache[K, V] {
@@ -9,6 +11,10 @@ func New[K comparable, V any](options Options[K, V]) *Cache[K, V] {
 		o:  options,
 		ch: make(chan time.Duration, 1000),
 		m:  make(map[K]item[V]),
+	}
+
+	if options.defaultResolution >= 1*time.Second {
+		c.tc = *timecache.New(timecache.Options{}.Round(options.defaultResolution))
 	}
 
 	go c.startExpirations()
@@ -21,7 +27,7 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 		return *new(V), ok
 	}
 
-	if !it.t.IsZero() && c.getDuration(it.d) != it.t {
+	if !it.t.IsZero() && c.getDuration(it.d).After(it.t) {
 		c.set(key, it)
 	}
 
@@ -45,6 +51,11 @@ func (c *Cache[K, V]) Close() {
 	c.l.Lock() // deadlock on reentry.
 	close(c.ch)
 	c.ch = nil
+}
+
+func (o Options[K, V]) SetTimerResolution(d time.Duration) Options[K, V] {
+	o.defaultResolution = d
+	return o
 }
 
 func (o Options[K, V]) SetDefaultTTL(d time.Duration) Options[K, V] {

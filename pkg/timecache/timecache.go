@@ -8,6 +8,17 @@ import (
 type Cache struct {
 	m sync.RWMutex
 	t time.Time
+	o Options
+}
+
+type Options struct {
+	round time.Duration
+}
+
+func New(o Options) *Cache {
+	return &Cache{
+		o: o,
+	}
 }
 
 func (t *Cache) Now() time.Time {
@@ -28,7 +39,7 @@ func (t *Cache) update() time.Time {
 		return t.t
 	}
 
-	t.t = time.Unix(time.Now().Unix(), 0)
+	t.t = time.Now().Round(t.o.round)
 
 	go func() {
 		time.Sleep(1 * time.Second)
@@ -42,4 +53,9 @@ func (t *Cache) reset() {
 	t.m.Lock()
 	defer t.m.Unlock()
 	t.t = time.Time{}
+}
+
+func (o Options) Round(d time.Duration) Options {
+	o.round = d
+	return o
 }

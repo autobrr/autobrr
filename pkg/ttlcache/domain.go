@@ -25,8 +25,9 @@ type item[V any] struct {
 }
 
 type Options[K comparable, V any] struct {
-	defaultTTL       time.Duration
-	deallocationFunc DeallocationFunc[K, V]
+	defaultTTL        time.Duration
+	defaultResolution time.Duration
+	deallocationFunc  DeallocationFunc[K, V]
 }
 
 type DeallocationReason int
