@@ -11,6 +11,7 @@ import (
 )
 
 func TestSanitizeLogFile(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name     string
 		input    string
