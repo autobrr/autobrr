@@ -14,6 +14,7 @@ import (
 )
 
 func TestIndexersParseAndFilter(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		identifier         string
 		identifierExternal string
