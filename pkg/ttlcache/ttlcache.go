@@ -6,7 +6,7 @@ import (
 
 func New[K comparable, V any](options Options) *Cache[K, V] {
 	c := Cache[K, V]{
-		de: options.DefaultTTL,
+		de: options.defaultTTL,
 		ch: make(chan time.Duration, 1000),
 		m:  make(map[K]item[V]),
 	}
