@@ -16,7 +16,7 @@ func (c *Cache[K, V]) startExpirations() {
 			} else if d == NoTTL {
 				continue
 			} else if d == DefaultTTL {
-				d = c.de
+				d = c.o.defaultTTL
 			}
 
 			t := c.tc.Now()
@@ -51,7 +51,7 @@ func (c *Cache[K, V]) expire() {
 			continue
 		}
 
-		delete(c.m, k)
+		c.deleteUnsafe(k, v, ReasonTimedOut)
 	}
 
 	if !soon.IsZero() {

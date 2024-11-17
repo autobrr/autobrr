@@ -23,9 +23,27 @@ func (c *Cache[K, V]) set(key K, it item[V]) {
 	c.ch <- it.d
 }
 
-func (c *Cache[K, V]) delete(key K) {
+func (c *Cache[K, V]) delete(key K, reason DeallocationReason) {
+	var v item[V]
 	c.l.Lock()
 	defer c.l.Unlock()
+
+	if c.o.deallocationFunc != nil {
+		var ok bool
+		v, ok = c.m[key]
+		if !ok {
+			return
+		}
+	}
+
+	c.deleteUnsafe(key, v, reason)
+}
+
+func (c *Cache[K, V]) deleteUnsafe(key K, v item[V], reason DeallocationReason) {
+	if c.o.deallocationFunc != nil {
+		c.o.deallocationFunc(key, v.v, reason)
+	}
+
 	delete(c.m, key)
 }
 
@@ -33,7 +51,7 @@ func (c *Cache[K, V]) getDuration(d time.Duration) time.Time {
 	switch d {
 	case NoTTL:
 	case DefaultTTL:
-		return c.tc.Now().Add(c.de)
+		return c.tc.Now().Add(c.o.defaultTTL)
 	default:
 		return c.tc.Now().Add(d)
 	}

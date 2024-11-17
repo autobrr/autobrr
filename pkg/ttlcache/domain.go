@@ -13,7 +13,7 @@ const DefaultTTL time.Duration = -1
 type Cache[K comparable, V any] struct {
 	tc timecache.Cache
 	l  sync.RWMutex
-	de time.Duration
+	o  Options[K, V]
 	ch chan time.Duration
 	m  map[K]item[V]
 }
@@ -24,6 +24,16 @@ type item[V any] struct {
 	v V
 }
 
-type Options struct {
-	defaultTTL time.Duration
+type Options[K comparable, V any] struct {
+	defaultTTL       time.Duration
+	deallocationFunc DeallocationFunc[K, V]
 }
+
+type DeallocationReason int
+
+const (
+	ReasonTimedOut = DeallocationReason(iota)
+	ReasonDeleted  = DeallocationReason(iota)
+)
+
+type DeallocationFunc[K comparable, V any] func(key K, value V, reason DeallocationReason)

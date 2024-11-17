@@ -6,7 +6,7 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 
 	for i := 0; i < 10; i++ {
@@ -24,7 +24,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestExpirations(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(200 * time.Millisecond))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
@@ -40,7 +40,7 @@ func TestExpirations(t *testing.T) {
 }
 
 func TestSwaps(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(200 * time.Millisecond))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
@@ -62,7 +62,7 @@ func TestSwaps(t *testing.T) {
 }
 
 func TestRetimer(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(200 * time.Millisecond))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, time.Duration(10-i)*100*time.Millisecond)
@@ -77,7 +77,7 @@ func TestRetimer(t *testing.T) {
 }
 
 func TestSchedule(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, time.Duration(i)*100*time.Millisecond)
@@ -92,7 +92,7 @@ func TestSchedule(t *testing.T) {
 }
 
 func TestInterlace(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	swap := false
 	for i := 0; i < 10; i++ {
@@ -119,7 +119,7 @@ func TestInterlace(t *testing.T) {
 }
 
 func TestReschedule(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, NoTTL)
@@ -135,7 +135,7 @@ func TestReschedule(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, NoTTL)
@@ -146,5 +146,43 @@ func TestDelete(t *testing.T) {
 		if _, ok := c.Get(i); ok {
 			t.Fatalf("found key: %d", i)
 		}
+	}
+}
+
+func TestDeallocationTimeout(t *testing.T) {
+	hit := false
+	o := Options[int, bool]{}.
+		SetDefaultTTL(time.Millisecond * 100).
+		SetDeallocationFunc(func(key int, value bool, reason DeallocationReason) { hit = reason == ReasonTimedOut })
+
+	c := New[int, bool](o)
+	defer c.Close()
+
+	for i := 0; i < 1; i++ {
+		c.Set(i, true, DefaultTTL)
+	}
+
+	time.Sleep(3 * time.Second)
+	if !hit {
+		t.Fatalf("Deallocation not hit.")
+	}
+}
+
+func TestDeallocationDeleted(t *testing.T) {
+	hit := false
+	o := Options[int, bool]{}.
+		SetDefaultTTL(time.Millisecond * 100).
+		SetDeallocationFunc(func(key int, value bool, reason DeallocationReason) { hit = reason == ReasonDeleted })
+
+	c := New[int, bool](o)
+	defer c.Close()
+
+	for i := 0; i < 1; i++ {
+		c.Set(i, true, DefaultTTL)
+		c.Delete(i)
+	}
+
+	if !hit {
+		t.Fatalf("Deallocation not hit.")
 	}
 }

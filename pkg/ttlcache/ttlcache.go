@@ -4,9 +4,9 @@ import (
 	"time"
 )
 
-func New[K comparable, V any](options Options) *Cache[K, V] {
+func New[K comparable, V any](options Options[K, V]) *Cache[K, V] {
 	c := Cache[K, V]{
-		de: options.defaultTTL,
+		o:  options,
 		ch: make(chan time.Duration, 1000),
 		m:  make(map[K]item[V]),
 	}
@@ -29,7 +29,7 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 }
 
 func (c *Cache[K, V]) Set(key K, value V, duration time.Duration) bool {
-	if c.de == NoTTL && duration == DefaultTTL {
+	if c.o.defaultTTL == NoTTL && duration == DefaultTTL {
 		duration = NoTTL
 	}
 
@@ -38,7 +38,7 @@ func (c *Cache[K, V]) Set(key K, value V, duration time.Duration) bool {
 }
 
 func (c *Cache[K, V]) Delete(key K) {
-	c.delete(key)
+	c.delete(key, ReasonDeleted)
 }
 
 func (c *Cache[K, V]) Close() {
@@ -47,7 +47,12 @@ func (c *Cache[K, V]) Close() {
 	c.ch = nil
 }
 
-func (o Options) SetDefaultTTL(d time.Duration) Options {
+func (o Options[K, V]) SetDefaultTTL(d time.Duration) Options[K, V] {
 	o.defaultTTL = d
+	return o
+}
+
+func (o Options[K, V]) SetDeallocationFunc(f DeallocationFunc[K, V]) Options[K, V] {
+	o.deallocationFunc = f
 	return o
 }
