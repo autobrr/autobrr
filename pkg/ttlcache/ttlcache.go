@@ -45,7 +45,7 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 		return *new(V), ok
 	}
 
-	if !it.t.IsZero() {
+	if !it.t.IsZero() && c.getDuration(it.d) != it.t {
 		c.set(key, it)
 	}
 
@@ -74,18 +74,24 @@ func (c *Cache[K, V]) get(key K) (item[V], bool) {
 }
 
 func (c *Cache[K, V]) set(key K, it item[V]) {
-	switch it.d {
-	case NoTTL:
-	case DefaultTTL:
-		it.t = c.tc.Now().Add(c.de)
-	default:
-		it.t = c.tc.Now().Add(it.d)
-	}
+	it.t = c.getDuration(it.d)
 
 	c.l.Lock()
 	defer c.l.Unlock()
 	c.m[key] = it
 	c.ch <- it.d
+}
+
+func (c *Cache[K, V]) getDuration(d time.Duration) time.Time {
+	switch d {
+	case NoTTL:
+	case DefaultTTL:
+		return c.tc.Now().Add(c.de)
+	default:
+		return c.tc.Now().Add(d)
+	}
+
+	return time.Time{}
 }
 
 func (c *Cache[K, V]) startExpirations() {

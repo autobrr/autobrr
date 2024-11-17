@@ -1,17 +1,14 @@
 package ttlcache
 
 import (
-	"fmt"
 	"testing"
 	"time"
-	"unsafe"
 )
 
 func TestGet(t *testing.T) {
 	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
 	defer c.Close()
 
-	fmt.Printf("sizeof Cache: %d\n", unsafe.Sizeof(c))
 	for i := 0; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
 	}
@@ -19,9 +16,9 @@ func TestGet(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		val, ok := c.Get(i)
 		if !ok {
-			t.Fatalf("Missing key: %d", i)
+			t.Fatalf("missing key: %d", i)
 		} else if !val {
-			t.Fatalf("Bad value on key: %d", i)
+			t.Fatalf("bad value on key: %d", i)
 		}
 	}
 }
@@ -37,7 +34,7 @@ func TestExpirations(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
-			t.Fatalf("Found key: %d", i)
+			t.Fatalf("found key: %d", i)
 		}
 	}
 }
@@ -52,19 +49,19 @@ func TestSwaps(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	for i := 0; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
-			t.Fatalf("Found key: %d", i)
+			t.Fatalf("found key: %d", i)
 		}
 	}
 
 	for i := 10; i < 20; i++ {
 		c.Set(i, true, DefaultTTL)
 		if _, ok := c.Get(i); !ok {
-			t.Fatalf("Missing key: %d", i)
+			t.Fatalf("missing key: %d", i)
 		}
 	}
 }
 
-func TestReschedule(t *testing.T) {
+func TestRetimer(t *testing.T) {
 	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
 	defer c.Close()
 	for i := 1; i < 10; i++ {
@@ -74,7 +71,7 @@ func TestReschedule(t *testing.T) {
 	time.Sleep(15 * time.Second)
 	for i := 1; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
-			t.Fatalf("Found key: %d", i)
+			t.Fatalf("found key: %d", i)
 		}
 	}
 }
@@ -89,7 +86,7 @@ func TestSchedule(t *testing.T) {
 	time.Sleep(15 * time.Second)
 	for i := 1; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
-			t.Fatalf("Found key: %d", i)
+			t.Fatalf("found key: %d", i)
 		}
 	}
 }
@@ -116,7 +113,23 @@ func TestInterlace(t *testing.T) {
 		}
 
 		if _, ok := c.Get(i); !ok {
-			t.Fatalf("Found key: %d", i)
+			t.Fatalf("found key: %d", i)
+		}
+	}
+}
+
+func TestReschedule(t *testing.T) {
+	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	defer c.Close()
+	for i := 1; i < 10; i++ {
+		c.Set(i, true, NoTTL)
+		c.Set(i, true, DefaultTTL)
+	}
+
+	time.Sleep(3 * time.Second)
+	for i := 1; i < 10; i++ {
+		if _, ok := c.Get(i); ok {
+			t.Fatalf("found key: %d", i)
 		}
 	}
 }
