@@ -24,7 +24,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestExpirations(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
@@ -40,13 +40,13 @@ func TestExpirations(t *testing.T) {
 }
 
 func TestSwaps(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 	for i := 0; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
 			t.Fatalf("found key: %d", i)
@@ -62,13 +62,13 @@ func TestSwaps(t *testing.T) {
 }
 
 func TestRetimer(t *testing.T) {
-	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
-		c.Set(i, true, time.Duration(10-i)*time.Second)
+		c.Set(i, true, time.Duration(10-i)*100*time.Millisecond)
 	}
 
-	time.Sleep(15 * time.Second)
+	time.Sleep(5 * time.Second)
 	for i := 1; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
 			t.Fatalf("found key: %d", i)
@@ -80,10 +80,10 @@ func TestSchedule(t *testing.T) {
 	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
-		c.Set(i, true, time.Duration(i)*time.Second)
+		c.Set(i, true, time.Duration(i)*100*time.Millisecond)
 	}
 
-	time.Sleep(15 * time.Second)
+	time.Sleep(3 * time.Second)
 	for i := 1; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
 			t.Fatalf("found key: %d", i)
@@ -104,7 +104,7 @@ func TestInterlace(t *testing.T) {
 		c.Set(i, true, ttl)
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 	swap = false
 	for i := 0; i < 10; i++ {
 		swap = !swap
