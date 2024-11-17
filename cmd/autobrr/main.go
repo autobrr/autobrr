@@ -35,6 +35,7 @@ import (
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
 
+	"github.com/KimMachineGun/automemlimit/memlimit"
 	"github.com/asaskevich/EventBus"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
@@ -55,7 +56,7 @@ func main() {
 	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
 	pflag.Parse()
 
-	shutdownFunc := pgoRun(profilePath)
+	shutdownFunc, isPGO := pgoRun(profilePath)
 
 	// read config
 	cfg := config.New(configPath, version)
@@ -69,6 +70,16 @@ func main() {
 	if err != nil {
 		log.Error().Err(err).Msg("failed to set GOMAXPROCS")
 	}
+
+	// Set GOMEMLIMIT to match the Linux container Memory quota (if any)
+	memlimit.SetGoMemLimitWithOpts(
+		memlimit.WithProvider(
+			memlimit.ApplyFallback(
+				memlimit.FromCgroupHybrid,
+				memlimit.FromSystem,
+			),
+		),
+	)
 
 	// init dynamic config
 	cfg.DynamicReload(log)
@@ -173,7 +184,7 @@ func main() {
 		return
 	}
 
-	if shutdownFunc != nil {
+	if isPGO {
 		time.Sleep(5 * time.Second)
 		sigCh <- syscall.SIGQUIT
 	}
@@ -193,9 +204,9 @@ func main() {
 	}
 }
 
-func pgoRun(file string) func() {
+func pgoRun(file string) (func(), bool) {
 	if len(file) == 0 {
-		return nil
+		return func() {}, false
 	}
 
 	f, err := os.Create(file)
@@ -210,5 +221,5 @@ func pgoRun(file string) func() {
 	return func() {
 		defer f.Close()
 		defer pprof.StopCPUProfile()
-	}
+	}, true
 }
