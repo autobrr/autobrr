@@ -6,6 +6,7 @@ import (
 )
 
 func TestGet(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 
@@ -24,6 +25,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestExpirations(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
@@ -40,6 +42,7 @@ func TestExpirations(t *testing.T) {
 }
 
 func TestSwaps(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
@@ -62,6 +65,7 @@ func TestSwaps(t *testing.T) {
 }
 
 func TestRetimer(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(200 * time.Millisecond))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
@@ -77,6 +81,7 @@ func TestRetimer(t *testing.T) {
 }
 
 func TestSchedule(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
@@ -92,6 +97,7 @@ func TestSchedule(t *testing.T) {
 }
 
 func TestInterlace(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	swap := false
@@ -119,6 +125,7 @@ func TestInterlace(t *testing.T) {
 }
 
 func TestReschedule(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
@@ -135,6 +142,7 @@ func TestReschedule(t *testing.T) {
 }
 
 func TestRescheduleNoTTL(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
@@ -151,6 +159,7 @@ func TestRescheduleNoTTL(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	t.Parallel()
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
@@ -166,6 +175,7 @@ func TestDelete(t *testing.T) {
 }
 
 func TestDeallocationTimeout(t *testing.T) {
+	t.Parallel()
 	hit := false
 	o := Options[int, bool]{}.
 		SetDefaultTTL(time.Millisecond * 100).
@@ -185,6 +195,7 @@ func TestDeallocationTimeout(t *testing.T) {
 }
 
 func TestDeallocationDeleted(t *testing.T) {
+	t.Parallel()
 	hit := false
 	o := Options[int, bool]{}.
 		SetDefaultTTL(time.Millisecond * 100).

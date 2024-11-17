@@ -6,6 +6,7 @@ import (
 )
 
 func TestTime(t *testing.T) {
+	t.Parallel()
 	tc := (&Cache{}).Now()
 	if tc.IsZero() {
 		t.Fatalf("time is zero")
@@ -13,6 +14,7 @@ func TestTime(t *testing.T) {
 }
 
 func TestRounding(t *testing.T) {
+	t.Parallel()
 	ti := New(Options{}.Round(time.Minute * 5)).Now()
 
 	if ti.Minute()%5 != 0 {
