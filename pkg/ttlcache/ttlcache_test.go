@@ -6,7 +6,7 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 
 	for i := 0; i < 10; i++ {
@@ -24,7 +24,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestExpirations(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
@@ -40,7 +40,7 @@ func TestExpirations(t *testing.T) {
 }
 
 func TestSwaps(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 0; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
@@ -62,7 +62,7 @@ func TestSwaps(t *testing.T) {
 }
 
 func TestRetimer(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, time.Duration(10-i)*time.Second)
@@ -77,7 +77,7 @@ func TestRetimer(t *testing.T) {
 }
 
 func TestSchedule(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, time.Duration(i)*time.Second)
@@ -92,7 +92,7 @@ func TestSchedule(t *testing.T) {
 }
 
 func TestInterlace(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	swap := false
 	for i := 0; i < 10; i++ {
@@ -119,7 +119,7 @@ func TestInterlace(t *testing.T) {
 }
 
 func TestReschedule(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, NoTTL)
@@ -135,7 +135,7 @@ func TestReschedule(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	c := New[int, bool](Options{DefaultTTL: 1 * time.Second})
+	c := New[int, bool](Options{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, NoTTL)
