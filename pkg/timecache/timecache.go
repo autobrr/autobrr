@@ -16,9 +16,11 @@ type Options struct {
 }
 
 func New(o Options) *Cache {
-	return &Cache{
+	c := Cache{
 		o: o,
 	}
+
+	return &c
 }
 
 func (t *Cache) Now() time.Time {
@@ -39,10 +41,21 @@ func (t *Cache) update() time.Time {
 		return t.t
 	}
 
-	t.t = time.Now().Round(t.o.round)
+	var d time.Duration
+	if t.o.round > time.Second {
+		d = t.o.round
+	} else {
+		d = time.Second * 1
+	}
+
+	t.t = time.Now().Round(d)
 
 	go func() {
-		time.Sleep(1 * time.Second)
+		if t.o.round > time.Second {
+			d = t.o.round / 2
+		}
+
+		time.Sleep(d)
 		t.reset()
 	}()
 
