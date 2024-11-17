@@ -64,6 +64,26 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 	return nil
 }
 
+func (repo *ReleaseRepo) Update(ctx context.Context, r *domain.Release) error {
+	queryBuilder := repo.db.squirrel.
+		Update("release").
+		Set("size", r.Size).
+		Where(sq.Eq{"id": r.ID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err = repo.db.handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	repo.log.Debug().Msgf("release.update: %d %s", r.ID, r.TorrentName)
+
+	return nil
+}
+
 func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
 	if status.ID != 0 {
 		queryBuilder := repo.db.squirrel.

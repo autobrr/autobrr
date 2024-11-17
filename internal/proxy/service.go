@@ -160,7 +160,7 @@ func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
 		proxyUrl.User = url.UserPassword(p.User, p.Pass)
 	}
 
-	transport := sharedhttp.TransportTLSInsecure
+	transport := sharedhttp.ProxyTransport
 
 	// set user and pass if not empty
 	if p.User != "" && p.Pass != "" {

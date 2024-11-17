@@ -7,6 +7,10 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -111,7 +115,7 @@ func (db *DB) migrateSQLite() error {
 		return errors.New("autobrr (version %d) older than schema (version: %d)", len(sqliteMigrations), version)
 	}
 
-	db.log.Info().Msgf("Beginning database schema upgrade from version %v to version: %v", version, len(sqliteMigrations))
+	db.log.Info().Msgf("Beginning database schema upgrade from version %d to version: %d", version, len(sqliteMigrations))
 
 	tx, err := db.handler.Begin()
 	if err != nil {
@@ -124,21 +128,32 @@ func (db *DB) migrateSQLite() error {
 			return errors.Wrap(err, "failed to initialize schema")
 		}
 	} else {
+		if db.cfg.DatabaseMaxBackups > 0 {
+			if err := db.databaseConsistencyCheckSQLite(); err != nil {
+				return errors.Wrap(err, "database image malformed")
+			}
+
+			if err := db.backupSQLiteDatabase(); err != nil {
+				return errors.Wrap(err, "failed to create database backup")
+			}
+		}
+
 		for i := version; i < len(sqliteMigrations); i++ {
 			db.log.Info().Msgf("Upgrading Database schema to version: %v", i+1)
+
 			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}
 		}
-	}
 
-	// temp custom data migration
-	// get data from filter.sources, check if specific types, move to new table and clear
-	// if migration 6
-	// TODO 2022-01-30 remove this in future version
-	if version == 5 && len(sqliteMigrations) == 6 {
-		if err := customMigrateCopySourcesToMedia(tx); err != nil {
-			return errors.Wrap(err, "could not run custom data migration")
+		// temp custom data migration
+		// get data from filter.sources, check if specific types, move to new table and clear
+		// if migration 6
+		// TODO 2022-01-30 remove this in future version
+		if version == 5 && len(sqliteMigrations) == 6 {
+			if err := customMigrateCopySourcesToMedia(tx); err != nil {
+				return errors.Wrap(err, "could not run custom data migration")
+			}
 		}
 	}
 
@@ -147,9 +162,17 @@ func (db *DB) migrateSQLite() error {
 		return errors.Wrap(err, "failed to bump schema version")
 	}
 
-	db.log.Info().Msgf("Database schema upgraded to version: %v", len(sqliteMigrations))
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "failed to commit migration transaction")
+	}
 
-	return tx.Commit()
+	db.log.Info().Msgf("Database schema upgraded to version: %d", len(sqliteMigrations))
+
+	if err := db.cleanupSQLiteBackups(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // customMigrateCopySourcesToMedia move music specific sources to media
@@ -237,6 +260,99 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 			return err
 		}
 
+	}
+
+	return nil
+}
+
+func (db *DB) databaseConsistencyCheckSQLite() error {
+	db.log.Info().Msg("Database integrity check..")
+
+	row := db.handler.QueryRow("PRAGMA integrity_check;")
+
+	var status string
+	if err := row.Scan(&status); err != nil {
+		return errors.Wrap(err, "backup integrity unexpected state")
+	}
+	if status != "ok" {
+		return errors.New("backup integrity check failed: %q", status)
+	}
+
+	db.log.Info().Msg("Database integrity check OK!")
+
+	return nil
+}
+
+func (db *DB) backupSQLiteDatabase() error {
+	var version int
+	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+		return errors.Wrap(err, "failed to query schema version")
+	}
+
+	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format("2006-01-02T15:04:05"))
+
+	db.log.Info().Msgf("Creating database backup: %s", backupFile)
+
+	_, err := db.handler.Exec("VACUUM INTO ?;", backupFile)
+	if err != nil {
+		return errors.Wrap(err, "failed to backup database")
+	}
+
+	db.log.Info().Msgf("Database backup created at: %s", backupFile)
+
+	return nil
+}
+
+func (db *DB) cleanupSQLiteBackups() error {
+	if db.cfg.DatabaseMaxBackups == 0 {
+		return nil
+	}
+
+	backupDir := filepath.Dir(db.DSN)
+
+	files, err := os.ReadDir(backupDir)
+	if err != nil {
+		return errors.Wrap(err, "failed to read backup directory: %s", backupDir)
+	}
+
+	var backups []string
+
+	// Parse the filenames to extract timestamps
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".backup") {
+			// Extract timestamp from filename
+			parts := strings.Split(file.Name(), "_")
+			if len(parts) < 3 {
+				continue
+			}
+			timestamp := strings.TrimSuffix(parts[2], ".backup")
+			if _, err := time.Parse("2006-01-02T15:04:05", timestamp); err == nil {
+				backups = append(backups, file.Name())
+			}
+		}
+	}
+
+	db.log.Info().Msgf("Found %d SQLite backups", len(backups))
+
+	if len(backups) == 0 {
+		return nil
+	}
+
+	// Sort backups by timestamp
+	sort.Slice(backups, func(i, j int) bool {
+		t1, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
+		t2, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
+		return t1.After(t2)
+	})
+
+	for i := db.cfg.DatabaseMaxBackups; i < len(backups); i++ {
+		db.log.Info().Msgf("Remove SQLite backup: %s", backups[i])
+
+		if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
+			return errors.Wrap(err, "failed to remove old backups")
+		}
+
+		db.log.Info().Msgf("Removed SQLite backup: %s", backups[i])
 	}
 
 	return nil

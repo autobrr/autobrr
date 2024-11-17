@@ -131,6 +131,11 @@ func TestMatch(t *testing.T) {
 			matched: true,
 		},
 		{
+			pattern: "Lee*",
+			text:    "Let Go",
+			matched: false,
+		},
+		{
 			pattern: "*black?metal*",
 			text:    "   ||  Artist......: Vredehammer                                        ||\n   ||  Album.......: Mintaka                                            ||\n   ||  Year........: 2013                                               ||\n   ||                                                                   ||\n   ||  Genre.......: black metal                                        ||\n   ||  Label.......: Indie Recordings                                   ||\n   ||                                                                   ||\n   ||  Source......: FLAC/WEB (16bit)                                   ||\n   ||  Encoder.....: libFLAC                                            ||\n   ||  Bitrate.....: 948 kbps avg.                                      ||\n   ||  F.Rate......: 44.1kHz                                            ||\n   ||                                                                   ||\n   ||  Playtime....: 00:19:27 / 138.70MB                                ||\n   ||  R.Date......: 2024-10-22                                         ||\n   ||  S.Date......: 2013-03-27                                         ||\n   ||                                                                   ||\n   ||                                                                   ||\n   ||  01. The King Has Risen                                  3:53     ||\n   ||  02. H├╕ster av sjeler                                    4:17     ||\n   ||  03. Mintaka                                             4:10     ||\n   ||  04. Ditt siste aandedrag                                7:07     ||\n   ||                                                                   ||\n   ||                                                                   ||\n   ||  Vredehammer combines aggressive guitars and Norse melodies.      ||\n   ",
 			matched: true,
