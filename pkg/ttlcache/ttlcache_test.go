@@ -134,6 +134,22 @@ func TestReschedule(t *testing.T) {
 	}
 }
 
+func TestRescheduleNoTTL(t *testing.T) {
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
+	defer c.Close()
+	for i := 1; i < 10; i++ {
+		c.Set(i, true, DefaultTTL)
+		c.Set(i, true, NoTTL)
+	}
+
+	time.Sleep(3 * time.Second)
+	for i := 1; i < 10; i++ {
+		if _, ok := c.Get(i); !ok {
+			t.Fatalf("found key: %d", i)
+		}
+	}
+}
+
 func TestDelete(t *testing.T) {
 	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
 	defer c.Close()
