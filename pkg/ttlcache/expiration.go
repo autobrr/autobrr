@@ -53,6 +53,9 @@ func (c *Cache[K, V]) expire() {
 	}
 
 	if !soon.IsZero() { // wake-up feedback loop
+		defer func() {
+			_ = recover() // if the channel is closed, this doesn't matter on shutdown because this is expected.
+		}()
 		c.ch <- soon
 	}
 }
