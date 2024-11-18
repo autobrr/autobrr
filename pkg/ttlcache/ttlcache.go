@@ -51,7 +51,6 @@ func (c *Cache[K, V]) Close() {
 	c.l.Lock()
 	defer c.l.Unlock() // this should kill the structure on close, but it can race... so
 	close(c.ch) // kill the expiration pipeline.
-	c.ch = nil
 }
 
 func (o Options[K, V]) SetTimerResolution(d time.Duration) Options[K, V] {
