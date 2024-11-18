@@ -48,8 +48,8 @@ func (c *Cache[K, V]) Delete(key K) {
 }
 
 func (c *Cache[K, V]) Close() {
-	m.l.Lock()
-	defer m.l.Unlock() // this should kill the structure on close, but it can race... so
+	c.l.Lock()
+	defer c.l.Unlock() // this should kill the structure on close, but it can race... so
 	close(c.ch) // kill the expiration pipeline.
 	c.ch = nil
 }
