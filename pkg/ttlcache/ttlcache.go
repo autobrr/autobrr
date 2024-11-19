@@ -51,8 +51,8 @@ func (c *Cache[K, V]) Delete(key K) {
 
 func (c *Cache[K, V]) Close() {
 	c.l.Lock() // deadlock on reentry.
+	defer c.l.Unlock()
 	close(c.ch)
-	c.ch = nil
 }
 
 func (o Options[K, V]) SetTimerResolution(d time.Duration) Options[K, V] {
