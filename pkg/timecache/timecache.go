@@ -42,7 +42,7 @@ func (t *Cache) update() time.Time {
 	}
 
 	var d time.Duration
-	if t.o.round > time.Second {
+	if t.o.round > time.Nanosecond {
 		d = t.o.round
 	} else {
 		d = time.Second * 1
