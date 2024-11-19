@@ -50,7 +50,7 @@ func (c *Cache[K, V]) Delete(key K) {
 }
 
 func (c *Cache[K, V]) Close() {
-	c.l.Lock() // deadlock on reentry.
+	c.l.Lock()
 	defer c.l.Unlock()
 	close(c.ch)
 }
