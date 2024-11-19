@@ -50,14 +50,14 @@ func (t *Cache) update() time.Time {
 
 	t.t = time.Now().Round(d)
 
-	go func() {
-		if t.o.round > time.Second {
-			d = t.o.round / 2
+	go func(duration time.Duration) {
+		if t.o.round > time.Nanosecond {
+			duration = t.o.round / 2
 		}
 
-		time.Sleep(d)
+		time.Sleep(duration)
 		t.reset()
-	}()
+	}(d)
 
 	return t.t
 }
