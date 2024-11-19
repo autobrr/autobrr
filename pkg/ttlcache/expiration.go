@@ -1,17 +1,19 @@
 package ttlcache
 
-import "time"
+import (
+	"time"
+)
 
 func (c *Cache[K, V]) startExpirations() {
 	timer := time.NewTimer(1 * time.Second)
-	timer.Stop() // wasteful, but makes the loop cleaner because this is initialized.
+	stopTimer(timer) // wasteful, but makes the loop cleaner because this is initialized.
+	defer stopTimer(timer)
 
 	var timeSleep time.Time
 	for {
 		select {
 		case t, ok := <-c.ch:
 			if !ok {
-				timer.Stop()
 				return
 			} else if t.IsZero() {
 				continue
@@ -19,17 +21,28 @@ func (c *Cache[K, V]) startExpirations() {
 
 			if timeSleep.IsZero() || timeSleep.After(t) {
 				timeSleep = t
-				d := t.Sub(c.tc.Now())
-				if !timer.Reset(d) {
-					timer = time.NewTimer(d)
-				}
+				restartTimer(timer, timeSleep.Sub(c.tc.Now()))
 			}
 
 		case <-timer.C:
-			timer.Stop()
+			stopTimer(timer)
 			c.expire()
 			timeSleep = time.Time{}
 		}
+	}
+}
+
+func restartTimer(t *time.Timer, d time.Duration) {
+	stopTimer(t)
+	t.Reset(d)
+}
+
+func stopTimer(t *time.Timer) {
+	t.Stop()
+
+	// go < 1.23 returns stale values on expired timers.
+	if len(t.C) != 0 {
+		<-t.C
 	}
 }
 
@@ -53,11 +66,11 @@ func (c *Cache[K, V]) expire() {
 	}
 
 	if !soon.IsZero() { // wake-up feedback loop
-		go func() { // we need to release the lock, if the input pipeline has exceeded the wakeup budget.
+		go func(s time.Time) { // we need to release the lock, if the input pipeline has exceeded the wakeup budget.
 			defer func() {
 				_ = recover() // if the channel is closed, this doesn't matter on shutdown because this is expected.
 			}()
-			c.ch <- soon
-		}()
+			c.ch <- s
+		}(soon)
 	}
 }
