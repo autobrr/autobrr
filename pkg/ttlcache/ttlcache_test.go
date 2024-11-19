@@ -32,7 +32,7 @@ func TestExpirations(t *testing.T) {
 		c.Set(i, true, DefaultTTL)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	for i := 0; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
@@ -49,7 +49,7 @@ func TestSwaps(t *testing.T) {
 		c.Set(i, true, DefaultTTL)
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 	for i := 0; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
 			t.Fatalf("found key: %d", i)
@@ -72,7 +72,7 @@ func TestRetimer(t *testing.T) {
 		c.Set(i, true, time.Duration(10-i)*100*time.Millisecond)
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 	for i := 1; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
 			t.Fatalf("found key: %d", i)
@@ -98,7 +98,7 @@ func TestSchedule(t *testing.T) {
 
 func TestInterlace(t *testing.T) {
 	t.Parallel()
-	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(100 * time.Millisecond))
 	defer c.Close()
 	swap := false
 	for i := 0; i < 10; i++ {
@@ -110,7 +110,7 @@ func TestInterlace(t *testing.T) {
 		c.Set(i, true, ttl)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	swap = false
 	for i := 0; i < 10; i++ {
 		swap = !swap
@@ -126,14 +126,14 @@ func TestInterlace(t *testing.T) {
 
 func TestReschedule(t *testing.T) {
 	t.Parallel()
-	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(100 * time.Millisecond))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, NoTTL)
 		c.Set(i, true, DefaultTTL)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	for i := 1; i < 10; i++ {
 		if _, ok := c.Get(i); ok {
 			t.Fatalf("found key: %d", i)
@@ -143,14 +143,14 @@ func TestReschedule(t *testing.T) {
 
 func TestRescheduleNoTTL(t *testing.T) {
 	t.Parallel()
-	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(100 * time.Millisecond))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, DefaultTTL)
 		c.Set(i, true, NoTTL)
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 	for i := 1; i < 10; i++ {
 		if _, ok := c.Get(i); !ok {
 			t.Fatalf("found key: %d", i)
@@ -160,7 +160,7 @@ func TestRescheduleNoTTL(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	t.Parallel()
-	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(1 * time.Second))
+	c := New[int, bool](Options[int, bool]{}.SetDefaultTTL(100 * time.Millisecond))
 	defer c.Close()
 	for i := 1; i < 10; i++ {
 		c.Set(i, true, NoTTL)
@@ -211,5 +211,35 @@ func TestDeallocationDeleted(t *testing.T) {
 
 	if !hit {
 		t.Fatalf("Deallocation not hit.")
+	}
+}
+
+func TestTimerReset(t *testing.T) {
+	t.Parallel()
+	ch := make(chan struct{})
+	defer close(ch)
+
+	c := New[int, bool](Options[int, bool]{}.
+		SetDefaultTTL(time.Millisecond * 100).
+		SetDeallocationFunc(func(key int, value bool, reason DeallocationReason) { ch <- struct{}{} }))
+
+	defer c.Close()
+
+	const base = 0
+	const rounds = 1
+	for i := base; i < rounds; i++ {
+		c.Set(i, true, DefaultTTL)
+	}
+
+	for i := base; i < rounds; i++ {
+		<-ch
+	}
+
+	for i := 0; i < 1; i++ {
+		c.Set(i, true, DefaultTTL)
+	}
+
+	for i := base; i < rounds; i++ {
+		<-ch
 	}
 }

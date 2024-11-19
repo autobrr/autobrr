@@ -13,7 +13,9 @@ func New[K comparable, V any](options Options[K, V]) *Cache[K, V] {
 		m:  make(map[K]item[V]),
 	}
 
-	if options.defaultResolution >= 1*time.Second {
+	if options.defaultTTL != NoTTL && options.defaultResolution == 0 {
+		c.tc = *timecache.New(timecache.Options{}.Round(options.defaultTTL / 2))
+	} else if options.defaultResolution != 0 {
 		c.tc = *timecache.New(timecache.Options{}.Round(options.defaultResolution))
 	}
 
@@ -48,9 +50,9 @@ func (c *Cache[K, V]) Delete(key K) {
 }
 
 func (c *Cache[K, V]) Close() {
-	c.l.Lock()
-	defer c.l.Unlock() // this should kill the structure on close, but it can race... so
-	close(c.ch) // kill the expiration pipeline.
+	c.l.Lock() // deadlock on reentry.
+	close(c.ch)
+	c.ch = nil
 }
 
 func (o Options[K, V]) SetTimerResolution(d time.Duration) Options[K, V] {
