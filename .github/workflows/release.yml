@@ -59,8 +59,13 @@ jobs:
           path: web/dist
 
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        cgo: [ 1, 0 ]
+    name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     services:
       test_postgres:
         image: postgres:12.10
@@ -71,21 +76,35 @@ jobs:
           POSTGRES_PASSWORD: testdb
           POSTGRES_DB: autobrr
         options: --health-cmd pg_isready --health-interval 1s --health-timeout 5s --health-retries 60
+    env:
+      CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Create Profile environment
+        run:
+          |
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          chmod +x profile.sh;
+          mkdir profile;
+
       - name: Test
-        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./... -tags=integration
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-test-${{ matrix.os }}-${{ matrix.cgo }}
+          path: profile
 
       - name: Test Summary
         uses: test-summary/action@v2
@@ -93,10 +112,71 @@ jobs:
           paths: "unit-tests.xml"
         if: always()
 
-  goreleaserbuild:
-    name: Build distribution binaries
-    runs-on: ubuntu-latest
-    needs: [web, test]
+  testother:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [macos-latest, windows-latest]
+        cgo: [ 1, 0 ]
+    name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+      CGO_ENABLED: ${{ matrix.cgo }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Create Profile environment
+        shell: bash
+        run:
+          |
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          chmod +x profile.sh;
+          mkdir profile;
+
+      - name: Profile
+        shell: bash
+        run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-test-${{ matrix.os }}-${{ matrix.cgo }}
+          path: profile
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests.xml"
+        if: always() && startsWith(matrix.os, 'windows') == false
+
+  pgo:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        cgo: [ 1, 0 ]
+    name: Automatic PGO ${{ matrix.cgo == 1 && 'CGO ' || ''}}run ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: [web]
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+      CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -109,7 +189,72 @@ jobs:
           name: web-dist
           path: web/dist
 
-#     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Generate Profile
+        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}-${{ matrix.cgo }}.pprof
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-pgo-${{ matrix.os }}-${{ matrix.cgo }}
+          path: cpu-${{ matrix.os }}-${{ matrix.cgo }}.pprof
+
+  goprofilecombine:
+    name: Combine pprof profiles
+    runs-on: ubuntu-latest
+    needs: [pgo, test, testother]
+    steps:
+      - name: Download pprof profiles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pprof-*
+          merge-multiple: true
+          path: profile
+
+      - name: List contents
+        run: ls -la profile
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Merge Profiles
+        run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof
+          path: cpu.pprof
+
+  goreleaserbuild:
+    name: Build distribution binaries
+    runs-on: ubuntu-latest
+    needs: [web, goprofilecombine]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Download pprof profile
+        uses: actions/download-artifact@v4
+        with:
+          name: pprof
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -178,7 +323,7 @@ jobs:
 #       - linux/riscv64
         - linux/s390x
         - windows/amd64
-    needs: [web, test]
+    needs: [web, goprofilecombine]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -190,6 +335,11 @@ jobs:
         with:
           name: web-dist
           path: web/dist
+
+      - name: Download pprof profile
+        uses: actions/download-artifact@v4
+        with:
+          name: pprof
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -257,7 +407,7 @@ jobs:
     name: Publish Docker multi-arch manifest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: [docker, test]
+    needs: [docker]
     steps:
       - name: Download image digests
         uses: actions/download-artifact@v4

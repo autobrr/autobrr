@@ -125,7 +125,7 @@ func (s Server) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	encoder := encoder{}
+	encoder := newEncoder(s.log)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
