@@ -1629,4 +1629,8 @@ UPDATE irc_network
 	SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
 	WHERE server = 'irc.ircnet.com';
 `,
+	`UPDATE indexer
+	SET base_url = 'https://redacted.sh/'
+	WHERE base_url = 'https://redacted.ch/';
+`,
 }
