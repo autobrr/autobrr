@@ -10,6 +10,7 @@ import (
 )
 
 func TestFilter_CheckFilter(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		filter           Filter
 		rejectionReasons *RejectionReasons
@@ -1443,6 +1444,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 }
 
 func TestFilter_CheckFilter1(t *testing.T) {
+	t.Parallel()
 	type fields Filter
 	type args struct {
 		r *Release
@@ -2069,6 +2071,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 }
 
 func Test_containsMatch(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags    []string
 		filters []string
@@ -2092,6 +2095,7 @@ func Test_containsMatch(t *testing.T) {
 }
 
 func Test_containsAllMatch(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags    []string
 		filters []string
@@ -2117,6 +2121,7 @@ func Test_containsAllMatch(t *testing.T) {
 }
 
 func Test_contains(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tag    string
 		filter string
@@ -2144,6 +2149,7 @@ func Test_contains(t *testing.T) {
 }
 
 func Test_containsSlice(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tag     string
 		filters []string
@@ -2166,6 +2172,7 @@ func Test_containsSlice(t *testing.T) {
 }
 
 func Test_containsAny(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags   []string
 		filter string
@@ -2187,6 +2194,7 @@ func Test_containsAny(t *testing.T) {
 }
 
 func Test_containsAll(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags   []string
 		filter string
@@ -2212,6 +2220,7 @@ func Test_containsAll(t *testing.T) {
 }
 
 func Test_sliceContainsSlice(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags    []string
 		filters []string
@@ -2235,6 +2244,7 @@ func Test_sliceContainsSlice(t *testing.T) {
 }
 
 func Test_containsIntStrings(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		value      int
 		filterList string
@@ -2262,6 +2272,7 @@ func Test_containsIntStrings(t *testing.T) {
 }
 
 func Test_matchRegex(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tag    string
 		filter string
@@ -2289,6 +2300,7 @@ func Test_matchRegex(t *testing.T) {
 }
 
 func Test_validation(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		filter Filter
@@ -2308,6 +2320,7 @@ func Test_validation(t *testing.T) {
 }
 
 func Test_checkSizeFilter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		filter      Filter
@@ -2338,6 +2351,7 @@ func Test_checkSizeFilter(t *testing.T) {
 }
 
 func Test_containsFuzzy(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tag    string
 		filter string
