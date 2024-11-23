@@ -72,14 +72,10 @@ func main() {
 	}
 
 	// Set GOMEMLIMIT to match the Linux container Memory quota (if any)
-	memlimit.SetGoMemLimitWithOpts(
-		memlimit.WithProvider(
-			memlimit.ApplyFallback(
-				memlimit.FromCgroupHybrid,
-				memlimit.FromSystem,
-			),
-		),
-	)
+	memLimit, err := memlimit.SetGoMemLimitWithOpts(memlimit.WithProvider(memlimit.ApplyFallback(memlimit.FromCgroupHybrid, memlimit.FromSystem)))
+	if err != nil {
+		log.Error().Err(err).Msg("failed to set GOMEMLIMIT")
+	}
 
 	// init dynamic config
 	cfg.DynamicReload(log)
@@ -108,6 +104,7 @@ func main() {
 	log.Info().Msgf("Build date: %s", date)
 	log.Info().Msgf("Log-level: %s", cfg.Config.LogLevel)
 	log.Info().Msgf("Using database: %s", db.Driver)
+	log.Debug().Msgf("GOMEMLIMIT: %d bytes", memLimit)
 
 	// setup repos
 	var (
