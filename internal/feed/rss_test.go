@@ -17,6 +17,7 @@ import (
 )
 
 func TestRSSJob_processItem(t *testing.T) {
+	t.Parallel()
 	now := time.Now()
 	nowMinusTime := time.Now().Add(time.Duration(-3000) * time.Second)
 
@@ -234,6 +235,7 @@ func TestRSSJob_processItem(t *testing.T) {
 }
 
 func Test_isMaxAge(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		maxAge int
 		item   time.Time
