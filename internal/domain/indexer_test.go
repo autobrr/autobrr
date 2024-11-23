@@ -10,6 +10,7 @@ import (
 )
 
 func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		TorrentURL  string
 		TorrentName string
@@ -165,6 +166,7 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 }
 
 func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		TorrentURL  string
 		TorrentName string
@@ -238,6 +240,7 @@ func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
 }
 
 func TestIRCParserGazelleGames_Parse(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		rls  *Release
 		vars map[string]string
@@ -316,6 +319,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 }
 
 func TestIRCParserOrpheus_Parse(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		rls  *Release
 		vars map[string]string

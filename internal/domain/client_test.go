@@ -10,6 +10,7 @@ import (
 )
 
 func TestDownloadClient_qbitBuildLegacyHost(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		ID            int32
 		Name          string

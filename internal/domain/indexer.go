@@ -40,6 +40,10 @@ type Indexer struct {
 	Settings           map[string]string `json:"settings,omitempty"`
 }
 
+func (i Indexer) ImplementationIsFeed() bool {
+	return i.Implementation == "rss" || i.Implementation == "torznab" || i.Implementation == "newznab"
+}
+
 type IndexerMinimal struct {
 	ID                 int    `json:"id"`
 	Name               string `json:"name"`

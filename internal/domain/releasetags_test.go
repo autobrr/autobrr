@@ -10,6 +10,7 @@ import (
 )
 
 func TestParseReleaseTags(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags []string
 	}
@@ -29,6 +30,7 @@ func TestParseReleaseTags(t *testing.T) {
 }
 
 func TestParseReleaseTagString(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags string
 	}
@@ -64,6 +66,7 @@ func TestParseReleaseTagString(t *testing.T) {
 }
 
 func Test_cleanReleaseTags(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tagString string
 	}

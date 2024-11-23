@@ -25,6 +25,7 @@ type Service interface {
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Store(ctx context.Context, release *domain.Release) error
+	Update(ctx context.Context, release *domain.Release) error
 	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Process(release *domain.Release)
@@ -79,6 +80,10 @@ func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 
 func (s *service) Store(ctx context.Context, release *domain.Release) error {
 	return s.repo.Store(ctx, release)
+}
+
+func (s *service) Update(ctx context.Context, release *domain.Release) error {
+	return s.repo.Update(ctx, release)
 }
 
 func (s *service) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
@@ -189,8 +194,6 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 	// loop over and check filters
 	for _, f := range filters {
-		f := f
-
 		l := s.log.With().Str("indexer", release.Indexer.Identifier).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 		// save filter on release
@@ -206,9 +209,9 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		}
 
 		if !match {
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectionsString(false))
+			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectReasons.String())
 
-			l.Debug().Msgf("filter %s rejected release: %s", f.Name, f.RejectionsString(true))
+			l.Debug().Msgf("filter %s rejected release: %s", f.Name, release.TorrentName)
 			continue
 		}
 
@@ -248,9 +251,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		var rejections []string
 
 		// run actions (watchFolder, test, exec, qBittorrent, Deluge, arr etc.)
-		for _, a := range actions {
-			act := a
-
+		for _, act := range actions {
 			// only run enabled actions
 			if !act.Enabled {
 				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action '%s' not enabled, skip", release.Indexer.Name, release.FilterName, release.TorrentName, act.Name)
@@ -289,6 +290,10 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 			// if no rejections consider action approved, run next
 			continue
+		}
+
+		if err = s.Update(ctx, release); err != nil {
+			l.Error().Err(err).Msgf("release.Process: error updating release: %v", release.TorrentName)
 		}
 
 		// if we have rejections from arr, continue to next filter

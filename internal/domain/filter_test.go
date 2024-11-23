@@ -10,9 +10,10 @@ import (
 )
 
 func TestFilter_CheckFilter(t *testing.T) {
+	t.Parallel()
 	type args struct {
-		filter     Filter
-		rejections []string
+		filter           Filter
+		rejectionReasons *RejectionReasons
 	}
 	tests := []struct {
 		name   string
@@ -52,6 +53,22 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Years:              "2020",
 					MatchReleaseGroups: "GROUP1",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			},
+			want: true,
+		},
+		{
+			name: "movie_parse_1",
+			fields: &Release{
+				TorrentName: "White Christmas 1954 2160p Remux DoVi HDR10 HEVC DTS-HD MA 5.1-VHS",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					Sources:            []string{"BluRay", "UHD.BluRay"},
+					MatchReleaseGroups: "VHS",
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -77,6 +94,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Years:              "2020",
 					MatchReleaseGroups: "GROUP1",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -101,6 +119,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Years:              "2020",
 					MatchReleaseGroups: "GROUP1",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -126,6 +145,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1",
 					Shows:              "That Movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -151,6 +171,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1",
 					Shows:              "That Movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -176,6 +197,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1",
 					Shows:              "That Movie, good story, bad movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -201,6 +223,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1",
 					Shows:              "That Movie, good story, bad movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -226,6 +249,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -251,7 +275,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
-				rejections: []string{"category unwanted. got: Movies unwanted: *movies*"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except category", got: "Movies", want: "*movies*"}}},
 			},
 			want: false,
 		},
@@ -277,7 +301,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
-				rejections: nil,
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -303,7 +327,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
-				rejections: []string{"category not matching. got: Movies want: *tv*"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match category", got: "Movies", want: "*tv*"}}},
 			},
 			want: false,
 		},
@@ -330,7 +354,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
-				rejections: []string{"category not matching. got: Movies/HD,2040 want: *tv*"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match category", got: "Movies/HD,2040", want: "*tv*"}}},
 			},
 			want: false,
 		},
@@ -357,6 +381,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -383,6 +408,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -409,6 +435,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,BADGROUP",
 					Shows:              "*Movie*, good story, bad movie",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -429,6 +456,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Seasons:            "1,2",
 					Episodes:           "1",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -448,6 +476,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,GROUP2",
 					Seasons:            "1,2",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -467,7 +496,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP1,GROUP2",
 					Seasons:            "1",
 				},
-				rejections: []string{"season not matching. got: 2 want: 1"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "season", got: 2, want: "1"}}},
 			},
 			want: false,
 		},
@@ -484,6 +513,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchCategories: "*tv*",
 					MatchUploaders:  "Uploader1",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -500,7 +530,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchCategories: "*tv*",
 					ExceptUploaders: "Anonymous",
 				},
-				rejections: []string{"unwanted uploaders. got: Anonymous unwanted: Anonymous"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except uploaders", got: "Anonymous", want: "Anonymous"}}},
 			},
 			want: false,
 		},
@@ -519,6 +549,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptUploaders: "Anonymous",
 					Shows:           "Good show",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -540,6 +571,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Tags:            "tv",
 					TagsMatchLogic:  "",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -561,6 +593,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Tags:            "tv",
 					TagsMatchLogic:  "ANY",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -582,6 +615,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Tags:            "tv,foreign",
 					TagsMatchLogic:  "ALL",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -603,7 +637,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Tags:            "tv",
 					TagsMatchLogic:  "ANY",
 				},
-				rejections: []string{"tags not matching. got: [foreign] want: tv"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match tags: ANY", got: []string{"foreign"}, want: "tv"}}},
 			},
 			want: false,
 		},
@@ -625,7 +659,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Tags:            "tv,foreign",
 					TagsMatchLogic:  "ALL",
 				},
-				rejections: []string{"tags not matching. got: [foreign] want(all): tv,foreign"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match tags: ALL", got: []string{"foreign"}, want: "tv,foreign"}}},
 			},
 			want: false,
 		},
@@ -647,6 +681,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptTags:      "tv",
 					TagsMatchLogic:  "ANY",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -668,7 +703,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptTags:      "tv,foreign",
 					TagsMatchLogic:  "ALL",
 				},
-				rejections: []string{"tags unwanted. got: [foreign] don't want: tv,foreign"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except tags: ANY", got: []string{"foreign"}, want: "tv,foreign"}}},
 			},
 			want: false,
 		},
@@ -690,7 +725,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptTags:           "foreign",
 					ExceptTagsMatchLogic: "ANY",
 				},
-				rejections: []string{"tags unwanted. got: [foreign] don't want: foreign"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except tags: ANY", got: []string{"foreign"}, want: "foreign"}}},
 			},
 			want: false,
 		},
@@ -712,7 +747,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptTags:           "foreign,tv",
 					ExceptTagsMatchLogic: "ALL",
 				},
-				rejections: []string{"tags unwanted. got: [tv foreign] don't want: foreign,tv"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except tags: ALL", got: []string{"tv", "foreign"}, want: "foreign,tv"}}},
 			},
 			want: false,
 		},
@@ -732,6 +767,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Shows:              "Good show",
 					MatchReleaseGroups: "GROUP",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -751,6 +787,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Shows:              "Good show shift",
 					MatchReleaseGroups: "ift",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -770,7 +807,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Shows:              "Good show shift",
 					MatchReleaseGroups: "ift",
 				},
-				rejections: []string{"release groups not matching. got: GROUP want: ift"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match release groups", got: "GROUP", want: "ift"}}},
 			},
 			want: false,
 		},
@@ -810,7 +847,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP",
 					ExceptReleases:     "Good show shift",
 				},
-				rejections: []string{"except releases: unwanted release. got: Good show shift S02 NORDiC 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP want: Good show shift"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except releases", got: "Good show shift S02 NORDiC 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP", want: "Good show shift"}}},
 			},
 			want: false,
 		},
@@ -831,7 +868,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP",
 					ExceptReleases:     "NORDiC",
 				},
-				rejections: []string{"except releases: unwanted release. got: Good show shift S02 NORDiC 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP want: NORDiC"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except releases", got: "Good show shift S02 NORDiC 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP", want: "NORDiC"}}},
 			},
 			want: false,
 		},
@@ -852,6 +889,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP",
 					ExceptReleases:     "NORDiC",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -872,7 +910,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchReleaseGroups: "GROUP",
 					ExceptReleases:     "NORDiC,*shift*",
 				},
-				rejections: []string{"except releases: unwanted release. got: Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP want: NORDiC,*shift*"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except releases", got: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP", want: "NORDiC,*shift*"}}},
 			},
 			want: false,
 		},
@@ -894,6 +932,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					MatchHDR:           []string{"DV", "HDR"},
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -915,6 +954,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					MatchHDR:           []string{"DV", "HDR"},
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -936,7 +976,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					ExceptHDR:          []string{"DV", "HDR", "DoVi"},
 				},
-				rejections: []string{"hdr unwanted. got: [DV] want: [DV HDR DoVi]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR", "DoVi"}}}},
 			},
 			want: false,
 		},
@@ -958,7 +998,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					MatchHDR:           []string{"DV", "HDR", "DoVi"},
 				},
-				rejections: []string{"hdr not matching. got: [] want: [DV HDR DoVi]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string(nil), want: []string{"DV", "HDR", "DoVi"}}}},
 			},
 			want: false,
 		},
@@ -980,6 +1020,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					ExceptHDR:          []string{"DV", "HDR", "DoVi"},
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1001,6 +1042,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					ExceptHDR:          []string{"DV", "DoVi"},
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1022,6 +1064,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					ExceptHDR:          []string{"DV", "DoVi"},
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1043,6 +1086,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					MatchHDR:           []string{"DV", "DoVi", "HDR10+"},
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1056,6 +1100,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:  true,
 					MatchHDR: []string{"DV HDR"},
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1069,7 +1114,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:  true,
 					MatchHDR: []string{"DV HDR"},
 				},
-				rejections: []string{"hdr not matching. got: [DV HDR10] want: [DV HDR]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"DV", "HDR10"}, want: []string{"DV HDR"}}}},
 			},
 			want: false,
 		},
@@ -1083,7 +1128,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:  true,
 					MatchHDR: []string{"DV", "HDR"},
 				},
-				rejections: []string{"hdr not matching. got: [HDR10] want: [DV HDR]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"HDR10"}, want: []string{"DV", "HDR"}}}},
 			},
 			want: false,
 		},
@@ -1106,6 +1151,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Cue:             true,
 					//LogScore:        100,
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1123,7 +1169,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejections: []string{"wanted: perfect flac. got: [320 MP3]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"320", "MP3"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
 			},
 			want: false,
 		},
@@ -1141,7 +1187,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejections: []string{"wanted: perfect flac. got: [FLAC Lossless Log100 Log]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"FLAC", "Lossless", "Log100", "Log"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
 			},
 			want: false,
 		},
@@ -1165,7 +1211,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					LogScore: 100,
 					Cue:      true,
 				},
-				rejections: []string{"quality not matching. got: [FLAC Lossless Log100 Log] want: [24bit Lossless]", "wanted: cue"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "quality", got: []string{"FLAC", "Lossless", "Log100", "Log"}, want: []string{"24bit Lossless"}}, {key: "cue", got: []string{"FLAC", "Lossless", "Log100", "Log"}, want: "Cue"}}},
 			},
 			want: false,
 		},
@@ -1193,6 +1239,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Cue: true,
 					//Cue: true,
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1216,7 +1263,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					LogScore:          100,
 					Cue:               true,
 				},
-				rejections: []string{"release type not matching. got: Album want: [Single]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "release type", got: "Album", want: []string{"Single"}}}},
 			},
 			want: false,
 		},
@@ -1240,7 +1287,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					LogScore:          100,
 					Cue:               true,
 				},
-				rejections: []string{"artists not matching. got: Artist want: Artiiiist"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "artists", got: "Artist", want: "Artiiiist"}}},
 			},
 			want: false,
 		},
@@ -1265,6 +1312,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					//LogScore:          100,
 					Cue: true,
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1286,7 +1334,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Formats:           []string{"FLAC"},
 					Quality:           []string{"Lossless"},
 				},
-				rejections: []string{"quality not matching. got: [24BIT Lossless Cue FLAC Log100 Log] want: [Lossless]"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "quality", got: []string{"24BIT Lossless", "Cue", "FLAC", "Log100", "Log"}, want: []string{"Lossless"}}}},
 			},
 			want: false,
 		},
@@ -1301,6 +1349,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:   true,
 					Freeleech: true,
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1315,7 +1364,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:   true,
 					Freeleech: true,
 				},
-				rejections: []string{"wanted: freeleech"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "freeleech", got: false, want: true}}},
 			},
 			want: false,
 		},
@@ -1337,6 +1386,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchCategories:    "Light Novel",
 					MatchReleaseTags:   "*EPUB*",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1356,6 +1406,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Months:          "04",
 					Days:            "20",
 				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
 			want: true,
 		},
@@ -1370,11 +1421,11 @@ func TestFilter_CheckFilter(t *testing.T) {
 				filter: Filter{
 					Enabled:         true,
 					MatchCategories: "*tv*",
-					Shows:           "Daily talk show",
+					Shows:           "Daaaaaily talk show",
 					Years:           "2022",
-					Months:          "05",
+					//Months:          "05",
 				},
-				rejections: []string{"month not matching. got: 4 want: 05"},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "Daily talk show", want: "Daaaaaily talk show"}}},
 			},
 			want: false,
 		},
@@ -1387,22 +1438,23 @@ func TestFilter_CheckFilter(t *testing.T) {
 			rejections, got := tt.args.filter.CheckFilter(r)
 
 			assert.Equal(t, tt.want, got)
-			assert.Equal(t, tt.args.rejections, rejections)
+			assert.Equal(t, tt.args.rejectionReasons, rejections)
 		})
 	}
 }
 
 func TestFilter_CheckFilter1(t *testing.T) {
+	t.Parallel()
 	type fields Filter
 	type args struct {
 		r *Release
 	}
 	tests := []struct {
-		name           string
-		fields         fields
-		args           args
-		wantRejections []string
-		wantMatch      bool
+		name             string
+		fields           fields
+		args             args
+		rejectionReasons *RejectionReasons
+		wantMatch        bool
 	}{
 		{
 			name: "test_1",
@@ -1415,9 +1467,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseGroups: "NOSiViD",
 				MatchHDR:           []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_2",
@@ -1430,9 +1482,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Codecs:             []string{"x265"},
 				MatchReleaseGroups: "NOSiViD",
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"episodes not matching. got: 0 want: 2-8"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "episodes", got: 0, want: "2-8"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_3",
@@ -1445,9 +1497,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseGroups: "NOSiViD",
 				MatchHDR:           []string{"HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"hdr not matching. got: [DV] want: [HDR]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"DV"}, want: []string{"HDR"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_4",
@@ -1460,9 +1512,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseGroups: "NOSiViD",
 				ExceptHDR:          []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"hdr unwanted. got: [DV] want: [DV HDR]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_5",
@@ -1475,9 +1527,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseGroups: "NOSiViD",
 				ExceptHDR:          []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"shows not matching. got: WeCrashed want: WeWork", "hdr unwanted. got: [DV] want: [DV HDR]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_6",
@@ -1490,9 +1542,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptReleaseGroups: "NOSiViD",
 				ExceptHDR:           []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"shows not matching. got: WeCrashed want: WeWork", "unwanted release group. got: NOSiViD unwanted: NOSiViD", "hdr unwanted. got: [DV] want: [DV HDR]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_7",
@@ -1505,9 +1557,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptReleaseGroups: "NOSiViD",
 				ExceptHDR:           []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"shows not matching. got: WeCrashed want: WeWork", "unwanted release group. got: NOSiViD unwanted: NOSiViD", "source not matching. got: WEB want: [WEB-DL]", "hdr unwanted. got: [DV] want: [DV HDR]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "source", got: "WEB", want: []string{"WEB-DL"}}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_8",
@@ -1520,9 +1572,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseGroups: "NOSiViD",
 				MatchHDR:           []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"source not matching. got: WEB-DL want: [WEB]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "source", got: "WEB-DL", want: []string{"WEB"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_9",
@@ -1535,9 +1587,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseGroups: "NOSiViD",
 				MatchHDR:           []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.Blu-ray.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"source not matching. got: BluRay want: [WEB]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.Blu-ray.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "source", got: "BluRay", want: []string{"WEB"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_10",
@@ -1548,9 +1600,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchHDR:    []string{"DV", "HDR"},
 				ExceptOther: []string{"REMUX", "HYBRID"},
 			},
-			args:           args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
-			wantRejections: []string{"source not matching. got: UHD.BluRay want: [BluRay]", "except other unwanted. got: [HYBRiD REMUX] unwanted: [REMUX HYBRID]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "source", got: "UHD.BluRay", want: []string{"BluRay"}}, {key: "except other", got: []string{"HYBRiD", "REMUX"}, want: []string{"REMUX", "HYBRID"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_10",
@@ -1561,9 +1613,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchHDR:    []string{"DV", "HDR"},
 				MatchOther:  []string{"REMUX", "HYBRID"},
 			},
-			args:           args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Stranger Things S02 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-FraMeSToR"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_11",
@@ -1573,9 +1625,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Codecs:      []string{"HEVC"},
 				//MatchHDR:    []string{"DV", "HDR"},
 			},
-			args:           args{&Release{TorrentName: "Food Wars!: Shokugeki no Soma S05 2020 1080p BluRay HEVC 10-Bit DD2.0 Dual Audio -ZR-"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Food Wars!: Shokugeki no Soma S05 2020 1080p BluRay HEVC 10-Bit DD2.0 Dual Audio -ZR-"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_12",
@@ -1583,9 +1635,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Resolutions: []string{"2160p"},
 				Codecs:      []string{"h.265"},
 			},
-			args:           args{&Release{TorrentName: "The.First.Lady.S01E01.DV.2160p.WEB-DL.DD5.1.H265-GLHF"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "The.First.Lady.S01E01.DV.2160p.WEB-DL.DD5.1.H265-GLHF"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 
 		{
@@ -1594,36 +1646,36 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Resolutions: []string{"2160p"},
 				Codecs:      []string{"h.265"},
 			},
-			args:           args{&Release{TorrentName: "The First Lady S01E01 DV 2160p WEB-DL DD5.1 H 265-GLHF"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "The First Lady S01E01 DV 2160p WEB-DL DD5.1 H 265-GLHF"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_14",
 			fields: fields{
 				Sources: []string{"WEBRip"},
 			},
-			args:           args{&Release{TorrentName: "Halt and Catch Fire S04 1080p WEBRip x265-HiQVE"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Halt and Catch Fire S04 1080p WEBRip x265-HiQVE"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_15",
 			fields: fields{
 				Sources: []string{"WEB"},
 			},
-			args:           args{&Release{TorrentName: "Dominik Walter-Cocktail Girl-(NS1083)-WEB-2022-AFO"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Dominik Walter-Cocktail Girl-(NS1083)-WEB-2022-AFO"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_16",
 			fields: fields{
 				Sources: []string{"ViNYL"},
 			},
-			args:           args{&Release{TorrentName: "Love Unlimited - Under the Influence of Love Unlimited [1973] [Album] - MP3 / V0 (VBR) / Vinyl"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Love Unlimited - Under the Influence of Love Unlimited [1973] [Album] - MP3 / V0 (VBR) / Vinyl"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_17",
@@ -1631,18 +1683,18 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Resolutions: []string{"1080p"},
 				Sources:     []string{"BluRay"},
 			},
-			args:           args{&Release{TorrentName: "A Movie [2015] - GROUP", ReleaseTags: "Type: Movie / 1080p / Encode / Freeleech: 100 Size: 7.00GB"}},
-			wantRejections: []string{"source not matching. got:  want: [BluRay]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "A Movie [2015] - GROUP", ReleaseTags: "Type: Movie / 1080p / Encode / Freeleech: 100 Size: 7.00GB"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "source", got: "", want: []string{"BluRay"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_18",
 			fields: fields{
 				Resolutions: []string{"2160p"},
 			},
-			args:           args{&Release{TorrentName: "The Green Mile [1999] - playBD", ReleaseTags: "Type: Movie / 2160p / Remux / Freeleech: 100 Size: 72.78GB"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "The Green Mile [1999] - playBD", ReleaseTags: "Type: Movie / 2160p / Remux / Freeleech: 100 Size: 72.78GB"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_19",
@@ -1654,9 +1706,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Sources:     []string{"WEB-DL"},
 				Codecs:      []string{"x265"},
 			},
-			args:           args{&Release{TorrentName: "Preacher.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: []string{"shows not matching. got: Preacher want: Reacher"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Preacher.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "Preacher", want: "Reacher"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_20",
@@ -1665,9 +1717,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Resolutions: []string{"1080p"},
 				Sources:     []string{"WEB-DL", "WEB"},
 			},
-			args:           args{&Release{TorrentName: "NBA.2022.04.19.Atlanta.Hawks.vs.Miami.Heat.1080p.WEB.H264-SPLASH"}},
-			wantRejections: []string{"shows not matching. got: NBA want: Atlanta"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "NBA.2022.04.19.Atlanta.Hawks.vs.Miami.Heat.1080p.WEB.H264-SPLASH"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "NBA", want: "Atlanta"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_21",
@@ -1679,63 +1731,63 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				//LogScore: 100,
 				Cue: true,
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_22",
 			fields: fields{
 				PerfectFlac: true,
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_23",
 			fields: fields{
 				Origins: []string{"Internal"},
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "Internal"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "Internal"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_24",
 			fields: fields{
 				Origins: []string{"P2P"},
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "Internal"}},
-			wantRejections: []string{"origin not matching. got: Internal want: [P2P]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "Internal"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match origin", got: "Internal", want: []string{"P2P"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_25",
 			fields: fields{
 				Origins: []string{"O-SCENE"},
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "SCENE"}},
-			wantRejections: []string{"origin not matching. got: SCENE want: [O-SCENE]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "SCENE"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match origin", got: "SCENE", want: []string{"O-SCENE"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_26",
 			fields: fields{
 				Origins: []string{"SCENE"},
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "O-SCENE"}},
-			wantRejections: []string{"origin not matching. got: O-SCENE want: [SCENE]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene", Origin: "O-SCENE"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match origin", got: "O-SCENE", want: []string{"SCENE"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_26",
 			fields: fields{
 				Origins: []string{"SCENE"},
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", ReleaseTags: "FLAC / Lossless / Log / 100% / Cue / CD / Scene"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_27",
@@ -1743,9 +1795,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegex:      true,
 				MatchReleases: ".*1080p.+(group1|group3)",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: []string{"match release regex not matching. got: Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2 want: .*1080p.+(group1|group3)"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match releases: REGEX", got: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", want: ".*1080p.+(group1|group3)"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_28",
@@ -1753,9 +1805,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegex:      true,
 				MatchReleases: ".*2160p.+(group1|group2)",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_29",
@@ -1763,9 +1815,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegex:      true,
 				MatchReleases: "*2160p*",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: []string{"match release regex not matching. got: Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2 want: *2160p*"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match releases: REGEX", got: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", want: "*2160p*"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_30",
@@ -1773,9 +1825,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegex:      true,
 				MatchReleases: "2160p",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_31",
@@ -1783,9 +1835,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegex:      false,
 				MatchReleases: "*2160p*",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_32",
@@ -1796,9 +1848,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 					MonthCount: 0,
 				},
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_33",
@@ -1806,12 +1858,13 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     10,
 				MaxDownloadsUnit: FilterMaxDownloadsMonth,
 				Downloads: &FilterDownloads{
+					TotalCount: 10,
 					MonthCount: 10,
 				},
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: []string{"max downloads (10) this (MONTH) reached"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 10, Total: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_34",
@@ -1819,12 +1872,13 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     10,
 				MaxDownloadsUnit: FilterMaxDownloadsMonth,
 				Downloads: &FilterDownloads{
+					TotalCount: 50,
 					MonthCount: 50,
 				},
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: []string{"max downloads (10) this (MONTH) reached"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 50, Total: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_35",
@@ -1832,13 +1886,16 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     15,
 				MaxDownloadsUnit: FilterMaxDownloadsHour,
 				Downloads: &FilterDownloads{
-					HourCount:  20,
+					TotalCount: 50,
 					MonthCount: 50,
+					WeekCount:  50,
+					DayCount:   25,
+					HourCount:  20,
 				},
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: []string{"max downloads (15) this (HOUR) reached"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 20, Day: 25, Week: 50, Month: 50, Total: 50", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_36",
@@ -1850,27 +1907,27 @@ func TestFilter_CheckFilter1(t *testing.T) {
 					MonthCount: 50,
 				},
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_37",
 			fields: fields{
 				ExceptOrigins: []string{"Internal"},
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Internal"}},
-			wantRejections: []string{"except origin not matching. got: Internal unwanted: [Internal]"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Internal"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except origin", got: "Internal", want: []string{"Internal"}}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_38",
 			fields: fields{
 				ExceptOrigins: []string{"Internal"},
 			},
-			args:           args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Scene"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Gillan - Future Shock", Origin: "Scene"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_39",
@@ -1878,9 +1935,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegexReleaseTags: true,
 				MatchReleaseTags:    ".*1080p.+(group1|group3)",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P"}},
-			wantRejections: []string{"match release tags regex not matching. got: MKV | x264 | WEB | P2P want: .*1080p.+(group1|group3)"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match release tags: REGEX", got: "MKV | x264 | WEB | P2P", want: ".*1080p.+(group1|group3)"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_40",
@@ -1888,9 +1945,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegexReleaseTags: true,
 				MatchReleaseTags:    "foreign - 16",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
-			wantRejections: []string{"match release tags regex not matching. got: MKV | x264 | WEB | P2P | Foreign - 17 want: foreign - 16"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match release tags: REGEX", got: "MKV | x264 | WEB | P2P | Foreign - 17", want: "foreign - 16"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_41",
@@ -1898,8 +1955,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegexReleaseTags: true,
 				MatchReleaseTags:    "foreign - 17",
 			},
-			args:      args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
-			wantMatch: true,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: "MKV | x264 | WEB | P2P | Foreign - 17"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 		{
 			name: "test_42",
@@ -1907,9 +1965,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				UseRegexReleaseTags: true,
 				MatchReleaseTags:    "foreign - 17",
 			},
-			args:           args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: ""}},
-			wantRejections: []string{"match release tags regex not matching. got:  want: foreign - 17"},
-			wantMatch:      false,
+			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2", ReleaseTags: ""}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match release tags: REGEX", got: "", want: "foreign - 17"}}},
+			wantMatch:        false,
 		},
 		{
 			name: "test_43",
@@ -1921,9 +1979,18 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Sources:     []string{"WEB-DL"},
 				Codecs:      []string{"x265"},
 			},
-			args:           args{&Release{TorrentName: "Preacher.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			wantRejections: nil,
-			wantMatch:      true,
+			args:             args{&Release{TorrentName: "Preacher.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_44",
+			fields: fields{
+				MatchDescription: "*black?metal*",
+			},
+			args:             args{&Release{Description: "dog\ncat\r\nblack metalo\negg"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
 		},
 	}
 	for _, tt := range tests {
@@ -1948,6 +2015,9 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchReleaseTags:     tt.fields.MatchReleaseTags,
 				ExceptReleaseTags:    tt.fields.ExceptReleaseTags,
 				UseRegexReleaseTags:  tt.fields.UseRegexReleaseTags,
+				MatchDescription:     tt.fields.MatchDescription,
+				ExceptDescription:    tt.fields.ExceptDescription,
+				UseRegexDescription:  tt.fields.UseRegexDescription,
 				Scene:                tt.fields.Scene,
 				Origins:              tt.fields.Origins,
 				ExceptOrigins:        tt.fields.ExceptOrigins,
@@ -1994,13 +2064,14 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			f.Sanitize()
 			tt.args.r.ParseString(tt.args.r.TorrentName)
 			rejections, match := f.CheckFilter(tt.args.r)
-			assert.Equalf(t, tt.wantRejections, rejections, "CheckFilter(%v)", tt.args.r)
+			assert.Equalf(t, tt.rejectionReasons, rejections, "CheckFilter(%v)", tt.args.r)
 			assert.Equalf(t, tt.wantMatch, match, "CheckFilter(%v)", tt.args.r)
 		})
 	}
 }
 
 func Test_containsMatch(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags    []string
 		filters []string
@@ -2024,6 +2095,7 @@ func Test_containsMatch(t *testing.T) {
 }
 
 func Test_containsAllMatch(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags    []string
 		filters []string
@@ -2049,6 +2121,7 @@ func Test_containsAllMatch(t *testing.T) {
 }
 
 func Test_contains(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tag    string
 		filter string
@@ -2076,6 +2149,7 @@ func Test_contains(t *testing.T) {
 }
 
 func Test_containsSlice(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tag     string
 		filters []string
@@ -2098,6 +2172,7 @@ func Test_containsSlice(t *testing.T) {
 }
 
 func Test_containsAny(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags   []string
 		filter string
@@ -2119,6 +2194,7 @@ func Test_containsAny(t *testing.T) {
 }
 
 func Test_containsAll(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags   []string
 		filter string
@@ -2144,6 +2220,7 @@ func Test_containsAll(t *testing.T) {
 }
 
 func Test_sliceContainsSlice(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tags    []string
 		filters []string
@@ -2167,6 +2244,7 @@ func Test_sliceContainsSlice(t *testing.T) {
 }
 
 func Test_containsIntStrings(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		value      int
 		filterList string
@@ -2194,6 +2272,7 @@ func Test_containsIntStrings(t *testing.T) {
 }
 
 func Test_matchRegex(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		tag    string
 		filter string
@@ -2221,6 +2300,7 @@ func Test_matchRegex(t *testing.T) {
 }
 
 func Test_validation(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name   string
 		filter Filter
@@ -2240,6 +2320,7 @@ func Test_validation(t *testing.T) {
 }
 
 func Test_checkSizeFilter(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name        string
 		filter      Filter
@@ -2258,13 +2339,41 @@ func Test_checkSizeFilter(t *testing.T) {
 		{name: "test_9", filter: Filter{MinSize: "unparseable", MaxSize: "20GB"}, releaseSize: 2500000000, want: false, wantErr: "could not parse filter min size: strconv.ParseFloat: parsing \"\": invalid syntax"},
 	}
 	for _, tt := range tests {
-
 		t.Run(tt.name, func(t *testing.T) {
+			tt.filter.RejectReasons = NewRejectionReasons()
 			got, err := tt.filter.CheckReleaseSize(tt.releaseSize)
 			if tt.wantErr != "" && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_containsFuzzy(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		tag    string
+		filter string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "", args: args{tag: "this is a long text that should contain some random data one of them being black metal which should be in the middle of everything.", filter: "*black?metal*"}, want: true},
+		{
+			name: "",
+			args: args{
+				tag:    "Kategori: Music \\n Storlek: 132.78 MiB\\n                                       ?                                     ??                                     ??                                 ?????????                                     ??                                     ??                            ??       ??       ??           ????              ??      ??      ??              ????        ???     ?            ??      ??      ??            ?     ???      ?           ?         ??       ?       ??         ?           ???  ?                     ??       ??       ???                     ??   ?? ????                      ????      ??      ????                      ?????   ?????  ? ??           ??  ????    ??    ????  ??           ?? ?  ??????      ?????????????            ????????????            ?????????????                    ??????         ????         ??????     ?     ?? ???   ?   ??         ?         ??    ??   ??? ??     ?      ?     ??????  ??   ??          ??          ??    ??  ?????     ?       ??         ??                 ??                  ??         ??         ?????????     ?          ??????         ??      ?????????            ???         ?          ??????          ?          ??             ?         ??            ??           ???         ?             ?        ?              ??            ??        ?      ???    ?       ??               ?    ?         ?? ?????       ?        ??         ?   ?   ??         ??       ??? ???                   ???      ??    ??? ??      ???       ???       ?  ?????????              ????    ??     ?????    ? ??        ?????????????  ???????????            ???   ????     ???     ??               ??????????   ??       ??            ???    ??      ???     ???          ???? ??? ?  ??  ???        ?    ??  ?????????? ??  ??????????????? ????????????? ????    ????   ?????   ??? ??????? ???????? ????? ???????? ????? ?????    ??  ???      ???  ?   ?    ????   ???? ????      ???? ????     ???? ????    ??   ??       ???  ???        ???    ??? ???        ??? ???       ??? ???    ??    ??     ???  ???        ??    ??? ???        ??? ???       ??? ????????  ?    ??     ???   ???       ???    ??? ???        ??? ???       ??? ???      ???  ??    ???    ???      ???    ??? ???        ??? ???       ??? ???  ??????  ???    ???    ????     ??? ? ??? ???      ??? ??? ?   ??? ????   ?      ?   ???   ????      ????    ?? ??          ?? ??         ?? ??     ??   ??????? ????  ????    ?  ??      ? ?            ? ?           ? ?      ??????    ???????   ?????     ??       ? ?            ? ?           ? ?        ??      ??????     ????? ??         ? ?            ? ?           ? ?   sM!iMPURE    ???       ????           ? ?            ? ?           ? ?   ./\\\\\\\\//\\\\\\\\.   ????        ??             ?              ?             ?                 ??        ?                                                              ?        ?                                                              ?                     ??????????????????????????????????????   ??????????????????                                      ?????????????????? ??? ??                                                                  ?? ??? ???                       RELEASE INFORMATION for:                       ??? ??          Portae_Obscuritas-Sapientia_Occulta-WEB-2024-ENTiTLED           ?? ??                                                                          ?? ?   artist........ | Portae Obscuritas                                       ?     title......... | Sapientia Occulta     label......... | 6868317 Records DK     genre......... | Black Metal     url............| https://www.deezer.com/album/568832371     rip date...... | 2024-10-17     retail date... | 2024-04-03     runtime....... | 55:41     tracks........ | 7     size.......... | 132.14MB     source........ | WEB     quality....... | CBR 320kbps 44.1kHz Stereo ?   codec......... | MP3 (MPEG-1 Audio Layer 3)                               ? ??  encoder....... | LAME                                                    ?? ??                                                                           ?? ??                                                                        ?? ????                                                                      ????   ??????????????????                                      ?????????????????? ??? ?               ??????????????????????????????????????               ? ??   ??                                                                      ?? ????             -------------------------------------------              ???? ???                     ? ?\\u003c t r a c k . l i s t \\u003e? ?                      ??? ??              -------------------------------------------               ??? ??                                                                          ?? ??                                                                          ??     01 \\u003e Intro                                                     \\u003c 05:12     02 \\u003e In a Twilight Obscurity                                   \\u003c 09:15     03 \\u003e Manifestation of Acheronian Trinity                       \\u003c 09:14     04 \\u003e Imperious Reverent Transcendence                          \\u003c 08:59     05 \\u003e Enslaved Spirit of Forgotten Kingdoms                     \\u003c 11:48     06 \\u003e Sapientia Occulta                                         \\u003c 08:24     07 \\u003e Outro                                                     \\u003c 02:49 ?                                                                            ? ??                                                                          ?? ??                                                                          ?? ??                                                                        ?? ????                                                                      ???? ? ??????????????????                                      ?????????????????? ? ???                ??????????????????????????????????????                ??? ???                                                                        ??? ?                             ? ?\\u003c GREETINGS \\u003e? ?                            ? ?%                                                                          %? ??                                                                          ?? ?%                                                                          %? ??    Shout out to all of those who keep the dream of the scene alive.      ?? ?%                                                                          %? ??          Special thanks to those who have paved the way and parted.      ?? ?%                                                                          %? ??                                                        We miss you!      ?? ?%                                                                          %? ??                                                                          ?? ?%                                                                          %? ??                                                                          ?? ?%                                                                          %? ??                                                                          ?? ?%                                                                          %? ??                                                                          ?? ?%                               ???????????                                %? ???                        ?????? ????????? ??????                         ??? ???              ? ??????????????    ?    ??????????????? ?              ??? ? ???????????????? ??????????????  ?????  ????????????   ????????????????? ? ???????       ???????       ????? ??? ? ??? ??????       ???????       ??????? ??   ????????   ?     ??????    ???? ? ????     ??????     ?    ???????   ?? ??           ???????????             ???              ???????????           ?? ??               ??        +          ?           +        ??               ?? ?                           ????      o      ?????                           ?                                 ????????????? ?                                                                            ?  ?                                                                          ?  ???                                                                      ???  ?  ?                                                                    ?  ? ?   ?                                                                    ?   ? ????                                                                      ????",
+				filter: "dark?metal,*black?metal*,gray?metal",
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, containsFuzzy(tt.args.tag, tt.args.filter), "containsFuzzy(%v, %v)", tt.args.tag, tt.args.filter)
 		})
 	}
 }

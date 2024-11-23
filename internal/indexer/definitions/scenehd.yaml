@@ -21,7 +21,7 @@ settings:
 
 irc:
   network: SceneHD
-  server: irc.scenehd.eu
+  server: irc.scenehd.org
   port: 6697
   tls: true
   channels:
@@ -64,7 +64,7 @@ irc:
             category: TV/720
             baseUrl: https://scenehd.org/
             torrentId: "00000"
-        pattern: '\[NEW] (.+) \[(.+)] (https?\:\/\/.+\/).*id=(\d+)'
+        pattern: '\[NEW\] (.+) \[(.+)\] (https?\:\/\/.+\/).*id=(\d+)'
         vars:
           - torrentName
           - category

@@ -86,6 +86,12 @@ checkForUpdates = true
 #
 sessionSecret = "{{ .sessionSecret }}"
 
+# Database Max Backups
+#
+# Default: 5
+#
+#databaseMaxBackups = 5
+
 # Golang pprof profiling and tracing
 #
 #profilingEnabled = false
@@ -216,6 +222,7 @@ func (c *AppConfig) defaults() {
 		LogPath:             "",
 		LogMaxSize:          50,
 		LogMaxBackups:       3,
+		DatabaseMaxBackups:  5,
 		BaseURL:             "/",
 		SessionSecret:       api.GenerateSecureToken(16),
 		CustomDefinitions:   "",
@@ -290,6 +297,13 @@ func (c *AppConfig) loadFromEnv() {
 	if v := os.Getenv(prefix + "DATABASE_TYPE"); v != "" {
 		if validDatabaseType(v) {
 			c.Config.DatabaseType = v
+		}
+	}
+
+	if v := os.Getenv(prefix + "DATABASE_MAX_BACKUPS"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.DatabaseMaxBackups = int(i)
 		}
 	}
 
@@ -387,8 +401,10 @@ func (c *AppConfig) load(configPath string) {
 }
 
 func (c *AppConfig) DynamicReload(log logger.Logger) {
+	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		c.m.Lock()
+		defer c.m.Unlock()
 
 		logLevel := viper.GetString("logLevel")
 		c.Config.LogLevel = logLevel
@@ -401,10 +417,7 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		c.Config.CheckForUpdates = checkUpdates
 
 		log.Debug().Msg("config file reloaded!")
-
-		c.m.Unlock()
 	})
-	viper.WatchConfig()
 }
 
 func (c *AppConfig) UpdateConfig() error {

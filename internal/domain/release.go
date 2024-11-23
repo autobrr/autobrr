@@ -31,6 +31,7 @@ import (
 
 type ReleaseRepo interface {
 	Store(ctx context.Context, release *Release) error
+	Update(ctx context.Context, r *Release) error
 	Find(ctx context.Context, params ReleaseQueryParams) (*FindReleasesResponse, error)
 	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
@@ -360,6 +361,50 @@ func (r *Release) ParseString(title string) {
 	}
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
+	r.extraParseSource(rel)
+}
+
+func (r *Release) extraParseSource(rel rls.Release) {
+	if rel.Type != rls.Movie && rel.Type != rls.Series && rel.Type != rls.Episode {
+		return
+	}
+
+	tags := rel.Tags()
+	if len(tags) < 3 {
+		return
+	}
+
+	// handle special cases like -VHS
+	if r.Group == "" {
+		// check the next to last item separator to be - or whitespace then check the next and use as group if empty
+		//if tags[len(tags)-1].TagType() == rls.TagTypeSource && (tags[len(tags)-2].TagType() == rls.TagTypeDelim && (tags[len(tags)-2].Delim() == "-" || tags[len(tags)-2].Delim() == " ")) {
+		lastItem := tags[len(tags)-1]
+		if lastItem.TagType() == rls.TagTypeSource && lastItem.Prev() == rls.TagTypeWhitespace {
+			group := lastItem.Text()
+
+			// handle special cases like -VHS
+			if r.Source == group {
+				r.Source = ""
+			}
+
+			r.Group = group
+		}
+	}
+
+	if basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) {
+		return
+	}
+
+	// check res to be 1080p or 2160p and codec to be AVC, HEVC or if other contains Remux, then set source to BluRay if it differs
+	if !basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) && basicContainsSlice(r.Resolution, []string{"1080p", "2160p"}) && basicContainsMatch(r.Codec, []string{"AVC", "HEVC"}) && basicContainsMatch(r.Other, []string{"REMUX"}) {
+		// handle missing or unexpected source for some bluray releases
+		if r.Resolution == "1080p" {
+			r.Source = "BluRay"
+
+		} else if r.Resolution == "2160p" {
+			r.Source = "UHD.BluRay"
+		}
+	}
 }
 
 func (r *Release) ParseReleaseTagsString(tags string) {
@@ -621,35 +666,6 @@ func (r *Release) HasMagnetUri() bool {
 
 const MagnetURIPrefix = "magnet:?"
 
-func (r *Release) addRejection(reason string) {
-	r.Rejections = append(r.Rejections, reason)
-}
-
-func (r *Release) AddRejectionF(format string, v ...interface{}) {
-	r.addRejectionF(format, v...)
-}
-
-func (r *Release) addRejectionF(format string, v ...interface{}) {
-	r.Rejections = append(r.Rejections, fmt.Sprintf(format, v...))
-}
-
-// ResetRejections reset rejections between filter checks
-func (r *Release) resetRejections() {
-	r.Rejections = []string{}
-}
-
-func (r *Release) RejectionsString(trim bool) string {
-	if len(r.Rejections) > 0 {
-		out := strings.Join(r.Rejections, ", ")
-		if trim && len(out) > 1024 {
-			out = out[:1024]
-		}
-
-		return out
-	}
-	return ""
-}
-
 // MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
 
@@ -767,6 +783,9 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
+		// Some indexers like BTFiles announces size with comma. Humanize does not handle that well and strips it.
+		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
+
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
 		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
 			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
