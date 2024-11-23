@@ -5,6 +5,7 @@ go 1.23.2
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 
 require (
+	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/anacrolix/torrent v1.57.1
@@ -54,7 +55,6 @@ require (
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
-	github.com/KimMachineGun/automemlimit v0.6.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
