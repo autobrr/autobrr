@@ -22,6 +22,7 @@ import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { classNames } from "@utils";
 import { ProxiesQueryOptions } from "@api/queries";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -120,11 +121,6 @@ interface IrcNetworkAddFormValues {
     nick: string;
     auth: IrcAuth;
     channels: IrcChannel[];
-}
-
-interface AddFormProps {
-  isOpen: boolean;
-  toggle: () => void;
 }
 
 export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
@@ -275,17 +271,11 @@ interface IrcNetworkUpdateFormValues {
     proxy_id: number;
 }
 
-interface IrcNetworkUpdateFormProps {
-    isOpen: boolean;
-    toggle: () => void;
-    network: IrcNetwork;
-}
-
 export function IrcNetworkUpdateForm({
   isOpen,
   toggle,
-  network
-}: IrcNetworkUpdateFormProps) {
+  data: network
+}: UpdateFormProps<IrcNetwork>) {
   const queryClient = useQueryClient();
 
   const proxies = useQuery(ProxiesQueryOptions());

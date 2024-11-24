@@ -146,7 +146,7 @@ func NewMacro(release Release) Macro {
 		TorrentPathName:           release.TorrentTmpFile,
 		TorrentUrl:                release.DownloadURL,
 		TorrentTmpFile:            release.TorrentTmpFile,
-		Type:                      release.Type,
+		Type:                      release.Type.String(),
 		Uploader:                  release.Uploader,
 		Website:                   release.Website,
 		Year:                      release.Year,

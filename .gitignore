@@ -29,6 +29,7 @@ node_modules/
 !.yarn/versions
 # Ditto for yarn, except we're using pnpm
 yarn.lock
+.pnpm-store
 # If needed, package-lock.json shall be added manually using an explicit git add command
 package-lock.json
 

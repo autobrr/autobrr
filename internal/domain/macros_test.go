@@ -5,6 +5,7 @@ package domain
 
 import (
 	"fmt"
+	"github.com/moistari/rls"
 	"testing"
 	"time"
 
@@ -231,7 +232,7 @@ func TestMacros_Parse(t *testing.T) {
 		{
 			name: "test_type",
 			release: Release{
-				Type: "episode",
+				Type: rls.Episode,
 			},
 			args:    args{text: "Type: {{ .Type }}"},
 			want:    "Type: episode",

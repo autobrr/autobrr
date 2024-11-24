@@ -129,13 +129,9 @@ type Tx struct {
 	handler *DB
 }
 
-type ILikeDynamic interface {
-	ToSql() (sql string, args []interface{}, err error)
-}
-
 // ILike is a wrapper for sq.Like and sq.ILike
 // SQLite does not support ILike but postgres does so this checks what database is being used
-func (db *DB) ILike(col string, val string) ILikeDynamic {
+func (db *DB) ILike(col string, val string) sq.Sqlizer {
 	//if databaseDriver == "sqlite" {
 	if db.Driver == "sqlite" {
 		return sq.Like{col: val}
