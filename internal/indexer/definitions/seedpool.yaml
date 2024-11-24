@@ -40,20 +40,46 @@ irc:
     type: single
     lines:
       - tests:
-        - line: Movie The.Best.Show.Ever.2024.1080p.WEB.h264-EDITH https://seedpool.org/torrents/23463 3.27 GiB
+        - line: 【 BoxSet 】 Some - Box Set (2023) S01 (2160p DSNP WEB-DL Hybrid H265 DV HDR DDP 5.1 English - GROUP) ჻ seedpool@https://seedpool.org/torrents/00000 ჻ 39.74 GiB
+          expect:
+            category: BoxSet
+            torrentName: Some - Box Set (2023) S01 (2160p DSNP WEB-DL Hybrid H265 DV HDR DDP 5.1 English - GROUP)
+            uploader: "seedpool"
+            baseUrl: https://seedpool.org/
+            torrentId: "00000"
+            torrentSize: 39.74 GiB
+            internal: ""
+            freeleech: ""
+        - line: 【 Music 】 Music.0-Day.FLAC.2024-11-24.seedpool ჻ seedpool@https://seedpool.org/torrents/00000 ჻ 56.73 GiB ჻ iNTERNAL ჻ ★
+          expect:
+            category: Music
+            torrentName: Music.0-Day.FLAC.2024-11-24.seedpool
+            uploader: "seedpool"
+            baseUrl: https://seedpool.org/
+            torrentId: "00000"
+            torrentSize: 56.73 GiB
+            internal: "iNTERNAL"
+            freeleech: "★"
+        - line: 【 Movie 】 Some Movie 2024 1080p BluRay REMUX AVC DTS-HD-MA 5 1-UnKn0wn ჻ seedpool@https://seedpool.org/torrents/00000 ჻ 17.85 GiB ჻ ★
           expect:
             category: Movie
-            torrentName: The.Best.Show.Ever.2024.1080p.WEB.h264-EDITH
+            torrentName: Some Movie 2024 1080p BluRay REMUX AVC DTS-HD-MA 5 1-UnKn0wn
+            uploader: "seedpool"
             baseUrl: https://seedpool.org/
-            torrentId: "23463"
-            torrentSize: 3.27 GiB
-        pattern: '(.+) (.+) (https?\:\/\/.+\/)torrents\/(\d+) (.*)'
+            torrentId: "00000"
+            torrentSize: 17.85 GiB
+            internal: ""
+            freeleech: "★"
+        pattern: '^【 (.+?) 】 (.*?) ჻ (.*?)@(https:\/\/.*?\/)torrents/(\d+) ჻ ([^჻]+)(?: ჻ (iNTERNAL))?(?: ჻ (★))?$'
         vars:
           - category
           - torrentName
+          - uploader
           - baseUrl
           - torrentId
           - torrentSize
+          - internal
+          - freeleech
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
