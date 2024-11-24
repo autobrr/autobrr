@@ -22,12 +22,13 @@ settings:
 irc:
   network: SeedPool
   server: irc.seedpool.org
-  port: 6669
-  tls: false
+  port: 6697
+  tls: true
   channels:
     - "#announce"
   announcers:
     - seedpool
+    - uploader
   settings:
     - name: nick
       type: text

@@ -683,7 +683,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP", "★")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function
