@@ -3,7 +3,7 @@ package ttlcache
 import (
 	"time"
 
-	"github.com/titlerr/upgraderr/pkg/timecache"
+	"github.com/autobrr/autobrr/pkg/timecache"
 )
 
 func New[K comparable, V any](options Options[K, V]) *Cache[K, V] {
