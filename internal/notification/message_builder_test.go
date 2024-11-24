@@ -4,13 +4,15 @@
 package notification
 
 import (
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNotificationBuilderPlainText_BuildBody(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		payload domain.NotificationPayload
 	}

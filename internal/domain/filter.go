@@ -1030,6 +1030,30 @@ func containsAnySlice(tags []string, filters []string) bool {
 	return false
 }
 
+func basicContainsSlice(tag string, filters []string) bool {
+	return basicContainsMatch([]string{tag}, filters)
+}
+
+func basicContainsMatch(tags []string, filters []string) bool {
+	for _, tag := range tags {
+		if tag == "" {
+			continue
+		}
+
+		for _, filter := range filters {
+			if filter == "" {
+				continue
+			}
+
+			if tag == filter {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 	filters := strings.Split(filterPercent, ",")
 

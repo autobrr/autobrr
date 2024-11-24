@@ -360,6 +360,50 @@ func (r *Release) ParseString(title string) {
 	}
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
+	r.extraParseSource(rel)
+}
+
+func (r *Release) extraParseSource(rel rls.Release) {
+	if rel.Type != rls.Movie && rel.Type != rls.Series && rel.Type != rls.Episode {
+		return
+	}
+
+	tags := rel.Tags()
+	if len(tags) < 3 {
+		return
+	}
+
+	// handle special cases like -VHS
+	if r.Group == "" {
+		// check the next to last item separator to be - or whitespace then check the next and use as group if empty
+		//if tags[len(tags)-1].TagType() == rls.TagTypeSource && (tags[len(tags)-2].TagType() == rls.TagTypeDelim && (tags[len(tags)-2].Delim() == "-" || tags[len(tags)-2].Delim() == " ")) {
+		lastItem := tags[len(tags)-1]
+		if lastItem.TagType() == rls.TagTypeSource && lastItem.Prev() == rls.TagTypeWhitespace {
+			group := lastItem.Text()
+
+			// handle special cases like -VHS
+			if r.Source == group {
+				r.Source = ""
+			}
+
+			r.Group = group
+		}
+	}
+
+	if basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) {
+		return
+	}
+
+	// check res to be 1080p or 2160p and codec to be AVC, HEVC or if other contains Remux, then set source to BluRay if it differs
+	if !basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) && basicContainsSlice(r.Resolution, []string{"1080p", "2160p"}) && basicContainsMatch(r.Codec, []string{"AVC", "HEVC"}) && basicContainsMatch(r.Other, []string{"REMUX"}) {
+		// handle missing or unexpected source for some bluray releases
+		if r.Resolution == "1080p" {
+			r.Source = "BluRay"
+
+		} else if r.Resolution == "2160p" {
+			r.Source = "UHD.BluRay"
+		}
+	}
 }
 
 func (r *Release) ParseReleaseTagsString(tags string) {
@@ -639,7 +683,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP", "★")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function

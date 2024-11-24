@@ -92,6 +92,7 @@ func setupAuthHandler() {
 }
 
 func TestAuthHandlerLogin(t *testing.T) {
+	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -153,6 +154,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 }
 
 func TestAuthHandlerValidateOK(t *testing.T) {
+	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -224,6 +226,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 }
 
 func TestAuthHandlerValidateBad(t *testing.T) {
+	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))
@@ -271,6 +274,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 }
 
 func TestAuthHandlerLoginBad(t *testing.T) {
+	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
 	cookieStore := sessions.NewCookieStore([]byte("test"))

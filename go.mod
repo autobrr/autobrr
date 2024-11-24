@@ -5,6 +5,7 @@ go 1.23.2
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 
 require (
+	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/anacrolix/torrent v1.57.1
@@ -64,9 +65,14 @@ require (
 	github.com/anacrolix/missinggo/v2 v2.7.4 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
+	github.com/cilium/ebpf v0.9.1 // indirect
+	github.com/containerd/cgroups/v3 v3.0.1 // indirect
+	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
+	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
@@ -93,6 +99,8 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/opencontainers/runtime-spec v1.0.2 // indirect
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -100,6 +108,7 @@ require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
@@ -109,6 +118,7 @@ require (
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
