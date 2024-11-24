@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/titlerr/upgraderr/pkg/timecache"
+	"github.com/autobrr/autobrr/pkg/timecache"
 )
 
 const NoTTL time.Duration = 0
