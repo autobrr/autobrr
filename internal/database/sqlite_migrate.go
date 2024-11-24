@@ -1635,6 +1635,6 @@ UPDATE irc_network
 `,
 	`UPDATE irc_network
     SET port = '6697', tls = true
-    WHERE server = 'irc.seedhost.org';
+    WHERE server = 'irc.seedpool.org';
 `,
 }
