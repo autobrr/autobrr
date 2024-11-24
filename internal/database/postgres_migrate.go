@@ -991,4 +991,8 @@ UPDATE irc_network
 	SET base_url = 'https://redacted.sh/'
 	WHERE base_url = 'https://redacted.ch/';
 `,
+	`UPDATE irc_network
+    SET port = '6697', tls = true
+    WHERE server = 'irc.seedhost.org';
+`,
 }
