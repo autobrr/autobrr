@@ -48,7 +48,7 @@ irc:
             baseUrl: https://seedpool.org/
             torrentId: "00000"
             torrentSize: 39.74 GiB
-            internal: ""
+            origin: ""
             freeleech: ""
         - line: 【 Music 】 Music.0-Day.FLAC.2024-11-24.seedpool ჻ seedpool@https://seedpool.org/torrents/00000 ჻ 56.73 GiB ჻ iNTERNAL ჻ ★
           expect:
@@ -58,7 +58,7 @@ irc:
             baseUrl: https://seedpool.org/
             torrentId: "00000"
             torrentSize: 56.73 GiB
-            internal: "iNTERNAL"
+            origin: "iNTERNAL"
             freeleech: "★"
         - line: 【 Movie 】 Some Movie 2024 1080p BluRay REMUX AVC DTS-HD-MA 5 1-UnKn0wn ჻ seedpool@https://seedpool.org/torrents/00000 ჻ 17.85 GiB ჻ ★
           expect:
@@ -68,7 +68,7 @@ irc:
             baseUrl: https://seedpool.org/
             torrentId: "00000"
             torrentSize: 17.85 GiB
-            internal: ""
+            origin: ""
             freeleech: "★"
         pattern: '^【 (.+?) 】 (.*?) ჻ (.*?)@(https:\/\/.*?\/)torrents/(\d+) ჻ ([^჻]+)(?: ჻ (iNTERNAL))?(?: ჻ (★))?$'
         vars:
@@ -78,7 +78,7 @@ irc:
           - baseUrl
           - torrentId
           - torrentSize
-          - internal
+          - origin
           - freeleech
 
     match:
