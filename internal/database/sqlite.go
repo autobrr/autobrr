@@ -18,6 +18,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const badFormat = "2006-01-02T15:04:05"
 const timeFormat = "2006-01-02.15-04-05"
 
 func (db *DB) openSQLite() error {
@@ -318,7 +319,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 	}
 
 	var backups []string
-
+	var broken []string
 	// Parse the filenames to extract timestamps
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".backup") {
@@ -330,6 +331,8 @@ func (db *DB) cleanupSQLiteBackups() error {
 			timestamp := strings.TrimSuffix(parts[2], ".backup")
 			if _, err := time.Parse(timeFormat, timestamp); err == nil {
 				backups = append(backups, file.Name())
+			} else if  _, err := time.Parse(brokenFormat, timestamp); err == nil {
+				broken = append(broken, file.Name())
 			}
 		}
 	}
@@ -346,6 +349,16 @@ func (db *DB) cleanupSQLiteBackups() error {
 		t2, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
 		return t1.After(t2)
 	})
+
+	for i := 0; len(broken) != 0 && len(backups) == db.cfg.DatabaseMaxBackups && i < len(broken); i++ {
+		db.log.Info().Msgf("Remove Old SQLite backup: %s", broken[i])
+
+		if err := os.Remove(filepath.Join(backupDir, broken[i])); err != nil {
+			return errors.Wrap(err, "failed to remove old backups")
+		}
+	
+		db.log.Info().Msgf("Removed Old SQLite backup: %s", broken[i])
+	}
 
 	for i := db.cfg.DatabaseMaxBackups; i < len(backups); i++ {
 		db.log.Info().Msgf("Remove SQLite backup: %s", backups[i])
