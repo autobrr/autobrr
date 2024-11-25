@@ -18,7 +18,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const timeFormat = "2006-01-02-15_04_05"
+const timeFormat = "2006-01-02.15-04-05"
 
 func (db *DB) openSQLite() error {
 	if db.DSN == "" {
