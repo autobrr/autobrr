@@ -331,7 +331,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 			timestamp := strings.TrimSuffix(parts[2], ".backup")
 			if _, err := time.Parse(timeFormat, timestamp); err == nil {
 				backups = append(backups, file.Name())
-			} else if  _, err := time.Parse(brokenFormat, timestamp); err == nil {
+			} else if  _, err := time.Parse(badFormat, timestamp); err == nil {
 				broken = append(broken, file.Name())
 			}
 		}
