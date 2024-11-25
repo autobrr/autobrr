@@ -18,6 +18,8 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const timeFormat = "2006-01-02-15_04_05"
+
 func (db *DB) openSQLite() error {
 	if db.DSN == "" {
 		return errors.New("DSN required")
@@ -289,7 +291,7 @@ func (db *DB) backupSQLiteDatabase() error {
 		return errors.Wrap(err, "failed to query schema version")
 	}
 
-	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format("2006-01-02T15:04:05"))
+	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format(timeFormat))
 
 	db.log.Info().Msgf("Creating database backup: %s", backupFile)
 
@@ -326,7 +328,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 				continue
 			}
 			timestamp := strings.TrimSuffix(parts[2], ".backup")
-			if _, err := time.Parse("2006-01-02T15:04:05", timestamp); err == nil {
+			if _, err := time.Parse(timeFormat, timestamp); err == nil {
 				backups = append(backups, file.Name())
 			}
 		}
@@ -340,8 +342,8 @@ func (db *DB) cleanupSQLiteBackups() error {
 
 	// Sort backups by timestamp
 	sort.Slice(backups, func(i, j int) bool {
-		t1, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
-		t2, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
+		t1, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
+		t2, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
 		return t1.After(t2)
 	})
 
