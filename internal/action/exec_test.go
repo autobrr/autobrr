@@ -14,6 +14,7 @@ import (
 )
 
 func Test_service_parseMacros(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		release domain.Release
 		action  *domain.Action
@@ -67,6 +68,7 @@ func Test_service_parseMacros(t *testing.T) {
 }
 
 func Test_service_execCmd(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		release domain.Release
 		action  *domain.Action

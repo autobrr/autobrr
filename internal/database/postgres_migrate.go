@@ -989,6 +989,14 @@ UPDATE irc_network
     SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
     WHERE server = 'irc.ircnet.com';
 `,
+	`UPDATE indexer
+	SET base_url = 'https://redacted.sh/'
+	WHERE base_url = 'https://redacted.ch/';
+`,
+	`UPDATE irc_network
+    SET port = '6697', tls = true
+    WHERE server = 'irc.seedpool.org';
+`,
 	`ALTER TABLE users
 ADD COLUMN two_factor_auth BOOLEAN DEFAULT FALSE;
 
