@@ -236,16 +236,19 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 	}
 }
 
-// The state parameter is verified when the OAuth provider redirects back to our callback
-// Short expiration ensures the authentication flow must be completed in a reasonable timeframe
+// SetStateCookie sets a secure cookie containing the OIDC state parameter.
+// The state parameter is verified when the OAuth provider redirects back to our callback.
+// Short expiration ensures the authentication flow must be completed in a reasonable timeframe.
 func (h *OIDCHandler) SetStateCookie(w http.ResponseWriter, r *http.Request, state string) {
+	isSecure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "state",
 		Value:    state,
 		Path:     "/",
 		MaxAge:   300,
 		HttpOnly: true,
-		Secure:   r.TLS != nil,
+		Secure:   isSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
 }
