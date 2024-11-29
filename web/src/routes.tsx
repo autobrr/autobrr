@@ -91,7 +91,7 @@ export const FilterGetByIdRoute = createRoute({
     try {
       const filter = await context.queryClient.ensureQueryData(FilterByIdQueryOptions(params.filterId))
       return { filter }
-    } catch (e) {
+    } catch {
       throw notFound()
     }
   },
@@ -247,7 +247,7 @@ export const OnboardRoute = createRoute({
     // and redirect if needed
     try {
       await APIClient.auth.canOnboard()
-    } catch (e) {
+    } catch {
       console.error("onboarding not available, redirect to login")
 
       throw redirect({
@@ -269,11 +269,10 @@ export const LoginRoute = createRoute({
     try {
       const oidcConfig = await APIClient.auth.getOIDCConfig();
       if (oidcConfig.enabled) {
-        // Skip onboarding check if OIDC is enabled
         return;
       }
     } catch (error) {
-      console.debug("Failed to get OIDC config, proceeding with onboarding check");
+      console.debug("Failed to get OIDC config, proceeding with onboarding check:", error);
     }
 
     // Only check onboarding if OIDC is not enabled
@@ -281,7 +280,7 @@ export const LoginRoute = createRoute({
       await APIClient.auth.canOnboard();
       console.info("onboarding available, redirecting");
       navigate({ to: OnboardRoute.to });
-    } catch (error) {
+    } catch {
       console.info("onboarding not available, please login");
     }
   },
@@ -293,29 +292,25 @@ export const AuthRoute = createRoute({
   // Before loading, authenticate the user via our auth context
   // This will also happen during prefetching (e.g. hovering over links, etc.)
   beforeLoad: async ({ context, location }) => {
-    // If the user is not logged in, validate the session
+    // If the user is not logged in, check for item in localStorage
     if (!AuthContext.get().isLoggedIn) {
       try {
         const response = await APIClient.auth.validate();
-        // If validation succeeds, set the user as logged in
         AuthContext.set({
           isLoggedIn: true,
           username: response.username || 'unknown'
         });
       } catch (error) {
+        console.debug("Authentication validation failed:", error);
         throw redirect({
           to: LoginRoute.to,
           search: {
-            // Use the current location to power a redirect after login
-            // (Do not use `router.state.resolvedLocation` as it can
-            // potentially lag behind the actual current location)
             redirect: location.href,
           },
         });
       }
     }
 
-    // Otherwise, return the user in context
     return context;
   },
 })
