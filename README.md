@@ -70,6 +70,7 @@ qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *ar
   Windows, macOS) on different architectures (e.g. x86, ARM)
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
+- Authentication support including built-in auth and OpenID Connect (OIDC)
 - Notifications (Discord, Telegram, Notifiarr, Pushover, Gotify)
 - One autobrr instance can communicate with multiple clients (torrent, Usenet and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
