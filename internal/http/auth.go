@@ -246,16 +246,7 @@ func (h authHandler) getOIDCConfig(w http.ResponseWriter, r *http.Request) {
 		Str("state", config.State).
 		Msg("returning OIDC config")
 
-	// Set the state cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "state",
-		Value:    config.State,
-		Path:     "/",
-		MaxAge:   300, // 5 minutes
-		HttpOnly: true,
-		Secure:   r.TLS != nil,
-		SameSite: http.SameSiteLaxMode,
-	})
+	h.oidcHandler.SetStateCookie(w, r, config.State)
 
 	h.encoder.StatusResponse(w, http.StatusOK, config)
 }

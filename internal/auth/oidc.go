@@ -121,18 +121,7 @@ func (h *OIDCHandler) GetConfig() *OIDCConfig {
 func (h *OIDCHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	state := generateRandomState()
 
-	// Set state cookie with 5 minute expiration to prevent CSRF attacks
-	// The state parameter is verified when the OAuth provider redirects back to our callback
-	// Short expiration ensures the authentication flow must be completed in a reasonable timeframe
-	http.SetCookie(w, &http.Cookie{
-		Name:     "state",
-		Value:    state,
-		Path:     "/",
-		MaxAge:   300, // 5 minutes
-		HttpOnly: true,
-		Secure:   r.TLS != nil,
-		SameSite: http.SameSiteLaxMode,
-	})
+	h.SetStateCookie(w, r, state)
 
 	authURL := h.oauthConfig.AuthCodeURL(state)
 	http.Redirect(w, r, authURL, http.StatusFound)
@@ -245,4 +234,18 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 		AuthorizationURL: authURL,
 		State:            state,
 	}
+}
+
+// The state parameter is verified when the OAuth provider redirects back to our callback
+// Short expiration ensures the authentication flow must be completed in a reasonable timeframe
+func (h *OIDCHandler) SetStateCookie(w http.ResponseWriter, r *http.Request, state string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "state",
+		Value:    state,
+		Path:     "/",
+		MaxAge:   300,
+		HttpOnly: true,
+		Secure:   r.TLS != nil,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
