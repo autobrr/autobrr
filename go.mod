@@ -16,6 +16,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/containrrr/shoutrrr v0.8.0
+	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/dcarbone/zadapters/zstdlog v1.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ergochat/irc-go v0.4.0
@@ -45,6 +46,7 @@ require (
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/crypto v0.28.0
 	golang.org/x/net v0.30.0
+	golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync v0.8.0
 	golang.org/x/term v0.25.0
 	golang.org/x/time v0.7.0
@@ -72,6 +74,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect

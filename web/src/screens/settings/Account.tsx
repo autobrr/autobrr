@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
@@ -14,16 +16,27 @@ import { PasswordField, TextField } from "@components/inputs";
 import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
 
-const AccountSettings = () => (
-  <Section
-    title="Account"
-    description="Manage account settings."
-  >
-    <div className="py-0.5">
-      <Credentials />
-    </div>
-  </Section>
-);
+const AccountSettings = () => {
+  const { data: oidcConfig, isLoading } = useQuery({
+    queryKey: ["oidc-config"],
+    queryFn: () => APIClient.auth.getOIDCConfig(),
+  });
+
+  if (isLoading) {
+    return null;
+  }
+
+  return (
+    <Section
+      title="Account"
+      description="Manage account settings."
+    >
+      <div className="py-0.5">
+        {oidcConfig?.enabled ? <OIDCAccount /> : <Credentials />}
+      </div>
+    </Section>
+  );
+};
 
 interface InputValues {
   username: string;
@@ -149,6 +162,23 @@ function Credentials() {
           )}
         </Formik>
       </div>
+    </Section>
+  );
+}
+
+function OIDCAccount() {
+  return (
+    <Section
+      titleElement={
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-700 dark:text-gray-300 font-bold">OpenID Connect Account</span>
+          <FontAwesomeIcon icon={faOpenid} className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+        </div>
+      }
+      title="OpenID Connect Account"
+      description="Your account credentials are managed by your OpenID Connect provider. To change your username, please visit your provider's settings page and log in again."
+      noLeftPadding
+    >
     </Section>
   );
 }

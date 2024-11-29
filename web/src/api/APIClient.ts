@@ -243,13 +243,23 @@ export const APIClient = {
       body: { username, password }
     }),
     logout: () => appClient.Post("api/auth/logout"),
-    validate: () => appClient.Get<void>("api/auth/validate"),
+    validate: () => appClient.Get<{ username?: string }>("api/auth/validate"),
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }
     }),
     canOnboard: () => appClient.Get("api/auth/onboard"),
     updateUser: (req: UserUpdate) => appClient.Patch(`api/auth/user/${req.username_current}`,
-      { body: req })
+      { body: req }),
+    getOIDCConfig: async () => {
+      try {
+        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string }>("api/auth/oidc/config");
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message?.includes('404')) {
+          return { enabled: false, authorizationUrl: '', state: '' };
+        }
+        throw error;
+      }
+    },
   },
   actions: {
     create: (action: Action) => appClient.Post("api/actions", {

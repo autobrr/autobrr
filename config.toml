@@ -61,6 +61,23 @@ checkForUpdates = true
 #
 sessionSecret = "secret-session-key"
 
+# OpenID Connect Configuration
+#
+# Enable OIDC authentication
+#oidc_enabled = false
+
+# OIDC Issuer URL (e.g. https://auth.example.com)
+#oidc_issuer = ""
+
+# OIDC Client ID
+#oidc_client_id = ""
+
+# OIDC Client Secret
+#oidc_client_secret = ""
+
+# OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
+#oidc_redirect_url = ""
+
 # Custom definitions
 #
 #customDefinitions = "test/definitions"
