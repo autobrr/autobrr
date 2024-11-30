@@ -181,24 +181,33 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	}
 
 	var claims struct {
-		Email    string `json:"email"`
-		Username string `json:"preferred_username"`
-		Sub      string `json:"sub"`
+		Email     string `json:"email"`
+		Username  string `json:"preferred_username"`
+		Name      string `json:"name"`
+		GivenName string `json:"given_name"`
+		Nickname  string `json:"nickname"`
+		Sub       string `json:"sub"`
 	}
 	if err := idToken.Claims(&claims); err != nil {
 		h.log.Error().Err(err).Msg("failed to parse claims")
 		return "", fmt.Errorf("failed to parse claims: %w", err)
 	}
 
-	// Use preferred_username if available, otherwise use email, sub, or a default value
-	// This is used for frontend display
+	// Try different claims in order of preference for username
+	// This is solely used for frontend display
 	username := claims.Username
 	if username == "" {
-		username = claims.Email
+		username = claims.Nickname
 		if username == "" {
-			username = claims.Sub
+			username = claims.Name
 			if username == "" {
-				username = "oidc_user"
+				username = claims.Email
+				if username == "" {
+					username = claims.Sub
+					if username == "" {
+						username = "oidc_user"
+					}
+				}
 			}
 		}
 	}
@@ -206,8 +215,10 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	h.log.Debug().
 		Str("username", username).
 		Str("email", claims.Email).
+		Str("nickname", claims.Nickname).
+		Str("name", claims.Name).
 		Str("sub", claims.Sub).
-		Msg("successfully processed OIDC callback")
+		Msg("successfully processed OIDC claims")
 
 	return username, nil
 }
