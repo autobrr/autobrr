@@ -1,100 +1,100 @@
----                                                                            
-name: Upload.cx                                                                
-identifier: ULCX                                                               
-description: ULCX is an English private tracker focused on quality movies and tv.                                                                              
-language: en-us                                                                
-urls:                                                                          
-  - https://upload.cx                                                                                                                                                                                                                                                                                                          
-privacy: private                                                               
-protocol: torrent                                                              
-supports:                                                                      
-  - irc                                                                        
-  - rss                                                                        
-# source: UNIT3D                                                               
-settings:                                                                      
-  - name: rsskey                                                               
-    type: secret                                                               
-    required: true                                                             
-    label: RSS key (RID)                                                       
-    help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."                                                       
-                                                                               
-irc:                                                                                                                                                           
+---
+name: Upload.cx
+identifier: ulcx
+description: ULCX is an English private tracker focused on quality movies and tv.
+language: en-us
+urls:
+  - https://upload.cx/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
+
+irc:
   network: P2P-Network
-  server: irc.p2p-network.net                                                                                                                                  
-  port: 6697                                                                                                                                                   
-  tls: true                                                                                                                                                    
-  channels:                                                                                                                                                    
-    - "#ulcx-announce"                                                                                                                                         
-  announcers:                                                                                                                                                  
-    - ULCX                                                                     
-  settings:                                                                                                                                                    
-    - name: nick                                                                                                                                               
-      type: text                                                                                                                                               
-      required: true                                                                                                                                           
-      label: Nick                                                                                                                                              
-      help: Bot nick. Eg. user_bot                                                                                                                             
-                                                                                                                                                               
-    - name: auth.account                                                                                                                                       
-      type: text                                                                                                                                               
-      required: false                                                                                                                                          
-      label: NickServ Account                                                  
-      help: NickServ account. Make sure to group your user and bot.                                                                                                                                                                                                                                                            
-                                                                                                                                                               
-    - name: auth.password                                                      
-      type: secret                                                             
-      required: false                                                                                                                                          
-      label: NickServ Password                                                                                                                                 
-      help: NickServ password                                                                                                                                  
-                                                                                                                                                               
-  parse:                                                                       
-    type: single                                                               
-    lines:                                                                     
-      - tests:                                                                 
-        - line: "[upload.cx] - [An anonymous user] has uploaded [Vinland Saga 2019 S02 1080p BluRay REMUX AVC Dual-Audio AAC 2.0-ZR]. Grab it now! Category: [TV] Type: [Remux] Resolution: [1080p] Size: [105.1 GiB] Freeleech: [25] Link: [https://upload.cx/torrents/25678]"                                                
-          expect:                                                              
-            uploader: An anonymous user                                                                                                                        
-            torrentName: Vinland Saga 2019 S02 1080p BluRay REMUX AVC Dual-Audio AAC 2.0-ZR                                                                    
-            category: TV                                                       
-            releaseTags: Remux                                                                                                                                 
-            resolution: 1080p                                                  
-            torrentSize: 105.1 GiB                                                                                                                             
-            freeleechPercent: 25%                                                                                                                              
-            baseUrl: https://upload.cx/                                                                                                                        
-            torrentId: "25678"                                                                                                                                 
-        - line: "[upload.cx] - [Nums] has uploaded [Wrath of Man 2021 Hybrid 2160p UHD BluRay REMUX HDR10+ HEVC TrueHD 7.1 Atmos-WiLDCAT]. Grab it now! Category: [Movies] Type: [Remux] Resolution: [2160p] Size: [70.68 GiB] Freeleech: [25] Link: [https://upload.cx/torrents/25682]"                                       
-          expect:                                                                                                                                              
-            uploader: Nums                                                                                                                                     
-            torrentName: Wrath of Man 2021 Hybrid 2160p UHD BluRay REMUX HDR10+ HEVC TrueHD 7.1 Atmos-WiLDCAT                                                  
-            category: Movies                                                                                                                                   
-            releaseTags: Remux                                                 
-            resolution: 2160p                                                  
-            torrentSize: 70.68 GiB                                             
-            freeleechPercent: 25%                                              
-            baseUrl: https://upload.cx/                                        
-            torrentId: "25682"                                                 
-        - line: "[upload.cx] - [ace] has uploaded [Aliens 1986 Theatrical 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-playBD]. Grab it now! Category: [Movies] Type: [Remux] Resolution: [2160p] Size: [55.99 GiB] Freeleech: [25] Link: [https://upload.cx/torrents/25685]"                                           
-          expect:                                                              
-            uploader: ace                                                                                                                                      
-            torrentName: Aliens 1986 Theatrical 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-playBD                                                     
-            category: Movies                                                                                                                                   
-            releaseTags: Remux                                                 
-            resolution: 2160p                                                  
-            torrentSize: 55.99 GiB                                             
-            freeleechPercent: 25%                                                                                                                              
-            baseUrl: https://upload.cx/                                        
-            torrentId: "25685"                                                 
-        pattern: '\[upload.cx\] - \[(.*)\] has uploaded \[(.*)\]. Grab it now! Category: \[(.*)\] Type: \[(.*)\] Resolution: \[(.*)\] Size: \[(.*)\] Freeleech: \[(.*)\] Link: \[(https?\:\/\/.*?\/).*\/(\d+)\]'                                                                                                               
-        vars:                                                                  
-          - uploader                                                           
-          - torrentName                                                        
-          - category                                                           
-          - releaseTags                                                        
-          - resolution                                                         
-          - torrentSize                                                        
-          - freeleechPercent                                                   
-          - baseUrl                                                            
-          - torrentId                                                          
-                                                                               
-    match:                                                                                                                                                     
-      infourl: "/torrents/{{ .torrentId }}"                                    
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#ulcx-announce"
+  announcers:
+    - ULCX
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: "[upload.cx] - [An anonymous user] has uploaded [Vinland Saga 2019 S02 1080p BluRay REMUX AVC Dual-Audio AAC 2.0-ZR]. Grab it now! Category: [TV] Type: [Remux] Resolution: [1080p] Size: [105.1 GiB] Freeleech: [25] Link: [https://upload.cx/torrents/25678]"
+          expect:
+            uploader: An anonymous user
+            torrentName: Vinland Saga 2019 S02 1080p BluRay REMUX AVC Dual-Audio AAC 2.0-ZR
+            category: TV
+            releaseTags: Remux
+            resolution: 1080p
+            torrentSize: 105.1 GiB
+            freeleechPercent: 25
+            baseUrl: https://upload.cx/
+            torrentId: "25678"
+        - line: "[upload.cx] - [Nums] has uploaded [Wrath of Man 2021 Hybrid 2160p UHD BluRay REMUX HDR10+ HEVC TrueHD 7.1 Atmos-WiLDCAT]. Grab it now! Category: [Movies] Type: [Remux] Resolution: [2160p] Size: [70.68 GiB] Freeleech: [25] Link: [https://upload.cx/torrents/25682]"
+          expect:
+            uploader: Nums
+            torrentName: Wrath of Man 2021 Hybrid 2160p UHD BluRay REMUX HDR10+ HEVC TrueHD 7.1 Atmos-WiLDCAT
+            category: Movies
+            releaseTags: Remux
+            resolution: 2160p
+            torrentSize: 70.68 GiB
+            freeleechPercent: 25
+            baseUrl: https://upload.cx/
+            torrentId: "25682"
+        - line: "[upload.cx] - [ace] has uploaded [Aliens 1986 Theatrical 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-playBD]. Grab it now! Category: [Movies] Type: [Remux] Resolution: [2160p] Size: [55.99 GiB] Freeleech: [25] Link: [https://upload.cx/torrents/25685]"
+          expect:
+            uploader: ace
+            torrentName: Aliens 1986 Theatrical 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-playBD
+            category: Movies
+            releaseTags: Remux
+            resolution: 2160p
+            torrentSize: 55.99 GiB
+            freeleechPercent: 25
+            baseUrl: https://upload.cx/
+            torrentId: "25685"
+        pattern: '\[upload.cx\] - \[(.*)\] has uploaded \[(.*)\]. Grab it now! Category: \[(.*)\] Type: \[(.*)\] Resolution: \[(.*)\] Size: \[(.*)\] Freeleech: \[(.*)\] Link: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
+        vars:
+          - uploader
+          - torrentName
+          - category
+          - releaseTags
+          - resolution
+          - torrentSize
+          - freeleechPercent
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
       torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
