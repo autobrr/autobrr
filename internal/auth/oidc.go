@@ -168,7 +168,13 @@ func (h *OIDCHandler) GetConfig() *OIDCConfig {
 
 func (h *OIDCHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	session, err := h.cookieStore.Get(r, "user_session")
-	if err == nil && session.Values["authenticated"] == true {
+	if err != nil {
+		h.log.Error().Err(err).Msg("failed to get user session")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if session.Values["authenticated"] == true {
 		h.log.Debug().Msg("user already has valid session, skipping OIDC login")
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
