@@ -70,11 +70,6 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 		return nil, fmt.Errorf("OIDC redirect URL is required")
 	}
 
-	if cfg.SessionSecret == "" {
-		log.Error().Msg("session secret is empty")
-		return nil, fmt.Errorf("session secret is required")
-	}
-
 	scopes := []string{"openid", "profile", "email"}
 
 	issuer := cfg.OIDCIssuer
@@ -130,6 +125,8 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 		ClientID: cfg.OIDCClientID,
 	}
 
+	stateSecret := generateRandomState()
+
 	handler := &OIDCHandler{
 		log: log,
 		config: &OIDCConfig{
@@ -149,7 +146,7 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 			Endpoint:     provider.Endpoint(),
 			Scopes:       scopes,
 		},
-		cookieStore: sessions.NewCookieStore([]byte(cfg.SessionSecret)),
+		cookieStore: sessions.NewCookieStore([]byte(stateSecret)),
 	}
 
 	log.Debug().Msg("OIDC handler initialized successfully")
