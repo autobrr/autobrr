@@ -239,13 +239,25 @@ func (h authHandler) getOIDCConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the config first
 	config := h.oidcHandler.GetConfigResponse()
+
+	// Check for existing session
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err == nil && session.Values["authenticated"] == true {
+		h.log.Debug().Msg("user already has valid session, skipping OIDC state cookie")
+		// Still return enabled=true, just don't set the cookie
+		h.encoder.StatusResponse(w, http.StatusOK, config)
+		return
+	}
+
 	h.log.Debug().
 		Bool("enabled", config.Enabled).
 		Str("authorization_url", config.AuthorizationURL).
 		Str("state", config.State).
 		Msg("returning OIDC config")
 
+	// Only set state cookie if user is not already authenticated
 	h.oidcHandler.SetStateCookie(w, r, config.State)
 
 	h.encoder.StatusResponse(w, http.StatusOK, config)
