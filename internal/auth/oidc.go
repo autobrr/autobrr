@@ -5,9 +5,9 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
@@ -195,7 +195,8 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 func generateRandomState() string {
 	b, err := argon2id.GenerateRandomBytes(32)
 	if err != nil {
-		return fmt.Sprintf("state-%d", time.Now().UnixNano())
+		b = make([]byte, 32)
+		rand.Read(b)
 	}
 	return fmt.Sprintf("%x", b)
 }
