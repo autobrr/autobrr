@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
@@ -69,11 +70,30 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 
 	scopes := []string{"openid", "profile", "email"}
 
+	issuer := strings.TrimRight(cfg.OIDCIssuer, "/")
+
 	ctx := context.Background()
-	provider, err := oidc.NewProvider(ctx, cfg.OIDCIssuer)
+	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to initialize OIDC provider")
 		return nil, fmt.Errorf("failed to initialize OIDC provider: %w", err)
+	}
+
+	var claims struct {
+		AuthURL  string `json:"authorization_endpoint"`
+		TokenURL string `json:"token_endpoint"`
+		JWKSURL  string `json:"jwks_uri"`
+		UserURL  string `json:"userinfo_endpoint"`
+	}
+	if err := provider.Claims(&claims); err != nil {
+		log.Warn().Err(err).Msg("failed to parse provider claims for endpoints")
+	} else {
+		log.Debug().
+			Str("authorization_endpoint", claims.AuthURL).
+			Str("token_endpoint", claims.TokenURL).
+			Str("jwks_uri", claims.JWKSURL).
+			Str("userinfo_endpoint", claims.UserURL).
+			Msg("discovered OIDC provider endpoints")
 	}
 
 	oidcConfig := &oidc.Config{
@@ -172,6 +192,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	}
 
 	// Use preferred_username if available, otherwise use email, sub, or a default value
+	// This is used for frontend display
 	username := claims.Username
 	if username == "" {
 		username = claims.Email
