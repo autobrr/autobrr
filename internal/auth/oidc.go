@@ -211,7 +211,13 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		h.log.Error().Err(err).Msg("failed to clear state session")
 	}
 
-	oauth2Token, err := h.oauthConfig.Exchange(r.Context(), r.URL.Query().Get("code"))
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		h.log.Error().Msg("authorization code is missing from callback request")
+		return "", fmt.Errorf("authorization code is missing from callback request")
+	}
+
+	oauth2Token, err := h.oauthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
 		return "", fmt.Errorf("failed to exchange token: %w", err)
