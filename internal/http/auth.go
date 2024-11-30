@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 )
@@ -59,6 +60,7 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Get("/onboard", h.canOnboard)
 
 	r.Route("/oidc", func(r chi.Router) {
+		r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
 		r.Get("/config", h.getOIDCConfig)
 		r.Get("/callback", h.handleOIDCCallback)
 	})
