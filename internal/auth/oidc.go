@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
@@ -70,12 +71,35 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 	scopes := []string{"openid", "profile", "email"}
 
 	issuer := cfg.OIDCIssuer
-
 	ctx := context.Background()
+
+	// First try with original issuer
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to initialize OIDC provider")
-		return nil, fmt.Errorf("failed to initialize OIDC provider: %w", err)
+		// If failed and issuer ends with slash, try without
+		if strings.HasSuffix(issuer, "/") {
+			withoutSlash := strings.TrimRight(issuer, "/")
+			log.Debug().
+				Str("original_issuer", issuer).
+				Str("retry_issuer", withoutSlash).
+				Msg("retrying OIDC provider initialization without trailing slash")
+
+			provider, err = oidc.NewProvider(ctx, withoutSlash)
+		} else {
+			// If failed and issuer doesn't end with slash, try with
+			withSlash := issuer + "/"
+			log.Debug().
+				Str("original_issuer", issuer).
+				Str("retry_issuer", withSlash).
+				Msg("retrying OIDC provider initialization with trailing slash")
+
+			provider, err = oidc.NewProvider(ctx, withSlash)
+		}
+
+		if err != nil {
+			log.Error().Err(err).Msg("failed to initialize OIDC provider")
+			return nil, fmt.Errorf("failed to initialize OIDC provider: %w", err)
+		}
 	}
 
 	var claims struct {
