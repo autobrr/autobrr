@@ -13,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
@@ -32,6 +33,7 @@ type OIDCHandler struct {
 	verifier    *oidc.IDTokenVerifier
 	oauthConfig *oauth2.Config
 	log         zerolog.Logger
+	cookieStore *sessions.CookieStore
 }
 
 func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error) {
@@ -66,6 +68,11 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 	if cfg.OIDCRedirectURL == "" {
 		log.Error().Msg("OIDC redirect URL is empty")
 		return nil, fmt.Errorf("OIDC redirect URL is required")
+	}
+
+	if cfg.SessionSecret == "" {
+		log.Error().Msg("session secret is empty")
+		return nil, fmt.Errorf("session secret is required")
 	}
 
 	scopes := []string{"openid", "profile", "email"}
@@ -142,6 +149,7 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 			Endpoint:     provider.Endpoint(),
 			Scopes:       scopes,
 		},
+		cookieStore: sessions.NewCookieStore([]byte(cfg.SessionSecret)),
 	}
 
 	log.Debug().Msg("OIDC handler initialized successfully")
@@ -162,8 +170,14 @@ func (h *OIDCHandler) GetConfig() *OIDCConfig {
 }
 
 func (h *OIDCHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	state := generateRandomState()
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err == nil && session.Values["authenticated"] == true {
+		h.log.Debug().Msg("user already has valid session, skipping OIDC login")
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 
+	state := generateRandomState()
 	h.SetStateCookie(w, r, state)
 
 	authURL := h.oauthConfig.AuthCodeURL(state)
@@ -173,17 +187,31 @@ func (h *OIDCHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (string, error) {
 	h.log.Debug().Msg("handling OIDC callback")
 
-	state, err := r.Cookie("state")
+	// get state from session
+	session, err := h.cookieStore.Get(r, "oidc_state")
 	if err != nil {
-		h.log.Error().Err(err).Msg("state cookie not found")
-		return "", fmt.Errorf("state cookie not found")
+		h.log.Error().Err(err).Msg("state session not found")
+		return "", fmt.Errorf("state session not found")
 	}
-	if r.URL.Query().Get("state") != state.Value {
+
+	expectedState, ok := session.Values["state"].(string)
+	if !ok {
+		h.log.Error().Msg("state not found in session")
+		return "", fmt.Errorf("state not found in session")
+	}
+
+	if r.URL.Query().Get("state") != expectedState {
 		h.log.Error().
-			Str("expected", state.Value).
+			Str("expected", expectedState).
 			Str("got", r.URL.Query().Get("state")).
 			Msg("state did not match")
 		return "", fmt.Errorf("state did not match")
+	}
+
+	// clear the state session after use
+	session.Options.MaxAge = -1
+	if err := session.Save(r, w); err != nil {
+		h.log.Error().Err(err).Msg("failed to clear state session")
 	}
 
 	oauth2Token, err := h.oauthConfig.Exchange(r.Context(), r.URL.Query().Get("code"))
@@ -296,15 +324,15 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 // The state parameter is verified when the OAuth provider redirects back to our callback.
 // Short expiration ensures the authentication flow must be completed in a reasonable timeframe.
 func (h *OIDCHandler) SetStateCookie(w http.ResponseWriter, r *http.Request, state string) {
-	isSecure := r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	session, _ := h.cookieStore.New(r, "oidc_state")
+	session.Values["state"] = state
+	session.Options.MaxAge = 300
+	session.Options.HttpOnly = true
+	session.Options.Secure = r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
+	session.Options.SameSite = http.SameSiteLaxMode
+	session.Options.Path = "/"
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "state",
-		Value:    state,
-		Path:     "/",
-		MaxAge:   300,
-		HttpOnly: true,
-		Secure:   isSecure,
-		SameSite: http.SameSiteLaxMode,
-	})
+	if err := session.Save(r, w); err != nil {
+		h.log.Error().Err(err).Msg("failed to save state session")
+	}
 }
