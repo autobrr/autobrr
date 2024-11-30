@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
@@ -70,7 +69,7 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 
 	scopes := []string{"openid", "profile", "email"}
 
-	issuer := strings.TrimRight(cfg.OIDCIssuer, "/")
+	issuer := cfg.OIDCIssuer
 
 	ctx := context.Background()
 	provider, err := oidc.NewProvider(ctx, issuer)
