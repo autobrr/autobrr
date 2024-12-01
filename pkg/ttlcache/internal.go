@@ -18,8 +18,6 @@ func (c *Cache[K, V]) _g(key K) (Item[V], bool) {
 }
 
 func (c *Cache[K, V]) set(key K, it Item[V]) Item[V] {
-	it.d, it.t = c.getDuration(it.d)
-
 	c.l.Lock()
 	defer c.l.Unlock()
 	return c._s(key, it)
