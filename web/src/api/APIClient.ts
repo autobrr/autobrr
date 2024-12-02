@@ -237,9 +237,13 @@ const appClient = {
   })
 };
 
+interface LoginResponse {
+  requires2FA: boolean;
+}
+
 export const APIClient = {
   auth: {
-    login: (username: string, password: string) => appClient.Post("api/auth/login", {
+    login: (username: string, password: string) => appClient.Post<LoginResponse>("api/auth/login", {
       body: { username, password }
     }),
     logout: () => appClient.Post("api/auth/logout"),
@@ -249,7 +253,13 @@ export const APIClient = {
     }),
     canOnboard: () => appClient.Get("api/auth/onboard"),
     updateUser: (req: UserUpdate) => appClient.Patch(`api/auth/user/${req.username_current}`,
-      { body: req })
+      { body: req }),
+    get2FAStatus: () => appClient.Get<{ enabled: boolean }>("api/auth/2fa/status"),
+    enable2FA: () => appClient.Post<{ url: string, secret: string }>("api/auth/2fa/enable"),
+    verify2FA: (data: { code: string }) => appClient.Post("api/auth/2fa/verify", {
+      body: data
+    }),
+    disable2FA: () => appClient.Post("api/auth/2fa/disable")
   },
   actions: {
     create: (action: Action) => appClient.Post("api/actions", {

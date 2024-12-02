@@ -15,6 +15,7 @@ require (
 	github.com/autobrr/go-rtorrent v1.11.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.0
+	github.com/beevik/ntp v1.4.3
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/dcarbone/zadapters/zstdlog v1.0.0
 	github.com/dustin/go-humanize v1.0.1
@@ -34,6 +35,7 @@ require (
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/moistari/rls v0.5.12
 	github.com/pkg/errors v0.9.1
+	github.com/pquerna/otp v1.4.0
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.11.1
@@ -65,6 +67,7 @@ require (
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.7.4 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/cilium/ebpf v0.16.0 // indirect
 	github.com/containerd/cgroups/v3 v3.0.1 // indirect
@@ -114,6 +117,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
