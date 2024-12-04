@@ -199,7 +199,7 @@ func (h authHandler) onboardEligible(ctx context.Context) (int, error) {
 // If there is a valid session return OK, otherwise the middleware returns early with a 401
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	session := r.Context().Value("session").(*sessions.Session)
-	if session != nil {
+	if session != nil && session.Values["username"] != nil {
 		h.log.Debug().Msgf("found user session: %+v", session)
 		// Return username if available in session
 		response := map[string]interface{}{
