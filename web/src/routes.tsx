@@ -298,7 +298,8 @@ export const AuthRoute = createRoute({
         const response = await APIClient.auth.validate();
         AuthContext.set({
           isLoggedIn: true,
-          username: response.username || 'unknown'
+          username: response.username || 'unknown',
+          authMethod: response.auth_method
         });
       } catch (error) {
         console.debug("Authentication validation failed:", error);

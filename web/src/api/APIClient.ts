@@ -5,10 +5,14 @@
 
 import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
-import { AuthContext } from "@utils/Context";
+import { AuthContext, AuthInfo } from "@utils/Context";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
+type ValidateResponse = {
+  username?: AuthInfo['username'];
+  auth_method?: AuthInfo['authMethod'];
+}
 
 interface HttpConfig {
   /**
@@ -237,13 +241,17 @@ const appClient = {
   })
 };
 
+
 export const APIClient = {
   auth: {
     login: (username: string, password: string) => appClient.Post("api/auth/login", {
       body: { username, password }
     }),
     logout: () => appClient.Post("api/auth/logout"),
-    validate: () => appClient.Get<{ username?: string }>("api/auth/validate"),
+    validate: async (): Promise<ValidateResponse> => {
+      const response = await appClient.Get<ValidateResponse>("api/auth/validate");
+      return response;
+    },
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }
     }),

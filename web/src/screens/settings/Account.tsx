@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
 import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
@@ -17,14 +17,7 @@ import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
 
 const AccountSettings = () => {
-  const { data: oidcConfig, isLoading } = useQuery({
-    queryKey: ["oidc-config"],
-    queryFn: () => APIClient.auth.getOIDCConfig(),
-  });
-
-  if (isLoading) {
-    return null;
-  }
+  const auth = AuthContext.get();
 
   return (
     <Section
@@ -32,7 +25,7 @@ const AccountSettings = () => {
       description="Manage account settings."
     >
       <div className="py-0.5">
-        {oidcConfig?.enabled ? <OIDCAccount /> : <Credentials />}
+        {auth.authMethod === 'oidc' ? <OIDCAccount /> : <Credentials />}
       </div>
     </Section>
   );

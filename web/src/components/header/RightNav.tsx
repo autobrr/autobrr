@@ -16,18 +16,11 @@ import { RightNavProps } from "./_shared";
 import { Cog6ToothIcon, ArrowLeftOnRectangleIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
 import { Link } from "@tanstack/react-router";
 import { AuthContext, SettingsContext } from "@utils/Context";
-import { useQuery } from "@tanstack/react-query";
-import { APIClient } from "@api/APIClient";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
 
   const auth = AuthContext.get();
-
-  const { data: oidcConfig, isLoading } = useQuery({
-    queryKey: ["oidc-config"],
-    queryFn: () => APIClient.auth.getOIDCConfig(),
-  });
 
   const toggleTheme = () => {
     setSettings(prevState => ({
@@ -69,19 +62,17 @@ export const RightNav = (props: RightNavProps) => {
                   </span>
                   <span className="flex items-center">
                     {auth.username}
-                    {!isLoading && (
-                      oidcConfig?.enabled ? (
-                        <FontAwesomeIcon
-                          icon={faOpenid}
-                          className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <UserIcon
-                          className="inline ml-1 h-5 w-5"
-                          aria-hidden="true"
-                        />
-                      )
+                    {auth.authMethod === 'oidc' ? (
+                      <FontAwesomeIcon
+                        icon={faOpenid}
+                        className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <UserIcon
+                        className="inline ml-1 h-5 w-5"
+                        aria-hidden="true"
+                      />
                     )}
                   </span>
                 </span>

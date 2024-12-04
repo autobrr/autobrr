@@ -20,13 +20,18 @@ import { PasswordInput, TextInput } from "@components/inputs/text";
 import { LoginRoute } from "@app/routes";
 
 import Logo from "@app/logo.svg?react";
-import { AuthContext } from "@utils/Context";
+import { AuthContext, AuthInfo } from "@utils/Context";
 // import { WarningAlert } from "@components/alerts";
 
 type LoginFormFields = {
   username: string;
   password: string;
 };
+
+type ValidateResponse = {
+  username?: AuthInfo['username'];
+  auth_method?: AuthInfo['authMethod'];
+}
 
 export const Login = () => {
   const [auth, setAuth] = AuthContext.use();
@@ -74,11 +79,12 @@ export const Login = () => {
 
     if (code && state) {
       // This is an OIDC callback, validate the session
-      APIClient.auth.validate().then((response) => {
+      APIClient.auth.validate().then((response: ValidateResponse) => {
         // If validation succeeds, set the user as logged in
         setAuth({
           isLoggedIn: true,
-          username: response.username || 'unknown'
+          username: response.username || 'unknown',
+          authMethod: response.auth_method || (oidcConfig?.enabled ? 'oidc' : 'password')
         });
         router.invalidate();
       }).catch((error) => {
@@ -88,7 +94,7 @@ export const Login = () => {
         ));
       });
     }
-  }, [queryErrorResetBoundary]);
+  }, [queryErrorResetBoundary, oidcConfig, setAuth, router]);
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
@@ -96,7 +102,8 @@ export const Login = () => {
       queryErrorResetBoundary.reset()
       setAuth({
         isLoggedIn: true,
-        username: variables.username
+        username: variables.username,
+        authMethod: 'password'
       });
       router.invalidate()
     },

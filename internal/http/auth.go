@@ -99,6 +99,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 	// Set user as authenticated
 	session.Values["authenticated"] = true
 	session.Values["created"] = time.Now().Unix()
+	session.Values["auth_method"] = "password"
 
 	// Set cookie options
 	session.Options.HttpOnly = true
@@ -201,12 +202,13 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	if session != nil {
 		h.log.Debug().Msgf("found user session: %+v", session)
 		// Return username if available in session
-		if username, ok := session.Values["username"].(string); ok {
-			h.encoder.StatusResponse(w, http.StatusOK, map[string]interface{}{
-				"username": username,
-			})
-			return
+		response := map[string]interface{}{
+			"username":    session.Values["username"],
+			"auth_method": session.Values["auth_method"],
 		}
+
+		h.encoder.StatusResponse(w, http.StatusOK, response)
+		return
 	}
 	// send empty response as ok
 	h.encoder.NoContent(w)
@@ -289,6 +291,7 @@ func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) 
 	session.Values["authenticated"] = true
 	session.Values["created"] = time.Now().Unix()
 	session.Values["username"] = username
+	session.Values["auth_method"] = "oidc"
 
 	// Set cookie options
 	session.Options.HttpOnly = true
