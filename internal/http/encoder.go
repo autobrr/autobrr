@@ -130,3 +130,16 @@ func (e encoder) StatusError(w http.ResponseWriter, status int, err error) {
 		return
 	}
 }
+
+func (e encoder) StatusWarning(w http.ResponseWriter, status int, message string) {
+	resp := errorResponse{
+		Status:  status,
+		Message: message,
+	}
+
+	e.log.Warn().Str("warning", message).Int("status", status).Msg("server warning")
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(resp)
+}
