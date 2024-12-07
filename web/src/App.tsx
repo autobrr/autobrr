@@ -7,11 +7,11 @@ import { useEffect } from "react";
 import { RouterProvider } from "@tanstack/react-router"
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "react-hot-toast";
-import { Portal } from "react-portal";
 import { Router } from "@app/routes";
 import { routerBasePath } from "@utils";
 import { queryClient } from "@api/QueryClient";
 import { SettingsContext } from "@utils/Context";
+import { Portal } from "@components/portal";
 
 declare module '@tanstack/react-router' {
   interface Register {
