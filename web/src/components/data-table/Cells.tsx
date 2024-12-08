@@ -25,7 +25,7 @@ import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-export const NameCell = (props: CellContext<Release, any>) => (
+export const NameCell = (props: CellContext<Release, unknown>) => (
   <div
     className={classNames(
       "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -47,7 +47,7 @@ export const NameCell = (props: CellContext<Release, any>) => (
   </div>
 );
 
-export const LinksCell = (props: CellContext<Release, any>) => {
+export const LinksCell = (props: CellContext<Release, unknown>) => {
   return (
     <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
       <div>
@@ -104,13 +104,13 @@ export const LinksCell = (props: CellContext<Release, any>) => {
   );
 };
 
-export const AgeCell = ({cell}: CellContext<Release, string>) => (
-  <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue())}>
-    {formatDistanceToNowStrict(new Date(cell.getValue()), {addSuffix: false})}
+export const AgeCell = ({cell}: CellContext<Release, unknown>) => (
+  <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue() as string)}>
+    {formatDistanceToNowStrict(new Date(cell.getValue() as string), {addSuffix: false})}
   </div>
 );
 
-export const IndexerCell = (props: CellContext<Release, string>) => (
+export const IndexerCell = (props: CellContext<Release, unknown>) => (
     <div
       className={classNames(
         "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -291,7 +291,7 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
   );
 };
 
-export const ReleaseStatusCell = ({ row }: CellContext<Release, any>) => (
+export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => (
   <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
     {row.original.action_status.map((v, idx) => (
       <div

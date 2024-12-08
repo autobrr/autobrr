@@ -63,7 +63,7 @@ const ListboxFilter = ({
   </div>
 );
 
-export const IndexerSelectColumnFilter = ({ column }: { column: Column<any, unknown> }) => {
+export const IndexerSelectColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
   const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
   // Assign indexer name based on the filterValue (indexer.identifier)
@@ -118,7 +118,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
   </ListboxOption>
 );
 
-export const PushStatusSelectColumnFilter = ({ column }: { column: Column<any, unknown> }) => {
+export const PushStatusSelectColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
   // React.useEffect(() => {
   //   if (initialFilterValue) {
   //     setFilter(initialFilterValue);
@@ -146,7 +146,7 @@ export const PushStatusSelectColumnFilter = ({ column }: { column: Column<any, u
   );
 };
 
-export const SearchColumnFilter = ({ column }: { column: Column<any, unknown> }) => {
+export const SearchColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
   return (
     <div className="flex-1 mr-3 mt-1" key={column.id}>
       <DebounceInput

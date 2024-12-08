@@ -58,7 +58,7 @@ const EmptyReleaseList = () => (
   </div>
 );
 
-function Filter({ column }: { column: Column<any, unknown> }) {
+function Filter({ column }: { column: Column<Release, unknown> }) {
   const { filterVariant } = column.columnDef.meta ?? {}
 
   switch (filterVariant) {
@@ -87,7 +87,7 @@ export const ReleaseTable = () => {
   // const search = ReleasesRoute.useSearch()
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
-  const columns = React.useMemo<ColumnDef<Release, any>[]>(() => [
+  const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
     {
       header: "Age",
       accessorKey: "timestamp",
