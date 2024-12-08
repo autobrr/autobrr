@@ -64,10 +64,10 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 0:0:0:0:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+        - line: 0:2:0:0:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
             announceTypeEnum: 0
-            categoryEnum: 0
+            categoryEnum: 2
             originEnum: 0
             freeleechEnum: 0
             groupId: "357805"
@@ -82,10 +82,10 @@ irc:
             title: "Last Straw"
             torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
             tags: thriller,horror
-        - line: 2:0:0:1:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+        - line: 2:1:0:1:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
           expect:
             announceTypeEnum: 2
-            categoryEnum: 0
+            categoryEnum: 1
             originEnum: 0
             freeleechEnum: 1
             groupId: "357805"
@@ -100,10 +100,10 @@ irc:
             title: "Last Straw"
             torrentName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
             tags: thriller,horror
-        - line: 1:0:2:1:21108:1332339:ncfe:tt0107426:63996413804:1728081334|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
+        - line: 1:1:2:1:21108:1332339:ncfe:tt0107426:63996413804:1728081334|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
           expect:
             announceTypeEnum: 1
-            categoryEnum: 0
+            categoryEnum: 1
             originEnum: 2
             freeleechEnum: 1
             groupId: "21108"
@@ -154,17 +154,17 @@ irc:
       # Category IDs are Zero+1 indexed from:
       # ( 'Feature Film', 'Short Film', 'Miniseries', 'Stand-up Comedy', 'Live Performance', 'Movie Collection' )
       categoryEnum:
-        "0":
-          category: "Feature Film"
         "1":
-          category: "Short Film"
+          category: "Feature Film"
         "2":
-          category: "Miniseries"
+          category: "Short Film"
         "3":
-          category: "Stand-up Comedy"
+          category: "Miniseries"
         "4":
-          category: "Live Performance"
+          category: "Stand-up Comedy"
         "5":
+          category: "Live Performance"
+        "6":
           category: "Movie Collection"
 
       originEnum:
