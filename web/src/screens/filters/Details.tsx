@@ -392,6 +392,7 @@ export const FilterDetails = () => {
               enabled: filter.enabled,
               min_size: filter.min_size,
               max_size: filter.max_size,
+              announce_types: filter.announce_types || [],
               delay: filter.delay,
               priority: filter.priority,
               max_downloads: filter.max_downloads,

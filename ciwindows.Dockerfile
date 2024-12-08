@@ -46,4 +46,4 @@ EXPOSE 7474
 
 COPY --from=app-builder /out/bin/autobrr* /
 
-ENTRYPOINT C:\autobrr.exe --config C:\config
+ENTRYPOINT ["C:\\autobrr.exe", "--config", "C:\\config"]

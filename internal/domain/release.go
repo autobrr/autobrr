@@ -53,7 +53,7 @@ type Release struct {
 	Protocol                    ReleaseProtocol       `json:"protocol"`
 	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
 	Timestamp                   time.Time             `json:"timestamp"`
-	AnnounceType                string                `json:"announce_type"`
+	AnnounceType                AnnounceType          `json:"announce_type"`
 	InfoURL                     string                `json:"info_url"`
 	DownloadURL                 string                `json:"download_url"`
 	MagnetURI                   string                `json:"-"`
@@ -113,6 +113,56 @@ type Release struct {
 
 func (r *Release) Raw(s string) rls.Release {
 	return rls.ParseString(s)
+}
+
+type AnnounceType string
+
+const (
+	// AnnounceTypeNew Default announce type
+	AnnounceTypeNew AnnounceType = "NEW"
+	// AnnounceTypeChecked Checked release
+	AnnounceTypeChecked AnnounceType = "CHECKED"
+	// AnnounceTypePromo Marked as promotion (neutral/half/feeeleech etc.)
+	AnnounceTypePromo AnnounceType = "PROMO"
+	// AnnounceTypePromoGP Marked Golden Popcorn, PTP specific
+	AnnounceTypePromoGP AnnounceType = "PROMO_GP"
+	// AnnounceTypeResurrect Reseeded/revived from dead
+	AnnounceTypeResurrect AnnounceType = "RESURRECTED"
+)
+
+func (a AnnounceType) String() string {
+	switch a {
+	case AnnounceTypeNew:
+		return "NEW"
+	case AnnounceTypeChecked:
+		return "CHECKED"
+	case AnnounceTypePromo:
+		return "PROMO"
+	case AnnounceTypePromoGP:
+		return "PROMO_GP"
+	case AnnounceTypeResurrect:
+		return "RESURRECTED"
+	}
+
+	return ""
+}
+
+// ParseAnnounceType parse AnnounceType from string
+func ParseAnnounceType(s string) (AnnounceType, error) {
+	switch s {
+	case string(AnnounceTypeNew):
+		return AnnounceTypeNew, nil
+	case string(AnnounceTypeChecked):
+		return AnnounceTypeChecked, nil
+	case string(AnnounceTypePromo):
+		return AnnounceTypePromo, nil
+	case string(AnnounceTypePromoGP):
+		return AnnounceTypePromoGP, nil
+	case string(AnnounceTypeResurrect):
+		return AnnounceTypeResurrect, nil
+	default:
+		return "", fmt.Errorf("invalid AnnounceType: %s", s)
+	}
 }
 
 type ReleaseActionStatus struct {
@@ -308,6 +358,7 @@ func NewRelease(indexer IndexerMinimal) *Release {
 		Timestamp:      time.Now(),
 		Tags:           []string{},
 		Size:           0,
+		AnnounceType:   AnnounceTypeNew,
 	}
 
 	return r
@@ -668,7 +719,6 @@ const MagnetURIPrefix = "magnet:?"
 
 // MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
-
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
@@ -684,11 +734,14 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if announceType, err := getStringMapValue(varMap, "announceTypeEnum"); err == nil {
-		r.AnnounceType = announceType
+		annType, parseErr := ParseAnnounceType(announceType)
+		if parseErr == nil {
+			r.AnnounceType = annType
+		}
 	}
 
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP", "★")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function

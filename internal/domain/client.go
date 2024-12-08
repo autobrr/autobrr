@@ -158,17 +158,20 @@ func (c DownloadClient) Validate() error {
 	return nil
 }
 
-func (c DownloadClient) BuildLegacyHost() string {
+func (c DownloadClient) BuildLegacyHost() (string, error) {
 	if c.Type == DownloadClientTypeQbittorrent {
 		return c.qbitBuildLegacyHost()
 	}
-	return ""
+	return c.Host, nil
 }
 
 // qbitBuildLegacyHost exists to support older configs
-func (c DownloadClient) qbitBuildLegacyHost() string {
+func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
 	// parse url
-	u, _ := url.Parse(c.Host)
+	u, err := url.Parse(c.Host)
+	if err != nil {
+		return "", err
+	}
 
 	// reset Opaque
 	u.Opaque = ""
@@ -200,5 +203,5 @@ func (c DownloadClient) qbitBuildLegacyHost() string {
 	}
 
 	// make into new string and return
-	return u.String()
+	return u.String(), nil
 }

@@ -18,6 +18,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const badFormat = "2006-01-02T15:04:05"
+const timeFormat = "2006-01-02.15-04-05"
+
 func (db *DB) openSQLite() error {
 	if db.DSN == "" {
 		return errors.New("DSN required")
@@ -289,7 +292,7 @@ func (db *DB) backupSQLiteDatabase() error {
 		return errors.Wrap(err, "failed to query schema version")
 	}
 
-	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format("2006-01-02T15:04:05"))
+	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format(timeFormat))
 
 	db.log.Info().Msgf("Creating database backup: %s", backupFile)
 
@@ -316,7 +319,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 	}
 
 	var backups []string
-
+	var broken []string
 	// Parse the filenames to extract timestamps
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".backup") {
@@ -326,8 +329,10 @@ func (db *DB) cleanupSQLiteBackups() error {
 				continue
 			}
 			timestamp := strings.TrimSuffix(parts[2], ".backup")
-			if _, err := time.Parse("2006-01-02T15:04:05", timestamp); err == nil {
+			if _, err := time.Parse(timeFormat, timestamp); err == nil {
 				backups = append(backups, file.Name())
+			} else if  _, err := time.Parse(badFormat, timestamp); err == nil {
+				broken = append(broken, file.Name())
 			}
 		}
 	}
@@ -340,10 +345,20 @@ func (db *DB) cleanupSQLiteBackups() error {
 
 	// Sort backups by timestamp
 	sort.Slice(backups, func(i, j int) bool {
-		t1, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
-		t2, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
+		t1, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
+		t2, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
 		return t1.After(t2)
 	})
+
+	for i := 0; len(broken) != 0 && len(backups) == db.cfg.DatabaseMaxBackups && i < len(broken); i++ {
+		db.log.Info().Msgf("Remove Old SQLite backup: %s", broken[i])
+
+		if err := os.Remove(filepath.Join(backupDir, broken[i])); err != nil {
+			return errors.Wrap(err, "failed to remove old backups")
+		}
+	
+		db.log.Info().Msgf("Removed Old SQLite backup: %s", broken[i])
+	}
 
 	for i := db.cfg.DatabaseMaxBackups; i < len(backups); i++ {
 		db.log.Info().Msgf("Remove SQLite backup: %s", backups[i])

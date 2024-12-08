@@ -7,7 +7,7 @@ import * as React from "react";
 import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CellProps } from "react-table";
+import { CellContext } from "@tanstack/react-table";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
 import {
   ClockIcon,
@@ -25,7 +25,7 @@ import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-export const NameCell = (props: CellProps<Release>) => (
+export const NameCell = (props: CellContext<Release, unknown>) => (
   <div
     className={classNames(
       "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -34,7 +34,7 @@ export const NameCell = (props: CellProps<Release>) => (
   >
     <div className="flex flex-col truncate">
       <span className="truncate">
-        {String(props.cell.value)}
+        {String(props.cell.getValue())}
       </span>
       <div className="text-xs truncate">
         <span className="text-xs text-gray-500 dark:text-gray-400">Category:</span> {props.row.original.category}
@@ -47,7 +47,7 @@ export const NameCell = (props: CellProps<Release>) => (
   </div>
 );
 
-export const LinksCell = (props: CellProps<Release>) => {
+export const LinksCell = (props: CellContext<Release, unknown>) => {
   return (
     <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
       <div>
@@ -104,13 +104,13 @@ export const LinksCell = (props: CellProps<Release>) => {
   );
 };
 
-export const AgeCell = ({value}: CellProps<Release>) => (
-  <div className="text-sm text-gray-500" title={simplifyDate(value)}>
-    {formatDistanceToNowStrict(new Date(value), {addSuffix: false})}
+export const AgeCell = ({cell}: CellContext<Release, unknown>) => (
+  <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue() as string)}>
+    {formatDistanceToNowStrict(new Date(cell.getValue() as string), {addSuffix: false})}
   </div>
 );
 
-export const IndexerCell = (props: CellProps<Release>) => (
+export const IndexerCell = (props: CellContext<Release, unknown>) => (
     <div
       className={classNames(
         "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -129,7 +129,7 @@ export const IndexerCell = (props: CellProps<Release>) => (
     </div>
 );
 
-export const TitleCell = ({value}: CellProps<Release>) => (
+export const TitleCell = ({cell}: CellContext<Release, string>) => (
   <div
     className={classNames(
       "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -138,11 +138,11 @@ export const TitleCell = ({value}: CellProps<Release>) => (
   >
     <Tooltip
       requiresClick
-      label={value}
+      label={cell.getValue()}
       maxWidth="max-w-[90vw]"
     >
       <span className="whitespace-pre-wrap break-words">
-        {value}
+        {cell.getValue()}
       </span>
     </Tooltip>
   </div>
@@ -187,10 +187,6 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
     </button>
   );
 };
-
-interface ReleaseStatusCellProps {
-    value: ReleaseActionStatus[];
-}
 
 interface StatusCellMapEntry {
     colors: string;
@@ -295,9 +291,9 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
   );
 };
 
-export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
+export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => (
   <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-    {value.map((v, idx) => (
+    {row.original.action_status.map((v, idx) => (
       <div
         key={idx}
         className={classNames(

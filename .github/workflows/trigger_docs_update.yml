@@ -1,9 +1,9 @@
-# .github/workflows/trigger_docs_update.yml
 name: Trigger Docs Update
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   trigger_docs_update:

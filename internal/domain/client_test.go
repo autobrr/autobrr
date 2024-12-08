@@ -153,7 +153,8 @@ func TestDownloadClient_qbitBuildLegacyHost(t *testing.T) {
 				Password:      tt.fields.Password,
 				Settings:      tt.fields.Settings,
 			}
-			assert.Equalf(t, tt.want, c.qbitBuildLegacyHost(), "qbitBuildLegacyHost()")
+			got, _ := c.qbitBuildLegacyHost()
+			assert.Equalf(t, tt.want, got, "qbitBuildLegacyHost()")
 		})
 	}
 }
