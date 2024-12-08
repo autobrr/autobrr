@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment } from "react";
+import { Fragment, JSX } from "react";
 import { Field, FieldProps } from "formik";
 import { Listbox, ListboxButton, Label, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
