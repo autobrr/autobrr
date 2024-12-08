@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import {
   ApiKeys,
@@ -15,6 +15,7 @@ import {
   ReleaseKeys,
   SettingsKeys
 } from "@api/query_keys";
+import { ColumnFilter } from "@tanstack/react-table";
 
 export const FiltersQueryOptions = (indexers: string[], sortOrder: string) =>
   queryOptions({
@@ -104,10 +105,11 @@ export const ApikeysQueryOptions = () =>
     refetchOnWindowFocus: false,
   });
 
-export const ReleasesListQueryOptions = (offset: number, limit: number, filters: ReleaseFilter[]) =>
+export const ReleasesListQueryOptions = (offset: number, limit: number, filters: ColumnFilter[]) =>
   queryOptions({
     queryKey: ReleaseKeys.list(offset, limit, filters),
     queryFn: () => APIClient.release.findQuery(offset, limit, filters),
+    placeholderData: keepPreviousData,
     staleTime: 5000,
     refetchOnWindowFocus: true,
     refetchInterval: 15000 // refetch releases table on releases page every 15s

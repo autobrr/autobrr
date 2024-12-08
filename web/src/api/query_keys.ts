@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { ColumnFilter } from "@tanstack/react-table";
+
 export const SettingsKeys = {
   all: ["settings"] as const,
   updates: () => [...SettingsKeys.all, "updates"] as const,
@@ -21,7 +23,7 @@ export const FilterKeys = {
 export const ReleaseKeys = {
   all: ["releases"] as const,
   lists: () => [...ReleaseKeys.all, "list"] as const,
-  list: (pageIndex: number, pageSize: number, filters: ReleaseFilter[]) => [...ReleaseKeys.lists(), {
+  list: (pageIndex: number, pageSize: number, filters: ColumnFilter[]) => [...ReleaseKeys.lists(), {
     pageIndex,
     pageSize,
     filters
