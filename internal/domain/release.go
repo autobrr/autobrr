@@ -733,7 +733,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Category = category
 	}
 
-	if announceType, err := getStringMapValue(varMap, "announceTypeEnum"); err == nil {
+	if announceType, err := getStringMapValue(varMap, "announceType"); err == nil {
 		annType, parseErr := ParseAnnounceType(announceType)
 		if parseErr == nil {
 			r.AnnounceType = annType
