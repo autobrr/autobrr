@@ -93,7 +93,7 @@ function Table({ columns, data }: TableProps) {
 }
 
 export const ActivityTable = () => {
-  const columns = React.useMemo<ColumnDef<Release, any>[]>(() => [
+  const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
     {
       header: "Age",
       accessorKey: "timestamp",
