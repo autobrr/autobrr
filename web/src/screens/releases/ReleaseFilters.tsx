@@ -69,7 +69,6 @@ export const IndexerSelectColumnFilter = ({ column }: { column: Column<Release, 
   // Assign indexer name based on the filterValue (indexer.identifier)
   const currentIndexerName = data?.find(indexer => indexer.identifier === column.getFilterValue())?.name ?? "Indexer";
 
-  // Render a multi-select box
   return (
     <ListboxFilter
       id={column.id}
@@ -134,7 +133,6 @@ export const PushStatusSelectColumnFilter = ({ column }: { column: Column<Releas
         label={label ?? "Push status"}
         currentValue={column.getFilterValue() as string ?? ""}
         onChange={value => {
-          console.log("push status event: ", value);
           column.setFilterValue(value || undefined);
         }}
       >
