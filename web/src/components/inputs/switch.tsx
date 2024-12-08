@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { JSX, ReactNode } from "react";
 import type { FieldProps } from "formik";
 import { Field as FormikField } from "formik";
 import { Field, Label, Description } from "@headlessui/react";
@@ -14,7 +15,7 @@ import { Checkbox } from "@components/Checkbox";
 interface SwitchGroupProps {
   name: string;
   label?: string;
-  description?: string | React.ReactNode;
+  description?: string | ReactNode;
   heading?: boolean;
   tooltip?: JSX.Element;
   disabled?: boolean;

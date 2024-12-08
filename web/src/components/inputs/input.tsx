@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect } from "react";
+import { useEffect, JSX } from "react";
 import { Field, FieldProps, useFormikContext } from "formik";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import TextareaAutosize from "react-textarea-autosize";

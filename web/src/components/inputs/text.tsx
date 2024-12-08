@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { FC, forwardRef, ReactNode } from "react";
+import { FC, JSX, forwardRef, ReactNode } from "react";
 import { DeepMap, FieldError, Path, RegisterOptions, UseFormRegister } from "react-hook-form";
 import { classNames, get } from "@utils";
 import { useToggle } from "@hooks/hooks";

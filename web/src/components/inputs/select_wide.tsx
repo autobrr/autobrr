@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { JSX } from "react";
 import { Field } from "formik";
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
