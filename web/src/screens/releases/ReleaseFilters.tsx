@@ -5,13 +5,13 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Column } from "@tanstack/react-table";
 import { Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
+import { DebounceInput } from "react-debounce-input";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
 import { PushStatusOptions } from "@domain/constants";
-import { FilterProps } from "react-table";
-import { DebounceInput } from "react-debounce-input";
 import { ReleasesIndexersQueryOptions } from "@api/queries";
 
 interface ListboxFilterProps {
@@ -64,22 +64,22 @@ const ListboxFilter = ({
 );
 
 // a unique option from a list
-export const IndexerSelectColumnFilter = ({
-  column: { filterValue, setFilter, id }
-}: FilterProps<object>) => {
+// export const IndexerSelectColumnFilter = ({ column: { filterValue, setFilter, id } }: FilterProps<object>) => {
+export const IndexerSelectColumnFilter = ({ column }: { column: Column<any, unknown> }) => {
   const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
   // Assign indexer name based on the filterValue (indexer.identifier)
-  const currentIndexerName = data?.find(indexer => indexer.identifier === filterValue)?.name ?? "Indexer";
+  // const currentIndexerName = data?.find(indexer => indexer.identifier === filterValue)?.name ?? "Indexer";
+  const currentIndexerName = data?.find(indexer => indexer.identifier === column.getFilterValue())?.name ?? "Indexer";
 
   // Render a multi-select box
   return (
     <ListboxFilter
-      id={id}
-      key={id}
+      id={column.id}
+      key={column.id}
       label={currentIndexerName}
-      currentValue={filterValue ?? ""}
-      onChange={setFilter}
+      currentValue={column.getFilterValue() as string || ""}
+      onChange={newValue => column.setFilterValue(newValue || undefined)}
     >
       {isSuccess && data && data?.map((indexer, idx) => (
         <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
@@ -95,9 +95,9 @@ interface FilterOptionProps {
 
 const FilterOption = ({ label, value }: FilterOptionProps) => (
   <ListboxOption
-    className={({ active }) => classNames(
+    className={({ focus }) => classNames(
       "cursor-pointer select-none relative py-2 pl-10 pr-4",
-      active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
+      focus ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
     )}
     value={value}
   >
@@ -121,23 +121,25 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
   </ListboxOption>
 );
 
-export const PushStatusSelectColumnFilter = ({
-  column: { filterValue, setFilter, id },
-  initialFilterValue
-}: FilterProps<object>) => {
-  React.useEffect(() => {
-    if (initialFilterValue) {
-      setFilter(initialFilterValue);
-    }
-  }, [initialFilterValue, setFilter]);
-  const label = filterValue ? PushStatusOptions.find((o) => o.value === filterValue && o.value)?.label : "Push status";
+export const PushStatusSelectColumnFilter = ({ column }: { column: Column<any, unknown> }) => {
+  // React.useEffect(() => {
+  //   if (initialFilterValue) {
+  //     setFilter(initialFilterValue);
+  //   }
+  // }, [initialFilterValue, setFilter]);
+
+  const label = column.getFilterValue() ? PushStatusOptions.find((o) => o.value === column.getFilterValue() && o.value)?.label : "Push status";
+
   return (
-    <div className="mr-3" key={id}>
+    <div className="mr-3" key={column.id}>
       <ListboxFilter
-        id={id}
+        id={column.id}
         label={label ?? "Push status"}
-        currentValue={filterValue ?? ""}
-        onChange={setFilter}
+        currentValue={column.getFilterValue() as string ?? ""}
+        onChange={value => {
+          console.log("push status event: ", value);
+          column.setFilterValue(value || undefined);
+        }}
       >
         {PushStatusOptions.map((status, idx) => (
           <FilterOption key={idx} value={status.value} label={status.label} />
@@ -147,18 +149,19 @@ export const PushStatusSelectColumnFilter = ({
   );
 };
 
-export const SearchColumnFilter = ({
-  column: { filterValue, setFilter, id }
-}: FilterProps<object>) => {
+export const SearchColumnFilter = ({ column }: { column: Column<any, unknown> }) => {
   return (
-    <div className="flex-1 mr-3 mt-1" key={id}>
+    <div className="flex-1 mr-3 mt-1" key={column.id}>
       <DebounceInput
         minLength={2}
-        value={filterValue || undefined}
+        value={column.getFilterValue() as string || undefined}
         debounceTimeout={500}
         onChange={e => {
-          setFilter(e.target.value || undefined); // Set undefined to remove the filter entirely
+          console.log("search value: ", e.target.value)
+          // Set undefined to remove the filter entirely
+          column.setFilterValue(e.target.value || undefined)
         }}
+        // onChange={value => column.setFilterValue(value || undefined)}
         id="filter"
         type="text"
         autoComplete="off"

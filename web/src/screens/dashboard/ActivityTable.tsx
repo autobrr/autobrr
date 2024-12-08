@@ -6,16 +6,16 @@
 import React, { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
-  useTable,
-  useFilters,
-  useGlobalFilter,
-  useSortBy,
-  usePagination, FilterProps, Column
-} from "react-table";
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  flexRender,
+  ColumnDef
+} from "@tanstack/react-table";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 import { EmptyListState } from "@components/emptystates";
-import * as Icons from "@components/Icons";
 import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos } from "@utils";
 import { ReleasesLatestQueryOptions } from "@api/queries";
@@ -23,67 +23,61 @@ import { IndexerCell } from "@components/data-table";
 
 // This is a custom filter UI for selecting
 // a unique option from a list
-function SelectColumnFilter({
-  column: { filterValue, setFilter, preFilteredRows, id, render }
-}: FilterProps<object>) {
-  // Calculate the options for filtering
-  // using the preFilteredRows
-  const options = React.useMemo(() => {
-    const options = new Set<string>();
-    preFilteredRows.forEach((row: { values: { [x: string]: string } }) => {
-      options.add(row.values[id]);
-    });
-    return [...options.values()];
-  }, [id, preFilteredRows]);
-
-  // Render a multi-select box
-  return (
-    <label className="flex items-baseline gap-x-2">
-      <span className="text-gray-700"><>{render("Header")}:</></span>
-      <select
-        className="border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-        name={id}
-        id={id}
-        value={filterValue}
-        onChange={e => {
-          setFilter(e.target.value || undefined);
-        }}
-      >
-        <option value="">All</option>
-        {options.map((option, i) => (
-          <option key={i} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
+// function SelectColumnFilter({
+//   column: { filterValue, setFilter, preFilteredRows, id, render }
+// }: FilterProps<object>) {
+//   // Calculate the options for filtering
+//   // using the preFilteredRows
+//   const options = React.useMemo(() => {
+//     const options = new Set<string>();
+//     preFilteredRows.forEach((row: { values: { [x: string]: string } }) => {
+//       options.add(row.values[id]);
+//     });
+//     return [...options.values()];
+//   }, [id, preFilteredRows]);
+//
+//   // Render a multi-select box
+//   return (
+//     <label className="flex items-baseline gap-x-2">
+//       <span className="text-gray-700"><>{render("Header")}:</></span>
+//       <select
+//         className="border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+//         name={id}
+//         id={id}
+//         value={filterValue}
+//         onChange={e => {
+//           setFilter(e.target.value || undefined);
+//         }}
+//       >
+//         <option value="">All</option>
+//         {options.map((option, i) => (
+//           <option key={i} value={option}>
+//             {option}
+//           </option>
+//         ))}
+//       </select>
+//     </label>
+//   );
+// }
 
 interface TableProps {
-  columns: Column[];
+  columns: ColumnDef<Release>[];
   data: Release[];
 }
 
 function Table({ columns, data }: TableProps) {
-  // Use the state and functions returned from useTable to build your UI
-  const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    prepareRow,
-    page // Instead of using 'rows', we'll use page,
-  } = useTable(
-    { columns, data },
-    useFilters,
-    useGlobalFilter,
-    useSortBy,
-    usePagination
-  );
+  const tableInstance = useReactTable({
+    columns,
+    data,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  })
 
   if (data.length === 0) {
     return (
-      <div className="mt-4 mb-2 bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+      <div
+        className="mt-4 mb-2 bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
         <div className="flex items-center justify-center py-16">
           <EmptyListState text="No recent activity"/>
         </div>
@@ -94,71 +88,61 @@ function Table({ columns, data }: TableProps) {
   // Render the UI for your table
   return (
     <div className="inline-block min-w-full mt-4 mb-2 align-middle">
-      <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
-        <table {...getTableProps()} className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+      <div
+        className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+        <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
           <thead className="bg-gray-100 dark:bg-gray-850">
-            {headerGroups.map((headerGroup) => {
-              const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
-              return (
-                <tr key={rowKey} {...rowRest}>
-                  {headerGroup.headers.map((column) => {
-                    const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
-                    return (
-                      // Add the sorting props to control sorting. For this example
-                      // we can add them into the header props
-                      <th
-                        key={`${rowKey}-${columnKey}`}
-                        scope="col"
-                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
-                        {...columnRest}
-                      >
-                        <div className="flex items-center justify-between">
-                          <>{column.render("Header")}</>
-                          {/* Add a sort direction indicator */}
-                          <span>
-                            {column.isSorted ? (
-                              column.isSortedDesc ? (
-                                <Icons.SortDownIcon className="w-4 h-4 text-gray-400" />
-                              ) : (
-                                <Icons.SortUpIcon className="w-4 h-4 text-gray-400" />
-                              )
-                            ) : (
-                              <Icons.SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
-                            )}
-                          </span>
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              );
-            })}
+          {tableInstance.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    scope="col"
+                    className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
+                    colSpan={header.colSpan}
+                  >
+                    <div className="flex items-center justify-between">
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                    </div>
+                  </th>
+                )
+              )}
+            </tr>
+          ))}
           </thead>
-          <tbody
-            {...getTableBodyProps()}
-            className="divide-y divide-gray-150 dark:divide-gray-750"
-          >
-            {page.map((row) => {
-              prepareRow(row);
-              const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
-              return (
-                <tr key={bodyRowKey} {...bodyRowRest}>
-                  {row.cells.map((cell) => {
-                    const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
-                    return (
-                      <td
-                        key={cellRowKey}
-                        className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
-                        role="cell"
-                        {...cellRowRest}
-                      >
-                        <>{cell.render("Cell")}</>
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
+
+          <tbody className="divide-y divide-gray-150 dark:divide-gray-750">
+          {tableInstance.getRowModel().rows.map((row) => (
+            <tr key={row.id}>
+              {row.getVisibleCells().map((cell) => (
+                <td
+                  key={cell.id}
+                  className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
+                  role="cell"
+                >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </td>
+              ))}
+              {/*{row.cells.map((cell) => {*/}
+              {/*  const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();*/}
+              {/*  return (*/}
+              {/*    <td*/}
+              {/*      key={cellRowKey}*/}
+              {/*      className="first:pl-5 pl-3 pr-3 whitespace-nowrap"*/}
+              {/*      role="cell"*/}
+              {/*      {...cellRowRest}*/}
+              {/*    >*/}
+              {/*      <>{cell.render("Cell")}</>*/}
+              {/*    </td>*/}
+              {/*  );*/}
+              {/*})}*/}
+            </tr>
+          ))}
           </tbody>
         </table>
       </div>
@@ -167,30 +151,33 @@ function Table({ columns, data }: TableProps) {
 }
 
 export const ActivityTable = () => {
-  const columns = React.useMemo(() => [
+  const columns  = React.useMemo<ColumnDef<Release, any>[]>(() => [
     {
-      Header: "Age",
-      accessor: "timestamp",
-      Cell: DataTable.AgeCell
+      header: "Age",
+      accessorKey: "timestamp",
+      cell: DataTable.AgeCell
     },
     {
-      Header: "Release",
-      accessor: "name",
-      Cell: DataTable.TitleCell
+      header: "Release",
+      accessorKey: "name",
+      cell: DataTable.TitleCell,
+      // cell: ({ row }) => {
+      //   return <div><strong>{row.original.name}</strong></div>
+      // }
     },
     {
-      Header: "Actions",
-      accessor: "action_status",
-      Cell: DataTable.ReleaseStatusCell
+      header: "Actions",
+      accessorKey: "action_status",
+      cell: DataTable.ReleaseStatusCell
     },
     {
-      Header: "Indexer",
-      accessor: "indexer.identifier",
-      Cell: IndexerCell,
-      Filter: SelectColumnFilter,
-      filter: "includes"
+      header: "Indexer",
+      accessorKey: "indexer.identifier",
+      cell: IndexerCell,
+      // Filter: SelectColumnFilter,
+      // filter: "includes"
     }
-  ] as Column[], []);
+  ], []);
 
   const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
 
@@ -236,7 +223,7 @@ export const ActivityTable = () => {
         Recent activity
       </h3>
 
-      <Table columns={columns} data={displayData} />
+      <Table columns={columns} data={displayData}/>
 
       <button
         onClick={toggleReleaseNames}
@@ -245,9 +232,9 @@ export const ActivityTable = () => {
         title="Go incognito"
       >
         {showLinuxIsos ? (
-          <EyeIcon className="h-4 w-4" />
+          <EyeIcon className="h-4 w-4"/>
         ) : (
-          <EyeSlashIcon className="h-4 w-4" />
+          <EyeSlashIcon className="h-4 w-4"/>
         )}
       </button>
     </div>
