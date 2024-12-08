@@ -24,14 +24,12 @@ import {
   EyeSlashIcon
 } from "@heroicons/react/24/solid";
 
-// import { ReleasesRoute } from "@app/routes";
 import { ReleasesListQueryOptions } from "@api/queries";
 import { RandomLinuxIsos } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
-import { TableButton, TablePageButton } from "@components/data-table/Buttons.tsx";
-import { AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
+import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
 
 declare module '@tanstack/react-table' {
   //allows us to define custom properties for our columns
@@ -39,53 +37,6 @@ declare module '@tanstack/react-table' {
     filterVariant?: 'text' | 'range' | 'select' | 'search' | 'actionPushStatus' | 'indexerSelect';
   }
 }
-
-// type TableState = {
-//   queryPageIndex: number;
-//   queryPageSize: number;
-//   totalCount: number;
-//   queryFilters: ReleaseFilter[];
-// };
-
-// const initialState: TableState = {
-//   queryPageIndex: 0,
-//   queryPageSize: 10,
-//   totalCount: 0,
-//   queryFilters: []
-// };
-
-// enum ActionType {
-//   PAGE_CHANGED = "PAGE_CHANGED",
-//   PAGE_SIZE_CHANGED = "PAGE_SIZE_CHANGED",
-//   TOTAL_COUNT_CHANGED = "TOTAL_COUNT_CHANGED",
-//   FILTER_CHANGED = "FILTER_CHANGED"
-// }
-//
-// type Actions =
-//   | { type: ActionType.FILTER_CHANGED; payload: ReleaseFilter[]; }
-//   | { type: ActionType.PAGE_CHANGED; payload: number; }
-//   | { type: ActionType.PAGE_SIZE_CHANGED; payload: number; }
-//   | { type: ActionType.TOTAL_COUNT_CHANGED; payload: number; };
-//
-// const TableReducer = (state: TableState, action: Actions): TableState => {
-//   switch (action.type) {
-//     case ActionType.PAGE_CHANGED: {
-//       return { ...state, queryPageIndex: action.payload };
-//     }
-//     case ActionType.PAGE_SIZE_CHANGED: {
-//       return { ...state, queryPageSize: action.payload };
-//     }
-//     case ActionType.FILTER_CHANGED: {
-//       return { ...state, queryFilters: action.payload };
-//     }
-//     case ActionType.TOTAL_COUNT_CHANGED: {
-//       return { ...state, totalCount: action.payload };
-//     }
-//     default: {
-//       throw new Error(`Unhandled action type: ${action}`);
-//     }
-//   }
-// };
 
 const EmptyReleaseList = () => (
   <div
@@ -146,7 +97,6 @@ export const ReleaseTable = () => {
       header: "Release",
       accessorKey: "name",
       cell: NameCell,
-      // filter: SearchColumnFilter
       meta: {
         filterVariant: 'search',
       },
@@ -161,7 +111,6 @@ export const ReleaseTable = () => {
       header: "Actions",
       accessorKey: "action_status",
       cell: ReleaseStatusCell,
-      // filter: PushStatusSelectColumnFilter,
       meta: {
         filterVariant: 'actionPushStatus',
       },
@@ -170,8 +119,6 @@ export const ReleaseTable = () => {
       header: "Indexer",
       accessorKey: "indexer.identifier",
       cell: IndexerCell,
-      // filter: IndexerSelectColumnFilter,
-      // filter: "equal"
       meta: {
         filterVariant: 'indexerSelect',
       },
@@ -180,8 +127,6 @@ export const ReleaseTable = () => {
 
   // if (search.action_status != "") {
   //   setColumnFilters(prevState => [...prevState, { id: "action_status", value: search.action_status }]);
-  //
-  //   // initialState.queryFilters = [{ id: "action_status", value: search.action_status! }]
   // }
 
   const [pagination, setPagination] = React.useState<PaginationState>({
@@ -189,14 +134,10 @@ export const ReleaseTable = () => {
     pageSize: 10,
   })
 
-  // const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
-  //   React.useReducer(TableReducer, initialState);
-
   const {
     isLoading,
     error,
     data,
-    // isSuccess
   } = useQuery(ReleasesListQueryOptions(pagination.pageIndex * pagination.pageSize, pagination.pageSize, columnFilters));
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
@@ -226,25 +167,19 @@ export const ReleaseTable = () => {
     }
   };
 
-  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
   const defaultData = React.useMemo(() => [], [])
+  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? defaultData);
 
   const tableInstance = useReactTable({
     columns,
-    // data: displayData,
-    data: data?.data ?? defaultData,
+    data: displayData,
     getCoreRowModel: getCoreRowModel(),
     manualFiltering: true,
     manualPagination: true,
     manualSorting: true,
     rowCount: data?.count,
-    // pageCount: isSuccess ? Math.ceil(data?.count / pagination.pageSize) : 0,
     state: {
       columnFilters,
-      // pagination: {
-      //   pageIndex: queryPageIndex,
-      //   pageSize: queryPageSize,
-      // }
       pagination,
     },
     initialState: {
@@ -252,8 +187,6 @@ export const ReleaseTable = () => {
     },
     onPaginationChange: setPagination,
     onColumnFiltersChange: setColumnFilters,
-    debugTable: true,
-    debugRows: true,
   });
 
   // Manage your own state
@@ -272,79 +205,6 @@ export const ReleaseTable = () => {
   //   // is greater than 2
   //   // debugTable: state.pagination.pageIndex > 2,
   // }))
-
-  // const {
-  //   getTableProps,
-  //   getTableBodyProps,
-  //   headerGroups,
-  //   prepareRow,
-  //   page, // Instead of using 'rows', we'll use page,
-  //   // which has only the rows for the active page
-  //
-  //   // The rest of these things are super handy, too ;)
-  //   canPreviousPage,
-  //   canNextPage,
-  //   pageOptions,
-  //   pageCount,
-  //   gotoPage,
-  //   nextPage,
-  //   previousPage,
-  //   setPageSize,
-  //   state: { pageIndex, pageSize, filters }
-  // } = useTable(
-  //   {
-  //     columns,
-  //     data: displayData, // Use displayData here
-  //     initialState: {
-  //       pageIndex: queryPageIndex,
-  //       pageSize: queryPageSize,
-  //       filters: queryFilters,
-  //     },
-  //     manualPagination: true,
-  //     manualFilters: true,
-  //     manualSortBy: true,
-  //     pageCount: isSuccess ? Math.ceil(totalCount / queryPageSize) : 0,
-  //     autoResetSortBy: false,
-  //     autoResetExpanded: false,
-  //     autoResetPage: false
-  //   },
-  //   useFilters,
-  //   useSortBy,
-  //   usePagination
-  // );
-
-  // React.useEffect(() => {
-  //   dispatch({ type: ActionType.PAGE_CHANGED, payload: pageIndex });
-  // }, [pageIndex]);
-
-  // React.useEffect(() => {
-  //   dispatch({ type: ActionType.PAGE_CHANGED, payload: queryPageIndex });
-  // }, [queryPageIndex]);
-
-  // React.useEffect(() => {
-  //   dispatch({ type: ActionType.PAGE_SIZE_CHANGED, payload: pageSize });
-  //   gotoPage(0);
-  // }, [pageSize, gotoPage]);
-
-  // React.useEffect(() => {
-  //   if (data?.count) {
-  //     dispatch({
-  //       type: ActionType.TOTAL_COUNT_CHANGED,
-  //       payload: data.count
-  //     });
-  //   }
-  // }, [data?.count]);
-
-  // React.useEffect(() => {
-  //   dispatch({ type: ActionType.FILTER_CHANGED, payload: filters });
-  //   gotoPage(0);
-  // }, [filters]);
-
-  // React.useEffect(() => {
-  //   if (search.action_status != null) {
-  //     dispatch({ type: ActionType.FILTER_CHANGED, payload: [{ id: "action_status", value: search.action_status! }] });
-  //   }
-  // }, [search.action_status]);
 
   if (error) {
     return <p>Error</p>;
@@ -375,7 +235,6 @@ export const ReleaseTable = () => {
     )
   }
 
-  // Render the UI for your table
   return (
     <div className="flex flex-col">
       <div className="flex mb-6 flex-col sm:flex-row">
@@ -486,7 +345,6 @@ export const ReleaseTable = () => {
                     <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                       <TablePageButton
                         className="rounded-l-md"
-                        // onClick={() => tableInstance.setPageIndex(0)}
                         onClick={() => tableInstance.firstPage()}
                         disabled={!tableInstance.getCanPreviousPage()}
                       >
@@ -510,8 +368,6 @@ export const ReleaseTable = () => {
                       </TablePageButton>
                       <TablePageButton
                         className="rounded-r-md"
-                        // onClick={() => tableInstance.gotoPage(pageCount - 1)}
-                        // onClick={() => tableInstance.setPageIndex(tableInstance.getPageCount() - 1)}
                         onClick={() => tableInstance.lastPage()}
                         disabled={!tableInstance.getCanNextPage()}
                       >

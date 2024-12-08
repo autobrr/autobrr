@@ -8,8 +8,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   useReactTable,
   getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
   flexRender,
   ColumnDef
 } from "@tanstack/react-table";
@@ -21,45 +19,6 @@ import { RandomLinuxIsos } from "@utils";
 import { ReleasesLatestQueryOptions } from "@api/queries";
 import { IndexerCell } from "@components/data-table";
 
-// This is a custom filter UI for selecting
-// a unique option from a list
-// function SelectColumnFilter({
-//   column: { filterValue, setFilter, preFilteredRows, id, render }
-// }: FilterProps<object>) {
-//   // Calculate the options for filtering
-//   // using the preFilteredRows
-//   const options = React.useMemo(() => {
-//     const options = new Set<string>();
-//     preFilteredRows.forEach((row: { values: { [x: string]: string } }) => {
-//       options.add(row.values[id]);
-//     });
-//     return [...options.values()];
-//   }, [id, preFilteredRows]);
-//
-//   // Render a multi-select box
-//   return (
-//     <label className="flex items-baseline gap-x-2">
-//       <span className="text-gray-700"><>{render("Header")}:</></span>
-//       <select
-//         className="border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-//         name={id}
-//         id={id}
-//         value={filterValue}
-//         onChange={e => {
-//           setFilter(e.target.value || undefined);
-//         }}
-//       >
-//         <option value="">All</option>
-//         {options.map((option, i) => (
-//           <option key={i} value={option}>
-//             {option}
-//           </option>
-//         ))}
-//       </select>
-//     </label>
-//   );
-// }
-
 interface TableProps {
   columns: ColumnDef<Release>[];
   data: Release[];
@@ -70,8 +29,6 @@ function Table({ columns, data }: TableProps) {
     columns,
     data,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   })
 
   if (data.length === 0) {
@@ -85,16 +42,14 @@ function Table({ columns, data }: TableProps) {
     )
   }
 
-  // Render the UI for your table
   return (
     <div className="inline-block min-w-full mt-4 mb-2 align-middle">
-      <div
-        className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+      <div className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
         <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
           <thead className="bg-gray-100 dark:bg-gray-850">
-          {tableInstance.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
+            {tableInstance.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
                     scope="col"
@@ -110,39 +65,26 @@ function Table({ columns, data }: TableProps) {
                         )}
                     </div>
                   </th>
-                )
-              )}
-            </tr>
-          ))}
+                  )
+                )}
+              </tr>
+            ))}
           </thead>
 
           <tbody className="divide-y divide-gray-150 dark:divide-gray-750">
-          {tableInstance.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td
-                  key={cell.id}
-                  className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
-                  role="cell"
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-              {/*{row.cells.map((cell) => {*/}
-              {/*  const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();*/}
-              {/*  return (*/}
-              {/*    <td*/}
-              {/*      key={cellRowKey}*/}
-              {/*      className="first:pl-5 pl-3 pr-3 whitespace-nowrap"*/}
-              {/*      role="cell"*/}
-              {/*      {...cellRowRest}*/}
-              {/*    >*/}
-              {/*      <>{cell.render("Cell")}</>*/}
-              {/*    </td>*/}
-              {/*  );*/}
-              {/*})}*/}
-            </tr>
-          ))}
+            {tableInstance.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td
+                    key={cell.id}
+                    className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
+                    role="cell"
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -151,7 +93,7 @@ function Table({ columns, data }: TableProps) {
 }
 
 export const ActivityTable = () => {
-  const columns  = React.useMemo<ColumnDef<Release, any>[]>(() => [
+  const columns = React.useMemo<ColumnDef<Release, any>[]>(() => [
     {
       header: "Age",
       accessorKey: "timestamp",
@@ -161,9 +103,6 @@ export const ActivityTable = () => {
       header: "Release",
       accessorKey: "name",
       cell: DataTable.TitleCell,
-      // cell: ({ row }) => {
-      //   return <div><strong>{row.original.name}</strong></div>
-      // }
     },
     {
       header: "Actions",
@@ -174,8 +113,6 @@ export const ActivityTable = () => {
       header: "Indexer",
       accessorKey: "indexer.identifier",
       cell: IndexerCell,
-      // Filter: SelectColumnFilter,
-      // filter: "includes"
     }
   ], []);
 

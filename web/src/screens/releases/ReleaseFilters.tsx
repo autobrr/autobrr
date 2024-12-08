@@ -63,13 +63,10 @@ const ListboxFilter = ({
   </div>
 );
 
-// a unique option from a list
-// export const IndexerSelectColumnFilter = ({ column: { filterValue, setFilter, id } }: FilterProps<object>) => {
 export const IndexerSelectColumnFilter = ({ column }: { column: Column<any, unknown> }) => {
   const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
   // Assign indexer name based on the filterValue (indexer.identifier)
-  // const currentIndexerName = data?.find(indexer => indexer.identifier === filterValue)?.name ?? "Indexer";
   const currentIndexerName = data?.find(indexer => indexer.identifier === column.getFilterValue())?.name ?? "Indexer";
 
   // Render a multi-select box
@@ -157,11 +154,9 @@ export const SearchColumnFilter = ({ column }: { column: Column<any, unknown> })
         value={column.getFilterValue() as string || undefined}
         debounceTimeout={500}
         onChange={e => {
-          console.log("search value: ", e.target.value)
           // Set undefined to remove the filter entirely
           column.setFilterValue(e.target.value || undefined)
         }}
-        // onChange={value => column.setFilterValue(value || undefined)}
         id="filter"
         type="text"
         autoComplete="off"
