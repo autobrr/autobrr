@@ -135,10 +135,6 @@ export const ReleaseTable = () => {
     }
   ], []);
 
-  // if (search.action_status != "") {
-  //   setColumnFilters(prevState => [...prevState, { id: "action_status", value: search.action_status }]);
-  // }
-
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
