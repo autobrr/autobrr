@@ -86,12 +86,12 @@ export const FilterGetByIdRoute = createRoute({
   parseParams: (params) => ({
     filterId: z.number().int().parse(Number(params.filterId)),
   }),
-  stringifyParams: ({filterId}) => ({filterId: `${filterId}`}),
-  loader: async ({context, params}) => {
+  stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
+  loader: async ({ context, params }) => {
     try {
       const filter = await context.queryClient.ensureQueryData(FilterByIdQueryOptions(params.filterId))
       return { filter }
-    } catch (e) {
+    } catch {
       throw notFound()
     }
   },
@@ -247,7 +247,7 @@ export const OnboardRoute = createRoute({
     // and redirect if needed
     try {
       await APIClient.auth.canOnboard()
-    } catch (e) {
+    } catch {
       console.error("onboarding not available, redirect to login")
 
       throw redirect({
@@ -264,38 +264,54 @@ export const LoginRoute = createRoute({
   validateSearch: z.object({
     redirect: z.string().optional(),
   }),
-  beforeLoad: ({ navigate }) => {
-    // handle canOnboard
-    APIClient.auth.canOnboard().then(() => {
-      console.info("onboarding available, redirecting")
+  beforeLoad: async ({ navigate }) => {
+    // First check if OIDC is enabled
+    try {
+      const oidcConfig = await APIClient.auth.getOIDCConfig();
+      if (oidcConfig.enabled) {
+        return;
+      }
+    } catch (error) {
+      console.debug("Failed to get OIDC config, proceeding with onboarding check:", error);
+    }
 
-      navigate({ to: OnboardRoute.to })
-    }).catch(() => {
-      console.info("onboarding not available, please login")
-    })
+    // Only check onboarding if OIDC is not enabled
+    try {
+      await APIClient.auth.canOnboard();
+      console.info("onboarding available, redirecting");
+      navigate({ to: OnboardRoute.to });
+    } catch {
+      console.info("onboarding not available, please login");
+    }
   },
-}).update({component: Login});
+}).update({ component: Login });
 
 export const AuthRoute = createRoute({
   getParentRoute: () => RootRoute,
   id: 'auth',
   // Before loading, authenticate the user via our auth context
   // This will also happen during prefetching (e.g. hovering over links, etc.)
-  beforeLoad: ({ context, location }) => {
+  beforeLoad: async ({ context, location }) => {
     // If the user is not logged in, check for item in localStorage
     if (!AuthContext.get().isLoggedIn) {
-      throw redirect({
-        to: LoginRoute.to,
-        search: {
-          // Use the current location to power a redirect after login
-          // (Do not use `router.state.resolvedLocation` as it can
-          // potentially lag behind the actual current location)
-          redirect: location.href,
-        },
-      });
+      try {
+        const response = await APIClient.auth.validate();
+        AuthContext.set({
+          isLoggedIn: true,
+          username: response.username || 'unknown',
+          authMethod: response.auth_method
+        });
+      } catch (error) {
+        console.debug("Authentication validation failed:", error);
+        throw redirect({
+          to: LoginRoute.to,
+          search: {
+            redirect: location.href,
+          },
+        });
+      }
     }
 
-    // Otherwise, return the user in context
     return context;
   },
 })
@@ -313,8 +329,8 @@ function AuthenticatedLayout() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header/>
-      <Outlet/>
+      <Header />
+      <Outlet />
     </div>
   )
 }
@@ -329,11 +345,11 @@ export const RootComponent = () => {
   const settings = SettingsContext.useValue();
   return (
     <div className="flex flex-col min-h-screen">
-      <Outlet/>
+      <Outlet />
       {settings.debug ? (
         <>
-          <TanStackRouterDevtools/>
-          <ReactQueryDevtools initialIsOpen={false}/>
+          <TanStackRouterDevtools />
+          <ReactQueryDevtools initialIsOpen={false} />
         </>
       ) : null}
     </div>
@@ -360,7 +376,7 @@ export const Router = createRouter({
   routeTree,
   defaultPendingComponent: () => (
     <div className="flex flex-grow items-center justify-center col-span-9">
-      <RingResizeSpinner className="text-blue-500 size-24"/>
+      <RingResizeSpinner className="text-blue-500 size-24" />
     </div>
   ),
   defaultErrorComponent: (ctx) => (
