@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-
+import { useSearch } from "@tanstack/react-router";
 import {
   useReactTable,
   getCoreRowModel,
@@ -33,7 +33,7 @@ import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell
 
 declare module '@tanstack/react-table' {
   //allows us to define custom properties for our columns
-  // @eslint-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> {
     filterVariant?: 'text' | 'range' | 'select' | 'search' | 'actionPushStatus' | 'indexerSelect';
   }
@@ -85,8 +85,17 @@ interface ColumnFilter {
 type ColumnFiltersState = ColumnFilter[];
 
 export const ReleaseTable = () => {
-  // const search = ReleasesRoute.useSearch()
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const search = useSearch({
+    from: "/auth/authenticated-routes/releases" as const,
+  });
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  // Set initial filter based on URL params
+  React.useEffect(() => {
+    if (search.action_status) {
+      setColumnFilters([{ id: "action_status", value: search.action_status }]);
+    }
+  }, [search.action_status]);
 
   const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
     {
@@ -125,10 +134,6 @@ export const ReleaseTable = () => {
       },
     }
   ], []);
-
-  // if (search.action_status != "") {
-  //   setColumnFilters(prevState => [...prevState, { id: "action_status", value: search.action_status }]);
-  // }
 
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
