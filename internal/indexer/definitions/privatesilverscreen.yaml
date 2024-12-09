@@ -1,0 +1,104 @@
+---
+name: PrivateSilverScreen
+identifier: pss
+description: PrivateSilverScreen (PSS) is a private tracker for MOVIES / TV / MUSIC
+language: en-us
+urls:
+  - https://privatesilverscreen.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
+
+irc:
+  network: PrivateSilverScreen
+  server: irc.privatesilverscreen.cc
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - pssBot
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: "Category [Movies] Type [Encode] Name [Generic Movie 2024 1080p BluRay DD 5.1 x264-GROUP] Resolution [1080p] Freeleech [0%] Double Upload [No] Size [20.5 GB] Uploader [Anonymous] Url [https://privatesilverscreen.cc/torrent/download/12345]"
+            expect:
+              category: Movies
+              releaseTags: Encode
+              torrentName: Generic Movie 2024 1080p BluRay DD 5.1 x264-GROUP
+              resolution: 1080p
+              freeleech: 0%
+              tags: "No"
+              torrentSize: 20.5 GB
+              uploader: Anonymous
+              baseUrl: https://privatesilverscreen.cc/
+              torrentId: "12345"
+          - line: "Category [TV] Type [WEB-DL] Name [Generic Show S02E06 1080p WEB-DL DD+ 5.1 H.264-GROUP] Resolution [1080p] Freeleech [0%] Double Upload [Yes] Size [3 GB] Uploader [Jenkins] Url [https://privatesilverscreen.cc/torrent/download/12346]"
+            expect:
+              category: TV
+              releaseTags: WEB-DL
+              torrentName: Generic Show S02E06 1080p WEB-DL DD+ 5.1 H.264-GROUP
+              resolution: 1080p
+              freeleech: 0%
+              tags: "Yes"
+              torrentSize: 3 GB
+              uploader: Jenkins
+              baseUrl: https://privatesilverscreen.cc/
+              torrentId: "12346"
+          - line: "Category [Music] Type [MP3] Name [Generic Artist - Generic Album 2024 Mp3 320kbps-GROUP] Resolution [] Freeleech [100%] Double Upload [No] Size [755.47 MB] Uploader [Anonymous] Url [https://privatesilverscreen.cc/torrent/download/12347]"
+            expect:
+              category: Music
+              releaseTags: MP3
+              torrentName: Generic Artist - Generic Album 2024 Mp3 320kbps-GROUP
+              resolution:
+              freeleech: 100%
+              tags: "No"
+              torrentSize: 755.47 MB
+              uploader: Anonymous
+              baseUrl: https://privatesilverscreen.cc/
+              torrentId: "12347"
+        pattern: 'Category \[(.*)\] Type \[(.*)\] Name \[(.*)\] Resolution \[(.*)\] Freeleech \[(.*)\] Double Upload \[(.*)\] Size \[(.*)\] Uploader \[(.*)\] Url \[(https?\:\/\/.*?\/).*\/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - resolution
+          - freeleech
+          - tags
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
