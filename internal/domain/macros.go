@@ -32,6 +32,7 @@ type Macro struct {
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
+	Description               string		  
 	DownloadUrl               string
 	Episode                   int
 	FilterID                  int
@@ -103,6 +104,7 @@ func NewMacro(release Release) Macro {
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
+		Description:               release.Description,
 		DownloadUrl:               release.DownloadURL,
 		Episode:                   release.Episode,
 		FilterID:                  release.FilterID,

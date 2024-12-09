@@ -11,6 +11,7 @@ interface Release {
   filter: string;
   protocol: string;
   implementation: string;
+  announce_type: string;
   name: string;
   title: string;
   size: number;
