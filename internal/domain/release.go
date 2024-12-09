@@ -733,7 +733,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Category = category
 	}
 
-	if announceType, err := getStringMapValue(varMap, "announceTypeEnum"); err == nil {
+	if announceType, err := getStringMapValue(varMap, "announceType"); err == nil {
 		annType, parseErr := ParseAnnounceType(announceType)
 		if parseErr == nil {
 			r.AnnounceType = annType
@@ -764,29 +764,72 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
 
-		freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
-		if err != nil {
-			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
-		}
+		freeleechPercentInt, parseErr := strconv.Atoi(freeleechPercent)
+		if parseErr == nil {
+			if freeleechPercentInt > 0 {
+				r.Freeleech = true
+				r.FreeleechPercent = freeleechPercentInt
 
-		if freeleechPercentInt > 0 {
-			r.Freeleech = true
-			r.FreeleechPercent = freeleechPercentInt
+				r.Bonus = append(r.Bonus, "Freeleech")
 
-			r.Bonus = append(r.Bonus, "Freeleech")
-
-			switch freeleechPercentInt {
-			case 25:
-				r.Bonus = append(r.Bonus, "Freeleech25")
-			case 50:
-				r.Bonus = append(r.Bonus, "Freeleech50")
-			case 75:
-				r.Bonus = append(r.Bonus, "Freeleech75")
-			case 100:
-				r.Bonus = append(r.Bonus, "Freeleech100")
+				switch freeleechPercentInt {
+				case 25:
+					r.Bonus = append(r.Bonus, "Freeleech25")
+				case 50:
+					r.Bonus = append(r.Bonus, "Freeleech50")
+				case 75:
+					r.Bonus = append(r.Bonus, "Freeleech75")
+				case 100:
+					r.Bonus = append(r.Bonus, "Freeleech100")
+				}
 			}
 		}
 	}
+
+	//if downloadVolumeFactor, err := getStringMapValue(varMap, "downloadVolumeFactor"); err == nil {
+	if downloadVolumeFactor, ok := varMap["downloadVolumeFactor"]; ok {
+		// special handling for BHD to map their freeleech into percent
+		//if def.Identifier == "beyondhd" {
+		//	if freeleechPercent == "Capped FL" {
+		//		freeleechPercent = "100%"
+		//	} else if strings.Contains(freeleechPercent, "% FL") {
+		//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+		//	}
+		//}
+
+		//r.downloadVolumeFactor = downloadVolumeFactor
+
+		value, parseErr := strconv.ParseInt(downloadVolumeFactor, 10, 64)
+		if parseErr == nil {
+			percentage := value * 100
+			r.FreeleechPercent = int(percentage)
+		}
+
+		r.Freeleech = true
+	}
+
+	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
+	//	// special handling for BHD to map their freeleech into percent
+	//	//if def.Identifier == "beyondhd" {
+	//	//	if freeleechPercent == "Capped FL" {
+	//	//		freeleechPercent = "100%"
+	//	//	} else if strings.Contains(freeleechPercent, "% FL") {
+	//	//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+	//	//	}
+	//	//}
+	//
+	//	r.uploadVolumeFactor = uploadVolumeFactor
+	//
+	//	//freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
+	//	//if err != nil {
+	//	//	//log.Debug().Msgf("bad freeleechPercent var: %v", year)
+	//	//}
+	//	//
+	//	//if freeleechPercentInt > 0 {
+	//	//	r.Freeleech = true
+	//	//	r.FreeleechPercent = freeleechPercentInt
+	//	//}
+	//}
 
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
 		r.Uploader = uploader
@@ -801,11 +844,17 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
 		}
 
-		size, err := humanize.ParseBytes(torrentSize)
-		if err != nil {
-			// log could not parse into bytes
+		size, parseErr := humanize.ParseBytes(torrentSize)
+		if parseErr == nil {
+			r.Size = size
 		}
-		r.Size = size
+	}
+
+	if torrentSizeBytes, err := getStringMapValue(varMap, "torrentSizeBytes"); err == nil {
+		size, parseErr := strconv.ParseUint(torrentSizeBytes, 10, 64)
+		if parseErr == nil {
+			r.Size = size
+		}
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
@@ -826,24 +875,27 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
-		year, err := strconv.Atoi(yearVal)
-		if err != nil {
-			//log.Debug().Msgf("bad year var: %v", year)
+		year, parseErr := strconv.Atoi(yearVal)
+		if parseErr == nil {
+			r.Year = year
 		}
-		r.Year = year
 	}
 
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
-		tagsArr := []string{}
-		s := strings.Split(tags, ",")
-		for _, t := range s {
-			tagsArr = append(tagsArr, strings.Trim(t, " "))
+		if tags != "" && tags != "*" {
+			tagsArr := []string{}
+			s := strings.Split(tags, ",")
+			for _, t := range s {
+				tagsArr = append(tagsArr, strings.Trim(t, " "))
+			}
+			r.Tags = tagsArr
 		}
-		r.Tags = tagsArr
 	}
 
 	if title, err := getStringMapValue(varMap, "title"); err == nil {
-		r.Title = title
+		if title != "" && title != "*" {
+			r.Title = title
+		}
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful
@@ -863,6 +915,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		episode, _ := strconv.Atoi(episodeVal)
 		r.Episode = episode
 	}
+
+	//if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
+	//	r.MetaIMDB = metaImdb
+	//}
 
 	return nil
 }
