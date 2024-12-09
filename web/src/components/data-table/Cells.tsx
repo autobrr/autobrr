@@ -63,6 +63,7 @@ export const LinksCell = (props: CellContext<Release, unknown>) => {
             <CellLine title="Indexer">{props.row.original.indexer.identifier}</CellLine>
             <CellLine title="Protocol">{props.row.original.protocol}</CellLine>
             <CellLine title="Implementation">{props.row.original.implementation}</CellLine>
+            <CellLine title="Announce Type">{props.row.original.announce_type}</CellLine>
             <CellLine title="Category">{props.row.original.category}</CellLine>
             <CellLine title="Uploader">{props.row.original.uploader}</CellLine>
             <CellLine title="Size">{humanFileSize(props.row.original.size)}</CellLine>
