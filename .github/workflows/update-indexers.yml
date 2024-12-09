@@ -61,4 +61,4 @@ jobs:
             --label "documentation"
         fi
       env:
-        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        GITHUB_TOKEN: ${{ secrets.DOCS_TOKEN }}
