@@ -786,7 +786,6 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		}
 	}
 
-	//if downloadVolumeFactor, err := getStringMapValue(varMap, "downloadVolumeFactor"); err == nil {
 	if downloadVolumeFactor, ok := varMap["downloadVolumeFactor"]; ok {
 		// special handling for BHD to map their freeleech into percent
 		//if def.Identifier == "beyondhd" {
@@ -803,9 +802,11 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		if parseErr == nil {
 			percentage := value * 100
 			r.FreeleechPercent = int(percentage)
-		}
 
-		r.Freeleech = true
+			if percentage > 0 {
+				r.Freeleech = true
+			}
+		}
 	}
 
 	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
