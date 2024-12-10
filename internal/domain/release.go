@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"math"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -786,8 +787,7 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		}
 	}
 
-	//if downloadVolumeFactor, err := getStringMapValue(varMap, "downloadVolumeFactor"); err == nil {
-	if downloadVolumeFactor, ok := varMap["downloadVolumeFactor"]; ok {
+	if downloadVolumeFactorVar, ok := varMap["downloadVolumeFactor"]; ok {
 		// special handling for BHD to map their freeleech into percent
 		//if def.Identifier == "beyondhd" {
 		//	if freeleechPercent == "Capped FL" {
@@ -799,13 +799,23 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 
 		//r.downloadVolumeFactor = downloadVolumeFactor
 
-		value, parseErr := strconv.ParseInt(downloadVolumeFactor, 10, 64)
+		// Parse the value as decimal number
+		downloadVolumeFactor, parseErr := strconv.ParseFloat(downloadVolumeFactorVar, 64)
 		if parseErr == nil {
-			percentage := value * 100
-			r.FreeleechPercent = int(percentage)
-		}
+			// Values below 0.0 and above 1.0 are rejected
+			if downloadVolumeFactor >= 0 || downloadVolumeFactor <= 1 {
+				// Multiply by 100 to convert from ratio to percentage and round it
+				// to the nearest integer value
+				downloadPercentage := math.Round(downloadVolumeFactor * 100)
 
-		r.Freeleech = true
+				// To convert from download percentage to freeleech percentage the
+				// value is inverted
+				r.FreeleechPercent = 100 - int(downloadPercentage)
+				if r.FreeleechPercent > 0 {
+					r.Freeleech = true
+				}
+			}
+		}
 	}
 
 	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
