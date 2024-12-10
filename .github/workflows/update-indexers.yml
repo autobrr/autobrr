@@ -17,7 +17,7 @@ jobs:
       with:
         repository: 'autobrr/autobrr.com'
         path: 'autobrr.com'
-        token: ${{ secrets.GH_PAT }}
+        token: ${{ secrets.DOCS_TOKEN }}
 
     - name: Check out autobrr repo
       uses: actions/checkout@v3
