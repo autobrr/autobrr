@@ -44,11 +44,11 @@ jobs:
         git checkout -b $BRANCH_NAME
         
         # Add and commit changes
-        git add snippets/indexers.mdx
+        git add snippets/indexers.mdx snippets/freeleech.mdx
         
         # Only proceed if there are changes
         if ! git diff --quiet && ! git diff --staged --quiet; then
-          git commit -m "Update indexers list"
+          git commit -m "docs: update indexers and freeleech support lists"
           git push origin $BRANCH_NAME
           
           # Create PR using GitHub CLI
@@ -56,8 +56,8 @@ jobs:
             --repo autobrr/autobrr.com \
             --base main \
             --head $BRANCH_NAME \
-            --title "Update indexers list" \
-            --body "Automated update of the indexers list from definitions" \
+            --title "docs: update indexers and freeleech support lists" \
+            --body "Automated update of the indexers and freeleech support lists from definitions" \
             --label "documentation"
         fi
       env:
