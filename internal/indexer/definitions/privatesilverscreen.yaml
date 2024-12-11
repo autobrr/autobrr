@@ -42,7 +42,7 @@ irc:
 
     - name: auth.password
       type: secret
-      required: true
+      required: false
       label: NickServ Password
       help: NickServ password
 
