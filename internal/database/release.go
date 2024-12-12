@@ -134,7 +134,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 
 var reservedSearch = map[string]*regexp.Regexp{
 	"r.title":         regexp.MustCompile(`(?i)(?:` + `title` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.release_group": regexp.MustCompile(`(?i)(?:` + `release_group` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.release_group": regexp.MustCompile(`(?i)(?:` + `group` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.category":      regexp.MustCompile(`(?i)(?:` + `category` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.season":        regexp.MustCompile(`(?i)(?:` + `season` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.episode":       regexp.MustCompile(`(?i)(?:` + `episode` + `:)(?P<value>'.*?'|".*?"|\S+)`),
