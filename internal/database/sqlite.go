@@ -340,6 +340,10 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 		}
 	}
 
+	if len(badIndexes) == 0 {
+		return errors.New("found no indexes to reindex")
+	}
+
 	for _, index := range badIndexes {
 		db.log.Info().Msgf("Database attempt to re-index: %s", index)
 
