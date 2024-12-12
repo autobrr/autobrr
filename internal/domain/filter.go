@@ -107,6 +107,7 @@ type Filter struct {
 	UseRegex             bool                   `json:"use_regex,omitempty"`
 	MatchReleaseGroups   string                 `json:"match_release_groups,omitempty"`
 	ExceptReleaseGroups  string                 `json:"except_release_groups,omitempty"`
+	AnnounceTypes        []string               `json:"announce_types,omitempty"`
 	Scene                bool                   `json:"scene,omitempty"`
 	Origins              []string               `json:"origins,omitempty"`
 	ExceptOrigins        []string               `json:"except_origins,omitempty"`
@@ -222,6 +223,7 @@ type FilterUpdate struct {
 	MaxSize              *string                 `json:"max_size,omitempty"`
 	Delay                *int                    `json:"delay,omitempty"`
 	Priority             *int32                  `json:"priority,omitempty"`
+	AnnounceTypes        *[]string               `json:"announce_types,omitempty"`
 	MaxDownloads         *int                    `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit     *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
 	MatchReleases        *string                 `json:"match_releases,omitempty"`
@@ -383,6 +385,10 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 
 	if f.FreeleechPercent != "" && !checkFreeleechPercent(r.FreeleechPercent, f.FreeleechPercent) {
 		f.RejectReasons.Add("freeleech percent", r.FreeleechPercent, f.FreeleechPercent)
+	}
+
+	if len(f.AnnounceTypes) > 0 && !basicContainsSlice(string(r.AnnounceType), f.AnnounceTypes) {
+		f.RejectReasons.Add("match announce type", r.AnnounceType, f.AnnounceTypes)
 	}
 
 	if len(f.Origins) > 0 && !containsSlice(r.Origin, f.Origins) {

@@ -202,6 +202,10 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 
 func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 	if status, err := h.onboardEligible(r.Context()); err != nil {
+		if status == http.StatusServiceUnavailable {
+			h.encoder.StatusWarning(w, status, err.Error())
+			return
+		}
 		h.encoder.StatusError(w, status, err)
 		return
 	}

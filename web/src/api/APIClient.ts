@@ -6,6 +6,7 @@
 import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
 import { AuthContext } from "@utils/Context";
+import { ColumnFilter } from "@tanstack/react-table";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
@@ -416,7 +417,7 @@ export const APIClient = {
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
     findRecent: () => appClient.Get<ReleaseFindResponse>("api/release/recent"),
-    findQuery: (offset?: number, limit?: number, filters?: ReleaseFilter[]) => {
+    findQuery: (offset?: number, limit?: number, filters?: ColumnFilter[]) => {
       const params: Record<string, string[]> = {
         indexer: [],
         push_status: [],
@@ -428,13 +429,25 @@ export const APIClient = {
           return;
 
         if (filter.id == "indexer.identifier") {
-          params["indexer"].push(filter.value);
+          if (typeof filter.value === "string") {
+            params["indexer"].push(filter.value);
+          }
+        } else if (filter.id == "indexer_identifier") {
+          if (typeof filter.value === "string") {
+            params["indexer"].push(filter.value);
+          }
         } else if (filter.id === "action_status") {
-          params["push_status"].push(filter.value); // push_status is the correct value here otherwise the releases table won't load when filtered by push status
+          if (typeof filter.value === "string") {
+            params["push_status"].push(filter.value);
+          } // push_status is the correct value here otherwise the releases table won't load when filtered by push status
         } else if (filter.id === "push_status") {
-          params["push_status"].push(filter.value);
+          if (typeof filter.value === "string") {
+            params["push_status"].push(filter.value);
+          }
         } else if (filter.id == "name") {
-          params["q"].push(filter.value);
+          if (typeof filter.value === "string") {
+            params["q"].push(filter.value);
+          }
         }
       });
 

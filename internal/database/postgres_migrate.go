@@ -101,6 +101,7 @@ CREATE TABLE filter
     priority                       INTEGER   DEFAULT 0 NOT NULL,
     max_downloads                  INTEGER   DEFAULT 0,
     max_downloads_unit             TEXT,
+	announce_types                 TEXT []   DEFAULT '{}',
     match_releases                 TEXT,
     except_releases                TEXT,
     use_regex                      BOOLEAN,
@@ -263,6 +264,7 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    announce_type     TEXT      DEFAULT 'NEW', 
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -996,6 +998,12 @@ UPDATE irc_network
 	`UPDATE irc_network
     SET port = '6697', tls = true
     WHERE server = 'irc.seedpool.org';
+`,
+	`ALTER TABLE "release"
+	ADD COLUMN announce_type TEXT DEFAULT 'NEW';
+
+	ALTER TABLE filter
+	ADD COLUMN announce_types TEXT []   DEFAULT '{}';
 `,
 	`ALTER TABLE users
 ADD COLUMN two_factor_auth BOOLEAN DEFAULT FALSE;
