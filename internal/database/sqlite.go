@@ -271,17 +271,85 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 func (db *DB) databaseConsistencyCheckSQLite() error {
 	db.log.Info().Msg("Database integrity check..")
 
+	rows, err := db.handler.Query("PRAGMA integrity_check;")
+	if err != nil {
+		return errors.Wrap(err, "failed to query integrity check")
+	}
+
+	var results []string
+	for rows.Next() {
+		var result string
+		if err := rows.Scan(&result); err != nil {
+			return errors.Wrap(err, "backup integrity unexpected state")
+		}
+
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return errors.Wrap(err, "backup integrity unexpected state")
+	}
+
+	if len(results) == 1 && results[0] == "ok" {
+		db.log.Info().Msg("Database integrity check OK!")
+		return nil
+	}
+
+	if err := db.sqlitePerformReIndexing(results); err != nil {
+		return errors.Wrap(err, "failed to reindex database")
+	}
+
+	db.log.Info().Msg("Database integrity check post re-indexing..")
+
 	row := db.handler.QueryRow("PRAGMA integrity_check;")
 
 	var status string
 	if err := row.Scan(&status); err != nil {
 		return errors.Wrap(err, "backup integrity unexpected state")
 	}
+
+	db.log.Info().Msgf("Database integrity check: %s", status)
+
 	if status != "ok" {
 		return errors.New("backup integrity check failed: %q", status)
 	}
 
-	db.log.Info().Msg("Database integrity check OK!")
+	return nil
+}
+
+// sqlitePerformReIndexing try to reindex bad indexes
+func (db *DB) sqlitePerformReIndexing(results []string) error {
+	db.log.Warn().Msg("Database integrity check failed!")
+
+	db.log.Info().Msg("Backing up database before re-indexing..")
+
+	if err := db.backupSQLiteDatabase(); err != nil {
+		return errors.Wrap(err, "failed to create database backup")
+	}
+
+	db.log.Info().Msg("Database backup created!")
+
+	var badIndexes []string
+
+	for _, issue := range results {
+		index, found := strings.CutPrefix(issue, "wrong # of entries in index ")
+		if found {
+			db.log.Warn().Msgf("Database integrity check failed on index: %s", index)
+
+			badIndexes = append(badIndexes, index)
+		}
+	}
+
+	for _, index := range badIndexes {
+		db.log.Info().Msgf("Database attempt to re-index: %s", index)
+
+		_, err := db.handler.Exec(fmt.Sprintf("REINDEX %s;", index))
+		if err != nil {
+			return errors.Wrap(err, "failed to backup database")
+		}
+	}
+
+	db.log.Info().Msg("Database re-indexing OK!")
 
 	return nil
 }
@@ -331,7 +399,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 			timestamp := strings.TrimSuffix(parts[2], ".backup")
 			if _, err := time.Parse(timeFormat, timestamp); err == nil {
 				backups = append(backups, file.Name())
-			} else if  _, err := time.Parse(badFormat, timestamp); err == nil {
+			} else if _, err := time.Parse(badFormat, timestamp); err == nil {
 				broken = append(broken, file.Name())
 			}
 		}
@@ -356,7 +424,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 		if err := os.Remove(filepath.Join(backupDir, broken[i])); err != nil {
 			return errors.Wrap(err, "failed to remove old backups")
 		}
-	
+
 		db.log.Info().Msgf("Removed Old SQLite backup: %s", broken[i])
 	}
 
