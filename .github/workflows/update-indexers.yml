@@ -38,33 +38,20 @@ jobs:
 
     - name: Update indexers list
       run: |
-        echo "Current directory structure:"
-        pwd
-        ls -la
-        echo "${{ env.SOURCE_PATH }} contents:"
-        ls -la ${{ env.SOURCE_PATH }}
-        echo "${{ env.SOURCE_PATH }}/internal contents:"
-        ls -la ${{ env.SOURCE_PATH }}/internal
-        echo "${{ env.SOURCE_PATH }}/internal/indexer contents:"
-        ls -la ${{ env.SOURCE_PATH }}/internal/indexer
-        echo "${{ env.SOURCE_PATH }}/internal/indexer/definitions contents:"
-        ls -la ${{ env.SOURCE_PATH }}/internal/indexer/definitions
+        # Verify source paths exist before running script
+        if [ ! -d "${{ env.SOURCE_PATH }}/internal/indexer/definitions" ]; then
+          echo "Error: Required definitions directory not found"
+          exit 1
+        fi
         
         echo "Running update script..."
         cd ${{ env.SOURCE_PATH }}
         python3 scripts/update-indexers.py
         echo "Update script completed"
-        echo "Generated files:"
+        
+        # Verify output files were generated
+        echo "Checking generated files..."
         ls -l ../${{ env.DOCS_PATH }}/snippets/indexers.mdx ../${{ env.DOCS_PATH }}/snippets/freeleech.mdx || true
-
-    - name: Install GitHub CLI
-      run: |
-        type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-        && sudo apt update \
-        && sudo apt install gh -y
 
     - name: Create Pull Request
       run: |
