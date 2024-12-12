@@ -1,3 +1,6 @@
+// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -7,6 +10,7 @@ import (
 )
 
 func TestRejectionReasons_String(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		data []Rejection
 	}
@@ -52,6 +56,7 @@ func TestRejectionReasons_String(t *testing.T) {
 }
 
 func TestRejectionReasons_StringTruncated(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		data []Rejection
 	}

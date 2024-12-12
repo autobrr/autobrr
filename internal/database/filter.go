@@ -175,6 +175,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.max_size",
 			"f.delay",
 			"f.priority",
+			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
 			"f.match_releases",
@@ -267,6 +268,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&maxSize,
 		&delay,
 		&f.Priority,
+		pq.Array(&f.AnnounceTypes),
 		&maxDownloads,
 		&maxDownloadsUnit,
 		&matchReleases,
@@ -391,6 +393,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.max_size",
 			"f.delay",
 			"f.priority",
+			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
 			"f.match_releases",
@@ -488,6 +491,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&maxSize,
 			&delay,
 			&f.Priority,
+			pq.Array(&f.AnnounceTypes),
 			&maxDownloads,
 			&maxDownloadsUnit,
 			&matchReleases,
@@ -693,6 +697,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"max_size",
 			"delay",
 			"priority",
+			"announce_types",
 			"max_downloads",
 			"max_downloads_unit",
 			"match_releases",
@@ -758,6 +763,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MaxSize,
 			filter.Delay,
 			filter.Priority,
+			pq.Array(filter.AnnounceTypes),
 			filter.MaxDownloads,
 			filter.MaxDownloadsUnit,
 			filter.MatchReleases,
@@ -841,6 +847,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("max_size", filter.MaxSize).
 		Set("delay", filter.Delay).
 		Set("priority", filter.Priority).
+		Set("announce_types", pq.Array(filter.AnnounceTypes)).
 		Set("max_downloads", filter.MaxDownloads).
 		Set("max_downloads_unit", filter.MaxDownloadsUnit).
 		Set("use_regex", filter.UseRegex).
@@ -942,6 +949,9 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.Priority != nil {
 		q = q.Set("priority", filter.Priority)
+	}
+	if filter.AnnounceTypes != nil {
+		q = q.Set("announce_types", pq.Array(filter.AnnounceTypes))
 	}
 	if filter.MaxDownloads != nil {
 		q = q.Set("max_downloads", filter.MaxDownloads)

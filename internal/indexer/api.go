@@ -13,7 +13,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/ggn"
 	"github.com/autobrr/autobrr/pkg/ops"
-	"github.com/autobrr/autobrr/pkg/ptp"
 	"github.com/autobrr/autobrr/pkg/red"
 
 	"github.com/rs/zerolog"
@@ -94,18 +93,6 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		}
 		s.apiClients[indexer] = btn.NewClient(key)
 
-	case "ptp":
-		user, ok := settings["api_user"]
-		if !ok || user == "" {
-			return errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_user'")
-		}
-
-		key, ok := settings["api_key"]
-		if !ok || key == "" {
-			return errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
-		}
-		s.apiClients[indexer] = ptp.NewClient(user, key)
-
 	case "ggn":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
@@ -155,16 +142,6 @@ func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 			return nil, errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
 		return btn.NewClient(req.ApiKey), nil
-
-	case "ptp":
-		if req.ApiUser == "" {
-			return nil, errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_user'")
-		}
-
-		if req.ApiKey == "" {
-			return nil, errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
-		}
-		return ptp.NewClient(req.ApiUser, req.ApiKey), nil
 
 	case "ggn":
 		if req.ApiKey == "" {

@@ -1,13 +1,18 @@
+// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package notification
 
 import (
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNotificationBuilderPlainText_BuildBody(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		payload domain.NotificationPayload
 	}

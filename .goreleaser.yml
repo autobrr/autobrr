@@ -8,6 +8,8 @@ builds:
   - id: autobrr
     env:
       - CGO_ENABLED=0
+    flags:
+      - -pgo=cpu.pprof
     goos:
       - linux
       - windows

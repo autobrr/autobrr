@@ -10,6 +10,7 @@ import (
 )
 
 func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		TorrentURL  string
 		TorrentName string
@@ -165,6 +166,7 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 }
 
 func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		TorrentURL  string
 		TorrentName string
@@ -238,6 +240,7 @@ func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
 }
 
 func TestIRCParserGazelleGames_Parse(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		rls  *Release
 		vars map[string]string
@@ -316,6 +319,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 }
 
 func TestIRCParserOrpheus_Parse(t *testing.T) {
+	t.Parallel()
 	type args struct {
 		rls  *Release
 		vars map[string]string
@@ -368,6 +372,110 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 			p.Parse(tt.args.rls, tt.args.vars)
 			assert.Equal(t, tt.want.release, tt.args.rls.TorrentName)
 			assert.Equal(t, tt.want.title, tt.args.rls.Title)
+		})
+	}
+}
+
+func TestIndexerIRCParse_MapCustomVariables1(t *testing.T) {
+	type fields struct {
+		Type          string
+		ForceSizeUnit string
+		Lines         []IndexerIRCParseLine
+		Match         IndexerIRCParseMatch
+		Mappings      map[string]map[string]map[string]string
+	}
+	type args struct {
+		vars       map[string]string
+		expectVars map[string]string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "",
+			fields: fields{
+				Mappings: map[string]map[string]map[string]string{
+					"announceType": {
+						"0": map[string]string{
+							"announceType": "NEW",
+						},
+						"1": map[string]string{
+							"announceType": "PROMO",
+						},
+					},
+					"categoryEnum": {
+						"0": map[string]string{
+							"category": "Feature Film",
+						},
+						"1": map[string]string{
+							"category": "Short Film",
+						},
+						"2": map[string]string{
+							"category": "Miniseries",
+						},
+						"3": map[string]string{
+							"category": "Stand-up Comedy",
+						},
+						"4": map[string]string{
+							"category": "Live Performance",
+						},
+						"5": map[string]string{
+							"category": "Movie Collection",
+						},
+					},
+					"freeleechEnum": {
+						"0": map[string]string{
+							"downloadVolumeFactor": "1.0",
+							"uploadVolumeFactor":   "1.0",
+						},
+						"1": map[string]string{
+							"downloadVolumeFactor": "0",
+							"uploadVolumeFactor":   "1.0",
+						},
+						"2": map[string]string{
+							"downloadVolumeFactor": "0.5",
+							"uploadVolumeFactor":   "1.0",
+						},
+						"3": map[string]string{
+							"downloadVolumeFactor": "0",
+							"uploadVolumeFactor":   "0",
+						},
+					},
+				},
+			},
+			args: args{
+				vars: map[string]string{
+					"announceType":  "1",
+					"categoryEnum":  "0",
+					"freeleechEnum": "1",
+				},
+				expectVars: map[string]string{
+					"announceType":         "PROMO",
+					"category":             "Feature Film",
+					"categoryEnum":         "0",
+					"freeleechEnum":        "1",
+					"downloadVolumeFactor": "0",
+					"uploadVolumeFactor":   "1.0",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &IndexerIRCParse{
+				Type:          tt.fields.Type,
+				ForceSizeUnit: tt.fields.ForceSizeUnit,
+				Lines:         tt.fields.Lines,
+				Match:         tt.fields.Match,
+				Mappings:      tt.fields.Mappings,
+			}
+			err := p.MapCustomVariables(tt.args.vars)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.args.expectVars, tt.args.vars)
 		})
 	}
 }

@@ -7,25 +7,30 @@ import (
 	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/asaskevich/EventBus"
 	"github.com/rs/zerolog"
 )
 
 type Subscriber struct {
-	log             zerolog.Logger
-	eventbus        EventBus.Bus
+	log      zerolog.Logger
+	eventbus EventBus.Bus
+
+	feedSvc         feed.Service
 	notificationSvc notification.Service
 	releaseSvc      release.Service
 }
 
-func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, notificationSvc notification.Service, releaseSvc release.Service) Subscriber {
+func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feed.Service, notificationSvc notification.Service, releaseSvc release.Service) Subscriber {
 	s := Subscriber{
 		log:             log.With().Str("module", "events").Logger(),
 		eventbus:        eventbus,
+		feedSvc:         feedSvc,
 		notificationSvc: notificationSvc,
 		releaseSvc:      releaseSvc,
 	}
@@ -36,13 +41,14 @@ func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, notificationSvc no
 }
 
 func (s Subscriber) Register() {
-	s.eventbus.Subscribe("release:store-action-status", s.releaseActionStatus)
-	s.eventbus.Subscribe("release:push", s.releasePushStatus)
-	s.eventbus.Subscribe("events:notification", s.sendNotification)
+	s.eventbus.Subscribe(domain.EventReleaseStoreActionStatus, s.handleReleaseActionStatus)
+	s.eventbus.Subscribe(domain.EventReleasePushStatus, s.handleReleasePushStatus)
+	s.eventbus.Subscribe(domain.EventNotificationSend, s.handleSendNotification)
+	s.eventbus.Subscribe(domain.EventIndexerDelete, s.handleIndexerDelete)
 }
 
-func (s Subscriber) releaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
-	s.log.Trace().Msgf("events: 'release:store-action-status' '%+v'", actionStatus)
+func (s Subscriber) handleReleaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
+	s.log.Trace().Str("event", domain.EventReleaseStoreActionStatus).Msgf("store action status: '%+v'", actionStatus)
 
 	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
 	if err != nil {
@@ -50,16 +56,41 @@ func (s Subscriber) releaseActionStatus(actionStatus *domain.ReleaseActionStatus
 	}
 }
 
-func (s Subscriber) releasePushStatus(actionStatus *domain.ReleaseActionStatus) {
-	s.log.Trace().Msgf("events: 'release:push' '%+v'", actionStatus)
+func (s Subscriber) handleReleasePushStatus(actionStatus *domain.ReleaseActionStatus) {
+	s.log.Trace().Str("event", domain.EventReleasePushStatus).Msgf("events: 'release:push' '%+v'", actionStatus)
 
 	if err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus); err != nil {
 		s.log.Error().Err(err).Msgf("events: 'release:push' error")
 	}
 }
 
-func (s Subscriber) sendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
-	s.log.Trace().Msgf("events: '%v' '%+v'", *event, payload)
+func (s Subscriber) handleSendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
+	s.log.Trace().Str("event", domain.EventNotificationSend).Msgf("send notification events: '%v' '%+v'", *event, payload)
 
 	s.notificationSvc.Send(*event, *payload)
+}
+
+// handleIndexerDelete handle feed cleanup via event because feed service can't be imported in indexer service
+func (s Subscriber) handleIndexerDelete(indexer *domain.Indexer) {
+	s.log.Trace().Str("event", domain.EventIndexerDelete).Msgf("events: 'indexer:delete' '%d'", indexer.ID)
+
+	ctx := context.Background()
+
+	if indexer.ImplementationIsFeed() {
+		feedItem, err := s.feedSvc.FindOne(ctx, domain.FindOneParams{IndexerID: int(indexer.ID)})
+		if err != nil {
+			if errors.Is(err, domain.ErrRecordNotFound) {
+				return
+			}
+
+			s.log.Error().Err(err).Msgf("events: 'indexer:delete' error, could not find feed with indexer id: %d", indexer.ID)
+			return
+		}
+
+		if err := s.feedSvc.Delete(ctx, feedItem.ID); err != nil {
+			s.log.Error().Err(err).Msgf("events: 'indexer:delete' error, could not delete feed with id: %d", feedItem.ID)
+		}
+
+		s.log.Debug().Msgf("successfully removed feed: %s", feedItem.Name)
+	}
 }

@@ -17,6 +17,7 @@ type Config struct {
 	CustomDefinitions   string `toml:"customDefinitions"`
 	CheckForUpdates     bool   `toml:"checkForUpdates"`
 	DatabaseType        string `toml:"databaseType"`
+	DatabaseMaxBackups  int    `toml:"databaseMaxBackups"`
 	PostgresHost        string `toml:"postgresHost"`
 	PostgresPort        int    `toml:"postgresPort"`
 	PostgresDatabase    string `toml:"postgresDatabase"`
