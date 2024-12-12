@@ -5,9 +5,9 @@ import re
 from typing import Dict
 
 # Paths relative to GitHub Actions workspace
-DEFINITIONS_DIR = "autobrr/internal/indexer/definitions"
-INDEXERS_OUTPUT = "autobrr.com/snippets/indexers.mdx"
-FREELEECH_OUTPUT = "autobrr.com/snippets/freeleech.mdx"
+DEFINITIONS_DIR = "../autobrr/internal/indexer/definitions"
+INDEXERS_OUTPUT = "../autobrr.com/snippets/indexers.mdx"
+FREELEECH_OUTPUT = "../autobrr.com/snippets/freeleech.mdx"
 
 def parse_yaml_file(file_path: str) -> Dict:
     """Parse YAML files"""
