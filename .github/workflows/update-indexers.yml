@@ -7,6 +7,12 @@ on:
   repository_dispatch:
     types: [update-indexers]
 
+env:
+  DOCS_REPO: 'autobrr/autobrr.com'
+  SOURCE_REPO: 'autobrr/autobrr'
+  DOCS_PATH: 'autobrr.com'
+  SOURCE_PATH: 'autobrr'
+
 jobs:
   update-indexers:
     runs-on: ubuntu-latest
@@ -15,15 +21,15 @@ jobs:
     - name: Check out autobrr.com repo
       uses: actions/checkout@v3
       with:
-        repository: 'autobrr/autobrr.com'
-        path: 'autobrr.com'
+        repository: ${{ env.DOCS_REPO }}
+        path: ${{ env.DOCS_PATH }}
         token: ${{ secrets.DOCS_TOKEN }}
 
     - name: Check out autobrr repo
       uses: actions/checkout@v3
       with:
-        repository: 'autobrr/autobrr'
-        path: 'autobrr'
+        repository: ${{ env.SOURCE_REPO }}
+        path: ${{ env.SOURCE_PATH }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -31,29 +37,58 @@ jobs:
         python-version: '3.x'
 
     - name: Update indexers list
-      run: python3 autobrr/scripts/update-indexers.py
+      run: |
+        # Verify source paths exist before running script
+        if [ ! -d "${{ env.SOURCE_PATH }}/internal/indexer/definitions" ]; then
+          echo "Error: Required definitions directory not found"
+          exit 1
+        fi
+        
+        echo "Running update script..."
+        cd ${{ env.SOURCE_PATH }}
+        python3 scripts/update-indexers.py
+        echo "Update script completed"
+        
+        # Verify output files were generated
+        echo "Checking generated files..."
+        ls -l ../${{ env.DOCS_PATH }}/snippets/indexers.mdx ../${{ env.DOCS_PATH }}/snippets/freeleech.mdx || true
 
     - name: Create Pull Request
       run: |
-        cd autobrr.com
+        cd ${{ env.DOCS_PATH }}
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         
+        echo "Current git status:"
+        git status
+        
         # Create a new branch
         BRANCH_NAME="update-indexers-$(date +%Y%m%d-%H%M%S)"
+        echo "Creating branch: $BRANCH_NAME"
         git checkout -b $BRANCH_NAME
+        
+        echo "Changes to be added:"
+        git status snippets/indexers.mdx snippets/freeleech.mdx
         
         # Add and commit changes
         git add snippets/indexers.mdx snippets/freeleech.mdx
         
-        # Only proceed if there are changes
-        if ! git diff --quiet && ! git diff --staged --quiet; then
+        echo "Git status after adding files:"
+        git status
+        
+        # Check if there are staged changes
+        if git diff --cached --quiet; then
+          echo "No changes detected in the files"
+        else
+          echo "Changes detected, creating commit and PR"
           git commit -m "docs: update indexers and freeleech support lists"
+          
+          echo "Pushing changes..."
           git push origin $BRANCH_NAME
           
-          # Create PR using GitHub CLI
+          echo "Creating PR..."
           gh pr create \
-            --repo autobrr/autobrr.com \
+            --repo ${{ env.DOCS_REPO }} \
             --base main \
             --head $BRANCH_NAME \
             --title "docs: update indexers and freeleech support lists" \
