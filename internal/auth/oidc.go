@@ -12,6 +12,8 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
@@ -52,22 +54,22 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 
 	if cfg.OIDCIssuer == "" {
 		log.Error().Msg("OIDC issuer is empty")
-		return nil, fmt.Errorf("OIDC issuer is required")
+		return nil, errors.New("OIDC issuer is required")
 	}
 
 	if cfg.OIDCClientID == "" {
 		log.Error().Msg("OIDC client ID is empty")
-		return nil, fmt.Errorf("OIDC client ID is required")
+		return nil, errors.New("OIDC client ID is required")
 	}
 
 	if cfg.OIDCClientSecret == "" {
 		log.Error().Msg("OIDC client secret is empty")
-		return nil, fmt.Errorf("OIDC client secret is required")
+		return nil, errors.New("OIDC client secret is required")
 	}
 
 	if cfg.OIDCRedirectURL == "" {
 		log.Error().Msg("OIDC redirect URL is empty")
-		return nil, fmt.Errorf("OIDC redirect URL is required")
+		return nil, errors.New("OIDC redirect URL is required")
 	}
 
 	scopes := []string{"openid", "profile", "email"}
@@ -90,17 +92,14 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 		} else {
 			// If failed and issuer doesn't end with slash, try with
 			withSlash := issuer + "/"
-			log.Debug().
-				Str("original_issuer", issuer).
-				Str("retry_issuer", withSlash).
-				Msg("retrying OIDC provider initialization with trailing slash")
+			log.Debug().Str("original_issuer", issuer).Str("retry_issuer", withSlash).Msg("retrying OIDC provider initialization with trailing slash")
 
 			provider, err = oidc.NewProvider(ctx, withSlash)
 		}
 
 		if err != nil {
 			log.Error().Err(err).Msg("failed to initialize OIDC provider")
-			return nil, fmt.Errorf("failed to initialize OIDC provider: %w", err)
+			return nil, errors.Wrap(err, "failed to initialize OIDC provider")
 		}
 	}
 
@@ -113,12 +112,7 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 	if err := provider.Claims(&claims); err != nil {
 		log.Warn().Err(err).Msg("failed to parse provider claims for endpoints")
 	} else {
-		log.Debug().
-			Str("authorization_endpoint", claims.AuthURL).
-			Str("token_endpoint", claims.TokenURL).
-			Str("jwks_uri", claims.JWKSURL).
-			Str("userinfo_endpoint", claims.UserURL).
-			Msg("discovered OIDC provider endpoints")
+		log.Debug().Str("authorization_endpoint", claims.AuthURL).Str("token_endpoint", claims.TokenURL).Str("jwks_uri", claims.JWKSURL).Str("userinfo_endpoint", claims.UserURL).Msg("discovered OIDC provider endpoints")
 	}
 
 	oidcConfig := &oidc.Config{
@@ -159,10 +153,7 @@ func (h *OIDCHandler) GetConfig() *OIDCConfig {
 			Enabled: false,
 		}
 	}
-	h.log.Debug().
-		Bool("enabled", h.config.Enabled).
-		Str("issuer", h.config.Issuer).
-		Msg("returning OIDC config")
+	h.log.Debug().Bool("enabled", h.config.Enabled).Str("issuer", h.config.Issuer).Msg("returning OIDC config")
 	return h.config
 }
 
@@ -194,21 +185,18 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	session, err := h.cookieStore.Get(r, "oidc_state")
 	if err != nil {
 		h.log.Error().Err(err).Msg("state session not found")
-		return "", fmt.Errorf("state session not found")
+		return "", errors.New("state session not found")
 	}
 
 	expectedState, ok := session.Values["state"].(string)
 	if !ok {
 		h.log.Error().Msg("state not found in session")
-		return "", fmt.Errorf("state not found in session")
+		return "", errors.New("state not found in session")
 	}
 
 	if r.URL.Query().Get("state") != expectedState {
-		h.log.Error().
-			Str("expected", expectedState).
-			Str("got", r.URL.Query().Get("state")).
-			Msg("state did not match")
-		return "", fmt.Errorf("state did not match")
+		h.log.Error().Str("expected", expectedState).Str("got", r.URL.Query().Get("state")).Msg("state did not match")
+		return "", errors.New("state did not match")
 	}
 
 	// clear the state session after use
@@ -220,25 +208,25 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.log.Error().Msg("authorization code is missing from callback request")
-		return "", fmt.Errorf("authorization code is missing from callback request")
+		return "", errors.New("authorization code is missing from callback request")
 	}
 
 	oauth2Token, err := h.oauthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
-		return "", fmt.Errorf("failed to exchange token: %w", err)
+		return "", errors.Wrap(err, "failed to exchange token")
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		h.log.Error().Msg("no id_token found in oauth2 token")
-		return "", fmt.Errorf("no id_token found in oauth2 token")
+		return "", errors.New("no id_token found in oauth2 token")
 	}
 
 	idToken, err := h.verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to verify ID Token")
-		return "", fmt.Errorf("failed to verify ID Token: %w", err)
+		return "", errors.Wrap(err, "failed to verify ID Token")
 	}
 
 	var claims struct {
@@ -251,35 +239,27 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	}
 	if err := idToken.Claims(&claims); err != nil {
 		h.log.Error().Err(err).Msg("failed to parse claims")
-		return "", fmt.Errorf("failed to parse claims: %w", err)
+		return "", errors.Wrap(err, "failed to parse claims")
 	}
 
 	// Try different claims in order of preference for username
 	// This is solely used for frontend display
 	username := claims.Username
 	if username == "" {
-		username = claims.Nickname
-		if username == "" {
+		if claims.Nickname != "" {
+			username = claims.Nickname
+		} else if claims.Name != "" {
 			username = claims.Name
-			if username == "" {
-				username = claims.Email
-				if username == "" {
-					username = claims.Sub
-					if username == "" {
-						username = "oidc_user"
-					}
-				}
-			}
+		} else if claims.Email != "" {
+			username = claims.Email
+		} else if claims.Sub != "" {
+			username = claims.Sub
+		} else {
+			username = "oidc_user"
 		}
 	}
 
-	h.log.Debug().
-		Str("username", username).
-		Str("email", claims.Email).
-		Str("nickname", claims.Nickname).
-		Str("name", claims.Name).
-		Str("sub", claims.Sub).
-		Msg("successfully processed OIDC claims")
+	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
 
 	return username, nil
 }
@@ -316,11 +296,8 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 
 	state := generateRandomState()
 	authURL := h.oauthConfig.AuthCodeURL(state)
-	h.log.Debug().
-		Bool("enabled", h.config.Enabled).
-		Str("authorization_url", authURL).
-		Str("state", state).
-		Msg("returning OIDC config response")
+
+	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Msg("returning OIDC config response")
 
 	return GetConfigResponse{
 		Enabled:          h.config.Enabled,

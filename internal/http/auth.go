@@ -259,11 +259,7 @@ func (h authHandler) getOIDCConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.log.Debug().
-		Bool("enabled", config.Enabled).
-		Str("authorization_url", config.AuthorizationURL).
-		Str("state", config.State).
-		Msg("returning OIDC config")
+	h.log.Debug().Bool("enabled", config.Enabled).Str("authorization_url", config.AuthorizationURL).Str("state", config.State).Msg("returning OIDC config")
 
 	// Only set state cookie if user is not already authenticated
 	h.oidcHandler.SetStateCookie(w, r, config.State)
@@ -325,12 +321,7 @@ func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	h.log.Debug().
-		Str("redirect_url", frontendURL).
-		Str("x_forwarded_proto", r.Header.Get("X-Forwarded-Proto")).
-		Str("x_forwarded_host", r.Header.Get("X-Forwarded-Host")).
-		Str("host", r.Host).
-		Msg("redirecting to frontend after OIDC callback")
+	h.log.Debug().Str("redirect_url", frontendURL).Str("x_forwarded_proto", r.Header.Get("X-Forwarded-Proto")).Str("x_forwarded_host", r.Header.Get("X-Forwarded-Host")).Str("host", r.Host).Msg("redirecting to frontend after OIDC callback")
 
 	http.Redirect(w, r, frontendURL, http.StatusFound)
 }
