@@ -56,7 +56,7 @@ irc:
               releaseTags: Encode
               torrentName: Generic Movie 2024 1080p BluRay DD 5.1 x264-GROUP
               resolution: 1080p
-              freeleech: 0%
+              freeleechPercent: 0%
               tags: "No"
               torrentSize: 20.5 GB
               uploader: Anonymous
@@ -68,7 +68,7 @@ irc:
               releaseTags: WEB-DL
               torrentName: Generic Show S02E06 1080p WEB-DL DD+ 5.1 H.264-GROUP
               resolution: 1080p
-              freeleech: 0%
+              freeleechPercent: 0%
               tags: "Yes"
               torrentSize: 3 GB
               uploader: Jenkins
@@ -80,7 +80,7 @@ irc:
               releaseTags: MP3
               torrentName: Generic Artist - Generic Album 2024 Mp3 320kbps-GROUP
               resolution:
-              freeleech: 100%
+              freeleechPercent: 100%
               tags: "No"
               torrentSize: 755.47 MB
               uploader: Anonymous
@@ -92,7 +92,7 @@ irc:
           - releaseTags
           - torrentName
           - resolution
-          - freeleech
+          - freeleechPercent
           - tags
           - torrentSize
           - uploader
