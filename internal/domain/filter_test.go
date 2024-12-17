@@ -530,7 +530,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					MatchCategories: "*tv*",
 					ExceptUploaders: "Anonymous",
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "uploaders", got: "Anonymous", want: "Anonymous"}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except uploaders", got: "Anonymous", want: "Anonymous"}}},
 			},
 			want: false,
 		},
