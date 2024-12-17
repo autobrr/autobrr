@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Fragment, useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Form, Formik, useFormikContext } from "formik";
 import { toast } from "react-hot-toast";
 
 import { classNames, sleep } from "@utils";
-import DEBUG from "@components/debug";
+import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
-import { DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
+import { DownloadClientKeys } from "@api/query_keys";
+import { DownloadClientAuthType, DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
@@ -24,13 +25,18 @@ import {
   SwitchGroupWide,
   TextFieldWide
 } from "@components/inputs";
-import { clientKeys } from "@screens/settings/DownloadClient";
 import { DocsLink, ExternalLink } from "@components/ExternalLink";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 
 interface InitialValuesSettings {
   basic?: {
     auth: boolean;
+    username: string;
+    password: string;
+  };
+  auth?: {
+    enabled: boolean;
+    type: string;
     username: string;
     password: string;
   };
@@ -41,6 +47,8 @@ interface InitialValuesSettings {
     download_speed_threshold?: number;
     max_active_downloads?: number;
   };
+  external_download_client_id?: number;
+  external_download_client?: string;
 }
 
 interface InitialValues {
@@ -135,8 +143,6 @@ function FormFieldsArr() {
           <PasswordFieldWide name="settings.basic.password" label="Password" />
         </>
       )}
-
-      <NumberFieldWide name="settings.external_download_client_id" label="Download Client ID" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action. You can find the id in the arr by looking at the network responses for download clients.</p></div>} />
     </div>
   );
 }
@@ -267,12 +273,19 @@ function FormFieldsRTorrent() {
         />
       )}
 
-      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+      <SwitchGroupWide name="settings.auth.enabled" label="Auth" />
 
-      {settings.basic?.auth === true && (
+      {settings.auth?.enabled && (
         <>
-          <TextFieldWide name="settings.basic.username" label="Username" />
-          <PasswordFieldWide name="settings.basic.password" label="Password" />
+          <SelectFieldBasic
+            name="settings.auth.type"
+            label="Auth type"
+            placeholder="Select auth type"
+            options={DownloadClientAuthType}
+            tooltip={<p>This should in most cases be Basic Auth, but some providers use Digest Auth.</p>}
+          />
+          <TextFieldWide name="settings.auth.username" label="Username" />
+          <PasswordFieldWide name="settings.auth.password" label="Password" />
         </>
       )}
     </div>
@@ -405,7 +418,7 @@ function FormFieldsRulesBasic() {
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
 
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Rules</Dialog.Title>
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Rules</DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads.
         </p>
@@ -432,6 +445,29 @@ function FormFieldsRulesBasic() {
   );
 }
 
+function FormFieldsRulesArr() {
+  // const {
+  //   values: { settings }
+  // } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
+      <div className="px-4 space-y-1">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Download Client
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Override download client to use. Can also be overridden per Filter Action.
+        </p>
+      </div>
+
+      <TextFieldWide name="settings.external_download_client" label="Client Name" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action.</p></div>} />
+
+      <NumberFieldWide name="settings.external_download_client_id" label="Client ID DEPRECATED" tooltip={<div><p>DEPRECATED: Use Client name field instead.</p></div>} />
+    </div>
+  );
+}
+
 function FormFieldsRulesQbit() {
   const {
     values: { settings }
@@ -440,9 +476,9 @@ function FormFieldsRulesQbit() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads etc.
         </p>
@@ -508,9 +544,9 @@ function FormFieldsRulesTransmission() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4 space-y-1">
-        <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
-        </Dialog.Title>
+        </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads etc.
         </p>
@@ -544,7 +580,12 @@ export const rulesComponentMap: componentMapType = {
   DELUGE_V2: <FormFieldsRulesBasic />,
   QBITTORRENT: <FormFieldsRulesQbit />,
   PORLA: <FormFieldsRulesBasic />,
-  TRANSMISSION: <FormFieldsRulesTransmission />
+  TRANSMISSION: <FormFieldsRulesTransmission />,
+  RADARR: <FormFieldsRulesArr />,
+  SONARR: <FormFieldsRulesArr />,
+  LIDARR: <FormFieldsRulesArr />,
+  WHISPARR: <FormFieldsRulesArr />,
+  READARR: <FormFieldsRulesArr />,
 };
 
 interface formButtonsProps {
@@ -665,7 +706,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   const addMutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.create(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
       toast.custom((t) => <Toast type="success" body="Client was added" t={t} />);
 
       toggle();
@@ -722,7 +763,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
@@ -731,10 +772,8 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
         onClose={toggle}
       >
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="fixed inset-y-0 right-0 max-w-full flex">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -757,9 +796,9 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add client
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Add download client.
                               </p>
@@ -809,11 +848,11 @@ export function DownloadClientAddForm({ isOpen, toggle }: formProps) {
                   )}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
 
@@ -837,8 +876,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const mutation = useMutation({
     mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
 
       toast.custom((t) => <Toast type="success" body={`${client.name} was updated successfully`} t={t} />);
       toggle();
@@ -850,8 +889,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   const deleteMutation = useMutation({
     mutationFn: (clientID: number) => APIClient.download_clients.delete(clientID),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: clientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: clientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
 
       toast.custom((t) => <Toast type="success" body={`${client.name} was deleted.`} t={t} />);
       toggleDeleteModal();
@@ -906,7 +945,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
@@ -917,7 +956,7 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
       >
         <DeleteModal
           isOpen={deleteModalIsOpen}
-          isLoading={deleteMutation.isLoading}
+          isLoading={deleteMutation.isPending}
           toggle={toggleDeleteModal}
           buttonRef={cancelModalButtonRef}
           deleteAction={deleteAction}
@@ -925,10 +964,8 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
           text="Are you sure you want to remove this download client? This action cannot be undone."
         />
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -952,9 +989,9 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                           <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                             <div className="flex items-start justify-between space-x-3">
                               <div className="space-y-1">
-                                <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                   Edit client
-                                </Dialog.Title>
+                                </DialogTitle>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                   Edit download client settings.
                                 </p>
@@ -1006,10 +1043,10 @@ export function DownloadClientUpdateForm({ client, isOpen, toggle }: updateFormP
                   }}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }

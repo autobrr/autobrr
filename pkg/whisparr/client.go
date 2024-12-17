@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package whisparr
@@ -16,6 +16,10 @@ import (
 
 func (c *client) get(ctx context.Context, endpoint string) (*http.Response, error) {
 	u, err := url.Parse(c.config.Hostname)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
+	}
+
 	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
 	reqUrl := u.String()
 
@@ -45,6 +49,10 @@ func (c *client) get(ctx context.Context, endpoint string) (*http.Response, erro
 
 func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
 	u, err := url.Parse(c.config.Hostname)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
+	}
+
 	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
 	reqUrl := u.String()
 

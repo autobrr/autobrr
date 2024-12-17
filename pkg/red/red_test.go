@@ -1,5 +1,7 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build integration
 
 package red
 
@@ -12,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -72,6 +75,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 				Id:       "29991962",
 				InfoHash: "B2BABD3A361EAFC6C4E9142C422DF7DDF5D7E163",
 				Size:     "527749302",
+				Uploader: "Uploader",
 			},
 			wantErr: "",
 		},
@@ -98,8 +102,7 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient(tt.fields.APIKey)
-			c.UseURL(tt.fields.Url)
+			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
 			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr != "" && assert.Error(t, err) {

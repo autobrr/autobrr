@@ -1,3 +1,8 @@
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build integration
+
 package database
 
 import (
@@ -49,8 +54,10 @@ func TestNotificationRepo_Store(t *testing.T) {
 			// Setup
 			assert.NotNil(t, mockData)
 
+			notification := getMockNotification()
+
 			// Execute
-			notification, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), &notification)
 
 			// Verify
 			assert.NoError(t, err)
@@ -72,28 +79,32 @@ func TestNotificationRepo_Update(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Initial setup and Store
-			notification, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), &mockData)
 			assert.NoError(t, err)
-			assert.NotNil(t, notification)
+			assert.NotNil(t, &mockData)
 
 			// Modify some fields
-			updatedMockData := *notification
-			updatedMockData.Name = "UpdatedName"
-			updatedMockData.Type = domain.NotificationTypeTelegram
-			updatedMockData.Priority = 2
+			newName := "UpdatedName"
+			newType := domain.NotificationTypeTelegram
+			newPriority := int32(2)
+
+			updatedMockData := &mockData
+			updatedMockData.Name = newName
+			updatedMockData.Type = newType
+			updatedMockData.Priority = newPriority
 
 			// Execute Update
-			updatedNotification, err := repo.Update(context.Background(), updatedMockData)
+			err = repo.Update(context.Background(), updatedMockData)
 
 			// Verify
 			assert.NoError(t, err)
-			assert.NotNil(t, updatedNotification)
-			assert.Equal(t, updatedMockData.Name, updatedNotification.Name)
-			assert.Equal(t, updatedMockData.Type, updatedNotification.Type)
-			assert.Equal(t, updatedMockData.Priority, updatedNotification.Priority)
+			assert.NotNil(t, &mockData)
+			assert.Equal(t, updatedMockData.Name, newName)
+			assert.Equal(t, updatedMockData.Type, newType)
+			assert.Equal(t, updatedMockData.Priority, newPriority)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), updatedNotification.ID)
+			_ = repo.Delete(context.Background(), mockData.ID)
 		})
 	}
 }
@@ -103,11 +114,13 @@ func TestNotificationRepo_Delete(t *testing.T) {
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
-		mockData := getMockNotification()
+		//mockData := getMockNotification()
 
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
+			notification := getMockNotification()
+
 			// Initial setup and Store
-			notification, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), &notification)
 			assert.NoError(t, err)
 			assert.NotNil(t, notification)
 
@@ -143,11 +156,11 @@ func TestNotificationRepo_Find(t *testing.T) {
 				_ = repo.Delete(context.Background(), notification.ID)
 			}
 
-			_, err := repo.Store(context.Background(), mockData1)
+			err := repo.Store(context.Background(), &mockData1)
 			assert.NoError(t, err)
-			_, err = repo.Store(context.Background(), mockData2)
+			err = repo.Store(context.Background(), &mockData2)
 			assert.NoError(t, err)
-			_, err = repo.Store(context.Background(), mockData3)
+			err = repo.Store(context.Background(), &mockData3)
 			assert.NoError(t, err)
 
 			// Setup query params
@@ -183,11 +196,13 @@ func TestNotificationRepo_FindByID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
+			//notification := getMockNotification()
+
 			assert.NotNil(t, mockData)
-			notification, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), &mockData)
 
 			// Execute
-			notification, err = repo.FindByID(context.Background(), notification.ID)
+			notification, err := repo.FindByID(context.Background(), mockData.ID)
 
 			// Verify
 			assert.NoError(t, err)
@@ -216,7 +231,7 @@ func TestNotificationRepo_List(t *testing.T) {
 			}
 
 			for i := 0; i < 10; i++ {
-				_, err := repo.Store(context.Background(), mockData)
+				err := repo.Store(context.Background(), &mockData)
 				assert.NoError(t, err)
 			}
 

@@ -80,7 +80,18 @@ irc:
             uploader: oldschool
             baseUrl: https://theoldschool.cc/
             torrentId: "00000"
-        pattern: '\[NEW\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)%\](?:\s\[pre (.*)\])? par (.*) -> (https?\:\/\/.+\/).+\/(\d+)'
+        - line: ' [EXCLUSiVE] [Series] [A.Show.S07.MULTi.1080p.WEB.H264-GROUP] [WEB] [71.16 GiB] [0%] [pre 23h 15m 54s] par xxx -> https://theoldschool.cc/torrents/00000'
+          expect:
+            category: Series
+            torrentName: A.Show.S07.MULTi.1080p.WEB.H264-GROUP
+            source: WEB
+            torrentSize: 71.16 GiB
+            freeleechPercent: "0"
+            preTime: 23h 15m 54s
+            uploader: xxx
+            baseUrl: https://theoldschool.cc/
+            torrentId: "00000"
+        pattern: '\[.*\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)%\](?:\s\[pre (.*)\])? par (.*) -> (https?\:\/\/.+\/).+\/(\d+)'
         vars:
           - category
           - torrentName

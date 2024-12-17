@@ -1,3 +1,8 @@
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build integration
+
 package database
 
 import (
@@ -18,47 +23,6 @@ func getDbs() []string {
 }
 
 var testDBs map[string]*DB
-
-func setupDatabaseForTest(t *testing.T, dbType string) *DB {
-	if d, ok := testDBs[dbType]; ok {
-		return d
-	}
-
-	err := os.Setenv("IS_TEST_ENV", "true")
-	if err != nil {
-		t.Fatalf("Could not set env variable: %v", err)
-		return nil
-	}
-
-	cfg := &domain.Config{
-		LogLevel:         "INFO",
-		DatabaseType:     dbType,
-		PostgresHost:     "localhost",
-		PostgresPort:     5437,
-		PostgresDatabase: "autobrr",
-		PostgresUser:     "testdb",
-		PostgresPass:     "testdb",
-		PostgresSSLMode:  "disable",
-	}
-
-	// Init a new logger
-	log := logger.New(cfg)
-
-	// Initialize a new DB connection
-	db, err := NewDB(cfg, log)
-	if err != nil {
-		t.Fatalf("Could not create database: %v", err)
-	}
-
-	// Open the database connection
-	if err := db.Open(); err != nil {
-		t.Fatalf("Could not open db connection: %v", err)
-	}
-
-	testDBs[dbType] = db
-
-	return db
-}
 
 func setupPostgresForTest() *DB {
 	dbtype := "postgres"

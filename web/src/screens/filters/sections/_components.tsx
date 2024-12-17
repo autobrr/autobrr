@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
@@ -19,41 +24,41 @@ type OwningComponent = {
 
 const VerticalGap = "gap-y-6 sm:gap-y-4";
 
-export const NormalGridGapClass = `gap-x-0.5 sm:gap-x-3 ${VerticalGap}`;
-export const TightGridGapClass = `gap-x-0.5 sm:gap-x-1.5 ${VerticalGap}`;
-export const WideGridGapClass = `gap-x-0.5 sm:gap-x-6 ${VerticalGap}`;
+export const FilterNormalGridGapClass = `gap-x-0.5 sm:gap-x-3 ${VerticalGap}`;
+export const FilterTightGridGapClass = `gap-x-0.5 sm:gap-x-1.5 ${VerticalGap}`;
+export const FilterWideGridGapClass = `gap-x-0.5 sm:gap-x-6 ${VerticalGap}`;
 
-export const LayoutClass = "grid grid-cols-12 col-span-12";
+export const FilterLayoutClass = "grid grid-cols-12 col-span-12";
 
-export const Layout = ({
+export const FilterLayout = ({
   children,
   className = "",
-  gap = NormalGridGapClass
+  gap = FilterNormalGridGapClass
 }: OwningComponent) => (
-  <div className={classNames(className, LayoutClass, gap)}>{children}</div>
+  <div className={classNames(className, FilterLayoutClass, gap)}>{children}</div>
 );
 
-export const Row = ({
+export const FilterRow = ({
   children,
   className = "",
-  gap = NormalGridGapClass
+  gap = FilterNormalGridGapClass
 }: OwningComponent) => (
   <div className={classNames(className, gap, "col-span-12")}>{children}</div>
 );
 
-export const HalfRow = ({
+export const FilterHalfRow = ({
   children,
   className = "",
-  gap = NormalGridGapClass
+  gap = FilterNormalGridGapClass
 }: OwningComponent) => (
   <div className={classNames(className, gap, "col-span-12 sm:col-span-6")}>{children}</div>
 );
 
-export const Section = ({
+export const FilterSection = ({
   title,
   subtitle,
   children,
-  gap = NormalGridGapClass
+  gap = FilterNormalGridGapClass
 }: FilterSectionProps) => (
   <div
     className={classNames(
@@ -74,7 +79,7 @@ type FilterPageProps = {
   children: React.ReactNode;
 };
 
-export const Page = ({
+export const FilterPage = ({
   gap = VerticalGap,
   children
 }: FilterPageProps) => (
@@ -97,15 +102,13 @@ interface CollapsibleSectionProps {
   childClassName?: string;
 }
 
-// NOTE(stacksmash76): added text-shadow only for the dark theme - light theme is fine contrast-wise when it comes to headings
-// ideally, this would need a redesign
 export const CollapsibleSection = ({
   title,
   subtitle,
   children,
   defaultOpen = false,
   noBottomBorder = false,
-  childClassName = NormalGridGapClass
+  childClassName = FilterNormalGridGapClass
 }: CollapsibleSectionProps) => {
   const [isOpen, toggleOpen] = useToggle(defaultOpen);
 
@@ -137,7 +140,7 @@ export const CollapsibleSection = ({
               "flex"
             )}
           >
-            <h3 className="text-xl leading-6 font-bold break-all dark:text-shadow dark:shadow-gray-900 text-gray-900 dark:text-gray-200">
+            <h3 className="text-xl leading-6 font-bold break-all dark:shadow-gray-900 text-gray-900 dark:text-gray-200">
               {title}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 truncate whitespace-normal break-words">

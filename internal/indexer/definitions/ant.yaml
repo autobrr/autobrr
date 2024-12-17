@@ -21,7 +21,7 @@ settings:
 
 irc:
   network: Nebulance
-  server: irc.nebulance.cc
+  server: irc.nebulance.io
   port: 6697
   tls: true
   channels:
@@ -62,7 +62,8 @@ irc:
           expect:
             category: Feature Film
             year: "1897"
-            releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!
+            releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs
+            freeleech: Freeleech!
             torrentName: Tremar.1897.1080p.BluRay.DTS.x264-GROUP
             torrentSize: 12.84 GiB
             uploader: user
@@ -73,7 +74,8 @@ irc:
           expect:
             category: Feature Film
             year: "1928"
-            releaseTags: H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech!
+            releaseTags: H264 / MKV / Blu-ray / 1080p / AC3 / Scene
+            freeleech: Freeleech!
             torrentName: Circus.Du.1928.1080p.BluRay.ACC.x264-GROUP
             torrentSize: 8.24 GiB
             uploader: anon
@@ -84,19 +86,33 @@ irc:
           expect:
             category: Feature Film
             year: "1918"
-            releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech!
+            releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs
+            freeleech: Freeleech!
             torrentName: Judo.1918.1080p.BluRay.DTS.x264-GROUP
             torrentSize: 7.40 GiB
             uploader: user1
             baseUrl: https://anthelion.me/
             torrentId: "117"
             tags: crime,drama,thriller,action,subtitles
+        - line: '[Feature Film] Non-Freeleech Movie (1997) [H264 / MKV / WEB / 1080p / AC3 / Subs / ReleaseGrp / Filename: Non-Freeleech.Movie.1997.1080p.AMZN.WEB-DL.DDP5.1.x264-ReleaseGrp.mkv] [6.68 GiB - Uploader: user2] https://anthelion.me/torrents.php?action=download&id=70000 - comedy,drama,romance,subtitles'
+          expect:
+            category: Feature Film
+            year: "1997"
+            releaseTags: H264 / MKV / WEB / 1080p / AC3 / Subs / ReleaseGrp
+            freeleech: ""
+            torrentName: Non-Freeleech.Movie.1997.1080p.AMZN.WEB-DL.DDP5.1.x264-ReleaseGrp.mkv
+            torrentSize: 6.68 GiB
+            uploader: user2
+            baseUrl: https://anthelion.me/
+            torrentId: "70000"
+            tags: comedy,drama,romance,subtitles
 
-        pattern: '\[(.*?)\] .* \((.*)\) \[(.*) \/ Filename: (.*)\] \[(.*) - Uploader: (.*)\] (https?\:\/\/.*\/).*id=(\d+).* - (.*)'
+        pattern: '\[(.*?)\] .* \((.*)\) \[(.*?)(?: \/ (Freeleech!))? \/ Filename: (.*)\] \[(.*) - Uploader: (.*)\] (https?\:\/\/.*\/).*id=(\d+).* - (.*)'
         vars:
           - category
           - year
           - releaseTags
+          - freeleech
           - torrentName
           - torrentSize
           - uploader

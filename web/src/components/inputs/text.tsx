@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -84,9 +84,9 @@ export const Input: FC<InputProps> = forwardRef<HTMLInputElement, InputProps>(
   }
 );
 
-export type FormInputProps<TFormValues> = {
+export type FormInputProps<TFormValues extends FieldValues> = {
   name: Path<TFormValues>;
-  rules?: RegisterOptions;
+  rules?: RegisterOptions<TFormValues, Path<TFormValues>>;
   register?: UseFormRegister<TFormValues & FieldValues>;
   errors?: Partial<DeepMap<TFormValues, FieldError>>;
 } & Omit<InputProps, "name">;

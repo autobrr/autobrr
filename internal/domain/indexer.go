@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -22,38 +22,65 @@ type IndexerRepo interface {
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
 	FindByID(ctx context.Context, id int) (*Indexer, error)
+	GetBy(ctx context.Context, req GetIndexerRequest) (*Indexer, error)
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
 }
 
 type Indexer struct {
-	ID             int64             `json:"id"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Enabled        bool              `json:"enabled"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Settings       map[string]string `json:"settings,omitempty"`
+	ID                 int64             `json:"id"`
+	Name               string            `json:"name"`
+	Identifier         string            `json:"identifier"`
+	IdentifierExternal string            `json:"identifier_external"`
+	Enabled            bool              `json:"enabled"`
+	Implementation     string            `json:"implementation"`
+	BaseURL            string            `json:"base_url,omitempty"`
+	UseProxy           bool              `json:"use_proxy"`
+	Proxy              *Proxy            `json:"proxy"`
+	ProxyID            int64             `json:"proxy_id"`
+	Settings           map[string]string `json:"settings,omitempty"`
+}
+
+func (i Indexer) ImplementationIsFeed() bool {
+	return i.Implementation == "rss" || i.Implementation == "torznab" || i.Implementation == "newznab"
+}
+
+type IndexerMinimal struct {
+	ID                 int    `json:"id"`
+	Name               string `json:"name"`
+	Identifier         string `json:"identifier"`
+	IdentifierExternal string `json:"identifier_external"`
+}
+
+func (m IndexerMinimal) GetExternalIdentifier() string {
+	if m.IdentifierExternal != "" {
+		return m.IdentifierExternal
+	}
+
+	return m.Identifier
 }
 
 type IndexerDefinition struct {
-	ID             int               `json:"id,omitempty"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled"`
-	Description    string            `json:"description"`
-	Language       string            `json:"language"`
-	Privacy        string            `json:"privacy"`
-	Protocol       string            `json:"protocol"`
-	URLS           []string          `json:"urls"`
-	Supports       []string          `json:"supports"`
-	Settings       []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap    map[string]string `json:"-"`
-	IRC            *IndexerIRC       `json:"irc,omitempty"`
-	Torznab        *Torznab          `json:"torznab,omitempty"`
-	Newznab        *Newznab          `json:"newznab,omitempty"`
-	RSS            *FeedSettings     `json:"rss,omitempty"`
+	ID                 int               `json:"id,omitempty"`
+	Name               string            `json:"name"`
+	Identifier         string            `json:"identifier"`
+	IdentifierExternal string            `json:"identifier_external"`
+	Implementation     string            `json:"implementation"`
+	BaseURL            string            `json:"base_url,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	Description        string            `json:"description"`
+	Language           string            `json:"language"`
+	Privacy            string            `json:"privacy"`
+	Protocol           string            `json:"protocol"`
+	URLS               []string          `json:"urls"`
+	Supports           []string          `json:"supports"`
+	UseProxy           bool              `json:"use_proxy"`
+	ProxyID            int64             `json:"proxy_id"`
+	Settings           []IndexerSetting  `json:"settings,omitempty"`
+	SettingsMap        map[string]string `json:"-"`
+	IRC                *IndexerIRC       `json:"irc,omitempty"`
+	Torznab            *Torznab          `json:"torznab,omitempty"`
+	Newznab            *Newznab          `json:"newznab,omitempty"`
+	RSS                *FeedSettings     `json:"rss,omitempty"`
 }
 
 type IndexerImplementation string
@@ -201,10 +228,11 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 }
 
 type IndexerIRCParse struct {
-	Type          string                `json:"type"`
-	ForceSizeUnit string                `json:"forcesizeunit"`
-	Lines         []IndexerIRCParseLine `json:"lines"`
-	Match         IndexerIRCParseMatch  `json:"match"`
+	Type          string                                  `json:"type"`
+	ForceSizeUnit string                                  `json:"forcesizeunit"`
+	Lines         []IndexerIRCParseLine                   `json:"lines"`
+	Match         IndexerIRCParseMatch                    `json:"match"`
+	Mappings      map[string]map[string]map[string]string `json:"mappings"`
 }
 
 type LineTest struct {
@@ -232,11 +260,52 @@ type IndexerIRCParseMatched struct {
 	TorrentName string
 }
 
-func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*IndexerIRCParseMatched, error) {
-	matched := &IndexerIRCParseMatched{}
+func parseTemplateURL(baseURL, sourceURL string, vars map[string]string, basename string) (*url.URL, error) {
+	// setup text template to inject variables into
+	tmpl, err := template.New(basename).Funcs(sprig.TxtFuncMap()).Parse(sourceURL)
+	if err != nil {
+		return nil, errors.New("could not create %s url template", basename)
+	}
 
+	var urlBytes bytes.Buffer
+	if err := tmpl.Execute(&urlBytes, &vars); err != nil {
+		return nil, errors.New("could not write %s url template output", basename)
+	}
+
+	templateUrl := urlBytes.String()
+	parsedUrl, err := url.Parse(templateUrl)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse template url: %q", templateUrl)
+	}
+
+	// for backwards compatibility remove Host and Scheme to rebuild url
+	if parsedUrl.Host != "" {
+		parsedUrl.Host = ""
+	}
+	if parsedUrl.Scheme != "" {
+		parsedUrl.Scheme = ""
+	}
+
+	// join baseURL with query
+	baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not join %s url", basename)
+	}
+
+	// reconstruct url
+	infoUrl, err := url.Parse(baseUrlPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse %s url", basename)
+	}
+
+	infoUrl.RawQuery = parsedUrl.RawQuery
+
+	return infoUrl, nil
+}
+
+func (p *IndexerIRCParseMatch) ParseURLs(baseURL string, vars map[string]string, rls *Release) error {
 	// handle url encode of values
-	for _, e := range p.Match.Encode {
+	for _, e := range p.Encode {
 		if v, ok := vars[e]; ok {
 			// url encode  value
 			t := url.QueryEscape(v)
@@ -244,100 +313,119 @@ func (p *IndexerIRCParse) ParseMatch(baseURL string, vars map[string]string) (*I
 		}
 	}
 
-	if p.Match.InfoURL != "" {
-		// setup text template to inject variables into
-		tmpl, err := template.New("infourl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.InfoURL)
+	if p.InfoURL != "" {
+		infoURL, err := parseTemplateURL(baseURL, p.InfoURL, vars, "infourl")
 		if err != nil {
-			return nil, errors.New("could not create info url template")
+			return err
 		}
 
-		var urlBytes bytes.Buffer
-		if err := tmpl.Execute(&urlBytes, &vars); err != nil {
-			return nil, errors.New("could not write info url template output")
-		}
-
-		templateUrl := urlBytes.String()
-		parsedUrl, err := url.Parse(templateUrl)
-		if err != nil {
-			return nil, err
-		}
-
-		// for backwards compatibility remove Host and Scheme to rebuild url
-		if parsedUrl.Host != "" {
-			parsedUrl.Host = ""
-		}
-		if parsedUrl.Scheme != "" {
-			parsedUrl.Scheme = ""
-		}
-
-		// join baseURL with query
-		baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not join info url")
-		}
-
-		// reconstruct url
-		infoUrl, _ := url.Parse(baseUrlPath)
-		infoUrl.RawQuery = parsedUrl.RawQuery
-
-		matched.InfoURL = infoUrl.String()
+		rls.InfoURL = infoURL.String()
 	}
 
-	if p.Match.TorrentURL != "" {
-		// setup text template to inject variables into
-		tmpl, err := template.New("torrenturl").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentURL)
+	if p.TorrentURL != "" {
+		downloadURL, err := parseTemplateURL(baseURL, p.TorrentURL, vars, "torrenturl")
 		if err != nil {
-			return nil, errors.New("could not create torrent url template")
+			return err
 		}
 
-		var urlBytes bytes.Buffer
-		if err := tmpl.Execute(&urlBytes, &vars); err != nil {
-			return nil, errors.New("could not write torrent url template output")
-		}
-
-		templateUrl := urlBytes.String()
-		parsedUrl, err := url.Parse(templateUrl)
-		if err != nil {
-			return nil, err
-		}
-
-		// for backwards compatibility remove Host and Scheme to rebuild url
-		if parsedUrl.Host != "" {
-			parsedUrl.Host = ""
-		}
-		if parsedUrl.Scheme != "" {
-			parsedUrl.Scheme = ""
-		}
-
-		// join baseURL with query
-		baseUrlPath, err := url.JoinPath(baseURL, parsedUrl.Path)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not join torrent url")
-		}
-
-		// reconstruct url
-		torrentUrl, _ := url.Parse(baseUrlPath)
-		torrentUrl.RawQuery = parsedUrl.RawQuery
-
-		matched.TorrentURL = torrentUrl.String()
+		rls.DownloadURL = downloadURL.String()
 	}
 
-	if p.Match.TorrentName != "" {
+	return nil
+}
+
+func (p *IndexerIRCParseMatch) ParseTorrentName(vars map[string]string, rls *Release) error {
+	if p.TorrentName != "" {
 		// setup text template to inject variables into
-		tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.Match.TorrentName)
+		tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.TorrentName)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		var nameBytes bytes.Buffer
 		if err := tmplName.Execute(&nameBytes, &vars); err != nil {
-			return nil, errors.New("could not write torrent name template output")
+			return errors.New("could not write torrent name template output")
 		}
 
-		matched.TorrentName = nameBytes.String()
+		rls.TorrentName = nameBytes.String()
 	}
 
-	return matched, nil
+	return nil
+}
+
+func (p *IndexerIRCParse) MapCustomVariables(vars map[string]string) error {
+	for varsKey, varsKeyMap := range p.Mappings {
+		varsValue, ok := vars[varsKey]
+		if !ok {
+			continue
+		}
+
+		keyValueMap, ok := varsKeyMap[varsValue]
+		if !ok {
+			continue
+		}
+
+		for k, v := range keyValueMap {
+			vars[k] = v
+		}
+	}
+
+	return nil
+}
+
+func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, rls *Release) error {
+	if err := p.MapCustomVariables(vars); err != nil {
+		return errors.Wrap(err, "could not map custom variables for release")
+	}
+
+	if err := rls.MapVars(def, vars); err != nil {
+		return errors.Wrap(err, "could not map variables for release")
+	}
+
+	baseUrl := def.BaseURL
+	if baseUrl == "" {
+		if len(def.URLS) == 0 {
+			return errors.New("could not find a valid indexer baseUrl")
+		}
+
+		baseUrl = def.URLS[0]
+	}
+
+	// merge vars from regex captures on announce and vars from settings
+	mergedVars := mergeVars(vars, def.SettingsMap)
+
+	// parse urls
+	if err := def.IRC.Parse.Match.ParseURLs(baseUrl, mergedVars, rls); err != nil {
+		return errors.Wrap(err, "could not parse urls for release")
+	}
+
+	// parse torrent var
+	if err := def.IRC.Parse.Match.ParseTorrentName(mergedVars, rls); err != nil {
+		return errors.Wrap(err, "could not parse release name")
+	}
+
+	var parser IRCParser
+
+	switch def.Identifier {
+	case "ggn":
+		parser = IRCParserGazelleGames{}
+	case "ops":
+		parser = IRCParserOrpheus{}
+	case "redacted":
+		parser = IRCParserRedacted{}
+	default:
+		parser = IRCParserDefault{}
+	}
+
+	if err := parser.Parse(rls, vars); err != nil {
+		return errors.Wrap(err, "could not parse release")
+	}
+
+	if v, ok := def.SettingsMap["cookie"]; ok {
+		rls.RawCookie = v
+	}
+
+	return nil
 }
 
 type TorrentBasic struct {
@@ -366,4 +454,10 @@ type IndexerTestApiRequest struct {
 	Identifier string `json:"identifier,omitempty"`
 	ApiUser    string `json:"api_user,omitempty"`
 	ApiKey     string `json:"api_key"`
+}
+
+type GetIndexerRequest struct {
+	ID         int
+	Identifier string
+	Name       string
 }

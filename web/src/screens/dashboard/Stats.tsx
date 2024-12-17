@@ -1,43 +1,51 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useQuery } from "@tanstack/react-query";
-import { APIClient } from "@api/APIClient";
+import { useQuery} from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { classNames } from "@utils";
+import { LinkIcon } from "@heroicons/react/24/solid";
+import { ReleasesStatsQueryOptions } from "@api/queries";
 
 interface StatsItemProps {
-    name: string;
-    value?: number;
-    placeholder?: string;
+  name: string;
+  value?: number;
+  placeholder?: string;
+  to?: string;
+  eventType?: "" | "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR" | undefined;
 }
 
-const StatsItem = ({ name, placeholder, value }: StatsItemProps) => (
-  <div
-    className="relative px-4 py-3 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775"
-    title="All time"
+const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) => (
+  <Link
+    className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
+    to={to}
+    search={{
+      action_status: eventType
+    }}
+    params={{}}
   >
     <dt>
-      <p className="pb-0.5 text-sm font-medium text-gray-500 truncate">{name}</p>
+      <div className="flex items-center text-sm font-medium text-gray-500 group-hover:dark:text-gray-475 group-hover:text-gray-600 transition-colors duration-200 ease-in-out">
+        <p className="pb-0.5 truncate">{name}</p>
+        <LinkIcon className="h-3 w-3 ml-2" aria-hidden="true" />
+      </div>
     </dt>
 
-    <dd className="flex items-baseline">
-      <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{placeholder}</p>
-    </dd>
-
-    <dd className="flex items-baseline">
-      <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{value}</p>
-    </dd>
-  </div>
+    <div className="flex items-baseline text-3xl font-extrabold text-gray-900 dark:text-gray-200">
+      <dd>
+        <p>{placeholder}</p>
+      </dd>
+      <dd>
+        <p>{value}</p>
+      </dd>
+    </div>
+  </Link>
 );
 
 export const Stats = () => {
-  const { isLoading, data } = useQuery({
-    queryKey: ["dash_release_stats"],
-    queryFn: APIClient.release.stats,
-    refetchOnWindowFocus: false
-  });
+  const { isLoading, data } = useQuery(ReleasesStatsQueryOptions());
 
   return (
     <div>
@@ -45,11 +53,12 @@ export const Stats = () => {
         Stats
       </h1>
 
-      <dl className={classNames("grid grid-cols-1 gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-3", isLoading ? "animate-pulse" : "")}>
-        <StatsItem name="Filtered Releases" value={data?.filtered_count ?? 0} />
+      <dl className={classNames("grid grid-cols-2 gap-2 sm:gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-4", isLoading ? "animate-pulse" : "")}>
+        <StatsItem name="Filtered Releases" to="/releases" value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
-        <StatsItem name="Rejected Pushes" value={data?.push_rejected_count ?? 0 } />
-        <StatsItem name="Approved Pushes" value={data?.push_approved_count ?? 0} />
+        <StatsItem name="Approved Pushes" to="/releases" eventType="PUSH_APPROVED" value={data?.push_approved_count ?? 0} />
+        <StatsItem name="Rejected Pushes" to="/releases" eventType="PUSH_REJECTED" value={data?.push_rejected_count ?? 0 } />
+        <StatsItem name="Errored Pushes" to="/releases" eventType="PUSH_ERROR"  value={data?.push_error_count ?? 0} />
       </dl>
     </div>
   );

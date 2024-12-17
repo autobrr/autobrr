@@ -101,7 +101,6 @@ export default ({ mode }: ConfigEnv) => {
       }
     },
     build: {
-      manifest: true,
       sourcemap: true,
       rollupOptions: {
         output: {
@@ -111,7 +110,7 @@ export default ({ mode }: ConfigEnv) => {
             }
             return "assets/[name]-[hash][extname]";
           }
-        }
+        },
       }
     }
   });

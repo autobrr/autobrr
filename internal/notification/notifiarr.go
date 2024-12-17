@@ -1,11 +1,11 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
 
 import (
+	"bufio"
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 )
@@ -43,15 +44,25 @@ type notifiarrMessageData struct {
 
 type notifiarrSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	baseUrl  string
+
+	httpClient *http.Client
 }
 
-func NewNotifiarrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *notifiarrSender) Name() string {
+	return "notifiarr"
+}
+
+func NewNotifiarrSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &notifiarrSender{
 		log:      log.With().Str("sender", "notifiarr").Logger(),
 		Settings: settings,
 		baseUrl:  "https://notifiarr.com/api/v1/notification/autobrr",
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -63,46 +74,34 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, s.baseUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
 	req.Header.Set("X-API-Key", s.Settings.APIKey)
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	s.log.Trace().Msgf("notifiarr status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("response status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to notifiarr")

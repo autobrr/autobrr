@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package irc
@@ -49,7 +49,7 @@ func (c *Client) readerLoop() {
 		line := scanner.Text()
 		cmd := strings.Split(line, " ")
 
-		log.Printf("%s", scanner.Text())
+		log.Printf("--> %s", scanner.Text())
 
 		c.handler(c, cmd)
 	}
@@ -57,6 +57,7 @@ func (c *Client) readerLoop() {
 
 func (c *Client) writerLoop() {
 	for cmd := range c.writer {
+		log.Printf("<-- %s", []byte(cmd+"\r\n"))
 		c.conn.Write([]byte(cmd + "\r\n"))
 	}
 }

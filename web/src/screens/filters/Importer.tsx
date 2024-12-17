@@ -1,12 +1,17 @@
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Fragment, useRef, useState } from "react";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
+import { FilterKeys } from "@api/query_keys";
 import Toast from "@components/notifications/Toast";
 
-import { filterKeys } from "./List";
 import { AutodlIrssiConfigParser } from "./_configParser";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
@@ -22,9 +27,9 @@ interface ModalLowerProps extends ImporterProps {
 const ModalUpper = ({ children }: { children: React.ReactNode; }) => (
   <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:py-6 sm:px-4 sm:pb-4">
     <div className="mt-3 text-left sm:mt-0 max-w-full">
-      <Dialog.Title as="h3" className="mb-3 text-lg leading-6 font-medium text-gray-900 dark:text-white break-words">
+      <DialogTitle as="h3" className="mb-3 text-lg leading-6 font-medium text-gray-900 dark:text-white break-words">
         Import filter (in JSON or autodl-irssi format)
-      </Dialog.Title>
+      </DialogTitle>
       {children}
     </div>
   </div>
@@ -211,37 +216,25 @@ export const Importer = ({
     } finally {
       setIsOpen(false);
       // Invalidate filter cache, and trigger refresh request
-      await queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      await queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
     }
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog
         as="div"
         static
-        className="fixed z-10 inset-0 overflow-y-auto"
+        className="fixed z-10 inset-0 overflow-y-auto bg-gray-700/60 dark:bg-black/60 transition-opacity"
         initialFocus={textAreaRef}
         open={isOpen}
         onClose={() => setIsOpen(false)}
       >
         <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <Dialog.Overlay className="fixed inset-0 bg-gray-700/60 dark:bg-black/60 transition-opacity" />
-          </Transition.Child>
-
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
             &#8203;
           </span>
-          <Transition.Child
+          <TransitionChild
             as={Fragment}
             enter="ease-out duration-300"
             enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
@@ -250,7 +243,7 @@ export const Importer = ({
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <div className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full sm:max-w-6xl">
+            <DialogPanel className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition sm:my-8 sm:align-middle w-full sm:max-w-6xl">
               <ModalUpper>
                 <textarea
                   className="form-input resize-y block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
@@ -282,10 +275,10 @@ export const Importer = ({
                 ) : null}
               </ModalUpper>
               <ModalLower isOpen={isOpen} setIsOpen={setIsOpen} onImportClick={handleImportJson} />
-            </div>
-          </Transition.Child>
+            </DialogPanel>
+          </TransitionChild>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 };

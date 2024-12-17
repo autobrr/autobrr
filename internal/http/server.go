@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -43,11 +43,12 @@ type Server struct {
 	indexerService        indexerService
 	ircService            ircService
 	notificationService   notificationService
+	proxyService          proxyService
 	releaseService        releaseService
 	updateService         updateService
 }
 
-func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService, updateSvc updateService) Server {
+func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, proxySvc proxyService, releaseSvc releaseService, updateSvc updateService) Server {
 	return Server{
 		log:     log.With().Str("module", "http").Logger(),
 		config:  config,
@@ -68,6 +69,7 @@ func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db 
 		indexerService:        indexerSvc,
 		ircService:            ircSvc,
 		notificationService:   notificationSvc,
+		proxyService:          proxySvc,
 		releaseService:        releaseSvc,
 		updateService:         updateSvc,
 	}
@@ -75,17 +77,31 @@ func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db 
 
 func (s Server) Open() error {
 	addr := fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port)
-	listener, err := net.Listen("tcp", addr)
+
+	var err error
+	for _, proto := range []string{"tcp", "tcp4", "tcp6"} {
+		if err = s.tryToServe(addr, proto); err == nil {
+			break
+		}
+
+		s.log.Error().Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
+	}
+
+	return err
+}
+
+func (s Server) tryToServe(addr, protocol string) error {
+	listener, err := net.Listen(protocol, addr)
 	if err != nil {
 		return err
 	}
+
+	s.log.Info().Msgf("Starting API %s server. Listening on %s", protocol, listener.Addr().String())
 
 	server := http.Server{
 		Handler:           s.Handler(),
 		ReadHeaderTimeout: time.Second * 15,
 	}
-
-	s.log.Info().Msgf("Starting server. Listening on %s", listener.Addr().String())
 
 	return server.Serve(listener)
 }
@@ -109,7 +125,7 @@ func (s Server) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	encoder := encoder{}
+	encoder := newEncoder(s.log)
 
 	// Create a separate router for API
 	apiRouter := chi.NewRouter()
@@ -129,6 +145,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
+			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
 			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
 

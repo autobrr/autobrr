@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -13,34 +13,22 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/porla"
-
-	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/rs/zerolog"
 )
 
 func (s *service) porla(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Porla: %s", action.Name)
 
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
-		return nil, errors.Wrap(err, "error finding client: %d", action.ClientID)
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
+	}
+	action.Client = client
+
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	if client == nil {
-		return nil, errors.New("could not find client by id: %d", action.ClientID)
-	}
-
-	porlaSettings := porla.Config{
-		Hostname:      client.Host,
-		AuthToken:     client.Settings.APIKey,
-		TLSSkipVerify: client.TLSSkipVerify,
-		BasicUser:     client.Settings.Basic.Username,
-		BasicPass:     client.Settings.Basic.Password,
-	}
-
-	porlaSettings.Log = zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(), zerolog.TraceLevel)
-
-	prl := porla.NewClient(porlaSettings)
+	prl := client.Client.(*porla.Client)
 
 	rejections, err := s.porlaCheckRulesCanDownload(ctx, action, client, prl)
 	if err != nil {
@@ -87,10 +75,8 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 
 		return nil, nil
 	} else {
-		if release.TorrentTmpFile == "" {
-			if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-				return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
-			}
+		if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
 		file, err := os.Open(release.TorrentTmpFile)
@@ -99,8 +85,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 		}
 		defer file.Close()
 
-		reader := bufio.NewReader(file)
-		content, err := io.ReadAll(reader)
+		content, err := io.ReadAll(bufio.NewReader(file))
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read file: %s", release.TorrentTmpFile)
 		}

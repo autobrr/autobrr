@@ -1,12 +1,19 @@
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build integration
+
 package database
 
 import (
 	"context"
 	"fmt"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func getMockDownloadClient() domain.DownloadClient {
@@ -36,6 +43,13 @@ func getMockDownloadClient() domain.DownloadClient {
 				UploadSpeedThreshold:        0,
 			},
 			ExternalDownloadClientId: 0,
+			ExternalDownloadClient:   "",
+			Auth: domain.DownloadClientAuth{
+				Enabled:  true,
+				Type:     domain.DownloadClientAuthTypeBasic,
+				Username: "username",
+				Password: "password",
+			},
 		},
 	}
 }
@@ -48,13 +62,14 @@ func TestDownloadClientRepo_List(t *testing.T) {
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_No_Filters [%s]", dbType), func(t *testing.T) {
 			// Insert mock data
-			createdClient, err := repo.Store(context.Background(), mockData)
+			mock := &mockData
+			err := repo.Store(context.Background(), mock)
 			clients, err := repo.List(context.Background())
 			assert.NoError(t, err)
 			assert.NotEmpty(t, clients)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Empty_Database [%s]", dbType), func(t *testing.T) {
@@ -71,32 +86,34 @@ func TestDownloadClientRepo_List(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Data_Integrity [%s]", dbType), func(t *testing.T) {
-			createdClient, err := repo.Store(context.Background(), mockData)
+			mock := &mockData
+			err := repo.Store(context.Background(), mock)
 			clients, err := repo.List(context.Background())
 			assert.NoError(t, err)
 			assert.Equal(t, 1, len(clients))
-			assert.Equal(t, createdClient.Name, clients[0].Name)
+			assert.Equal(t, mock.Name, clients[0].Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Boundary_Value_For_Port [%s]", dbType), func(t *testing.T) {
-			mockData.Port = 65535
-			createdClient, err := repo.Store(context.Background(), mockData)
+			mock := &mockData
+			mock.Port = 65535
+			err := repo.Store(context.Background(), mock)
 			clients, err := repo.List(context.Background())
 			assert.NoError(t, err)
 			assert.Equal(t, 65535, clients[0].Port)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Boolean_Flags_Set_To_False [%s]", dbType), func(t *testing.T) {
 			mockData.Enabled = false
 			mockData.TLS = false
 			mockData.TLSSkipVerify = false
-			createdClient, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), &mockData)
 			clients, err := repo.List(context.Background())
 			assert.NoError(t, err)
 			assert.Equal(t, false, clients[0].Enabled)
@@ -104,18 +121,18 @@ func TestDownloadClientRepo_List(t *testing.T) {
 			assert.Equal(t, false, clients[0].TLSSkipVerify)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mockData.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Special_Characters_In_Name [%s]", dbType), func(t *testing.T) {
 			mockData.Name = "Special$Name"
-			createdClient, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), &mockData)
 			clients, err := repo.List(context.Background())
 			assert.NoError(t, err)
 			assert.Equal(t, "Special$Name", clients[0].Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mockData.ID)
 		})
 	}
 }
@@ -127,19 +144,20 @@ func TestDownloadClientRepo_FindByID(t *testing.T) {
 		mockData := getMockDownloadClient()
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
-			createdClient, _ := repo.Store(context.Background(), mockData)
-			foundClient, err := repo.FindByID(context.Background(), int32(createdClient.ID))
+			mock := &mockData
+			_ = repo.Store(context.Background(), mock)
+			foundClient, err := repo.FindByID(context.Background(), mock.ID)
 			assert.NoError(t, err)
 			assert.NotNil(t, foundClient)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Nonexistent_ID [%s]", dbType), func(t *testing.T) {
 			_, err := repo.FindByID(context.Background(), 9999)
 			assert.Error(t, err)
-			assert.Equal(t, "no client configured", err.Error())
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Negative_ID [%s]", dbType), func(t *testing.T) {
@@ -150,40 +168,44 @@ func TestDownloadClientRepo_FindByID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
+
 			_, err := repo.FindByID(ctx, 1)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_After_Client_Deleted [%s]", dbType), func(t *testing.T) {
-			createdClient, _ := repo.Store(context.Background(), mockData)
-			_ = repo.Delete(context.Background(), createdClient.ID)
-			_, err := repo.FindByID(context.Background(), int32(createdClient.ID))
+			mock := &mockData
+			_ = repo.Store(context.Background(), mock)
+			_ = repo.Delete(context.Background(), mock.ID)
+			_, err := repo.FindByID(context.Background(), mock.ID)
 			assert.Error(t, err)
-			assert.Equal(t, "no client configured", err.Error())
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds_With_Data_Integrity [%s]", dbType), func(t *testing.T) {
-			createdClient, _ := repo.Store(context.Background(), mockData)
-			foundClient, err := repo.FindByID(context.Background(), int32(createdClient.ID))
+			mock := &mockData
+			_ = repo.Store(context.Background(), mock)
+			foundClient, err := repo.FindByID(context.Background(), mock.ID)
 			assert.NoError(t, err)
-			assert.Equal(t, createdClient.Name, foundClient.Name)
+			assert.Equal(t, mock.Name, foundClient.Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds_From_Cache [%s]", dbType), func(t *testing.T) {
-			createdClient, _ := repo.Store(context.Background(), mockData)
-			foundClient1, _ := repo.FindByID(context.Background(), int32(createdClient.ID))
-			foundClient2, err := repo.FindByID(context.Background(), int32(createdClient.ID))
+			mock := &mockData
+			_ = repo.Store(context.Background(), mock)
+			foundClient1, _ := repo.FindByID(context.Background(), mock.ID)
+			foundClient2, err := repo.FindByID(context.Background(), mock.ID)
 			assert.NoError(t, err)
 			assert.Equal(t, foundClient1, foundClient2)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -195,17 +217,17 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			mockData := getMockDownloadClient()
-			createdClient, err := repo.Store(context.Background(), mockData)
+			err := repo.Store(context.Background(), &mockData)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mockData)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mockData.ID)
 		})
 
 		//TODO: Is this okay? Should we be able to store a client with no name (empty string)?
 		t.Run(fmt.Sprintf("Store_Succeeds?_With_Missing_Required_Fields [%s]", dbType), func(t *testing.T) {
-			badMockData := domain.DownloadClient{
+			badMockData := &domain.DownloadClient{
 				Type:          "",
 				Enabled:       false,
 				Host:          "",
@@ -216,30 +238,30 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 				Password:      "",
 				Settings:      domain.DownloadClientSettings{},
 			}
-			createdClient, err := repo.Store(context.Background(), badMockData)
+			err := repo.Store(context.Background(), badMockData)
 			assert.NoError(t, err)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), badMockData.ID)
 		})
 
 		t.Run(fmt.Sprintf("Store_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
 			mockData := getMockDownloadClient()
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
-			_, err := repo.Store(ctx, mockData)
+			err := repo.Store(ctx, &mockData)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("Store_Succeeds_And_Caches [%s]", dbType), func(t *testing.T) {
 			mockData := getMockDownloadClient()
-			createdClient, _ := repo.Store(context.Background(), mockData)
+			_ = repo.Store(context.Background(), &mockData)
 
-			cachedClient, _ := repo.FindByID(context.Background(), int32(createdClient.ID))
-			assert.Equal(t, createdClient, cachedClient)
+			cachedClient, _ := repo.FindByID(context.Background(), mockData.ID)
+			assert.Equal(t, &mockData, cachedClient)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mockData.ID)
 		})
 	}
 }
@@ -252,22 +274,22 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Successfully_Updates_Record [%s]", dbType), func(t *testing.T) {
 			mockClient := getMockDownloadClient()
 
-			createdClient, _ := repo.Store(context.Background(), mockClient)
-			createdClient.Name = "updatedName"
-			updatedClient, err := repo.Update(context.Background(), *createdClient)
+			_ = repo.Store(context.Background(), &mockClient)
+			mockClient.Name = "updatedName"
+			err := repo.Update(context.Background(), &mockClient)
 
 			assert.NoError(t, err)
-			assert.Equal(t, "updatedName", updatedClient.Name)
+			assert.Equal(t, "updatedName", mockClient.Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), updatedClient.ID)
+			_ = repo.Delete(context.Background(), mockClient.ID)
 		})
 
 		t.Run(fmt.Sprintf("Update_Fails_With_Missing_ID [%s]", dbType), func(t *testing.T) {
 			badMockData := getMockDownloadClient()
 			badMockData.ID = 0
 
-			_, err := repo.Update(context.Background(), badMockData)
+			err := repo.Update(context.Background(), &badMockData)
 
 			assert.Error(t, err)
 
@@ -277,7 +299,7 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 			badMockData := getMockDownloadClient()
 			badMockData.ID = 9999
 
-			_, err := repo.Update(context.Background(), badMockData)
+			err := repo.Update(context.Background(), &badMockData)
 
 			assert.Error(t, err)
 		})
@@ -285,7 +307,7 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Fails_With_Missing_Required_Fields [%s]", dbType), func(t *testing.T) {
 			badMockData := domain.DownloadClient{}
 
-			_, err := repo.Update(context.Background(), badMockData)
+			err := repo.Update(context.Background(), &badMockData)
 
 			assert.Error(t, err)
 		})
@@ -299,13 +321,13 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Delete_Successfully_Deletes_Client [%s]", dbType), func(t *testing.T) {
 			mockClient := getMockDownloadClient()
-			createdClient, _ := repo.Store(context.Background(), mockClient)
+			_ = repo.Store(context.Background(), &mockClient)
 
-			err := repo.Delete(context.Background(), createdClient.ID)
+			err := repo.Delete(context.Background(), mockClient.ID)
 			assert.NoError(t, err)
 
 			// Verify client was deleted
-			_, err = repo.FindByID(context.Background(), int32(createdClient.ID))
+			_, err = repo.FindByID(context.Background(), mockClient.ID)
 			assert.Error(t, err)
 		})
 
@@ -316,16 +338,16 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Delete_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
 			mockClient := getMockDownloadClient()
-			createdClient, _ := repo.Store(context.Background(), mockClient)
+			_ = repo.Store(context.Background(), &mockClient)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 			defer cancel()
 
-			err := repo.Delete(ctx, createdClient.ID)
+			err := repo.Delete(ctx, mockClient.ID)
 			assert.Error(t, err)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), createdClient.ID)
+			_ = repo.Delete(context.Background(), mockClient.ID)
 		})
 	}
 }

@@ -1,3 +1,5 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
@@ -6,6 +8,8 @@ builds:
   - id: autobrr
     env:
       - CGO_ENABLED=0
+    flags:
+      - -pgo=cpu.pprof
     goos:
       - linux
       - windows

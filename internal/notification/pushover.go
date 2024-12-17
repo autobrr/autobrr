@@ -1,11 +1,11 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
 
 import (
+	"bufio"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,8 +15,8 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
-	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -32,25 +32,40 @@ type pushoverMessage struct {
 
 type pushoverSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	baseUrl  string
+	builder  MessageBuilderHTML
+
+	httpClient *http.Client
 }
 
-func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *pushoverSender) Name() string {
+	return "pushover"
+}
+
+func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &pushoverSender{
 		log:      log.With().Str("sender", "pushover").Logger(),
 		Settings: settings,
 		baseUrl:  "https://api.pushover.net/1/messages.json",
+		builder:  MessageBuilderHTML{},
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
 func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+	title := BuildTitle(event)
+	message := s.builder.BuildBody(payload)
+
 	m := pushoverMessage{
 		Token:     s.Settings.APIKey,
 		User:      s.Settings.Token,
 		Priority:  s.Settings.Priority,
-		Message:   s.buildMessage(payload),
-		Title:     s.buildTitle(event),
+		Message:   message,
+		Title:     title,
 		Timestamp: time.Now(),
 		Html:      1,
 	}
@@ -71,33 +86,28 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	req, err := http.NewRequest(http.MethodPost, s.baseUrl, strings.NewReader(data.Encode()))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "autobrr")
 
-	client := http.Client{Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	s.log.Trace().Msgf("pushover status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("pushover response status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to pushover")
@@ -138,62 +148,4 @@ func (s *pushoverSender) isEnabledEvent(event domain.NotificationEvent) bool {
 	}
 
 	return false
-}
-
-func (s *pushoverSender) buildMessage(payload domain.NotificationPayload) string {
-	msg := ""
-
-	if payload.Subject != "" && payload.Message != "" {
-		msg += fmt.Sprintf("%v\n<b>%v</b>", payload.Subject, html.EscapeString(payload.Message))
-	}
-	if payload.ReleaseName != "" {
-		msg += fmt.Sprintf("\n<b>New release:</b> %v", html.EscapeString(payload.ReleaseName))
-	}
-	if payload.Size > 0 {
-		msg += fmt.Sprintf("\n<b>Size:</b> %v", humanize.Bytes(payload.Size))
-	}
-	if payload.Status != "" {
-		msg += fmt.Sprintf("\n<b>Status:</b> %v", payload.Status.String())
-	}
-	if payload.Indexer != "" {
-		msg += fmt.Sprintf("\n<b>Indexer:</b> %v", payload.Indexer)
-	}
-	if payload.Filter != "" {
-		msg += fmt.Sprintf("\n<b>Filter:</b> %v", html.EscapeString(payload.Filter))
-	}
-	if payload.Action != "" {
-		action := fmt.Sprintf("\n<b>Action:</b> %v <b>Type:</b> %v", html.EscapeString(payload.Action), payload.ActionType)
-		if payload.ActionClient != "" {
-			action += fmt.Sprintf(" <b>Client:</b> %v", html.EscapeString(payload.ActionClient))
-		}
-		msg += action
-	}
-	if len(payload.Rejections) > 0 {
-		msg += fmt.Sprintf("\nRejections: %v", strings.Join(payload.Rejections, ", "))
-	}
-
-	return msg
-}
-
-func (s *pushoverSender) buildTitle(event domain.NotificationEvent) string {
-	title := ""
-
-	switch event {
-	case domain.NotificationEventAppUpdateAvailable:
-		title = "Autobrr update available"
-	case domain.NotificationEventPushApproved:
-		title = "Push Approved"
-	case domain.NotificationEventPushRejected:
-		title = "Push Rejected"
-	case domain.NotificationEventPushError:
-		title = "Error"
-	case domain.NotificationEventIRCDisconnected:
-		title = "IRC Disconnected"
-	case domain.NotificationEventIRCReconnected:
-		title = "IRC Reconnected"
-	case domain.NotificationEventTest:
-		title = "Test"
-	}
-
-	return title
 }

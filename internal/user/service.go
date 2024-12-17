@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package user
@@ -14,6 +14,7 @@ type Service interface {
 	GetUserCount(ctx context.Context) (int, error)
 	FindByUsername(ctx context.Context, username string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
+	Update(ctx context.Context, req domain.UpdateUserRequest) error
 }
 
 type service struct {
@@ -50,4 +51,8 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	}
 
 	return s.repo.Store(ctx, req)
+}
+
+func (s *service) Update(ctx context.Context, req domain.UpdateUserRequest) error {
+	return s.repo.Update(ctx, req)
 }

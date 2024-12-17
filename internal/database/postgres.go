@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -71,7 +71,7 @@ func (db *DB) migratePostgres() error {
 		}
 	} else {
 		for i := version; i < len(postgresMigrations); i++ {
-			db.log.Info().Msgf("Upgrading Database schema to version: %v", i)
+			db.log.Info().Msgf("Upgrading Database schema to version: %v", i+1)
 			if _, err := tx.Exec(postgresMigrations[i]); err != nil {
 				return errors.Wrap(err, "failed to execute migration #%v", i)
 			}

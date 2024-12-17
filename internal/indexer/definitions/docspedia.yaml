@@ -27,7 +27,7 @@ irc:
   channels:
     - "#announce"
   announcers:
-    - Alebert
+    - Albert
   settings:
     - name: nick
       type: text

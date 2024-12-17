@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package sonarr
@@ -17,6 +17,10 @@ import (
 
 func (c *client) get(ctx context.Context, endpoint string) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
+	}
+
 	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
 	reqUrl := u.String()
 
@@ -38,6 +42,10 @@ func (c *client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	defer resp.Body.Close()
 
+	if resp.Body == nil {
+		return resp.StatusCode, nil, errors.New("response body is nil")
+	}
+
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {
 		return resp.StatusCode, nil, errors.Wrap(err, "sonarr.io.Copy")
@@ -48,6 +56,10 @@ func (c *client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
 	u, err := url.Parse(c.config.Hostname)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
+	}
+
 	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
 	reqUrl := u.String()
 
@@ -71,14 +83,14 @@ func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not make request: %+v", req)
+		return res, errors.Wrap(err, "could not make request: %+v", req)
 	}
 
 	// validate response
 	if res.StatusCode == http.StatusUnauthorized {
-		return nil, errors.New("unauthorized: bad credentials")
+		return res, errors.New("unauthorized: bad credentials")
 	} else if res.StatusCode != http.StatusOK {
-		return nil, errors.New("sonarr: bad request")
+		return res, errors.New("sonarr: bad request")
 	}
 
 	// return raw response and let the caller handle json unmarshal of body
@@ -87,6 +99,10 @@ func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 func (c *client) postBody(ctx context.Context, endpoint string, data interface{}) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
+	}
+
 	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
 	reqUrl := u.String()
 
@@ -112,6 +128,10 @@ func (c *client) postBody(ctx context.Context, endpoint string, data interface{}
 	}
 
 	defer resp.Body.Close()
+
+	if resp.Body == nil {
+		return resp.StatusCode, nil, errors.New("response body is nil")
+	}
 
 	var buf bytes.Buffer
 	if _, err = io.Copy(&buf, resp.Body); err != nil {

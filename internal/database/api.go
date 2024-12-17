@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -25,9 +25,8 @@ func NewAPIRepo(log logger.Logger, db *DB) domain.APIRepo {
 }
 
 type APIRepo struct {
-	log   zerolog.Logger
-	db    *DB
-	cache map[string]domain.APIKey
+	log zerolog.Logger
+	db  *DB
 }
 
 func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
@@ -57,9 +56,7 @@ func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
 }
 
 func (r *APIRepo) Delete(ctx context.Context, key string) error {
-	queryBuilder := r.db.squirrel.
-		Delete("api_key").
-		Where(sq.Eq{"key": key})
+	queryBuilder := r.db.squirrel.Delete("api_key").Where(sq.Eq{"key": key})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -76,14 +73,9 @@ func (r *APIRepo) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-func (r *APIRepo) GetKeys(ctx context.Context) ([]domain.APIKey, error) {
+func (r *APIRepo) GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error) {
 	queryBuilder := r.db.squirrel.
-		Select(
-			"name",
-			"key",
-			"scopes",
-			"created_at",
-		).
+		Select("name", "key", "scopes", "created_at").
 		From("api_key")
 
 	query, args, err := queryBuilder.ToSql()
@@ -106,7 +98,6 @@ func (r *APIRepo) GetKeys(ctx context.Context) ([]domain.APIKey, error) {
 
 		if err := rows.Scan(&name, &a.Key, pq.Array(&a.Scopes), &a.CreatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
-
 		}
 
 		a.Name = name.String
@@ -115,4 +106,37 @@ func (r *APIRepo) GetKeys(ctx context.Context) ([]domain.APIKey, error) {
 	}
 
 	return keys, nil
+}
+
+func (r *APIRepo) GetKey(ctx context.Context, key string) (*domain.APIKey, error) {
+	queryBuilder := r.db.squirrel.
+		Select("name", "key", "scopes", "created_at").
+		From("api_key").
+		Where(sq.Eq{"key": key})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	var apiKey domain.APIKey
+
+	var name sql.NullString
+
+	if err := row.Scan(&name, &apiKey.Key, pq.Array(&apiKey.Scopes), &apiKey.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	apiKey.Name = name.String
+
+	return &apiKey, nil
 }

@@ -1,27 +1,26 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
-	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
-// Reference: https://core.telegram.org/bots/api#sendmessage
+// TelegramMessage Reference: https://core.telegram.org/bots/api#sendmessage
 type TelegramMessage struct {
 	ChatID          string `json:"chat_id"`
 	Text            string `json:"text"`
@@ -31,11 +30,18 @@ type TelegramMessage struct {
 
 type telegramSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	ThreadID int
+	builder  MessageBuilderHTML
+
+	httpClient *http.Client
 }
 
-func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *telegramSender) Name() string {
+	return "telegram"
+}
+
+func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	threadID := 0
 	if t := settings.Topic; t != "" {
 		var err error
@@ -48,13 +54,22 @@ func NewTelegramSender(log zerolog.Logger, settings domain.Notification) domain.
 		log:      log.With().Str("sender", "telegram").Logger(),
 		Settings: settings,
 		ThreadID: threadID,
+		builder:  MessageBuilderHTML{},
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
 func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+
+	payload.Sender = s.Settings.Username
+
+	message := s.builder.BuildBody(payload)
 	m := TelegramMessage{
 		ChatID:          s.Settings.Channel,
-		Text:            s.buildMessage(event, payload),
+		Text:            message,
 		MessageThreadID: s.ThreadID,
 		ParseMode:       "HTML",
 		//ParseMode: "MarkdownV2",
@@ -62,44 +77,47 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
-	url := fmt.Sprintf("https://api.telegram.org/bot%v/sendMessage", s.Settings.Token)
+	var host string
+
+	if s.Settings.Host == "" {
+		host = "https://api.telegram.org"
+	} else {
+		host = s.Settings.Host
+	}
+
+	url := fmt.Sprintf("%v/bot%v/sendMessage", host, s.Settings.Token)
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	client := http.Client{Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	s.log.Trace().Msgf("telegram status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("telegram status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("telegram client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to telegram")
+
 	return nil
 }
 
@@ -125,39 +143,4 @@ func (s *telegramSender) isEnabledEvent(event domain.NotificationEvent) bool {
 	}
 
 	return false
-}
-
-func (s *telegramSender) buildMessage(event domain.NotificationEvent, payload domain.NotificationPayload) string {
-	msg := ""
-
-	if payload.Subject != "" && payload.Message != "" {
-		msg += fmt.Sprintf("%v\n<b>%v</b>", payload.Subject, html.EscapeString(payload.Message))
-	}
-	if payload.ReleaseName != "" {
-		msg += fmt.Sprintf("\n<b>New release:</b> %v", html.EscapeString(payload.ReleaseName))
-	}
-	if payload.Size > 0 {
-		msg += fmt.Sprintf("\n<b>File Size:</b> %v", html.EscapeString(humanize.Bytes(payload.Size)))
-	}
-	if payload.Status != "" {
-		msg += fmt.Sprintf("\n<b>Status:</b> %v", payload.Status.String())
-	}
-	if payload.Indexer != "" {
-		msg += fmt.Sprintf("\n<b>Indexer:</b> %v", payload.Indexer)
-	}
-	if payload.Filter != "" {
-		msg += fmt.Sprintf("\n<b>Filter:</b> %v", html.EscapeString(payload.Filter))
-	}
-	if payload.Action != "" {
-		action := fmt.Sprintf("\n<b>Action:</b> %v <b>Type:</b> %v", html.EscapeString(payload.Action), payload.ActionType)
-		if payload.ActionClient != "" {
-			action += fmt.Sprintf(" <b>Client:</b> %v", html.EscapeString(payload.ActionClient))
-		}
-		msg += action
-	}
-	if len(payload.Rejections) > 0 {
-		msg += fmt.Sprintf("\nRejections: %v", strings.Join(payload.Rejections, ", "))
-	}
-
-	return msg
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -7,16 +7,27 @@ interface Indexer {
   id: number;
   name: string;
   identifier: string;
+  identifier_external: string;
   enabled: boolean;
   implementation: string;
   base_url: string;
+  use_proxy?: boolean;
+  proxy_id?: number;
   settings: Array<IndexerSetting>;
+}
+
+interface IndexerMinimal {
+  id: number;
+  name: string;
+  identifier: string;
+  identifier_external: string;
 }
 
 interface IndexerDefinition {
   id: number;
   name: string;
   identifier: string;
+  identifier_external: string;
   implementation: string;
   base_url: string;
   enabled?: boolean;
@@ -26,6 +37,8 @@ interface IndexerDefinition {
   protocol: string;
   urls: string[];
   supports: string[];
+  use_proxy?: boolean;
+  proxy_id?: number;
   settings: IndexerSetting[];
   irc: IndexerIRC;
   torznab: IndexerTorznab;

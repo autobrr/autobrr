@@ -1,0 +1,92 @@
+---
+name: FearNoPeer
+identifier: fnp
+description: FearNoPeer (FnP) is a private torrent tracker for Movies, TV Shows & General releases
+language: en-us
+urls:
+  - https://fearnopeer.com/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#fearnopeer-announce"
+  announcers:
+    - FnP
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: "[FnP] New Upload - Category: [Movies] Type: [WEB-DL] Name: [Air Bud: World Pup 2001 1080p NF WEB-DL DD 5.1 x264-monkee] Size: [4.54 GiB] Uploader: [MartyMcFly] Url: [https://fearnopeer.com/torrents/12345]"
+          expect:
+            category: Movies
+            releaseTags: WEB-DL
+            torrentName: "Air Bud: World Pup 2001 1080p NF WEB-DL DD 5.1 x264-monkee"
+            torrentSize: 4.54 GiB
+            uploader: MartyMcFly
+            baseUrl: https://fearnopeer.com/
+            torrentId: "12345"
+        - line: "[FnP] New Upload - Category: [TV] Type: [WEB-DL] Name: [The Regime S01E03 1080p AMZN WEB-DL DD+ 5.1 H.264-FLUX] Size: [4.14 GiB] Uploader: [oppie] Url: [https://fearnopeer.com/torrents/54321]"
+          expect:
+            category: TV
+            releaseTags: WEB-DL
+            torrentName: The Regime S01E03 1080p AMZN WEB-DL DD+ 5.1 H.264-FLUX
+            torrentSize: 4.14 GiB
+            uploader: oppie
+            baseUrl: https://fearnopeer.com/
+            torrentId: "54321"
+        - line: "[FnP] New Upload - Category: [Music] Type: [FLAC] Name: [Live at FnP - Brr 2023 {bootleg} - [FLAC 16bit 44 1kHz]-[daniflix]] Size: [352.91 MiB] Uploader: [uploader] Url: [https://fearnopeer.com/torrents/155493]"
+          expect:
+            category: Music
+            releaseTags: FLAC
+            torrentName: Live at FnP - Brr 2023 {bootleg} - [FLAC 16bit 44 1kHz]-[daniflix]
+            torrentSize: 352.91 MiB
+            uploader: uploader
+            baseUrl: https://fearnopeer.com/
+            torrentId: "155493"
+        pattern: '\[FnP\] New Upload - Category: \[(.*)\] Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

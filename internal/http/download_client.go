@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -6,20 +6,21 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type downloadClientService interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
-	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
-	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
-	Delete(ctx context.Context, clientID int) error
+	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
+	Store(ctx context.Context, client *domain.DownloadClient) error
+	Update(ctx context.Context, client *domain.DownloadClient) error
+	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 }
 
@@ -40,13 +41,15 @@ func (h downloadClientHandler) Routes(r chi.Router) {
 	r.Post("/", h.store)
 	r.Put("/", h.update)
 	r.Post("/test", h.test)
-	r.Delete("/{clientID}", h.delete)
+
+	r.Route("/{clientID}", func(r chi.Router) {
+		r.Get("/", h.findByID)
+		r.Delete("/", h.delete)
+	})
 }
 
 func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	clients, err := h.service.List(ctx)
+	clients, err := h.service.List(r.Context())
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -55,26 +58,44 @@ func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *htt
 	h.encoder.StatusResponse(w, http.StatusOK, clients)
 }
 
-func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
-	var data domain.DownloadClient
-
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		h.encoder.Error(w, err)
-		return
-	}
-
-	client, err := h.service.Store(r.Context(), data)
+func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) {
+	clientID, err := strconv.ParseInt(chi.URLParam(r, "clientID"), 10, 32)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, client)
+	client, err := h.service.FindByID(r.Context(), int32(clientID))
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, client)
+}
+
+func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
+	var data *domain.DownloadClient
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	err := h.service.Store(r.Context(), data)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
 	var data domain.DownloadClient
-
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -89,37 +110,29 @@ func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
-	var data domain.DownloadClient
-
+	var data *domain.DownloadClient
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	client, err := h.service.Update(r.Context(), data)
+	err := h.service.Update(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, client)
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
-	var clientID = chi.URLParam(r, "clientID")
-
-	if clientID == "" {
-		h.encoder.Error(w, errors.New("no clientID given"))
-		return
-	}
-
-	id, err := strconv.Atoi(clientID)
+	clientID, err := strconv.ParseInt(chi.URLParam(r, "clientID"), 10, 32)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err = h.service.Delete(r.Context(), id); err != nil {
+	if err = h.service.Delete(r.Context(), int32(clientID)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

@@ -1,26 +1,27 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build integration
 
 package sonarr
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_client_Push(t *testing.T) {
 	// disable logger
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	mux := http.NewServeMux()
 	ts := httptest.NewServer(mux)
@@ -125,7 +126,7 @@ func Test_client_Push(t *testing.T) {
 func Test_client_Test(t *testing.T) {
 	// disable logger
 	zerolog.SetGlobalLevel(zerolog.Disabled)
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	key := "mock-key"
 

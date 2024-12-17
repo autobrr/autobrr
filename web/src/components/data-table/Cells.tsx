@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -7,46 +7,130 @@ import * as React from "react";
 import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CellContext } from "@tanstack/react-table";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
-import { ClockIcon, XMarkIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
+import {
+  ClockIcon,
+  XMarkIcon,
+  NoSymbolIcon,
+  ArrowDownTrayIcon,
+  ArrowTopRightOnSquareIcon, DocumentTextIcon
+} from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
-import { classNames, simplifyDate } from "@utils";
-import { filterKeys } from "@screens/filters/List";
+import { FilterKeys } from "@api/query_keys";
+import { classNames, humanFileSize, simplifyDate } from "@utils";
+import { ExternalLink } from "../ExternalLink";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-interface CellProps {
-    value: string;
-}
-
-export const AgeCell = ({ value }: CellProps) => (
-  <div className="text-sm text-gray-500" title={simplifyDate(value)}>
-    {formatDistanceToNowStrict(new Date(value), { addSuffix: false })}
-  </div>
-);
-
-export const IndexerCell = ({ value }: CellProps) => (
+export const NameCell = (props: CellContext<Release, unknown>) => (
   <div
     className={classNames(
-      "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+      "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+      "max-w-[82px] sm:max-w-[130px] md:max-w-[260px] lg:max-w-[500px] xl:max-w-[760px]"
     )}
   >
-    <Tooltip
-      requiresClick
-      label={value}
-      maxWidth="max-w-[90vw]"
-    >
-      <span className="whitespace-pre-wrap break-words">
-        {value}
+    <div className="flex flex-col truncate">
+      <span className="truncate">
+        {String(props.cell.getValue())}
       </span>
-    </Tooltip>
+      <div className="text-xs truncate">
+        <span className="text-xs text-gray-500 dark:text-gray-400">Category:</span> {props.row.original.category}
+        <span
+          className="text-xs text-gray-500 dark:text-gray-400"> Size:</span> {humanFileSize(props.row.original.size)}
+        <span
+          className="text-xs text-gray-500 dark:text-gray-400"> Misc:</span> {`${props.row.original.resolution} ${props.row.original.source} ${props.row.original.codec ?? ""} ${props.row.original.container}`}
+      </div>
+    </div>
   </div>
 );
 
-export const TitleCell = ({ value }: CellProps) => (
+export const LinksCell = (props: CellContext<Release, unknown>) => {
+  return (
+    <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
+      <div>
+        <Tooltip
+          requiresClick
+          label={<DocumentTextIcon
+            className="h-5 w-5 cursor-pointer text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"
+            aria-hidden={true}/>}
+          title="Details"
+        >
+          <div className="mb-1">
+            <CellLine title="Release">{props.row.original.name}</CellLine>
+            <CellLine title="Indexer">{props.row.original.indexer.identifier}</CellLine>
+            <CellLine title="Protocol">{props.row.original.protocol}</CellLine>
+            <CellLine title="Implementation">{props.row.original.implementation}</CellLine>
+            <CellLine title="Announce Type">{props.row.original.announce_type}</CellLine>
+            <CellLine title="Category">{props.row.original.category}</CellLine>
+            <CellLine title="Uploader">{props.row.original.uploader}</CellLine>
+            <CellLine title="Size">{humanFileSize(props.row.original.size)}</CellLine>
+            <CellLine title="Title">{props.row.original.title}</CellLine>
+            {props.row.original.year > 0 && <CellLine title="Year">{props.row.original.year.toString()}</CellLine>}
+            {props.row.original.season > 0 &&
+                <CellLine title="Season">{props.row.original.season.toString()}</CellLine>}
+            {props.row.original.episode > 0 &&
+                <CellLine title="Episode">{props.row.original.episode.toString()}</CellLine>}
+            <CellLine title="Resolution">{props.row.original.resolution}</CellLine>
+            <CellLine title="Source">{props.row.original.source}</CellLine>
+            <CellLine title="Codec">{props.row.original.codec}</CellLine>
+            <CellLine title="HDR">{props.row.original.hdr}</CellLine>
+            <CellLine title="Group">{props.row.original.group}</CellLine>
+            <CellLine title="Container">{props.row.original.container}</CellLine>
+            <CellLine title="Origin">{props.row.original.origin}</CellLine>
+          </div>
+        </Tooltip>
+      </div>
+      {props.row.original.download_url && (
+        <ExternalLink href={props.row.original.download_url}>
+          <ArrowDownTrayIcon
+            title="Download torrent file"
+            className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600"
+            aria-hidden="true"
+          />
+        </ExternalLink>
+      )}
+      {props.row.original.info_url && (
+        <ExternalLink href={props.row.original.info_url}>
+          <ArrowTopRightOnSquareIcon
+            title="Visit torrentinfo url"
+            className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600"
+            aria-hidden="true"
+          />
+        </ExternalLink>
+      )}
+    </div>
+  );
+};
+
+export const AgeCell = ({cell}: CellContext<Release, unknown>) => (
+  <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue() as string)}>
+    {formatDistanceToNowStrict(new Date(cell.getValue() as string), {addSuffix: false})}
+  </div>
+);
+
+export const IndexerCell = (props: CellContext<Release, unknown>) => (
+    <div
+      className={classNames(
+        "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+        "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+      )}
+    >
+      <Tooltip
+        requiresClick
+        label={props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
+        maxWidth="max-w-[90vw]"
+      >
+      <span className="whitespace-pre-wrap break-words">
+        {props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
+      </span>
+      </Tooltip>
+    </div>
+);
+
+export const TitleCell = ({cell}: CellContext<Release, string>) => (
   <div
     className={classNames(
       "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -55,11 +139,11 @@ export const TitleCell = ({ value }: CellProps) => (
   >
     <Tooltip
       requiresClick
-      label={value}
+      label={cell.getValue()}
       maxWidth="max-w-[90vw]"
     >
       <span className="whitespace-pre-wrap break-words">
-        {value}
+        {cell.getValue()}
       </span>
     </Tooltip>
   </div>
@@ -81,7 +165,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
     mutationFn: (vars: RetryAction) => APIClient.release.replayAction(vars.releaseId, vars.actionId),
     onSuccess: () => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => (
         <Toast type="success" body={`${status?.action} replayed`} t={t} />
@@ -97,17 +181,13 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   return (
     <button className="flex items-center px-1.5 py-1 ml-2 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
       <span className="mr-1.5">Retry</span>
-      {mutation.isLoading
+      {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon className="h-4 w-4" />
       }
     </button>
   );
 };
-
-interface ReleaseStatusCellProps {
-    value: ReleaseActionStatus[];
-}
 
 interface StatusCellMapEntry {
     colors: string;
@@ -212,9 +292,9 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
   );
 };
 
-export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
+export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => (
   <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-    {value.map((v, idx) => (
+    {row.original.action_status.map((v, idx) => (
       <div
         key={idx}
         className={classNames(
@@ -243,3 +323,4 @@ export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
     ))}
   </div>
 );
+

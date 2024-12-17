@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -11,7 +11,8 @@ import (
 type APIRepo interface {
 	Store(ctx context.Context, key *APIKey) error
 	Delete(ctx context.Context, key string) error
-	GetKeys(ctx context.Context) ([]APIKey, error)
+	GetAllAPIKeys(ctx context.Context) ([]APIKey, error)
+	GetKey(ctx context.Context, key string) (*APIKey, error)
 }
 
 type APIKey struct {

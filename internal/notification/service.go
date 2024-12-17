@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
@@ -19,24 +19,24 @@ import (
 type Service interface {
 	Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error)
 	FindByID(ctx context.Context, id int) (*domain.Notification, error)
-	Store(ctx context.Context, n domain.Notification) (*domain.Notification, error)
-	Update(ctx context.Context, n domain.Notification) (*domain.Notification, error)
+	Store(ctx context.Context, notification *domain.Notification) error
+	Update(ctx context.Context, notification *domain.Notification) error
 	Delete(ctx context.Context, id int) error
 	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
-	Test(ctx context.Context, notification domain.Notification) error
+	Test(ctx context.Context, notification *domain.Notification) error
 }
 
 type service struct {
 	log     zerolog.Logger
 	repo    domain.NotificationRepo
-	senders []domain.NotificationSender
+	senders map[int]domain.NotificationSender
 }
 
 func NewService(log logger.Logger, repo domain.NotificationRepo) Service {
 	s := &service{
 		log:     log.With().Str("module", "notification").Logger(),
 		repo:    repo,
-		senders: []domain.NotificationSender{},
+		senders: make(map[int]domain.NotificationSender),
 	}
 
 	s.registerSenders()
@@ -45,55 +45,49 @@ func NewService(log logger.Logger, repo domain.NotificationRepo) Service {
 }
 
 func (s *service) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
-	n, count, err := s.repo.Find(ctx, params)
+	notifications, count, err := s.repo.Find(ctx, params)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find notification with params: %+v", params)
 		return nil, 0, err
 	}
 
-	return n, count, err
+	return notifications, count, err
 }
 
 func (s *service) FindByID(ctx context.Context, id int) (*domain.Notification, error) {
-	n, err := s.repo.FindByID(ctx, id)
+	notification, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find notification by id: %v", id)
 		return nil, err
 	}
 
-	return n, err
+	return notification, err
 }
 
-func (s *service) Store(ctx context.Context, n domain.Notification) (*domain.Notification, error) {
-	_, err := s.repo.Store(ctx, n)
+func (s *service) Store(ctx context.Context, notification *domain.Notification) error {
+	err := s.repo.Store(ctx, notification)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store notification: %+v", n)
-		return nil, err
+		s.log.Error().Err(err).Msgf("could not store notification: %+v", notification)
+		return err
 	}
 
-	// reset senders
-	s.senders = []domain.NotificationSender{}
+	// register sender
+	s.registerSender(notification)
 
-	// re register senders
-	s.registerSenders()
-
-	return nil, nil
+	return nil
 }
 
-func (s *service) Update(ctx context.Context, n domain.Notification) (*domain.Notification, error) {
-	_, err := s.repo.Update(ctx, n)
+func (s *service) Update(ctx context.Context, notification *domain.Notification) error {
+	err := s.repo.Update(ctx, notification)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not update notification: %+v", n)
-		return nil, err
+		s.log.Error().Err(err).Msgf("could not update notification: %+v", notification)
+		return err
 	}
 
-	// reset senders
-	s.senders = []domain.NotificationSender{}
+	// register sender
+	s.registerSender(notification)
 
-	// re register senders
-	s.registerSenders()
-
-	return nil, nil
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int) error {
@@ -103,37 +97,50 @@ func (s *service) Delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	// reset senders
-	s.senders = []domain.NotificationSender{}
-
-	// re register senders
-	s.registerSenders()
+	// delete sender
+	delete(s.senders, id)
 
 	return nil
 }
 
 func (s *service) registerSenders() {
-	senders, err := s.repo.List(context.Background())
+	notificationSenders, err := s.repo.List(context.Background())
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not find notifications")
 		return
 	}
 
-	for _, n := range senders {
-		if n.Enabled {
-			switch n.Type {
-			case domain.NotificationTypeDiscord:
-				s.senders = append(s.senders, NewDiscordSender(s.log, n))
-			case domain.NotificationTypeNotifiarr:
-				s.senders = append(s.senders, NewNotifiarrSender(s.log, n))
-			case domain.NotificationTypeTelegram:
-				s.senders = append(s.senders, NewTelegramSender(s.log, n))
-			case domain.NotificationTypePushover:
-				s.senders = append(s.senders, NewPushoverSender(s.log, n))
-			case domain.NotificationTypeGotify:
-				s.senders = append(s.senders, NewGotifySender(s.log, n))
-			}
-		}
+	for _, notificationSender := range notificationSenders {
+		s.registerSender(&notificationSender)
+	}
+
+	return
+}
+
+// registerSender registers an enabled notification via it's id
+func (s *service) registerSender(notification *domain.Notification) {
+	if !notification.Enabled {
+		delete(s.senders, notification.ID)
+		return
+	}
+
+	switch notification.Type {
+	case domain.NotificationTypeDiscord:
+		s.senders[notification.ID] = NewDiscordSender(s.log, notification)
+	case domain.NotificationTypeGotify:
+		s.senders[notification.ID] = NewGotifySender(s.log, notification)
+	case domain.NotificationTypeLunaSea:
+		s.senders[notification.ID] = NewLunaSeaSender(s.log, notification)
+	case domain.NotificationTypeNotifiarr:
+		s.senders[notification.ID] = NewNotifiarrSender(s.log, notification)
+	case domain.NotificationTypeNtfy:
+		s.senders[notification.ID] = NewNtfySender(s.log, notification)
+	case domain.NotificationTypePushover:
+		s.senders[notification.ID] = NewPushoverSender(s.log, notification)
+	case domain.NotificationTypeShoutrrr:
+		s.senders[notification.ID] = NewShoutrrrSender(s.log, notification)
+	case domain.NotificationTypeTelegram:
+		s.senders[notification.ID] = NewTelegramSender(s.log, notification)
 	}
 
 	return
@@ -149,7 +156,9 @@ func (s *service) Send(event domain.NotificationEvent, payload domain.Notificati
 		for _, sender := range s.senders {
 			// check if sender is active and have notification types
 			if sender.CanSend(event) {
-				sender.Send(event, payload)
+				if err := sender.Send(event, payload); err != nil {
+					s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
+				}
 			}
 		}
 	}()
@@ -157,7 +166,7 @@ func (s *service) Send(event domain.NotificationEvent, payload domain.Notificati
 	return
 }
 
-func (s *service) Test(ctx context.Context, notification domain.Notification) error {
+func (s *service) Test(ctx context.Context, notification *domain.Notification) error {
 	var agent domain.NotificationSender
 
 	// send test events
@@ -239,14 +248,20 @@ func (s *service) Test(ctx context.Context, notification domain.Notification) er
 	switch notification.Type {
 	case domain.NotificationTypeDiscord:
 		agent = NewDiscordSender(s.log, notification)
-	case domain.NotificationTypeNotifiarr:
-		agent = NewNotifiarrSender(s.log, notification)
-	case domain.NotificationTypeTelegram:
-		agent = NewTelegramSender(s.log, notification)
-	case domain.NotificationTypePushover:
-		agent = NewPushoverSender(s.log, notification)
 	case domain.NotificationTypeGotify:
 		agent = NewGotifySender(s.log, notification)
+	case domain.NotificationTypeLunaSea:
+		agent = NewLunaSeaSender(s.log, notification)
+	case domain.NotificationTypeNotifiarr:
+		agent = NewNotifiarrSender(s.log, notification)
+	case domain.NotificationTypeNtfy:
+		agent = NewNtfySender(s.log, notification)
+	case domain.NotificationTypePushover:
+		agent = NewPushoverSender(s.log, notification)
+	case domain.NotificationTypeShoutrrr:
+		agent = NewShoutrrrSender(s.log, notification)
+	case domain.NotificationTypeTelegram:
+		agent = NewTelegramSender(s.log, notification)
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")

@@ -1,47 +1,50 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Disclosure } from "@headlessui/react";
+import { redirect } from "@tanstack/react-router";
+import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
-import { AuthContext } from "@utils/Context";
 import Toast from "@components/notifications/Toast";
 
 import { LeftNav } from "./LeftNav";
 import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
+import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { AuthContext } from "@utils/Context";
+import { LoginRoute } from "@app/routes.tsx";
 
 export const Header = () => {
-  const { data: config } = useQuery({
-    queryKey: ["config"],
-    queryFn: () => APIClient.config.get(),
-    retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
-  });
 
-  const { data } = useQuery({
-    queryKey: ["updates"],
-    queryFn: () => APIClient.updates.getLatestRelease(),
-    retry: false,
-    refetchOnWindowFocus: false,
-    enabled: config?.check_for_updates === true,
-    onError: err => console.log(err)
-  });
+  const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
+  if (isConfigError) {
+    console.log(configError);
+  }
+
+  const { isError: isUpdateError, error, data } = useQuery(UpdatesQueryOptions(config?.check_for_updates === true));
+  if (isUpdateError) {
+    console.log("update error", error);
+  }
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
-      AuthContext.reset();
       toast.custom((t) => (
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
+      AuthContext.reset();
+      throw redirect({
+        to: LoginRoute.to,
+      })
+    },
+    onError: (err) => {
+      console.error("logout error", err)
     }
   });
 
@@ -59,7 +62,7 @@ export const Header = () => {
                 <RightNav logoutMutation={logoutMutation.mutate} />
                 <div className="-mr-2 flex sm:hidden">
                   {/* Mobile menu button */}
-                  <Disclosure.Button className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
+                  <DisclosureButton className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
                     <span className="sr-only">Open main menu</span>
                     {open ? (
                       <XMarkIcon
@@ -72,7 +75,7 @@ export const Header = () => {
                         aria-hidden="true"
                       />
                     )}
-                  </Disclosure.Button>
+                  </DisclosureButton>
                 </div>
               </div>
             </div>

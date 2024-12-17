@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package indexer
@@ -13,7 +13,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/ggn"
 	"github.com/autobrr/autobrr/pkg/ops"
-	"github.com/autobrr/autobrr/pkg/ptp"
 	"github.com/autobrr/autobrr/pkg/red"
 
 	"github.com/rs/zerolog"
@@ -92,19 +91,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = btn.NewClient("", key)
-
-	case "ptp":
-		user, ok := settings["api_user"]
-		if !ok || user == "" {
-			return errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_user'")
-		}
-
-		key, ok := settings["api_key"]
-		if !ok || key == "" {
-			return errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
-		}
-		s.apiClients[indexer] = ptp.NewClient(user, key)
+		s.apiClients[indexer] = btn.NewClient(key)
 
 	case "ggn":
 		key, ok := settings["api_key"]
@@ -128,7 +115,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string) error
 		s.apiClients[indexer] = ops.NewClient(key)
 
 	case "mock":
-		s.apiClients[indexer] = mock.NewMockClient("", "mock")
+		s.apiClients[indexer] = mock.NewMockClient("mock")
 
 	default:
 		return errors.New("api.Service.AddClient: could not initialize client: unsupported indexer: %s", indexer)
@@ -154,17 +141,7 @@ func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
-		return btn.NewClient("", req.ApiKey), nil
-
-	case "ptp":
-		if req.ApiUser == "" {
-			return nil, errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_user'")
-		}
-
-		if req.ApiKey == "" {
-			return nil, errors.New("api.Service.AddClient: could not initialize ptp client: missing var 'api_key'")
-		}
-		return ptp.NewClient(req.ApiUser, req.ApiKey), nil
+		return btn.NewClient(req.ApiKey), nil
 
 	case "ggn":
 		if req.ApiKey == "" {
@@ -185,7 +162,7 @@ func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 		return ops.NewClient(req.ApiKey), nil
 
 	case "mock":
-		return mock.NewMockClient("", "mock"), nil
+		return mock.NewMockClient("mock"), nil
 
 	default:
 		return nil, errors.New("api.Service.AddClient: could not initialize client: unsupported indexer: %s", req.Identifier)

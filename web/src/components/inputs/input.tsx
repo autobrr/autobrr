@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -79,6 +79,7 @@ export const TextField = ({
             )}
             disabled={disabled}
             placeholder={placeholder}
+            data-1p-ignore
           />
 
           {meta.touched && meta.error && (
@@ -116,42 +117,42 @@ export const RegexField = ({
   disabled
 }: RegexFieldProps) => {
   const validRegex = (pattern: string) => {
-  
+
     // Check for unsupported lookahead and lookbehind assertions
     if (/\(\?<=|\(\?<!|\(\?=|\(\?!/.test(pattern)) {
       return false;
     }
-  
+
     // Check for unsupported atomic groups
     if (/\(\?>/.test(pattern)) {
       return false;
     }
-  
+
     // Check for unsupported recursive patterns
     if (/\(\?(R|0)\)/.test(pattern)) {
       return false;
     }
-  
+
     // Check for unsupported possessive quantifiers
     if (/[*+?]{1}\+|\{[0-9]+,[0-9]*\}\+/.test(pattern)) {
       return false;
     }
-  
+
     // Check for unsupported control verbs
     if (/\\g</.test(pattern)) {
       return false;
     }
-  
+
     // Check for unsupported conditionals
     if (/\(\?\((\?[=!][^)]*)\)[^)]*\|?[^)]*\)/.test(pattern)) {
       return false;
     }
-  
+
     // Check for unsupported backreferences
     if (/\\k</.test(pattern)) {
       return false;
     }
-  
+
     // Check if the pattern is a valid regex
     try {
       new RegExp(pattern);
@@ -160,7 +161,7 @@ export const RegexField = ({
       return false;
     }
   };
-  
+
 
   const validateRegexp = (val: string) => {
     let error = "";
@@ -177,7 +178,7 @@ export const RegexField = ({
     if (useRegex) {
       validateForm();
     }
-  }, [useRegex]);  
+  }, [useRegex, validateForm]);
 
   return (
     <div
@@ -317,7 +318,7 @@ export const RegexTextAreaField = ({
     if (useRegex) {
       validateForm();
     }
-  }, [useRegex]);
+  }, [useRegex, validateForm]);
 
   return (
     <div
@@ -548,6 +549,7 @@ interface PasswordFieldProps {
   defaultValue?: string;
   help?: string;
   required?: boolean;
+  tooltip?: JSX.Element;
 }
 
 export const PasswordField = ({
@@ -558,6 +560,7 @@ export const PasswordField = ({
   columns,
   autoComplete,
   help,
+  tooltip,
   required
 }: PasswordFieldProps) => {
   const [isVisible, toggleVisibility] = useToggle(false);
@@ -570,8 +573,13 @@ export const PasswordField = ({
       )}
     >
       {label && (
-        <label htmlFor={name} className="block ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
-          {label} {required && <span className="text-gray-500">*</span>}
+        <label htmlFor={name} className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
+          {tooltip ? (
+            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+          ) : (
+            label
+          )}
+          {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <div>
@@ -591,7 +599,7 @@ export const PasswordField = ({
                     meta.touched && meta.error
                       ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                       : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                    "mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                    "mt-1 block w-full rounded-md bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                   )}
                   placeholder={placeholder}
                 />

@@ -1,10 +1,9 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package porla
 
 import (
-	"crypto/tls"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 var (
@@ -62,19 +62,16 @@ func NewClient(cfg Config) *Client {
 		c.timeout = time.Duration(cfg.Timeout) * time.Second
 	}
 
-	c.http = &http.Client{
-		Timeout: c.timeout,
-	}
-
-	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	if cfg.TLSSkipVerify {
-		customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-
 	httpClient := &http.Client{
 		Timeout:   c.timeout,
-		Transport: customTransport,
+		Transport: sharedhttp.Transport,
 	}
+
+	if cfg.TLSSkipVerify {
+		httpClient.Transport = sharedhttp.TransportTLSInsecure
+	}
+
+	c.http = httpClient
 
 	token := cfg.AuthToken
 

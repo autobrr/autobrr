@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package irc
@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -36,6 +37,7 @@ type Service interface {
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
+	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
 }
 
 type service struct {
@@ -46,8 +48,10 @@ type service struct {
 	releaseService      release.Service
 	indexerService      indexer.Service
 	notificationService notification.Service
-	indexerMap          map[string]string
-	handlers            map[int64]*Handler
+	proxyService        proxy.Service
+
+	indexerMap map[string]string
+	handlers   map[int64]*Handler
 
 	stopWG sync.WaitGroup
 	lock   sync.RWMutex
@@ -55,7 +59,7 @@ type service struct {
 
 const sseMaxEntries = 1000
 
-func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service) Service {
+func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service, proxySvc proxy.Service) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,
@@ -63,6 +67,7 @@ func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, release
 		releaseService:      releaseSvc,
 		indexerService:      indexerSvc,
 		notificationService: notificationSvc,
+		proxyService:        proxySvc,
 		handlers:            make(map[int64]*Handler),
 	}
 }
@@ -76,6 +81,15 @@ func (s *service) StartHandlers() {
 	for _, network := range networks {
 		if !network.Enabled {
 			continue
+		}
+
+		if network.ProxyId != 0 {
+			networkProxy, err := s.proxyService.FindByID(context.Background(), network.ProxyId)
+			if err != nil {
+				s.log.Error().Err(err).Msgf("failed to get proxy for network: %s", network.Server)
+				return
+			}
+			network.Proxy = networkProxy
 		}
 
 		channels, err := s.repo.ListChannels(network.ID)
@@ -213,6 +227,14 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 			if handler.BotMode != network.BotMode {
 				restartNeeded = true
 				fieldsChanged = append(fieldsChanged, "bot mode")
+			}
+			if handler.UseProxy != network.UseProxy {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "use proxy")
+			}
+			if handler.ProxyId != network.ProxyId {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "proxy id")
 			}
 			if handler.Auth.Mechanism != network.Auth.Mechanism {
 				restartNeeded = true
@@ -408,6 +430,26 @@ func (s *service) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	return network, nil
 }
 
+func (s *service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error {
+	network, err := s.repo.GetNetworkByID(ctx, req.NetworkId)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("failed to get network: %d", req.NetworkId)
+		return err
+	}
+
+	handler, ok := s.handlers[network.ID]
+	if !ok {
+		return errors.New("could not find irc handler with id: %d", network.ID)
+	}
+
+	err = handler.sendToAnnounceProcessor(req.Channel, req.Message)
+	if err != nil {
+		return errors.Wrap(err, "could not send manual announce to processor")
+	}
+
+	return nil
+}
+
 func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	networks, err := s.repo.ListNetworks(ctx)
 	if err != nil {
@@ -455,12 +497,16 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			BouncerAddr:      n.BouncerAddr,
 			UseBouncer:       n.UseBouncer,
 			BotMode:          n.BotMode,
+			UseProxy:         n.UseProxy,
+			ProxyId:          n.ProxyId,
 			Connected:        false,
 			Channels:         []domain.ChannelWithHealth{},
 			ConnectionErrors: []string{},
 		}
 
+		s.lock.RLock()
 		handler, ok := s.handlers[n.ID]
+		s.lock.RUnlock()
 		if ok {
 			handler.ReportStatus(&netw)
 		}
@@ -544,6 +590,18 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		return err
 	}
 	s.log.Debug().Msgf("irc.service: update network: %s", network.Name)
+
+	network.Proxy = nil
+
+	// attach proxy
+	if network.UseProxy && network.ProxyId != 0 {
+		networkProxy, err := s.proxyService.FindByID(context.Background(), network.ProxyId)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("failed to get proxy for network: %s", network.Server)
+			return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
+		}
+		network.Proxy = networkProxy
+	}
 
 	// stop or start network
 	// TODO get current state to see if enabled or not?

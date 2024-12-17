@@ -21,12 +21,14 @@ Full documentation can be found at [https://autobrr.com](https://autobrr.com)
    - [Available Download Clients and Actions](#available-download-clients-and-actions)
    - [RSS and Usenet Support](#rss-and-usenet-support)
 3. [Installation](#installation)
-   - [Swizzin](#swizzin)
+   - [Swizzin](#swizzin-dedi)
    - [Saltbox](#saltbox)
    - [QuickBox](#quickbox)
    - [Shared Seedbox](#shared-seedbox)
    - [Docker Compose](#docker-compose)
+      - [Distroless docker images](#distroless-docker-images)
    - [Windows](#windows)
+   - [MacOS](#macos)
    - [Linux Generic](#linux-generic)
 4. [Community](#community)
 5. [Contributing](#contributing)
@@ -102,7 +104,7 @@ For comprehensive installation instructions, visit our [Installation Guide](http
 
 Remember to head over to our [Configuration Guide](https://autobrr.com/configuration/autobrr) to learn how to set up your indexers, IRC, and download clients after you're done installing.
 
-### Swizzin
+### Swizzin (dedi)
 
 [Swizzin](https://swizzin.ltd/) users can simply run:
 
@@ -115,10 +117,10 @@ sudo box install autobrr
 [Saltbox](https://docs.saltbox.dev/) users can simply run:
 
 ```bash
-sb install sandbox-autobrr
+sb install autobrr
 ```
 
-For more info check the [docs](https://docs.saltbox.dev/sandbox/apps/autobrr/)
+For more info check the [docs](https://docs.saltbox.dev/apps/autobrr/)
 
 ### QuickBox
 
@@ -135,7 +137,8 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 
 #### One-Click Installer & Quick Installer
 
-- HostingByDesign (former Seedbox.io) via box
+- HostingByDesign (former Seedbox.io) via box - `box install autobrr`
+- Swizzin.net via box - `box install autobrr`
 - Seedit4.me
 - SeedHost.eu
 - Ultra.cc
@@ -145,12 +148,6 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 We have support for a couple of other providers out of the box.  
 Please contact us on [Discord](https://discord.gg/WQ2eUycxyT) if your provider is missing.
 The scripts require some input, but do most of the work.
-
-#### Swizzin.net
-
-```bash
-wget https://gobrr.sh/install_sbio && bash install_sbio
-```
 
 #### WhatBox
 
@@ -213,9 +210,44 @@ Then start with:
 docker compose up -d
 ```
 
+### Distroless Docker Images
+
+> [!CAUTION]
+> This image comes without a shell, and external filtering and actions relying on `exec` will therefore not work with anything but compiled static binaries.
+> 
+> To clarify: **`BASH` and `SH` shell scripts WILL NOT WORK!**
+>
+> Use the standard image if you rely on this functionality.
+
+For users who prioritize container security, one of the longterm maintainers offer alternative Docker images built on [Distroless](https://github.com/GoogleContainerTools/distroless). Specifically the `distroless/static-debian12:nonroot` base image.
+
+Distroless images do not contain a package manager or shell, thereby reducing the potential attack surface and making them a more secure option. These stripped-back images contain only the application and its runtime dependencies.
+
+The repository for these builds can be found here: [https://github.com/s0up4200/autobrr-distroless](https://github.com/s0up4200/autobrr-distroless)
+
 ### Windows
 
 Check the Windows Setup Guide [here](https://autobrr.com/installation/windows).
+
+### MacOS
+
+#### Install Homebrew
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+#### Install autobrr
+
+```bash
+brew install autobrr
+```
+
+#### Run
+
+```bash
+brew services start autobrr
+```
 
 ### Linux Generic
 
@@ -289,9 +321,11 @@ Whether you're fixing a bug, adding a feature, or improving documentation, your 
 ### Reporting Issues and Suggestions
 
 - **Report Bugs:** Encountered a bug? Please report it using our [bug report template](/.github/ISSUE_TEMPLATE/bug_report.md). Include detailed steps to reproduce, expected behavior, and any relevant screenshots or logs.
-- **Feature Requests:** Submit it using our [feature request template](/.github/ISSUE_TEMPLATE/feature_request.md). Describe your idea and how it will improve `autobrr`.
+- **Feature Requests:** Submit your feature request by [opening a new idea in our discussions](https://github.com/autobrr/autobrr/discussions/new?category=ideas). Describe your idea and how it will improve `autobrr`.
 
 ### Code Contributions
+
+Check out the full guide for contributing [here](CONTRIBUTING.md).
 
 - **Fork and Clone:** Fork the `autobrr` repository and clone it to start working on your changes.
 - **Branching:** Create a new branch for your changes. Use a descriptive name for easy understanding.
@@ -318,4 +352,4 @@ autobrr is proudly open-source and is released under the [GNU General Public Lic
 - **Freedom to Share:** You can redistribute copies of autobrr to help others.
 - **Freedom to Enhance:** Contributions to improve autobrr are always welcome.
 
-Copyright 2021-2023
+Copyright 2021-2024

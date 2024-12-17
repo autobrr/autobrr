@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Field, useFormikContext } from "formik";
-import { RadioGroup } from "@headlessui/react";
+import { RadioGroup, Description, Label, Radio } from "@headlessui/react";
 import { classNames } from "@utils";
 
 export interface radioFieldsetOption {
@@ -47,12 +47,12 @@ function RadioFieldsetWide({ name, legend, options }: props) {
             <Field name={name} type="radio">
               {() => (
                 <RadioGroup value={values[name]} onChange={onChange}>
-                  <RadioGroup.Label className="sr-only">
+                  <Label className="sr-only">
                     {legend}
-                  </RadioGroup.Label>
+                  </Label>
                   <div className="bg-white dark:bg-gray-800 rounded-md -space-y-px">
                     {options.map((setting, settingIdx) => (
-                      <RadioGroup.Option
+                      <Radio
                         key={setting.value}
                         value={setting.value}
                         className={({ checked }) =>
@@ -82,7 +82,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                               aria-hidden="true"
                             />
                             <div className="ml-3 flex flex-col w-full">
-                              <RadioGroup.Label
+                              <Label
                                 as="span"
                                 className={classNames(
                                   "block text-md text-gray-900 dark:text-gray-300",
@@ -93,17 +93,17 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                                   {setting.label}
                                   {setting.type && <span className="rounded bg-orange-500 text-orange-900 px-1 ml-2 text-sm">{setting.type}</span>}
                                 </div>
-                              </RadioGroup.Label>
-                              <RadioGroup.Description
+                              </Label>
+                              <Description
                                 as="span"
                                 className="block text-sm text-gray-700 dark:text-gray-400"
                               >
                                 {setting.description}
-                              </RadioGroup.Description>
+                              </Description>
                             </div>
                           </>
                         )}
-                      </RadioGroup.Option>
+                      </Radio>
                     ))}
                   </div>
                 </RadioGroup>

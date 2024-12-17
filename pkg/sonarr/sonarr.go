@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package sonarr
@@ -15,6 +15,7 @@ import (
 	"log"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Config struct {
@@ -43,20 +44,19 @@ type client struct {
 
 // New create new sonarr client
 func New(config Config) Client {
-
 	httpClient := &http.Client{
-		Timeout: time.Second * 120,
+		Timeout:   time.Second * 120,
+		Transport: sharedhttp.Transport,
 	}
 
 	c := &client{
 		config: config,
 		http:   httpClient,
-		Log:    config.Log,
+		Log:    log.New(io.Discard, "", log.LstdFlags),
 	}
 
-	if config.Log == nil {
-		// if no provided logger then use io.Discard
-		c.Log = log.New(io.Discard, "", log.LstdFlags)
+	if config.Log != nil {
+		c.Log = config.Log
 	}
 
 	return c
@@ -67,12 +67,13 @@ type Release struct {
 	InfoUrl          string `json:"infoUrl,omitempty"`
 	DownloadUrl      string `json:"downloadUrl,omitempty"`
 	MagnetUrl        string `json:"magnetUrl,omitempty"`
-	Size             int64  `json:"size"`
+	Size             uint64 `json:"size"`
 	Indexer          string `json:"indexer"`
 	DownloadProtocol string `json:"downloadProtocol"`
 	Protocol         string `json:"protocol"`
 	PublishDate      string `json:"publishDate"`
 	DownloadClientId int    `json:"downloadClientId,omitempty"`
+	DownloadClient   string `json:"downloadClient,omitempty"`
 }
 
 type PushResponse struct {

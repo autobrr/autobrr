@@ -1,11 +1,13 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package download_client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/autobrr/go-rtorrent"
 	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/icholy/digest"
 	"github.com/rs/zerolog"
 )
 
@@ -68,18 +71,23 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 }
 
 func (s *service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+	clientHost, err := client.BuildLegacyHost()
+	if err != nil {
+		return errors.Wrap(err, "error building qBittorrent host url: %s", client.Host)
+	}
+
 	qbtSettings := qbittorrent.Config{
-		Host:          client.BuildLegacyHost(),
+		Host:          clientHost,
+		TLSSkipVerify: client.TLSSkipVerify,
 		Username:      client.Username,
 		Password:      client.Password,
-		TLSSkipVerify: client.TLSSkipVerify,
 		Log:           s.subLogger,
 	}
 
 	// only set basic auth if enabled
-	if client.Settings.Basic.Auth {
-		qbtSettings.BasicUser = client.Settings.Basic.Username
-		qbtSettings.BasicPass = client.Settings.Basic.Password
+	if client.Settings.Auth.Enabled {
+		qbtSettings.BasicUser = client.Settings.Auth.Username
+		qbtSettings.BasicPass = client.Settings.Auth.Password
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)
@@ -155,14 +163,31 @@ func (s *service) testDelugeConnection(ctx context.Context, client domain.Downlo
 }
 
 func (s *service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
-	// create client
-	rt := rtorrent.NewClient(rtorrent.Config{
+	cfg := rtorrent.Config{
 		Addr:          client.Host,
 		TLSSkipVerify: client.TLSSkipVerify,
-		BasicUser:     client.Settings.Basic.Username,
-		BasicPass:     client.Settings.Basic.Password,
-		Log:           nil,
-	})
+		BasicUser:     client.Settings.Auth.Username,
+		BasicPass:     client.Settings.Auth.Password,
+		Log:           s.subLogger,
+	}
+
+	// create client
+	rt := rtorrent.NewClient(cfg)
+
+	if client.Settings.Auth.Type == domain.DownloadClientAuthTypeDigest {
+		httpClient := &http.Client{
+			Transport: &digest.Transport{
+				Username: client.Settings.Auth.Username,
+				Password: client.Settings.Auth.Password,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: client.TLSSkipVerify},
+				},
+			},
+		}
+
+		// override client
+		rt = rtorrent.NewClientWithOpts(cfg, rtorrent.WithCustomClient(httpClient))
+	}
 
 	name, err := rt.Name(ctx)
 	if err != nil {
@@ -206,7 +231,7 @@ func (s *service) testTransmissionConnection(ctx context.Context, client domain.
 		return errors.Wrap(err, "error getting rpc info: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Transmission: got version: %v", version)
+	s.log.Trace().Msgf("test client connection for Transmission: got version: %v", version)
 
 	s.log.Debug().Msgf("test client connection for Transmission: success")
 
@@ -217,9 +242,9 @@ func (s *service) testRadarrConnection(ctx context.Context, client domain.Downlo
 	r := radarr.New(radarr.Config{
 		Hostname:  client.Host,
 		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
+		BasicAuth: client.Settings.Auth.Enabled,
+		Username:  client.Settings.Auth.Username,
+		Password:  client.Settings.Auth.Password,
 		Log:       s.subLogger,
 	})
 
@@ -236,9 +261,9 @@ func (s *service) testSonarrConnection(ctx context.Context, client domain.Downlo
 	r := sonarr.New(sonarr.Config{
 		Hostname:  client.Host,
 		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
+		BasicAuth: client.Settings.Auth.Enabled,
+		Username:  client.Settings.Auth.Username,
+		Password:  client.Settings.Auth.Password,
 		Log:       s.subLogger,
 	})
 
@@ -255,9 +280,9 @@ func (s *service) testLidarrConnection(ctx context.Context, client domain.Downlo
 	r := lidarr.New(lidarr.Config{
 		Hostname:  client.Host,
 		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
+		BasicAuth: client.Settings.Auth.Enabled,
+		Username:  client.Settings.Auth.Username,
+		Password:  client.Settings.Auth.Password,
 		Log:       s.subLogger,
 	})
 
@@ -274,9 +299,9 @@ func (s *service) testWhisparrConnection(ctx context.Context, client domain.Down
 	r := whisparr.New(whisparr.Config{
 		Hostname:  client.Host,
 		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
+		BasicAuth: client.Settings.Auth.Enabled,
+		Username:  client.Settings.Auth.Username,
+		Password:  client.Settings.Auth.Password,
 		Log:       s.subLogger,
 	})
 
@@ -293,9 +318,9 @@ func (s *service) testReadarrConnection(ctx context.Context, client domain.Downl
 	r := readarr.New(readarr.Config{
 		Hostname:  client.Host,
 		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
+		BasicAuth: client.Settings.Auth.Enabled,
+		Username:  client.Settings.Auth.Username,
+		Password:  client.Settings.Auth.Password,
 		Log:       s.subLogger,
 	})
 
@@ -310,8 +335,12 @@ func (s *service) testReadarrConnection(ctx context.Context, client domain.Downl
 
 func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 	p := porla.NewClient(porla.Config{
-		Hostname:  client.Host,
-		AuthToken: client.Settings.APIKey,
+		Hostname:      client.Host,
+		TLSSkipVerify: client.TLSSkipVerify,
+		AuthToken:     client.Settings.APIKey,
+		BasicUser:     client.Settings.Auth.Username,
+		BasicPass:     client.Settings.Auth.Password,
+		Log:           s.subLogger,
 	})
 
 	version, err := p.Version()
@@ -320,13 +349,13 @@ func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 		return errors.Wrap(err, "porla: failed to get version: %v", client.Host)
 	}
 
-	commitish := version.Commitish
+	commitHash := version.Commitish
 
-	if len(commitish) > 8 {
-		commitish = commitish[:8]
+	if len(commitHash) > 8 {
+		commitHash = commitHash[:8]
 	}
 
-	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, commitish)
+	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, commitHash)
 
 	return nil
 }
@@ -335,9 +364,9 @@ func (s *service) testSabnzbdConnection(ctx context.Context, client domain.Downl
 	opts := sabnzbd.Options{
 		Addr:      client.Host,
 		ApiKey:    client.Settings.APIKey,
-		BasicUser: client.Settings.Basic.Username,
-		BasicPass: client.Settings.Basic.Password,
-		Log:       nil,
+		BasicUser: client.Settings.Auth.Username,
+		BasicPass: client.Settings.Auth.Password,
+		Log:       s.subLogger,
 	}
 
 	sab := sabnzbd.New(opts)

@@ -1,0 +1,100 @@
+#id: bithumen
+name: BitHUmen
+identifier: bithumen
+description: BitHUmen is a Hungarian Private site for TV / MOVIES / GENERAL
+language: hu-HU
+urls:
+  - https://bithumen.be/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: unknown
+settings:
+  - name: passkey
+    type: secret
+    label: Passkey
+    help: This is your passkey you can find in a RSS link or in the announce url of a torrent.
+
+irc:
+  network: ATW-Internet
+  server: irc.atw-inter.net
+  port: 6697
+  tls: true
+  channels:
+    - "#bithumen"
+  announcers:
+    - bitHUmen
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot. Eg. user|autodl
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "bithumen !invite IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with bithumen. Replace IRCKEY.
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: '[NEW] Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1 by UPLOADER got released 5m 12s ago [ Film / Hun / 1080p | 6288MB in 2F ] - http://bithumen.be/t/1077029'
+          expect:
+            torrentName: Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1
+            uploader: UPLOADER
+            preTime: 5m 12s
+            category: Film / Hun / 1080p
+            torrentSize: 6288MB
+            baseUrl: http://bithumen.be/
+            torrentId: "1077029"
+
+        - line: '[NEW] Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1 [ Film / Hun / 1080p | 6288MB in 2F ] - http://bithumen.be/t/1077029'
+          expect:
+            torrentName: Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1
+            uploader:
+            preTime:
+            category: Film / Hun / 1080p
+            torrentSize: 6288MB
+            baseUrl: http://bithumen.be/
+            torrentId: "1077029"
+
+        - line: '[NEW] The.Dessert.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb by UPLOADER [ Sorozat / Eng / HD | 7975MB in 6F ] - http://bithumen.be/t/1077049'
+          expect:
+            torrentName: The.Dessert.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb
+            uploader: UPLOADER
+            preTime:
+            category: Sorozat / Eng / HD
+            torrentSize: 7975MB
+            baseUrl: http://bithumen.be/
+            torrentId: "1077049"
+        pattern: '^\[NEW\]\s*(?:\[REQ\])?\s*(.*?)\s*(?:by (\S*))?\s*(?:got released (.*) ago)?\s*\[ ([^\|]*) \|\s*([\d,.]*\s*\S*)\s*in\s*\d*F\s*\]\s*-\s*(https?\:\/\/[^\/]+\/)t/(\d+)'
+        vars:
+          - torrentName
+          - uploader
+          - preTime
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download/{{ .passkey }}/{{ .torrentId }}.torrent"

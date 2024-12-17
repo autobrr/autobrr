@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -14,17 +14,35 @@ CREATE TABLE users
     UNIQUE (username)
 );
 
-CREATE TABLE indexer
+CREATE TABLE proxy
 (
     id             INTEGER PRIMARY KEY,
-    identifier     TEXT,
-	implementation TEXT,
-	base_url       TEXT,
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
-    settings       TEXT,
+	type           TEXT NOT NULL,
+    addr           TEXT NOT NULL,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE indexer
+(
+    id                  INTEGER PRIMARY KEY,
+    identifier          TEXT,
+    identifier_external TEXT,
+	implementation      TEXT,
+	base_url            TEXT,
+    enabled             BOOLEAN,
+    name                TEXT NOT NULL,
+    settings            TEXT,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
 
@@ -50,8 +68,11 @@ CREATE TABLE irc_network
     bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (server, port, nick)
 );
 
@@ -78,6 +99,7 @@ CREATE TABLE filter
     priority                       INTEGER   DEFAULT 0 NOT NULL,
     max_downloads                  INTEGER   DEFAULT 0,
     max_downloads_unit             TEXT,
+	announce_types                 TEXT []   DEFAULT '{}',
     match_releases                 TEXT,
     except_releases                TEXT,
     use_regex                      BOOLEAN,
@@ -105,6 +127,8 @@ CREATE TABLE filter
     match_other                    TEXT []   DEFAULT '{}',
     except_other                   TEXT []   DEFAULT '{}',
     years                          TEXT,
+    months                         TEXT,
+    days                           TEXT,
     artists                        TEXT,
     albums                         TEXT,
     release_types_match            TEXT []   DEFAULT '{}',
@@ -129,8 +153,18 @@ CREATE TABLE filter
     origins                        TEXT []   DEFAULT '{}',
     except_origins                 TEXT []   DEFAULT '{}',
     created_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at                     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    min_seeders                    INTEGER DEFAULT 0,
+    max_seeders                    INTEGER DEFAULT 0,
+    min_leechers                   INTEGER DEFAULT 0,
+    max_leechers                   INTEGER DEFAULT 0
 );
+
+CREATE INDEX filter_enabled_index
+    ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+    ON filter (priority);
 
 CREATE TABLE filter_external
 (
@@ -153,6 +187,9 @@ CREATE TABLE filter_external
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
+
+CREATE INDEX filter_external_filter_id_index
+    ON filter_external(filter_id);
 
 CREATE TABLE filter_indexer
 (
@@ -193,12 +230,14 @@ CREATE TABLE action
     save_path               TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
+    first_last_piece_prio   BOOLEAN DEFAULT false,
     skip_hash_check         BOOLEAN DEFAULT false,
     content_layout          TEXT,
     limit_upload_speed      INT,
     limit_download_speed    INT,
     limit_ratio             REAL,
     limit_seed_time         INT,
+    priority                TEXT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,
@@ -209,6 +248,7 @@ CREATE TABLE action
     webhook_data            TEXT,
     webhook_headers         TEXT[] DEFAULT '{}',
     external_client_id      INTEGER,
+    external_client         TEXT,
     client_id               INTEGER,
     filter_id               INTEGER,
     FOREIGN KEY (filter_id) REFERENCES filter (id),
@@ -225,6 +265,7 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    announce_type     TEXT      DEFAULT 'NEW', 
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -236,6 +277,8 @@ CREATE TABLE "release"
     season            INTEGER,
     episode           INTEGER,
     year              INTEGER,
+    month             INTEGER,
+    day               INTEGER,
     resolution        TEXT,
     source            TEXT,
     codec             TEXT,
@@ -335,7 +378,7 @@ CREATE TABLE feed
 	url           TEXT,
 	interval      INTEGER,
 	timeout       INTEGER DEFAULT 60,
-	max_age       INTEGER DEFAULT 3600,
+	max_age       INTEGER DEFAULT 0,
 	categories    TEXT []   DEFAULT '{}' NOT NULL,
 	capabilities  TEXT []   DEFAULT '{}' NOT NULL,
 	api_key       TEXT,
@@ -763,20 +806,20 @@ ALTER TABLE release_action_status_dg_tmp
 	`
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_skip BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_delete BOOLEAN DEFAULT false;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_interval INTEGER DEFAULT 7;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN reannounce_max_attempts INTEGER DEFAULT 50;
 	`,
 	`
 	ALTER TABLE "action"
 		ADD COLUMN limit_ratio REAL DEFAULT 0;
-	
+
 	ALTER TABLE "action"
 		ADD COLUMN limit_seed_time INTEGER DEFAULT 0;
 	`,
@@ -986,7 +1029,7 @@ CREATE TABLE irc_network_dg_tmp
     unique (server, port, nick)
 );
 
-INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command, 
+INSERT INTO irc_network_dg_tmp(id, enabled, name, server, port, tls, pass, nick, auth_mechanism, auth_account, auth_password, invite_command,
                                connected, connected_since, created_at, updated_at)
 SELECT id,
        enabled,
@@ -1079,7 +1122,7 @@ FROM filter f WHERE f.name = release_action_status.filter);
 	`,
 	`ALTER TABLE "release"
 ADD COLUMN info_url TEXT;
-    
+
 ALTER TABLE "release"
 ADD COLUMN download_url TEXT;
 	`,
@@ -1088,7 +1131,7 @@ ADD COLUMN download_url TEXT;
 
 	ALTER TABLE filter
 		ADD COLUMN except_tags_match_logic TEXT;
-    
+
     UPDATE filter
     SET tags_match_logic = 'ANY'
     WHERE tags IS NOT NULL;
@@ -1422,7 +1465,184 @@ ALTER TABLE filter_external_dg_tmp
 	`ALTER TABLE filter_external
 	DROP COLUMN webhook_retry_max_jitter_seconds;
 `,
-  `ALTER TABLE irc_network
+	`ALTER TABLE irc_network
 	ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
-	`,
+`,
+	`CREATE TABLE feed_dg_tmp
+(
+    id            INTEGER PRIMARY KEY,
+    indexer       TEXT,
+    name          TEXT,
+    type          TEXT,
+    enabled       BOOLEAN,
+    url           TEXT,
+    interval      INTEGER,
+    capabilities  TEXT      DEFAULT '{}' NOT NULL,
+    api_key       TEXT,
+    settings      TEXT,
+    indexer_id    INTEGER
+        REFERENCES indexer
+            ON DELETE CASCADE,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timeout       INTEGER   DEFAULT 60,
+    max_age       INTEGER   DEFAULT 0,
+    last_run      TIMESTAMP,
+    last_run_data TEXT,
+    cookie        TEXT
+);
+
+INSERT INTO feed_dg_tmp(id, indexer, name, type, enabled, url, interval, capabilities, api_key, settings, indexer_id,
+                        created_at, updated_at, timeout, max_age, last_run, last_run_data, cookie)
+SELECT id,
+       indexer,
+       name,
+       type,
+       enabled,
+       url,
+       interval,
+       capabilities,
+       api_key,
+       settings,
+       indexer_id,
+       created_at,
+       updated_at,
+       timeout,
+       max_age,
+       last_run,
+       last_run_data,
+       cookie
+FROM feed;
+
+DROP TABLE feed;
+
+ALTER TABLE feed_dg_tmp
+    RENAME TO feed;
+`,
+	`ALTER TABLE action
+	ADD COLUMN priority TEXT;
+`,
+	`ALTER TABLE action
+	ADD COLUMN external_client TEXT;
+`, `
+ALTER TABLE filter
+    ADD COLUMN min_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN min_leechers INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_leechers INTEGER DEFAULT 0;
+`,
+	`UPDATE irc_network
+    SET server = 'irc.nebulance.io'
+    WHERE server = 'irc.nebulance.cc';
+`,
+	`UPDATE  irc_network
+    SET server = 'irc.animefriends.moe',
+        name = CASE  
+			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
+        	ELSE name
+        END
+	WHERE server = 'irc.animebytes.tv';
+`,
+	`ALTER TABLE action
+    ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
+`,
+	`ALTER TABLE indexer
+    ADD COLUMN identifier_external TEXT;
+
+	UPDATE indexer
+    SET identifier_external = name;
+`,
+	`ALTER TABLE "release"
+ADD COLUMN month INTEGER;
+
+ALTER TABLE "release"
+ADD COLUMN day INTEGER;
+
+ALTER TABLE filter
+ADD COLUMN months TEXT;
+
+ALTER TABLE filter
+ADD COLUMN days TEXT;
+`,
+	`CREATE TABLE proxy
+(
+    id             INTEGER PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+	type           TEXT NOT NULL,
+    addr           TEXT NOT NULL,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE indexer
+    ADD proxy_id INTEGER
+        CONSTRAINT indexer_proxy_id_fk
+            REFERENCES proxy(id)
+            ON DELETE SET NULL;
+
+ALTER TABLE indexer
+    ADD use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+    ADD use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+    ADD proxy_id INTEGER
+        CONSTRAINT irc_network_proxy_id_fk
+            REFERENCES proxy(id)
+            ON DELETE SET NULL;
+`,
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
+	`CREATE INDEX filter_external_filter_id_index
+    ON filter_external(filter_id);
+
+CREATE INDEX filter_enabled_index
+    ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+    ON filter (priority);
+`,
+	`UPDATE irc_network
+    SET server = 'irc.fuzer.xyz'
+    WHERE server = 'irc.fuzer.me';
+`,
+	`UPDATE irc_network
+	SET server = 'irc.scenehd.org'
+	WHERE server = 'irc.scenehd.eu';
+	
+UPDATE irc_network
+	SET server = 'irc.p2p-network.net', name = 'P2P-Network', nick = nick || '_0'
+	WHERE server = 'irc.librairc.net';
+	
+UPDATE irc_network
+	SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
+	WHERE server = 'irc.ircnet.com';
+`,
+	`UPDATE indexer
+	SET base_url = 'https://redacted.sh/'
+	WHERE base_url = 'https://redacted.ch/';
+`,
+	`UPDATE irc_network
+    SET port = '6697', tls = true
+    WHERE server = 'irc.seedpool.org';
+`,
+	`ALTER TABLE "release"
+	ADD COLUMN announce_type TEXT DEFAULT 'NEW';
+
+	ALTER TABLE filter
+	ADD COLUMN announce_types TEXT []   DEFAULT '{}';
+`,
 }

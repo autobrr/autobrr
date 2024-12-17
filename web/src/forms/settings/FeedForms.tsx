@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import { useFormikContext } from "formik";
 
 import { APIClient } from "@api/APIClient";
+import { FeedKeys } from "@api/query_keys";
 import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
@@ -17,7 +18,7 @@ import { componentMapType } from "./DownloadClientForms";
 import { sleep } from "@utils";
 import { ImplementationBadges } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
-import { feedKeys } from "@screens/settings/Feed";
+
 
 interface UpdateProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ interface UpdateProps {
 
 interface InitialValues {
   id: number;
-  indexer: string;
+  indexer: IndexerMinimal;
   enabled: boolean;
   type: FeedType;
   name: string;
@@ -50,7 +51,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   const mutation = useMutation({
     mutationFn: (feed: Feed) => APIClient.feeds.update(feed),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
       
       toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t} />);
       toggle();
@@ -62,7 +63,7 @@ export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
   const deleteMutation = useMutation({
     mutationFn: (feedID: number) => APIClient.feeds.delete(feedID),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${feed.name} was deleted.`} t={t} />);
     }
@@ -198,7 +199,7 @@ function FormFieldsTorznab() {
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
     </div>
   );
 }
@@ -222,7 +223,7 @@ function FormFieldsNewznab() {
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
     </div>
   );
 }
@@ -245,7 +246,7 @@ function FormFieldsRSS() {
       {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Seconds. Will not grab older than this value."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
 
       <PasswordFieldWide name="cookie" label="Cookie" help="Not commonly used" />
     </div>

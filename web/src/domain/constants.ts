@@ -1,48 +1,67 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { MultiSelectOption } from "@components/inputs/select";
 
+export const AnnounceTypeOptions: MultiSelectOption[] = [
+  {
+    label: "New",
+    value: "NEW"
+  },
+  {
+    label: "Checked",
+    value: "CHECKED"
+  },
+  {
+    label: "Promo",
+    value: "PROMO"
+  },
+  {
+    label: "Promo GP",
+    value: "PROMO_GP"
+  },
+  {
+    label: "Resurrected",
+    value: "RESURRECTED"
+  }
+];
+
 export const resolutions = [
   "2160p",
   "1080p",
-  "1080i",
   "810p",
   "720p",
   "576p",
   "480p",
-  "480i"
 ];
 
 export const RESOLUTION_OPTIONS: MultiSelectOption[] = resolutions.map(r => ({ value: r, label: r, key: r }));
 
 export const codecs = [
-  "HEVC",
+  "AV1",
+  "AVC",
   "H.264",
   "H.265",
-  "x264",
-  "x265",
-  "AVC",
+  "HEVC",
+  "MPEG-2",
   "VC-1",
-  "AV1",
-  "XviD"
+  "XviD",
+  "x264",
+  "x265"
 ];
 
 export const CODECS_OPTIONS: MultiSelectOption[] = codecs.map(v => ({ value: v, label: v, key: v }));
 
 export const sources = [
-  "BluRay",
-  "UHD.BluRay",
-  "WEB-DL",
-  "WEB",
-  "WEBRip",
+  "AHDTV",
   "BD5",
   "BD9",
-  "BDr",
   "BDRip",
+  "BDr",
   "BRRip",
+  "BluRay",
   "CAM",
   "DVDR",
   "DVDRip",
@@ -53,7 +72,11 @@ export const sources = [
   "HDTS",
   "HDTV",
   "Mixed",
-  "SiteRip"
+  "SiteRip",
+  "UHD.BluRay",
+  "WEB",
+  "WEB-DL",
+  "WEBRip"
 ];
 
 export const SOURCES_OPTIONS: MultiSelectOption[] = sources.map(v => ({ value: v, label: v, key: v }));
@@ -206,6 +229,7 @@ export const languageOptions = [
   "PORTUGUESE",
   "ROMANiAN",
   "RUSSiAN",
+  "SLOVAK",
   "SPANiSH",
   "SUBBED",
   "SUBFORCED",
@@ -349,6 +373,12 @@ export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout
   { label: "Don't create subfolder", description: "Don't create subfolder", value: "SUBFOLDER_NONE" }
 ];
 
+export const ActionPriorityOptions: SelectGenericOption<ActionPriorityLayout>[] = [
+  { label: "Top of queue", description: "Top of queue", value: "MAX" },
+  { label: "Bottom of queue", description: "Bottom of queue", value: "MIN" },
+  { label: "Disabled", description: "Disabled", value: "" }
+];
+
 export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
   { label: "No", description: "No", value: "ORIGINAL" },
   { label: "Yes", description: "Yes", value: "SUBFOLDER_NONE" }
@@ -385,21 +415,33 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     value: "DISCORD"
   },
   {
+    label: "Gotify",
+    value: "GOTIFY"
+  },
+  {
+    label: "LunaSea",
+    value: "LUNASEA"
+  },
+  {
     label: "Notifiarr",
     value: "NOTIFIARR"
   },
   {
-    label: "Telegram",
-    value: "TELEGRAM"
+    label: "Ntfy",
+    value: "NTFY"
   },
   {
     label: "Pushover",
     value: "PUSHOVER"
   },
   {
-    label: "Gotify",
-    value: "GOTIFY"
-  }
+    label: "Shoutrrr",
+    value: "SHOUTRRR"
+  },
+  {
+    label: "Telegram",
+    value: "TELEGRAM"
+  },
 ];
 
 export const IrcAuthMechanismTypeOptions: OptionBasicTyped<IrcAuthMechanism>[] = [
@@ -452,6 +494,21 @@ export const DownloadRuleConditionOptions: OptionBasic[] = [
   {
     label: "Max downloads reached",
     value: "MAX_DOWNLOADS_REACHED"
+  }
+];
+
+export const DownloadClientAuthType: OptionBasic[] = [
+  {
+    label: "None",
+    value: "NONE"
+  },
+  {
+    label: "Basic Auth",
+    value: "BASIC_AUTH"
+  },
+  {
+    label: "Digest Auth",
+    value: "DIGEST_AUTH"
   }
 ];
 
@@ -542,4 +599,11 @@ export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>
   { label: "PUT", value: "PUT" },
   { label: "PATCH", value: "PATCH" },
   { label: "DELETE", value: "DELETE" }
+];
+
+export const ProxyTypeOptions: OptionBasicTyped<ProxyType>[] = [
+  {
+    label: "SOCKS5",
+    value: "SOCKS5"
+  },
 ];

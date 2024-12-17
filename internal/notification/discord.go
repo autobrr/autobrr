@@ -1,11 +1,11 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
 
 import (
+	"bufio"
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +15,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
@@ -49,13 +50,23 @@ const (
 
 type discordSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
+
+	httpClient *http.Client
 }
 
-func NewDiscordSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (a *discordSender) Name() string {
+	return "discord"
+}
+
+func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &discordSender{
 		log:      log.With().Str("sender", "discord").Logger(),
 		Settings: settings,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -67,46 +78,34 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, a.Settings.Webhook, bytes.NewBuffer(jsonData))
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := a.httpClient.Do(req)
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
-	}
-
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	a.log.Trace().Msgf("discord status: %v response: %v", res.StatusCode, string(body))
+	a.log.Trace().Msgf("discord response status: %d", res.StatusCode)
 
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
-	if res.StatusCode >= 300 {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	a.log.Debug().Msg("notification successfully sent to discord")

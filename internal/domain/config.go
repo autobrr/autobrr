@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -17,6 +17,7 @@ type Config struct {
 	CustomDefinitions   string `toml:"customDefinitions"`
 	CheckForUpdates     bool   `toml:"checkForUpdates"`
 	DatabaseType        string `toml:"databaseType"`
+	DatabaseMaxBackups  int    `toml:"databaseMaxBackups"`
 	PostgresHost        string `toml:"postgresHost"`
 	PostgresPort        int    `toml:"postgresPort"`
 	PostgresDatabase    string `toml:"postgresDatabase"`
@@ -24,6 +25,9 @@ type Config struct {
 	PostgresPass        string `toml:"postgresPass"`
 	PostgresSSLMode     string `toml:"postgresSSLMode"`
 	PostgresExtraParams string `toml:"postgresExtraParams"`
+	ProfilingEnabled    bool   `toml:"profilingEnabled"`
+	ProfilingHost       string `toml:"profilingHost"`
+	ProfilingPort       int    `toml:"profilingPort"`
 }
 
 type ConfigUpdate struct {

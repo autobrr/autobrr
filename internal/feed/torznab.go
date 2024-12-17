@@ -1,10 +1,11 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
 
 import (
 	"context"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"math"
 	"sort"
 	"strconv"
@@ -20,16 +21,15 @@ import (
 )
 
 type TorznabJob struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	Log               zerolog.Logger
-	URL               string
-	Client            torznab.Client
-	Repo              domain.FeedRepo
-	CacheRepo         domain.FeedCacheRepo
-	ReleaseSvc        release.Service
-	SchedulerSvc      scheduler.Service
+	Feed         *domain.Feed
+	Name         string
+	Log          zerolog.Logger
+	URL          string
+	Client       torznab.Client
+	Repo         domain.FeedRepo
+	CacheRepo    domain.FeedCacheRepo
+	ReleaseSvc   release.Service
+	SchedulerSvc scheduler.Service
 
 	attempts int
 	errors   []error
@@ -42,17 +42,16 @@ type FeedJob interface {
 	RunE(ctx context.Context) error
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, indexerIdentifier string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
 	return &TorznabJob{
-		Feed:              feed,
-		Name:              name,
-		IndexerIdentifier: indexerIdentifier,
-		Log:               log,
-		URL:               url,
-		Client:            client,
-		Repo:              repo,
-		CacheRepo:         cacheRepo,
-		ReleaseSvc:        releaseSvc,
+		Feed:       feed,
+		Name:       name,
+		Log:        log,
+		URL:        url,
+		Client:     client,
+		Repo:       repo,
+		CacheRepo:  cacheRepo,
+		ReleaseSvc: releaseSvc,
 	}
 }
 
@@ -103,16 +102,28 @@ func (j *TorznabJob) process(ctx context.Context) error {
 			}
 		}
 
-		rls := domain.NewRelease(j.IndexerIdentifier)
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
+		rls.Implementation = domain.ReleaseImplementationTorznab
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-		rls.Implementation = domain.ReleaseImplementationTorznab
 
 		// parse size bytes string
 		rls.ParseSizeBytesString(item.Size)
 
 		rls.ParseString(item.Title)
+
+		rls.Seeders, err = parseIntAttribute(item, "seeders")
+		if err != nil {
+			rls.Seeders = 0
+		}
+
+		var peers, err = parseIntAttribute(item, "peers")
+
+		rls.Leechers = peers - rls.Seeders
+		if err != nil {
+			rls.Leechers = 0
+		}
 
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
@@ -150,6 +161,20 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	go j.ReleaseSvc.ProcessMultiple(releases)
 
 	return nil
+}
+
+func parseIntAttribute(item torznab.FeedItem, attrName string) (int, error) {
+	for _, attr := range item.Attributes {
+		if attr.Name == attrName {
+			// Parse the value as decimal number
+			intValue, err := strconv.Atoi(attr.Value)
+			if err != nil {
+				return 0, err
+			}
+			return intValue, err
+		}
+	}
+	return 0, nil
 }
 
 // Parse the downloadvolumefactor attribute. The returned value is the percentage
@@ -200,6 +225,18 @@ func mapFreeleechToBonus(percentage int) string {
 }
 
 func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
+	// add proxy if enabled and exists
+	if j.Feed.UseProxy && j.Feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get proxy client")
+		}
+
+		j.Client.WithHTTPClient(proxyClient)
+
+		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
+	}
+
 	// get feed
 	feed, err := j.Client.FetchFeed(ctx)
 	if err != nil {
@@ -227,35 +264,33 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 	// set ttl to 1 month
 	ttl := time.Now().AddDate(0, 1, 0)
 
-	for _, i := range feed.Channel.Items {
-		i := i
-
-		if i.GUID == "" {
+	for _, item := range feed.Channel.Items {
+		if item.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, i.GUID)
+		exists, err := j.CacheRepo.Exists(j.Feed.ID, item.GUID)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
 		}
 		if exists {
-			j.Log.Trace().Msgf("cache item exists, skipping release: %s", i.Title)
+			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
 
-		j.Log.Debug().Msgf("found new release: %s", i.Title)
+		j.Log.Debug().Msgf("found new release: %s", item.Title)
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    i.GUID,
-			Value:  []byte(i.Title),
+			Key:    item.GUID,
+			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})
 
 		// only append if we successfully added to cache
-		items = append(items, *i)
+		items = append(items, *item)
 	}
 
 	if len(toCache) > 0 {

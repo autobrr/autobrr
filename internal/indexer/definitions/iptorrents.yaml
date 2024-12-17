@@ -38,6 +38,7 @@ irc:
     - "#ipt.announce"
   announcers:
     - IPT
+    - IPT_Announce
     - FunTimes
   settings:
     - name: nick

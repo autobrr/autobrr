@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
@@ -13,30 +13,19 @@ import { DeleteModal } from "@components/modals";
 import { APIKeyAddForm } from "@forms/settings/APIKeyAddForm";
 import Toast from "@components/notifications/Toast";
 import { APIClient } from "@api/APIClient";
+import { ApikeysQueryOptions } from "@api/queries";
+import { ApiKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { EmptySimple } from "@components/emptystates";
 import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
-export const apiKeys = {
-  all: ["api_keys"] as const,
-  lists: () => [...apiKeys.all, "list"] as const,
-  details: () => [...apiKeys.all, "detail"] as const,
-  // detail: (id: number) => [...apiKeys.details(), id] as const
-  detail: (id: string) => [...apiKeys.details(), id] as const
-};
 
 function APISettings() {
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const { data } = useQuery({
-    queryKey: apiKeys.lists(),
-    queryFn: APIClient.apikeys.getAll,
-    retry: false,
-    refetchOnWindowFocus: false,
-    onError: (err) => console.log(err)
-  });
+  const apikeysQuery = useSuspenseQuery(ApikeysQueryOptions())
 
   return (
     <Section
@@ -55,7 +44,7 @@ function APISettings() {
     >
       <APIKeyAddForm isOpen={addFormIsOpen} toggle={toggleAddForm} />
 
-      {data && data.length > 0 ? (
+      {apikeysQuery.data && apikeysQuery.data.length > 0 ? (
         <ul className="min-w-full relative">
           <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
             <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -66,7 +55,7 @@ function APISettings() {
             </div>
           </li>
 
-          {data.map((k, idx) => <APIListItem key={idx} apikey={k} />)}
+          {apikeysQuery.data.map((k, idx) => <APIListItem key={idx} apikey={k} />)}
         </ul>
       ) : (
         <EmptySimple
@@ -93,8 +82,8 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
   const deleteMutation = useMutation({
     mutationFn: (key: string) => APIClient.apikeys.delete(key),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: apiKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: apiKeys.detail(apikey.key) });
+      queryClient.invalidateQueries({ queryKey: ApiKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ApiKeys.detail(apikey.key) });
 
       toast.custom((t) => (
         <Toast
@@ -110,7 +99,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
     <li className="text-gray-500 dark:text-gray-400">
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {

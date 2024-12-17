@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-LABEL org.opencontainers.image.source = "https://github.com/autobrr/autobrr"
+LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 
 ENV HOME="/config" \
 XDG_CONFIG_HOME="/config" \

@@ -1,17 +1,20 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package sabnzbd
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Client struct {
@@ -23,7 +26,7 @@ type Client struct {
 
 	log *log.Logger
 
-	Http *http.Client
+	http *http.Client
 }
 
 type Options struct {
@@ -43,8 +46,9 @@ func New(opts Options) *Client {
 		basicUser: opts.BasicUser,
 		basicPass: opts.BasicPass,
 		log:       log.New(io.Discard, "", log.LstdFlags),
-		Http: &http.Client{
-			Timeout: time.Second * 60,
+		http: &http.Client{
+			Timeout:   time.Second * 60,
+			Transport: sharedhttp.Transport,
 		},
 	}
 
@@ -88,23 +92,21 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
 
-	res, err := c.Http.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	body := bufio.NewReader(res.Body)
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
-	fmt.Print(body)
-
 	var data AddFileResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, err
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &data, nil
@@ -137,21 +139,21 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
 
-	res, err := c.Http.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	body := bufio.NewReader(res.Body)
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var data VersionResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, err
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &data, nil

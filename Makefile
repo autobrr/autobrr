@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: all deps test build build/app build/ctl build/web build/docker clean install dev
 .POSIX:
 .SUFFIXES:
 
@@ -31,6 +31,7 @@ build/ctl:
 
 build/web:
 	pnpm --dir web run build
+	@touch web/dist/.gitkeep 2>/dev/null  # To avoid accidental commit of the deletionn
 
 build/docker:
 	docker build -t autobrr:dev -f Dockerfile . --build-arg GIT_TAG=$(GIT_TAG) --build-arg GIT_COMMIT=$(GIT_COMMIT)
@@ -42,3 +43,14 @@ install: all
 	echo $(DESTDIR)$(PREFIX)/$(BINDIR)
 	mkdir -p $(DESTDIR)$(PREFIX)/$(BINDIR)
 	cp -f bin/$(SERVICE) $(DESTDIR)$(PREFIX)/$(BINDIR)
+
+dev:
+	@if ! command -v tmux >/dev/null 2>&1; then \
+		echo "tmux is not installed. Please install it to use dev mode."; \
+		echo "On Ubuntu/Debian: sudo apt install tmux"; \
+		echo "On macOS: brew install tmux"; \
+		exit 1; \
+	fi
+	@tmux new-session -d -s autobrr-dev 'pnpm --dir web dev'
+	@tmux split-window -h 'go run cmd/$(SERVICE)/main.go'
+	@tmux -2 attach-session -d

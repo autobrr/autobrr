@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 export const FILTER_FIELDS: Record<string, string> = {
   "id": "number",
   "enabled": "boolean",
@@ -48,7 +53,11 @@ export const FILTER_FIELDS: Record<string, string> = {
   "except_tags_any": "boolean",
   "formats": "[]string",
   "quality": "[]string",
-  "media": "[]string"
+  "media": "[]string",
+  "min_seeders": "number",
+  "max_seeders": "number",
+  "min_leechers": "number",
+  "max_leechers": "number",
 } as const;
 
 export const IRC_FIELDS: Record<string, string> = {

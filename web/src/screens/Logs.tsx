@@ -1,18 +1,18 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Menu, Transition } from "@headlessui/react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
 import {
   Cog6ToothIcon,
   DocumentArrowDownIcon
 } from "@heroicons/react/24/outline";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
-import format from "date-fns/format";
+import { format } from "date-fns/format";
 import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
@@ -22,7 +22,6 @@ import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
 import Toast from "@components/notifications/Toast";
-
 
 type LogEvent = {
   time: string;
@@ -49,7 +48,7 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [_regexPattern, setRegexPattern] = useState<RegExp | null>(null);
+  const [, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
@@ -61,7 +60,7 @@ export const Logs = () => {
     };
     if (settings.scrollOnNewLog)
       scrollToBottom();
-  }, [filteredLogs]);
+  }, [filteredLogs, settings.scrollOnNewLog]);
 
   // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
   useEffect(() => {
@@ -140,7 +139,7 @@ export const Logs = () => {
               >
                 <span
                   title={entry.time}
-                  className="font-mono text-gray-500 dark:text-gray-600 mr-2 h-full"
+                  className="font-mono text-gray-500 dark:text-gray-600 h-full"
                 >
                   {format(new Date(entry.time), "HH:mm:ss")}
                 </span>
@@ -151,10 +150,10 @@ export const Logs = () => {
                       "font-mono font-semibold h-full"
                     )}
                   >
-                    {entry.level}
+                    {` ${entry.level} `}
                   </span>
                 ) : null}
-                <span className="ml-2 text-black dark:text-gray-300">
+                <span className="text-black dark:text-gray-300">
                   {entry.message}
                 </span>
               </div>
@@ -174,13 +173,16 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { data } = useQuery({
+  const { isError, error, data } = useSuspenseQuery({
     queryKey: ["log-files"],
     queryFn: () => APIClient.logs.files(),
     retry: false,
-    refetchOnWindowFocus: false,
-    onError: err => console.log(err)
+    refetchOnWindowFocus: false
   });
+
+  if (isError) {
+    console.log("could not load log files", error);
+  }
 
   return (
     <div>
@@ -191,7 +193,7 @@ export const LogFiles = () => {
         </p>
       </div>
 
-      {data && data.files.length > 0 ? (
+      {data && data.files && data.files.length > 0 ? (
         <ul className="py-3 min-w-full relative">
           <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
             <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -305,12 +307,12 @@ const LogsDropdown = () => {
 
   return (
     <Menu as="div">
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <Cog6ToothIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -320,11 +322,11 @@ const LogsDropdown = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
+        <MenuItems
           className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
           <div className="p-3">
-            <Menu.Item>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Scroll to bottom on new message"
@@ -332,8 +334,8 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Indent log lines"
@@ -342,8 +344,8 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("indentLogLines", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Hide wrapped text"
@@ -352,9 +354,9 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("hideWrappedText", newValue)}
                 />
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package torznab
@@ -16,12 +16,14 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Client interface {
 	FetchFeed(ctx context.Context) (*Feed, error)
 	FetchCaps(ctx context.Context) (*Caps, error)
 	GetCaps() *Caps
+	WithHTTPClient(client *http.Client)
 }
 
 type client struct {
@@ -36,6 +38,10 @@ type client struct {
 	Capabilities *Caps
 
 	Log *log.Logger
+}
+
+func (c *client) WithHTTPClient(client *http.Client) {
+	c.http = client
 }
 
 type BasicAuth struct {
@@ -61,7 +67,8 @@ type Capabilities struct {
 
 func NewClient(config Config) Client {
 	httpClient := &http.Client{
-		Timeout: config.Timeout,
+		Timeout:   config.Timeout,
+		Transport: sharedhttp.Transport,
 	}
 
 	c := &client{
@@ -88,6 +95,10 @@ func (c *client) get(ctx context.Context, endpoint string, opts map[string]strin
 	}
 
 	u, err := url.Parse(c.Host)
+	if err != nil {
+		return 0, nil, err
+	}
+
 	u.Path = strings.TrimSuffix(u.Path, "/")
 	u.RawQuery = params.Encode()
 	reqUrl := u.String()
@@ -175,6 +186,9 @@ func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]s
 	}
 
 	u, err := url.Parse(c.Host)
+	if err != nil {
+		return 0, nil, err
+	}
 	u.Path = strings.TrimSuffix(u.Path, "/")
 	u.RawQuery = params.Encode()
 	reqUrl := u.String()
@@ -227,7 +241,6 @@ func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]s
 }
 
 func (c *client) FetchCaps(ctx context.Context) (*Caps, error) {
-
 	status, res, err := c.getCaps(ctx, "?t=caps", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get caps for feed")

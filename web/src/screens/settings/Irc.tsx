@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, useMemo, useEffect, MouseEvent } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
-import { Menu, Transition } from "@headlessui/react";
+import { Fragment, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
   ArrowsPointingInIcon,
@@ -22,22 +22,16 @@ import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { IrcKeys } from "@api/query_keys";
+import { IrcQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
-// import { useForm } from "react-hook-form";
 
 import { Section } from "./_components";
-
-export const ircKeys = {
-  all: ["irc_networks"] as const,
-  lists: () => [...ircKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...ircKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...ircKeys.all, "detail"] as const,
-  detail: (id: number) => [...ircKeys.details(), id] as const
-};
+import { RingResizeSpinner } from "@components/Icons.tsx";
 
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
@@ -98,14 +92,9 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useQuery({
-    queryKey: ircKeys.lists(),
-    queryFn: APIClient.irc.getNetworks,
-    refetchOnWindowFocus: false,
-    refetchInterval: 3000 // Refetch every 3 seconds
-  });
+  const ircQuery = useSuspenseQuery(IrcQueryOptions())
 
-  const sortedNetworks = useSort(data || []);
+  const sortedNetworks = useSort(ircQuery.data || []);
 
   return (
     <Section
@@ -168,24 +157,24 @@ const IrcSettings = () => {
         </div>
       </div>
 
-      {data && data.length > 0 ? (
-        <ul className="mt-6 min-w-full relative">
-          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex col-span-2 md:col-span-1 pl-0 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+      {ircQuery.data && ircQuery.data.length > 0 ? (
+        <ul className="mt-6 min-w-full relative text-sm">
+          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("enabled")}>
-              Enabled <span className="sort-indicator">{sortedNetworks.getSortIndicator("enabled")}</span>
+              Enabled <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("enabled")}</span>
             </div>
-            <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="col-span-10 md:col-span-3 px-11 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("name")}>
-              Network <span className="sort-indicator">{sortedNetworks.getSortIndicator("name")}</span>
+              Network <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("name")}</span>
             </div>
-            <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="hidden md:flex col-span-4 px-6 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("server")}>
-              Server <span className="sort-indicator">{sortedNetworks.getSortIndicator("server")}</span>
+              Server <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("server")}</span>
             </div>
-            <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+            <div className="hidden md:flex col-span-3 px-5 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("nick")}>
-              Nick <span className="sort-indicator">{sortedNetworks.getSortIndicator("nick")}</span>
+              Nick <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("nick")}</span>
             </div>
           </li>
           {sortedNetworks.items.map((network) => (
@@ -218,7 +207,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
     onSuccess: (network: IrcNetwork) => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
       toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     }
   });
@@ -234,8 +223,8 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
     <li>
       <div
         className={classNames(
-          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-0.5 py-2.5 cursor-pointer first:rounded-t-md last:rounded-b-md transition",
-          network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700"
+          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-1 p-2.5 cursor-pointer first:bg-gray-100 last:bg-transparent dark:first:bg-gray-775 dark:last:bg-gray-800 first:rounded-t-md last:rounded-b-md transition",
+          network.enabled && !network.healthy ? "first:bg-red-200 last:bg-red-200 first:hover:bg-red-275 last:hover:bg-red-275 dark:first:bg-red-900 dark:last:bg-red-900 dark:first:hover:bg-red-800 dark:last:hover:bg-red-800" : "hover:bg-gray-200 dark:hover:bg-gray-700"
         )}
         onClick={(e) => {
           if (e.defaultPrevented)
@@ -250,7 +239,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
           toggle={toggleUpdate}
           network={network}
         />
-        <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-5 text-gray-500 dark:text-gray-400">
+        <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
           <Checkbox
             value={network.enabled}
             setValue={onToggleMutation}
@@ -320,18 +309,18 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         </div>
       </div>
       {(edit || expanded) && (
-        <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-775">
+        <div className="px-4 py-4 flex bg-gray-100 dark:bg-gray-775 rounded-b-md">
           <div className="min-w-full">
             {network.channels.length > 0 ? (
               <ul>
-                <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <li className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <div className="col-span-5 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Channel
                   </div>
-                  <div className="col-span-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="hidden sm:flex col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Monitoring since
                   </div>
-                  <div className="col-span-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div className="col-span-6 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
                     Last announce
                   </div>
                 </li>
@@ -362,7 +351,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   return (
     <li
       className={classNames(
-        "mb-2 text-gray-500 dark:text-gray-400 hover:cursor-pointer rounded-md",
+        "mt-1 mb-2 text-gray-500 dark:text-gray-400 hover:cursor-pointer rounded-md",
         viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "hover:bg-gray-300 dark:hover:bg-gray-800"
       )}
     >
@@ -370,7 +359,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
         className="grid grid-cols-12 gap-4 items-center py-4 "
         onClick={toggleView}
       >
-        <div className="col-span-4 flex items-center md:px-6">
+        <div className="col-span-5 sm:col-span-4 flex items-center md:px-6 pl-2 sm:pl-0">
           <span className="relative inline-flex items-center">
             {network.enabled ? (
               channel.monitoring ? (
@@ -390,12 +379,12 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
             {channel.name}
           </span>
         </div>
-        <div className="col-span-4 flex items-center md:px-6">
+        <div className="col-span-4 hidden sm:flex items-center md:px-6">
           <span title={simplifyDate(channel.monitoring_since)}>
             {IsEmptyDate(channel.monitoring_since)}
           </span>
         </div>
-        <div className="col-span-3 flex items-center md:px-6">
+        <div className="col-span-6 sm:col-span-3 flex items-center md:px-6">
           <span title={simplifyDate(channel.last_announce)}>
             {IsEmptyDate(channel.last_announce)}
           </span>
@@ -431,8 +420,8 @@ const ListItemDropdown = ({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t} />);
 
@@ -443,8 +432,8 @@ const ListItemDropdown = ({
   const restartMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ircKeys.detail(network.id) });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t} />);
     }
@@ -463,7 +452,7 @@ const ListItemDropdown = ({
     >
       <DeleteModal
         isOpen={deleteModalIsOpen}
-        isLoading={deleteMutation.isLoading}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
@@ -473,12 +462,12 @@ const ListItemDropdown = ({
         title={`Remove network: ${network.name}`}
         text="Are you sure you want to remove this network? This action cannot be undone."
       />
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -488,11 +477,11 @@ const ListItemDropdown = ({
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
+        <MenuItems
           className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -511,8 +500,8 @@ const ListItemDropdown = ({
                   Edit
                 </button>
               )}
-            </Menu.Item>
-            {/*<Menu.Item>*/}
+            </MenuItem>
+            {/*<MenuItem>*/}
             {/*  {({ active }) => (*/}
             {/*    <button*/}
             {/*      className={classNames(*/}
@@ -531,8 +520,8 @@ const ListItemDropdown = ({
             {/*      {network.enabled ? "Disable" : "Enable"}*/}
             {/*    </button>*/}
             {/*  )}*/}
-            {/*</Menu.Item>*/}
-            <Menu.Item>
+            {/*</MenuItem>*/}
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -557,10 +546,10 @@ const ListItemDropdown = ({
                   Restart
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -579,13 +568,56 @@ const ListItemDropdown = ({
                   Delete
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );
 };
+
+interface ReprocessAnnounceProps {
+  networkId: number;
+  channel: string;
+  msg: string;
+}
+
+const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceProps) => {
+  const mutation = useMutation({
+    mutationFn: (req: IrcProcessManualRequest) => APIClient.irc.reprocessAnnounce(req.network_id, req.channel, req.msg),
+    onSuccess: () => {
+      toast.custom((t) => (
+        <Toast type="success" body={`Announce sent to re-process!`} t={t} />
+      ));
+    }
+  });
+
+  const reprocessAnnounce = () => {
+    const req: IrcProcessManualRequest = {
+      network_id: networkId,
+      msg: msg,
+      channel: channel,
+    }
+
+    if (channel.startsWith("#")) {
+      req.channel = channel.replace("#", "")
+    }
+
+    mutation.mutate(req);
+  };
+
+  return (
+    <div className="block">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
+      {mutation.isPending
+        ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
+        : <ArrowPathIcon />
+      }
+    </button>
+    </div>
+  );
+
+}
 
 type IrcEvent = {
   channel: string;
@@ -621,7 +653,7 @@ export const Events = ({ network, channel }: EventsProps) => {
     };
 
     return () => es.close();
-  }, [settings]);
+  }, [channel, network.id, settings]);
 
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
@@ -649,7 +681,7 @@ export const Events = ({ network, channel }: EventsProps) => {
     };
     if (settings.scrollOnNewLog)
       scrollToBottom();
-  }, [logs]);
+  }, [logs, settings.scrollOnNewLog]);
 
   // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
   useEffect(() => {
@@ -696,10 +728,16 @@ export const Events = ({ network, channel }: EventsProps) => {
             key={idx}
             className={classNames(
               settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
-              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : ""
+              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
+              "flex items-center hover:bg-gray-200 hover:dark:bg-gray-800"
             )}
           >
-            <span className="font-mono text-gray-500 dark:text-gray-500 mr-1"><span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}</span>
+            <ReprocessAnnounceButton networkId={network.id} channel={channel} msg={entry.msg} />
+            <div className="flex-1">
+              <span className="font-mono text-gray-500 dark:text-gray-500 mr-1">
+                <span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}
+              </span>
+            </div>
           </div>
         ))}
       </div>
@@ -738,9 +776,9 @@ const IRCLogsDropdown = () => {
   //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
     <Menu as="div" className="relative">
-      <Menu.Button className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
         <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -750,10 +788,11 @@ const IRCLogsDropdown = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
-          className="absolute z-10 right-0 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-none"
+        <MenuItems
+          anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-none"
         >
-          <Menu.Item>
+          <MenuItem>
             {() => (
               <Checkbox
                 label="Scroll to bottom on new message"
@@ -761,8 +800,8 @@ const IRCLogsDropdown = () => {
                 setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
               />
             )}
-          </Menu.Item>
-        </Menu.Items>
+          </MenuItem>
+        </MenuItems>
       </Transition>
     </Menu>
   );

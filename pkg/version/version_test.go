@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2023, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package version
@@ -10,6 +10,7 @@ import (
 )
 
 func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Repo string
 	}
@@ -112,6 +113,7 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 }
 
 func Test_isDevelop(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name    string
 		version string
