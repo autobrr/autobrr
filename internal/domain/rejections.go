@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 type Rejection struct {
@@ -17,6 +18,7 @@ type Rejection struct {
 }
 
 type RejectionReasons struct {
+	m    sync.RWMutex
 	data []Rejection
 }
 
@@ -31,6 +33,9 @@ func NewRejectionReasons() *RejectionReasons {
 }
 
 func (r *RejectionReasons) String() string {
+	r.m.RLock()
+	defer r.m.RUnlock()
+
 	if len(r.data) == 0 {
 		return ""
 	}
@@ -53,6 +58,9 @@ func (r *RejectionReasons) String() string {
 }
 
 func (r *RejectionReasons) StringTruncated() string {
+	r.m.RLock()
+	defer r.m.RUnlock()
+
 	if len(r.data) == 0 {
 		return ""
 	}
@@ -85,6 +93,9 @@ func (r *RejectionReasons) StringTruncated() string {
 }
 
 func (r *RejectionReasons) WriteString() string {
+	r.m.RLock()
+	defer r.m.RUnlock()
+
 	var output []string
 	for _, rejection := range r.data {
 		output = append(output, fmt.Sprintf("[%s] not matching: got %v want: %v", rejection.key, rejection.got, rejection.want))
@@ -94,7 +105,10 @@ func (r *RejectionReasons) WriteString() string {
 }
 
 func (r *RejectionReasons) WriteJSON() ([]byte, error) {
+	r.m.RLock()
+	defer r.m.RUnlock()
 	var output map[string]string
+
 	for _, rejection := range r.data {
 		output[rejection.key] = fmt.Sprintf("[%s] not matching: got %v want: %v", rejection.key, rejection.got, rejection.want)
 	}
@@ -103,6 +117,9 @@ func (r *RejectionReasons) WriteJSON() ([]byte, error) {
 }
 
 func (r *RejectionReasons) Add(key string, got any, want any) {
+	r.m.Lock()
+	defer r.m.Unlock()
+
 	r.data = append(r.data, Rejection{
 		key:  key,
 		got:  got,
@@ -111,6 +128,9 @@ func (r *RejectionReasons) Add(key string, got any, want any) {
 }
 
 func (r *RejectionReasons) Addf(key string, format string, got any, want any) {
+	r.m.Lock()
+	defer r.m.Unlock()
+
 	r.data = append(r.data, Rejection{
 		key:    key,
 		format: format,
@@ -120,6 +140,9 @@ func (r *RejectionReasons) Addf(key string, format string, got any, want any) {
 }
 
 func (r *RejectionReasons) AddTruncated(key string, got any, want any) {
+	r.m.Lock()
+	defer r.m.Unlock()
+
 	switch wanted := want.(type) {
 	case string:
 		if len(wanted) > 1024 {
@@ -139,5 +162,7 @@ func (r *RejectionReasons) AddTruncated(key string, got any, want any) {
 
 // Clear rejections
 func (r *RejectionReasons) Clear() {
+	r.m.Lock()
+	defer r.m.Unlock()
 	r.data = make([]Rejection, 0)
 }

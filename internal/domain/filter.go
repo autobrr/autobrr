@@ -460,12 +460,8 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		}
 	}
 
-	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
-		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
-	}
-
-	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
-		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
+	if (f.MatchUploaders != "" || f.ExceptUploaders != "") && !f.checkUploader(r) {
+		// f.checkUploader sets the rejections
 	}
 
 	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
@@ -726,6 +722,27 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 
 	if !sizeOK {
 		return false
+	}
+
+	return true
+}
+
+// checkUploader checks if the uploader is within the given list.
+// if the haystack is not empty but the uploader is, then a further
+// investigation is needed
+func (f *Filter) checkUploader(r *Release) bool {
+	// only support additional uploader check for RED and OPS
+	if r.Uploader == "" && (r.Indexer.Identifier == "redacted" || r.Indexer.Identifier == "ops") {
+		r.AdditionalUploaderCheckRequired = true
+		return true
+	}
+
+	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
+		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
+	}
+
+	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
+		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
 	}
 
 	return true
@@ -1162,6 +1179,20 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 
 	if maxBytes != nil && releaseSize >= *maxBytes {
 		f.RejectReasons.Addf("release size", "release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (f *Filter) CheckUploader(uploader string) (bool, error) {
+	if f.MatchUploaders != "" && !contains(uploader, f.MatchUploaders) {
+		f.RejectReasons.Add("match uploader", uploader, f.MatchUploaders)
+		return false, nil
+	}
+
+	if f.ExceptUploaders != "" && contains(uploader, f.ExceptUploaders) {
+		f.RejectReasons.Add("except uploader", uploader, f.ExceptUploaders)
 		return false, nil
 	}
 

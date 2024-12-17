@@ -234,6 +234,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		Id:       strconv.Itoa(response.Response.Torrent.Id),
 		InfoHash: response.Response.Torrent.InfoHash,
 		Size:     strconv.Itoa(response.Response.Torrent.Size),
+		Uploader: response.Response.Torrent.Username,
 	}, nil
 
 }
