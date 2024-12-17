@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-import { Link } from "react-router-dom";
 import Select from "react-select";
 
 import { APIClient } from "@api/APIClient";
+import { ConfigQueryOptions } from "@api/queries";
+import { SettingsKeys } from "@api/query_keys";
+import { SettingsLogRoute } from "@app/routes";
 import Toast from "@components/notifications/Toast";
 import { LogLevelOptions, SelectOption } from "@domain/constants";
 
@@ -56,49 +58,32 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const { isError, error, isLoading, data } = useSuspenseQuery({
-    queryKey: ["config"],
-    queryFn: APIClient.config.get,
-    retry: false,
-    refetchOnWindowFocus: false
-  });
+  const ctx = SettingsLogRoute.useRouteContext()
+  const queryClient = ctx.queryClient
 
-  if (isError) {
-    console.log(error);
-  }
+  const configQuery = useSuspenseQuery(ConfigQueryOptions())
 
-  const queryClient = useQueryClient();
+  const config = configQuery.data
 
   const setLogLevelUpdateMutation = useMutation({
     mutationFn: (value: string) => APIClient.config.update({ log_level: value }),
     onSuccess: () => {
       toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t} />);
 
-      queryClient.invalidateQueries({ queryKey: ["config"] });
+      queryClient.invalidateQueries({ queryKey: SettingsKeys.config() });
     }
   });
 
   return (
     <Section
       title="Logs"
-      description={
-        <>
-          Configure log level, log size rotation, etc. You can download your old log files
-          {" "}
-          <Link
-            to="/logs"
-            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-blue-500 decoration hover:text-black hover:dark:text-gray-100"
-          >
-            on the Logs page
-          </Link>.
-        </>
-      }
+      description="Configure log level, log size rotation, etc. You can download your old log files below."
     >
       <div className="-mx-4 lg:col-span-9">
         <div className="divide-y divide-gray-200 dark:divide-gray-750">
-          {!isLoading && data && (
+          {!configQuery.isLoading && config && (
             <form className="divide-y divide-gray-200 dark:divide-gray-750" action="#" method="POST">
-              <RowItem label="Path" value={data?.log_path} title="Set in config.toml" emptyText="Not set!"/>
+              <RowItem label="Path" value={config?.log_path} title="Set in config.toml" emptyText="Not set!"/>
               <RowItem
                 className="sm:col-span-1"
                 label="Level"
@@ -106,14 +91,14 @@ function LogSettings() {
                 value={
                   <SelectWrapper
                     id="log_level"
-                    value={data?.log_level}
+                    value={config?.log_level}
                     options={LogLevelOptions}
                     onChange={(value: SelectOption) => setLogLevelUpdateMutation.mutate(value.value)}
                   />
                 }
               />
-              <RowItem label="Max Size" value={data?.log_max_size} title="Set in config.toml" rightSide="MB"/>
-              <RowItem label="Max Backups" value={data?.log_max_backups} title="Set in config.toml"/>
+              <RowItem label="Max Size" value={config?.log_max_size} title="Set in config.toml" rightSide="MB"/>
+              <RowItem label="Max Backups" value={config?.log_max_backups} title="Set in config.toml"/>
             </form>
           )}
 

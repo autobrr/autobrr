@@ -4,6 +4,7 @@
 package whisparr
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -64,7 +65,7 @@ type Release struct {
 	InfoUrl          string `json:"infoUrl,omitempty"`
 	DownloadUrl      string `json:"downloadUrl,omitempty"`
 	MagnetUrl        string `json:"magnetUrl,omitempty"`
-	Size             int64  `json:"size"`
+	Size             uint64 `json:"size"`
 	Indexer          string `json:"indexer"`
 	DownloadProtocol string `json:"downloadProtocol"`
 	Protocol         string `json:"protocol"`
@@ -92,7 +93,7 @@ func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}
@@ -120,7 +121,7 @@ func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not read body")
 	}

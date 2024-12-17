@@ -69,7 +69,7 @@ func TestAPIRepo_Delete(t *testing.T) {
 
 }
 
-func TestAPIRepo_GetKeys(t *testing.T) {
+func TestAPIRepo_GetAllAPIKeys(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		repo := NewAPIRepo(log, db)
@@ -77,7 +77,7 @@ func TestAPIRepo_GetKeys(t *testing.T) {
 		t.Run(fmt.Sprintf("GetKeys_Returns_Keys_If_Exists [%s]", dbType), func(t *testing.T) {
 			key := &domain.APIKey{Name: "TestKey", Key: "123", Scopes: []string{"read", "write"}}
 			_ = repo.Store(context.Background(), key)
-			keys, err := repo.GetKeys(context.Background())
+			keys, err := repo.GetAllAPIKeys(context.Background())
 			assert.NoError(t, err)
 			assert.Greater(t, len(keys), 0)
 			// Cleanup
@@ -85,9 +85,32 @@ func TestAPIRepo_GetKeys(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("GetKeys_Returns_Empty_If_No_Keys [%s]", dbType), func(t *testing.T) {
-			keys, err := repo.GetKeys(context.Background())
+			keys, err := repo.GetAllAPIKeys(context.Background())
 			assert.NoError(t, err)
 			assert.Equal(t, 0, len(keys))
+		})
+	}
+}
+
+func TestAPIRepo_GetKey(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewAPIRepo(log, db)
+
+		t.Run(fmt.Sprintf("GetKey_Returns_Key_If_Exists [%s]", dbType), func(t *testing.T) {
+			key := &domain.APIKey{Name: "TestKey", Key: "123", Scopes: []string{"read", "write"}}
+			_ = repo.Store(context.Background(), key)
+			apiKey, err := repo.GetKey(context.Background(), key.Key)
+			assert.NoError(t, err)
+			assert.NotNil(t, apiKey)
+			// Cleanup
+			_ = repo.Delete(context.Background(), key.Key)
+		})
+
+		t.Run(fmt.Sprintf("GetKeys_Returns_Empty_If_No_Keys [%s]", dbType), func(t *testing.T) {
+			key, err := repo.GetKey(context.Background(), "nonexistent")
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+			assert.Nil(t, key)
 		})
 	}
 }

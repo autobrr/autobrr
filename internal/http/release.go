@@ -5,23 +5,26 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type releaseService interface {
-	Find(ctx context.Context, query domain.ReleaseQueryParams) (res []*domain.Release, nextCursor int64, count int64, err error)
-	FindRecent(ctx context.Context) (res []*domain.Release, err error)
+	Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error)
+	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
+	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
 }
 
 type releaseHandler struct {
@@ -43,17 +46,19 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/", h.deleteReleases)
 
-	r.Route("/{releaseId}", func(r chi.Router) {
-		r.Post("/actions/{actionStatusId}/retry", h.retryAction)
+	//r.Post("/process", h.retryAction)
+
+	r.Route("/{releaseID}", func(r chi.Router) {
+		r.Get("/", h.getReleaseByID)
+		r.Post("/actions/{actionStatusID}/retry", h.retryAction)
 	})
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
-
 	limitP := r.URL.Query().Get("limit")
 	limit, err := strconv.Atoi(limitP)
 	if err != nil && limitP != "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "limit parameter is invalid",
 		})
@@ -66,7 +71,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	offsetP := r.URL.Query().Get("offset")
 	offset, err := strconv.Atoi(offsetP)
 	if err != nil && offsetP != "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "offset parameter is invalid",
 		})
@@ -78,7 +83,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	if cursorP != "" {
 		cursor, err = strconv.Atoi(cursorP)
 		if err != nil && cursorP != "" {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 				"code":    "BAD_REQUEST_PARAMS",
 				"message": "cursor parameter is invalid",
 			})
@@ -88,7 +93,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	u, err := url.Parse(r.URL.String())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "indexer parameter is invalid",
 		})
@@ -100,7 +105,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	pushStatus := r.URL.Query().Get("push_status")
 	if pushStatus != "" {
 		if !domain.ValidReleasePushStatus(pushStatus) {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 				"code":    "BAD_REQUEST_PARAMS",
 				"message": fmt.Sprintf("push_status parameter is of invalid type: %v", pushStatus),
 			})
@@ -122,52 +127,56 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		Search: search,
 	}
 
-	releases, nextCursor, count, err := h.service.Find(r.Context(), query)
+	resp, err := h.service.Find(r.Context(), query)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
 		})
 		return
 	}
 
-	ret := struct {
-		Data       []*domain.Release `json:"data"`
-		NextCursor int64             `json:"next_cursor"`
-		Count      int64             `json:"count"`
-	}{
-		Data:       releases,
-		NextCursor: nextCursor,
-		Count:      count,
-	}
-
-	h.encoder.StatusResponse(w, http.StatusOK, ret)
+	h.encoder.StatusResponse(w, http.StatusOK, resp)
 }
 
 func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
-
-	releases, err := h.service.FindRecent(r.Context())
+	resp, err := h.service.Find(r.Context(), domain.ReleaseQueryParams{Limit: 10})
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
 		})
 		return
 	}
 
-	ret := struct {
-		Data []*domain.Release `json:"data"`
-	}{
-		Data: releases,
+	h.encoder.StatusResponse(w, http.StatusOK, resp)
+}
+
+func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {
+	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusOK, ret)
+	release, err := h.service.Get(r.Context(), &domain.GetReleaseRequest{Id: releaseID})
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find release with id %d", releaseID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, release)
 }
 
 func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetIndexerOptions(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
 		})
@@ -178,10 +187,9 @@ func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request
 }
 
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
-
 	stats, err := h.service.Stats(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
 			"code":    "INTERNAL_SERVER_ERROR",
 			"message": err.Error(),
 		})
@@ -198,7 +206,7 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	if olderThanParam != "" {
 		duration, err := strconv.Atoi(olderThanParam)
 		if err != nil {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 				"code":    "BAD_REQUEST_PARAMS",
 				"message": "olderThan parameter is invalid",
 			})
@@ -206,6 +214,31 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		}
 		req.OlderThan = duration
 	}
+
+	indexers := r.URL.Query()["indexer"]
+	if len(indexers) > 0 {
+		req.Indexers = indexers
+	}
+
+	releaseStatuses := r.URL.Query()["releaseStatus"]
+	validStatuses := map[string]bool{
+		"PUSH_APPROVED": true,
+		"PUSH_REJECTED": true,
+		"PUSH_ERROR":    true,
+	}
+	var filteredStatuses []string
+	for _, status := range releaseStatuses {
+		if _, valid := validStatuses[status]; valid {
+			filteredStatuses = append(filteredStatuses, status)
+		} else {
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
+				"code":    "INVALID_RELEASE_STATUS",
+				"message": "releaseStatus contains invalid value",
+			})
+			return
+		}
+	}
+	req.ReleaseStatuses = filteredStatuses
 
 	if err := h.service.Delete(r.Context(), &req); err != nil {
 		h.encoder.Error(w, err)
@@ -215,42 +248,61 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
+func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
+	var req *domain.ReleaseProcessReq
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if req.IndexerIdentifier == "" {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
+			"code":    "VALIDATION_ERROR",
+			"message": "field indexer_identifier empty",
+		})
+	}
+
+	if len(req.AnnounceLines) == 0 {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
+			"code":    "VALIDATION_ERROR",
+			"message": "field announce_lines empty",
+		})
+	}
+
+	err = h.service.ProcessManual(r.Context(), req)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
 func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
-	var (
-		req *domain.ReleaseActionRetryReq
-		err error
-	)
-
-	releaseIdParam := chi.URLParam(r, "releaseId")
-	if releaseIdParam == "" {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
-		return
-	}
-
-	releaseId, err := strconv.Atoi(releaseIdParam)
+	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
 	if err != nil {
 		h.encoder.StatusError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	actionStatusIdParam := chi.URLParam(r, "actionStatusId")
-	if actionStatusIdParam == "" {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
-		return
-	}
-
-	actionStatusId, err := strconv.Atoi(actionStatusIdParam)
+	actionStatusId, err := strconv.Atoi(chi.URLParam(r, "actionStatusID"))
 	if err != nil {
 		h.encoder.StatusError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	req = &domain.ReleaseActionRetryReq{
-		ReleaseId:      releaseId,
+	req := &domain.ReleaseActionRetryReq{
+		ReleaseId:      releaseID,
 		ActionStatusId: actionStatusId,
 	}
 
 	if err := h.service.Retry(r.Context(), req); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

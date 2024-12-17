@@ -5,7 +5,7 @@ identifier: redacted
 description: Redacted (RED) is a private torrent tracker for MUSIC
 language: en-us
 urls:
-  - https://redacted.ch/
+  - https://redacted.sh/
 privacy: private
 protocol: torrent
 supports:
@@ -33,7 +33,7 @@ settings:
     help: Settings -> Account Settings -> API Keys - Generate new api keys. Scope (User, Torrents)
 
 # api:
-#   url: https://redacted.ch/ajax.php
+#   url: https://redacted.sh/ajax.php
 #   type: json
 #   limits:
 #     max: 10
@@ -83,29 +83,32 @@ irc:
     type: single
     lines:
       - tests:
-        - line: Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s
+        - line: Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s
           expect:
             torrentName: Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD
+            title: Artist - Albumname
             year: "2008"
             category: Single
             releaseTags: FLAC / Lossless / Log / 100% / Cue / CD
             groupId: "0000000"
-            baseUrl: https://redacted.ch/
+            baseUrl: https://redacted.sh/
             torrentId: "0000000"
             tags: hip.hop,rhythm.and.blues,2000s
-        - line: A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical
+        - line: A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - classical
           expect:
             torrentName: A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD
+            title: A really long name here - Concertos 5 and 6, Suite No 2
             year: "1991"
             category: Album
             releaseTags: FLAC / Lossless / Log / 100% / Cue / CD
             groupId: "0000000"
-            baseUrl: https://redacted.ch/
+            baseUrl: https://redacted.sh/
             torrentId: "0000000"
             tags: classical
-        pattern: '(.* (?:\[(.*)\] \[(.*)\] - (.*))?) - .*id=(.*) \/ (https?://.+/).+id=(\d+)[ -]*(.*)'
+        pattern: '((.*) (?:\[(.*)\] \[(.*)\] - (.*))?) - .*id=(.*) \/ (https?://.+/).+id=(\d+)[ -]*(.*)'
         vars:
           - torrentName
+          - title
           - year
           - category
           - releaseTags

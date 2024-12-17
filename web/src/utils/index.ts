@@ -12,10 +12,24 @@ export function sleep(ms: number) {
 
 // get baseUrl sent from server rendered index template
 export function baseUrl() {
-  let baseUrl = "";
+  let baseUrl = "/";
   if (window.APP.baseUrl) {
     if (window.APP.baseUrl === "{{.BaseUrl}}") {
       baseUrl = "/";
+    } else {
+      baseUrl = window.APP.baseUrl;
+    }
+  }
+  return baseUrl;
+}
+
+// get routerBasePath sent from server rendered index template
+// routerBasePath is used for RouterProvider and does not need work with trailing slash
+export function routerBasePath() {
+  let baseUrl = "";
+  if (window.APP.baseUrl) {
+    if (window.APP.baseUrl === "{{.BaseUrl}}") {
+      baseUrl = "";
     } else {
       baseUrl = window.APP.baseUrl;
     }
@@ -138,3 +152,39 @@ export const RandomLinuxIsos = (count: number) => {
 
   return Array.from({ length: count }, () => linuxIsos[Math.floor(Math.random() * linuxIsos.length)]);
 };
+
+export async function CopyTextToClipboard(text: string) {
+  if ("clipboard" in navigator) {
+     // Safari requires clipboard operations to be directly triggered by a user interaction.
+     // Using setTimeout with a delay of 0 ensures the clipboard operation is deferred until
+     // after the current call stack has cleared, effectively placing it outside of the
+     // immediate execution context of the user interaction event. This workaround allows
+     // the clipboard operation to bypass Safari's security restrictions.
+     setTimeout(async () => {
+       try {
+         await navigator.clipboard.writeText(text);
+         console.log("Text copied to clipboard successfully.");
+       } catch (err) {
+         console.error("Copy to clipboard unsuccessful: ", err);
+       }
+     }, 0);
+  } else {
+     // fallback for browsers that do not support the Clipboard API
+     copyTextToClipboardFallback(text);
+  }
+ }
+ 
+ function copyTextToClipboardFallback(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+     document.execCommand('copy');
+     console.log("Text copied to clipboard successfully.");
+  } catch (err) {
+     console.error('Failed to copy text using fallback method: ', err);
+  }
+  document.body.removeChild(textarea);
+ }
+ 

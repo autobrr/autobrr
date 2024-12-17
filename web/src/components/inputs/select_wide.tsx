@@ -17,6 +17,7 @@ interface SelectFieldProps<T> {
   label: string;
   help?: string;
   placeholder?: string;
+  required?: boolean;
   defaultValue?: OptionBasicTyped<T>;
   tooltip?: JSX.Element;
   options: OptionBasicTyped<T>[];
@@ -73,12 +74,12 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
               })}
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
               value={field?.value ? { value: field.value, label: field.value  } : field.value}
-              onChange={(option) => {
-                if (option === null) {
-                  setFieldValue(field.name, "");
-                  return;
-                } else {
-                  setFieldValue(field.name, option.value ?? "");
+              onChange={(newValue: unknown) => {
+                if (newValue) {
+                  setFieldValue(field.name, (newValue as { value: string }).value);
+                }
+                else {
+                  setFieldValue(field.name, "")
                 }
               }}
               options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
@@ -138,12 +139,12 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
               })}
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
               value={field?.value ? { value: field.value, label: field.value  } : field.value}
-              onChange={(option) => {
-                if (option === null) {
-                  setFieldValue(field.name, "");
-                  return;
-                } else {
-                  setFieldValue(field.name, option.value ?? "");
+              onChange={(newValue: unknown) => {
+                if (newValue) {
+                  setFieldValue(field.name, (newValue as { value: string }).value);
+                }
+                else {
+                  setFieldValue(field.name, "")
                 }
               }}
               options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
@@ -158,7 +159,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
   );
 }
 
-export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, defaultValue, options }: SelectFieldProps<T>) {
+export function SelectFieldBasic<T>({ name, label, help, placeholder, required, tooltip, defaultValue, options }: SelectFieldProps<T>) {
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -182,6 +183,7 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, d
             <Select
               {...field}
               id={name}
+              required={required}
               components={{
                 Input: common.SelectInput,
                 Control: common.SelectControl,
@@ -207,12 +209,12 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, tooltip, d
               })}
               defaultValue={defaultValue}
               value={field?.value && options.find(o => o.value == field?.value)}
-              onChange={(option) => {
-                if (option === null) {
-                  setFieldValue(field.name, "");
-                  return;
-                } else {
-                  setFieldValue(field.name, option.value ?? "");
+              onChange={(newValue: unknown) => {
+                if (newValue) {
+                  setFieldValue(field.name, (newValue as { value: string }).value);
+                }
+                else {
+                  setFieldValue(field.name, "")
                 }
               }}
               options={options}

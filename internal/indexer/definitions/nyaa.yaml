@@ -1,0 +1,83 @@
+---
+#id: nyaa
+name: Nyaa
+identifier: nyaa
+description: Nyaa is an indexer for Anime.
+language: en-us
+urls:
+  - https://nyaa.si/
+privacy: public
+protocol: torrent
+supports:
+  - irc
+#source: custom
+
+irc:
+  network: Rizon
+  server: irc.rizon.net
+  port: 6697
+  tls: true
+  channels:
+    - "#nyaannounce"
+  announcers:
+    - "NekoNeko"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: "[Live Action - Raw] - 見て、お母さん、私は日本語が書けます！ - (220.30MiB) - https://nyaa.si/view/000000/torrent"
+            expect:
+              category: Live Action - Raw
+              torrentName: "見て、お母さん、私は日本語が書けます！"
+              torrentSize: 220.30MiB
+              baseUrl: https://nyaa.si/
+              torrentId: "000000"
+              tags: ""
+          - line: "[Anime - English-translated] - [GROUP] Woah [1080p BD AV1] - (3.60GiB) - https://nyaa.si/view/000001/torrent"
+            expect:
+              category: Anime - English-translated
+              torrentName: "[GROUP] Woah [1080p BD AV1]"
+              torrentSize: 3.60GiB
+              baseUrl: https://nyaa.si/
+              torrentId: "000001"
+              tags: ""
+          - line: "[Anime - English-translated] - [GROUP] Woah [1080p x265] - (123.23GiB) - https://nyaa.si/view/000002/torrent trusted"
+            expect:
+              category: Anime - English-translated
+              torrentName: "[GROUP] Woah [1080p x265]"
+              torrentSize: 123.23GiB
+              baseUrl: https://nyaa.si/
+              torrentId: "000002"
+              tags: trusted
+
+        pattern: '\[(.*)\] - (.*) - \((\d+\.?\d*[KMGTP]?iB)\) - (https?:\/\/.*\/)view\/(\d+)\/torrent\s*(trusted|remake|batch)?'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - tags
+
+    match:
+      infourl: "/view/{{ .torrentId }}"
+      torrenturl: "/download/{{ .torrentId }}.torrent"

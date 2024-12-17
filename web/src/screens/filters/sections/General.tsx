@@ -1,44 +1,66 @@
-import { useQuery } from "@tanstack/react-query";
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-import { APIClient } from "@api/APIClient";
+import { useSuspenseQuery } from "@tanstack/react-query";
+
 import { downloadsPerUnitOptions } from "@domain/constants";
+import { IndexersOptionsQueryOptions } from "@api/queries";
 
 import { DocsLink } from "@components/ExternalLink";
+import { FilterLayout, FilterPage, FilterSection } from "./_components";
+import {
+  IndexerMultiSelect,
+  MultiSelect,
+  MultiSelectOption,
+  NumberField,
+  Select,
+  SwitchGroup,
+  TextField
+} from "@components/inputs";
+import * as CONSTS from "@domain/constants.ts";
 
-import * as Input from "@components/inputs";
-import * as Components from "./_components";
 
 const MapIndexer = (indexer: Indexer) => (
-  { label: indexer.name, value: indexer.id } as Input.MultiSelectOption
+  { label: indexer.name, value: indexer.id } as MultiSelectOption
 );
 
 export const General = () => {
-  const { isLoading, data } = useQuery({
-    queryKey: ["filters", "indexer_list"],
-    queryFn: APIClient.indexers.getOptions,
-    refetchOnWindowFocus: false
-  });
+  const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
+  const indexerOptions = indexersQuery.data && indexersQuery.data.map(MapIndexer)
 
-  const indexerOptions = data?.map(MapIndexer) ?? [];
+  // const indexerOptions = data?.map(MapIndexer) ?? [];
 
   return (
-    <Components.Page>
-      <Components.Section>
-        <Components.Layout>
-          <Input.TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
+    <FilterPage>
+      <FilterSection>
+        <FilterLayout>
+          <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
-          {!isLoading && (
-            <Input.IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={6} />
-          )}
-        </Components.Layout>
-      </Components.Section>
+          <MultiSelect
+            name="announce_types"
+            options={CONSTS.AnnounceTypeOptions}
+            label="announce types"
+            columns={3}
+            tooltip={
+              <div>
+                <p>NEW! Match releases which contain any of the selected announce types.</p>
+                <DocsLink href="https://autobrr.com/filters#announce-type" />
+              </div>
+            }
+          />
 
-      <Components.Section
+          <IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={3} />
+        </FilterLayout>
+      </FilterSection>
+
+      <FilterSection
         title="Rules"
         subtitle="Specify rules on how torrents should be handled/selected."
       >
-        <Components.Layout>
-          <Input.TextField
+        <FilterLayout>
+          <TextField
             name="min_size"
             label="Min size"
             columns={6}
@@ -50,7 +72,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.TextField
+          <TextField
             name="max_size"
             label="Max size"
             columns={6}
@@ -62,7 +84,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.NumberField
+          <NumberField
             name="delay"
             label="Delay"
             placeholder="Number of seconds to delay actions"
@@ -73,7 +95,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.NumberField
+          <NumberField
             name="priority"
             label="Priority"
             placeholder="Higher number = higher priority"
@@ -84,7 +106,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.NumberField
+          <NumberField
             name="max_downloads"
             label="Max downloads"
             placeholder="Takes any number (0 is infinite)"
@@ -95,7 +117,7 @@ export const General = () => {
               </div>
             }
           />
-          <Input.Select
+          <Select
             name="max_downloads_unit"
             label="Max downloads per"
             options={downloadsPerUnitOptions}
@@ -107,17 +129,17 @@ export const General = () => {
               </div>
             }
           />
-        </Components.Layout>
+        </FilterLayout>
 
-        <Components.Layout>
-          <Input.SwitchGroup
+        <FilterLayout>
+          <SwitchGroup
             name="enabled"
             label="Enabled"
             description="Enable or disable this filter."
             className="pb-2 col-span-12 sm:col-span-6"
           />
-        </Components.Layout>
-      </Components.Section>
-    </Components.Page>
+        </FilterLayout>
+      </FilterSection>
+    </FilterPage>
   );
 };

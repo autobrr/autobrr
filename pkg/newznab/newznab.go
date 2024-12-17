@@ -25,6 +25,7 @@ type Client interface {
 	GetFeed(ctx context.Context) (*Feed, error)
 	GetCaps(ctx context.Context) (*Caps, error)
 	Caps() *Caps
+	WithHTTPClient(client *http.Client)
 }
 
 type client struct {
@@ -39,6 +40,10 @@ type client struct {
 	Capabilities *Caps
 
 	Log *log.Logger
+}
+
+func (c *client) WithHTTPClient(client *http.Client) {
+	c.http = client
 }
 
 type BasicAuth struct {
@@ -99,6 +104,9 @@ func (c *client) get(ctx context.Context, endpoint string, queryParams map[strin
 	}
 
 	u, err := url.Parse(c.Host)
+	if err != nil {
+		return 0, nil, err
+	}
 	u.Path = strings.TrimSuffix(u.Path, "/")
 	u.RawQuery = params.Encode()
 	reqUrl := u.String()
@@ -273,6 +281,9 @@ func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]s
 	}
 
 	u, err := url.Parse(c.Host)
+	if err != nil {
+		return 0, nil, err
+	}
 	u.Path = strings.TrimSuffix(u.Path, "/")
 	u.RawQuery = params.Encode()
 	reqUrl := u.String()
@@ -325,7 +336,6 @@ func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]s
 }
 
 func (c *client) GetCaps(ctx context.Context) (*Caps, error) {
-
 	status, res, err := c.getCaps(ctx, "?t=caps", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get caps for feed")

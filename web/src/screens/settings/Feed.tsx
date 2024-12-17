@@ -3,20 +3,22 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, useMemo } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Menu, Transition } from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { toast } from "react-hot-toast";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
   EllipsisHorizontalIcon,
-  PencilSquareIcon,
   ForwardIcon,
+  PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
+import { FeedsQueryOptions } from "@api/queries";
+import { FeedKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
 import Toast from "@components/notifications/Toast";
@@ -28,14 +30,6 @@ import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { ExternalLink } from "@components/ExternalLink";
 import { Section } from "./_components";
 import { Checkbox } from "@components/Checkbox";
-
-export const feedKeys = {
-  all: ["feeds"] as const,
-  lists: () => [...feedKeys.all, "list"] as const,
-  // list: (indexers: string[], sortOrder: string) => [...feedKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...feedKeys.all, "detail"] as const,
-  detail: (id: number) => [...feedKeys.details(), id] as const
-};
 
 interface SortConfig {
   key: keyof ListItemProps["feed"] | "enabled";
@@ -97,20 +91,16 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
-  const { data } = useSuspenseQuery({
-    queryKey: feedKeys.lists(),
-    queryFn: APIClient.feeds.find,
-    refetchOnWindowFocus: false
-  });
+  const feedsQuery = useSuspenseQuery(FeedsQueryOptions())
 
-  const sortedFeeds = useSort(data || []);
+  const sortedFeeds = useSort(feedsQuery.data || []);
 
   return (
     <Section
       title="Feeds"
       description="Manage RSS, Newznab, and Torznab feeds."
     >
-      {data && data.length > 0 ? (
+      {feedsQuery.data && feedsQuery.data.length > 0 ? (
         <ul className="min-w-full relative">
           <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">
             <div
@@ -163,8 +153,8 @@ function ListItem({ feed }: ListItemProps) {
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.detail(feed.id) });
 
       toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t} />);
     }
@@ -189,7 +179,7 @@ function ListItem({ feed }: ListItemProps) {
         <div className="col-span-9 md:col-span-4 pl-10 sm:pl-12 py-3 flex flex-col">
           <span className="pr-2 dark:text-white truncate">{feed.name}</span>
           <span className="pr-3 text-xs truncate">
-            {feed.indexer}
+            {feed.indexer.identifier}
           </span>
         </div>
         <div className="hidden md:flex col-span-2 py-3 items-center">
@@ -240,8 +230,8 @@ const FeedItemDropdown = ({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: feedKeys.detail(feed.id) });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.detail(feed.id) });
 
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t} />);
     }
@@ -257,7 +247,7 @@ const FeedItemDropdown = ({
   const forceRunMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.forceRun(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: feedKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
       toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
       toggleForceRunModal();
     },
@@ -312,12 +302,12 @@ const FeedItemDropdown = ({
         title={`Force run feed: ${feed.name}`}
         text={`Are you sure you want to force run the ${feed.name} feed? Respecting RSS interval rules is crucial to avoid potential IP bans.`}
       />
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -327,11 +317,11 @@ const FeedItemDropdown = ({
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
+        <MenuItems
           className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -350,8 +340,8 @@ const FeedItemDropdown = ({
                   Edit
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -370,10 +360,10 @@ const FeedItemDropdown = ({
                   Toggle
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   onClick={() => toggleForceRunModal()}
@@ -392,8 +382,8 @@ const FeedItemDropdown = ({
             Force run
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               <ExternalLink
                 href={`${baseUrl()}api/feeds/${feed.id}/latest`}
                 className="font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm text-gray-900 dark:text-gray-300 hover:bg-blue-600 hover:text-white"
@@ -404,8 +394,8 @@ const FeedItemDropdown = ({
                 />
                 View latest run
               </ExternalLink>
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -425,10 +415,10 @@ const FeedItemDropdown = ({
                   Clear feed cache
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -447,9 +437,9 @@ const FeedItemDropdown = ({
                   Delete
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );

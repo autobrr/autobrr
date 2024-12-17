@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -17,7 +18,6 @@ import (
 type apikeyService interface {
 	List(ctx context.Context) ([]domain.APIKey, error)
 	Store(ctx context.Context, key *domain.APIKey) error
-	Update(ctx context.Context, key *domain.APIKey) error
 	Delete(ctx context.Context, key string) error
 	ValidateAPIKey(ctx context.Context, token string) bool
 }
@@ -51,18 +51,13 @@ func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
-
-	var (
-		ctx  = r.Context()
-		data domain.APIKey
-	)
-
+	var data domain.APIKey
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Store(ctx, &data); err != nil {
+	if err := h.service.Store(r.Context(), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -71,7 +66,14 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {
-	if err := h.service.Delete(r.Context(), chi.URLParam(r, "apikey")); err != nil {
+	apiKey := chi.URLParam(r, "apikey")
+
+	if err := h.service.Delete(r.Context(), apiKey); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("api key %s not found", apiKey))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

@@ -43,11 +43,12 @@ type Server struct {
 	indexerService        indexerService
 	ircService            ircService
 	notificationService   notificationService
+	proxyService          proxyService
 	releaseService        releaseService
 	updateService         updateService
 }
 
-func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService, updateSvc updateService) Server {
+func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, proxySvc proxyService, releaseSvc releaseService, updateSvc updateService) Server {
 	return Server{
 		log:     log.With().Str("module", "http").Logger(),
 		config:  config,
@@ -68,6 +69,7 @@ func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db 
 		indexerService:        indexerSvc,
 		ircService:            ircSvc,
 		notificationService:   notificationSvc,
+		proxyService:          proxySvc,
 		releaseService:        releaseSvc,
 		updateService:         updateSvc,
 	}
@@ -94,7 +96,7 @@ func (s Server) tryToServe(addr, protocol string) error {
 		return err
 	}
 
-	s.log.Info().Msgf("Starting server %s. Listening on %s", protocol, listener.Addr().String())
+	s.log.Info().Msgf("Starting API %s server. Listening on %s", protocol, listener.Addr().String())
 
 	server := http.Server{
 		Handler:           s.Handler(),
@@ -123,7 +125,7 @@ func (s Server) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	encoder := encoder{}
+	encoder := newEncoder(s.log)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
@@ -142,6 +144,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
+			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
 			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
 

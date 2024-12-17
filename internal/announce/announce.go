@@ -29,7 +29,7 @@ type announceProcessor struct {
 
 func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
-		log:        log.With().Str("module", "announce_processor").Logger(),
+		log:        log.With().Str("module", "announce_processor").Str("indexer", indexer.Name).Str("network", indexer.IRC.Network).Logger(),
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
 	}
@@ -75,7 +75,12 @@ func (a *announceProcessor) processQueue(queue chan string) {
 				a.log.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
+
 			a.log.Trace().Msgf("announce: process line: %v", line)
+
+			if !a.indexer.Enabled {
+				a.log.Warn().Msgf("indexer %v disabled", a.indexer.Name)
+			}
 
 			// check should ignore
 
@@ -98,7 +103,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 			continue
 		}
 
-		rls := domain.NewRelease(a.indexer.Identifier)
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: a.indexer.ID, Name: a.indexer.Name, Identifier: a.indexer.Identifier, IdentifierExternal: a.indexer.IdentifierExternal})
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched
@@ -131,6 +136,7 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	}
 
 	queue <- line
+
 	a.log.Trace().Msgf("announce: queued line: %v", line)
 
 	return nil

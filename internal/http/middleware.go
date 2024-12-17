@@ -38,7 +38,6 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 
 				// MaxAge<0 means delete cookie immediately
 				session.Options.MaxAge = -1
-
 				session.Options.Path = s.config.Config.BaseURL
 
 				if err := session.Save(r, w); err != nil {
@@ -50,15 +49,33 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 				return
 			}
 
-			if session.IsNew {
-				http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+			// Check if user is authenticated
+			if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
+				s.log.Warn().Msg("session not authenticated")
+
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 
-			// Check if user is authenticated
-			if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-				return
+			if created, ok := session.Values["created"].(int64); ok {
+				// created is a unix timestamp MaxAge is in seconds
+				maxAge := time.Duration(session.Options.MaxAge) * time.Second
+				expires := time.Unix(created, 0).Add(maxAge)
+
+				if time.Until(expires) <= 7*24*time.Hour { // 7 days
+					s.log.Info().Msgf("Cookie is expiring in less than 7 days on %s - extending session", expires.Format("2006-01-02 15:04:05"))
+
+					session.Values["created"] = time.Now().Unix()
+
+					// Call session.Save as needed - since it writes a header (the Set-Cookie
+					// header), making sure you call it before writing out a body is important.
+					// https://github.com/gorilla/sessions/issues/178#issuecomment-447674812
+					if err := session.Save(r, w); err != nil {
+						s.log.Error().Err(err).Msgf("could not store session: %s", r.RemoteAddr)
+						http.Error(w, err.Error(), http.StatusInternalServerError)
+						return
+					}
+				}
 			}
 
 			ctx := context.WithValue(r.Context(), "session", session)

@@ -51,7 +51,7 @@ export const SelectInput = (props: InputProps) => (
 export const SelectControl = (props: ControlProps) => (
   <components.Control
     {...props}
-    className="p-1 block w-full !bg-gray-100 dark:!bg-gray-850 border border-gray-300 dark:border-gray-775 dark:hover:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+    className="p-1 block w-full !bg-gray-100 dark:!bg-gray-850 border border-gray-300 dark:border-gray-700 dark:hover:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
     children={props.children}
   />
 );

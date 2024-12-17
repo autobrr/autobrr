@@ -3,17 +3,11 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { newRidgeState } from "react-ridge-state";
 import type { StateWithValue } from "react-ridge-state";
-
-interface AuthInfo {
-  username: string;
-  isLoggedIn: boolean;
-}
+import { newRidgeState } from "react-ridge-state";
 
 interface SettingsType {
   debug: boolean;
-  checkForUpdates: boolean;
   darkTheme: boolean;
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
@@ -26,6 +20,11 @@ export type FilterListState = {
   status: string;
 };
 
+interface AuthInfo {
+  username: string;
+  isLoggedIn: boolean;
+}
+
 // Default values
 const AuthContextDefaults: AuthInfo = {
   username: "",
@@ -34,8 +33,7 @@ const AuthContextDefaults: AuthInfo = {
 
 const SettingsContextDefaults: SettingsType = {
   debug: false,
-  checkForUpdates: true,
-  darkTheme: true,
+  darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
   scrollOnNewLog: false,
   indentLogLines: false,
   hideWrappedText: false
@@ -53,7 +51,7 @@ function ContextMerger<T extends {}>(
   defaults: T,
   ctxState: StateWithValue<T>
 ) {
-  let values = defaults;
+  let values = structuredClone(defaults);
 
   const storage = localStorage.getItem(key);
   if (storage) {
@@ -62,25 +60,29 @@ function ContextMerger<T extends {}>(
       if (json === null) {
         console.warn(`JSON localStorage value for '${key}' context state is null`);
       } else {
-        values = { ...defaults, ...json };
+        values = { ...values, ...json };
       }
     } catch (e) {
       console.error(`Failed to merge ${key} context state: ${e}`);
     }
   }
-  
+
   ctxState.set(values);
 }
 
+const AuthKey = "autobrr_user_auth";
+const SettingsKey = "autobrr_settings";
+const FilterListKey = "autobrr_filter_list";
+
 export const InitializeGlobalContext = () => {
-  ContextMerger<AuthInfo>("auth", AuthContextDefaults, AuthContext);
+  ContextMerger<AuthInfo>(AuthKey, AuthContextDefaults, AuthContext);
   ContextMerger<SettingsType>(
-    "settings",
+    SettingsKey,
     SettingsContextDefaults,
     SettingsContext
   );
   ContextMerger<FilterListState>(
-    "filterList",
+    FilterListKey,
     FilterListContextDefaults,
     FilterListContext
   );
@@ -98,23 +100,43 @@ function DefaultSetter<T>(name: string, newState: T, prevState: T) {
   }
 }
 
-export const AuthContext = newRidgeState<AuthInfo>(AuthContextDefaults, {
-  onSet: (newState, prevState) => DefaultSetter("auth", newState, prevState)
-});
+export const AuthContext = newRidgeState<AuthInfo>(
+  AuthContextDefaults,
+  {
+    onSet: (newState, prevState) => DefaultSetter(AuthKey, newState, prevState)
+  }
+);
 
 export const SettingsContext = newRidgeState<SettingsType>(
   SettingsContextDefaults,
   {
     onSet: (newState, prevState) => {
       document.documentElement.classList.toggle("dark", newState.darkTheme);
-      DefaultSetter("settings", newState, prevState);
+      DefaultSetter(SettingsKey, newState, prevState);
+      updateMetaThemeColor(newState.darkTheme);
     }
   }
 );
 
+/**
+ * Updates the meta theme color based on the current theme state.
+ * Used by Safari to color the compact tab bar on both iOS and MacOS.
+ */
+const updateMetaThemeColor = (darkTheme: boolean) => {
+  const color = darkTheme ? '#121315' : '#f4f4f5';
+  let metaThemeColor: HTMLMetaElement | null = document.querySelector('meta[name="theme-color"]');
+  if (!metaThemeColor) {
+    metaThemeColor = document.createElement('meta') as HTMLMetaElement;
+    metaThemeColor.name = "theme-color";
+    document.head.appendChild(metaThemeColor);
+  }
+
+  metaThemeColor.content = color;
+};
+
 export const FilterListContext = newRidgeState<FilterListState>(
   FilterListContextDefaults,
   {
-    onSet: (newState, prevState) => DefaultSetter("filterList", newState, prevState)
+    onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
   }
 );

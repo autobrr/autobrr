@@ -13,6 +13,7 @@ interface Filter {
   max_size: string;
   delay: number;
   priority: number;
+  announce_types: string[];
   max_downloads: number;
   max_downloads_unit: string;
   match_releases: string;
@@ -44,6 +45,8 @@ interface Filter {
   match_other: string[];
   except_other: string[];
   years: string;
+  months: string;
+  days: string;
   artists: string;
   albums: string;
   match_release_types: string[];
@@ -92,7 +95,8 @@ interface Action {
   save_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
-  skip_hash_check: boolean;
+  first_last_piece_prio?: boolean;
+  skip_hash_check?: boolean;
   content_layout?: ActionContentLayout;
   priority?: ActionPriorityLayout;
   limit_upload_speed?: number;
@@ -114,7 +118,7 @@ interface Action {
   filter_id?: number;
 }
 
-type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
+type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | "";
 
 type ActionPriorityLayout = "MAX" | "MIN" | "";
 

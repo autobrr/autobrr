@@ -1,3 +1,6 @@
+// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package notification
 
 import (
@@ -9,11 +12,15 @@ import (
 
 type shoutrrrSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	builder  MessageBuilderPlainText
 }
 
-func NewShoutrrrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *shoutrrrSender) Name() string {
+	return "shoutrrr"
+}
+
+func NewShoutrrrSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &shoutrrrSender{
 		log:      log.With().Str("sender", "shoutrrr").Logger(),
 		Settings: settings,

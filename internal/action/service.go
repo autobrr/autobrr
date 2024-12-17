@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/asaskevich/EventBus"
@@ -21,9 +22,10 @@ import (
 
 type Service interface {
 	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
+	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error)
+	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
@@ -32,21 +34,23 @@ type Service interface {
 }
 
 type service struct {
-	log       zerolog.Logger
-	subLogger *log.Logger
-	repo      domain.ActionRepo
-	clientSvc download_client.Service
-	bus       EventBus.Bus
+	log         zerolog.Logger
+	subLogger   *log.Logger
+	repo        domain.ActionRepo
+	clientSvc   download_client.Service
+	downloadSvc *releasedownload.DownloadService
+	bus         EventBus.Bus
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, bus EventBus.Bus) Service {
+func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, downloadSvc *releasedownload.DownloadService, bus EventBus.Bus) Service {
 	s := &service{
-		log:       log.With().Str("module", "action").Logger(),
-		repo:      repo,
-		clientSvc: clientSvc,
-		bus:       bus,
+		log:         log.With().Str("module", "action").Logger(),
+		repo:        repo,
+		clientSvc:   clientSvc,
+		downloadSvc: downloadSvc,
+		bus:         bus,
 
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
@@ -61,6 +65,10 @@ func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_cl
 
 func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
 	return s.repo.Store(ctx, action)
+}
+
+func (s *service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
+	return s.repo.StoreFilterActions(ctx, filterID, actions)
 }
 
 func (s *service) List(ctx context.Context) ([]domain.Action, error) {
@@ -86,8 +94,8 @@ func (s *service) Get(ctx context.Context, req *domain.GetActionRequest) (*domai
 	return a, nil
 }
 
-func (s *service) FindByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
-	return s.repo.FindByFilterID(ctx, filterID, active)
+func (s *service) FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error) {
+	return s.repo.FindByFilterID(ctx, filterID, active, withClient)
 }
 
 func (s *service) Delete(ctx context.Context, req *domain.DeleteActionRequest) error {

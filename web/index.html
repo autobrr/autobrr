@@ -5,54 +5,55 @@
 
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#141415" />
-    <meta name="description" content="autobrr" />
-    <link rel="preload" href="/Inter-Variable.woff2" as="font" type="font/woff2" crossorigin="use-credentials">
-    <link rel="apple-touch-icon" href="/logo192.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon-iphone-60x60.png" />
-    <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-ipad-76x76.png" />
-    <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-iphone-retina-120x120.png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-ipad-retina-152x152.png" />
-    <title>autobrr</title>
-    <base href="{{.BaseUrl}}">
-    <style>
-@font-face {
-  font-family: "Inter Var";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: block;
-  font-feature-settings: "calt" 0;
-  src:
-    local("Inter Var"), local("Inter Variable"),
-    local("Inter var"), local("Inter variable"),
-    local("InterVar"), local("InterVariable"),
-    local("Inter"),
-    url("/Inter-Variable.woff2") format("woff2");
-}
-:root {
-  font-family: "Inter Var", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-    </style>
-    <script>
+<head>
+  <meta charset="utf-8"/>
+  <link rel="icon" href="/favicon.ico"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#18181B">
+  <meta name="description" content="autobrr"/>
+  <link rel="preload" href="/Inter-Variable.woff2" as="font" type="font/woff2" crossorigin="use-credentials">
+  <link rel="apple-touch-icon" href="/logo192.png"/>
+  <link rel="apple-touch-icon" href="/apple-touch-icon-iphone-60x60.png"/>
+  <link rel="apple-touch-icon" sizes="60x60" href="/apple-touch-icon-ipad-76x76.png"/>
+  <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-iphone-retina-120x120.png"/>
+  <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-ipad-retina-152x152.png"/>
+  <title>autobrr</title>
+  <base href="{{.BaseUrl}}">
+  <style>
+      @font-face {
+          font-family: "Inter Var";
+          font-style: normal;
+          font-weight: 100 900;
+          font-display: block;
+          font-feature-settings: "calt" 0;
+          src: local("Inter Var"), local("Inter Variable"),
+          local("Inter var"), local("Inter variable"),
+          local("InterVar"), local("InterVariable"),
+          local("Inter"),
+          url("/Inter-Variable.woff2") format("woff2");
+      }
+
+      :root {
+          font-family: "Inter Var", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+          "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+          sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+      }
+  </style>
+  <script>
       window.APP = {};
       window.APP.baseUrl = "{{.BaseUrl}}";
 
       const browserPrefers = !(window.matchMedia !== undefined && window.matchMedia("(prefers-color-scheme: light)").matches);
-      const { darkTheme = browserPrefers } = JSON.parse(localStorage.getItem("settings")) || {};
+      const {darkTheme = browserPrefers} = JSON.parse(localStorage.getItem("settings")) || {};
       document.documentElement.classList.toggle("dark", darkTheme);
-    </script>
-  </head>
-  <body class="bg-color">
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root" class="pattern"></div>
-    <script type="module" src="./src/index.tsx"></script>
-  </body>
+  </script>
+</head>
+<body class="bg-color">
+<noscript>You need to enable JavaScript to run this app.</noscript>
+<div id="root" class="pattern h-screen"></div>
+<div id="portal-root"></div>
+<script type="module" src="./src/index.tsx"></script>
+</body>
 </html>

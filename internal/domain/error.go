@@ -3,8 +3,14 @@
 
 package domain
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/autobrr/autobrr/pkg/errors"
+)
 
 var (
 	ErrRecordNotFound = sql.ErrNoRows
+	ErrUpdateFailed   = errors.New("update failed")
+	ErrDeleteFailed   = errors.New("delete failed")
 )

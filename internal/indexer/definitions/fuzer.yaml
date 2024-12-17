@@ -4,7 +4,7 @@ identifier: fuzer
 description: Fuzer is a private Israeli tracker
 language: he-il
 urls:
-  - https://fuzer.me/
+  - https://fuzer.xyz/
 privacy: private
 protocol: torrent
 supports:
@@ -25,7 +25,7 @@ settings:
 
 irc:
   network: Fuzer
-  server: irc.fuzer.me
+  server: irc.fuzer.xyz
   port: 6697
   tls: true
   channels:

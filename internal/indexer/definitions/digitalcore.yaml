@@ -65,21 +65,40 @@ irc:
             baseUrl: https://digitalcore.club/api/v1/torrents/
             torrentId: "00000"
             tags: ""
-        - line: 'NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: [p2p,unrar]'
+            releaseTags: ""
+        - line: 'NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar]'
           expect:
             category: Movies/XviD
             torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
             baseUrl: https://digitalcore.club/api/v1/torrents/
             torrentId: "00000"
-            tags: p2p,unrar
-        pattern: 'NEW TORRENT in (.+) :: (.+) :: (https:\/\/.+\/).+\/([0-9a-zA-Z]+)(?: :: \[(.+)\])?'
+            tags: ""
+            releaseTags: p2p,unrar
+        - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Genre: [Drama, Fantasy, Horror]'
+          expect:
+            category: Movies/1080p
+            torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
+            baseUrl: https://digitalcore.club/api/v1/torrents/
+            torrentId: "00000"
+            tags: "Drama, Fantasy, Horror"
+            releaseTags: p2p,unrar
+        - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Genre: [Drama, Fantasy, Horror]'
+          expect:
+            category: Movies/1080p
+            torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
+            baseUrl: https://digitalcore.club/api/v1/torrents/
+            torrentId: "00000"
+            tags: "Drama, Fantasy, Horror"
+            releaseTags: ""
+        pattern: 'NEW TORRENT in (.+) :: (.+) :: (https:\/\/.+\/).+\/([0-9a-zA-Z]+)(?: :: Tags: )?(?:\[([0-9a-zA-Z ,\-&]+)\])?(?: :: Genre: )?(?:\[([0-9a-zA-Z ,\-&]+)\])?'
         vars:
           - category
           - torrentName
           - baseUrl
           - torrentId
+          - releaseTags
           - tags
 
     match:
-      infourl: "/torrent/{{ .torrentId }}"
+      infourl: "/torrent/{{ .torrentId }}/"
       torrenturl: "/api/v1/torrents/download/{{ .torrentId }}/{{ .passkey }}"

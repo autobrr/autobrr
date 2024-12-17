@@ -4,8 +4,8 @@
  */
 
 import type { FieldProps } from "formik";
-import { Field } from "formik";
-import { Switch as HeadlessSwitch } from "@headlessui/react";
+import { Field as FormikField } from "formik";
+import { Field, Label, Description } from "@headlessui/react";
 
 import { classNames } from "@utils";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
@@ -30,7 +30,7 @@ const SwitchGroup = ({
   disabled,
   className
 }: SwitchGroupProps) => (
-  <HeadlessSwitch.Group
+  <Field
     as="div"
     className={classNames(
       className ?? "py-2",
@@ -38,7 +38,7 @@ const SwitchGroup = ({
     )}
   >
     {label && <div className="flex flex-col">
-      <HeadlessSwitch.Label
+      <Label
         passive
         as={heading ? "h2" : "span"}
         className={classNames(
@@ -51,16 +51,16 @@ const SwitchGroup = ({
             <DocsTooltip label={label}>{tooltip}</DocsTooltip>
           ) : label}
         </div>
-      </HeadlessSwitch.Label>
+      </Label>
       {description && (
-        <HeadlessSwitch.Description as="span" className="text-sm mt-1 pr-4 text-gray-500 dark:text-gray-400">
+        <Description as="span" className="text-sm mt-1 pr-4 text-gray-500 dark:text-gray-400">
           {description}
-        </HeadlessSwitch.Description>
+        </Description>
       )}
     </div>
     }
 
-    <Field name={name} type="checkbox">
+    <FormikField name={name} type="checkbox">
       {({
         field,
         form: { setFieldValue }
@@ -75,8 +75,37 @@ const SwitchGroup = ({
           disabled={disabled}
         />
       )}
-    </Field>
-  </HeadlessSwitch.Group>
+    </FormikField>
+  </Field>
 );
 
-export { SwitchGroup };
+interface SwitchButtonProps {
+  name: string;
+  defaultValue?: boolean;
+  className?: string;
+}
+
+const SwitchButton = ({ name, defaultValue }: SwitchButtonProps) => (
+    <Field as="div" className="flex items-center justify-between">
+      <FormikField
+        name={name}
+        defaultValue={defaultValue as boolean}
+        type="checkbox"
+      >
+        {({
+            field,
+            form: { setFieldValue }
+          }: FieldProps) => (
+          <Checkbox
+            {...field}
+            value={!!field.checked}
+            setValue={(value) => {
+              setFieldValue(field?.name ?? "", value);
+            }}
+          />
+        )}
+      </FormikField>
+    </Field>
+);
+
+export { SwitchGroup, SwitchButton };

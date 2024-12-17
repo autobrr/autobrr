@@ -21,7 +21,7 @@ settings:
 
 irc:
   network: Nebulance
-  server: irc.nebulance.cc
+  server: irc.nebulance.io
   port: 6697
   tls: true
   channels:

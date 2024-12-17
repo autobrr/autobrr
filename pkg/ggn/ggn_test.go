@@ -35,17 +35,26 @@ func Test_client_GetTorrentByID(t *testing.T) {
 
 		id := r.URL.Query().Get("id")
 		var jsonPayload []byte
+		var err error
 		switch id {
 		case "422368":
-			jsonPayload, _ = os.ReadFile("testdata/ggn_get_torrent_by_id.json")
+			jsonPayload, err = os.ReadFile("testdata/ggn_get_torrent_by_id.json")
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			break
 
 		case "100002":
-			jsonPayload, _ = os.ReadFile("testdata/ggn_get_torrent_by_id_not_found.json")
+			jsonPayload, err = os.ReadFile("testdata/ggn_get_by_id_not_found.json")
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNotFound)
 			break
 		}
 
@@ -102,6 +111,7 @@ func Test_client_GetTorrentByID(t *testing.T) {
 
 			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
 			if tt.wantErr && assert.Error(t, err) {
+				t.Logf("got err: %v", err)
 				assert.Equal(t, tt.wantErr, err)
 			}
 

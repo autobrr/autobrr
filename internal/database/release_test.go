@@ -18,9 +18,13 @@ import (
 
 func getMockRelease() *domain.Release {
 	return &domain.Release{
-		FilterStatus:   domain.ReleaseStatusFilterApproved,
-		Rejections:     []string{"test", "not-a-match"},
-		Indexer:        "BTN",
+		FilterStatus: domain.ReleaseStatusFilterApproved,
+		Rejections:   []string{"test", "not-a-match"},
+		Indexer: domain.IndexerMinimal{
+			ID:         0,
+			Name:       "BTN",
+			Identifier: "btn",
+		},
 		FilterName:     "ExampleFilter",
 		Protocol:       domain.ReleaseProtocolTorrent,
 		Implementation: domain.ReleaseImplementationIRC,
@@ -85,9 +89,10 @@ func TestReleaseRepo_Store(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreReleaseActionStatus_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -97,7 +102,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -120,7 +125,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -140,9 +145,10 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreReleaseActionStatus_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -152,7 +158,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -175,7 +181,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -195,9 +201,10 @@ func TestReleaseRepo_Find(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindReleases_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -207,7 +214,7 @@ func TestReleaseRepo_Find(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
@@ -224,17 +231,17 @@ func TestReleaseRepo_Find(t *testing.T) {
 				Search: "",
 			}
 
-			releases, nextCursor, total, err := repo.Find(context.Background(), queryParams)
+			resp, err := repo.Find(context.Background(), queryParams)
 
 			// Verify
-			assert.NotNil(t, releases)
-			assert.NotEqual(t, int64(0), total)
-			assert.True(t, nextCursor >= 0)
+			assert.NotNil(t, resp)
+			assert.NotEqual(t, int64(0), resp.TotalCount)
+			assert.True(t, resp.NextCursor >= 0)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -254,9 +261,10 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindRecent_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -266,23 +274,23 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			// Execute
 			err = repo.Store(context.Background(), mockData)
 			assert.NoError(t, err)
 
-			releases, err := repo.FindRecent(context.Background())
+			resp, err := repo.Find(context.Background(), domain.ReleaseQueryParams{Limit: 10})
 
 			// Verify
-			assert.NotNil(t, releases)
-			assert.Lenf(t, releases, 1, "Expected 1 release, got %d", len(releases))
+			assert.NotNil(t, resp.Data)
+			assert.Lenf(t, resp.Data, 1, "Expected 1 release, got %d", len(resp.Data))
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -302,9 +310,10 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 
 		t.Run(fmt.Sprintf("GetIndexerOptions_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -314,7 +323,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -340,7 +349,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -360,9 +369,10 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("GetActionStatusByReleaseID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -372,7 +382,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -399,7 +409,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -419,9 +429,10 @@ func TestReleaseRepo_Get(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Get_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -431,7 +442,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -458,7 +469,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -478,9 +489,10 @@ func TestReleaseRepo_Stats(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Stats_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -490,7 +502,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -517,7 +529,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
@@ -537,9 +549,10 @@ func TestReleaseRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -549,7 +562,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -573,12 +586,12 @@ func TestReleaseRepo_Delete(t *testing.T) {
 			// Cleanup
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }
 
-func TestReleaseRepo_CanDownloadShow(t *testing.T) {
+func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
@@ -591,11 +604,12 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 		releaseActionMockData := getMockReleaseActionStatus()
 		actionMockData := getMockAction()
 
-		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Check_Smart_Episode_Can_Download [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdClient, err := downloadClientRepo.Store(context.Background(), getMockDownloadClient())
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
 			assert.NoError(t, err)
-			assert.NotNil(t, createdClient)
+			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(context.Background(), getMockFilter())
 			assert.NoError(t, err)
@@ -605,7 +619,7 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 			assert.NotNil(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = int32(createdClient.ID)
+			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(context.Background(), mockData)
@@ -620,8 +634,17 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
 			assert.NoError(t, err)
 
+			params := &domain.SmartEpisodeParams{
+				Title:   "Example.Torrent.Name",
+				Season:  1,
+				Episode: 2,
+				Year:    0,
+				Month:   0,
+				Day:     0,
+			}
+
 			// Execute
-			canDownload, err := repo.CanDownloadShow(context.Background(), "Example.Torrent.Name", 1, 2)
+			canDownload, err := repo.CheckSmartEpisodeCanDownload(context.Background(), params)
 
 			// Verify
 			assert.NoError(t, err)
@@ -631,7 +654,7 @@ func TestReleaseRepo_CanDownloadShow(t *testing.T) {
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: createdAction.ID})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), createdClient.ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 		})
 	}
 }

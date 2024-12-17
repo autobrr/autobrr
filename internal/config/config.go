@@ -85,6 +85,21 @@ checkForUpdates = true
 # Session secret
 #
 sessionSecret = "{{ .sessionSecret }}"
+
+# Database Max Backups
+#
+# Default: 5
+#
+#databaseMaxBackups = 5
+
+# Golang pprof profiling and tracing
+#
+#profilingEnabled = false
+#
+#profilingHost = "127.0.0.1"
+#
+# Default: 6060
+#profilingPort = 6060
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -115,6 +130,20 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 			// of the container in every boot.
 			// if this file exists then the viewer is running
 			// from inside a lxc container so return true
+			host = "0.0.0.0"
+		} else if os.Getpid() == 1 {
+			// if we're running as pid 1, we're honoured.
+			// but there's a good chance this is an isolated namespace
+			// or a container.
+			host = "0.0.0.0"
+		} else if user := os.Getenv("USERNAME"); user == "ContainerAdministrator" || user == "ContainerUser" {
+			/* this is the correct code below, but golang helpfully Panics when it can't find netapi32.dll
+			   the issue was first reported 7 years ago, but is fixed in go 1.24 where the below code works.
+			*/
+			/*
+				 u, err := user.Current(); err == nil && u != nil &&
+				(u.Name == "ContainerAdministrator" || u.Name == "ContainerUser") {
+				// Windows conatiners run containers as ContainerAdministrator by default */
 			host = "0.0.0.0"
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
@@ -193,6 +222,7 @@ func (c *AppConfig) defaults() {
 		LogPath:             "",
 		LogMaxSize:          50,
 		LogMaxBackups:       3,
+		DatabaseMaxBackups:  5,
 		BaseURL:             "/",
 		SessionSecret:       api.GenerateSecureToken(16),
 		CustomDefinitions:   "",
@@ -205,6 +235,9 @@ func (c *AppConfig) defaults() {
 		PostgresPass:        "",
 		PostgresSSLMode:     "disable",
 		PostgresExtraParams: "",
+		ProfilingEnabled:    false,
+		ProfilingHost:       "127.0.0.1",
+		ProfilingPort:       6060,
 	}
 
 }
@@ -267,6 +300,13 @@ func (c *AppConfig) loadFromEnv() {
 		}
 	}
 
+	if v := os.Getenv(prefix + "DATABASE_MAX_BACKUPS"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.DatabaseMaxBackups = int(i)
+		}
+	}
+
 	if v := os.Getenv(prefix + "POSTGRES_HOST"); v != "" {
 		c.Config.PostgresHost = v
 	}
@@ -296,6 +336,21 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "POSTGRES_EXTRA_PARAMS"); v != "" {
 		c.Config.PostgresExtraParams = v
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_ENABLED"); v != "" {
+		c.Config.ProfilingEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_HOST"); v != "" {
+		c.Config.ProfilingHost = v
+	}
+
+	if v := os.Getenv(prefix + "PROFILING_PORT"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.ProfilingPort = int(i)
+		}
 	}
 }
 
@@ -346,8 +401,10 @@ func (c *AppConfig) load(configPath string) {
 }
 
 func (c *AppConfig) DynamicReload(log logger.Logger) {
+	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		c.m.Lock()
+		defer c.m.Unlock()
 
 		logLevel := viper.GetString("logLevel")
 		c.Config.LogLevel = logLevel
@@ -360,10 +417,7 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 		c.Config.CheckForUpdates = checkUpdates
 
 		log.Debug().Msg("config file reloaded!")
-
-		c.m.Unlock()
 	})
-	viper.WatchConfig()
 }
 
 func (c *AppConfig) UpdateConfig() error {

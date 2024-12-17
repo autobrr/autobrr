@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -82,6 +83,7 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
+	session.Values["created"] = time.Now().Unix()
 
 	// Set cookie options
 	session.Options.HttpOnly = true
@@ -154,6 +156,10 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 
 func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 	if status, err := h.onboardEligible(r.Context()); err != nil {
+		if status == http.StatusServiceUnavailable {
+			h.encoder.StatusWarning(w, status, err.Error())
+			return
+		}
 		h.encoder.StatusError(w, status, err)
 		return
 	}

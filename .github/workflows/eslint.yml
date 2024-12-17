@@ -9,6 +9,9 @@ on:
   schedule:
     - cron: '20 13 * * 6'
 
+env:
+  NODE_VERSION: '20.17.0'
+
 jobs:
   codeql:
     runs-on: ubuntu-latest
@@ -27,7 +30,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18.17.0'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up corepack
         run: corepack enable
@@ -63,7 +66,7 @@ jobs:
           sarif_file: results.sarif
           category: ESLint
 
-      - uses: CatChen/eslint-suggestion-action@v3
+      - uses: CatChen/eslint-suggestion-action@v4
         with:
           request-changes: true
           fail-check: false

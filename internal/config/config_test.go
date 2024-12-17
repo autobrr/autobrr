@@ -13,6 +13,7 @@ import (
 )
 
 func TestAppConfig_processLines(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Config *domain.Config
 		m      *sync.Mutex

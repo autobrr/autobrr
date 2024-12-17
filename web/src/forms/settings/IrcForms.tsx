@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import type { FieldProps } from "formik";
@@ -11,16 +11,17 @@ import type { FieldArrayRenderProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Select from "react-select";
-import { Dialog } from "@headlessui/react";
+import { DialogTitle } from "@headlessui/react";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
-import { ircKeys } from "@screens/settings/Irc";
 import { APIClient } from "@api/APIClient";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { IrcKeys } from "@api/query_keys";
+import { NumberFieldWide, PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { classNames } from "@utils";
+import { ProxiesQueryOptions } from "@api/queries";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -132,7 +133,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   const mutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.createNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body="IRC Network added. Please allow up to 30 seconds for the network to come online." t={t} />);
       toggle();
@@ -219,7 +220,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Channels</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Channels to join.
               </p>
@@ -270,6 +271,8 @@ interface IrcNetworkUpdateFormValues {
     bouncer_addr: string;
     bot_mode: boolean;
     channels: Array<IrcChannel>;
+    use_proxy: boolean;
+    proxy_id: number;
 }
 
 interface IrcNetworkUpdateFormProps {
@@ -285,10 +288,12 @@ export function IrcNetworkUpdateForm({
 }: IrcNetworkUpdateFormProps) {
   const queryClient = useQueryClient();
 
+  const proxies = useQuery(ProxiesQueryOptions());
+
   const updateMutation = useMutation({
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t} />);
 
@@ -301,7 +306,7 @@ export function IrcNetworkUpdateForm({
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ircKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${network.name} was deleted.`} t={t} />);
 
@@ -325,7 +330,9 @@ export function IrcNetworkUpdateForm({
     use_bouncer: network.use_bouncer,
     bouncer_addr: network.bouncer_addr,
     bot_mode: network.bot_mode,
-    channels: network.channels
+    channels: network.channels,
+    use_proxy: network.use_proxy,
+    proxy_id: network.proxy_id,
   };
 
   return (
@@ -348,7 +355,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWide name="enabled" label="Enabled" />
+          <SwitchGroupWide name="enabled" label="Enabled"/>
           <TextFieldWide
             name="server"
             label="Server"
@@ -362,7 +369,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWide name="tls" label="TLS" />
+          <SwitchGroupWide name="tls" label="TLS"/>
 
           <PasswordFieldWide
             name="pass"
@@ -377,7 +384,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWide name="use_bouncer" label="Bouncer (BNC)" />
+          <SwitchGroupWide name="use_bouncer" label="Bouncer (BNC)"/>
           {values.use_bouncer && (
             <TextFieldWide
               name="bouncer_addr"
@@ -386,11 +393,36 @@ export function IrcNetworkUpdateForm({
             />
           )}
 
-          <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode" />
+          <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode"/>
+
+          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+            <div className="flex justify-between px-4">
+              <div className="space-y-1">
+                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                  Proxy
+                </DialogTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Set a proxy to be used for connecting to the irc server.
+                </p>
+              </div>
+              <SwitchButton name="use_proxy"/>
+            </div>
+
+            {values.use_proxy === true && (
+              <div className="py-4 pt-6">
+                <SelectField<number>
+                  name="proxy_id"
+                  label="Select proxy"
+                  placeholder="Select a proxy"
+                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                />
+              </div>
+            )}
+          </div>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Identification</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Identification</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Identify with SASL or NickServ. Most networks support SASL but some don't.
               </p>
@@ -416,17 +448,17 @@ export function IrcNetworkUpdateForm({
             />
           </div>
 
-          <PasswordFieldWide name="invite_command" label="Invite command" />
+          <PasswordFieldWide name="invite_command" label="Invite command"/>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Channels</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Channels</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-               Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.
+                Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.
               </p>
             </div>
 
-            <ChannelsFieldArray channels={values.channels} />
+            <ChannelsFieldArray channels={values.channels}/>
           </div>
         </div>
       )}
@@ -438,9 +470,10 @@ interface SelectFieldProps<T> {
   name: string;
   label: string;
   options: OptionBasicTyped<T>[]
+  placeholder?: string;
 }
 
-function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
+export function SelectField<T>({ name, label, options, placeholder }: SelectFieldProps<T>) {
   return (
     <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -454,9 +487,9 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
       <div className="sm:col-span-2">
         <Field name={name} type="select">
           {({
-            field,
-            form: { setFieldValue, resetForm }
-          }: FieldProps) => (
+              field,
+              form: { setFieldValue }
+            }: FieldProps) => (
             <Select
               {...field}
               id={name}
@@ -470,7 +503,7 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder="Choose a type"
+              placeholder={placeholder ?? "Choose a type"}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -486,15 +519,13 @@ function SelectField<T>({ name, label, options }: SelectFieldProps<T>) {
                 }
               })}
               value={field?.value && options.find(o => o.value == field?.value)}
-              onChange={(option) => {
-                resetForm();
-
-                // const opt = option as SelectOption;
-                // setFieldValue("name", option?.label ?? "")
-                setFieldValue(
-                  field.name,
-                  option.value ?? ""
-                );
+              onChange={(newValue: unknown) => {
+                if (newValue) {
+                  setFieldValue(field.name, (newValue as { value: number }).value);
+                }
+                else {
+                  setFieldValue(field.name, 0)
+                }
               }}
               options={options}
             />

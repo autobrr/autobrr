@@ -3,66 +3,74 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryErrorResetBoundary } from "@tanstack/react-query";
+import { useRouter, useSearch } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 
 import { RocketLaunchIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
-import { AuthContext } from "@utils/Context";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { PasswordInput, TextInput } from "@components/inputs/text";
+import { LoginRoute } from "@app/routes";
 
 import Logo from "@app/logo.svg?react";
+import { AuthContext } from "@utils/Context";
+// import { WarningAlert } from "@components/alerts";
 
 type LoginFormFields = {
   username: string;
   password: string;
 };
 
-export const Login = () => {
+export const Login = () => {  
+  const [auth, setAuth] = AuthContext.use();
+
+  const queryErrorResetBoundary = useQueryErrorResetBoundary()
+
+  const router = useRouter()
+  const search = useSearch({ from: LoginRoute.id })
+
   const { handleSubmit, register, formState } = useForm<LoginFormFields>({
     defaultValues: { username: "", password: "" },
     mode: "onBlur"
   });
-  const navigate = useNavigate();
-  const [, setAuthContext] = AuthContext.use();
 
   useEffect(() => {
-    // remove user session when visiting login page'
-    APIClient.auth.logout()
-      .then(() => {
-        AuthContext.reset();
-      });
-
-    // Check if onboarding is available for this instance
-    // and redirect if needed
-    APIClient.auth.canOnboard()
-      .then(() => navigate("/onboard"))
-      .catch(() => { /*don't log to console PAHLLEEEASSSE*/ });
-  }, [navigate]);
+    queryErrorResetBoundary.reset()
+    // remove user session when visiting login page
+    AuthContext.reset();
+  }, [queryErrorResetBoundary]);
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password),
     onSuccess: (_, variables: LoginFormFields) => {
-      setAuthContext({
-        username: variables.username,
-        isLoggedIn: true
+      queryErrorResetBoundary.reset()
+      setAuth({
+        isLoggedIn: true,
+        username: variables.username
       });
-      navigate("/");
+      router.invalidate()
     },
-    onError: () => {
+    onError: (error) => {
       toast.custom((t) => (
-        <Toast type="error" body="Wrong password or username!" t={t} />
+        <Toast type="error" body={error.message || "An error occurred!"} t={t} />
       ));
     }
   });
 
   const onSubmit = (data: LoginFormFields) => loginMutation.mutate(data);
+
+  React.useLayoutEffect(() => {
+    if (auth.isLoggedIn && search.redirect) {
+      router.history.push(search.redirect)
+    } else if (auth.isLoggedIn) {
+      router.history.push("/")
+    }
+  }, [auth.isLoggedIn, search.redirect]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen flex flex-col justify-center px-3">

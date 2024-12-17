@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type filterService interface {
@@ -57,8 +57,6 @@ func (h filterHandler) Routes(r chi.Router) {
 }
 
 func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
 	params := domain.FilterQueryParams{
 		Sort: map[string]string{},
 		Filters: struct {
@@ -73,7 +71,7 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 		order := ""
 
 		s := strings.Split(sort, "-")
-		if s[0] == "name" || s[0] == "priority" {
+		if s[0] == "name" || s[0] == "priority" || s[0] == "created_at" || s[0] == "updated_at" {
 			field = s[0]
 		}
 
@@ -86,7 +84,7 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 
 	u, err := url.Parse(r.URL.String())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]interface{}{
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "indexer parameter is invalid",
 		})
@@ -95,7 +93,7 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 	vals := u.Query()
 	params.Filters.Indexers = vals["indexer"]
 
-	trackers, err := h.service.Find(ctx, params)
+	trackers, err := h.service.Find(r.Context(), params)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -105,21 +103,16 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx      = r.Context()
-		filterID = chi.URLParam(r, "filterID")
-	)
-
-	id, err := strconv.Atoi(filterID)
+	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	filter, err := h.service.FindByID(ctx, id)
+	filter, err := h.service.FindByID(r.Context(), filterID)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.StatusNotFound(w)
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
 			return
 		}
 
@@ -131,20 +124,20 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx      = r.Context()
-		filterID = chi.URLParam(r, "filterID")
-	)
-
-	id, err := strconv.Atoi(filterID)
+	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	filter, err := h.service.Duplicate(ctx, id)
+	filter, err := h.service.Duplicate(r.Context(), filterID)
 	if err != nil {
-		h.encoder.StatusInternalError(w)
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
+			return
+		}
+
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -152,17 +145,13 @@ func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data *domain.Filter
-	)
-
+	var data *domain.Filter
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Store(ctx, data); err != nil {
+	if err := h.service.Store(r.Context(), data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -171,17 +160,13 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data *domain.Filter
-	)
-
+	var data *domain.Filter
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Update(ctx, data); err != nil {
+	if err := h.service.Update(r.Context(), data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -190,26 +175,20 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx      = r.Context()
-		data     domain.FilterUpdate
-		filterID = chi.URLParam(r, "filterID")
-	)
-
-	// set id from param and convert to int
-	id, err := strconv.Atoi(filterID)
+	var data domain.FilterUpdate
+	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
-	data.ID = id
+	data.ID = filterID
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.UpdatePartial(ctx, data); err != nil {
+	if err := h.service.UpdatePartial(r.Context(), data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -218,18 +197,14 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx      = r.Context()
-		filterID = chi.URLParam(r, "filterID")
-		data     struct {
-			Enabled bool `json:"enabled"`
-		}
-	)
-
-	id, err := strconv.Atoi(filterID)
+	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
+	}
+
+	var data struct {
+		Enabled bool `json:"enabled"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -237,7 +212,7 @@ func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
+	if err := h.service.ToggleEnabled(r.Context(), filterID, data.Enabled); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -246,19 +221,15 @@ func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx      = r.Context()
-		filterID = chi.URLParam(r, "filterID")
-	)
-
-	id, err := strconv.Atoi(filterID)
+	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Delete(ctx, id); err != nil {
+	if err := h.service.Delete(r.Context(), filterID); err != nil {
 		h.encoder.Error(w, err)
+		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusNoContent, nil)

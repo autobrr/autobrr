@@ -5,7 +5,7 @@
 
 import { Form, Formik } from "formik";
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import {useNavigate} from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { TextField, PasswordField } from "@components/inputs";
@@ -43,7 +43,7 @@ export const Onboarding = () => {
 
   const mutation = useMutation({
     mutationFn: (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
-    onSuccess: () => navigate("/")
+    onSuccess: () => navigate({ to: "/login" })
   });
 
   return (

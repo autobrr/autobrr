@@ -3,32 +3,41 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useReducer, useRef, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Link } from '@tanstack/react-router'
 import { toast } from "react-hot-toast";
-import { Listbox, Menu, Transition } from "@headlessui/react";
-import { useMutation, useQuery, useQueryClient, keepPreviousData, useSuspenseQuery } from "@tanstack/react-query";
-import { FormikValues } from "formik";
-import { useCallback } from "react";
+import {
+  Listbox,
+  ListboxButton,
+  ListboxOption, ListboxOptions,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuItems,
+  Transition
+} from "@headlessui/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowsRightLeftIcon,
+  ArrowUpOnSquareIcon,
+  ChatBubbleBottomCenterTextIcon,
   CheckIcon,
   ChevronDownIcon,
-  PlusIcon,
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
-  ChatBubbleBottomCenterTextIcon,
-  TrashIcon,
-  ArrowUpOnSquareIcon
+  PlusIcon,
+  TrashIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
 import { FilterListContext, FilterListState } from "@utils/Context";
-import { classNames } from "@utils";
+import { classNames, CopyTextToClipboard } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
+import { FilterKeys } from "@api/query_keys";
+import { FiltersQueryOptions, IndexersOptionsQueryOptions } from "@api/queries";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
@@ -36,14 +45,7 @@ import { DeleteModal } from "@components/modals";
 import { Importer } from "./Importer";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { Checkbox } from "@components/Checkbox";
-
-export const filterKeys = {
-  all: ["filters"] as const,
-  lists: () => [...filterKeys.all, "list"] as const,
-  list: (indexers: string[], sortOrder: string) => [...filterKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...filterKeys.all, "detail"] as const,
-  detail: (id: number) => [...filterKeys.details(), id] as const
-};
+import { RingResizeSpinner } from "@components/Icons";
 
 enum ActionType {
   INDEXER_FILTER_CHANGE = "INDEXER_FILTER_CHANGE",
@@ -121,9 +123,9 @@ export function Filters() {
                 <PlusIcon className="h-5 w-5 mr-1" />
                 Create Filter
               </button>
-              <Menu.Button className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
                 <ChevronDownIcon className="h-5 w-5" />
-              </Menu.Button>
+              </MenuButton>
               <Transition
                 show={open}
                 as={Fragment}
@@ -134,8 +136,8 @@ export function Filters() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Menu.Items className="absolute z-10 right-0 mt-0.5 bg-white dark:bg-gray-700 rounded-md shadow-lg">
-                  <Menu.Item>
+                <MenuItems className="absolute z-10 right-0 mt-0.5 bg-white dark:bg-gray-700 rounded-md shadow-lg">
+                  <MenuItem>
                     {({ active }) => (
                       <button
                         type="button"
@@ -149,8 +151,8 @@ export function Filters() {
                         <span>Import filter</span>
                       </button>
                     )}
-                  </Menu.Item>
-                </Menu.Items>
+                  </MenuItem>
+                </MenuItems>
               </Transition>
             </>
           )}
@@ -192,11 +194,7 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { data, error } = useSuspenseQuery({
-    queryKey: filterKeys.list(indexerFilter, sortOrder),
-    queryFn: ({ queryKey }) => APIClient.filters.find(queryKey[2].indexers, queryKey[2].sortOrder),
-    refetchOnWindowFocus: false
-  });
+  const { isLoading, data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
@@ -224,19 +222,19 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
         </div>
 
-        {data && data.length > 0 ? (
-          <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
-            {filtered.filtered.length > 0 ? (
-              filtered.filtered.map((filter: Filter, idx) => (
-                <FilterListItem filter={filter} values={filter} key={filter.id} idx={idx} />
-              ))
+        {isLoading
+          ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
+          : data && data.length > 0 ? (
+              <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
+                {filtered.filtered.length > 0
+                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx}/>)
+                  : <EmptyListState text={`No ${status} filters`}/>
+                }
+              </ul>
             ) : (
-              <EmptyListState text={`No ${status} filters`} />
-            )}
-          </ul>
-        ) : (
-          <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />
-        )}
+              <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter}/>
+            )
+        }
       </div>
     </div>
   );
@@ -277,7 +275,6 @@ const StatusButton = ({ data, label, value, currentValue, dispatch }: StatusButt
 };
 
 interface FilterItemDropdownProps {
-  values: FormikValues;
   filter: Filter;
   onToggle: (newState: boolean) => void;
 }
@@ -295,17 +292,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         indexers: any;
         actions: any;
         actions_count: any;
-        external_script_enabled: any;
-        external_script_cmd: any;
-        external_script_args: any;
-        external_script_expect_status: any;
-        external_webhook_enabled: any;
-        external_webhook_host: any;
-        external_webhook_data: any;
-        external_webhook_expect_status: any;
-        external_webhook_retry_status: any;
-        external_webhook_retry_attempts: any;
-        external_webhook_retry_delay_seconds: any;
+        actions_enabled_count: number;
       };
 
       const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
@@ -317,19 +304,9 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       delete completeFilter.created_at;
       delete completeFilter.updated_at;
       delete completeFilter.actions_count;
+      delete completeFilter.actions_enabled_count;
       delete completeFilter.indexers;
       delete completeFilter.actions;
-      delete completeFilter.external_script_enabled;
-      delete completeFilter.external_script_cmd;
-      delete completeFilter.external_script_args;
-      delete completeFilter.external_script_expect_status;
-      delete completeFilter.external_webhook_enabled;
-      delete completeFilter.external_webhook_host;
-      delete completeFilter.external_webhook_data;
-      delete completeFilter.external_webhook_expect_status;
-      delete completeFilter.external_webhook_retry_status;
-      delete completeFilter.external_webhook_retry_attempts;
-      delete completeFilter.external_webhook_retry_delay_seconds;
 
       // Remove properties with default values from the exported filter to minimize the size of the JSON string
       ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
@@ -356,40 +333,17 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
       const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
 
-      const copyTextToClipboard = (text: string) => {
-        const textarea = document.createElement("textarea");
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
+      // Asynchronously call copyTextToClipboard
+      CopyTextToClipboard(finalJson)
+        .then(() => {
+          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard!" t={t} />);
 
-        try {
-          const successful = document.execCommand("copy");
-          if (successful) {
-            toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-          } else {
-            toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-          }
-        } catch (err) {
-          console.error("Unable to copy text", err);
-          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
-        }
+        })
+        .catch((err) => {
+          console.error("could not copy filter to clipboard", err);
 
-        document.body.removeChild(textarea);
-      };
-
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(finalJson).then(() => {
-          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard." t={t} />);
-        }, () => {
           toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
         });
-      } else {
-        copyTextToClipboard(finalJson);
-      }
-
     } catch (error) {
       console.error(error);
       toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
@@ -405,8 +359,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.filters.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.detail(filter.id) });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
     }
@@ -415,7 +369,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const duplicateMutation = useMutation({
     mutationFn: (id: number) => APIClient.filters.duplicate(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} duplicated`} t={t} />);
     }
@@ -435,12 +389,12 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         title={`Remove filter: ${filter.name}`}
         text="Are you sure you want to remove this filter? This action cannot be undone."
       />
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -450,14 +404,19 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+        <MenuItems
+          anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <Link
-                  to={filter.id.toString()}
+                  // to={filter.id.toString()}
+                  to="/filters/$filterId"
+                  params={{
+                    filterId: filter.id
+                  }}
                   className={classNames(
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
@@ -473,8 +432,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Edit
                 </Link>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -492,8 +451,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Export JSON
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -512,8 +471,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Export JSON to Discord
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -532,8 +491,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Toggle
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -552,10 +511,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Duplicate
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -574,9 +533,9 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                   Delete
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );
@@ -584,11 +543,10 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 
 interface FilterListItemProps {
   filter: Filter;
-  values: FormikValues;
   idx: number;
 }
 
-function FilterListItem({ filter, values, idx }: FilterListItemProps) {
+function FilterListItem({ filter, idx }: FilterListItemProps) {
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
@@ -598,8 +556,8 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       // We need to invalidate both keys here.
       // The filters key is used on the /filters page,
       // while the ["filter", filter.id] key is used on the details page.
-      queryClient.invalidateQueries({ queryKey: filterKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: filterKeys.detail(filter.id) });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.detail(filter.id) });
     }
   });
 
@@ -627,7 +585,10 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       </span>
       <div className="py-2 flex flex-col overflow-hidden w-full justify-center">
         <Link
-          to={filter.id.toString()}
+          to="/filters/$filterId"
+          params={{
+            filterId: filter.id
+          }}
           className="transition w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
           {filter.name}
@@ -643,7 +604,10 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               <Tooltip
                 label={
                   <Link
-                    to={`${filter.id.toString()}/actions`}
+                    to="/filters/$filterId/actions"
+                    params={{
+                      filterId: filter.id
+                    }}
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
@@ -664,7 +628,10 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
               </Tooltip>
             ) : (
               <Link
-                to={`${filter.id.toString()}/actions`}
+                to="/filters/$filterId/actions"
+                params={{
+                  filterId: filter.id
+                }}
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
@@ -680,7 +647,6 @@ function FilterListItem({ filter, values, idx }: FilterListItemProps) {
       </span>
       <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
         <FilterItemDropdown
-          values={values}
           filter={filter}
           onToggle={toggleActive}
         />
@@ -755,7 +721,7 @@ const ListboxFilter = ({
     onChange={onChange}
   >
     <div className="relative">
-      <Listbox.Button className="relative w-full py-2 pr-4 text-left dark:text-gray-400 text-sm">
+      <ListboxButton className="relative w-full py-2 pr-4 text-left dark:text-gray-400 text-sm">
         <span className="block truncate">{label}</span>
         <span className="absolute inset-y-0 right-0 flex items-center pointer-events-none">
           <ChevronDownIcon
@@ -763,18 +729,18 @@ const ListboxFilter = ({
             aria-hidden="true"
           />
         </span>
-      </Listbox.Button>
+      </ListboxButton>
       <Transition
         as={Fragment}
         leave="transition ease-in duration-100"
         leaveFrom="opacity-100"
         leaveTo="opacity-0"
       >
-        <Listbox.Options
+        <ListboxOptions
           className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
         >
           {children}
-        </Listbox.Options>
+        </ListboxOptions>
       </Transition>
     </div>
   </Listbox>
@@ -782,12 +748,9 @@ const ListboxFilter = ({
 
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
-  const { data, isSuccess } = useQuery({
-    queryKey: ["filters", "indexers_options"],
-    queryFn: () => APIClient.indexers.getOptions(),
-    placeholderData: keepPreviousData,
-    staleTime: Infinity
-  });
+  const filterListState = FilterListContext.useValue();
+
+  const { data, isSuccess } = useQuery(IndexersOptionsQueryOptions());
 
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {
@@ -802,11 +765,11 @@ const IndexerSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="1"
       key="indexer-select"
-      label="Indexer"
-      currentValue={""}
+      label={data && filterListState.indexerFilter[0] ? `Indexer: ${data.find(i => i.identifier == filterListState.indexerFilter[0])?.name}` : "Indexer"}
+      currentValue={filterListState.indexerFilter[0] ?? ""}
       onChange={setFilter}
     >
-      <FilterOption label="All" />
+      <FilterOption label="All" value="" />
       {isSuccess && data?.map((indexer, idx) => (
         <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
       ))}
@@ -820,7 +783,7 @@ interface FilterOptionProps {
 }
 
 const FilterOption = ({ label, value }: FilterOptionProps) => (
-  <Listbox.Option
+  <ListboxOption
     className={({ active }) => classNames(
       "cursor-pointer select-none relative py-2 px-4",
       active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
@@ -828,7 +791,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
     value={value}
   >
     {({ selected }) => (
-      <>
+      <div className="flex justify-between">
         <span
           className={classNames(
             "block truncate",
@@ -838,16 +801,18 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
           {label}
         </span>
         {selected ? (
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
+          <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400">
             <CheckIcon className="w-5 h-5" aria-hidden="true" />
           </span>
         ) : null}
-      </>
+      </div>
     )}
-  </Listbox.Option>
+  </ListboxOption>
 );
 
 export const SortSelectFilter = ({ dispatch }: any) => {
+  const filterListState = FilterListContext.useValue();
+
   const setFilter = (value: string) => {
     if (value == undefined || value == "") {
       dispatch({ type: ActionType.SORT_ORDER_RESET, payload: "" });
@@ -860,7 +825,11 @@ export const SortSelectFilter = ({ dispatch }: any) => {
     { label: "Name A-Z", value: "name-asc" },
     { label: "Name Z-A", value: "name-desc" },
     { label: "Priority highest", value: "priority-desc" },
-    { label: "Priority lowest", value: "priority-asc" }
+    { label: "Priority lowest", value: "priority-asc" },
+    { label: "Recently created first", value: "created_at-desc" },
+    { label: "Recently created last", value: "created_at-asc" },
+    { label: "Recently updated first", value: "updated_at-desc" },
+    { label: "Recently updated last", value: "updated_at-asc" }
   ];
 
   // Render a multi-select box
@@ -868,8 +837,8 @@ export const SortSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="sort"
       key="sort-select"
-      label="Sort"
-      currentValue={""}
+      label={filterListState.sortOrder ? `Sort: ${options.find(o => o.value == filterListState.sortOrder)?.label}` : "Sort"}
+      currentValue={filterListState.sortOrder ?? ""}
       onChange={setFilter}
     >
       <>

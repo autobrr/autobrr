@@ -17,11 +17,21 @@ import (
 func (s *service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action qBittorrent: %s", action.Name)
 
-	c := s.clientSvc.GetCachedClient(ctx, action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
+	}
+	action.Client = client
 
-	if c.Dc.Settings.Rules.Enabled && !action.IgnoreRules {
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
+	}
+
+	qbtClient := client.Client.(*qbittorrent.Client)
+
+	if client.Settings.Rules.Enabled && !action.IgnoreRules {
 		// check for active downloads and other rules
-		rejections, err := s.qbittorrentCheckRulesCanDownload(ctx, action, c.Dc.Settings.Rules, c.Qbt)
+		rejections, err := s.qbittorrentCheckRulesCanDownload(ctx, action, client.Settings.Rules, qbtClient)
 		if err != nil {
 			return nil, errors.Wrap(err, "error checking client rules: %s", action.Name)
 		}
@@ -39,19 +49,17 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 
 		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-		if err = c.Qbt.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, c.Dc.Name)
+		if err = qbtClient.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, client.Name)
 		}
 
-		s.log.Info().Msgf("torrent from magnet successfully added to client: '%s'", c.Dc.Name)
+		s.log.Info().Msgf("torrent from magnet successfully added to client: '%s'", client.Name)
 
 		return nil, nil
 	}
 
-	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			return nil, errors.Wrap(err, "error downloading torrent file for release: %s", release.TorrentName)
-		}
+	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
 	options, err := s.prepareQbitOptions(action)
@@ -61,37 +69,37 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 
 	s.log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-	if err = c.Qbt.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, c.Dc.Name)
+	if err = qbtClient.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
+		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
 	}
 
 	if release.TorrentHash != "" {
 		// check if torrent queueing is enabled if priority is set
 		switch action.PriorityLayout {
 		case domain.PriorityLayoutMax, domain.PriorityLayoutMin:
-			prefs, err := c.Qbt.GetAppPreferencesCtx(ctx)
+			prefs, err := qbtClient.GetAppPreferencesCtx(ctx)
 			if err != nil {
-				return nil, errors.Wrap(err, "could not get application preferences from client: '%s'", c.Dc.Name)
+				return nil, errors.Wrap(err, "could not get application preferences from client: '%s'", client.Name)
 			}
 			// enable queueing if it's disabled
 			if !prefs.QueueingEnabled {
-				if err := c.Qbt.SetPreferencesQueueingEnabled(true); err != nil {
+				if err := qbtClient.SetPreferencesQueueingEnabled(true); err != nil {
 					return nil, errors.Wrap(err, "could not enable torrent queueing")
 				}
-				s.log.Trace().Msgf("torrent queueing was disabled, now enabled in client: '%s'", c.Dc.Name)
+				s.log.Trace().Msgf("torrent queueing was disabled, now enabled in client: '%s'", client.Name)
 			}
 			// set priority if queueing is enabled
 			if action.PriorityLayout == domain.PriorityLayoutMax {
-				if err := c.Qbt.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+				if err := qbtClient.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
 					return nil, errors.Wrap(err, "could not set torrent %s to max priority", release.TorrentHash)
 				}
-				s.log.Debug().Msgf("torrent with hash %s set to max priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+				s.log.Debug().Msgf("torrent with hash %s set to max priority in client: '%s'", release.TorrentHash, client.Name)
 
 			} else { // domain.PriorityLayoutMin
-				if err := c.Qbt.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+				if err := qbtClient.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
 					return nil, errors.Wrap(err, "could not set torrent %s to min priority", release.TorrentHash)
 				}
-				s.log.Debug().Msgf("torrent with hash %s set to min priority in client: '%s'", release.TorrentHash, c.Dc.Name)
+				s.log.Debug().Msgf("torrent with hash %s set to min priority in client: '%s'", release.TorrentHash, client.Name)
 			}
 
 		case domain.PriorityLayoutDefault:
@@ -111,7 +119,7 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 			DeleteOnFailure: action.ReAnnounceDelete,
 		}
 
-		if err := c.Qbt.ReannounceTorrentWithRetry(ctx, release.TorrentHash, &opts); err != nil {
+		if err := qbtClient.ReannounceTorrentWithRetry(ctx, release.TorrentHash, &opts); err != nil {
 			if errors.Is(err, qbittorrent.ErrReannounceTookTooLong) {
 				return []string{fmt.Sprintf("re-announce took too long for hash: %s", release.TorrentHash)}, nil
 			}
@@ -120,7 +128,7 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		}
 	}
 
-	s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, c.Dc.Name)
+	s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)
 
 	return nil, nil
 }
@@ -134,6 +142,9 @@ func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 	}
 	if action.SkipHashCheck {
 		opts.SkipHashCheck = true
+	}
+	if action.FirstLastPiecePrio {
+		opts.FirstLastPiecePrio = true
 	}
 	if action.ContentLayout != "" {
 		if action.ContentLayout == domain.ActionContentLayoutSubfolderCreate {

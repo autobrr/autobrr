@@ -5,7 +5,7 @@
 
 interface Feed {
   id: number;
-  indexer: string;
+  indexer: IndexerMinimal;
   name: string;
   type: FeedType;
   enabled: boolean;

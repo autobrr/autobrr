@@ -1,34 +1,39 @@
-import { WarningAlert } from "@components/alerts";
-import * as Input from "@components/inputs";
+/*
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-import * as FilterSection from "../_components";
+import { WarningAlert } from "@components/alerts";
+import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
+import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
+
 
 export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => (
-  <FilterSection.Section
+  <FilterSection
     title="Instance"
     subtitle={
       <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
     }
   >
-    <FilterSection.Layout>
-      <FilterSection.HalfRow>
-        <Input.DownloadClientSelect
+    <FilterLayout>
+      <FilterHalfRow>
+        <DownloadClientSelect
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}
         />
-      </FilterSection.HalfRow>
-      <FilterSection.HalfRow>
-        <Input.TextField
+      </FilterHalfRow>
+      <FilterHalfRow>
+        <TextField
           name={`actions.${idx}.category`}
           label="Category"
           columns={6}
           placeholder="eg. category"
           tooltip={<p>Category must exist already.</p>}
         />
-      </FilterSection.HalfRow>
-    </FilterSection.Layout>
-  </FilterSection.Section>
+      </FilterHalfRow>
+    </FilterLayout>
+  </FilterSection>
 );
 
 export const Test = () => (
@@ -41,49 +46,49 @@ export const Test = () => (
 );
 
 export const Exec = ({ idx }: ClientActionProps) => (
-  <FilterSection.Section
+  <FilterSection
     title="Exec Arguments"
     subtitle="Specify the executable and its arguments to be executed upon filter match. Use an absolute path."
   >
-    <FilterSection.Layout>
-      <Input.TextField
+    <FilterLayout>
+      <TextField
         name={`actions.${idx}.exec_cmd`}
         label="Path to Executable"
         placeholder="Path to program eg. /bin/test"
       />
 
-      <Input.TextAreaAutoResize
+      <TextAreaAutoResize
         name={`actions.${idx}.exec_args`}
         label="Arguments"
         placeholder="Arguments eg. --test"
       />
-    </FilterSection.Layout>
+    </FilterLayout>
 
-  </FilterSection.Section>
+  </FilterSection>
 );
 
 export const WatchFolder = ({ idx }: ClientActionProps) => (
-  <FilterSection.Section
+  <FilterSection
     title="Watch Folder Arguments"
     subtitle="Point to where autobrr should save the files it fetches. Use an absolute path."
   >
-    <FilterSection.Layout>
-      <Input.TextAreaAutoResize
+    <FilterLayout>
+      <TextAreaAutoResize
         name={`actions.${idx}.watch_folder`}
         label="Watch directory"
         placeholder="Watch directory eg. /home/user/rwatch"
       />
-    </FilterSection.Layout>
-  </FilterSection.Section>
+    </FilterLayout>
+  </FilterSection>
 );
 
 export const WebHook = ({ idx }: ClientActionProps) => (
-  <FilterSection.Section
+  <FilterSection
     title="Webhook Arguments"
     subtitle="Specify the payload to be sent to the desired endpoint upon filter match."
   >
-    <FilterSection.Layout>
-      <Input.TextField
+    <FilterLayout>
+      <TextField
         name={`actions.${idx}.webhook_host`}
         label="Endpoint"
         columns={6}
@@ -92,34 +97,34 @@ export const WebHook = ({ idx }: ClientActionProps) => (
           <p>URL or IP to your API. Pass params and set API tokens etc.</p>
         }
       />
-    </FilterSection.Layout>
-    <Input.TextAreaAutoResize
+    </FilterLayout>
+    <TextAreaAutoResize
       name={`actions.${idx}.webhook_data`}
       label="Payload (json)"
       placeholder={"Request data: { \"key\": \"value\" }"}
     />
-  </FilterSection.Section>
+  </FilterSection>
 );
 
 export const Arr = ({ idx, action, clients }: ClientActionProps) => (
-  <FilterSection.Section
+  <FilterSection
     title="Instance"
     subtitle={
       <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
     }
   >
-    <FilterSection.Layout>
-      <FilterSection.HalfRow>
-        <Input.DownloadClientSelect
+    <FilterLayout>
+      <FilterHalfRow>
+        <DownloadClientSelect
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}
         />
-      </FilterSection.HalfRow>
+      </FilterHalfRow>
 
-      <FilterSection.HalfRow>
+      <FilterHalfRow>
         <div className="">
-          <Input.TextField
+          <TextField
             name={`actions.${idx}.external_download_client`}
             label="Override download client name for arr"
             tooltip={
@@ -129,7 +134,7 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => (
               </p>
             }
           />
-          <Input.NumberField
+          <NumberField
             name={`actions.${idx}.external_download_client_id`}
             label="Override download client id for arr DEPRECATED"
             className="mt-4"
@@ -141,7 +146,7 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => (
             }
           />
         </div>
-      </FilterSection.HalfRow>
-    </FilterSection.Layout>
-  </FilterSection.Section>
+      </FilterHalfRow>
+    </FilterLayout>
+  </FilterSection>
 );

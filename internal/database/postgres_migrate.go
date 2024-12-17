@@ -14,17 +14,35 @@ CREATE TABLE users
     UNIQUE (username)
 );
 
-CREATE TABLE indexer
+CREATE TABLE proxy
 (
     id             SERIAL PRIMARY KEY,
-    identifier     TEXT,
-	implementation TEXT,
-	base_url       TEXT,
     enabled        BOOLEAN,
     name           TEXT NOT NULL,
-    settings       TEXT,
+    type           TEXT NOT NULL,
+    addr           TEXT NOT NULL,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE indexer
+(
+    id                  SERIAL PRIMARY KEY,
+    identifier          TEXT,
+    identifier_external TEXT,
+	implementation      TEXT,
+	base_url            TEXT,
+    enabled             BOOLEAN,
+    name                TEXT NOT NULL,
+    settings            TEXT,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
 
@@ -50,8 +68,11 @@ CREATE TABLE irc_network
     bot_mode            BOOLEAN DEFAULT FALSE,
     connected           BOOLEAN,
     connected_since     TIMESTAMP,
+    use_proxy           BOOLEAN DEFAULT FALSE,
+    proxy_id            INTEGER,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (proxy_id) REFERENCES proxy(id) ON DELETE SET NULL,
     UNIQUE (server, port, nick)
 );
 
@@ -78,6 +99,7 @@ CREATE TABLE filter
     priority                       INTEGER   DEFAULT 0 NOT NULL,
     max_downloads                  INTEGER   DEFAULT 0,
     max_downloads_unit             TEXT,
+	announce_types                 TEXT []   DEFAULT '{}',
     match_releases                 TEXT,
     except_releases                TEXT,
     use_regex                      BOOLEAN,
@@ -105,6 +127,8 @@ CREATE TABLE filter
     match_other                    TEXT []   DEFAULT '{}',
     except_other                   TEXT []   DEFAULT '{}',
     years                          TEXT,
+	months                         TEXT,
+    days                           TEXT,
     artists                        TEXT,
     albums                         TEXT,
     release_types_match            TEXT []   DEFAULT '{}',
@@ -135,6 +159,12 @@ CREATE TABLE filter
     min_leechers                   INTEGER DEFAULT 0,
     max_leechers                   INTEGER DEFAULT 0
 );
+
+CREATE INDEX filter_enabled_index
+    ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+    ON filter (priority);
 
 CREATE TABLE filter_external
 (
@@ -197,6 +227,7 @@ CREATE TABLE action
     save_path               TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
+    first_last_piece_prio   BOOLEAN DEFAULT false,
     skip_hash_check         BOOLEAN DEFAULT false,
     content_layout          TEXT,
     limit_upload_speed      INT,
@@ -230,7 +261,8 @@ CREATE TABLE "release"
     filter            TEXT,
     protocol          TEXT,
     implementation    TEXT,
-    timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    announce_type     TEXT      DEFAULT 'NEW', 
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -243,6 +275,8 @@ CREATE TABLE "release"
     season            INTEGER,
     episode           INTEGER,
     year              INTEGER,
+    month             INTEGER,
+    day               INTEGER,
     resolution        TEXT,
     source            TEXT,
     codec             TEXT,
@@ -846,7 +880,7 @@ ALTER TABLE filter_external
 `,
 	`ALTER TABLE action
 	ADD COLUMN external_client TEXT;
-`,`
+`, `
 ALTER TABLE filter
     ADD COLUMN min_seeders INTEGER DEFAULT 0;
 
@@ -858,5 +892,115 @@ ALTER TABLE filter
 
 ALTER TABLE filter
     ADD COLUMN max_leechers INTEGER DEFAULT 0;
+`,
+	`UPDATE irc_network
+    SET server = 'irc.nebulance.io'
+    WHERE server = 'irc.nebulance.cc';
+`,
+	`ALTER TABLE "release"
+	ALTER COLUMN timestamp TYPE timestamptz USING timestamp AT TIME ZONE 'UTC';
+`,
+	`UPDATE  irc_network
+    SET server = 'irc.animefriends.moe',
+        name = CASE  
+			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
+        	ELSE name
+        END
+	WHERE server = 'irc.animebytes.tv';
+`,
+	`ALTER TABLE action
+ADD COLUMN first_last_piece_prio BOOLEAN DEFAULT false;
+`,
+	`ALTER TABLE indexer
+    ADD COLUMN identifier_external TEXT;
+
+	UPDATE indexer
+    SET identifier_external = name;
+`,
+	`ALTER TABLE "release"
+ADD COLUMN month INTEGER;
+
+ALTER TABLE "release"
+ADD COLUMN day INTEGER;
+
+ALTER TABLE filter
+ADD COLUMN months TEXT;
+
+ALTER TABLE filter
+ADD COLUMN days TEXT;
+`,
+	`CREATE TABLE proxy
+(
+    id             SERIAL PRIMARY KEY,
+    enabled        BOOLEAN,
+    name           TEXT NOT NULL,
+    type           TEXT NOT NULL,
+    addr           TEXT NOT NULL,
+	auth_user      TEXT,
+	auth_pass      TEXT,
+    timeout        INTEGER,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE indexer
+    ADD COLUMN proxy_id INTEGER;
+
+ALTER TABLE indexer
+    ADD COLUMN use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE indexer
+    ADD FOREIGN KEY (proxy_id) REFERENCES proxy
+        ON DELETE SET NULL;
+
+ALTER TABLE irc_network
+    ADD COLUMN proxy_id INTEGER;
+
+ALTER TABLE irc_network
+    ADD COLUMN use_proxy BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE irc_network
+    ADD FOREIGN KEY (proxy_id) REFERENCES proxy
+        ON DELETE SET NULL;
+`,
+	`UPDATE indexer
+	SET base_url = 'https://fuzer.xyz/'
+	WHERE base_url = 'https://fuzer.me/';
+`,
+	`CREATE INDEX filter_enabled_index
+	ON filter (enabled);
+
+CREATE INDEX filter_priority_index
+	ON filter (priority);
+`,
+	`UPDATE irc_network
+    SET server = 'irc.fuzer.xyz'
+    WHERE server = 'irc.fuzer.me';
+`,
+	`UPDATE irc_network
+    SET server = 'irc.scenehd.org'
+    WHERE server = 'irc.scenehd.eu';
+	
+UPDATE irc_network
+    SET server = 'irc.p2p-network.net', name = 'P2P-Network', nick = nick || '_0'
+    WHERE server = 'irc.librairc.net';
+	
+UPDATE irc_network
+    SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
+    WHERE server = 'irc.ircnet.com';
+`,
+	`UPDATE indexer
+	SET base_url = 'https://redacted.sh/'
+	WHERE base_url = 'https://redacted.ch/';
+`,
+	`UPDATE irc_network
+    SET port = '6697', tls = true
+    WHERE server = 'irc.seedpool.org';
+`,
+	`ALTER TABLE "release"
+	ADD COLUMN announce_type TEXT DEFAULT 'NEW';
+
+	ALTER TABLE filter
+	ADD COLUMN announce_types TEXT []   DEFAULT '{}';
 `,
 }
