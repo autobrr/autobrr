@@ -46,71 +46,71 @@ type ReleaseRepo interface {
 }
 
 type Release struct {
-	ID                            int64                 `json:"id"`
-	FilterStatus                  ReleaseFilterStatus   `json:"filter_status"`
-	Rejections                    []string              `json:"rejections"`
-	Indexer                       IndexerMinimal        `json:"indexer"`
-	FilterName                    string                `json:"filter"`
-	Protocol                      ReleaseProtocol       `json:"protocol"`
-	Implementation                ReleaseImplementation `json:"implementation"` // irc, rss, api
-	Timestamp                     time.Time             `json:"timestamp"`
-	AnnounceType                  AnnounceType          `json:"announce_type"`
-	InfoURL                       string                `json:"info_url"`
-	DownloadURL                   string                `json:"download_url"`
-	MagnetURI                     string                `json:"-"`
-	GroupID                       string                `json:"group_id"`
-	TorrentID                     string                `json:"torrent_id"`
-	TorrentTmpFile                string                `json:"-"`
-	TorrentDataRawBytes           []byte                `json:"-"`
-	TorrentHash                   string                `json:"-"`
-	TorrentName                   string                `json:"name"` // full release name
-	Size                          uint64                `json:"size"`
-	Title                         string                `json:"title"` // Parsed title
-	Description                   string                `json:"-"`
-	Category                      string                `json:"category"`
-	Categories                    []string              `json:"categories,omitempty"`
-	Season                        int                   `json:"season"`
-	Episode                       int                   `json:"episode"`
-	Year                          int                   `json:"year"`
-	Month                         int                   `json:"month"`
-	Day                           int                   `json:"day"`
-	Resolution                    string                `json:"resolution"`
-	Source                        string                `json:"source"`
-	Codec                         []string              `json:"codec"`
-	Container                     string                `json:"container"`
-	HDR                           []string              `json:"hdr"`
-	Audio                         []string              `json:"-"`
-	AudioChannels                 string                `json:"-"`
-	AudioFormat                   string                `json:"-"`
-	Bitrate                       string                `json:"-"`
-	Group                         string                `json:"group"`
-	Region                        string                `json:"-"`
-	Language                      []string              `json:"-"`
-	Proper                        bool                  `json:"proper"`
-	Repack                        bool                  `json:"repack"`
-	Website                       string                `json:"website"`
-	Artists                       string                `json:"-"`
-	Type                          string                `json:"type"` // Album,Single,EP
-	LogScore                      int                   `json:"-"`
-	HasCue                        bool                  `json:"-"`
-	HasLog                        bool                  `json:"-"`
-	Origin                        string                `json:"origin"` // P2P, Internal
-	Tags                          []string              `json:"-"`
-	ReleaseTags                   string                `json:"-"`
-	Freeleech                     bool                  `json:"-"`
-	FreeleechPercent              int                   `json:"-"`
-	Bonus                         []string              `json:"-"`
-	Uploader                      string                `json:"uploader"`
-	PreTime                       string                `json:"pre_time"`
-	Other                         []string              `json:"-"`
-	RawCookie                     string                `json:"-"`
-	Seeders                       int                   `json:"-"`
-	Leechers                      int                   `json:"-"`
-	AdditionalSizeCheckRequired   bool                  `json:"-"`
-	AdditionalUploadCheckRequired bool                  `json:"-"`
-	FilterID                      int                   `json:"-"`
-	Filter                        *Filter               `json:"-"`
-	ActionStatus                  []ReleaseActionStatus `json:"action_status"`
+	ID                              int64                 `json:"id"`
+	FilterStatus                    ReleaseFilterStatus   `json:"filter_status"`
+	Rejections                      []string              `json:"rejections"`
+	Indexer                         IndexerMinimal        `json:"indexer"`
+	FilterName                      string                `json:"filter"`
+	Protocol                        ReleaseProtocol       `json:"protocol"`
+	Implementation                  ReleaseImplementation `json:"implementation"` // irc, rss, api
+	Timestamp                       time.Time             `json:"timestamp"`
+	AnnounceType                    AnnounceType          `json:"announce_type"`
+	InfoURL                         string                `json:"info_url"`
+	DownloadURL                     string                `json:"download_url"`
+	MagnetURI                       string                `json:"-"`
+	GroupID                         string                `json:"group_id"`
+	TorrentID                       string                `json:"torrent_id"`
+	TorrentTmpFile                  string                `json:"-"`
+	TorrentDataRawBytes             []byte                `json:"-"`
+	TorrentHash                     string                `json:"-"`
+	TorrentName                     string                `json:"name"` // full release name
+	Size                            uint64                `json:"size"`
+	Title                           string                `json:"title"` // Parsed title
+	Description                     string                `json:"-"`
+	Category                        string                `json:"category"`
+	Categories                      []string              `json:"categories,omitempty"`
+	Season                          int                   `json:"season"`
+	Episode                         int                   `json:"episode"`
+	Year                            int                   `json:"year"`
+	Month                           int                   `json:"month"`
+	Day                             int                   `json:"day"`
+	Resolution                      string                `json:"resolution"`
+	Source                          string                `json:"source"`
+	Codec                           []string              `json:"codec"`
+	Container                       string                `json:"container"`
+	HDR                             []string              `json:"hdr"`
+	Audio                           []string              `json:"-"`
+	AudioChannels                   string                `json:"-"`
+	AudioFormat                     string                `json:"-"`
+	Bitrate                         string                `json:"-"`
+	Group                           string                `json:"group"`
+	Region                          string                `json:"-"`
+	Language                        []string              `json:"-"`
+	Proper                          bool                  `json:"proper"`
+	Repack                          bool                  `json:"repack"`
+	Website                         string                `json:"website"`
+	Artists                         string                `json:"-"`
+	Type                            string                `json:"type"` // Album,Single,EP
+	LogScore                        int                   `json:"-"`
+	HasCue                          bool                  `json:"-"`
+	HasLog                          bool                  `json:"-"`
+	Origin                          string                `json:"origin"` // P2P, Internal
+	Tags                            []string              `json:"-"`
+	ReleaseTags                     string                `json:"-"`
+	Freeleech                       bool                  `json:"-"`
+	FreeleechPercent                int                   `json:"-"`
+	Bonus                           []string              `json:"-"`
+	Uploader                        string                `json:"uploader"`
+	PreTime                         string                `json:"pre_time"`
+	Other                           []string              `json:"-"`
+	RawCookie                       string                `json:"-"`
+	Seeders                         int                   `json:"-"`
+	Leechers                        int                   `json:"-"`
+	AdditionalSizeCheckRequired     bool                  `json:"-"`
+	AdditionalUploaderCheckRequired bool                  `json:"-"`
+	FilterID                        int                   `json:"-"`
+	Filter                          *Filter               `json:"-"`
+	ActionStatus                    []ReleaseActionStatus `json:"action_status"`
 }
 
 func (r *Release) Raw(s string) rls.Release {

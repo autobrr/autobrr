@@ -461,18 +461,8 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	}
 
 	if (f.MatchUploaders != "" || f.ExceptUploaders != "") && !f.checkUploader(r) {
-    // TODO fix me
-		//f.addRejectionF("uploaders not matching. got: %v want: %v except: %v", r.Uploader, f.MatchUploaders, f.ExceptUploaders)
-    f.RejectReasons.Add("uploaders", r.Uploader, f.MatchUploaders)
-  }
-
-	//if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
-	//	f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
-	//}
-
-	//if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
-	//	f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
-	//}
+		// f.checkUploader sets the rejections
+	}
 
 	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
 		f.RejectReasons.Add("match language", r.Language, f.MatchLanguage)
@@ -741,13 +731,21 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 // if the haystack is not empty but the uploader is, then a further
 // investigation is needed
 func (f *Filter) checkUploader(r *Release) bool {
-	if r.Uploader == "" {
-		r.AdditionalUploadCheckRequired = true
+	// only support additional uploader check for RED and OPS
+	if r.Uploader == "" && (r.Indexer.Identifier == "redacted" || r.Indexer.Identifier == "ops") {
+		r.AdditionalUploaderCheckRequired = true
 		return true
 	}
 
-	return (len(f.MatchUploaders) == 0 || contains(r.Uploader, f.MatchUploaders) == true) &&
-		(len(f.ExceptUploaders) == 0 || contains(r.Uploader, f.ExceptUploaders) == false)
+	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
+		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
+	}
+
+	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
+		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
+	}
+
+	return true
 }
 
 // IsPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
@@ -1189,12 +1187,12 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 
 func (f *Filter) CheckUploader(uploader string) (bool, error) {
 	if f.MatchUploaders != "" && !contains(uploader, f.MatchUploaders) {
-		f.addRejectionF("release required MatchUploaders missing have: %v want: %v", uploader, f.MatchUploaders)
+		f.RejectReasons.Add("match uploader", uploader, f.MatchUploaders)
 		return false, nil
 	}
 
 	if f.ExceptUploaders != "" && contains(uploader, f.ExceptUploaders) {
-		f.addRejectionF("release required ExceptUploaders have: %v want: %v", uploader, f.ExceptUploaders)
+		f.RejectReasons.Add("except uploader", uploader, f.ExceptUploaders)
 		return false, nil
 	}
 
