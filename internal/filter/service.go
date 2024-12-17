@@ -503,7 +503,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	l.Debug().Msgf("(%s) additional api size check required", f.Name)
 
 	switch release.Indexer.Identifier {
-	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
+	case "btn", "ggn", "redacted", "ops", "mock":
 		if (release.Size == 0 && release.AdditionalSizeCheckRequired) || (release.Uploader == "" && release.AdditionalUploaderCheckRequired) {
 			l.Trace().Msgf("(%s) preparing to check size via api", f.Name)
 
@@ -597,11 +597,9 @@ func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 
 		l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
 
-		if release.Size == 0 {
-			torrentSize := torrentInfo.ReleaseSizeBytes()
-			if torrentSize > 0 {
-				release.Size = torrentSize
-			}
+		torrentSize := torrentInfo.ReleaseSizeBytes()
+		if release.Size == 0 && torrentSize > 0 {
+			release.Size = torrentSize
 
 			// reset AdditionalSizeCheckRequired to not re-trigger check
 			release.AdditionalSizeCheckRequired = false
@@ -609,9 +607,6 @@ func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 
 		if release.Uploader == "" {
 			release.Uploader = torrentInfo.Uploader
-
-			// reset AdditionalUploaderCheckRequired to not re-trigger check
-			release.AdditionalUploaderCheckRequired = false
 		}
 
 	default:
@@ -623,6 +618,9 @@ func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 		l.Error().Err(err).Msgf("(%s) error comparing release and uploaders", f.Name)
 		return false, err
 	}
+
+	// reset AdditionalUploaderCheckRequired to not re-trigger check
+	release.AdditionalUploaderCheckRequired = false
 
 	if !uploaderOk {
 		l.Debug().Msgf("(%s) filter did not match after additional uploaders check, trying next", f.Name)
