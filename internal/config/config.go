@@ -46,6 +46,14 @@ port = 7474
 #
 #baseUrl = "/autobrr"
 
+# Base url mode legacy
+# This is kept for compatibility with older versions doing url rewrite on the proxy.
+# If you use baseUrl you can set this to false and skip any url rewrite in your proxy.
+#
+# Default: true
+#
+baseUrlModeLegacy = true
+
 # autobrr logs file
 # If not defined, logs to stdout
 # Make sure to use forward slashes and include the filename with extension. eg: "log/autobrr.log", "C:/autobrr/log/autobrr.log"
@@ -224,6 +232,7 @@ func (c *AppConfig) defaults() {
 		LogMaxBackups:       3,
 		DatabaseMaxBackups:  5,
 		BaseURL:             "/",
+		BaseURLModeLegacy:   true,
 		SessionSecret:       api.GenerateSecureToken(16),
 		CustomDefinitions:   "",
 		CheckForUpdates:     true,
@@ -258,6 +267,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "BASE_URL"); v != "" {
 		c.Config.BaseURL = v
+	}
+
+	if v := os.Getenv(prefix + "BASE_URL_MODE_LEGACY"); v != "" {
+		c.Config.BaseURLModeLegacy = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
 	if v := os.Getenv(prefix + "LOG_LEVEL"); v != "" {

@@ -164,11 +164,32 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
-	// Mount the API router under '/api'
-	r.Mount("/api", apiRouter)
+	webRouter := chi.NewRouter()
 
 	// serve the web
-	web.RegisterHandler(r, s.version, s.config.Config.BaseURL)
+	webHandlers := newWebHandler(s.config.Config, s.log, web.DistDirFS, s.version)
+	webHandlers.RegisterRoutes(webRouter)
+
+	// handle backwards compatibility for base url routing
+	routeBaseURL := "/"
+	if !s.config.Config.BaseURLModeLegacy {
+		routeBaseURL = s.config.Config.BaseURL
+
+		// add fallback routes when base url is set to inform user
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			webHandlers.RenderFallbackIndex(w)
+		})
+
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			webHandlers.RenderFallbackIndex(w)
+		})
+	}
+
+	// Mount the API router under '/api'
+	r.Mount(routeBaseURL, webRouter)
+	r.Mount(routeBaseURL+"api", apiRouter)
 
 	return r
 }

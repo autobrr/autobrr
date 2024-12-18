@@ -151,8 +151,7 @@ export async function HttpClient<T = unknown>(
     }
   }
 
-  // const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
-  const response = await window.fetch(`${endpoint}`, init);
+  const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
 
   const isJson = response.headers.get("Content-Type")?.includes("application/json");
 
@@ -367,7 +366,7 @@ export const APIClient = {
       body: { msg: msg }
     }),
     events: (network: string) => new EventSource(
-      `api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
+      `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
       { withCredentials: true }
     )
   },
