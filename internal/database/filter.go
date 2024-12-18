@@ -221,6 +221,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_record_labels",
+			"f.except_record_labels",
 			"f.match_language",
 			"f.except_language",
 			"f.tags",
@@ -256,7 +258,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var f domain.Filter
 
 	// filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, maxDownloads, logScore sql.NullInt32
 
@@ -314,6 +316,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&exceptCategories,
 		&matchUploaders,
 		&exceptUploaders,
+		&matchRecordLabels,
+		&exceptRecordLabels,
 		pq.Array(&f.MatchLanguage),
 		pq.Array(&f.ExceptLanguage),
 		&tags,
@@ -367,6 +371,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.ExceptCategories = exceptCategories.String
 	f.MatchUploaders = matchUploaders.String
 	f.ExceptUploaders = exceptUploaders.String
+	f.MatchRecordLabels = matchRecordLabels.String
+	f.ExceptRecordLabels = exceptRecordLabels.String
 	f.Tags = tags.String
 	f.ExceptTags = exceptTags.String
 	f.TagsMatchLogic = tagsMatchLogic.String
@@ -439,6 +445,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_record_labels",
+			"f.except_record_labels",
 			"f.match_language",
 			"f.except_language",
 			"f.tags",
@@ -479,7 +487,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
 
@@ -537,6 +545,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&exceptCategories,
 			&matchUploaders,
 			&exceptUploaders,
+			&matchRecordLabels,
+			&exceptRecordLabels,
 			pq.Array(&f.MatchLanguage),
 			pq.Array(&f.ExceptLanguage),
 			&tags,
@@ -586,6 +596,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.ExceptCategories = exceptCategories.String
 		f.MatchUploaders = matchUploaders.String
 		f.ExceptUploaders = exceptUploaders.String
+		f.MatchRecordLabels = matchRecordLabels.String
+		f.ExceptRecordLabels = exceptRecordLabels.String
 		f.Tags = tags.String
 		f.ExceptTags = exceptTags.String
 		f.TagsMatchLogic = tagsMatchLogic.String
@@ -733,6 +745,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"except_categories",
 			"match_uploaders",
 			"except_uploaders",
+			"match_record_labels",
+			"except_record_labels",
 			"match_language",
 			"except_language",
 			"tags",
@@ -799,6 +813,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.ExceptCategories,
 			filter.MatchUploaders,
 			filter.ExceptUploaders,
+			filter.MatchRecordLabels,
+			filter.ExceptRecordLabels,
 			pq.Array(filter.MatchLanguage),
 			pq.Array(filter.ExceptLanguage),
 			filter.Tags,
@@ -883,6 +899,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("except_categories", filter.ExceptCategories).
 		Set("match_uploaders", filter.MatchUploaders).
 		Set("except_uploaders", filter.ExceptUploaders).
+		Set("match_record_labels", filter.MatchRecordLabels).
+		Set("except_record_labels", filter.ExceptRecordLabels).
 		Set("match_language", pq.Array(filter.MatchLanguage)).
 		Set("except_language", pq.Array(filter.ExceptLanguage)).
 		Set("tags", filter.Tags).
@@ -1057,6 +1075,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.ExceptUploaders != nil {
 		q = q.Set("except_uploaders", filter.ExceptUploaders)
+	}
+	if filter.MatchRecordLabels != nil {
+		q = q.Set("match_record_labels", filter.MatchRecordLabels)
+	}
+	if filter.ExceptRecordLabels != nil {
+		q = q.Set("except_record_labels", filter.ExceptRecordLabels)
 	}
 	if filter.MatchLanguage != nil {
 		q = q.Set("match_language", pq.Array(filter.MatchLanguage))

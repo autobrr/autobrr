@@ -431,6 +431,8 @@ export const FilterDetails = () => {
               except_tags_match_logic: filter.except_tags_match_logic,
               match_uploaders: filter.match_uploaders,
               except_uploaders: filter.except_uploaders,
+              match_record_labels: filter.match_record_labels,
+              except_record_labels: filter.except_record_labels,
               match_language: filter.match_language || [],
               except_language: filter.except_language || [],
               freeleech: filter.freeleech,
