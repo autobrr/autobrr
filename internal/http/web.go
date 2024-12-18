@@ -39,7 +39,7 @@ func newWebHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL, assetBas
 }
 
 // registerAssets walks the FS Dist dir and registers each file as a route
-func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
+func (h *webHandler) registerAssets(r *chi.Mux) {
 	err := fs.WalkDir(h.embedFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -51,18 +51,6 @@ func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
 		}
 
 		h.log.Trace().Msgf("web assets: found path: %s", path)
-
-		// handle windows path rewrite
-		//path = strings.TrimPrefix(path, `\`)
-		//if strings.Contains(path, "\\") {
-		//	if strings.HasPrefix(path, "\\") {
-		//		newPath, found := strings.CutPrefix(path, "\\")
-		//		if found {
-		//			path = newPath
-		//		}
-		//	}
-		//	path = strings.ReplaceAll(path, "\\", "/")
-		//}
 
 		// ignore index.html, so we can render it as a template and inject variables
 		if path == "index.html" || path == "manifest.webmanifest" || path == ".gitkeep" {
@@ -83,7 +71,7 @@ func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
 }
 
 func (h *webHandler) RegisterRoutes(r *chi.Mux) {
-	h.registerAssets(r, h.baseUrl)
+	h.registerAssets(r)
 
 	// Serve static files without a prefix
 	assets, err := fs.Sub(h.embedFS, "assets")
