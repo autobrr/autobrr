@@ -164,16 +164,11 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
-	// handle backwards compatibility for base url routing
 	routeBaseURL := "/"
-	//routeAssetBaseURL := "./"
-	//if !s.config.Config.BaseURLModeLegacy {
-	//	routeBaseURL = s.config.Config.BaseURL
-	//	routeAssetBaseURL = s.config.Config.BaseURL
-	//}
 
 	webRouter := chi.NewRouter()
 
+	// handle backwards compatibility for base url routing
 	if s.config.Config.BaseURLModeLegacy {
 		routeAssetBaseURL := "./"
 		// serve the web
@@ -187,18 +182,22 @@ func (s Server) Handler() http.Handler {
 		webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL, routeAssetBaseURL)
 		webHandlers.RegisterRoutes(webRouter)
 
-		//if !s.config.Config.BaseURLModeLegacy {
 		// add fallback routes when base url is set to inform user
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
-			webHandlers.RenderFallbackIndex(w)
+			if err := webHandlers.RenderFallbackIndex(w); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		})
 
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
-			webHandlers.RenderFallbackIndex(w)
+			if err := webHandlers.RenderFallbackIndex(w); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		})
-		//}
 	}
 
 	// Mount the API router under '/api'

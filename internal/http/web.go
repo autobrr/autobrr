@@ -12,9 +12,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
-
-	"github.com/autobrr/autobrr/web"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -26,6 +25,7 @@ type webHandler struct {
 	baseUrl      string
 	assetBaseURL string
 	version      string
+	files        map[string]string
 }
 
 func newWebHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL, assetBaseURL string) *webHandler {
@@ -35,24 +35,50 @@ func newWebHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL, assetBas
 		baseUrl:      baseURL,
 		assetBaseURL: assetBaseURL,
 		version:      version,
+		files:        make(map[string]string),
+	}
+}
+
+// registerAssets walks the FS Dist dir and registers each file as a route
+func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
+	err := fs.WalkDir(h.embedFS, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			//h.log.Trace().Msgf("web assets: skip dir: %s", d.Name())
+			return nil
+		}
+
+		//h.log.Trace().Msgf("web assets: found path: %s", path)
+
+		// ignore index.html, so we can render it as a template and inject variables
+		if path == "index.html" || path == "manifest.webmanifest" {
+			return nil
+		}
+
+		FileFS(r, filepath.Join("/", path), path, h.embedFS)
+
+		h.files[path] = path
+
+		return nil
+	})
+
+	if err != nil {
+		return
 	}
 }
 
 func (h *webHandler) RegisterRoutes(r *chi.Mux) {
+	h.registerAssets(r, h.baseUrl)
+
 	// Serve static files without a prefix
-	assets, err := fs.Sub(web.DistDirFS, "assets")
+	assets, err := fs.Sub(h.embedFS, "assets")
 	if err != nil {
 		h.log.Error().Err(err).Msg("could not load assets sub dir")
 	}
 
-	static, err := fs.Sub(web.DistDirFS, "static")
-	if err != nil {
-		h.log.Error().Err(err).Msg("could not load static sub dir")
-	}
-
-	//StaticFS(c, "/assets", assets)
-	//StaticFS(c, "/static", static)
-	StaticFSNew(r, h.baseUrl, "/static", static)
 	StaticFSNew(r, h.baseUrl, "/assets", assets)
 
 	p := IndexParams{
@@ -63,9 +89,7 @@ func (h *webHandler) RegisterRoutes(r *chi.Mux) {
 	}
 
 	// serve on base route
-	//c.Get(baseUrl, func(w http.ResponseWriter, r *http.Request) {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		//h.RenderIndex(w, p)
 		if err := h.RenderIndex(w, p); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -74,7 +98,6 @@ func (h *webHandler) RegisterRoutes(r *chi.Mux) {
 
 	// handle manifest
 	r.Get("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
-		//h.RenderManifest(w, p)
 		if err := h.RenderManifest(w, p); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -84,6 +107,16 @@ func (h *webHandler) RegisterRoutes(r *chi.Mux) {
 	// handle all other routes
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 		file := strings.TrimPrefix(r.RequestURI, h.baseUrl)
+
+		if strings.Contains(file, "favicon.ico") {
+			fsFile(w, r, "favicon.ico", h.embedFS)
+			return
+		}
+
+		if strings.Contains(file, "Inter-Variable.woff2") {
+			fsFile(w, r, "Inter-Variable.woff2", h.embedFS)
+			return
+		}
 
 		// if valid web route then serve html
 		if validWebRoute(file) || file == "index.html" {
@@ -95,24 +128,24 @@ func (h *webHandler) RegisterRoutes(r *chi.Mux) {
 		}
 
 		// if not valid web route then try and serve files
-		fsFile(w, r, file, web.DistDirFS)
+		fsFile(w, r, file, h.embedFS)
 	})
 }
 
 func (h *webHandler) RenderIndex(w io.Writer, p IndexParams) error {
-	return parseIndex().Execute(w, p)
+	return h.parseIndex().Execute(w, p)
 }
 
-func parseIndex() *template.Template {
-	return template.Must(template.New("index.html").ParseFS(web.Dist, "dist/index.html"))
+func (h *webHandler) parseIndex() *template.Template {
+	return template.Must(template.New("index.html").ParseFS(h.embedFS, "index.html"))
 }
 
 func (h *webHandler) RenderManifest(w io.Writer, p IndexParams) error {
-	return parseManifest().Execute(w, p)
+	return h.parseManifest().Execute(w, p)
 }
 
-func parseManifest() *template.Template {
-	return template.Must(template.New("manifest.webmanifest").ParseFS(web.Dist, "dist/manifest.webmanifest"))
+func (h *webHandler) parseManifest() *template.Template {
+	return template.Must(template.New("manifest.webmanifest").ParseFS(h.embedFS, "manifest.webmanifest"))
 }
 
 func (h *webHandler) RenderFallbackIndex(w io.Writer) error {
@@ -216,14 +249,14 @@ func fsFile(w http.ResponseWriter, r *http.Request, file string, filesystem fs.F
 	http.ServeContent(w, r, file, stat.ModTime(), reader)
 }
 
-var validWebRoutes = []string{"/", "filters", "releases", "settings", "logs", "onboard", "login", "logout"}
+var validWebRoutes = []string{"filters", "releases", "settings", "logs", "onboard", "login", "logout"}
 
 func validWebRoute(route string) bool {
 	if route == "" || route == "/" {
 		return true
 	}
 	for _, valid := range validWebRoutes {
-		if strings.Contains(route, valid) {
+		if strings.HasPrefix(route, valid) {
 			return true
 		}
 	}
