@@ -173,7 +173,7 @@ func (s Server) Handler() http.Handler {
 	webRouter := chi.NewRouter()
 
 	// serve the web
-	webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, routeBaseURL)
+	webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL)
 	webHandlers.RegisterRoutes(webRouter)
 
 	if !s.config.Config.BaseURLModeLegacy {
@@ -192,6 +192,8 @@ func (s Server) Handler() http.Handler {
 	// Mount the API router under '/api'
 	r.Mount(routeBaseURL, webRouter)
 	r.Mount(routeBaseURL+"api", apiRouter)
+
+	s.log.Debug().Msgf("routes: %s", r.Routes())
 
 	return r
 }
