@@ -181,10 +181,10 @@ func StaticFileHandler(file string, filesystem fs.FS) http.HandlerFunc {
 	}
 }
 
-// StaticFS registers a new route with path prefix to serve static files from the provided file system.
-func StaticFS(r *chi.Mux, pathPrefix string, filesystem fs.FS) {
-	r.Handle(pathPrefix+"*", http.StripPrefix(pathPrefix, http.FileServer(http.FS(filesystem))))
-}
+//// StaticFS registers a new route with path prefix to serve static files from the provided file system.
+//func StaticFS(r *chi.Mux, pathPrefix string, filesystem fs.FS) {
+//	r.Handle(pathPrefix+"*", http.StripPrefix(pathPrefix, http.FileServer(http.FS(filesystem))))
+//}
 
 // StaticFSNew registers a new route with path prefix to serve static files from the provided file system.
 func StaticFSNew(r *chi.Mux, baseUrl, pathPrefix string, filesystem fs.FS) {
