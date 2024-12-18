@@ -96,7 +96,7 @@ export default ({ mode }: ConfigEnv) => {
         // Perform your transformations here
         // the experimental renderBuiltUrl works except for the style font url where it escapes the curly braces
         // we look for those and replace with the non escaped curly braces to be able to correctly replace baseurl.
-        html = html.replace('%7B%7B.BaseUrl%7D%7D/', '{{.BaseUrl}}'); // Example: Replace `{{.BaseUrl}}`
+        html = html.replace('%7B%7B.AssetBaseUrl%7D%7D/', '{{.AssetBaseUrl}}'); // Example: Replace `{{.BaseUrl}}`
 
         // Write the updated `index.html` back
         fs.writeFileSync(htmlPath, html);
@@ -152,7 +152,7 @@ export default ({ mode }: ConfigEnv) => {
         type: 'public' | 'asset'
       }) {
         // console.debug(filename, hostId, hostType, type)
-        return '{{.BaseUrl}}' + filename
+        return '{{.AssetBaseUrl}}' + filename
         // if (type === 'public') {
         //   return 'https://www.domain.com/' + filename
         // }

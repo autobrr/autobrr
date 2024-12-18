@@ -166,14 +166,16 @@ func (s Server) Handler() http.Handler {
 
 	// handle backwards compatibility for base url routing
 	routeBaseURL := "/"
+	routeAssetBaseURL := "./"
 	if !s.config.Config.BaseURLModeLegacy {
 		routeBaseURL = s.config.Config.BaseURL
+		routeAssetBaseURL = s.config.Config.BaseURL
 	}
 
 	webRouter := chi.NewRouter()
 
 	// serve the web
-	webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL)
+	webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL, routeAssetBaseURL)
 	webHandlers.RegisterRoutes(webRouter)
 
 	if !s.config.Config.BaseURLModeLegacy {

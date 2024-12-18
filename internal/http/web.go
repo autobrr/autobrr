@@ -21,18 +21,20 @@ import (
 )
 
 type webHandler struct {
-	log     zerolog.Logger
-	embedFS fs.FS
-	baseUrl string
-	version string
+	log          zerolog.Logger
+	embedFS      fs.FS
+	baseUrl      string
+	assetBaseURL string
+	version      string
 }
 
-func newWebHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL string) *webHandler {
+func newWebHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL, assetBaseURL string) *webHandler {
 	return &webHandler{
-		log:     log.With().Str("module", "web-assets").Logger(),
-		embedFS: embedFS,
-		baseUrl: baseURL,
-		version: version,
+		log:          log.With().Str("module", "web-assets").Logger(),
+		embedFS:      embedFS,
+		baseUrl:      baseURL,
+		assetBaseURL: assetBaseURL,
+		version:      version,
 	}
 }
 
@@ -54,20 +56,29 @@ func (h *webHandler) RegisterRoutes(r *chi.Mux) {
 	StaticFSNew(r, h.baseUrl, "/assets", assets)
 
 	p := IndexParams{
-		Title:   "Dashboard",
-		Version: h.version,
-		BaseUrl: h.baseUrl,
+		Title:        "Dashboard",
+		Version:      h.version,
+		BaseUrl:      h.baseUrl,
+		AssetBaseUrl: h.assetBaseURL,
 	}
 
 	// serve on base route
 	//c.Get(baseUrl, func(w http.ResponseWriter, r *http.Request) {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		h.RenderIndex(w, p)
+		//h.RenderIndex(w, p)
+		if err := h.RenderIndex(w, p); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// handle manifest
 	r.Get("/manifest.webmanifest", func(w http.ResponseWriter, r *http.Request) {
-		h.RenderManifest(w, p)
+		//h.RenderManifest(w, p)
+		if err := h.RenderManifest(w, p); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// handle all other routes
@@ -76,7 +87,10 @@ func (h *webHandler) RegisterRoutes(r *chi.Mux) {
 
 		// if valid web route then serve html
 		if validWebRoute(file) || file == "index.html" {
-			h.RenderIndex(w, p)
+			if err := h.RenderIndex(w, p); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			return
 		}
 
@@ -103,15 +117,16 @@ func parseManifest() *template.Template {
 
 func (h *webHandler) RenderFallbackIndex(w io.Writer) error {
 	p := IndexParams{
-		Title:   "autobrr Dashboard",
-		Version: h.version,
-		BaseUrl: h.baseUrl,
+		Title:        "autobrr Dashboard",
+		Version:      h.version,
+		BaseUrl:      h.baseUrl,
+		AssetBaseUrl: h.assetBaseURL,
 	}
 	return h.parseFallbackIndex().Execute(w, p)
 }
 
 func (h *webHandler) parseFallbackIndex() *template.Template {
-	return template.Must(template.New("fallback-index").Parse(`
+	return template.Must(template.New("fallback-index").Parse(`<!DOCTYPE html>
 <html>
   <head>
     <title>autobrr</title>
@@ -141,9 +156,10 @@ type defaultFS struct {
 }
 
 type IndexParams struct {
-	Title   string
-	Version string
-	BaseUrl string
+	Title        string
+	Version      string
+	BaseUrl      string
+	AssetBaseUrl string
 }
 
 func (fs defaultFS) Open(name string) (fs.File, error) {
