@@ -164,17 +164,19 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
-	webRouter := chi.NewRouter()
-
-	// serve the web
-	webHandlers := newWebHandler(s.config.Config, s.log, web.DistDirFS, s.version)
-	webHandlers.RegisterRoutes(webRouter)
-
 	// handle backwards compatibility for base url routing
 	routeBaseURL := "/"
 	if !s.config.Config.BaseURLModeLegacy {
 		routeBaseURL = s.config.Config.BaseURL
+	}
 
+	webRouter := chi.NewRouter()
+
+	// serve the web
+	webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, routeBaseURL)
+	webHandlers.RegisterRoutes(webRouter)
+
+	if !s.config.Config.BaseURLModeLegacy {
 		// add fallback routes when base url is set to inform user
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)

@@ -14,7 +14,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/go-chi/chi/v5"
@@ -22,19 +21,17 @@ import (
 )
 
 type webHandler struct {
-	cfg     *domain.Config
 	log     zerolog.Logger
 	embedFS fs.FS
 	baseUrl string
 	version string
 }
 
-func newWebHandler(cfg *domain.Config, log zerolog.Logger, embedFS fs.FS, version string) *webHandler {
+func newWebHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL string) *webHandler {
 	return &webHandler{
-		cfg:     cfg,
 		log:     log.With().Str("module", "web-assets").Logger(),
 		embedFS: embedFS,
-		baseUrl: cfg.BaseURL,
+		baseUrl: baseURL,
 		version: version,
 	}
 }
