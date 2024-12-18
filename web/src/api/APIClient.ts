@@ -375,7 +375,7 @@ export const APIClient = {
     getFile: (file: string) => appClient.Get(`api/logs/files/${file}`)
   },
   events: {
-    logs: () => new EventSource("api/events?stream=logs", { withCredentials: true })
+    logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
   },
   notifications: {
     getAll: () => appClient.Get<ServiceNotification[]>("api/notification"),

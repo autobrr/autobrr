@@ -17,7 +17,7 @@ import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { Checkbox } from "@components/Checkbox";
-import { classNames, simplifyDate } from "@utils";
+import { baseUrl, classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
@@ -234,7 +234,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
       <Toast type="info" body="Log file is being sanitized. Please wait..." t={t} />
     ));
 
-    const response = await fetch(`api/logs/files/${file.filename}`);
+    const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

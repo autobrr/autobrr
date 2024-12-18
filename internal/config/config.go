@@ -39,12 +39,12 @@ host = "{{ .host }}"
 port = 7474
 
 # Base url
-# Set custom baseUrl eg /autobrr to serve in subdirectory.
+# Set custom baseUrl eg /autobrr/ to serve in subdirectory.
 # Not needed for subdomain, or by accessing with the :port directly.
 #
 # Optional
 #
-#baseUrl = "/autobrr"
+#baseUrl = "/autobrr/"
 
 # Base url mode legacy
 # This is kept for compatibility with older versions doing url rewrite on the proxy.

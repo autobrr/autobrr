@@ -94,6 +94,8 @@ export default ({ mode }: ConfigEnv) => {
         let html = fs.readFileSync(htmlPath, 'utf-8');
 
         // Perform your transformations here
+        // the experimental renderBuiltUrl works except for the style font url where it escapes the curly braces
+        // we look for those and replace with the non escaped curly braces to be able to correctly replace baseurl.
         html = html.replace('%7B%7B.BaseUrl%7D%7D/', '{{.BaseUrl}}'); // Example: Replace `{{.BaseUrl}}`
 
         // Write the updated `index.html` back
@@ -128,11 +130,6 @@ export default ({ mode }: ConfigEnv) => {
           changeOrigin: true,
           secure: false
         },
-        "/autobrr/api": {
-          target: "http://127.0.0.1:7474/autobrr",
-          changeOrigin: true,
-          secure: false
-        }
       }
     },
     build: {
