@@ -256,7 +256,7 @@ func validWebRoute(route string) bool {
 		return true
 	}
 	for _, valid := range validWebRoutes {
-		if strings.HasPrefix(route, valid) {
+		if strings.HasPrefix(route, valid) || strings.HasPrefix(route, "/"+valid) {
 			return true
 		}
 	}
