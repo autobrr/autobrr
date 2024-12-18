@@ -54,7 +54,7 @@ func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
 		//h.log.Trace().Msgf("web assets: found path: %s", path)
 
 		// ignore index.html, so we can render it as a template and inject variables
-		if path == "index.html" || path == "manifest.webmanifest" {
+		if path == "index.html" || path == "manifest.webmanifest" || path == ".gitkeep" {
 			return nil
 		}
 
