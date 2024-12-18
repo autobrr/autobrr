@@ -54,15 +54,16 @@ func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
 		h.log.Trace().Msgf("web assets: found path: %s", path)
 
 		// handle windows path rewrite
-		if strings.Contains(path, "\\") {
-			if strings.HasPrefix(path, "\\") {
-				newPath, found := strings.CutPrefix(path, "\\")
-				if found {
-					path = newPath
-				}
-			}
-			path = strings.ReplaceAll(path, "\\", "/")
-		}
+		path = strings.TrimPrefix(path, `\`)
+		//if strings.Contains(path, "\\") {
+		//	if strings.HasPrefix(path, "\\") {
+		//		newPath, found := strings.CutPrefix(path, "\\")
+		//		if found {
+		//			path = newPath
+		//		}
+		//	}
+		//	path = strings.ReplaceAll(path, "\\", "/")
+		//}
 
 		// ignore index.html, so we can render it as a template and inject variables
 		if path == "index.html" || path == "manifest.webmanifest" || path == ".gitkeep" {
