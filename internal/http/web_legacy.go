@@ -8,7 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"path/filepath"
+	filePath "path"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -51,7 +51,7 @@ func (h *webLegacyHandler) registerAssets(r *chi.Mux, baseUrl string) {
 		h.log.Trace().Msgf("web assets: found path: %s", path)
 
 		// handle windows path rewrite
-		path = strings.TrimPrefix(path, `\`)
+		//path = strings.TrimPrefix(path, `\`)
 		//if strings.Contains(path, "\\") {
 		//	if strings.HasPrefix(path, "\\") {
 		//		newPath, found := strings.CutPrefix(path, "\\")
@@ -67,7 +67,8 @@ func (h *webLegacyHandler) registerAssets(r *chi.Mux, baseUrl string) {
 			return nil
 		}
 
-		FileFS(r, filepath.Join("/", path), path, h.embedFS)
+		// use old path.Join to not be os specific
+		FileFS(r, filePath.Join("/", path), path, h.embedFS)
 
 		h.files[path] = path
 

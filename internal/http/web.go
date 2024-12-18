@@ -11,8 +11,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"path"
-	"path/filepath"
+	filePath "path"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -54,7 +53,7 @@ func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
 		h.log.Trace().Msgf("web assets: found path: %s", path)
 
 		// handle windows path rewrite
-		path = strings.TrimPrefix(path, `\`)
+		//path = strings.TrimPrefix(path, `\`)
 		//if strings.Contains(path, "\\") {
 		//	if strings.HasPrefix(path, "\\") {
 		//		newPath, found := strings.CutPrefix(path, "\\")
@@ -70,7 +69,8 @@ func (h *webHandler) registerAssets(r *chi.Mux, baseUrl string) {
 			return nil
 		}
 
-		FileFS(r, filepath.Join("/", path), path, h.embedFS)
+		// use old path.Join to not be os specific
+		FileFS(r, filePath.Join("/", path), path, h.embedFS)
 
 		h.files[path] = path
 
@@ -233,7 +233,7 @@ func StaticFileHandler(file string, filesystem fs.FS) http.HandlerFunc {
 
 // StaticFSNew registers a new route with path prefix to serve static files from the provided file system.
 func StaticFSNew(r *chi.Mux, baseUrl, pathPrefix string, filesystem fs.FS) {
-	r.Handle(pathPrefix+"*", http.StripPrefix(path.Join(baseUrl, pathPrefix), http.FileServer(http.FS(filesystem))))
+	r.Handle(pathPrefix+"*", http.StripPrefix(filePath.Join(baseUrl, pathPrefix), http.FileServer(http.FS(filesystem))))
 }
 
 // fsFile is a helper function to serve a file from the provided file system.
