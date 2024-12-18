@@ -12,6 +12,7 @@ import (
 )
 
 func TestMacros_Parse(t *testing.T) {
+	t.Parallel()
 	currentTime := time.Now()
 
 	type fields struct {

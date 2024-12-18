@@ -18,8 +18,8 @@ settings:
     help: This is your passkey you can find in a RSS link or in the announce url of a torrent.
 
 irc:
-  network: IRCNet
-  server: irc.ircnet.com
+  network: ATW-Internet
+  server: irc.atw-inter.net
   port: 6697
   tls: true
   channels:

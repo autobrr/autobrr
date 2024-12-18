@@ -107,6 +107,7 @@ type Filter struct {
 	UseRegex             bool                   `json:"use_regex,omitempty"`
 	MatchReleaseGroups   string                 `json:"match_release_groups,omitempty"`
 	ExceptReleaseGroups  string                 `json:"except_release_groups,omitempty"`
+	AnnounceTypes        []string               `json:"announce_types,omitempty"`
 	Scene                bool                   `json:"scene,omitempty"`
 	Origins              []string               `json:"origins,omitempty"`
 	ExceptOrigins        []string               `json:"except_origins,omitempty"`
@@ -222,6 +223,7 @@ type FilterUpdate struct {
 	MaxSize              *string                 `json:"max_size,omitempty"`
 	Delay                *int                    `json:"delay,omitempty"`
 	Priority             *int32                  `json:"priority,omitempty"`
+	AnnounceTypes        *[]string               `json:"announce_types,omitempty"`
 	MaxDownloads         *int                    `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit     *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
 	MatchReleases        *string                 `json:"match_releases,omitempty"`
@@ -385,6 +387,10 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		f.RejectReasons.Add("freeleech percent", r.FreeleechPercent, f.FreeleechPercent)
 	}
 
+	if len(f.AnnounceTypes) > 0 && !basicContainsSlice(string(r.AnnounceType), f.AnnounceTypes) {
+		f.RejectReasons.Add("match announce type", r.AnnounceType, f.AnnounceTypes)
+	}
+
 	if len(f.Origins) > 0 && !containsSlice(r.Origin, f.Origins) {
 		f.RejectReasons.Add("match origin", r.Origin, f.Origins)
 	}
@@ -454,12 +460,8 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		}
 	}
 
-	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
-		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
-	}
-
-	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
-		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
+	if (f.MatchUploaders != "" || f.ExceptUploaders != "") && !f.checkUploader(r) {
+		// f.checkUploader sets the rejections
 	}
 
 	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
@@ -720,6 +722,27 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 
 	if !sizeOK {
 		return false
+	}
+
+	return true
+}
+
+// checkUploader checks if the uploader is within the given list.
+// if the haystack is not empty but the uploader is, then a further
+// investigation is needed
+func (f *Filter) checkUploader(r *Release) bool {
+	// only support additional uploader check for RED and OPS
+	if r.Uploader == "" && (r.Indexer.Identifier == "redacted" || r.Indexer.Identifier == "ops") {
+		r.AdditionalUploaderCheckRequired = true
+		return true
+	}
+
+	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
+		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
+	}
+
+	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
+		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
 	}
 
 	return true
@@ -1030,6 +1053,30 @@ func containsAnySlice(tags []string, filters []string) bool {
 	return false
 }
 
+func basicContainsSlice(tag string, filters []string) bool {
+	return basicContainsMatch([]string{tag}, filters)
+}
+
+func basicContainsMatch(tags []string, filters []string) bool {
+	for _, tag := range tags {
+		if tag == "" {
+			continue
+		}
+
+		for _, filter := range filters {
+			if filter == "" {
+				continue
+			}
+
+			if tag == filter {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 	filters := strings.Split(filterPercent, ",")
 
@@ -1132,6 +1179,20 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 
 	if maxBytes != nil && releaseSize >= *maxBytes {
 		f.RejectReasons.Addf("release size", "release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (f *Filter) CheckUploader(uploader string) (bool, error) {
+	if f.MatchUploaders != "" && !contains(uploader, f.MatchUploaders) {
+		f.RejectReasons.Add("match uploader", uploader, f.MatchUploaders)
+		return false, nil
+	}
+
+	if f.ExceptUploaders != "" && contains(uploader, f.ExceptUploaders) {
+		f.RejectReasons.Add("except uploader", uploader, f.ExceptUploaders)
 		return false, nil
 	}
 

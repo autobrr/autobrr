@@ -86,6 +86,12 @@ checkForUpdates = true
 #
 sessionSecret = "{{ .sessionSecret }}"
 
+# Database Max Backups
+#
+# Default: 5
+#
+#databaseMaxBackups = 5
+
 # Golang pprof profiling and tracing
 #
 #profilingEnabled = false
@@ -216,6 +222,7 @@ func (c *AppConfig) defaults() {
 		LogPath:             "",
 		LogMaxSize:          50,
 		LogMaxBackups:       3,
+		DatabaseMaxBackups:  5,
 		BaseURL:             "/",
 		SessionSecret:       api.GenerateSecureToken(16),
 		CustomDefinitions:   "",
@@ -290,6 +297,13 @@ func (c *AppConfig) loadFromEnv() {
 	if v := os.Getenv(prefix + "DATABASE_TYPE"); v != "" {
 		if validDatabaseType(v) {
 			c.Config.DatabaseType = v
+		}
+	}
+
+	if v := os.Getenv(prefix + "DATABASE_MAX_BACKUPS"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.DatabaseMaxBackups = int(i)
 		}
 	}
 

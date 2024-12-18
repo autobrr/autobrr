@@ -23,7 +23,9 @@ type DB struct {
 	handler *sql.DB
 	lock    sync.RWMutex
 	ctx     context.Context
-	cancel  func()
+	cfg     *domain.Config
+
+	cancel func()
 
 	Driver string
 	DSN    string
@@ -37,6 +39,7 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 		// set default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
 		log:      log.With().Str("module", "database").Str("type", cfg.DatabaseType).Logger(),
+		cfg:      cfg,
 	}
 	db.ctx, db.cancel = context.WithCancel(context.Background())
 

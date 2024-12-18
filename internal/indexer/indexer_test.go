@@ -14,6 +14,7 @@ import (
 )
 
 func TestIndexersParseAndFilter(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		identifier         string
 		identifierExternal string
@@ -169,7 +170,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_1",
 					args: args{
-						announceLines: []string{"Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s"},
+						announceLines: []string{"Artist - Albumname [2008] [Single] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - hip.hop,rhythm.and.blues,2000s"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
@@ -194,7 +195,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_2",
 					args: args{
-						announceLines: []string{"A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical"},
+						announceLines: []string{"A really long name here - Concertos 5 and 6, Suite No 2 [1991] [Album] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - classical"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
@@ -228,7 +229,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_3",
 					args: args{
-						announceLines: []string{"The best artist - Album No 2 [2024] [EP] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical"},
+						announceLines: []string{"The best artist - Album No 2 [2024] [EP] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - classical"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
@@ -263,7 +264,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_4",
 					args: args{
-						announceLines: []string{"The best artist - Album No 2 [2024] [EP] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical"},
+						announceLines: []string{"The best artist - Album No 2 [2024] [EP] - FLAC / Lossless / Log / 100% / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - classical"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
@@ -298,7 +299,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_5",
 					args: args{
-						announceLines: []string{"The best artist - Album No 1 [2024] [EP] - FLAC / Lossless / Log / 87% / Cue / CD - https://redacted.ch/torrents.php?id=0000000 / https://redacted.ch/torrents.php?action=download&id=0000000 - classical"},
+						announceLines: []string{"The best artist - Album No 1 [2024] [EP] - FLAC / Lossless / Log / 87% / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - classical"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{

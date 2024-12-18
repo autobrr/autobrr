@@ -20,7 +20,7 @@ import (
 	"golang.org/x/time/rate"
 )
 
-const DefaultURL = "https://redacted.ch/ajax.php"
+const DefaultURL = "https://redacted.sh/ajax.php"
 
 type ApiClient interface {
 	GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error)
@@ -234,6 +234,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		Id:       strconv.Itoa(response.Response.Torrent.Id),
 		InfoHash: response.Response.Torrent.InfoHash,
 		Size:     strconv.Itoa(response.Response.Torrent.Size),
+		Uploader: response.Response.Torrent.Username,
 	}, nil
 
 }

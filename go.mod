@@ -5,12 +5,13 @@ go 1.23.2
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 
 require (
+	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/anacrolix/torrent v1.57.1
+	github.com/anacrolix/torrent v1.58.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.2.0
-	github.com/autobrr/go-qbittorrent v1.10.0
+	github.com/autobrr/go-qbittorrent v1.11.0
 	github.com/autobrr/go-rtorrent v1.11.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.0
@@ -26,7 +27,7 @@ require (
 	github.com/gosimple/slug v1.14.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
-	github.com/icholy/digest v0.1.23
+	github.com/icholy/digest v1.0.1
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-shellwords v1.0.12
@@ -40,21 +41,22 @@ require (
 	github.com/sasha-s/go-deadlock v0.3.5
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.19.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.28.0
-	golang.org/x/net v0.30.0
-	golang.org/x/sync v0.8.0
-	golang.org/x/term v0.25.0
-	golang.org/x/time v0.7.0
+	golang.org/x/crypto v0.29.0
+	golang.org/x/net v0.31.0
+	golang.org/x/sync v0.9.0
+	golang.org/x/term v0.26.0
+	golang.org/x/time v0.8.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.33.1
+	modernc.org/sqlite v1.34.1
 )
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
@@ -64,9 +66,14 @@ require (
 	github.com/anacrolix/missinggo/v2 v2.7.4 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
+	github.com/cilium/ebpf v0.16.0 // indirect
+	github.com/containerd/cgroups/v3 v3.0.1 // indirect
+	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
+	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
@@ -93,6 +100,8 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/opencontainers/runtime-spec v1.0.2 // indirect
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -100,6 +109,7 @@ require (
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
@@ -107,8 +117,9 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect

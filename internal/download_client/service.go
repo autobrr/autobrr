@@ -181,8 +181,13 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
+		clientHost, err := client.BuildLegacyHost()
+		if err != nil {
+			return nil, errors.Wrap(err, "error building qBittorrent host url: %v", client.Host)
+		}
+
 		client.Client = qbittorrent.NewClient(qbittorrent.Config{
-			Host:          client.BuildLegacyHost(),
+			Host:          clientHost,
 			Username:      client.Username,
 			Password:      client.Password,
 			TLSSkipVerify: client.TLSSkipVerify,

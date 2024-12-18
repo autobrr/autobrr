@@ -71,8 +71,13 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 }
 
 func (s *service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+	clientHost, err := client.BuildLegacyHost()
+	if err != nil {
+		return errors.Wrap(err, "error building qBittorrent host url: %s", client.Host)
+	}
+
 	qbtSettings := qbittorrent.Config{
-		Host:          client.BuildLegacyHost(),
+		Host:          clientHost,
 		TLSSkipVerify: client.TLSSkipVerify,
 		Username:      client.Username,
 		Password:      client.Password,
