@@ -170,23 +170,23 @@ func (s Server) Handler() http.Handler {
 
 	// handle backwards compatibility for base url routing
 	if s.config.Config.BaseURLModeLegacy {
+		// this is required to keep assets "url rewritable" via a reverse-proxy
 		routeAssetBaseURL := "./"
 		// serve the web
 		webHandlers := newWebLegacyHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL, routeAssetBaseURL)
 		webHandlers.RegisterRoutes(webRouter)
 	} else {
 		routeBaseURL = s.config.Config.BaseURL
-		routeAssetBaseURL := s.config.Config.BaseURL
 
 		// serve the web
-		webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL, routeAssetBaseURL)
+		webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, routeBaseURL, routeBaseURL)
 		webHandlers.RegisterRoutes(webRouter)
 
-		// add fallback routes when base url is set to inform user
+		// add fallback routes when base url is set to inform user to redirect and use /baseurl/
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			if err := webHandlers.RenderFallbackIndex(w); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		})
@@ -194,17 +194,16 @@ func (s Server) Handler() http.Handler {
 		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			if err := webHandlers.RenderFallbackIndex(w); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		})
 	}
 
-	// Mount the API router under '/api'
+	// Mount the web router under baseUrl + '/'
 	r.Mount(routeBaseURL, webRouter)
+	// Mount the API router under baseUrl + '/api'
 	r.Mount(routeBaseURL+"api", apiRouter)
-
-	s.log.Debug().Msgf("routes: %s", r.Routes())
 
 	return r
 }
