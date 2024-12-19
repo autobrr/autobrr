@@ -43,6 +43,30 @@ export const Music = () => {
               </div>
             }
           />
+          <TextAreaAutoResize
+            name="match_record_labels"
+            label="Match record labels"
+            columns={6}
+            placeholder="eg. Anjunabeats, Armada"
+            tooltip={
+              <div>
+                <p>Comma separated list of record labels to match. Only Orpheus and Redacted support this.</p>
+                <DocsLink href="https://autobrr.com/filters#music" />
+              </div>
+            }
+          />
+          <TextAreaAutoResize
+            name="except_record_labels"
+            label="Except record labels"
+            columns={6}
+            placeholder="eg. Anjunadeep, Armind"
+            tooltip={
+              <div>
+                <p>Comma separated list of record labels to ignore (takes priority over Match record labels). Only Orpheus and Redacted support this.</p>
+                <DocsLink href="https://autobrr.com/filters#music" />
+              </div>
+            }
+          />
         </FilterLayout>
       </FilterSection>
 
@@ -168,8 +192,8 @@ export const Music = () => {
         <div className="col-span-12 flex items-center justify-center">
           <span className="border-b border-gray-150 dark:border-gray-750 w-full" />
           <span className="flex mx-2 shrink-0 text-lg font-bold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-          OR
-        </span>
+            OR
+          </span>
           <span className="border-b border-gray-150 dark:border-gray-750 w-full" />
         </div>
 
@@ -188,8 +212,8 @@ export const Music = () => {
           />
 
           <span className="col-span-12 sm:col-span-6 self-center ml-0 text-center sm:text-left text-sm text-gray-500 dark:text-gray-425 underline underline-offset-2">
-          This is what you want in 90% of cases (instead of options above).
-        </span>
+            This is what you want in 90% of cases (instead of options above).
+          </span>
         </FilterLayout>
       </FilterSection>
     </FilterPage>
