@@ -79,6 +79,9 @@ importers:
       formik:
         specifier: ^2.4.6
         version: 2.4.6(react@18.3.1)
+      goober:
+        specifier: ^2.1.16
+        version: 2.1.16(csstype@3.1.2)
       http-proxy-middleware:
         specifier: ^3.0.3
         version: 3.0.3
@@ -97,9 +100,6 @@ importers:
       react-hook-form:
         specifier: ^7.53.2
         version: 7.53.2(react@18.3.1)
-      react-hot-toast:
-        specifier: ^2.4.1
-        version: 2.4.1(csstype@3.1.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react-multi-select-component:
         specifier: ^4.3.4
         version: 4.3.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2165,11 +2165,6 @@ packages:
     resolution: {integrity: sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ==}
     engines: {node: '>= 0.4'}
 
-  goober@2.1.13:
-    resolution: {integrity: sha512-jFj3BQeleOoy7t93E9rZ2de+ScC4lQICLwiAQmKMg9F6roKGaLSHoCDYKkWlSafg138jejvq/mTdvmnwDQgqoQ==}
-    peerDependencies:
-      csstype: 3.1.2
-
   goober@2.1.16:
     resolution: {integrity: sha512-erjk19y1U33+XAMe1VTvIONHYoSqE4iS7BYUZfHaqeohLmnC0FdxEh7rQU+6MZ4OajItzjZFSRtVANrQwNq6/g==}
     peerDependencies:
@@ -2825,13 +2820,6 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^18.3.1
-
-  react-hot-toast@2.4.1:
-    resolution: {integrity: sha512-j8z+cQbWIM5LY37pR6uZR6D4LfseplqnuAO4co4u8917hBUvXlEqyP1ZzqVLcqoyUesZZv/ImreoCeHVDpE5pQ==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      react: ^18.3.1
-      react-dom: '>=16'
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -5812,10 +5800,6 @@ snapshots:
       define-properties: 1.2.1
       gopd: 1.0.1
 
-  goober@2.1.13(csstype@3.1.2):
-    dependencies:
-      csstype: 3.1.2
-
   goober@2.1.16(csstype@3.1.2):
     dependencies:
       csstype: 3.1.2
@@ -6401,14 +6385,6 @@ snapshots:
   react-hook-form@7.53.2(react@18.3.1):
     dependencies:
       react: 18.3.1
-
-  react-hot-toast@2.4.1(csstype@3.1.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
-    dependencies:
-      goober: 2.1.13(csstype@3.1.2)
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-    transitivePeerDependencies:
-      - csstype
 
   react-is@16.13.1: {}
 

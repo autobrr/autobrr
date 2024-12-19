@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, useFormikContext } from "formik";
 import type { FieldProps, FieldArrayRenderProps } from "formik";
@@ -18,6 +17,7 @@ import { ActionTypeNameMap, ActionTypeOptions, DOWNLOAD_CLIENTS } from "@domain/
 import { Select, TextField } from "@components/inputs";
 import { DeleteModal } from "@components/modals";
 import { EmptyListState } from "@components/emptystates";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 import { Checkbox } from "@components/Checkbox";
