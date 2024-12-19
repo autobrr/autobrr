@@ -62,6 +62,8 @@ interface Filter {
   except_categories: string;
   match_uploaders: string;
   except_uploaders: string;
+  match_record_labels: string;
+  except_record_labels: string;
   match_language: string[];
   except_language: string[];
   tags: string;

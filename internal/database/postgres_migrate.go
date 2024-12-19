@@ -144,6 +144,8 @@ CREATE TABLE filter
     except_categories              TEXT,
     match_uploaders                TEXT,
     except_uploaders               TEXT,
+    match_record_labels            TEXT,
+    except_record_labels           TEXT,
     match_language                 TEXT []   DEFAULT '{}',
     except_language                TEXT []   DEFAULT '{}',
     tags                           TEXT,
@@ -1002,5 +1004,11 @@ UPDATE irc_network
 
 	ALTER TABLE filter
 	ADD COLUMN announce_types TEXT []   DEFAULT '{}';
+`,
+	`ALTER TABLE filter
+	ADD COLUMN match_record_labels TEXT DEFAULT '';
+
+	ALTER TABLE filter
+	ADD COLUMN except_record_labels TEXT DEFAULT '';
 `,
 }
