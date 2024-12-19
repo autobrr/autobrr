@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from "react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
@@ -23,8 +24,6 @@ import { DEBUG } from "@components/debug";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 
-import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { FilterGetByIdRoute } from "@app/routes";
 
 interface tabType {
   name: string;
@@ -305,10 +304,11 @@ const schema = z.object({
 
 export const FilterDetails = () => {
   const navigate = useNavigate();
-  const ctx = FilterGetByIdRoute.useRouteContext()
-  const queryClient = ctx.queryClient
 
-  const params = FilterGetByIdRoute.useParams()
+  const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
+  const { queryClient } =  filterGetByIdRoute.useRouteContext();
+
+  const params = filterGetByIdRoute.useParams()
   const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(params.filterId))
   const filter = filterQuery.data
 
