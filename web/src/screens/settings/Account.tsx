@@ -5,7 +5,6 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
-import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
@@ -13,6 +12,7 @@ import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
 

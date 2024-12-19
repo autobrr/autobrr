@@ -4,7 +4,6 @@
  */
 
 import { Fragment, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
 import type { FieldProps } from "formik";
@@ -18,6 +17,7 @@ import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
 import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";

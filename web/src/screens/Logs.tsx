@@ -13,7 +13,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns/format";
-import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { Checkbox } from "@components/Checkbox";
@@ -21,6 +20,7 @@ import { baseUrl, classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 type LogEvent = {

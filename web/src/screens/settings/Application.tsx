@@ -5,13 +5,13 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
-import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { ExternalLink } from "@components/ExternalLink";
 

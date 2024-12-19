@@ -9,7 +9,6 @@ import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
-import { toast } from "react-hot-toast";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 
@@ -21,6 +20,7 @@ import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS } from "@domain/constants";
 
 import { DEBUG } from "@components/debug";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 

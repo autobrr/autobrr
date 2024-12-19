@@ -5,7 +5,7 @@
 
 import { FC } from "react";
 import { CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, XMarkIcon } from "@heroicons/react/24/solid";
-import { toast, Toast as Tooast } from "react-hot-toast";
+import { toast, Toast as Tooast } from "@components/hot-toast";
 import { classNames } from "@utils";
 
 type Props = {

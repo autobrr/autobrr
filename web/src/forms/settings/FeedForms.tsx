@@ -5,11 +5,11 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 import { useFormikContext } from "formik";
 
 import { APIClient } from "@api/APIClient";
 import { FeedKeys } from "@api/query_keys";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";

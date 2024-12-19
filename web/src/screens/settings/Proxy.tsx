@@ -6,7 +6,6 @@
 import { useToggle } from "@hooks/hooks.ts";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { ProxyKeys } from "@api/query_keys";
@@ -15,6 +14,7 @@ import { Section } from "./_components";
 import { EmptySimple } from "@components/emptystates";
 import { Checkbox } from "@components/Checkbox";
 import { ProxyAddForm, ProxyUpdateForm } from "@forms/settings/ProxyForms";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 interface ListItemProps {

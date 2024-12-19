@@ -5,7 +5,6 @@
 
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import toast from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
@@ -14,6 +13,7 @@ import { EmptySimple } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import {
   DiscordIcon,

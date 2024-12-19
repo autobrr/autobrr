@@ -10,7 +10,6 @@ import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
@@ -18,6 +17,7 @@ import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/con
 import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";

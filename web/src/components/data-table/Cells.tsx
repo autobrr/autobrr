@@ -4,7 +4,6 @@
  */
 
 import * as React from "react";
-import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CellContext } from "@tanstack/react-table";
@@ -21,6 +20,7 @@ import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { classNames, humanFileSize, simplifyDate } from "@utils";
 import { ExternalLink } from "../ExternalLink";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";

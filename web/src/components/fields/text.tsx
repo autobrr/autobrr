@@ -6,7 +6,7 @@
 import { useToggle } from "@hooks/hooks";
 import { CheckIcon, DocumentDuplicateIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 interface KeyFieldProps {
