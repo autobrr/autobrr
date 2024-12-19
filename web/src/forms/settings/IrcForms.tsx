@@ -4,7 +4,6 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import type { FieldProps } from "formik";
 import type { FieldArrayRenderProps } from "formik";
@@ -18,6 +17,7 @@ import { APIClient } from "@api/APIClient";
 import { IrcKeys } from "@api/query_keys";
 import { NumberFieldWide, PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { classNames } from "@utils";

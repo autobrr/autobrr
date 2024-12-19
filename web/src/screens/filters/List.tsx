@@ -5,7 +5,6 @@
 
 import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
-import { toast } from "react-hot-toast";
 import {
   Listbox,
   ListboxButton,
@@ -38,6 +37,7 @@ import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { FiltersQueryOptions, IndexersOptionsQueryOptions } from "@api/queries";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";

@@ -16,6 +16,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/containrrr/shoutrrr v0.8.0
+	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/dcarbone/zadapters/zstdlog v1.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ergochat/irc-go v0.4.0
@@ -28,7 +29,6 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	github.com/icholy/digest v1.0.1
-	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mmcdole/gofeed v1.3.0
@@ -45,6 +45,7 @@ require (
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/crypto v0.29.0
 	golang.org/x/net v0.31.0
+	golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync v0.9.0
 	golang.org/x/term v0.26.0
 	golang.org/x/time v0.8.0
@@ -73,6 +74,7 @@ require (
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
@@ -115,6 +117,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/sys v0.27.0 // indirect

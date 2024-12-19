@@ -8,13 +8,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Form, Formik, useFormikContext } from "formik";
-import { toast } from "react-hot-toast";
 
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { DownloadClientKeys } from "@api/query_keys";
 import { DownloadClientAuthType, DownloadClientTypeOptions, DownloadRuleConditionOptions } from "@domain/constants";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
