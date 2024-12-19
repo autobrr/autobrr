@@ -63,7 +63,7 @@ toast.promise = <T>(
   msgs: {
     loading: Renderable;
     success: ValueOrFunction<Renderable, T>;
-    error: ValueOrFunction<Renderable, any>;
+    error: ValueOrFunction<Renderable, unknown>;
   },
   opts?: DefaultToastOptions
 ) => {

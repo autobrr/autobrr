@@ -96,13 +96,14 @@ export const reducer = (state: State, action: Action): State => {
         ),
       };
 
-    case ActionType.UPSERT_TOAST:
+    case ActionType.UPSERT_TOAST: {
       const { toast } = action;
       return state.toasts.find((t) => t.id === toast.id)
         ? reducer(state, { type: ActionType.UPDATE_TOAST, toast })
         : reducer(state, { type: ActionType.ADD_TOAST, toast });
+    }
 
-    case ActionType.DISMISS_TOAST:
+    case ActionType.DISMISS_TOAST: {
       const { toastId } = action;
 
       // ! Side effects ! - This could be execrated into a dismissToast() action, but I'll keep it here for simplicity
@@ -125,6 +126,8 @@ export const reducer = (state: State, action: Action): State => {
             : t
         ),
       };
+    }
+
     case ActionType.REMOVE_TOAST:
       if (action.toastId === undefined) {
         return {
@@ -143,7 +146,7 @@ export const reducer = (state: State, action: Action): State => {
         pausedAt: action.time,
       };
 
-    case ActionType.END_PAUSE:
+    case ActionType.END_PAUSE: {
       const diff = action.time - (state.pausedAt || 0);
 
       return {
@@ -154,6 +157,7 @@ export const reducer = (state: State, action: Action): State => {
           pauseDuration: t.pauseDuration + diff,
         })),
       };
+    }
   }
 };
 
