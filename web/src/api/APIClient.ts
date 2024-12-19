@@ -419,6 +419,8 @@ export const APIClient = {
       body: list
     }),
     delete: (id: number) => appClient.Delete(`api/list/${id}`),
+    refreshList: (id: number) => appClient.Post(`api/list/${id}/refresh`),
+    refreshAll: () => appClient.Post(`api/list/refresh`),
     test: (list: List) => appClient.Post("api/list/test", {
       body: list
     })

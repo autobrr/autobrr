@@ -1,6 +1,19 @@
 package domain
 
-import "time"
+import (
+	"context"
+	"time"
+)
+
+type ListRepo interface {
+	List(ctx context.Context) ([]List, error)
+	FindByID(ctx context.Context, listID int64) (*List, error)
+	Store(ctx context.Context, listID *List) error
+	Update(ctx context.Context, listID *List) error
+	UpdateLastRefresh(ctx context.Context, list List) error
+	ToggleEnabled(ctx context.Context, listID int64, enabled bool) error
+	Delete(ctx context.Context, listID int64) error
+}
 
 type ListType string
 
@@ -34,22 +47,6 @@ type List struct {
 	LastRefreshTime        time.Time `json:"last_refresh_time"`
 	LastRefreshError       string    `json:"last_refresh_error"`
 	LastRefreshStatus      string    `json:"last_refresh_status"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
 }
-
-//	interface List {
-//	id: number;
-//	name: string;
-//	enabled: boolean;
-//	type: ListType;
-//	client_id: number;
-//	url: string;
-//	headers: string[];
-//	api_key: string;
-//	// cookie: string;
-//	filters: number[];
-//	match_release: boolean;
-//	tags_include: string[];
-//	tags_exclude: string[];
-//	include_unmonitored: boolean;
-//	exclude_alternate_titles: boolean;
-//}

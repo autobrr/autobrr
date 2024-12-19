@@ -16,10 +16,18 @@ import (
 )
 
 type Service interface {
+	List(ctx context.Context) ([]domain.List, error)
+	FindByID(ctx context.Context, id int64) (*domain.List, error)
+	Store(ctx context.Context, list *domain.List) error
+	Update(ctx context.Context, list *domain.List) error
+	Delete(ctx context.Context, id int64) error
+	RefreshAll(ctx context.Context) error
+	RefreshList(ctx context.Context, listID int64) error
 }
 
 type service struct {
-	log zerolog.Logger
+	log  zerolog.Logger
+	repo domain.ListRepo
 
 	httpClient        *http.Client
 	scheduler         scheduler.Service
@@ -27,9 +35,10 @@ type service struct {
 	filterSvc         filter.Service
 }
 
-func NewService(log logger.Logger, downloadClientSvc download_client.Service, filterSvc filter.Service, schedulerSvc scheduler.Service) Service {
+func NewService(log logger.Logger, repo domain.ListRepo, downloadClientSvc download_client.Service, filterSvc filter.Service, schedulerSvc scheduler.Service) Service {
 	return &service{
-		log: log.With().Str("module", "list").Logger(),
+		log:  log.With().Str("module", "list").Logger(),
+		repo: repo,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -40,33 +49,23 @@ func NewService(log logger.Logger, downloadClientSvc download_client.Service, fi
 }
 
 func (s *service) List(ctx context.Context) ([]domain.List, error) {
-	//data := make([]domain.List, 0)
-	data := []domain.List{
-		{
-			ID:      1,
-			Name:    "test",
-			Type:    "RADARR",
-			Filters: []int{1},
-		},
-	}
-
-	return data, nil
+	return s.repo.List(ctx)
 }
 
-func (s *service) Get(ctx context.Context, id int) (*domain.List, error) {
-	return nil, nil
+func (s *service) FindByID(ctx context.Context, id int64) (*domain.List, error) {
+	return s.repo.FindByID(ctx, id)
 }
 
-func (s *service) Store(ctx context.Context, list domain.List) (*domain.List, error) {
-	return nil, nil
+func (s *service) Store(ctx context.Context, list *domain.List) error {
+	return s.repo.Store(ctx, list)
 }
 
-func (s *service) Delete(ctx context.Context, id int) error {
-	return nil
+func (s *service) Update(ctx context.Context, list *domain.List) error {
+	return s.repo.Update(ctx, list)
 }
 
-func (s *service) Update(ctx context.Context, list domain.List) (*domain.List, error) {
-	return nil, nil
+func (s *service) Delete(ctx context.Context, id int64) error {
+	return s.repo.Delete(ctx, id)
 }
 
 func (s *service) RefreshAll(ctx context.Context) error {
@@ -75,9 +74,13 @@ func (s *service) RefreshAll(ctx context.Context) error {
 		return err
 	}
 
+	s.log.Debug().Msgf("found %d lists to refresh", len(lists))
+
 	if err := s.refreshAll(ctx, lists); err != nil {
 		return err
 	}
+
+	s.log.Debug().Msgf("successfully refreshed all lists")
 
 	return nil
 }
@@ -111,12 +114,16 @@ func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
 			//err = s.lidarr(ctx, arrClient, dryRun, s.autobrrClient)
 
 		case domain.ListTypeMDBList:
-
-		case domain.ListTypeTrakt:
+			err = s.mdblist(ctx, &listItem)
 
 		case domain.ListTypeMetacritic:
+			err = s.metacritic(ctx, &listItem)
 
 		case domain.ListTypeSteam:
+			err = s.steam(ctx, &listItem)
+
+		case domain.ListTypeTrakt:
+			err = s.trakt(ctx, &listItem)
 
 		default:
 			err = errors.Errorf("unsupported list type: %s", listItem.Type)
@@ -139,8 +146,8 @@ func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
 	return nil
 }
 
-func (s *service) TriggerRefresh(ctx context.Context, listID int) error {
-	list, err := s.Get(ctx, listID)
+func (s *service) RefreshList(ctx context.Context, listID int64) error {
+	list, err := s.FindByID(ctx, listID)
 	if err != nil {
 		return err
 	}

@@ -117,6 +117,7 @@ func main() {
 		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
 		indexerRepo        = database.NewIndexerRepo(log, db)
 		ircRepo            = database.NewIrcRepo(log, db)
+		listRepo           = database.NewListRepo(log, db)
 		notificationRepo   = database.NewNotificationRepo(log, db)
 		releaseRepo        = database.NewReleaseRepo(log, db)
 		userRepo           = database.NewUserRepo(log, db)
@@ -141,7 +142,7 @@ func main() {
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
-		listService           = list.NewService(log, downloadClientService, filterService, schedulingService)
+		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
 	)
 
 	// register event subscribers
