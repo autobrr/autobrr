@@ -3,6 +3,8 @@ import { defineConfig, loadEnv, ConfigEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
+import path from "node:path";
+import fs from "node:fs";
 
 interface PreRenderedAsset {
   name: string | undefined;
@@ -17,6 +19,7 @@ export default ({ mode }: ConfigEnv) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
 
   return defineConfig({
+    // __BASE_URL__: "{{.BaseUrl}}",
     base: "",
     plugins: [react(), svgr(), VitePWA({
       injectRegister: null,
@@ -72,7 +75,36 @@ export default ({ mode }: ConfigEnv) => {
         sourcemap: true,
         navigateFallbackDenylist: [/^\/api/]
       }
-    })],
+    }),
+    {
+      name: "html-transformer-plugin",
+      enforce: "post",
+      apply: "build",
+      async closeBundle() {
+        const outputDir = 'dist'; // Adjust this if your `build.outDir` is different
+        const htmlPath = path.resolve(outputDir, 'index.html');
+
+        // Check if the file exists
+        if (!fs.existsSync(htmlPath)) {
+          console.error(`Could not find ${htmlPath}. Make sure the output directory matches.`);
+          return;
+        }
+
+        // Read the `index.html` content
+        let html = fs.readFileSync(htmlPath, 'utf-8');
+
+        // Perform your transformations here
+        // the experimental renderBuiltUrl works except for the style font url where it escapes the curly braces
+        // we look for those and replace with the non escaped curly braces to be able to correctly replace baseurl.
+        html = html.replace('%7B%7B.AssetBaseUrl%7D%7D/', '{{.AssetBaseUrl}}'); // Example: Replace `{{.BaseUrl}}`
+
+        // Write the updated `index.html` back
+        fs.writeFileSync(htmlPath, html);
+
+        console.log('Transformed index.html successfully.');
+      },
+    },
+    ],
     resolve: {
       alias: [
         { find: "@", replacement: fileURLToPath(new URL("./src/", import.meta.url)) },
@@ -97,7 +129,7 @@ export default ({ mode }: ConfigEnv) => {
           target: "http://127.0.0.1:7474/",
           changeOrigin: true,
           secure: false
-        }
+        },
       }
     },
     build: {
@@ -111,6 +143,25 @@ export default ({ mode }: ConfigEnv) => {
             return "assets/[name]-[hash][extname]";
           }
         },
+      }
+    },
+    experimental: {
+      renderBuiltUrl(filename: string, { hostId, hostType, type }: {
+        hostId: string,
+        hostType: 'js' | 'css' | 'html',
+        type: 'public' | 'asset'
+      }) {
+        // console.debug(filename, hostId, hostType, type)
+        return '{{.AssetBaseUrl}}' + filename
+        // if (type === 'public') {
+        //   return 'https://www.domain.com/' + filename
+        // }
+        // else if (path.extname(hostId) === '.js') {
+        //   return { runtime: `window.__assetsPath(${JSON.stringify(filename)})` }
+        // }
+        // else {
+        //   return 'https://cdn.domain.com/assets/' + filename
+        // }
       }
     }
   });

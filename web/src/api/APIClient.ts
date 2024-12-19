@@ -156,6 +156,7 @@ export async function HttpClient<T = unknown>(
   }
 
   const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
+
   const isJson = response.headers.get("Content-Type")?.includes("application/json");
 
   if (response.status >= 200 && response.status < 300) {

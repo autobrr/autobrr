@@ -20,6 +20,14 @@ port = 7474
 #
 #baseUrl = "/autobrr/"
 
+# Base url mode legacy
+# This is kept for compatibility with older versions doing url rewrite on the proxy.
+# If you use baseUrl you can set this to false and skip any url rewrite in your proxy.
+#
+# Default: true
+#
+baseUrlModeLegacy = true
+
 # autobrr logs file
 # If not defined, logs to stdout
 #
