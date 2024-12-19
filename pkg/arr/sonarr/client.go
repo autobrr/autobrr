@@ -15,7 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (c *client) get(ctx context.Context, endpoint string) (int, []byte, error) {
+func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
@@ -54,7 +54,47 @@ func (c *client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 	return resp.StatusCode, buf.Bytes(), nil
 }
 
-func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
+func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values, data any) error {
+	u, err := url.Parse(c.config.Hostname)
+	if err != nil {
+		return errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
+	}
+
+	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
+	reqUrl := u.String()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
+	if err != nil {
+		return errors.Wrap(err, "could not build request")
+	}
+
+	if c.config.BasicAuth {
+		req.SetBasicAuth(c.config.Username, c.config.Password)
+	}
+
+	c.setHeaders(req)
+
+	req.URL.RawQuery = params.Encode()
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.Body == nil {
+		return errors.New("response body is nil")
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return errors.Wrap(err, "could not unmarshal data")
+	}
+
+	return nil
+}
+
+func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
 	u, err := url.Parse(c.config.Hostname)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
@@ -97,7 +137,7 @@ func (c *client) post(ctx context.Context, endpoint string, data interface{}) (*
 	return res, nil
 }
 
-func (c *client) postBody(ctx context.Context, endpoint string, data interface{}) (int, []byte, error) {
+func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
@@ -147,7 +187,7 @@ func (c *client) postBody(ctx context.Context, endpoint string, data interface{}
 	return resp.StatusCode, buf.Bytes(), nil
 }
 
-func (c *client) setHeaders(req *http.Request) {
+func (c *Client) setHeaders(req *http.Request) {
 	if req.Body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}

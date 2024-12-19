@@ -32,6 +32,7 @@ const subNavigation: NavTabType[] = [
   { name: "Indexers", href: "/settings/indexers", icon: KeyIcon },
   { name: "IRC", href: "/settings/irc", icon: ChatBubbleLeftRightIcon },
   { name: "Feeds", href: "/settings/feeds", icon: RssIcon },
+  { name: "Lists", href: "/settings/lists", icon: RssIcon },
   { name: "Clients", href: "/settings/clients", icon: FolderArrowDownIcon },
   { name: "Notifications", href: "/settings/notifications", icon: BellIcon },
   { name: "API keys", href: "/settings/api", icon: KeyIcon },

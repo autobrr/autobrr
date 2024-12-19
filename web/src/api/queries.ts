@@ -11,7 +11,7 @@ import {
   FeedKeys,
   FilterKeys,
   IndexerKeys,
-  IrcKeys, NotificationKeys, ProxyKeys,
+  IrcKeys, ListKeys, NotificationKeys, ProxyKeys,
   ReleaseKeys,
   SettingsKeys
 } from "@api/query_keys";
@@ -162,4 +162,11 @@ export const ProxyByIdQueryOptions = (proxyId: number) =>
     queryKey: ProxyKeys.detail(proxyId),
     queryFn: async ({queryKey}) => await APIClient.proxy.getByID(queryKey[2]),
     retry: false,
+  });
+
+export const ListsQueryOptions = () =>
+  queryOptions({
+    queryKey: ListKeys.lists(),
+    queryFn: () => APIClient.lists.list(),
+    refetchOnWindowFocus: false
   });

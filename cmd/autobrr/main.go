@@ -25,6 +25,7 @@ import (
 	"github.com/autobrr/autobrr/internal/http"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/list"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/proxy"
@@ -140,6 +141,7 @@ func main() {
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
+		listService           = list.NewService(log, downloadClientService, filterService, schedulingService)
 	)
 
 	// register event subscribers
@@ -164,6 +166,7 @@ func main() {
 			feedService,
 			indexerService,
 			ircService,
+			listService,
 			notificationService,
 			proxyService,
 			releaseService,

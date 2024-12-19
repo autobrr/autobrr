@@ -409,6 +409,20 @@ export const APIClient = {
       body: notification
     })
   },
+  lists: {
+    list: () => appClient.Get<List[]>("api/list"),
+    getByID: (id: number) => appClient.Get<List>(`api/list/${id}`),
+    store: (list: ListCreate) => appClient.Post("api/list", {
+      body: list
+    }),
+    update: (list: List) => appClient.Put(`api/list/${list.id}`, {
+      body: list
+    }),
+    delete: (id: number) => appClient.Delete(`api/list/${id}`),
+    test: (list: List) => appClient.Post("api/list/test", {
+      body: list
+    })
+  },
   proxy: {
     list: () => appClient.Get<Proxy[]>("api/proxy"),
     getByID: (id: number) => appClient.Get<Proxy>(`api/proxy/${id}`),
