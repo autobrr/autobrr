@@ -6,7 +6,7 @@
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
-import { useRouter, useSearch } from "@tanstack/react-router";
+import { getRouteApi, useRouter } from "@tanstack/react-router";
 import toast from "react-hot-toast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
@@ -17,7 +17,6 @@ import { APIClient } from "@api/APIClient";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { PasswordInput, TextInput } from "@components/inputs/text";
-import { LoginRoute } from "@app/routes";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext, AuthInfo } from "@utils/Context";
@@ -37,7 +36,9 @@ export const Login = () => {
   const [auth, setAuth] = AuthContext.use();
   const queryErrorResetBoundary = useQueryErrorResetBoundary()
   const router = useRouter()
-  const search = useSearch({ from: LoginRoute.id })
+
+  const loginRoute = getRouteApi('/login');
+  const search = loginRoute.useSearch();
 
   // Query to check if onboarding is available
   const { data: canOnboard } = useQuery({
