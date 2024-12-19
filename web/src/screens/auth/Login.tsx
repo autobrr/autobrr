@@ -7,13 +7,13 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
-import toast from "react-hot-toast";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 
 import { RocketLaunchIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { PasswordInput, TextInput } from "@components/inputs/text";

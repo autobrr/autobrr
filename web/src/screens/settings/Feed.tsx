@@ -6,7 +6,6 @@
 import { Fragment, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
-import { toast } from "react-hot-toast";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
@@ -21,6 +20,7 @@ import { FeedsQueryOptions } from "@api/queries";
 import { FeedKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal, ForceRunModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";

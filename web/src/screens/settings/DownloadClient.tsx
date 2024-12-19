@@ -6,7 +6,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import toast from "react-hot-toast";
 
 import { useToggle } from "@hooks/hooks";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "@forms";
@@ -15,6 +14,7 @@ import { APIClient } from "@api/APIClient";
 import { DownloadClientKeys } from "@api/query_keys";
 import { DownloadClientsQueryOptions } from "@api/queries";
 import { ActionTypeNameMap } from "@domain/constants";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 

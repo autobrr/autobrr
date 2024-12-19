@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getRouteApi, redirect } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 import { LeftNav } from "./LeftNav";

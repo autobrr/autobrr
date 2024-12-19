@@ -4,7 +4,7 @@
  */
 
 import { QueryCache, QueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
 import { getRouteApi, redirect } from "@tanstack/react-router";
