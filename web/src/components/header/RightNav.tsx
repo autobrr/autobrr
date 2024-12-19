@@ -6,6 +6,8 @@
 import { Fragment } from "react";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 
 import { classNames } from "@utils";
 
@@ -17,6 +19,8 @@ import { AuthContext, SettingsContext } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
+
+  const auth = AuthContext.get();
 
   const toggleTheme = () => {
     setSettings(prevState => ({
@@ -56,12 +60,22 @@ export const RightNav = (props: RightNavProps) => {
                   <span className="sr-only">
                     Open user menu for{" "}
                   </span>
-                  {AuthContext.get().username}
+                  <span className="flex items-center">
+                    {auth.username}
+                    {auth.authMethod === 'oidc' ? (
+                      <FontAwesomeIcon
+                        icon={faOpenid}
+                        className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <UserIcon
+                        className="inline ml-1 h-5 w-5"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </span>
                 </span>
-                <UserIcon
-                  className="inline ml-1 h-5 w-5"
-                  aria-hidden="true"
-                />
               </MenuButton>
               <Transition
                 show={open}

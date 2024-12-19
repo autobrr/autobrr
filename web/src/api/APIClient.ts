@@ -5,11 +5,15 @@
 
 import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
-import { AuthContext } from "@utils/Context";
+import { AuthContext, AuthInfo } from "@utils/Context";
 import { ColumnFilter } from "@tanstack/react-table";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
+type ValidateResponse = {
+  username?: AuthInfo['username'];
+  auth_method?: AuthInfo['authMethod'];
+}
 
 interface HttpConfig {
   /**
@@ -239,19 +243,33 @@ const appClient = {
   })
 };
 
+
 export const APIClient = {
   auth: {
     login: (username: string, password: string) => appClient.Post("api/auth/login", {
       body: { username, password }
     }),
     logout: () => appClient.Post("api/auth/logout"),
-    validate: () => appClient.Get<void>("api/auth/validate"),
+    validate: async (): Promise<ValidateResponse> => {
+      const response = await appClient.Get<ValidateResponse>("api/auth/validate");
+      return response;
+    },
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }
     }),
     canOnboard: () => appClient.Get("api/auth/onboard"),
     updateUser: (req: UserUpdate) => appClient.Patch(`api/auth/user/${req.username_current}`,
-      { body: req })
+      { body: req }),
+    getOIDCConfig: async () => {
+      try {
+        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string }>("api/auth/oidc/config");
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message?.includes('404')) {
+          return { enabled: false, authorizationUrl: '', state: '' };
+        }
+        throw error;
+      }
+    },
   },
   actions: {
     create: (action: Action) => appClient.Post("api/actions", {

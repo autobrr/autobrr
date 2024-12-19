@@ -20,15 +20,17 @@ export type FilterListState = {
   status: string;
 };
 
-interface AuthInfo {
+export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
+  authMethod?: 'password' | 'oidc';
 }
 
 // Default values
 const AuthContextDefaults: AuthInfo = {
   username: "",
-  isLoggedIn: false
+  isLoggedIn: false,
+  authMethod: undefined
 };
 
 const SettingsContextDefaults: SettingsType = {

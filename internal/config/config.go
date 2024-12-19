@@ -108,6 +108,25 @@ sessionSecret = "{{ .sessionSecret }}"
 #
 # Default: 6060
 #profilingPort = 6060
+
+# OpenID Connect Configuration
+#
+# Enable OIDC authentication
+#oidc_enabled = false
+#
+# OIDC Issuer URL (e.g. https://auth.example.com)
+#oidc_issuer = ""
+#
+# OIDC Client ID
+#oidc_client_id = ""
+#
+# OIDC Client Secret
+#oidc_client_secret = ""
+#
+# OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
+#oidc_redirect_url = ""
+
+# Custom definitions
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -364,6 +383,27 @@ func (c *AppConfig) loadFromEnv() {
 		if i > 0 {
 			c.Config.ProfilingPort = int(i)
 		}
+	}
+
+	// OIDC Configuration
+	if v := os.Getenv(prefix + "OIDC_ENABLED"); v != "" {
+		c.Config.OIDCEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "OIDC_ISSUER"); v != "" {
+		c.Config.OIDCIssuer = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_CLIENT_ID"); v != "" {
+		c.Config.OIDCClientID = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_CLIENT_SECRET"); v != "" {
+		c.Config.OIDCClientSecret = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_REDIRECT_URL"); v != "" {
+		c.Config.OIDCRedirectURL = v
 	}
 }
 
