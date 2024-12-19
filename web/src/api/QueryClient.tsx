@@ -7,20 +7,20 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
-import { redirect } from "@tanstack/react-router";
-import { LoginRoute } from "@app/routes";
+import { getRouteApi, redirect } from "@tanstack/react-router";
 
 const MAX_RETRIES = 6;
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
+      const loginRoute = getRouteApi("/login");
       console.error(`Caught error for query '${query.queryKey}': `, error);
 
       if (error.message === "Cookie expired or invalid.") {
         AuthContext.reset();
         redirect({
-          to: LoginRoute.to,
+          to: loginRoute.id,
           search: {
             // Use the current location to power a redirect after login
             // (Do not use `router.state.resolvedLocation` as it can

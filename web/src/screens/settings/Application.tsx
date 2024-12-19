@@ -4,9 +4,9 @@
  */
 
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { getRouteApi } from "@tanstack/react-router";
 import { toast } from "react-hot-toast";
 
-import { SettingsIndexRoute } from "@app/routes";
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
@@ -20,8 +20,8 @@ import { Section, RowItem } from "./_components";
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
-  const ctx = SettingsIndexRoute.useRouteContext()
-  const queryClient = ctx.queryClient
+  const settingsIndexRoute = getRouteApi("/auth/authenticated-routes/settings/");
+  const { queryClient } =  settingsIndexRoute.useRouteContext();
 
   const { isError:isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
   if (isConfigError) {
