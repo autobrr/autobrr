@@ -78,7 +78,7 @@ function ListsSettings() {
           <EmptySimple
             title="No proxies"
             subtitle=""
-            buttonText="Add new proxy"
+            buttonText="Add new list"
             buttonAction={toggleAddProxy}
           />
         )}
@@ -106,7 +106,7 @@ function ListItem({ list }: ListItemProps) {
       toast.custom(t => <Toast type="success" body={`List ${list.name} was ${list.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Proxy state could not be updated" t={t} />);
+      toast.custom((t) => <Toast type="error" body="List state could not be updated" t={t} />);
     }
   });
 
