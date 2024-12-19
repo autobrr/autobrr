@@ -411,6 +411,30 @@ CREATE TABLE api_key
     scopes     TEXT []   DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE list
+(
+    id                       INTEGER PRIMARY KEY,
+    name                     TEXT                 NOT NULL,
+    enabled                  BOOLEAN,
+    type                     TEXT                 NOT NULL,
+    client_id                TEXT,
+    url                      TEXT,
+    headers                  TEXT [] DEFAULT '{}' NOT NULL,
+    api_key                  TEXT,
+    filters                  TEXT [] DEFAULT '{}' NOT NULL,
+    match_release            BOOLEAN,
+    tags_included            TEXT [] DEFAULT '{}' NOT NULL,
+    tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
+    include_unmonitored      BOOLEAN,
+    exclude_alternate_titles BOOLEAN,
+    last_refresh_time        TIMESTAMP,
+    last_refresh_status      TEXT,
+    last_refresh_data        TEXT,
+    created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
 `
 
 var sqliteMigrations = []string{
@@ -1644,5 +1668,29 @@ UPDATE irc_network
 
 	ALTER TABLE filter
 	ADD COLUMN announce_types TEXT []   DEFAULT '{}';
+`,
+	`CREATE TABLE list
+(
+    id                       INTEGER PRIMARY KEY,
+    name                     TEXT                 NOT NULL,
+    enabled                  BOOLEAN,
+    type                     TEXT                 NOT NULL,
+    client_id                TEXT,
+    url                      TEXT,
+    headers                  TEXT [] DEFAULT '{}' NOT NULL,
+    api_key                  TEXT,
+    filters                  TEXT [] DEFAULT '{}' NOT NULL,
+    match_release            BOOLEAN,
+    tags_included            TEXT [] DEFAULT '{}' NOT NULL,
+    tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
+    include_unmonitored      BOOLEAN,
+    exclude_alternate_titles BOOLEAN,
+    last_refresh_time        TIMESTAMP,
+    last_refresh_status      TEXT,
+    last_refresh_data        TEXT,
+    created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
 `,
 }
