@@ -12,7 +12,7 @@ interface List {
   url: string;
   headers: string[];
   api_key: string;
-  filters: number[];
+  filters: Filter[];
   match_release: boolean;
   tags_included: string[];
   tags_excluded: string[];

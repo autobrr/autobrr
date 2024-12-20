@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { JSX } from "react";
 import { Field } from "formik";
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
@@ -11,6 +12,8 @@ import type { FieldProps } from "formik";
 import { OptionBasicTyped } from "@domain/constants";
 import * as common from "@components/inputs/common";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
+import { MultiSelect as RMSC } from "react-multi-select-component";
+import { MultiSelectOption } from "@components/inputs/select.tsx";
 
 interface SelectFieldProps<T> {
   name: string;
@@ -219,6 +222,70 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
               }}
               options={options}
             />
+          )}
+        </Field>
+        {help && (
+          <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export interface MultiSelectFieldProps {
+  name: string;
+  label: string;
+  help?: string;
+  placeholder?: string;
+  required?: boolean;
+  tooltip?: JSX.Element;
+  options: OptionBasicTyped<number>[];
+}
+
+interface ListIndexerMultiSelectOption {
+  id: number;
+  name: string;
+}
+
+export function ListIndexerMultiSelectField({ name, label, help, tooltip, options }: MultiSelectFieldProps) {
+  return (
+    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <div>
+        <label
+          htmlFor={name}
+          className="block ml-px text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
+        >
+          <div className="flex">
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
+          </div>
+        </label>
+      </div>
+      <div className="sm:col-span-2">
+        <Field name={name} type="select">
+          {({
+              field,
+              form: { setFieldValue }
+            }: FieldProps) => (
+              <>
+                <RMSC
+                  {...field}
+                  options={options}
+                  // disabled={disabled}
+                  labelledBy={name}
+                  // isCreatable={creatable}
+                  // onCreateOption={handleNewField}
+                  value={field.value && field.value.map((item: ListIndexerMultiSelectOption) => ({
+                    value: item.id,
+                    label: item.name
+                  }))}
+                  onChange={(values: MultiSelectOption[]) => {
+                    const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+                    setFieldValue(field.name, item);
+                  }}
+                />
+            </>
           )}
         </Field>
         {help && (

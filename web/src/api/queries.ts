@@ -17,6 +17,13 @@ import {
 } from "@api/query_keys";
 import { ColumnFilter } from "@tanstack/react-table";
 
+export const FiltersGetAllQueryOptions = () =>
+  queryOptions({
+    queryKey: FilterKeys.lists(),
+    queryFn: () => APIClient.filters.getAll(),
+    refetchOnWindowFocus: false
+  });
+
 export const FiltersQueryOptions = (indexers: string[], sortOrder: string) =>
   queryOptions({
     queryKey: FilterKeys.list(indexers, sortOrder),

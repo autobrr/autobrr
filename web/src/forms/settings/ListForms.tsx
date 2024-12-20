@@ -30,8 +30,9 @@ import {
 } from "@components/inputs";
 import { ListTypeOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
-import { DownloadClientsQueryOptions } from "@api/queries";
+import { DownloadClientsQueryOptions, FiltersGetAllQueryOptions } from "@api/queries";
 import { classNames } from "@utils";
+import { ListIndexerMultiSelectField } from "@components/inputs/select_wide.tsx";
 
 interface ListAddFormValues {
   name: string;
@@ -47,6 +48,8 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
 
   const { data: clients } = useQuery(DownloadClientsQueryOptions());
+
+  const filterQuery = useQuery(FiltersGetAllQueryOptions());
 
   const createMutation = useMutation({
     mutationFn: (list: List) => APIClient.lists.store(list),
@@ -230,18 +233,20 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                            <div className="mt-6 px-4 space-y-1">
-                              <ul>
-                                <li
-                                  className="px-4 py-2 w-full flex justify-between border rounded-md dark:border-gray-700">
-                                  <div>
-                                    <span className="dark:text-white">Test</span>
-                                  </div>
-                                  x
-                                </li>
+                            <ListIndexerMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []} />
 
-                              </ul>
-                            </div>
+                            {/*<div className="mt-6 px-4 space-y-1">*/}
+                            {/*  <ul>*/}
+                            {/*    <li*/}
+                            {/*      className="px-4 py-2 w-full flex justify-between border rounded-md dark:border-gray-700">*/}
+                            {/*      <div>*/}
+                            {/*        <span className="dark:text-white">Test</span>*/}
+                            {/*      </div>*/}
+                            {/*      x*/}
+                            {/*    </li>*/}
+                            {/*  </ul>*/}
+                            {/*</div>*/}
+
                           </div>
                         </div>
                       </div>

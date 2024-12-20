@@ -426,7 +426,6 @@ CREATE TABLE list
     url                      TEXT,
     headers                  TEXT [] DEFAULT '{}' NOT NULL,
     api_key                  TEXT,
-    filters                  TEXT [] DEFAULT '{}' NOT NULL,
     match_release            BOOLEAN,
     tags_included            TEXT [] DEFAULT '{}' NOT NULL,
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
@@ -438,6 +437,15 @@ CREATE TABLE list
     created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
+
+CREATE TABLE list_filter
+(
+    list_id   INTEGER,
+    filter_id INTEGER,
+    FOREIGN KEY (list_id) REFERENCES list(id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    PRIMARY KEY (list_id, filter_id)
 );
 `
 
@@ -1037,7 +1045,6 @@ UPDATE irc_network
     url                      TEXT,
     headers                  TEXT [] DEFAULT '{}' NOT NULL,
     api_key                  TEXT,
-    filters                  TEXT [] DEFAULT '{}' NOT NULL,
     match_release            BOOLEAN,
     tags_included            TEXT [] DEFAULT '{}' NOT NULL,
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
@@ -1049,6 +1056,15 @@ UPDATE irc_network
     created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
+
+CREATE TABLE list_filter
+(
+    list_id   INTEGER,
+    filter_id INTEGER,
+    FOREIGN KEY (list_id) REFERENCES list(id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    PRIMARY KEY (list_id, filter_id)
 );
 `,
 }

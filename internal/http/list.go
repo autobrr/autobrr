@@ -16,7 +16,7 @@ type listService interface {
 	Update(ctx context.Context, list *domain.List) error
 	Delete(ctx context.Context, id int64) error
 	FindByID(ctx context.Context, id int64) (*domain.List, error)
-	List(ctx context.Context) ([]domain.List, error)
+	List(ctx context.Context) ([]*domain.List, error)
 	RefreshList(ctx context.Context, id int64) error
 	RefreshAll(ctx context.Context) error
 }

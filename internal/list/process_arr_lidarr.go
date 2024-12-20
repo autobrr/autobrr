@@ -64,16 +64,16 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 	//	return nil
 	//}
 
-	for _, filterID := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filterID)
+	for _, filter := range list.Filters {
+		l.Debug().Msgf("updating filter: %v", filter.ID)
 
-		f.ID = filterID
+		f.ID = filter.ID
 
 		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
-			return errors.Wrap(err, "error updating filter: %v", filterID)
+			return errors.Wrap(err, "error updating filter: %v", filter.ID)
 		}
 
-		l.Debug().Msgf("successfully updated filter: %v", filterID)
+		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
 	}
 
 	return nil

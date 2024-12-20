@@ -109,8 +109,8 @@ func (s *service) metacritic(ctx context.Context, list *domain.List) error {
 		return nil
 	}
 
-	for _, filterID := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filterID)
+	for _, filter := range list.Filters {
+		l.Debug().Msgf("updating filter: %v", filter.ID)
 
 		f := domain.FilterUpdate{Albums: &joinedTitles, Artists: &joinedArtists}
 
@@ -118,14 +118,13 @@ func (s *service) metacritic(ctx context.Context, list *domain.List) error {
 			f = domain.FilterUpdate{MatchReleases: &joinedTitles}
 		}
 
-		f.ID = filterID
+		f.ID = filter.ID
 
 		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
-			l.Error().Err(err).Msgf("error updating filter: %v", filterID)
-			return errors.Wrapf(err, "error updating filter: %v", filterID)
+			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 
-		l.Debug().Msgf("successfully updated filter: %v", filterID)
+		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
 	}
 
 	return nil

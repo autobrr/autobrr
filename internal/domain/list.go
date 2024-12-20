@@ -2,20 +2,22 @@ package domain
 
 import (
 	"context"
-	"github.com/autobrr/autobrr/pkg/errors"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type ListRepo interface {
-	List(ctx context.Context) ([]List, error)
+	List(ctx context.Context) ([]*List, error)
 	FindByID(ctx context.Context, listID int64) (*List, error)
 	Store(ctx context.Context, listID *List) error
 	Update(ctx context.Context, listID *List) error
-	UpdateLastRefresh(ctx context.Context, list List) error
+	UpdateLastRefresh(ctx context.Context, list *List) error
 	ToggleEnabled(ctx context.Context, listID int64, enabled bool) error
 	Delete(ctx context.Context, listID int64) error
+	GetListFilters(ctx context.Context, listID int64) ([]ListFilter, error)
 }
 
 type ListType string
@@ -41,7 +43,7 @@ const (
 )
 
 type List struct {
-	ID                     int               `json:"id"`
+	ID                     int64             `json:"id"`
 	Name                   string            `json:"name"`
 	Type                   ListType          `json:"type"`
 	Enabled                bool              `json:"enabled"`
@@ -49,14 +51,14 @@ type List struct {
 	URL                    string            `json:"url"`
 	Headers                []string          `json:"headers"`
 	APIKey                 string            `json:"api_key"`
-	Filters                []int             `json:"filters"`
+	Filters                []ListFilter      `json:"filters"`
 	MatchRelease           bool              `json:"match_release"`
-	TagsInclude            []string          `json:"tags_include"`
-	TagsExclude            []string          `json:"tags_exclude"`
+	TagsInclude            []string          `json:"tags_included"`
+	TagsExclude            []string          `json:"tags_excluded"`
 	IncludeUnmonitored     bool              `json:"include_unmonitored"`
 	ExcludeAlternateTitles bool              `json:"exclude_alternate_titles"`
 	LastRefreshTime        time.Time         `json:"last_refresh_time"`
-	LastRefreshError       string            `json:"last_refresh_error"`
+	LastRefreshData        string            `json:"last_refresh_error"`
 	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
 	CreatedAt              time.Time         `json:"created_at"`
 	UpdatedAt              time.Time         `json:"updated_at"`
@@ -103,4 +105,9 @@ func (l *List) SetRequestHeaders(req *http.Request) {
 		}
 		req.Header.Set(parts[0], parts[1])
 	}
+}
+
+type ListFilter struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }

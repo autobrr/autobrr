@@ -16,7 +16,7 @@ import (
 )
 
 type Service interface {
-	List(ctx context.Context) ([]domain.List, error)
+	List(ctx context.Context) ([]*domain.List, error)
 	FindByID(ctx context.Context, id int64) (*domain.List, error)
 	Store(ctx context.Context, list *domain.List) error
 	Update(ctx context.Context, list *domain.List) error
@@ -48,8 +48,22 @@ func NewService(log logger.Logger, repo domain.ListRepo, downloadClientSvc downl
 	}
 }
 
-func (s *service) List(ctx context.Context) ([]domain.List, error) {
-	return s.repo.List(ctx)
+func (s *service) List(ctx context.Context) ([]*domain.List, error) {
+	data, err := s.repo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, list := range data {
+		filters, err := s.repo.GetListFilters(ctx, list.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		list.Filters = filters
+	}
+
+	return data, nil
 }
 
 func (s *service) FindByID(ctx context.Context, id int64) (*domain.List, error) {
@@ -93,7 +107,7 @@ func (s *service) RefreshAll(ctx context.Context) error {
 	return nil
 }
 
-func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
+func (s *service) refreshAll(ctx context.Context, lists []*domain.List) error {
 	var processingErrors []error
 
 	for _, listItem := range lists {
@@ -107,31 +121,31 @@ func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
 
 		switch listItem.Type {
 		case domain.ListTypeRadarr:
-			err = s.radarr(ctx, &listItem)
+			err = s.radarr(ctx, listItem)
 
 		case domain.ListTypeSonarr:
-			err = s.sonarr(ctx, &listItem)
+			err = s.sonarr(ctx, listItem)
 
 		case domain.ListTypeWhisparr:
-			err = s.sonarr(ctx, &listItem)
+			err = s.sonarr(ctx, listItem)
 
 		case domain.ListTypeReadarr:
-			err = s.readarr(ctx, &listItem)
+			err = s.readarr(ctx, listItem)
 
 		case domain.ListTypeLidarr:
-			err = s.lidarr(ctx, &listItem)
+			err = s.lidarr(ctx, listItem)
 
 		case domain.ListTypeMDBList:
-			err = s.mdblist(ctx, &listItem)
+			err = s.mdblist(ctx, listItem)
 
 		case domain.ListTypeMetacritic:
-			err = s.metacritic(ctx, &listItem)
+			err = s.metacritic(ctx, listItem)
 
 		case domain.ListTypeSteam:
-			err = s.steam(ctx, &listItem)
+			err = s.steam(ctx, listItem)
 
 		case domain.ListTypeTrakt:
-			err = s.trakt(ctx, &listItem)
+			err = s.trakt(ctx, listItem)
 
 		default:
 			err = errors.Errorf("unsupported list type: %s", listItem.Type)
@@ -140,7 +154,7 @@ func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
 		if err != nil {
 			// update last run for list and set errs and status
 			listItem.LastRefreshStatus = domain.ListRefreshStatusError
-			listItem.LastRefreshError = err.Error()
+			listItem.LastRefreshData = err.Error()
 			listItem.LastRefreshTime = time.Now()
 
 			if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
@@ -154,7 +168,7 @@ func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
 
 		} else {
 			listItem.LastRefreshStatus = domain.ListRefreshStatusSuccess
-			//listItem.LastRefreshError = err.Error()
+			//listItem.LastRefreshData = err.Error()
 			listItem.LastRefreshTime = time.Now()
 
 			if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
@@ -181,7 +195,7 @@ func (s *service) RefreshList(ctx context.Context, listID int64) error {
 	}
 
 	// TODO get single one
-	if err := s.refreshAll(ctx, []domain.List{*list}); err != nil {
+	if err := s.refreshAll(ctx, []*domain.List{list}); err != nil {
 		return err
 	}
 
