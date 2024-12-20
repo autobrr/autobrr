@@ -409,6 +409,49 @@ export const PushStatusOptions: OptionBasic[] = [
   }
 ];
 
+export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
+  {
+    label: "Sonarr",
+    value: "SONARR"
+  },
+  {
+    label: "Radarr",
+    value: "RADARR"
+  },
+  {
+    label: "Lidarr",
+    value: "LIDARR"
+  },
+  {
+    label: "Readarr",
+    value: "READARR"
+  },
+  {
+    label: "Whisparr",
+    value: "WHISPARR"
+  },
+  {
+    label: "MDBList",
+    value: "MDBLIST"
+  },
+  {
+    label: "Trakt",
+    value: "TRAKT"
+  },
+  {
+    label: "Plaintext",
+    value: "PLAINTEXT"
+  },
+  {
+    label: "Steam",
+    value: "STEAM"
+  },
+  {
+    label: "Metacritic",
+    value: "METACRITIC"
+  },
+];
+
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Discord",

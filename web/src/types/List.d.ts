@@ -12,11 +12,10 @@ interface List {
   url: string;
   headers: string[];
   api_key: string;
-  // cookie: string;
   filters: number[];
   match_release: boolean;
-  tags_include: string[];
-  tags_exclude: string[];
+  tags_included: string[];
+  tags_excluded: string[];
   include_unmonitored: boolean;
   exclude_alternate_titles: boolean;
 }
@@ -29,7 +28,6 @@ interface ListCreate {
   url: string;
   headers: string[];
   api_key: string;
-  // cookie: string;
   filters: number[];
   match_release: boolean;
   tags_include: string[];
@@ -38,4 +36,4 @@ interface ListCreate {
   exclude_alternate_titles: boolean;
 }
 
-type ListType = "SONARR" | "RADARR" | "LIDARR" | "READARR" | "WHISPARR" | "MDBLIST" | "TRAKT" | "METACRITIC" | "STEAM";
+type ListType = "SONARR" | "RADARR" | "LIDARR" | "READARR" | "WHISPARR" | "MDBLIST" | "TRAKT" | "METACRITIC" | "STEAM" | "PLAINTEXT";

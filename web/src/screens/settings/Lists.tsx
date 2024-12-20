@@ -15,11 +15,11 @@ import { Checkbox } from "@components/Checkbox";
 import { ListsQueryOptions } from "@api/queries";
 import { Section } from "@screens/settings/_components";
 import { EmptySimple } from "@components/emptystates";
+import { ListAddForm } from "@forms";
 
 
 function ListsSettings() {
-  // const [addProxyIsOpen, toggleAddProxy] = useToggle(false);
-  const [_, toggleAddProxy] = useToggle(false);
+  const [addFormIsOpen, toggleAddList] = useToggle(false);
 
   const listsQuery = useSuspenseQuery(ListsQueryOptions())
   const lists = listsQuery.data
@@ -35,7 +35,7 @@ function ListsSettings() {
       rightSide={
         <button
           type="button"
-          onClick={toggleAddProxy}
+          onClick={toggleAddList}
           className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
@@ -43,7 +43,7 @@ function ListsSettings() {
         </button>
       }
     >
-      {/*<ProxyAddForm isOpen={addProxyIsOpen} toggle={toggleAddProxy} />*/}
+      <ListAddForm isOpen={addFormIsOpen} toggle={toggleAddList} />
 
       <div className="flex flex-col">
         {lists.length ? (
@@ -77,10 +77,10 @@ function ListsSettings() {
           </ul>
         ) : (
           <EmptySimple
-            title="No proxies"
+            title="No lists"
             subtitle=""
             buttonText="Add new list"
-            buttonAction={toggleAddProxy}
+            buttonAction={toggleAddList}
           />
         )}
       </div>

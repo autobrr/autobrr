@@ -412,7 +412,7 @@ export const APIClient = {
   lists: {
     list: () => appClient.Get<List[]>("api/list"),
     getByID: (id: number) => appClient.Get<List>(`api/list/${id}`),
-    store: (list: ListCreate) => appClient.Post("api/list", {
+    store: (list: List) => appClient.Post("api/list", {
       body: list
     }),
     update: (list: List) => appClient.Put(`api/list/${list.id}`, {
