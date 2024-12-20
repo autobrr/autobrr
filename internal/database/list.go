@@ -36,12 +36,13 @@ func (r *ListRepo) List(ctx context.Context) ([]domain.List, error) {
 		"api_key",
 		"filters",
 		"match_release",
-		"tags_include",
-		"tags_exclude",
-		"include_monitored",
+		"tags_included",
+		"tags_excluded",
+		"include_unmonitored",
+		"exclude_alternate_titles",
 		"last_refresh_time",
 		"last_refresh_status",
-		"last_refresh_error",
+		"last_refresh_data",
 		"created_at",
 		"updated_at",
 	).
@@ -65,7 +66,7 @@ func (r *ListRepo) List(ctx context.Context) ([]domain.List, error) {
 		var list domain.List
 
 		// TODO handle null values
-		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &list.URL, &list.Headers, &list.APIKey, &list.Filters, &list.MatchRelease, &list.TagsInclude, &list.TagsExclude, &list.IncludeUnmonitored, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshError, &list.CreatedAt, &list.UpdatedAt)
+		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &list.URL, &list.Headers, &list.APIKey, &list.Filters, &list.MatchRelease, &list.TagsInclude, &list.TagsExclude, &list.IncludeUnmonitored, &list.ExcludeAlternateTitles, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshError, &list.CreatedAt, &list.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -88,12 +89,13 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 		"api_key",
 		"filters",
 		"match_release",
-		"tags_include",
-		"tags_exclude",
-		"include_monitored",
+		"tags_included",
+		"tags_excluded",
+		"include_unmonitored",
+		"exclude_alternate_titles",
 		"last_refresh_time",
 		"last_refresh_status",
-		"last_refresh_error",
+		"last_refresh_data",
 		"created_at",
 		"updated_at",
 	).
@@ -136,8 +138,10 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			"api_key",
 			"filters",
 			"match_release",
-			"tags_include",
-			"tags_exclude",
+			"tags_included",
+			"tags_excluded",
+			"include_unmonitored",
+			"exclude_alternate_titles",
 		).
 		Values(
 			list.Name,
@@ -151,6 +155,8 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			list.MatchRelease,
 			list.TagsInclude,
 			list.TagsExclude,
+			list.IncludeUnmonitored,
+			list.ExcludeAlternateTitles,
 		).Suffix("RETURNING id").RunWith(r.db.handler)
 
 	//query, args, err := qb.ToSql()
@@ -181,8 +187,10 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 		Set("api_key", list.APIKey).
 		Set("filters", list.Filters).
 		Set("match_release", list.MatchRelease).
-		Set("tags_include", list.TagsInclude).
-		Set("tags_exclude", list.TagsExclude).
+		Set("tags_included", list.TagsInclude).
+		Set("tags_excluded", list.TagsExclude).
+		Set("include_unmonitored", list.IncludeUnmonitored).
+		Set("exclude_alternate_titles", list.ExcludeAlternateTitles).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": list.ID})
 
@@ -212,7 +220,7 @@ func (r *ListRepo) UpdateLastRefresh(ctx context.Context, list domain.List) erro
 	qb := r.db.squirrel.Update("list").
 		Set("last_refresh_time", list.LastRefreshTime).
 		Set("last_refresh_status", list.LastRefreshStatus).
-		Set("last_refresh_error", list.LastRefreshError).
+		Set("last_refresh_data", list.LastRefreshError).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": list.ID})
 
