@@ -30,9 +30,7 @@ func (s *service) metacritic(ctx context.Context, list *domain.List) error {
 		return err
 	}
 
-	//for k, v := range list.Headers {
-	//	req.Header.Set(k, v)
-	//}
+	list.SetRequestHeaders(req)
 
 	//setUserAgent(req)
 

@@ -13,8 +13,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) steam(ctx context.Context, list *domain.List) error {
-	l := log.With().Str("type", "steam").Str("list", list.Name).Logger()
+func (s *service) trakt(ctx context.Context, list *domain.List) error {
+	l := log.With().Str("type", "trakt").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
 		errMsg := "no URL provided for steam"
@@ -30,9 +30,10 @@ func (s *service) steam(ctx context.Context, list *domain.List) error {
 		return err
 	}
 
-	//for k, v := range list.Headers {
-	//	req.Header.Set(k, v)
-	//}
+	req.Header.Set("trakt-api-version", "2")
+	//req.Header.Set("trakt-api-key", t.apiKey)
+
+	list.SetRequestHeaders(req)
 
 	//setUserAgent(req)
 
@@ -44,12 +45,24 @@ func (s *service) steam(ctx context.Context, list *domain.List) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		l.Error().Msg("failed to fetch titles, non-OK HTTP status received")
-		return fmt.Errorf("failed to fetch titles, non-OK HTTP status received")
+		l.Error().Msgf("failed to fetch titles from URL: %s", list.URL)
+		return fmt.Errorf("failed to fetch titles from URL: %s", list.URL)
 	}
 
-	var data map[string]struct {
-		Name string `json:"name"`
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "application/json") {
+		errMsg := fmt.Sprintf("invalid content type for URL: %s, content type should be application/json", list.URL)
+		return fmt.Errorf(errMsg)
+	}
+
+	var data []struct {
+		Title string `json:"title"`
+		Movie struct {
+			Title string `json:"title"`
+		} `json:"movie"`
+		Show struct {
+			Title string `json:"title"`
+		} `json:"show"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -59,7 +72,13 @@ func (s *service) steam(ctx context.Context, list *domain.List) error {
 
 	var titles []string
 	for _, item := range data {
-		titles = append(titles, item.Name)
+		titles = append(titles, item.Title)
+		if item.Movie.Title != "" {
+			titles = append(titles, item.Movie.Title)
+		}
+		if item.Show.Title != "" {
+			titles = append(titles, item.Show.Title)
+		}
 	}
 
 	filterTitles := []string{}
@@ -72,12 +91,16 @@ func (s *service) steam(ctx context.Context, list *domain.List) error {
 	l.Trace().Msgf("%s", joinedTitles)
 
 	if len(joinedTitles) == 0 {
-		l.Debug().Msgf("no titles found for list to update: %v", list.Name)
+		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
 		return nil
 	}
 
 	for _, filterID := range list.Filters {
-		f := domain.FilterUpdate{MatchReleases: &joinedTitles}
+		f := domain.FilterUpdate{Shows: &joinedTitles}
+
+		if list.MatchRelease {
+			f = domain.FilterUpdate{MatchReleases: &joinedTitles}
+		}
 		f.ID = filterID
 
 		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {

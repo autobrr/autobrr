@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/lidarr"
 )
 
 func (s *service) lidarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {

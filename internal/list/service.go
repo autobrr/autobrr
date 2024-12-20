@@ -57,10 +57,18 @@ func (s *service) FindByID(ctx context.Context, id int64) (*domain.List, error) 
 }
 
 func (s *service) Store(ctx context.Context, list *domain.List) error {
+	if err := list.Validate(); err != nil {
+		return err
+	}
+
 	return s.repo.Store(ctx, list)
 }
 
 func (s *service) Update(ctx context.Context, list *domain.List) error {
+	if err := list.Validate(); err != nil {
+		return err
+	}
+
 	return s.repo.Update(ctx, list)
 }
 
@@ -99,19 +107,19 @@ func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
 
 		switch listItem.Type {
 		case domain.ListTypeRadarr:
-			//err = s.radarr(ctx, arrClient, dryRun, s.autobrrClient)
+			err = s.radarr(ctx, &listItem)
 
 		case domain.ListTypeSonarr:
 			err = s.sonarr(ctx, &listItem)
 
 		case domain.ListTypeWhisparr:
-			//err = s.sonarr(ctx, arrClient, dryRun, s.autobrrClient)
+			err = s.sonarr(ctx, &listItem)
 
 		case domain.ListTypeReadarr:
-			//err = s.readarr(ctx, arrClient, dryRun, s.autobrrClient)
+			err = s.readarr(ctx, &listItem)
 
 		case domain.ListTypeLidarr:
-			//err = s.lidarr(ctx, arrClient, dryRun, s.autobrrClient)
+			err = s.lidarr(ctx, &listItem)
 
 		case domain.ListTypeMDBList:
 			err = s.mdblist(ctx, &listItem)
@@ -130,9 +138,29 @@ func (s *service) refreshAll(ctx context.Context, lists []domain.List) error {
 		}
 
 		if err != nil {
+			// update last run for list and set errs and status
+			listItem.LastRefreshStatus = domain.ListRefreshStatusError
+			listItem.LastRefreshError = err.Error()
+			listItem.LastRefreshTime = time.Now()
+
+			if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
+				s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while updating last refresh for %s, continuing with other lists", listItem.Type)
+				continue
+			}
+
 			s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while processing %s, continuing with other lists", listItem.Type)
 
 			processingErrors = append(processingErrors, errors.Wrapf(err, "%s - %s", listItem.Type, listItem.Name))
+
+		} else {
+			listItem.LastRefreshStatus = domain.ListRefreshStatusSuccess
+			//listItem.LastRefreshError = err.Error()
+			listItem.LastRefreshTime = time.Now()
+
+			if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
+				s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while updating last refresh for %s, continuing with other lists", listItem.Type)
+				continue
+			}
 		}
 	}
 
@@ -158,12 +186,4 @@ func (s *service) RefreshList(ctx context.Context, listID int64) error {
 	}
 
 	return nil
-}
-
-// shouldProcessItem determines if an item should be processed based on its monitored status and configuration
-func (s *service) shouldProcessItem(monitored bool, list *domain.List) bool {
-	if list.IncludeUnmonitored {
-		return true
-	}
-	return monitored
 }

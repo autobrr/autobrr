@@ -7,26 +7,19 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/arr"
-	"github.com/autobrr/autobrr/pkg/arr/sonarr"
+	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) sonarr(ctx context.Context, list *domain.List) error {
-	var arrType string
-	if list.Type == domain.ListTypeWhisparr {
-		arrType = "whisparr"
-	} else {
-		arrType = "sonarr"
-	}
-
-	l := log.With().Str("type", arrType).Str("client", list.Name).Logger()
+func (s *service) radarr(ctx context.Context, list *domain.List) error {
+	l := log.With().Str("type", "radarr").Str("client", list.Name).Logger()
 
 	l.Debug().Msgf("gathering titles...")
 
-	titles, err := s.processSonarr(ctx, list, &l)
+	titles, err := s.processRadarr(ctx, list, &l)
 	if err != nil {
 		return err
 	}
@@ -53,7 +46,6 @@ func (s *service) sonarr(ctx context.Context, list *domain.List) error {
 		f.ID = filterID
 
 		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
-			l.Error().Err(err).Msgf("error updating filter: %v", filterID)
 			return errors.Wrap(err, "error updating filter: %v", filterID)
 		}
 
@@ -63,7 +55,7 @@ func (s *service) sonarr(ctx context.Context, list *domain.List) error {
 	return nil
 }
 
-func (s *service) processSonarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
+func (s *service) processRadarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
 	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
@@ -73,7 +65,7 @@ func (s *service) processSonarr(ctx context.Context, list *domain.List, logger *
 		return nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
 	}
 
-	client := downloadClient.Client.(sonarr.Client)
+	client := downloadClient.Client.(radarr.Client)
 
 	var tags []*arr.Tag
 	if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {
@@ -84,7 +76,7 @@ func (s *service) processSonarr(ctx context.Context, list *domain.List, logger *
 		tags = t
 	}
 
-	shows, err := client.GetAllSeries(ctx)
+	shows, err := client.GetMovies(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -97,9 +89,13 @@ func (s *service) processSonarr(ctx context.Context, list *domain.List, logger *
 	for _, show := range shows {
 		series := show
 
-		if !s.shouldProcessItem(series.Monitored, list) {
+		if !list.ShouldProcessItem(series.Monitored) {
 			continue
 		}
+
+		//if !s.shouldProcessItem(series.Monitored, list) {
+		//	continue
+		//}
 
 		if len(list.TagsInclude) > 0 {
 			if len(series.Tags) == 0 {

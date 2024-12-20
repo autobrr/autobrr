@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/readarr"
 )
 
 func (s *service) readarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {

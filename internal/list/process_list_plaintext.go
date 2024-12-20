@@ -2,8 +2,8 @@ package list
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -13,18 +13,15 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (s *service) mdblist(ctx context.Context, list *domain.List) error {
-	l := log.With().Str("type", "mdblist").Str("list", list.Name).Logger()
+func (s *service) plaintext(ctx context.Context, list *domain.List) error {
+	l := log.With().Str("type", "plaintext").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
-		errMsg := "no URL provided for Mdblist"
+		errMsg := "no URL provided for plaintext"
 		l.Error().Msg(errMsg)
 		return fmt.Errorf(errMsg)
 	}
 
-	//var titles []string
-
-	//green := color.New(color.FgGreen).SprintFunc()
 	l.Debug().Msgf("fetching titles from %s", list.URL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
@@ -33,9 +30,7 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 		return err
 	}
 
-	//for k, v := range list.Headers {
-	//	req.Header.Set(k, v)
-	//}
+	list.SetRequestHeaders(req)
 
 	//setUserAgent(req)
 
@@ -51,19 +46,31 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 		return fmt.Errorf("failed to fetch titles from URL: %s", list.URL)
 	}
 
-	var data []struct {
-		Title string `json:"title"`
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "text/plain") {
+		l.Error().Msgf("failed to fetch plaintext from URL: %s", list.URL)
+		return fmt.Errorf("failed to fetch plaintext from URL: %s", list.URL)
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		l.Error().Err(err).Msgf("failed to decode JSON data from URL: %s", list.URL)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		l.Error().Err(err).Msgf("failed to read response body from URL: %s", list.URL)
 		return err
 	}
 
+	var titles []string
+	titleLines := strings.Split(string(body), "\n")
+	for _, titleLine := range titleLines {
+		title := strings.TrimSpace(titleLine)
+		if title == "" {
+			continue
+		}
+		titles = append(titles, title)
+	}
+
 	filterTitles := []string{}
-	for _, item := range data {
-		//titles = append(titles, item.Title)
-		filterTitles = append(filterTitles, processTitle(item.Title, list.MatchRelease)...)
+	for _, title := range titles {
+		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
 	}
 
 	joinedTitles := strings.Join(filterTitles, ",")
@@ -71,26 +78,12 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	l.Trace().Msgf("%s", joinedTitles)
 
 	if len(joinedTitles) == 0 {
-		//l.Debug().Msgf("no titles found for filter: %v", filterID)
+		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
 		return nil
 	}
 
 	for _, filterID := range list.Filters {
 		l.Debug().Msgf("updating filter: %v", filterID)
-
-		//filterTitles := []string{}
-		//for _, title := range titles {
-		//	filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
-		//}
-
-		//joinedTitles := strings.Join(filterTitles, ",")
-
-		//l.Trace().Msgf("%s", joinedTitles)
-
-		//if len(joinedTitles) == 0 {
-		//	l.Debug().Msgf("no titles found for filter: %v", filterID)
-		//	return nil
-		//}
 
 		f := domain.FilterUpdate{Shows: &joinedTitles}
 

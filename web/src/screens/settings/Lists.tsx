@@ -18,7 +18,8 @@ import { EmptySimple } from "@components/emptystates";
 
 
 function ListsSettings() {
-  const [addProxyIsOpen, toggleAddProxy] = useToggle(false);
+  // const [addProxyIsOpen, toggleAddProxy] = useToggle(false);
+  const [_, toggleAddProxy] = useToggle(false);
 
   const listsQuery = useSuspenseQuery(ListsQueryOptions())
   const lists = listsQuery.data
@@ -94,7 +95,8 @@ interface ListItemProps {
 }
 
 function ListItem({ list }: ListItemProps) {
-  const [isOpen, toggleUpdate] = useToggle(false);
+  // const [isOpen, toggleUpdate] = useToggle(false);
+  const [_, toggleUpdate] = useToggle(false);
 
   const queryClient = useQueryClient();
 

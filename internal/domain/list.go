@@ -2,6 +2,9 @@ package domain
 
 import (
 	"context"
+	"github.com/autobrr/autobrr/pkg/errors"
+	"net/http"
+	"strings"
 	"time"
 )
 
@@ -25,28 +28,79 @@ const (
 	ListTypeWhisparr   ListType = "WHISPARR"
 	ListTypeMDBList    ListType = "MDBLIST"
 	ListTypeMetacritic ListType = "METACRITIC"
+	ListTypePlaintext  ListType = "PLAINTEXT"
 	ListTypeTrakt      ListType = "TRAKT"
 	ListTypeSteam      ListType = "STEAM"
 )
 
+type ListRefreshStatus string
+
+const (
+	ListRefreshStatusSuccess ListRefreshStatus = "SUCCESS"
+	ListRefreshStatusError   ListRefreshStatus = "ERROR"
+)
+
 type List struct {
-	ID                     int       `json:"id"`
-	Name                   string    `json:"name"`
-	Type                   ListType  `json:"type"`
-	Enabled                bool      `json:"enabled"`
-	ClientID               int       `json:"client_id"`
-	URL                    string    `json:"url"`
-	Headers                []string  `json:"headers"`
-	APIKey                 string    `json:"api_key"`
-	Filters                []int     `json:"filters"`
-	MatchRelease           bool      `json:"match_release"`
-	TagsInclude            []string  `json:"tags_include"`
-	TagsExclude            []string  `json:"tags_exclude"`
-	IncludeUnmonitored     bool      `json:"include_unmonitored"`
-	ExcludeAlternateTitles bool      `json:"exclude_alternate_titles"`
-	LastRefreshTime        time.Time `json:"last_refresh_time"`
-	LastRefreshError       string    `json:"last_refresh_error"`
-	LastRefreshStatus      string    `json:"last_refresh_status"`
-	CreatedAt              time.Time `json:"created_at"`
-	UpdatedAt              time.Time `json:"updated_at"`
+	ID                     int               `json:"id"`
+	Name                   string            `json:"name"`
+	Type                   ListType          `json:"type"`
+	Enabled                bool              `json:"enabled"`
+	ClientID               int               `json:"client_id"`
+	URL                    string            `json:"url"`
+	Headers                []string          `json:"headers"`
+	APIKey                 string            `json:"api_key"`
+	Filters                []int             `json:"filters"`
+	MatchRelease           bool              `json:"match_release"`
+	TagsInclude            []string          `json:"tags_include"`
+	TagsExclude            []string          `json:"tags_exclude"`
+	IncludeUnmonitored     bool              `json:"include_unmonitored"`
+	ExcludeAlternateTitles bool              `json:"exclude_alternate_titles"`
+	LastRefreshTime        time.Time         `json:"last_refresh_time"`
+	LastRefreshError       string            `json:"last_refresh_error"`
+	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
+	CreatedAt              time.Time         `json:"created_at"`
+	UpdatedAt              time.Time         `json:"updated_at"`
+}
+
+func (l *List) Validate() error {
+	if l.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if l.Type == "" {
+		return errors.New("type is required")
+	}
+
+	if (l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr) && l.ClientID == 0 {
+		return errors.New("arr client id is required")
+	}
+
+	if (l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam) && l.URL == "" {
+		return errors.New("list url is required")
+	}
+
+	if len(l.Filters) == 0 {
+		return errors.New("at least one filter is required")
+	}
+
+	return nil
+}
+
+func (l *List) ShouldProcessItem(monitored bool) bool {
+	if l.IncludeUnmonitored {
+		return true
+	}
+
+	return monitored
+}
+
+// SetRequestHeaders set headers from list on the request
+func (l *List) SetRequestHeaders(req *http.Request) {
+	for _, header := range l.Headers {
+		parts := strings.Split(header, "=")
+		if len(parts) != 2 {
+			continue
+		}
+		req.Header.Set(parts[0], parts[1])
+	}
 }

@@ -6,14 +6,15 @@ package readarr
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"log"
 
+	"github.com/autobrr/autobrr/pkg/arr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
@@ -30,26 +31,26 @@ type Config struct {
 	Log *log.Logger
 }
 
-type Client interface {
+type ClientInterface interface {
 	Test(ctx context.Context) (*SystemStatusResponse, error)
 	Push(ctx context.Context, release Release) ([]string, error)
 }
 
-type client struct {
+type Client struct {
 	config Config
 	http   *http.Client
 
 	Log *log.Logger
 }
 
-// New create new readarr client
-func New(config Config) Client {
+// New create new readarr Client
+func New(config Config) *Client {
 	httpClient := &http.Client{
 		Timeout:   time.Second * 120,
 		Transport: sharedhttp.Transport,
 	}
 
-	c := &client{
+	c := &Client{
 		config: config,
 		http:   httpClient,
 		Log:    log.New(io.Discard, "", log.LstdFlags),
@@ -62,45 +63,7 @@ func New(config Config) Client {
 	return c
 }
 
-type Release struct {
-	Title            string `json:"title"`
-	InfoUrl          string `json:"infoUrl,omitempty"`
-	DownloadUrl      string `json:"downloadUrl,omitempty"`
-	MagnetUrl        string `json:"magnetUrl,omitempty"`
-	Size             uint64 `json:"size"`
-	Indexer          string `json:"indexer"`
-	DownloadProtocol string `json:"downloadProtocol"`
-	Protocol         string `json:"protocol"`
-	PublishDate      string `json:"publishDate"`
-	DownloadClientId int    `json:"downloadClientId,omitempty"`
-	DownloadClient   string `json:"downloadClient,omitempty"`
-}
-
-type PushResponse struct {
-	Approved     bool     `json:"approved"`
-	Rejected     bool     `json:"rejected"`
-	TempRejected bool     `json:"temporarilyRejected"`
-	Rejections   []string `json:"rejections"`
-}
-
-type BadRequestResponse struct {
-	PropertyName   string `json:"propertyName"`
-	ErrorMessage   string `json:"errorMessage"`
-	ErrorCode      string `json:"errorCode"`
-	AttemptedValue string `json:"attemptedValue"`
-	Severity       string `json:"severity"`
-}
-
-func (r *BadRequestResponse) String() string {
-	return fmt.Sprintf("[%s: %s] %s: %s - got value: %s", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
-}
-
-type SystemStatusResponse struct {
-	AppName string `json:"appName"`
-	Version string `json:"version"`
-}
-
-func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
+func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	status, res, err := c.get(ctx, "system/status")
 	if err != nil {
 		return nil, errors.Wrap(err, "could not make Test")
@@ -120,7 +83,7 @@ func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
+func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 	status, res, err := c.postBody(ctx, "release/push", release)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not push release to readarr")
@@ -159,4 +122,29 @@ func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
 
 	// successful push
 	return nil, nil
+}
+
+func (c *Client) GetBooks(ctx context.Context, gridID string) ([]Book, error) {
+	params := make(url.Values)
+	if gridID != "" {
+		params.Set("titleSlug", gridID)
+	}
+
+	data := make([]Book, 0)
+	err := c.getJSON(ctx, "book", params, &data)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get tags")
+	}
+
+	return data, nil
+}
+
+func (c *Client) GetTags(ctx context.Context) ([]*arr.Tag, error) {
+	data := make([]*arr.Tag, 0)
+	err := c.getJSON(ctx, "tag", nil, data)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get tags")
+	}
+
+	return data, nil
 }
