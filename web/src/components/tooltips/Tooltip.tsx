@@ -67,6 +67,7 @@ export const Tooltip = ({
     interactive: true,
     delayHide: 200,
     placement,
+    followCursor: placement === "right"
   });
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -116,11 +117,10 @@ export const Tooltip = ({
       </div>
       <Transition
         show={isTooltipVisible || visible}
-        className="z-10"
-        enter="transition duration-200 ease-out"
+        enter="transition-opacity duration-200 ease-out"
         enterFrom="opacity-0"
         enterTo="opacity-100"
-        leave="transition duration-200 ease-in"
+        leave="transition-opacity duration-200 ease-in"
         leaveFrom="opacity-100"
         leaveTo="opacity-0"
       >
@@ -129,7 +129,7 @@ export const Tooltip = ({
           {...getTooltipProps({
             className: classNames(
               maxWidth,
-              "rounded-md border border-gray-300 text-black text-xs normal-case tracking-normal font-normal shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
+              "z-10 rounded-md border border-gray-300 text-black text-xs normal-case tracking-normal font-normal shadow-lg dark:text-white dark:border-gray-700 dark:shadow-2xl"
             ),
             onClick: (e: React.MouseEvent) => e.stopPropagation()
           })}

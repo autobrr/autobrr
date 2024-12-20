@@ -19,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
@@ -31,6 +32,7 @@ type Service interface {
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
+	GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	LoadIndexerDefinitions() error
@@ -49,6 +51,7 @@ type service struct {
 	releaseRepo domain.ReleaseRepo
 	ApiService  APIService
 	scheduler   scheduler.Service
+	bus         EventBus.Bus
 
 	// contains all raw indexer definitions
 	definitions map[string]domain.IndexerDefinition
@@ -64,7 +67,7 @@ type service struct {
 	rssIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRepo, releaseRepo domain.ReleaseRepo, apiService APIService, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo domain.IndexerRepo, releaseRepo domain.ReleaseRepo, apiService APIService, scheduler scheduler.Service) Service {
 	return &service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
@@ -72,6 +75,7 @@ func NewService(log logger.Logger, config *domain.Config, repo domain.IndexerRep
 		releaseRepo:               releaseRepo,
 		ApiService:                apiService,
 		scheduler:                 scheduler,
+		bus:                       bus,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
 		newznabIndexers:           make(map[string]*domain.IndexerDefinition),
@@ -96,6 +100,10 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 
 		// torznab-name OR rss-name
 		indexer.Identifier = slug.Make(fmt.Sprintf("%s-%s", indexer.Implementation, cleanName))
+	}
+
+	if indexer.IdentifierExternal == "" {
+		indexer.IdentifierExternal = indexer.Name
 	}
 
 	i, err := s.repo.Store(ctx, indexer)
@@ -184,6 +192,8 @@ func (s *service) Delete(ctx context.Context, id int) error {
 		s.log.Error().Err(err).Msgf("could not delete indexer api client: %s", indexer.Identifier)
 	}
 
+	s.bus.Publish(domain.EventIndexerDelete, indexer)
+
 	return nil
 }
 
@@ -215,6 +225,16 @@ func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
 	}
 
 	return indexers, err
+}
+
+func (s *service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
+	indexer, err := s.repo.GetBy(ctx, req)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not get indexer by: %v", req)
+		return nil, err
+	}
+
+	return indexer, err
 }
 
 func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
@@ -275,9 +295,13 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	d.ID = int(indexer.ID)
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
+	d.IdentifierExternal = indexer.IdentifierExternal
 	d.Implementation = indexer.Implementation
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
+
+	d.UseProxy = indexer.UseProxy
+	d.ProxyID = indexer.ProxyID
 
 	if d.SettingsMap == nil {
 		d.SettingsMap = make(map[string]string)
@@ -311,9 +335,13 @@ func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefin
 	d.ID = int(indexer.ID)
 	d.Name = indexer.Name
 	d.Identifier = indexer.Identifier
+	d.IdentifierExternal = indexer.IdentifierExternal
 	d.Implementation = indexer.Implementation
 	d.BaseURL = indexer.BaseURL
 	d.Enabled = indexer.Enabled
+
+	d.UseProxy = indexer.UseProxy
+	d.ProxyID = indexer.ProxyID
 
 	if d.SettingsMap == nil {
 		d.SettingsMap = make(map[string]string)

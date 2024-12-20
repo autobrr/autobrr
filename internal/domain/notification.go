@@ -12,14 +12,15 @@ type NotificationRepo interface {
 	List(ctx context.Context) ([]Notification, error)
 	Find(ctx context.Context, params NotificationQueryParams) ([]Notification, int, error)
 	FindByID(ctx context.Context, id int) (*Notification, error)
-	Store(ctx context.Context, notification Notification) (*Notification, error)
-	Update(ctx context.Context, notification Notification) (*Notification, error)
+	Store(ctx context.Context, notification *Notification) error
+	Update(ctx context.Context, notification *Notification) error
 	Delete(ctx context.Context, notificationID int) error
 }
 
 type NotificationSender interface {
 	Send(event NotificationEvent, payload NotificationPayload) error
 	CanSend(event NotificationEvent) bool
+	Name() string
 }
 
 type Notification struct {
@@ -63,6 +64,7 @@ type NotificationPayload struct {
 	Protocol       ReleaseProtocol       // torrent, usenet
 	Implementation ReleaseImplementation // irc, rss, api
 	Timestamp      time.Time
+	Sender         string
 }
 
 type NotificationType string

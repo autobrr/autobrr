@@ -5,10 +5,10 @@
 
 import { useEffect, useRef } from "react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
-import { toast } from "react-hot-toast";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 
@@ -20,11 +20,10 @@ import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS } from "@domain/constants";
 
 import { DEBUG } from "@components/debug";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 
-import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { FilterGetByIdRoute } from "@app/routes";
 
 interface tabType {
   name: string;
@@ -33,12 +32,12 @@ interface tabType {
 }
 
 const tabs: tabType[] = [
-  { name: "General", href: ".", exact: true },
-  { name: "Movies and TV", href: "movies-tv" },
-  { name: "Music", href: "music" },
-  { name: "Advanced", href: "advanced" },
-  { name: "External", href: "external" },
-  { name: "Actions", href: "actions" }
+  { name: "General", href: "/filters/$filterId", exact: true },
+  { name: "Movies and TV", href: "/filters/$filterId/movies-tv" },
+  { name: "Music", href: "/filters/$filterId/music" },
+  { name: "Advanced", href: "/filters/$filterId/advanced" },
+  { name: "External", href: "/filters/$filterId/external" },
+  { name: "Actions", href: "/filters/$filterId/actions" }
 ];
 
 export interface NavLinkProps {
@@ -286,17 +285,30 @@ const indexerSchema = z.object({
 // Define the schema for the entire object
 const schema = z.object({
   name: z.string(),
+  max_downloads: z.number().optional(),
+  max_downloads_unit: z.string().optional(),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
   actions: z.array(actionSchema),
   external: z.array(externalFilterSchema)
+}).superRefine((value, ctx) => {
+  if (value.max_downloads && value.max_downloads > 0) {
+    if (!value.max_downloads_unit) {
+      ctx.addIssue({
+        message: "Must select Max Downloads Per unit when Max Downloads is greater than 0",
+        code: z.ZodIssueCode.custom,
+        path: ["max_downloads_unit"]
+      });
+    }
+  }
 });
 
 export const FilterDetails = () => {
   const navigate = useNavigate();
-  const ctx = FilterGetByIdRoute.useRouteContext()
-  const queryClient = ctx.queryClient
 
-  const params = FilterGetByIdRoute.useParams()
+  const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
+  const { queryClient } =  filterGetByIdRoute.useRouteContext();
+
+  const params = filterGetByIdRoute.useParams()
   const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(params.filterId))
   const filter = filterQuery.data
 
@@ -380,6 +392,7 @@ export const FilterDetails = () => {
               enabled: filter.enabled,
               min_size: filter.min_size,
               max_size: filter.max_size,
+              announce_types: filter.announce_types || [],
               delay: filter.delay,
               priority: filter.priority,
               max_downloads: filter.max_downloads,
@@ -387,6 +400,8 @@ export const FilterDetails = () => {
               use_regex: filter.use_regex || false,
               shows: filter.shows,
               years: filter.years,
+              months: filter.months,
+              days: filter.days,
               resolutions: filter.resolutions || [],
               sources: filter.sources || [],
               codecs: filter.codecs || [],

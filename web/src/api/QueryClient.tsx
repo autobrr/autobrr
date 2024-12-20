@@ -4,28 +4,33 @@
  */
 
 import { QueryCache, QueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { baseUrl } from "@utils";
+import { AuthContext } from "@utils/Context";
+import { getRouteApi, redirect } from "@tanstack/react-router";
 
 const MAX_RETRIES = 6;
-const HTTP_STATUS_TO_NOT_RETRY = [400, 401, 403, 404];
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (error ) => {
-      console.error("query client error: ", error);
+    onError: (error, query) => {
+      const loginRoute = getRouteApi("/login");
+      console.error(`Caught error for query '${query.queryKey}': `, error);
 
-      toast.custom((t) => <Toast type="error" body={error?.message} t={t}/>);
-
-      // @ts-expect-error TS2339: Property status does not exist on type Error
-      if (error?.status === 401 || error?.status === 403) {
-        // @ts-expect-error TS2339: Property status does not exist on type Error
-        console.error("bad status, redirect to login", error?.status)
-        // Redirect to login page
-        window.location.href = baseUrl()+"login";
-
-        return
+      if (error.message === "Cookie expired or invalid.") {
+        AuthContext.reset();
+        redirect({
+          to: loginRoute.id,
+          search: {
+            // Use the current location to power a redirect after login
+            // (Do not use `router.state.resolvedLocation` as it can
+            // potentially lag behind the actual current location)
+            redirect: location.href
+          },
+        });
+        return;
+      } else {
+        toast.custom((t) => <Toast type="error" body={ error?.message } t={ t }/>);
       }
     }
   }),
@@ -35,8 +40,12 @@ export const queryClient = new QueryClient({
       // See https://tanstack.com/query/v4/docs/guides/query-retries#retry-delay
       // delay = Math.min(1000 * 2 ** attemptIndex, 30000)
       // retry: false,
-      throwOnError: true,
+      throwOnError: (error) => {
+        return error.message !== "Cookie expired or invalid.";
+
+      },
       retry: (failureCount, error) => {
+        /*
         console.debug("retry count:", failureCount)
         console.error("retry err: ", error)
 
@@ -46,7 +55,12 @@ export const queryClient = new QueryClient({
           console.log(`retry: Aborting retry due to ${error.status} status`);
           return false;
         }
+        */
+        if (error.message === "Cookie expired or invalid.") {
+          return false;
+        }
 
+        console.error(`Retrying query (N=${failureCount}): `, error);
         return failureCount <= MAX_RETRIES;
       },
     },
@@ -54,8 +68,9 @@ export const queryClient = new QueryClient({
       onError: (error) => {
         console.log("mutation error: ", error)
 
+        // TODO: Maybe unneeded with our little HttpClient refactor.
         if (error instanceof Response) {
-          return
+          return;
         }
 
         // Use a format string to convert the error object to a proper string without much hassle.

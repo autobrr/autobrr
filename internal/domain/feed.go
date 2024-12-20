@@ -21,8 +21,8 @@ type FeedCacheRepo interface {
 }
 
 type FeedRepo interface {
+	FindOne(ctx context.Context, params FindOneParams) (*Feed, error)
 	FindByID(ctx context.Context, id int) (*Feed, error)
-	FindByIndexerIdentifier(ctx context.Context, indexer string) (*Feed, error)
 	Find(ctx context.Context) ([]Feed, error)
 	GetLastRunDataByID(ctx context.Context, id int) (string, error)
 	Store(ctx context.Context, feed *Feed) error
@@ -53,6 +53,11 @@ type Feed struct {
 	LastRun      time.Time         `json:"last_run"`
 	LastRunData  string            `json:"last_run_data"`
 	NextRun      time.Time         `json:"next_run"`
+
+	// belongs to Indexer
+	ProxyID  int64
+	UseProxy bool
+	Proxy    *Proxy
 }
 
 type FeedSettingsJSON struct {
@@ -85,4 +90,10 @@ type FeedCacheItem struct {
 	Key    string    `json:"key"`
 	Value  []byte    `json:"value"`
 	TTL    time.Time `json:"ttl"`
+}
+
+type FindOneParams struct {
+	FeedID            int
+	IndexerID         int
+	IndexerIdentifier string
 }

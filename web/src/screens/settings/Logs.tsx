@@ -4,14 +4,13 @@
  */
 
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
-import { toast } from "react-hot-toast";
+import { getRouteApi } from "@tanstack/react-router";
 import Select from "react-select";
 
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
-import { SettingsLogRoute } from "@app/routes";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { LogLevelOptions, SelectOption } from "@domain/constants";
 
@@ -59,8 +58,8 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const ctx = SettingsLogRoute.useRouteContext()
-  const queryClient = ctx.queryClient
+  const settingsLogRoute = getRouteApi("/auth/authenticated-routes/settings/logs");
+  const { queryClient} =  settingsLogRoute.useRouteContext();
 
   const configQuery = useSuspenseQuery(ConfigQueryOptions())
 
@@ -78,18 +77,7 @@ function LogSettings() {
   return (
     <Section
       title="Logs"
-      description={
-        <>
-          Configure log level, log size rotation, etc. You can download your old log files
-          {" "}
-          <Link
-            to="/settings/logs"
-            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-blue-500 decoration hover:text-black hover:dark:text-gray-100"
-          >
-            on the Logs page
-          </Link>.
-        </>
-      }
+      description="Configure log level, log size rotation, etc. You can download your old log files below."
     >
       <div className="-mx-4 lg:col-span-9">
         <div className="divide-y divide-gray-200 dark:divide-gray-750">

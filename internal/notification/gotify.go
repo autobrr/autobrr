@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,13 +26,17 @@ type gotifyMessage struct {
 
 type gotifySender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	builder  MessageBuilderPlainText
 
 	httpClient *http.Client
 }
 
-func NewGotifySender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *gotifySender) Name() string {
+	return "gotify"
+}
+
+func NewGotifySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &gotifySender{
 		log:      log.With().Str("sender", "gotify").Logger(),
 		Settings: settings,
@@ -53,11 +58,9 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 	data.Set("message", m.Message)
 	data.Set("title", m.Title)
 
-	url := fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token)
-	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data.Encode()))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token), strings.NewReader(data.Encode()))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -65,23 +68,20 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 
 	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
-	}
-
-	s.log.Trace().Msgf("gotify status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("gotify status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("gotify client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to gotify")

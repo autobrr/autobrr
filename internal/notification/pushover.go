@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,14 +32,18 @@ type pushoverMessage struct {
 
 type pushoverSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	baseUrl  string
 	builder  MessageBuilderHTML
 
 	httpClient *http.Client
 }
 
-func NewPushoverSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *pushoverSender) Name() string {
+	return "pushover"
+}
+
+func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &pushoverSender{
 		log:      log.With().Str("sender", "pushover").Logger(),
 		Settings: settings,
@@ -81,8 +86,7 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	req, err := http.NewRequest(http.MethodPost, s.baseUrl, strings.NewReader(data.Encode()))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -90,23 +94,20 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
-	}
-
-	s.log.Trace().Msgf("pushover status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Msgf("pushover response status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("pushover client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to pushover")

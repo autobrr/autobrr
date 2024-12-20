@@ -6,14 +6,11 @@ package action
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/transmission"
-
 	"github.com/hekmon/transmissionrpc/v3"
 )
 
@@ -28,38 +25,17 @@ var TrTrue = true
 func (s *service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Transmission: %s", action.Name)
 
-	var err error
-
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("error finding client: %d", action.ClientID)
-		return nil, err
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
+	}
+	action.Client = client
+
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	if client == nil {
-		return nil, errors.New("could not find client by id: %d", action.ClientID)
-	}
-
-	scheme := "http"
-	if client.TLS {
-		scheme = "https"
-	}
-
-	u, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
-	if err != nil {
-		return nil, err
-	}
-
-	tbt, err := transmission.New(u, &transmission.Config{
-		UserAgent:     "autobrr",
-		Username:      client.Username,
-		Password:      client.Password,
-		TLSSkipVerify: client.TLSSkipVerify,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "error logging into client: %s", client.Host)
-	}
+	tbt := client.Client.(*transmissionrpc.Client)
 
 	rejections, err := s.transmissionCheckRulesCanDownload(ctx, action, client, tbt)
 	if err != nil {
@@ -132,11 +108,8 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, nil
 	}
 
-	if release.TorrentTmpFile == "" {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
-			return nil, err
-		}
+	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
 	b64, err := transmissionrpc.File2Base64(release.TorrentTmpFile)

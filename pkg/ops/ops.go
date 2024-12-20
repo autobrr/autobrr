@@ -4,10 +4,10 @@
 package ops
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -133,6 +133,44 @@ type Torrent struct {
 	Username                string `json:"username"`
 }
 
+type GetIndexResponse struct {
+	Status   string   `json:"status"`
+	Response Response `json:"response"`
+	Info     Info     `json:"info"`
+}
+
+type Info struct {
+	Source  string `json:"source"`
+	Version int64  `json:"version"`
+}
+
+type Response struct {
+	Username      string        `json:"username"`
+	ID            int64         `json:"id"`
+	Notifications Notifications `json:"notifications"`
+	Userstats     Userstats     `json:"userstats"`
+	//Authkey       string        `json:"authkey"`
+	//Passkey       string        `json:"passkey"`
+}
+
+type Notifications struct {
+	Messages         int64 `json:"messages"`
+	Notifications    int64 `json:"notifications"`
+	NewAnnouncement  bool  `json:"newAnnouncement"`
+	NewBlog          bool  `json:"newBlog"`
+	NewSubscriptions bool  `json:"newSubscriptions"`
+}
+
+type Userstats struct {
+	Uploaded           int64   `json:"uploaded"`
+	Downloaded         int64   `json:"downloaded"`
+	Ratio              float64 `json:"ratio"`
+	Requiredratio      float64 `json:"requiredratio"`
+	BonusPoints        int64   `json:"bonusPoints"`
+	BonusPointsPerHour float64 `json:"bonusPointsPerHour"`
+	Class              string  `json:"class"`
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	//ctx := context.Background()
 	err := c.RateLimiter.Wait(req.Context()) // This is a blocking call. Honors the rate limit
@@ -146,14 +184,16 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
+func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error {
 	if c.APIKey == "" {
-		return nil, errors.New("orpheus client missing API key!")
+		return errors.New("orpheus client missing API key!")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	reqUrl := fmt.Sprintf("%s?%s", c.url, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not build request")
+		return errors.Wrap(err, "could not build request")
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("token %s", c.APIKey))
@@ -161,28 +201,29 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return res, errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "could not make request: %+v", req)
 	}
+
+	defer res.Body.Close()
+
+	body := bufio.NewReader(res.Body)
 
 	// return early if not OK
 	if res.StatusCode != http.StatusOK {
-		var r ErrorResponse
+		var errResponse ErrorResponse
 
-		defer res.Body.Close()
-
-		body, readErr := io.ReadAll(res.Body)
-		if readErr != nil {
-			return nil, errors.Wrap(readErr, "could not read body")
+		if err := json.NewDecoder(body).Decode(&errResponse); err != nil {
+			return errors.Wrap(err, "could not unmarshal body")
 		}
 
-		if err = json.Unmarshal(body, &r); err != nil {
-			return nil, errors.Wrap(err, "could not unmarshal body")
-		}
-
-		return nil, errors.New("status code: %d status: %s error: %s", res.StatusCode, r.Status, r.Error)
+		return errors.New("status code: %d status: %s error: %s", res.StatusCode, errResponse.Status, errResponse.Error)
 	}
 
-	return res, nil
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return errors.Wrap(err, "could not unmarshal body")
+	}
+
+	return nil
 }
 
 func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
@@ -190,35 +231,22 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		return nil, errors.New("orpheus client: must have torrentID")
 	}
 
-	var r TorrentDetailsResponse
+	var response TorrentDetailsResponse
 
-	v := url.Values{}
-	v.Add("id", torrentID)
-	params := v.Encode()
+	params := url.Values{}
+	params.Add("action", "torrent")
+	params.Add("id", torrentID)
 
-	reqUrl := fmt.Sprintf("%s?action=torrent&%s", c.url, params)
-
-	resp, err := c.get(ctx, reqUrl)
+	err := c.getJSON(ctx, params, &response)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get torrent by id: %v", torrentID)
 	}
 
-	defer resp.Body.Close()
-
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
-	}
-
-	if err := json.Unmarshal(body, &r); err != nil {
-		return nil, errors.Wrap(err, "could not unmarshal body")
-	}
-
 	res := &domain.TorrentBasic{
-		Id:       strconv.Itoa(r.Response.Torrent.Id),
-		InfoHash: r.Response.Torrent.InfoHash,
-		Size:     strconv.Itoa(r.Response.Torrent.Size),
-		Uploader: r.Response.Torrent.Username,
+		Id:       strconv.Itoa(response.Response.Torrent.Id),
+		InfoHash: response.Response.Torrent.InfoHash,
+		Size:     strconv.Itoa(response.Response.Torrent.Size),
+		Uploader: response.Response.Torrent.Username,
 	}
 
 	return res, nil
@@ -226,16 +254,29 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 // TestAPI try api access against torrents page
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	resp, err := c.get(ctx, c.url+"?action=index")
+	resp, err := c.GetIndex(ctx)
 	if err != nil {
 		return false, errors.Wrap(err, "test api error")
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
+	if resp == nil {
 		return false, nil
 	}
 
 	return true, nil
+}
+
+// GetIndex get API index
+func (c *Client) GetIndex(ctx context.Context) (*GetIndexResponse, error) {
+	var response GetIndexResponse
+
+	params := url.Values{}
+	params.Add("action", "index")
+
+	err := c.getJSON(ctx, params, &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "test api error")
+	}
+
+	return &response, nil
 }

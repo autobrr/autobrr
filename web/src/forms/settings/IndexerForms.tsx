@@ -4,26 +4,27 @@
  */
 
 import { Fragment, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
-import { IndexersSchemaQueryOptions } from "@api/queries";
+import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
+import { SelectField } from "@forms/settings/IrcForms";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
 
@@ -50,7 +51,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
       {ind && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
           <div className="px-4 space-y-1">
-            <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
+            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">IRC</DialogTitle>
             <p className="text-sm text-gray-500 dark:text-gray-200">
               Networks and channels are configured automatically in the background.
             </p>
@@ -100,7 +101,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.torznab && ind.torznab.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Torznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Torznab feed
               </p>
@@ -141,7 +142,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.newznab && ind.newznab.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Newznab</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Newznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Newznab feed
               </p>
@@ -174,7 +175,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.rss && ind.rss.settings && (
           <div className="">
             <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">RSS</Dialog.Title>
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">RSS</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 RSS feed
               </p>
@@ -254,7 +255,7 @@ type SelectValue = {
   value: string;
 };
 
-interface AddProps {
+export interface AddProps {
   isOpen: boolean;
   toggle: () => void;
 }
@@ -422,13 +423,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
+    <Transition show={isOpen} as={Fragment}>
       <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -456,9 +455,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Add indexer
-                              </Dialog.Title>
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
                                 Add indexer.
                               </p>
@@ -594,12 +593,11 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                   )}
                 </Formik>
               </div>
-
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }
 
@@ -718,8 +716,11 @@ interface IndexerUpdateInitialValues {
   name: string;
   enabled: boolean;
   identifier: string;
+  identifier_external: string;
   implementation: string;
   base_url: string;
+  use_proxy?: boolean;
+  proxy_id?: number;
   settings: {
     api_key?: string;
     api_user?: string;
@@ -736,6 +737,8 @@ interface UpdateProps {
 
 export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   const queryClient = useQueryClient();
+
+  const proxies = useQuery(ProxiesQueryOptions());
 
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
@@ -812,8 +815,11 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     name: indexer.name,
     enabled: indexer.enabled || false,
     identifier: indexer.identifier,
+    identifier_external: indexer.identifier_external,
     implementation: indexer.implementation,
     base_url: indexer.base_url,
+    use_proxy: indexer.use_proxy,
+    proxy_id: indexer.proxy_id,
     settings: indexer.settings?.reduce(
       (o: Record<string, string>, obj: IndexerSetting) => ({
         ...o,
@@ -834,7 +840,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       initialValues={initialValues}
       extraButtons={(values) => <TestApiButton values={values as FormikValues} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
     >
-      {() => (
+      {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
           <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
             <label
@@ -856,7 +862,23 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
               )}
             </Field>
           </div>
-          <SwitchGroupWide name="enabled" label="Enabled" />
+
+          <TextFieldWide
+            name="identifier_external"
+            label="External Identifier"
+            help={`External Identifier for ARRs. If using Prowlarr set like: ${indexer.name} (Prowlarr)`}
+            tooltip={
+              <div>
+                <p>External Identifier for use with ARRs to get features like seed limits working.</p>
+                <br/>
+                <p>This needs to match the indexer name in your ARR. If using Prowlarr it will likely be
+                  "{indexer.name} (Prowlarr)"</p>
+                <br/>
+                <DocsLink href="https://autobrr.com/configuration/indexers#setup"/>
+              </div>
+            }
+          />
+          <SwitchGroupWide name="enabled" label="Enabled"/>
 
           {indexer.implementation == "irc" && (
             <SelectFieldCreatable
@@ -868,6 +890,31 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
           )}
 
           {renderSettingFields(indexer.settings)}
+
+          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+            <div className="flex justify-between px-4">
+              <div className="space-y-1">
+                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                  Proxy
+                </DialogTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Set a proxy to be used for downloads of .torrent files and feeds.
+                </p>
+              </div>
+              <SwitchButton name="use_proxy" />
+            </div>
+
+            {values.use_proxy === true && (
+              <div className="py-4 pt-6">
+                <SelectField<number>
+                  name="proxy_id"
+                  label="Select proxy"
+                  placeholder="Select a proxy"
+                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </SlideOver>

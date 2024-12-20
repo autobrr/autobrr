@@ -43,11 +43,12 @@ type Server struct {
 	indexerService        indexerService
 	ircService            ircService
 	notificationService   notificationService
+	proxyService          proxyService
 	releaseService        releaseService
 	updateService         updateService
 }
 
-func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, releaseSvc releaseService, updateSvc updateService) Server {
+func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, notificationSvc notificationService, proxySvc proxyService, releaseSvc releaseService, updateSvc updateService) Server {
 	return Server{
 		log:     log.With().Str("module", "http").Logger(),
 		config:  config,
@@ -68,6 +69,7 @@ func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db 
 		indexerService:        indexerSvc,
 		ircService:            ircSvc,
 		notificationService:   notificationSvc,
+		proxyService:          proxySvc,
 		releaseService:        releaseSvc,
 		updateService:         updateSvc,
 	}
@@ -123,12 +125,13 @@ func (s Server) Handler() http.Handler {
 
 	r.Use(c.Handler)
 
-	encoder := encoder{}
+	encoder := newEncoder(s.log)
 
-	r.Route("/api", func(r chi.Router) {
-		r.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
-		r.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
-
+	// Create a separate router for API
+	apiRouter := chi.NewRouter()
+	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
+	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
+	apiRouter.Group(func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(s.IsAuthenticated)
 
@@ -142,6 +145,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
+			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
 			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
 
@@ -160,17 +164,46 @@ func (s Server) Handler() http.Handler {
 		})
 	})
 
-	// serve the web
-	web.RegisterHandler(r, s.version, s.config.Config.BaseURL)
+	routeBaseURL := "/"
+
+	webRouter := chi.NewRouter()
+
+	// handle backwards compatibility for base url routing
+	if s.config.Config.BaseURLModeLegacy {
+		// this is required to keep assets "url rewritable" via a reverse-proxy
+		routeAssetBaseURL := "./"
+		// serve the web
+		webHandlers := newWebLegacyHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL, routeAssetBaseURL)
+		webHandlers.RegisterRoutes(webRouter)
+	} else {
+		routeBaseURL = s.config.Config.BaseURL
+
+		// serve the web
+		webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, routeBaseURL, routeBaseURL)
+		webHandlers.RegisterRoutes(webRouter)
+
+		// add fallback routes when base url is set to inform user to redirect and use /baseurl/
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			if err := webHandlers.RenderFallbackIndex(w); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			if err := webHandlers.RenderFallbackIndex(w); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		})
+	}
+
+	// Mount the web router under baseUrl + '/'
+	r.Mount(routeBaseURL, webRouter)
+	// Mount the API router under baseUrl + '/api'
+	r.Mount(routeBaseURL+"api", apiRouter)
 
 	return r
-}
-
-func (s Server) index(w http.ResponseWriter, r *http.Request) {
-	p := web.IndexParams{
-		Title:   "Dashboard",
-		Version: s.version,
-		BaseUrl: s.config.Config.BaseURL,
-	}
-	web.Index(w, p)
 }

@@ -13,6 +13,7 @@ interface Filter {
   max_size: string;
   delay: number;
   priority: number;
+  announce_types: string[];
   max_downloads: number;
   max_downloads_unit: string;
   match_releases: string;
@@ -44,6 +45,8 @@ interface Filter {
   match_other: string[];
   except_other: string[];
   years: string;
+  months: string;
+  days: string;
   artists: string;
   albums: string;
   match_release_types: string[];
@@ -115,7 +118,7 @@ interface Action {
   filter_id?: number;
 }
 
-type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
+type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | "";
 
 type ActionPriorityLayout = "MAX" | "MIN" | "";
 

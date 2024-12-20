@@ -1,3 +1,6 @@
+// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package indexer
 
 import (
@@ -8,6 +11,7 @@ import (
 )
 
 func TestYamlExpectations(t *testing.T) {
+	t.Parallel()
 	s := &service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
 

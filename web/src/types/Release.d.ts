@@ -11,6 +11,7 @@ interface Release {
   filter: string;
   protocol: string;
   implementation: string;
+  announce_type: string;
   name: string;
   title: string;
   size: number;
@@ -67,4 +68,10 @@ interface ReleaseStats {
 interface ReleaseFilter {
   id: string;
   value: string;
+}
+
+interface DeleteParams {
+  olderThan?: number;
+  indexers?: string[];
+  releaseStatuses?: string[];
 }

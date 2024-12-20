@@ -4,10 +4,9 @@
  */
 
 import * as React from "react";
-import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CellProps } from "react-table";
+import { CellContext } from "@tanstack/react-table";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
 import {
   ClockIcon,
@@ -21,20 +20,21 @@ import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { classNames, humanFileSize, simplifyDate } from "@utils";
 import { ExternalLink } from "../ExternalLink";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-export const NameCell = (props: CellProps<Release>) => (
+export const NameCell = (props: CellContext<Release, unknown>) => (
   <div
     className={classNames(
       "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[82px] sm:max-w-[160px] md:max-w-[290px] lg:max-w-[535px] xl:max-w-[775px]"
+      "max-w-[82px] sm:max-w-[130px] md:max-w-[260px] lg:max-w-[500px] xl:max-w-[760px]"
     )}
   >
     <div className="flex flex-col truncate">
       <span className="truncate">
-        {String(props.cell.value)}
+        {String(props.cell.getValue())}
       </span>
       <div className="text-xs truncate">
         <span className="text-xs text-gray-500 dark:text-gray-400">Category:</span> {props.row.original.category}
@@ -47,7 +47,7 @@ export const NameCell = (props: CellProps<Release>) => (
   </div>
 );
 
-export const LinksCell = (props: CellProps<Release>) => {
+export const LinksCell = (props: CellContext<Release, unknown>) => {
   return (
     <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
       <div>
@@ -63,6 +63,7 @@ export const LinksCell = (props: CellProps<Release>) => {
             <CellLine title="Indexer">{props.row.original.indexer.identifier}</CellLine>
             <CellLine title="Protocol">{props.row.original.protocol}</CellLine>
             <CellLine title="Implementation">{props.row.original.implementation}</CellLine>
+            <CellLine title="Announce Type">{props.row.original.announce_type}</CellLine>
             <CellLine title="Category">{props.row.original.category}</CellLine>
             <CellLine title="Uploader">{props.row.original.uploader}</CellLine>
             <CellLine title="Size">{humanFileSize(props.row.original.size)}</CellLine>
@@ -104,32 +105,32 @@ export const LinksCell = (props: CellProps<Release>) => {
   );
 };
 
-export const AgeCell = ({value}: CellProps<Release>) => (
-  <div className="text-sm text-gray-500" title={simplifyDate(value)}>
-    {formatDistanceToNowStrict(new Date(value), {addSuffix: false})}
+export const AgeCell = ({cell}: CellContext<Release, unknown>) => (
+  <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue() as string)}>
+    {formatDistanceToNowStrict(new Date(cell.getValue() as string), {addSuffix: false})}
   </div>
 );
 
-export const IndexerCell = ({value}: CellProps<Release>) => (
-  <div
-    className={classNames(
-      "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
-    )}
-  >
-    <Tooltip
-      requiresClick
-      label={value}
-      maxWidth="max-w-[90vw]"
+export const IndexerCell = (props: CellContext<Release, unknown>) => (
+    <div
+      className={classNames(
+        "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+        "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+      )}
     >
+      <Tooltip
+        requiresClick
+        label={props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
+        maxWidth="max-w-[90vw]"
+      >
       <span className="whitespace-pre-wrap break-words">
-        {value}
+        {props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
       </span>
-    </Tooltip>
-  </div>
+      </Tooltip>
+    </div>
 );
 
-export const TitleCell = ({value}: CellProps<Release>) => (
+export const TitleCell = ({cell}: CellContext<Release, string>) => (
   <div
     className={classNames(
       "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -138,11 +139,11 @@ export const TitleCell = ({value}: CellProps<Release>) => (
   >
     <Tooltip
       requiresClick
-      label={value}
+      label={cell.getValue()}
       maxWidth="max-w-[90vw]"
     >
       <span className="whitespace-pre-wrap break-words">
-        {value}
+        {cell.getValue()}
       </span>
     </Tooltip>
   </div>
@@ -187,10 +188,6 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
     </button>
   );
 };
-
-interface ReleaseStatusCellProps {
-    value: ReleaseActionStatus[];
-}
 
 interface StatusCellMapEntry {
     colors: string;
@@ -295,9 +292,9 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
   );
 };
 
-export const ReleaseStatusCell = ({ value }: ReleaseStatusCellProps) => (
+export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => (
   <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-    {value.map((v, idx) => (
+    {row.original.action_status.map((v, idx) => (
       <div
         key={idx}
         className={classNames(

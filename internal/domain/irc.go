@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -47,6 +48,9 @@ type IrcNetwork struct {
 	InviteCommand  string       `json:"invite_command"`
 	UseBouncer     bool         `json:"use_bouncer"`
 	BouncerAddr    string       `json:"bouncer_addr"`
+	UseProxy       bool         `json:"use_proxy"`
+	ProxyId        int64        `json:"proxy_id"`
+	Proxy          *Proxy       `json:"proxy"`
 	BotMode        bool         `json:"bot_mode"`
 	Channels       []IrcChannel `json:"channels"`
 	Connected      bool         `json:"connected"`
@@ -69,6 +73,9 @@ type IrcNetworkWithHealth struct {
 	BotMode          bool                `json:"bot_mode"`
 	CurrentNick      string              `json:"current_nick"`
 	PreferredNick    string              `json:"preferred_nick"`
+	UseProxy         bool                `json:"use_proxy"`
+	ProxyId          int64               `json:"proxy_id"`
+	Proxy            *Proxy              `json:"proxy"`
 	Channels         []ChannelWithHealth `json:"channels"`
 	Connected        bool                `json:"connected"`
 	ConnectedSince   time.Time           `json:"connected_since"`
@@ -198,6 +205,8 @@ func (p IRCParserOrpheus) replaceSeparator(s string) string {
 	return strings.ReplaceAll(s, "–", "-")
 }
 
+var lastDecimalTag = regexp.MustCompile(`^\d{1,2}$|^100$`)
+
 func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	// OPS uses en-dashes as separators, which causes moistari/rls to not parse the torrentName properly,
 	// we replace the en-dashes with hyphens here
@@ -206,6 +215,20 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 
 	year := vars["year"]
 	releaseTagsString := vars["releaseTags"]
+
+	splittedTags := strings.Split(releaseTagsString, "/")
+
+	// Check and replace the last tag if it's a number between 0 and 100
+	if len(splittedTags) > 0 {
+		lastTag := splittedTags[len(splittedTags)-1]
+		match := lastDecimalTag.MatchString(lastTag)
+		if match {
+			splittedTags[len(splittedTags)-1] = lastTag + "%"
+		}
+	}
+
+	// Join tags back into a string
+	releaseTagsString = strings.Join(splittedTags, " ")
 
 	//cleanTags := strings.ReplaceAll(releaseTagsString, "/", " ")
 	cleanTags := CleanReleaseTags(releaseTagsString)

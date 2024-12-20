@@ -7,11 +7,27 @@ on:
       - "develop"
     tags:
       - 'v*'
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/images/**'
+      - 'config.toml'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/images/**'
+      - 'config.toml'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '**.md'
 
 env:
   REGISTRY: ghcr.io
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  GO_VERSION: '1.23'
+  NODE_VERSION: '20.17.0'
 
 permissions:
   contents: write
@@ -30,7 +46,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.10.0'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up corepack
         run: corepack enable
@@ -57,8 +73,13 @@ jobs:
           path: web/dist
 
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ ubuntu-latest ]
+        cgo: [ 1, 0 ]
+    name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     services:
       test_postgres:
         image: postgres:12.10
@@ -69,21 +90,35 @@ jobs:
           POSTGRES_PASSWORD: testdb
           POSTGRES_DB: autobrr
         options: --health-cmd pg_isready --health-interval 1s --health-timeout 5s --health-retries 60
+    env:
+      CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Create Profile environment
+        run:
+          |
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          chmod +x profile.sh;
+          mkdir profile;
+
       - name: Test
-        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./... -tags=integration
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-test-${{ matrix.os }}-${{ matrix.cgo }}
+          path: profile
 
       - name: Test Summary
         uses: test-summary/action@v2
@@ -91,10 +126,71 @@ jobs:
           paths: "unit-tests.xml"
         if: always()
 
-  goreleaserbuild:
-    name: Build distribution binaries
-    runs-on: ubuntu-latest
-    needs: [web, test]
+  testother:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ macos-latest, windows-latest ]
+        cgo: [ 1, 0 ]
+    name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+      CGO_ENABLED: ${{ matrix.cgo }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Create Profile environment
+        shell: bash
+        run:
+          |
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          chmod +x profile.sh;
+          mkdir profile;
+
+      - name: Profile
+        shell: bash
+        run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-test-${{ matrix.os }}-${{ matrix.cgo }}
+          path: profile
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests.xml"
+        if: always() && startsWith(matrix.os, 'windows') == false
+
+  pgo:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        cgo: [ 1, 0 ]
+    name: Automatic PGO ${{ matrix.cgo == 1 && 'CGO ' || ''}}run ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: [ web ]
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+      CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -107,32 +203,108 @@ jobs:
           name: web-dist
           path: web/dist
 
-#     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.0'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Generate Profile
+        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}-${{ matrix.cgo }}.pprof
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-pgo-${{ matrix.os }}-${{ matrix.cgo }}
+          path: cpu-${{ matrix.os }}-${{ matrix.cgo }}.pprof
+
+  goprofilecombine:
+    name: Combine pprof profiles
+    runs-on: ubuntu-latest
+    needs: [ pgo, test, testother ]
+    steps:
+      - name: Download pprof profiles
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pprof-*
+          merge-multiple: true
+          path: profile
+
+      - name: List contents
+        run: ls -la profile
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Merge Profiles
+        run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof
+          path: cpu.pprof
+
+  goreleaserbuild:
+    name: Build distribution binaries
+    runs-on: ubuntu-latest
+    needs: [ web, goprofilecombine ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Download pprof profile
+        uses: actions/download-artifact@v4
+        with:
+          name: pprof
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - name: Run GoReleaser build
         if: github.event_name == 'pull_request'
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: latest
-          args: release --clean --skip=validate --skip=publish --parallelism 5
+          version: "~> v2"
+          args: release --clean --skip=validate,publish --parallelism 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GoReleaser build and publish tags
         if: startsWith(github.ref, 'refs/tags/')
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: latest
+          version: "~> v2"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create web-dist artifact
+        if: startsWith(github.ref, 'refs/tags/')
+        run: mkdir -p dist && tar czf dist/web-dist.tar.gz web/dist
+
+      - name: Upload web-dist to release assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/web-dist.tar.gz
 
       - name: Upload assets
         uses: actions/upload-artifact@v4
@@ -152,19 +324,20 @@ jobs:
       fail-fast: true
       matrix:
         platform:
-        - linux/386
-        - linux/amd64
-        - linux/amd64/v2
-        - linux/amd64/v3
-        - linux/arm/v6
-        - linux/arm/v7
-        - linux/arm64
-#       - linux/mips64le
-#       - linux/mips64
-        - linux/ppc64le
-#       - linux/riscv64
-        - linux/s390x
-    needs: [web, test]
+          - linux/386
+          - linux/amd64
+          - linux/amd64/v2
+          - linux/amd64/v3
+          - linux/arm/v6
+          - linux/arm/v7
+          - linux/arm64
+          # - linux/mips64le
+          # - linux/mips64
+          - linux/ppc64le
+          # - linux/riscv64
+          - linux/s390x
+          - windows/amd64
+    needs: [ web, goprofilecombine ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -176,6 +349,11 @@ jobs:
         with:
           name: web-dist
           path: web/dist
+
+      - name: Download pprof profile
+        uses: actions/download-artifact@v4
+        with:
+          name: pprof
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -208,10 +386,10 @@ jobs:
 
       - name: Build and publish image
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./ci.Dockerfile
+          file: ${{ startsWith(matrix.platform, 'windows') && './ciwindows.Dockerfile' || './ci.Dockerfile' }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -243,7 +421,7 @@ jobs:
     name: Publish Docker multi-arch manifest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: [docker, test]
+    needs: [ docker ]
     steps:
       - name: Download image digests
         uses: actions/download-artifact@v4

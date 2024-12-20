@@ -6,6 +6,7 @@
 package domain
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -290,7 +291,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 				Filter:                      tt.fields.Filter,
 				ActionStatus:                tt.fields.ActionStatus,
 			}
-			err := r.DownloadTorrentFile()
+			err := r.DownloadTorrentFileCtx(context.Background())
 			if err == nil && tt.wantErr {
 				fmt.Println("error")
 			}

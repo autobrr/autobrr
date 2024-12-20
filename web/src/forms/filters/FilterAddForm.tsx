@@ -3,18 +3,18 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment } from "react";
+import { Fragment, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Dialog, Transition } from "@headlessui/react";
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 
@@ -24,6 +24,7 @@ interface filterAddFormProps {
 }
 
 export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
+  const inputRef = useRef(null)
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const mutation = useMutation({
@@ -50,13 +51,11 @@ export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
+    <Transition show={isOpen} as={Fragment}>
+      <Dialog as="div" static className="z-20 fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle} initialFocus={inputRef}>
         <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
+            <TransitionChild
               as={Fragment}
               enter="transform transition ease-in-out duration-500 sm:duration-700"
               enterFrom="translate-x-full"
@@ -86,7 +85,7 @@ export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Create filter</Dialog.Title>
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Create filter</DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Add new filter.
                               </p>
@@ -127,6 +126,9 @@ export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
                                     {...field}
                                     id="name"
                                     type="text"
+                                    data-1p-ignore
+                                    autoComplete="off"
+                                    ref={inputRef}
                                     className="block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                                   />
 
@@ -163,10 +165,10 @@ export function FilterAddForm({ isOpen, toggle }: filterAddFormProps) {
                   )}
                 </Formik>
               </div>
-            </Transition.Child>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 }

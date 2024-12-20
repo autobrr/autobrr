@@ -19,10 +19,10 @@ func (c Category) String() string {
 	return fmt.Sprintf("%s[%d]", c.Name, c.ID)
 }
 
-func (c Category) FromString(str string) {
-	var re = regexp.MustCompile(`(?m)(.+)\[(.+)\]`)
-	match := re.FindAllString(str, -1)
+var catRegex = regexp.MustCompile(`(?m)(.+)\[(.+)\]`)
 
+func (c Category) FromString(str string) {
+	match := catRegex.FindAllString(str, -1)
 	c.Name = match[1]
 	c.ID, _ = strconv.Atoi(match[2])
 }

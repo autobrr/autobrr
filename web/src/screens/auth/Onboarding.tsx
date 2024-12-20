@@ -4,8 +4,8 @@
  */
 
 import { Form, Formik } from "formik";
-import { useMutation } from "@tanstack/react-query";
-import {useNavigate} from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { TextField, PasswordField } from "@components/inputs";
@@ -41,10 +41,22 @@ export const Onboarding = () => {
 
   const navigate = useNavigate();
 
+  // Query to check if OIDC is enabled
+  const { data: oidcConfig } = useQuery({
+    queryKey: ["oidc-config"],
+    queryFn: () => APIClient.auth.getOIDCConfig(),
+  });
+
   const mutation = useMutation({
     mutationFn: (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
-    onSuccess: () => navigate({ to: "/" })
+    onSuccess: () => navigate({ to: "/login" })
   });
+
+  // If OIDC is enabled, redirect to login
+  if (oidcConfig?.enabled) {
+    navigate({ to: "/login" });
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">

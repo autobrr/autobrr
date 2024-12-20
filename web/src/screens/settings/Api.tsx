@@ -5,12 +5,12 @@
 
 import { useRef } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 import { TrashIcon } from "@heroicons/react/24/outline";
 
 import { KeyField } from "@components/fields/text";
 import { DeleteModal } from "@components/modals";
 import { APIKeyAddForm } from "@forms/settings/APIKeyAddForm";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { APIClient } from "@api/APIClient";
 import { ApikeysQueryOptions } from "@api/queries";

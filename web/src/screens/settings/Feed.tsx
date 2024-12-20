@@ -5,8 +5,7 @@
 
 import { Fragment, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Menu, Transition } from "@headlessui/react";
-import { toast } from "react-hot-toast";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
@@ -21,6 +20,7 @@ import { FeedsQueryOptions } from "@api/queries";
 import { FeedKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal, ForceRunModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";
@@ -302,12 +302,12 @@ const FeedItemDropdown = ({
         title={`Force run feed: ${feed.name}`}
         text={`Are you sure you want to force run the ${feed.name} feed? Respecting RSS interval rules is crucial to avoid potential IP bans.`}
       />
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -317,11 +317,11 @@ const FeedItemDropdown = ({
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
+        <MenuItems
           className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -340,8 +340,8 @@ const FeedItemDropdown = ({
                   Edit
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -360,10 +360,10 @@ const FeedItemDropdown = ({
                   Toggle
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   onClick={() => toggleForceRunModal()}
@@ -382,8 +382,8 @@ const FeedItemDropdown = ({
             Force run
                 </button>
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               <ExternalLink
                 href={`${baseUrl()}api/feeds/${feed.id}/latest`}
                 className="font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm text-gray-900 dark:text-gray-300 hover:bg-blue-600 hover:text-white"
@@ -394,8 +394,8 @@ const FeedItemDropdown = ({
                 />
                 View latest run
               </ExternalLink>
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -415,10 +415,10 @@ const FeedItemDropdown = ({
                   Clear feed cache
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -437,9 +437,9 @@ const FeedItemDropdown = ({
                   Delete
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );

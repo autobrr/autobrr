@@ -1,7 +1,7 @@
 // Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-package http
+package logger
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 )
 
 func TestSanitizeLogFile(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		name     string
 		input    string

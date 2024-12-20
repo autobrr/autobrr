@@ -19,8 +19,8 @@ settings:
     help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
 
 irc:
-  network: LibraIRC
-  server: irc.librairc.net
+  network: P2P-Network
+  server: irc.p2p-network.net
   port: 6697
   tls: true
   channels:
@@ -32,7 +32,7 @@ irc:
       type: text
       required: true
       label: Nick
-      help: Bot nick. Eg. user|autodl
+      help: Bot nick. Eg. user_bot
 
     - name: auth.account
       type: text
@@ -68,7 +68,16 @@ irc:
             uploader: oppie
             baseUrl: https://fearnopeer.com/
             torrentId: "54321"
-        pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(https?\:\/\/.*?\/).*\/(\d+)\]'
+        - line: "[FnP] New Upload - Category: [Music] Type: [FLAC] Name: [Live at FnP - Brr 2023 {bootleg} - [FLAC 16bit 44 1kHz]-[daniflix]] Size: [352.91 MiB] Uploader: [uploader] Url: [https://fearnopeer.com/torrents/155493]"
+          expect:
+            category: Music
+            releaseTags: FLAC
+            torrentName: Live at FnP - Brr 2023 {bootleg} - [FLAC 16bit 44 1kHz]-[daniflix]
+            torrentSize: 352.91 MiB
+            uploader: uploader
+            baseUrl: https://fearnopeer.com/
+            torrentId: "155493"
+        pattern: '\[FnP\] New Upload - Category: \[(.*)\] Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
         vars:
           - category
           - releaseTags

@@ -4,10 +4,10 @@
 package ggn
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -163,6 +163,13 @@ type Response struct {
 	Error    string          `json:"error,omitempty"`
 }
 
+type GetIndexResponse struct {
+	Status   string `json:"status"`
+	Response struct {
+		ApiVersion string `json:"api_version"`
+	} `json:"response"`
+}
+
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	ctx := context.Background()
 	err := c.rateLimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
@@ -201,61 +208,96 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 	return res, nil
 }
 
+func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error {
+	reqUrl := fmt.Sprintf("%s?%s", c.url, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
+	if err != nil {
+		return errors.Wrap(err, "ggn client request error : %s", reqUrl)
+	}
+
+	req.Header.Add("X-API-Key", c.APIKey)
+	req.Header.Set("User-Agent", "autobrr")
+
+	res, err := c.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "ggn client request error : %s", reqUrl)
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusUnauthorized {
+		return ErrUnauthorized
+	} else if res.StatusCode == http.StatusForbidden {
+		return ErrForbidden
+	} else if res.StatusCode == http.StatusTooManyRequests {
+		return ErrTooManyRequests
+	}
+
+	reader := bufio.NewReader(res.Body)
+
+	if err := json.NewDecoder(reader).Decode(&data); err != nil {
+		return errors.Wrap(err, "error unmarshal body")
+	}
+
+	return nil
+}
+
 func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
 		return nil, errors.New("ggn client: must have torrentID")
 	}
 
-	var r Response
+	var response *Response
 
-	v := url.Values{}
-	v.Add("id", torrentID)
-	params := v.Encode()
+	params := url.Values{}
+	params.Add("request", "torrent")
+	params.Add("id", torrentID)
 
-	reqUrl := fmt.Sprintf("%s?%s&%s", c.url, "request=torrent", params)
-
-	resp, err := c.get(ctx, reqUrl)
+	err := c.getJSON(ctx, params, &response)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting data")
 	}
 
-	defer resp.Body.Close()
-
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "error reading body")
-	}
-
-	if err = json.Unmarshal(body, &r); err != nil {
-		return nil, errors.Wrap(err, "error unmarshal body")
-	}
-
-	if r.Status != "success" {
-		return nil, errors.New("bad status: %s", r.Status)
+	if response.Status != "success" {
+		return nil, errors.New("bad status: %s", response.Status)
 	}
 
 	t := &domain.TorrentBasic{
-		Id:       strconv.Itoa(r.Response.Torrent.Id),
-		InfoHash: r.Response.Torrent.InfoHash,
-		Size:     strconv.FormatUint(r.Response.Torrent.Size, 10),
+		Id:       strconv.Itoa(response.Response.Torrent.Id),
+		InfoHash: response.Response.Torrent.InfoHash,
+		Size:     strconv.FormatUint(response.Response.Torrent.Size, 10),
 	}
 
 	return t, nil
-
 }
 
-// TestAPI try api access against torrents page
+// TestAPI try api access against index
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	resp, err := c.get(ctx, c.url)
+	resp, err := c.GetIndex(ctx)
 	if err != nil {
-		return false, errors.Wrap(err, "error getting data")
+		return false, errors.Wrap(err, "test api error")
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		return true, nil
+	if resp == nil {
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
+}
+
+func (c *Client) GetIndex(ctx context.Context) (*GetIndexResponse, error) {
+	var response *GetIndexResponse
+
+	params := url.Values{}
+	err := c.getJSON(ctx, params, &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "error getting data")
+	}
+
+	if response.Status != "success" {
+		return nil, errors.New("bad status: %s", response.Status)
+	}
+
+	return response, nil
 }

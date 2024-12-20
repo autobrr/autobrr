@@ -8,6 +8,7 @@ import {
   ChatBubbleLeftRightIcon,
   CogIcon,
   FolderArrowDownIcon,
+  GlobeAltIcon,
   KeyIcon,
   RectangleStackIcon,
   RssIcon,
@@ -26,16 +27,17 @@ interface NavTabType {
 }
 
 const subNavigation: NavTabType[] = [
-  { name: "Application", href: ".", icon: CogIcon, exact: true },
-  { name: "Logs", href: "logs", icon: Square3Stack3DIcon },
-  { name: "Indexers", href: "indexers", icon: KeyIcon },
-  { name: "IRC", href: "irc", icon: ChatBubbleLeftRightIcon },
-  { name: "Feeds", href: "feeds", icon: RssIcon },
-  { name: "Clients", href: "clients", icon: FolderArrowDownIcon },
-  { name: "Notifications", href: "notifications", icon: BellIcon },
-  { name: "API keys", href: "api", icon: KeyIcon },
-  { name: "Releases", href: "releases", icon: RectangleStackIcon },
-  { name: "Account", href: "account", icon: UserCircleIcon }
+  { name: "Application", href: "/settings", icon: CogIcon, exact: true },
+  { name: "Logs", href: "/settings/logs", icon: Square3Stack3DIcon },
+  { name: "Indexers", href: "/settings/indexers", icon: KeyIcon },
+  { name: "IRC", href: "/settings/irc", icon: ChatBubbleLeftRightIcon },
+  { name: "Feeds", href: "/settings/feeds", icon: RssIcon },
+  { name: "Clients", href: "/settings/clients", icon: FolderArrowDownIcon },
+  { name: "Notifications", href: "/settings/notifications", icon: BellIcon },
+  { name: "API keys", href: "/settings/api", icon: KeyIcon },
+  { name: "Proxies", href: "/settings/proxies", icon: GlobeAltIcon },
+  { name: "Releases", href: "/settings/releases", icon: RectangleStackIcon },
+  { name: "Account", href: "/settings/account", icon: UserCircleIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];

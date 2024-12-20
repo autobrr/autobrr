@@ -103,7 +103,7 @@ func (a *announceProcessor) processQueue(queue chan string) {
 			continue
 		}
 
-		rls := domain.NewRelease(domain.IndexerMinimal{ID: a.indexer.ID, Name: a.indexer.Name, Identifier: a.indexer.Identifier})
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: a.indexer.ID, Name: a.indexer.Name, Identifier: a.indexer.Identifier, IdentifierExternal: a.indexer.IdentifierExternal})
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched

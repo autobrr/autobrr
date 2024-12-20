@@ -4,10 +4,10 @@
 package ptp
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -80,6 +80,7 @@ type TorrentResponse struct {
 	ImdbVoteCount int       `json:"ImdbVoteCount"`
 	Torrents      []Torrent `json:"Torrents"`
 }
+
 type Torrent struct {
 	Id            string  `json:"Id"`
 	InfoHash      string  `json:"InfoHash"`
@@ -98,7 +99,36 @@ type Torrent struct {
 	ReleaseGroup  *string `json:"ReleaseGroup"`
 	Checked       bool    `json:"Checked"`
 	GoldenPopcorn bool    `json:"GoldenPopcorn"`
-	RemasterTitle string  `json:"RemasterTitle,omitempty"`
+	FreeleechType *string `json:"FreeleechType,omitempty"`
+	RemasterTitle *string `json:"RemasterTitle,omitempty"`
+	RemasterYear  *string `json:"RemasterYear,omitempty"`
+}
+
+// custom unmarshal method for Torrent
+func (t *Torrent) UnmarshalJSON(data []byte) error {
+	type Alias Torrent
+
+	aux := &struct {
+		Id interface{} `json:"Id"`
+		*Alias
+	}{
+		Alias: (*Alias)(t),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	switch id := aux.Id.(type) {
+	case float64:
+		t.Id = fmt.Sprintf("%.0f", id)
+	case string:
+		t.Id = id
+	default:
+		return fmt.Errorf("unexpected type for Id: %T", aux.Id)
+	}
+
+	return nil
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
@@ -114,10 +144,12 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error {
+	reqUrl := fmt.Sprintf("%s?%s", c.url, params.Encode())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		return nil, errors.Wrap(err, "ptp client request error : %v", url)
+		return errors.Wrap(err, "ptp client request error : %v", reqUrl)
 	}
 
 	req.Header.Add("ApiUser", c.APIUser)
@@ -126,18 +158,26 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 
 	res, err := c.Do(req)
 	if err != nil {
-		return res, errors.Wrap(err, "ptp client request error : %v", url)
+		return errors.Wrap(err, "ptp client request error : %v", reqUrl)
 	}
+
+	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusUnauthorized {
-		return res, ErrUnauthorized
+		return ErrUnauthorized
 	} else if res.StatusCode == http.StatusForbidden {
-		return res, ErrForbidden
+		return ErrForbidden
 	} else if res.StatusCode == http.StatusTooManyRequests {
-		return res, ErrTooManyRequests
+		return ErrTooManyRequests
 	}
 
-	return res, nil
+	body := bufio.NewReader(res.Body)
+
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return errors.Wrap(err, "could not unmarshal body")
+	}
+
+	return nil
 }
 
 func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
@@ -145,33 +185,17 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		return nil, errors.New("ptp client: must have torrentID")
 	}
 
-	var r TorrentResponse
+	var response TorrentResponse
 
-	v := url.Values{}
-	v.Add("torrentid", torrentID)
-	params := v.Encode()
+	params := url.Values{}
+	params.Add("torrentid", torrentID)
 
-	reqUrl := fmt.Sprintf("%v?%v", c.url, params)
-
-	resp, err := c.get(ctx, reqUrl)
+	err := c.getJSON(ctx, params, &response)
 	if err != nil {
 		return nil, errors.Wrap(err, "error requesting data")
 	}
 
-	defer func() {
-		resp.Body.Close()
-	}()
-
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, errors.Wrap(readErr, "could not read body")
-	}
-
-	if err = json.Unmarshal(body, &r); err != nil {
-		return nil, errors.Wrap(readErr, "could not unmarshal body")
-	}
-
-	for _, torrent := range r.Torrents {
+	for _, torrent := range response.Torrents {
 		if torrent.Id == torrentID {
 			return &domain.TorrentBasic{
 				Id:       torrent.Id,
@@ -181,21 +205,59 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		}
 	}
 
-	return nil, nil
+	return nil, errors.New("could not find torrent with id: %s", torrentID)
+}
+
+func (c *Client) GetTorrents(ctx context.Context) (*TorrentListResponse, error) {
+	var response TorrentListResponse
+
+	params := url.Values{}
+
+	err := c.getJSON(ctx, params, &response)
+	if err != nil {
+		return nil, errors.Wrap(err, "error requesting data")
+	}
+
+	return &response, nil
 }
 
 // TestAPI try api access against torrents page
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	resp, err := c.get(ctx, c.url)
+	resp, err := c.GetTorrents(ctx)
 	if err != nil {
-		return false, errors.Wrap(err, "error requesting data")
+		return false, errors.Wrap(err, "test api error")
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
+	if resp == nil {
 		return false, nil
 	}
 
 	return true, nil
+}
+
+type TorrentListResponse struct {
+	TotalResults string  `json:"TotalResults"`
+	Movies       []Movie `json:"Movies"`
+	Page         string  `json:"Page"`
+}
+
+type Movie struct {
+	GroupID        string     `json:"GroupId"`
+	Title          string     `json:"Title"`
+	Year           string     `json:"Year"`
+	Cover          string     `json:"Cover"`
+	Tags           []string   `json:"Tags"`
+	Directors      []Director `json:"Directors,omitempty"`
+	ImdbID         *string    `json:"ImdbId,omitempty"`
+	LastUploadTime string     `json:"LastUploadTime"`
+	MaxSize        int64      `json:"MaxSize"`
+	TotalSnatched  int64      `json:"TotalSnatched"`
+	TotalSeeders   int64      `json:"TotalSeeders"`
+	TotalLeechers  int64      `json:"TotalLeechers"`
+	Torrents       []Torrent  `json:"Torrents"`
+}
+
+type Director struct {
+	Name string `json:"Name"`
+	ID   string `json:"Id"`
 }

@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -18,6 +19,7 @@ type indexerService interface {
 	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
+	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
 	GetTemplates() ([]domain.IndexerDefinition, error)
 	Delete(ctx context.Context, id int) error
@@ -46,6 +48,7 @@ func (h indexerHandler) Routes(r chi.Router) {
 	r.Get("/options", h.list)
 
 	r.Route("/{indexerID}", func(r chi.Router) {
+		r.Get("/", h.findByID)
 		r.Put("/", h.update)
 		r.Delete("/", h.delete)
 		r.Post("/api/test", h.testApi)
@@ -65,17 +68,13 @@ func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.Indexer
-	)
-
+	var data domain.Indexer
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	indexer, err := h.service.Store(ctx, data)
+	indexer, err := h.service.Store(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -85,17 +84,13 @@ func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.Indexer
-	)
-
+	var data domain.Indexer
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	indexer, err := h.service.Update(ctx, data)
+	indexer, err := h.service.Update(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -105,18 +100,13 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx     = r.Context()
-		idParam = chi.URLParam(r, "indexerID")
-	)
-
-	id, err := strconv.Atoi(idParam)
+	indexerID, err := strconv.Atoi(chi.URLParam(r, "indexerID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Delete(ctx, id); err != nil {
+	if err := h.service.Delete(r.Context(), indexerID); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -135,9 +125,7 @@ func (h indexerHandler) getAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	indexers, err := h.service.List(ctx)
+	indexers, err := h.service.List(r.Context())
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -146,29 +134,45 @@ func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponse(w, http.StatusOK, indexers)
 }
 
-func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx     = r.Context()
-		idParam = chi.URLParam(r, "indexerID")
-		req     domain.IndexerTestApiRequest
-	)
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.encoder.Error(w, err)
-		return
-	}
-
-	id, err := strconv.Atoi(idParam)
+func (h indexerHandler) findByID(w http.ResponseWriter, r *http.Request) {
+	indexerID, err := strconv.Atoi(chi.URLParam(r, "indexerID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if req.IndexerId == 0 {
-		req.IndexerId = id
+	indexer, err := h.service.FindByID(r.Context(), indexerID)
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("indexer with id %d not found", indexerID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
 	}
 
-	if err := h.service.TestApi(ctx, req); err != nil {
+	h.encoder.StatusResponse(w, http.StatusOK, indexer)
+}
+
+func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
+	indexerID, err := strconv.Atoi(chi.URLParam(r, "indexerID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	var req domain.IndexerTestApiRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if req.IndexerId == 0 {
+		req.IndexerId = indexerID
+	}
+
+	if err := h.service.TestApi(r.Context(), req); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -183,18 +187,14 @@ func (h indexerHandler) testApi(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx       = r.Context()
-		indexerID = chi.URLParam(r, "indexerID")
-		data      struct {
-			Enabled bool `json:"enabled"`
-		}
-	)
-
-	id, err := strconv.Atoi(indexerID)
+	indexerID, err := strconv.Atoi(chi.URLParam(r, "indexerID"))
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
+	}
+
+	var data struct {
+		Enabled bool `json:"enabled"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -202,7 +202,7 @@ func (h indexerHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.ToggleEnabled(ctx, id, data.Enabled); err != nil {
+	if err := h.service.ToggleEnabled(r.Context(), indexerID, data.Enabled); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

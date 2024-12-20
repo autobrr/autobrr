@@ -5,7 +5,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Menu, Transition } from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
 import {
   Cog6ToothIcon,
@@ -13,7 +13,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns/format";
-import { toast } from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { Checkbox } from "@components/Checkbox";
@@ -21,6 +20,7 @@ import { baseUrl, classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 type LogEvent = {
@@ -307,12 +307,12 @@ const LogsDropdown = () => {
 
   return (
     <Menu as="div">
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <Cog6ToothIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -322,11 +322,11 @@ const LogsDropdown = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
+        <MenuItems
           className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
         >
           <div className="p-3">
-            <Menu.Item>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Scroll to bottom on new message"
@@ -334,8 +334,8 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Indent log lines"
@@ -344,8 +344,8 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("indentLogLines", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
+            </MenuItem>
+            <MenuItem>
               {() => (
                 <Checkbox
                   label="Hide wrapped text"
@@ -354,9 +354,9 @@ const LogsDropdown = () => {
                   setValue={(newValue) => onSetValue("hideWrappedText", newValue)}
                 />
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );

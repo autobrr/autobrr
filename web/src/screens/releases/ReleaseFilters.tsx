@@ -5,13 +5,13 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Listbox, Transition } from "@headlessui/react";
+import { Column } from "@tanstack/react-table";
+import { Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
+import { DebounceInput } from "react-debounce-input";
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
 import { PushStatusOptions } from "@domain/constants";
-import { FilterProps } from "react-table";
-import { DebounceInput } from "react-debounce-input";
 import { ReleasesIndexersQueryOptions } from "@api/queries";
 
 interface ListboxFilterProps {
@@ -36,7 +36,7 @@ const ListboxFilter = ({
       onChange={onChange}
     >
       <div className="relative mt-1">
-        <Listbox.Button className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer dark:text-gray-400 sm:text-sm">
+        <ListboxButton className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer dark:text-gray-400 sm:text-sm">
           <span className="block truncate">{label}</span>
           <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
             <ChevronDownIcon
@@ -44,42 +44,41 @@ const ListboxFilter = ({
               aria-hidden="true"
             />
           </span>
-        </Listbox.Button>
+        </ListboxButton>
         <Transition
           as={React.Fragment}
           leave="transition ease-in duration-100"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <Listbox.Options
+          <ListboxOptions
             className="absolute z-10 w-full mt-1 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
           >
             <FilterOption label="All" value="" />
             {children}
-          </Listbox.Options>
+          </ListboxOptions>
         </Transition>
       </div>
     </Listbox>
   </div>
 );
 
-// a unique option from a list
-export const IndexerSelectColumnFilter = ({
-  column: { filterValue, setFilter, id }
-}: FilterProps<object>) => {
+export const IndexerSelectColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
   const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
-  // Render a multi-select box
+  // Assign indexer name based on the filterValue (indexer.identifier)
+  const currentIndexerName = data?.find(indexer => indexer.identifier === column.getFilterValue())?.name ?? "Indexer";
+
   return (
     <ListboxFilter
-      id={id}
-      key={id}
-      label={filterValue ?? "Indexer"}
-      currentValue={filterValue ?? ""}
-      onChange={setFilter}
+      id={column.id}
+      key={column.id}
+      label={currentIndexerName}
+      currentValue={column.getFilterValue() as string || ""}
+      onChange={newValue => column.setFilterValue(newValue || undefined)}
     >
       {isSuccess && data && data?.map((indexer, idx) => (
-        <FilterOption key={idx} label={indexer} value={indexer} />
+        <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
       ))}
     </ListboxFilter>
   );
@@ -91,10 +90,10 @@ interface FilterOptionProps {
 }
 
 const FilterOption = ({ label, value }: FilterOptionProps) => (
-  <Listbox.Option
-    className={({ active }) => classNames(
+  <ListboxOption
+    className={({ focus }) => classNames(
       "cursor-pointer select-none relative py-2 pl-10 pr-4",
-      active ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
+      focus ? "text-black dark:text-gray-200 bg-gray-100 dark:bg-gray-900" : "text-gray-700 dark:text-gray-400"
     )}
     value={value}
   >
@@ -115,26 +114,27 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
         ) : null}
       </>
     )}
-  </Listbox.Option>
+  </ListboxOption>
 );
 
-export const PushStatusSelectColumnFilter = ({
-  column: { filterValue, setFilter, id },
-  initialFilterValue
-}: FilterProps<object>) => {
-  React.useEffect(() => {
-    if (initialFilterValue) {
-      setFilter(initialFilterValue);
-    }
-  }, [initialFilterValue, setFilter]);
-  const label = filterValue ? PushStatusOptions.find((o) => o.value === filterValue && o.value)?.label : "Push status";
+export const PushStatusSelectColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
+  // React.useEffect(() => {
+  //   if (initialFilterValue) {
+  //     setFilter(initialFilterValue);
+  //   }
+  // }, [initialFilterValue, setFilter]);
+
+  const label = column.getFilterValue() ? PushStatusOptions.find((o) => o.value === column.getFilterValue() && o.value)?.label : "Push status";
+
   return (
-    <div className="mr-3" key={id}>
+    <div className="mr-3" key={column.id}>
       <ListboxFilter
-        id={id}
+        id={column.id}
         label={label ?? "Push status"}
-        currentValue={filterValue ?? ""}
-        onChange={setFilter}
+        currentValue={column.getFilterValue() as string ?? ""}
+        onChange={value => {
+          column.setFilterValue(value || undefined);
+        }}
       >
         {PushStatusOptions.map((status, idx) => (
           <FilterOption key={idx} value={status.value} label={status.label} />
@@ -144,17 +144,16 @@ export const PushStatusSelectColumnFilter = ({
   );
 };
 
-export const SearchColumnFilter = ({
-  column: { filterValue, setFilter, id }
-}: FilterProps<object>) => {
+export const SearchColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
   return (
-    <div className="flex-1 mr-3 mt-1" key={id}>
+    <div className="flex-1 mr-3 mt-1" key={column.id}>
       <DebounceInput
         minLength={2}
-        value={filterValue || undefined}
+        value={column.getFilterValue() as string || undefined}
         debounceTimeout={500}
         onChange={e => {
-          setFilter(e.target.value || undefined); // Set undefined to remove the filter entirely
+          // Set undefined to remove the filter entirely
+          column.setFilterValue(e.target.value || undefined)
         }}
         id="filter"
         type="text"

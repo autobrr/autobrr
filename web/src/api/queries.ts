@@ -11,10 +11,11 @@ import {
   FeedKeys,
   FilterKeys,
   IndexerKeys,
-  IrcKeys, NotificationKeys,
+  IrcKeys, NotificationKeys, ProxyKeys,
   ReleaseKeys,
   SettingsKeys
 } from "@api/query_keys";
+import { ColumnFilter } from "@tanstack/react-table";
 
 export const FiltersQueryOptions = (indexers: string[], sortOrder: string) =>
   queryOptions({
@@ -104,10 +105,11 @@ export const ApikeysQueryOptions = () =>
     refetchOnWindowFocus: false,
   });
 
-export const ReleasesListQueryOptions = (offset: number, limit: number, filters: ReleaseFilter[]) =>
+export const ReleasesListQueryOptions = (offset: number, limit: number, filters: ColumnFilter[]) =>
   queryOptions({
     queryKey: ReleaseKeys.list(offset, limit, filters),
     queryFn: () => APIClient.release.findQuery(offset, limit, filters),
+    placeholderData: keepPreviousData,
     staleTime: 5000,
     refetchOnWindowFocus: true,
     refetchInterval: 15000 // refetch releases table on releases page every 15s
@@ -133,7 +135,31 @@ export const ReleasesStatsQueryOptions = () =>
 export const ReleasesIndexersQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.indexers(),
-    queryFn: () => APIClient.release.indexerOptions(),
-    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const indexersResponse: IndexerDefinition[] = await APIClient.indexers.getAll();
+      const indexerOptionsResponse: string[] = await APIClient.release.indexerOptions();
+      
+      const indexersMap = new Map(indexersResponse.map((indexer: IndexerDefinition) => [indexer.identifier, indexer.name]));
+      
+      return indexerOptionsResponse.map((identifier: string) => ({
+        name: indexersMap.get(identifier) || identifier,
+        identifier: identifier
+      }));
+    },
+    refetchOnWindowFocus: false,
     staleTime: Infinity
+  });
+
+export const ProxiesQueryOptions = () =>
+  queryOptions({
+    queryKey: ProxyKeys.lists(),
+    queryFn: () => APIClient.proxy.list(),
+    refetchOnWindowFocus: false
+  });
+
+export const ProxyByIdQueryOptions = (proxyId: number) =>
+  queryOptions({
+    queryKey: ProxyKeys.detail(proxyId),
+    queryFn: async ({queryKey}) => await APIClient.proxy.getByID(queryKey[2]),
+    retry: false,
   });

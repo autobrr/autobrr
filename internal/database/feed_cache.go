@@ -117,7 +117,7 @@ func (r *FeedCacheRepo) GetCountByFeed(ctx context.Context, feedId int) (int, er
 	}
 
 	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err != nil {
+	if err := row.Err(); err != nil {
 		return 0, errors.Wrap(err, "error executing query")
 	}
 

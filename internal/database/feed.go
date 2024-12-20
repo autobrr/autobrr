@@ -28,13 +28,102 @@ type FeedRepo struct {
 	db  *DB
 }
 
+func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"f.id",
+			"i.id",
+			"i.identifier",
+			"i.identifier_external",
+			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
+			"f.name",
+			"f.type",
+			"f.enabled",
+			"f.url",
+			"f.interval",
+			"f.timeout",
+			"f.max_age",
+			"f.api_key",
+			"f.cookie",
+			"f.settings",
+			"f.created_at",
+			"f.updated_at",
+			"f.indexer_id",
+		).
+		From("feed f").
+		LeftJoin("indexer i ON f.indexer_id = i.id")
+
+	if params.FeedID != 0 {
+		queryBuilder = queryBuilder.Where(sq.Eq{"f.id": params.FeedID})
+	} else if params.IndexerID != 0 {
+		queryBuilder = queryBuilder.Where(sq.Eq{"f.indexer_id": params.IndexerID})
+	} else if params.IndexerIdentifier != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"i.identifier": params.IndexerIdentifier})
+	} else {
+		return nil, errors.New("invalid params")
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	var f domain.Feed
+
+	var apiKey, cookie, settings sql.NullString
+	var indexerID, indexerProxyID sql.NullInt64
+	var indexerIdentifier, indexerIdentifierExternal, indexerName sql.NullString
+	var indexerUseProxy sql.NullBool
+
+	if err := row.Scan(&f.ID, &indexerID, &indexerIdentifier, &indexerIdentifierExternal, &indexerName, &indexerUseProxy, &indexerProxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt, &f.IndexerID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	if indexerID.Valid {
+		f.Indexer.ID = int(indexerID.Int64)
+		f.Indexer.Identifier = indexerIdentifier.String
+		f.Indexer.IdentifierExternal = indexerIdentifierExternal.String
+		f.Indexer.Name = indexerName.String
+		f.UseProxy = indexerUseProxy.Bool
+		f.ProxyID = indexerProxyID.Int64
+	}
+
+	f.ApiKey = apiKey.String
+	f.Cookie = cookie.String
+
+	if settings.Valid {
+		var settingsJson domain.FeedSettingsJSON
+		if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+			return nil, errors.Wrap(err, "error unmarshal settings")
+		}
+
+		f.Settings = &settingsJson
+	}
+
+	return &f, nil
+}
+
 func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
 			"i.id",
 			"i.identifier",
+			"i.identifier_external",
 			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -65,11 +154,17 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	var f domain.Feed
 
 	var apiKey, cookie, settings sql.NullString
+	var proxyID sql.NullInt64
 
-	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
+	f.ProxyID = proxyID.Int64
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
 
@@ -85,68 +180,16 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	return &f, nil
 }
 
-func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
-	queryBuilder := r.db.squirrel.
-		Select(
-			"f.id",
-			"i.id",
-			"i.identifier",
-			"i.name",
-			"f.name",
-			"f.type",
-			"f.enabled",
-			"f.url",
-			"f.interval",
-			"f.timeout",
-			"f.max_age",
-			"f.api_key",
-			"f.cookie",
-			"f.settings",
-			"f.created_at",
-			"f.updated_at",
-		).
-		From("feed f").
-		Join("indexer i ON f.indexer_id = i.id").
-		Where(sq.Eq{"i.name": indexer})
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
-
-	var f domain.Feed
-
-	var apiKey, cookie, settings sql.NullString
-
-	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
-		return nil, errors.Wrap(err, "error scanning row")
-	}
-
-	f.ApiKey = apiKey.String
-	f.Cookie = cookie.String
-
-	var settingsJson domain.FeedSettingsJSON
-	if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
-		return nil, errors.Wrap(err, "error unmarshal settings")
-	}
-
-	f.Settings = &settingsJson
-
-	return &f, nil
-}
-
 func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
 			"i.id",
 			"i.identifier",
+			"i.identifier_external",
 			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -185,10 +228,13 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		var apiKey, cookie, lastRunData, settings sql.NullString
 		var lastRun sql.NullTime
 
-		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.Name, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		var proxyID sql.NullInt64
+
+		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
+		f.ProxyID = proxyID.Int64
 		f.LastRun = lastRun.Time
 		f.LastRunData = lastRunData.String
 		f.ApiKey = apiKey.String
@@ -215,9 +261,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 
 func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, error) {
 	queryBuilder := r.db.squirrel.
-		Select(
-			"last_run_data",
-		).
+		Select("last_run_data").
 		From("feed").
 		Where(sq.Eq{"id": id})
 
@@ -234,6 +278,10 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 	var data sql.NullString
 
 	if err := row.Scan(&data); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", domain.ErrRecordNotFound
+		}
+
 		return "", errors.Wrap(err, "error scanning row")
 	}
 

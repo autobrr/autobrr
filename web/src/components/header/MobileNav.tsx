@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import {Link} from "@tanstack/react-router";
-import { Disclosure } from "@headlessui/react";
+import { Link } from "@tanstack/react-router";
+import { DisclosurePanel } from "@headlessui/react";
 
 import { classNames } from "@utils";
 
@@ -12,7 +12,7 @@ import { NAV_ROUTES } from "./_shared";
 import type { RightNavProps } from "./_shared";
 
 export const MobileNav = (props: RightNavProps) => (
-  <Disclosure.Panel className="border-b border-gray-300 dark:border-gray-700 md:hidden">
+  <DisclosurePanel className="border-b border-gray-300 dark:border-gray-700 md:hidden">
     <div className="px-2 py-3 space-y-1 sm:px-3">
       {NAV_ROUTES.map((item) => (
         <Link
@@ -48,5 +48,5 @@ export const MobileNav = (props: RightNavProps) => (
         Logout
       </button>
     </div>
-  </Disclosure.Panel>
+  </DisclosurePanel>
 );

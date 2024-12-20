@@ -5,6 +5,29 @@
 
 import { MultiSelectOption } from "@components/inputs/select";
 
+export const AnnounceTypeOptions: MultiSelectOption[] = [
+  {
+    label: "New",
+    value: "NEW"
+  },
+  {
+    label: "Checked",
+    value: "CHECKED"
+  },
+  {
+    label: "Promo",
+    value: "PROMO"
+  },
+  {
+    label: "Promo GP",
+    value: "PROMO_GP"
+  },
+  {
+    label: "Resurrected",
+    value: "RESURRECTED"
+  }
+];
+
 export const resolutions = [
   "2160p",
   "1080p",
@@ -206,6 +229,7 @@ export const languageOptions = [
   "PORTUGUESE",
   "ROMANiAN",
   "RUSSiAN",
+  "SLOVAK",
   "SPANiSH",
   "SUBBED",
   "SUBFORCED",
@@ -473,6 +497,21 @@ export const DownloadRuleConditionOptions: OptionBasic[] = [
   }
 ];
 
+export const DownloadClientAuthType: OptionBasic[] = [
+  {
+    label: "None",
+    value: "NONE"
+  },
+  {
+    label: "Basic Auth",
+    value: "BASIC_AUTH"
+  },
+  {
+    label: "Digest Auth",
+    value: "DIGEST_AUTH"
+  }
+];
+
 const logLevel = ["DEBUG", "INFO", "WARN", "ERROR", "TRACE"] as const;
 
 export const LogLevelOptions = logLevel.map(v => ({ value: v, label: v, key: v }));
@@ -560,4 +599,11 @@ export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>
   { label: "PUT", value: "PUT" },
   { label: "PATCH", value: "PATCH" },
   { label: "DELETE", value: "DELETE" }
+];
+
+export const ProxyTypeOptions: OptionBasicTyped<ProxyType>[] = [
+  {
+    label: "SOCKS5",
+    value: "SOCKS5"
+  },
 ];

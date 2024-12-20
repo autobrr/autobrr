@@ -1,0 +1,135 @@
+---
+#id: hdonly
+name: HD-Only
+identifier: hdonly
+description: HD-Only (HD-O) is a FRENCH Private Torrent Tracker for HD MOVIES / TV
+language: fr
+urls:
+  - https://hd-only.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: gazelle
+settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: HD-Only
+  server: irc.hd-only.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - HD-Bot
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Must be like username|bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "HD-Bot enter #announce USERNAME IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with HD-Bot. Replace USERNAME and IRCKEY.
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - Movie.Title.2002.1080p.WEB.H264 - 13.43 GB - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+          expect:
+            title: "Movie Title"
+            year: 2002
+            category: Film
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI"
+            freeleech: ""
+            releaseGroup: ""
+            torrentName: "Movie.Title.2002.1080p.WEB.H264"
+            torrentSize: 13.43 GB
+            baseUrl: https://hd-only.org/
+            torrentId: "00000"
+            tags: Aventure, Fantastique
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI - FL - Movie.Title.2002.1080p.WEB.H264 - 9.43 GB - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+          expect:
+            title: "Movie Title"
+            year: 2002
+            category: Film
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI"
+            freeleech: "FL"
+            releaseGroup: ""
+            torrentName: "Movie.Title.2002.1080p.WEB.H264"
+            torrentSize: 9.43 GB
+            baseUrl: https://hd-only.org/
+            torrentId: "00000"
+            tags: Aventure, Fantastique
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - 8.93 GB - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+          expect:
+            title: "Movie Title"
+            year: 2002
+            category: Film
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI / Scene"
+            freeleech: ""
+            releaseGroup: "GROUP"
+            torrentName: "Movie.Title.2002.1080p.WEB.H264-GROUP"
+            torrentSize: 8.93 GB
+            baseUrl: https://hd-only.org/
+            torrentId: "00000"
+            tags: Aventure, Fantastique
+        - line: "Movie Title [2002] [Film] - WEB / AVC / 1080p / VO / stFR / VFI / Scene - FL - GROUP - Movie.Title.2002.1080p.WEB.H264-GROUP - 12.23 GB - https://hd-only.org/torrents.php?torrentid=00000 / https://hd-only.org/torrents.php?action=download&id=00000 - Aventure, Fantastique"
+          expect:
+            title: "Movie Title"
+            year: 2002
+            category: Film
+            releaseTags: "WEB / AVC / 1080p / VO / stFR / VFI / Scene"
+            freeleech: "FL"
+            releaseGroup: "GROUP"
+            torrentName: "Movie.Title.2002.1080p.WEB.H264-GROUP"
+            torrentSize: 12.23 GB
+            baseUrl: https://hd-only.org/
+            torrentId: "00000"
+            tags: Aventure, Fantastique
+        pattern: '(.*?) \[(\d{4})\] \[(.*?)\] - (.*?)(?: - (FL))?(?: - (.*?))? - (.*?) - (.*?) - (https:\/\/hd-only\.org\/).*torrentid=(\d+).* - (.*)'
+        vars:
+          - title
+          - year
+          - category
+          - releaseTags
+          - freeleech
+          - releaseGroup
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+          - tags
+
+    match:
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

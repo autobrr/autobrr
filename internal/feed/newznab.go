@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -95,7 +96,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 			}
 		}
 
-		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier})
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
 		rls.Implementation = domain.ReleaseImplementationNewznab
 		rls.Protocol = domain.ReleaseProtocolNzb
 
@@ -129,6 +130,18 @@ func (j *NewznabJob) process(ctx context.Context) error {
 }
 
 func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
+	// add proxy if enabled and exists
+	if j.Feed.UseProxy && j.Feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get proxy client")
+		}
+
+		j.Client.WithHTTPClient(proxyClient)
+
+		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
+	}
+
 	// get feed
 	feed, err := j.Client.GetFeed(ctx)
 	if err != nil {
@@ -156,36 +169,34 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	// set ttl to 1 month
 	ttl := time.Now().AddDate(0, 1, 0)
 
-	for _, i := range feed.Channel.Items {
-		i := i
-
-		if i.GUID == "" {
+	for _, item := range feed.Channel.Items {
+		if item.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, i.GUID)
+		exists, err := j.CacheRepo.Exists(j.Feed.ID, item.GUID)
 		if err != nil {
 			j.Log.Error().Err(err).Msg("could not check if item exists")
 			continue
 		}
 
 		if exists {
-			j.Log.Trace().Msgf("cache item exists, skipping release: %s", i.Title)
+			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
 
-		j.Log.Debug().Msgf("found new release: %s", i.Title)
+		j.Log.Debug().Msgf("found new release: %s", item.Title)
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    i.GUID,
-			Value:  []byte(i.Title),
+			Key:    item.GUID,
+			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})
 
 		// only append if we successfully added to cache
-		items = append(items, *i)
+		items = append(items, *item)
 	}
 
 	if len(toCache) > 0 {

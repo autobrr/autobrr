@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { AuthCtx } from "@utils/Context";
-
 interface NavItem {
   name: string;
   path: string;
@@ -13,7 +11,6 @@ interface NavItem {
 
 export interface RightNavProps {
   logoutMutation: () => void;
-  auth: AuthCtx
 }
 
 export const NAV_ROUTES: Array<NavItem> = [

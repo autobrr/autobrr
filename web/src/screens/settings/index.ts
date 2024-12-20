@@ -11,6 +11,7 @@ export { default as Indexer } from "./Indexer";
 export { default as Irc } from "./Irc";
 export { default as Logs } from "./Logs";
 export { default as Notification } from "./Notifications";
+export { default as Proxy } from "./Proxy";
 export { default as Release } from "./Releases";
 export { default as RegexPlayground } from "./RegexPlayground";
 export { default as Account } from "./Account";

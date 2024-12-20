@@ -6,12 +6,16 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 )
@@ -24,16 +28,21 @@ type authService interface {
 }
 
 type authHandler struct {
-	log     zerolog.Logger
-	encoder encoder
-	config  *domain.Config
-	service authService
-	server  Server
-
+	log         zerolog.Logger
+	encoder     encoder
+	config      *domain.Config
+	service     authService
+	server      Server
 	cookieStore *sessions.CookieStore
+	oidcHandler *auth.OIDCHandler
 }
 
 func newAuthHandler(encoder encoder, log zerolog.Logger, server Server, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
+	oidcHandler, err := auth.NewOIDCHandler(config, log)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to initialize OIDC handler")
+	}
+
 	return &authHandler{
 		log:         log,
 		encoder:     encoder,
@@ -41,6 +50,7 @@ func newAuthHandler(encoder encoder, log zerolog.Logger, server Server, config *
 		service:     service,
 		cookieStore: cookieStore,
 		server:      server,
+		oidcHandler: oidcHandler,
 	}
 }
 
@@ -48,6 +58,12 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/login", h.login)
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
+
+	r.Route("/oidc", func(r chi.Router) {
+		r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
+		r.Get("/config", h.getOIDCConfig)
+		r.Get("/callback", h.handleOIDCCallback)
+	})
 
 	// Group for authenticated routes
 	r.Group(func(r chi.Router) {
@@ -82,6 +98,8 @@ func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
+	session.Values["created"] = time.Now().Unix()
+	session.Values["auth_method"] = "password"
 
 	// Set cookie options
 	session.Options.HttpOnly = true
@@ -154,6 +172,10 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 
 func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 	if status, err := h.onboardEligible(r.Context()); err != nil {
+		if status == http.StatusServiceUnavailable {
+			h.encoder.StatusWarning(w, status, err.Error())
+			return
+		}
 		h.encoder.StatusError(w, status, err)
 		return
 	}
@@ -181,9 +203,16 @@ func (h authHandler) onboardEligible(ctx context.Context) (int, error) {
 // If there is a valid session return OK, otherwise the middleware returns early with a 401
 func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	session := r.Context().Value("session").(*sessions.Session)
-	if session != nil {
+	if session != nil && session.Values["username"] != nil {
 		h.log.Debug().Msgf("found user session: %+v", session)
+		// Return username if available in session
+		response := map[string]interface{}{
+			"username":    session.Values["username"],
+			"auth_method": session.Values["auth_method"],
+		}
 
+		h.encoder.StatusResponse(w, http.StatusOK, response)
+		return
 	}
 	// send empty response as ok
 	h.encoder.NoContent(w)
@@ -205,4 +234,94 @@ func (h authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	// send response as ok
 	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
+}
+
+func (h authHandler) getOIDCConfig(w http.ResponseWriter, r *http.Request) {
+	h.log.Debug().Msg("getting OIDC config")
+
+	if h.oidcHandler == nil {
+		h.log.Debug().Msg("OIDC handler is nil, returning disabled config")
+		h.encoder.StatusResponse(w, http.StatusOK, auth.GetConfigResponse{
+			Enabled: false,
+		})
+		return
+	}
+
+	// Get the config first
+	config := h.oidcHandler.GetConfigResponse()
+
+	// Check for existing session
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err == nil && session.Values["authenticated"] == true {
+		h.log.Debug().Msg("user already has valid session, skipping OIDC state cookie")
+		// Still return enabled=true, just don't set the cookie
+		h.encoder.StatusResponse(w, http.StatusOK, config)
+		return
+	}
+
+	h.log.Debug().Bool("enabled", config.Enabled).Str("authorization_url", config.AuthorizationURL).Str("state", config.State).Msg("returning OIDC config")
+
+	// Only set state cookie if user is not already authenticated
+	h.oidcHandler.SetStateCookie(w, r, config.State)
+
+	h.encoder.StatusResponse(w, http.StatusOK, config)
+}
+
+func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
+	if h.oidcHandler == nil {
+		h.encoder.StatusError(w, http.StatusServiceUnavailable, errors.New("OIDC not configured"))
+		return
+	}
+
+	username, err := h.oidcHandler.HandleCallback(w, r)
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.Wrap(err, "OIDC authentication failed"))
+		return
+	}
+
+	// Create new session
+	session, err := h.cookieStore.Get(r, "user_session")
+	if err != nil {
+		h.log.Error().Err(err).Msgf("Auth: Failed to create cookies with attempt username: [%s] ip: %s", username, r.RemoteAddr)
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not create cookies"))
+		return
+	}
+
+	// Set user as authenticated
+	session.Values["authenticated"] = true
+	session.Values["created"] = time.Now().Unix()
+	session.Values["username"] = username
+	session.Values["auth_method"] = "oidc"
+
+	// Set cookie options
+	session.Options.HttpOnly = true
+	session.Options.SameSite = http.SameSiteLaxMode
+	session.Options.Path = h.config.BaseURL
+
+	// If forwarded protocol is https then set cookie secure
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		session.Options.Secure = true
+		session.Options.SameSite = http.SameSiteStrictMode
+	}
+
+	if err := session.Save(r, w); err != nil {
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
+		return
+	}
+
+	// Redirect to the frontend
+	frontendURL := h.config.BaseURL
+	if frontendURL == "/" {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			host := r.Header.Get("X-Forwarded-Host")
+			if host == "" {
+				host = r.Host
+			}
+			frontendURL = fmt.Sprintf("%s://%s", proto, host)
+		}
+	}
+
+	h.log.Debug().Str("redirect_url", frontendURL).Str("x_forwarded_proto", r.Header.Get("X-Forwarded-Proto")).Str("x_forwarded_host", r.Header.Get("X-Forwarded-Host")).Str("host", r.Host).Msg("redirecting to frontend after OIDC callback")
+
+	http.Redirect(w, r, frontendURL, http.StatusFound)
 }

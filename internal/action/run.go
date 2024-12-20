@@ -19,7 +19,6 @@ import (
 )
 
 func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
-
 	var (
 		err        error
 		rejections []string
@@ -33,9 +32,8 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		}
 	}()
 
-	// if set, try to resolve MagnetURI before parsing macros
-	// to allow webhook and exec to get the magnet_uri
-	if err := release.ResolveMagnetUri(ctx); err != nil {
+	// Check preconditions: download torrent file if needed
+	if err := s.CheckActionPreconditions(ctx, action, release); err != nil {
 		return nil, err
 	}
 
@@ -129,9 +127,30 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	// send separate event for notifications
-	s.bus.Publish("events:notification", &payload.Event, payload)
+	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
 
 	return rejections, err
+}
+
+func (s *service) CheckActionPreconditions(ctx context.Context, action *domain.Action, release *domain.Release) error {
+	if err := s.downloadSvc.ResolveMagnetURI(ctx, release); err != nil {
+		return errors.Wrap(err, "could not resolve magnet uri: %s", release.MagnetURI)
+	}
+
+	// parse all macros in one go
+	if action.CheckMacrosNeedTorrentTmpFile(release) {
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+			return errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
+		}
+	}
+
+	if action.CheckMacrosNeedRawDataBytes(release) {
+		if err := release.OpenTorrentFile(); err != nil {
+			return errors.Wrap(err, "could not open torrent file for release: %s", release.TorrentName)
+		}
+	}
+
+	return nil
 }
 
 func (s *service) test(name string) {
