@@ -12,12 +12,17 @@ interface List {
   url: string;
   headers: string[];
   api_key: string;
-  filters: Filter[];
+  filters: ListFilter[];
   match_release: boolean;
   tags_included: string[];
   tags_excluded: string[];
   include_unmonitored: boolean;
   exclude_alternate_titles: boolean;
+}
+
+interface ListFilter {
+  id: number;
+  name: string;
 }
 
 interface ListCreate {
