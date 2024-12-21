@@ -15,8 +15,7 @@ import { Checkbox } from "@components/Checkbox";
 import { ListsQueryOptions } from "@api/queries";
 import { Section } from "@screens/settings/_components";
 import { EmptySimple } from "@components/emptystates";
-import { ListAddForm } from "@forms";
-
+import { ListAddForm, ListUpdateForm } from "@forms";
 
 function ListsSettings() {
   const [addFormIsOpen, toggleAddList] = useToggle(false);
@@ -95,8 +94,7 @@ interface ListItemProps {
 }
 
 function ListItem({ list }: ListItemProps) {
-  // const [isOpen, toggleUpdate] = useToggle(false);
-  const [_, toggleUpdate] = useToggle(false);
+  const [isOpen, toggleUpdate] = useToggle(false);
 
   const queryClient = useQueryClient();
 
@@ -121,7 +119,7 @@ function ListItem({ list }: ListItemProps) {
 
   return (
     <li>
-      {/*<ProxyUpdateForm isOpen={isOpen} toggle={toggleUpdate} data={proxy} />*/}
+      <ListUpdateForm isOpen={isOpen} toggle={toggleUpdate} data={list} />
 
       <div className="grid grid-cols-12 items-center py-1.5">
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">

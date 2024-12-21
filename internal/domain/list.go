@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -73,12 +74,23 @@ func (l *List) Validate() error {
 		return errors.New("type is required")
 	}
 
-	if (l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr) && l.ClientID == 0 {
+	if !l.ListTypeArr() || !l.ListTypeList() {
+		return errors.New("invalid list type: %s", l.Type)
+	}
+
+	if l.ListTypeArr() && l.ClientID == 0 {
 		return errors.New("arr client id is required")
 	}
 
-	if (l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam) && l.URL == "" {
-		return errors.New("list url is required")
+	if l.ListTypeList() {
+		if l.URL == "" {
+			return errors.New("list url is required")
+		}
+
+		_, err := url.Parse(l.URL)
+		if err != nil {
+			return errors.Wrap(err, "could not parse list url: %s", l.URL)
+		}
 	}
 
 	if len(l.Filters) == 0 {
@@ -86,6 +98,14 @@ func (l *List) Validate() error {
 	}
 
 	return nil
+}
+
+func (l *List) ListTypeArr() bool {
+	return l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr
+}
+
+func (l *List) ListTypeList() bool {
+	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam
 }
 
 func (l *List) ShouldProcessItem(monitored bool) bool {

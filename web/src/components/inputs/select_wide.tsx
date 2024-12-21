@@ -242,18 +242,18 @@ export interface MultiSelectFieldProps {
   options: OptionBasicTyped<number>[];
 }
 
-interface ListIndexerMultiSelectOption {
+interface ListFilterMultiSelectOption {
   id: number;
   name: string;
 }
 
-export function ListIndexerMultiSelectField({ name, label, help, tooltip, options }: MultiSelectFieldProps) {
+export function ListFilterMultiSelectField({ name, label, help, tooltip, options }: MultiSelectFieldProps) {
   return (
-    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+    <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
         <label
           htmlFor={name}
-          className="block ml-px text-sm font-medium text-gray-900 dark:text-white sm:pt-2"
+          className="block ml-px text-sm font-medium text-gray-900 dark:text-white"
         >
           <div className="flex">
             {tooltip ? (
@@ -276,7 +276,7 @@ export function ListIndexerMultiSelectField({ name, label, help, tooltip, option
                   labelledBy={name}
                   // isCreatable={creatable}
                   // onCreateOption={handleNewField}
-                  value={field.value && field.value.map((item: ListIndexerMultiSelectOption) => ({
+                  value={field.value && field.value.map((item: ListFilterMultiSelectOption) => ({
                     value: item.id,
                     label: item.name
                   }))}

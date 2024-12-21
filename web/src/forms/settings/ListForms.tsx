@@ -28,11 +28,18 @@ import {
   SwitchGroupWide,
   TextFieldWide
 } from "@components/inputs";
-import { ListTypeOptions, SelectOption } from "@domain/constants";
+import {
+  ListsMDBListOptions,
+  ListsMetacriticOptions,
+  ListsTraktOptions,
+  ListTypeOptions,
+  SelectOption
+} from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import { DownloadClientsQueryOptions, FiltersGetAllQueryOptions } from "@api/queries";
 import { classNames } from "@utils";
-import { ListIndexerMultiSelectField } from "@components/inputs/select_wide.tsx";
+import { ListFilterMultiSelectField, SelectFieldCreatable } from "@components/inputs/select_wide";
+import { SlideOver } from "@components/panels";
 
 interface ListAddFormValues {
   name: string;
@@ -157,12 +164,9 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             required={true}
                           />
 
-                          <div
-                            className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                          <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
                             <div>
-                              <label
-                                htmlFor="type"
-                                className="block text-sm font-medium text-gray-900 dark:text-white"
+                              <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white"
                               >
                                 Type
                               </label>
@@ -220,6 +224,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
 
                           <SwitchGroupWide name="enabled" label="Enabled"/>
                         </div>
+
                         <ListTypeForm listType={values.type} clients={clients ?? []}/>
 
                         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -233,19 +238,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                            <ListIndexerMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []} />
-
-                            {/*<div className="mt-6 px-4 space-y-1">*/}
-                            {/*  <ul>*/}
-                            {/*    <li*/}
-                            {/*      className="px-4 py-2 w-full flex justify-between border rounded-md dark:border-gray-700">*/}
-                            {/*      <div>*/}
-                            {/*        <span className="dark:text-white">Test</span>*/}
-                            {/*      </div>*/}
-                            {/*      x*/}
-                            {/*    </li>*/}
-                            {/*  </ul>*/}
-                            {/*</div>*/}
+                            <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []} />
 
                           </div>
                         </div>
@@ -289,9 +282,83 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-export function ListUpdateForm() {
+interface UpdateFormProps<T> {
+  isOpen: boolean;
+  toggle: () => void;
+  data: T;
+}
+
+export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) {
+  const queryClient = useQueryClient();
+
+  const clientsQuery = useQuery(DownloadClientsQueryOptions());
+  const filterQuery = useQuery(FiltersGetAllQueryOptions());
+
+  const mutation = useMutation({
+    mutationFn: (list: List) => APIClient.lists.update(list),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body={`${data.name} was updated successfully`} t={t}/>);
+      toggle();
+    }
+  });
+
+  const onSubmit = (formData: unknown) => mutation.mutate(formData as List);
+
+  const deleteMutation = useMutation({
+    mutationFn: (listID: number) => APIClient.lists.delete(listID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
+
+      toast.custom((t) => <Toast type="success" body={`${data.name} was deleted.`} t={t}/>);
+    }
+  });
+
+  const deleteAction = () => deleteMutation.mutate(data.id);
+
   return (
-    <div></div>
+    <SlideOver<List>
+      type="UPDATE"
+      title="List"
+      isOpen={isOpen}
+      toggle={toggle}
+      onSubmit={onSubmit}
+      deleteAction={deleteAction}
+      initialValues={data}
+      // testFn={testNotification}
+    >
+      {(values) => (
+        <div>
+          <TextFieldWide name="name" label="Name" required={true}/>
+
+          <TextFieldWide name="type" label="Type" required={true} disabled={true} />
+
+          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+            <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
+          </div>
+
+          <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+              <div className="px-4 space-y-1">
+                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                  Filters
+                </DialogTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Select filters to update for this list.
+                </p>
+              </div>
+
+              <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({
+                value: f.id,
+                label: f.name
+              })) ?? []}/>
+
+            </div>
+          </div>
+        </div>
+      )}
+    </SlideOver>
   );
 }
 
@@ -330,11 +397,11 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "TRAKT":
       return <ListTypeTrakt {...props} />;
     case "STEAM":
-      return <ListTypeTrakt {...props} />;
+      return <ListTypeSteam />;
     case "METACRITIC":
-      return <ListTypeTrakt {...props} />;
+      return <ListTypeMetacritic />;
     case "MDBLIST":
-      return <ListTypeTrakt {...props} />;
+      return <ListTypeMDBList />;
     case "PLAINTEXT":
       return <ListTypeTrakt {...props} />;
     default:
@@ -344,162 +411,103 @@ const ListTypeForm = (props: ListTypeFormProps) => {
   }
 }
 
-const CheckBoxes = (props: ListTypeFormProps) => {
+interface CheckBoxProps {
+  id: string;
+  name: string;
+  label: string;
+  disabled?: boolean;
+  description?: string;
+}
+
+export const Checkbox = ({ name, label, id, description }: CheckBoxProps) => {
+  return (
+    <div className="relative flex items-start">
+      <div className="flex items-center h-5">
+        {/*<Field*/}
+        {/*  type="checkbox"*/}
+        {/*  id={id}*/}
+        {/*  name={name}*/}
+        {/*  aria-describedby={`${id}-description`}*/}
+        {/*  disabled={disabled}*/}
+        {/*  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"*/}
+        {/*/>*/}
+        <Field name={name}>
+          {({ form: { setFieldValue, values } }: FieldProps) => (
+            <input
+              type="checkbox"
+              id={name}
+              name={name}
+              // disabled={disabled}
+              checked={values[name]}
+              // checked={field.value}
+              aria-describedby={`${id}-description`}
+              className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+              onChange={(e) => setFieldValue(name, e.target.checked)}
+            />
+          )}
+        </Field>
+      </div>
+      <div className="ml-3 text-sm">
+        <label htmlFor={id} className="font-medium text-gray-900 dark:text-gray-100">
+          {label}
+        </label>
+        {description && (
+          <p className="text-gray-500">{description}</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
   switch (props.listType) {
     case "RADARR":
       return (
         <fieldset className="space-y-5">
           <legend className="sr-only">Settings</legend>
-          <div className="relative flex items-start">
-            <div className="flex items-center h-5">
-              <Field
-                id={`match_release`}
-                aria-describedby={`match_release-description`}
-                name="match_release"
-                type="checkbox"
-                // value={}
-                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-            </div>
-            <div className="ml-3 text-sm">
-              <label htmlFor={`match_release`}
-                     className="font-medium text-gray-900 dark:text-gray-100">
-                {/*{e.label}*/}
-                Match Release
-              </label>
-              {/*{e.description && (*/}
-              {/*  <p className="text-gray-500">{e.description}</p>*/}
-              {/*)}*/}
-            </div>
-          </div>
-
-          <div className="relative flex items-start">
-            <div className="flex items-center h-5">
-              <Field
-                id={`include_unmonitored`}
-                aria-describedby={`include_unmonitored-description`}
-                name="include_unmonitored"
-                type="checkbox"
-                // value={}
-                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-            </div>
-            <div className="ml-3 text-sm">
-              <label htmlFor={`include_unmonitored`}
-                     className="font-medium text-gray-900 dark:text-gray-100">
-                {/*{e.label}*/}
-                Include Unmonitored
-              </label>
-              {/*{e.description && (*/}
-              {/*  <p className="text-gray-500">{e.description}</p>*/}
-              {/*)}*/}
-            </div>
-          </div>
+          <Checkbox id="radarr-match_release" name="match_release" label="Match Release" description="Use Match Releases field" />
+          <Checkbox id="radarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
-      )
+      );
     case "SONARR":
       return (
         <fieldset className="space-y-5">
           <legend className="sr-only">Settings</legend>
-          <div className="relative flex items-start">
-            <div className="flex items-center h-5">
-              <Field
-                id={`match_release`}
-                aria-describedby={`match_release-description`}
-                name="match_release"
-                type="checkbox"
-                // value={}
-                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-            </div>
-            <div className="ml-3 text-sm">
-              <label htmlFor={`match_release`}
-                     className="font-medium text-gray-900 dark:text-gray-100">
-                {/*{e.label}*/}
-                Match Release
-              </label>
-              {/*{e.description && (*/}
-              {/*  <p className="text-gray-500">{e.description}</p>*/}
-              {/*)}*/}
-            </div>
-          </div>
-
-          <div className="relative flex items-start">
-            <div className="flex items-center h-5">
-              <Field
-                id={`include_unmonitored`}
-                aria-describedby={`include_unmonitored-description`}
-                name="include_unmonitored"
-                type="checkbox"
-                // value={}
-                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-            </div>
-            <div className="ml-3 text-sm">
-              <label htmlFor={`include_unmonitored`}
-                     className="font-medium text-gray-900 dark:text-gray-100">
-                {/*{e.label}*/}
-                Include Unmonitored
-              </label>
-              {/*{e.description && (*/}
-              {/*  <p className="text-gray-500">{e.description}</p>*/}
-              {/*)}*/}
-            </div>
-          </div>
-
-          <div className="relative flex items-start">
-            <div className="flex items-center h-5">
-              <Field
-                id={`exclude_alternate_titles`}
-                aria-describedby={`exclude_alternate_titles-description`}
-                name="exclude_alternate_titles"
-                type="checkbox"
-                // value={}
-                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-            </div>
-            <div className="ml-3 text-sm">
-              <label htmlFor={`exclude_alternate_titles`}
-                     className="font-medium text-gray-900 dark:text-gray-100">
-                {/*{e.label}*/}
-                Exclude Alternate Titles
-              </label>
-              {/*{e.description && (*/}
-              {/*  <p className="text-gray-500">{e.description}</p>*/}
-              {/*)}*/}
-            </div>
-          </div>
+          <Checkbox id="sonarr-match_release" name="match_release" label="Match Release" description="Use Match Releases field" />
+          <Checkbox id="sonarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <Checkbox id="sonarr-exclude-alternate-titles" name="exclude_alternate_titles" label="Exclude Alternate titles" description="Exclude alternate titles from the list." />
         </fieldset>
-      )
+      );
+    case "READARR":
+      return (
+        <fieldset className="space-y-5">
+          <legend className="sr-only">Settings</legend>
+          <Checkbox id="readarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+        </fieldset>
+      );
+    case "LIDARR":
+      return (
+        <fieldset className="space-y-5">
+          <legend className="sr-only">Settings</legend>
+          <Checkbox id="lidarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+        </fieldset>
+      );
+    case "WHISPARR":
+      return (
+        <fieldset className="space-y-5">
+          <legend className="sr-only">Settings</legend>
+          <Checkbox id="whisparr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+        </fieldset>
+      );
+    // case "TRAKT":
+    //   return (
+    //     <fieldset className="space-y-5">
+    //       <legend className="sr-only">Settings</legend>
+    //       <Checkbox id="trakt-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+    //     </fieldset>
+    //   );
   }
-  // return (
-  //   <fieldset className="space-y-5">
-  //     <legend className="sr-only">Settings</legend>
-  //     {/*{EventOptions.map((e, idx) => (*/}
-  //     {/*  <div key={idx} className="relative flex items-start">*/}
-  //     {/*    <div className="flex items-center h-5">*/}
-  //     {/*      <Field*/}
-  //     {/*        id={`events-${e.value}`}*/}
-  //     {/*        aria-describedby={`events-${e.value}-description`}*/}
-  //     {/*        name="events"*/}
-  //     {/*        type="checkbox"*/}
-  //     {/*        value={e.value}*/}
-  //     {/*        className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"*/}
-  //     {/*      />*/}
-  //     {/*    </div>*/}
-  //     {/*    <div className="ml-3 text-sm">*/}
-  //     {/*      <label htmlFor={`events-${e.value}`}*/}
-  //     {/*             className="font-medium text-gray-900 dark:text-gray-100">*/}
-  //     {/*        {e.label}*/}
-  //     {/*      </label>*/}
-  //     {/*      {e.description && (*/}
-  //     {/*        <p className="text-gray-500">{e.description}</p>*/}
-  //     {/*      )}*/}
-  //     {/*    </div>*/}
-  //     {/*  </div>*/}
-  //     {/*))}*/}
-  //   </fieldset>
-  // )
 }
 
 function ListTypeArr({ listType, clients }: ListTypeFormProps) {
@@ -510,15 +518,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
           Source
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Select arr instance.
-          {/*{" "}*/}
-          {/*<ExternalLink*/}
-          {/*  href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"*/}
-          {/*  className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"*/}
-          {/*>*/}
-          {/*  webhook integration*/}
-          {/*</ExternalLink>*/}
-          {/*{" in your server."}*/}
+          Update filters from titles in Radarr, Sonarr, Lidarr, Readarr, or Whisper.
         </p>
       </div>
 
@@ -529,50 +529,105 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
       />
 
       <div className="px-4 space-y-1">
-        <CheckBoxes listType={listType} clients={[]}/>
+        <FilterOptionCheckBoxes listType={listType} clients={[]}/>
       </div>
-
-      {/*<PasswordFieldWide*/}
-      {/*  name="webhook"*/}
-      {/*  label="Webhook URL"*/}
-      {/*  help="Discord channel webhook url"*/}
-      {/*  placeholder="https://discordapp.com/api/webhooks/xx/xx"*/}
-      {/*/>*/}
     </div>
   )
 }
 
 function ListTypeTrakt(props: ListTypeFormProps) {
+  const { values } = useFormikContext<List>();
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
-        {/*<p className="text-sm text-gray-500 dark:text-gray-400">*/}
-        {/*  {"Create a "}*/}
-        {/*  <ExternalLink*/}
-        {/*    href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"*/}
-        {/*    className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"*/}
-        {/*  >*/}
-        {/*    webhook integration*/}
-        {/*  </ExternalLink>*/}
-        {/*  {" in your server."}*/}
-        {/*</p>*/}
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Use a Trakt list or one of the default autobrr hosted lists.
+        </p>
       </div>
 
-      <TextFieldWide name="url" label="URL" help={"Trakt List URL"} placeholder="https://trakt.tv"/>
-
-      <PasswordFieldWide
-        name="api_key"
-        label="API Key"
-        help="Trakt API Key"
-        // placeholder="https://discordapp.com/api/webhooks/xx/xx"
+      <SelectFieldCreatable
+        name="url"
+        label="List URL"
+        help="Default Trakt lists. Override with your own."
+        options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
 
+      {!values.url.startsWith("https://api.autobrr.com/") && (
+        <PasswordFieldWide
+          name="api_key"
+          label="API Key"
+          help="Trakt API Key. Required for private lists."
+        />
+      )}
+
       <div className="px-4 space-y-1">
-        <CheckBoxes listType={props.listType} clients={[]}/>
+        <FilterOptionCheckBoxes listType={props.listType} clients={[]}/>
       </div>
+    </div>
+  )
+}
+
+function ListTypeSteam() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Source list
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Follow Steam wishlists.
+        </p>
+      </div>
+
+      <TextFieldWide name="url" label="URL" help={"Steam Wishlist URL"} placeholder="https://store.steampowered.com/wishlist/id/USERNAME/wishlistdata"/>
+    </div>
+  )
+}
+
+function ListTypeMetacritic() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Source list
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Use a Metacritic list or one of the default autobrr hosted lists.
+        </p>
+      </div>
+
+      <SelectFieldCreatable
+        name="url"
+        label="List URL"
+        help="Metacritic lists. Override with your own."
+        options={ListsMetacriticOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+      />
+    </div>
+  )
+}
+
+function ListTypeMDBList() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Source list
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Use a MDBList list or one of the default autobrr hosted lists.
+        </p>
+      </div>
+
+      <SelectFieldCreatable
+        name="url"
+        label="List URL"
+        help="MDBLists.com lists. Override with your own."
+        options={ListsMDBListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+      />
     </div>
   )
 }

@@ -650,3 +650,48 @@ export const ProxyTypeOptions: OptionBasicTyped<ProxyType>[] = [
     value: "SOCKS5"
   },
 ];
+
+export const ListsTraktOptions: OptionBasic[] = [
+  {
+    label: "Anticipated TV",
+    value: "https://api.autobrr.com/lists/trakt/anticipated-tv"
+  },
+  {
+    label: "Popular TV",
+    value: "https://api.autobrr.com/lists/trakt/popular-tv"
+  },
+  {
+    label: "Upcoming Movies",
+    value: "https://api.autobrr.com/lists/trakt/upcoming-movies"
+  },
+  {
+    label: "Upcoming BluRay",
+    value: "https://api.autobrr.com/lists/trakt/upcoming-bluray"
+  },
+  {
+    label: "Popular TV",
+    value: "https://api.autobrr.com/lists/trakt/popular-tv"
+  },
+  {
+    label: "Steven Lu",
+    value: "https://api.autobrr.com/lists/stevenlu"
+  },
+];
+
+export const ListsMetacriticOptions: OptionBasic[] = [
+  {
+    label: "Upcoming Albums",
+    value: "https://api.autobrr.com/lists/metacritic/upcoming-albums"
+  },
+  {
+    label: "New Albums",
+    value: "https://api.autobrr.com/lists/metacritic/new-albums"
+  }
+];
+
+export const ListsMDBListOptions: OptionBasic[] = [
+  {
+    label: "Latest TV Shows",
+    value: "https://mdblist.com/lists/garycrawfordgc/latest-tv-shows/json"
+  },
+];
