@@ -12,7 +12,7 @@ import (
 )
 
 func (s *service) lidarr(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("type", "lidarr").Str("client", list.Name).Logger()
+	l := s.log.With().Str("list", list.Name).Str("type", "lidarr").Int("client", list.ClientID).Logger()
 
 	l.Debug().Msgf("gathering titles...")
 
@@ -29,6 +29,11 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 		processedTitles = append(processedTitles, processTitle(title, list.MatchRelease)...)
 	}
 
+	if len(processedTitles) == 0 {
+		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
+		return nil
+	}
+
 	// Update filter based on MatchRelease
 	var f domain.FilterUpdate
 
@@ -37,6 +42,9 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 		if len(joinedTitles) == 0 {
 			return nil
 		}
+
+		l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
+
 		f.MatchReleases = &joinedTitles
 	} else {
 		// Process artists only if MatchRelease is false
@@ -46,10 +54,15 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 		}
 
 		joinedTitles := strings.Join(processedTitles, ",")
+
+		l.Trace().Str("albums", joinedTitles).Msgf("found %d titles", len(joinedTitles))
+
 		joinedArtists := strings.Join(processedArtists, ",")
 		if len(joinedTitles) == 0 && len(joinedArtists) == 0 {
 			return nil
 		}
+
+		l.Trace().Str("artists", joinedArtists).Msgf("found %d titles", len(joinedArtists))
 
 		f.Albums = &joinedTitles
 		f.Artists = &joinedArtists

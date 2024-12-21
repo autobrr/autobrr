@@ -3,7 +3,6 @@ package list
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -16,9 +15,7 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "mdblist").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
-		errMsg := "no URL provided for Mdblist"
-		l.Error().Msg(errMsg)
-		return fmt.Errorf(errMsg)
+		return errors.New("no URL provided for Mdblist")
 	}
 
 	//var titles []string
@@ -28,8 +25,7 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
 	if err != nil {
-		l.Error().Err(err).Msg("could not make new request")
-		return err
+		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
 	}
 
 	list.SetRequestHeaders(req)
@@ -38,14 +34,12 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		l.Error().Err(err).Msgf("failed to fetch titles from URL: %s", list.URL)
-		return err
+		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		l.Error().Msgf("failed to fetch titles from URL: %s", list.URL)
-		return fmt.Errorf("failed to fetch titles from URL: %s", list.URL)
+		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
 	}
 
 	var data []struct {
@@ -53,24 +47,22 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		l.Error().Err(err).Msgf("failed to decode JSON data from URL: %s", list.URL)
-		return err
+		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
 	}
 
 	filterTitles := []string{}
 	for _, item := range data {
-		//titles = append(titles, item.Title)
 		filterTitles = append(filterTitles, processTitle(item.Title, list.MatchRelease)...)
+	}
+
+	if len(filterTitles) == 0 {
+		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
+		return nil
 	}
 
 	joinedTitles := strings.Join(filterTitles, ",")
 
-	l.Trace().Msgf("%s", joinedTitles)
-
-	if len(joinedTitles) == 0 {
-		//l.Debug().Msgf("no titles found for filter: %v", filterID)
-		return nil
-	}
+	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
 
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 

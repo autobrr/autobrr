@@ -14,7 +14,7 @@ import (
 )
 
 func (s *service) radarr(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("type", "radarr").Str("client", list.Name).Logger()
+	l := s.log.With().Str("list", list.Name).Str("type", "radarr").Int("client", list.ClientID).Logger()
 
 	l.Debug().Msgf("gathering titles...")
 
@@ -25,13 +25,14 @@ func (s *service) radarr(ctx context.Context, list *domain.List) error {
 
 	l.Debug().Msgf("got %d filter titles", len(titles))
 
-	joinedTitles := strings.Join(titles, ",")
-
-	l.Trace().Msgf("%v", joinedTitles)
-
-	if len(joinedTitles) == 0 {
+	if len(titles) == 0 {
+		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
 		return nil
 	}
+
+	joinedTitles := strings.Join(titles, ",")
+
+	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
 
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 

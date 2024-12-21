@@ -88,14 +88,14 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
 	}
 
-	joinedTitles := strings.Join(filterTitles, ",")
-
-	l.Trace().Msgf("%s", joinedTitles)
-
-	if len(joinedTitles) == 0 {
+	if len(filterTitles) == 0 {
 		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
 		return nil
 	}
+
+	joinedTitles := strings.Join(filterTitles, ",")
+
+	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
 
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 
