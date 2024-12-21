@@ -45,14 +45,6 @@ func (h listHandler) Routes(r chi.Router) {
 }
 
 func (h listHandler) list(w http.ResponseWriter, r *http.Request) {
-	//data := []domain.List{
-	//	{
-	//		ID:      1,
-	//		Name:    "test",
-	//		Type:    "RADARR",
-	//		Filters: []int{1},
-	//	},
-	//}
 	data, err := h.listSvc.List(r.Context())
 	if err != nil {
 		h.encoder.Error(w, err)
