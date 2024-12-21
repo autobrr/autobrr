@@ -14,7 +14,7 @@ type webhookHandler struct {
 }
 
 func newWebhookHandler(encoder encoder, listSvc listService) *webhookHandler {
-	return &webhookHandler{}
+	return &webhookHandler{encoder: encoder, listSvc: listSvc}
 }
 
 func (h *webhookHandler) Routes(r chi.Router) {
