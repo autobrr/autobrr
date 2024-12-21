@@ -151,6 +151,7 @@ func (s Server) Handler() http.Handler {
 			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
 			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
 			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
+			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
 
 			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 

@@ -194,8 +194,47 @@ func (s *service) RefreshList(ctx context.Context, listID int64) error {
 		return err
 	}
 
-	// TODO get single one
 	if err := s.refreshAll(ctx, []*domain.List{list}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) RefreshArrLists(ctx context.Context) error {
+	var selectedLists []*domain.List
+	lists, err := s.List(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, list := range lists {
+		if list.ListTypeArr() && list.Enabled {
+			selectedLists = append(selectedLists, list)
+		}
+	}
+
+	if err := s.refreshAll(ctx, selectedLists); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) RefreshOtherLists(ctx context.Context) error {
+	var selectedLists []*domain.List
+	lists, err := s.List(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, list := range lists {
+		if list.ListTypeList() && list.Enabled {
+			selectedLists = append(selectedLists, list)
+		}
+	}
+
+	if err := s.refreshAll(ctx, selectedLists); err != nil {
 		return err
 	}
 

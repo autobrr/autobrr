@@ -175,7 +175,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                               <Field name="type" type="select">
                                 {({
                                     field,
-                                    form: { setFieldValue, resetForm }
+                                    form: { setFieldValue }
                                   }: FieldProps) => (
                                   <Select
                                     {...field}
@@ -206,7 +206,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                                     })}
                                     value={field?.value && field.value.value}
                                     onChange={(option: unknown) => {
-                                      resetForm();
+                                      // resetForm();
 
                                       const opt = option as SelectOption;
                                       // setFieldValue("name", option?.label ?? "")
