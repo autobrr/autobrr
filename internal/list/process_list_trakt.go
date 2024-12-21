@@ -100,7 +100,7 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 
 	if list.MatchRelease {
-		filterUpdate.Shows = nil
+		filterUpdate.Shows = &nullString
 		filterUpdate.MatchReleases = &joinedTitles
 	}
 

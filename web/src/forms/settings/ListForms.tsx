@@ -495,7 +495,7 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
       return (
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field" />
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
           <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
@@ -503,7 +503,7 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
       return (
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field" />
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
           <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
           <SwitchGroupWide name="exclude_alternate_titles" label="Exclude Alternate Titles" description="Exclude alternate titles from the list." />
         </fieldset>

@@ -102,8 +102,8 @@ func (s *service) metacritic(ctx context.Context, list *domain.List) error {
 	filterUpdate := domain.FilterUpdate{Albums: &joinedTitles, Artists: &joinedArtists}
 
 	if list.MatchRelease {
-		filterUpdate.Albums = nil
-		filterUpdate.Artists = nil
+		filterUpdate.Albums = &nullString
+		filterUpdate.Artists = &nullString
 		filterUpdate.MatchReleases = &joinedTitles
 	}
 

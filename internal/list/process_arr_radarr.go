@@ -37,7 +37,7 @@ func (s *service) radarr(ctx context.Context, list *domain.List) error {
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 
 	if list.MatchRelease {
-		filterUpdate.Shows = nil
+		filterUpdate.Shows = &nullString
 		filterUpdate.MatchReleases = &joinedTitles
 	}
 
@@ -140,3 +140,5 @@ func (s *service) processRadarr(ctx context.Context, list *domain.List, logger *
 
 	return uniqueTitles, nil
 }
+
+var nullString = ""
