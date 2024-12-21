@@ -10,11 +10,10 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) metacritic(ctx context.Context, list *domain.List) error {
-	l := log.With().Str("type", "metacritic").Str("list", list.Name).Logger()
+	l := s.log.With().Str("type", "metacritic").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
 		errMsg := "no URL provided for metacritic"
@@ -109,18 +108,20 @@ func (s *service) metacritic(ctx context.Context, list *domain.List) error {
 		return nil
 	}
 
+	filterUpdate := domain.FilterUpdate{Albums: &joinedTitles, Artists: &joinedArtists}
+
+	if list.MatchRelease {
+		filterUpdate.Albums = nil
+		filterUpdate.Artists = nil
+		filterUpdate.MatchReleases = &joinedTitles
+	}
+
 	for _, filter := range list.Filters {
 		l.Debug().Msgf("updating filter: %v", filter.ID)
 
-		f := domain.FilterUpdate{Albums: &joinedTitles, Artists: &joinedArtists}
+		filterUpdate.ID = filter.ID
 
-		if list.MatchRelease {
-			f = domain.FilterUpdate{MatchReleases: &joinedTitles}
-		}
-
-		f.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
+		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
 			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 

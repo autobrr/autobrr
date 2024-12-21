@@ -10,11 +10,10 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) trakt(ctx context.Context, list *domain.List) error {
-	l := log.With().Str("type", "trakt").Str("list", list.Name).Logger()
+	l := s.log.With().Str("type", "trakt").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
 		errMsg := "no URL provided for steam"
@@ -31,7 +30,10 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 	}
 
 	req.Header.Set("trakt-api-version", "2")
-	//req.Header.Set("trakt-api-key", t.apiKey)
+
+	if list.APIKey != "" {
+		req.Header.Set("trakt-api-key", list.APIKey)
+	}
 
 	list.SetRequestHeaders(req)
 
@@ -95,15 +97,17 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 		return nil
 	}
 
+	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
+
+	if list.MatchRelease {
+		filterUpdate.Shows = nil
+		filterUpdate.MatchReleases = &joinedTitles
+	}
+
 	for _, filter := range list.Filters {
-		f := domain.FilterUpdate{Shows: &joinedTitles}
+		filterUpdate.ID = filter.ID
 
-		if list.MatchRelease {
-			f = domain.FilterUpdate{MatchReleases: &joinedTitles}
-		}
-		f.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
+		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
 			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 

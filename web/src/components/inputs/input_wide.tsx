@@ -279,7 +279,7 @@ export const SwitchGroupWide = ({
           </div>
         </Label>
         {description && (
-          <Description className="text-sm text-gray-500 dark:text-gray-700">
+          <Description className="text-sm text-gray-500 dark:text-gray-500">
             {description}
           </Description>
         )}

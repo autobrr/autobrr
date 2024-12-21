@@ -11,7 +11,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) sonarr(ctx context.Context, list *domain.List) error {
@@ -22,7 +21,7 @@ func (s *service) sonarr(ctx context.Context, list *domain.List) error {
 		arrType = "sonarr"
 	}
 
-	l := log.With().Str("type", arrType).Str("client", list.Name).Logger()
+	l := s.log.With().Str("type", arrType).Str("client", list.Name).Logger()
 
 	l.Debug().Msgf("gathering titles...")
 
@@ -41,18 +40,19 @@ func (s *service) sonarr(ctx context.Context, list *domain.List) error {
 		return nil
 	}
 
+	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
+
+	if list.MatchRelease {
+		filterUpdate.Shows = nil
+		filterUpdate.MatchReleases = &joinedTitles
+	}
+
 	for _, filter := range list.Filters {
 		l.Debug().Msgf("updating filter: %v", filter.ID)
 
-		f := domain.FilterUpdate{Shows: &joinedTitles}
+		filterUpdate.ID = filter.ID
 
-		if list.MatchRelease {
-			f = domain.FilterUpdate{MatchReleases: &joinedTitles}
-		}
-
-		f.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
+		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
 			return errors.Wrap(err, "error updating filter: %v", filter.ID)
 		}
 
@@ -72,7 +72,7 @@ func (s *service) processSonarr(ctx context.Context, list *domain.List, logger *
 		return nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
 	}
 
-	client := downloadClient.Client.(sonarr.Client)
+	client := downloadClient.Client.(*sonarr.Client)
 
 	var tags []*arr.Tag
 	if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {

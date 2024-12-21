@@ -9,11 +9,10 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) lidarr(ctx context.Context, list *domain.List) error {
-	l := log.With().Str("type", "lidarr").Str("client", list.Name).Logger()
+	l := s.log.With().Str("type", "lidarr").Str("client", list.Name).Logger()
 
 	l.Debug().Msgf("gathering titles...")
 
@@ -89,7 +88,7 @@ func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *
 		return nil, nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
 	}
 
-	client := downloadClient.Client.(lidarr.Client)
+	client := downloadClient.Client.(*lidarr.Client)
 
 	//var tags []*arr.Tag
 	//if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {

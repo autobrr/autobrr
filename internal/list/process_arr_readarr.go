@@ -10,11 +10,10 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) readarr(ctx context.Context, list *domain.List) error {
-	l := log.With().Str("type", "readarr").Str("client", list.Name).Logger()
+	l := s.log.With().Str("type", "readarr").Str("client", list.Name).Logger()
 
 	l.Debug().Msgf("gathering titles...")
 
@@ -33,12 +32,14 @@ func (s *service) readarr(ctx context.Context, list *domain.List) error {
 		return nil
 	}
 
+	filterUpdate := domain.FilterUpdate{MatchReleases: &joinedTitles}
+
 	for _, filter := range list.Filters {
 		l.Debug().Msgf("updating filter: %v", filter.ID)
 
-		f := domain.FilterUpdate{ID: filter.ID, MatchReleases: &joinedTitles}
+		filterUpdate.ID = filter.ID
 
-		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
+		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
 			return errors.Wrap(err, "error updating filter: %v", filter.ID)
 		}
 
@@ -58,7 +59,7 @@ func (s *service) processReadarr(ctx context.Context, list *domain.List, logger 
 		return nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
 	}
 
-	client := downloadClient.Client.(readarr.Client)
+	client := downloadClient.Client.(*readarr.Client)
 
 	//var tags []*arr.Tag
 	//if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {

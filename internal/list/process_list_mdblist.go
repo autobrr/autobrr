@@ -10,11 +10,10 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 )
 
 func (s *service) mdblist(ctx context.Context, list *domain.List) error {
-	l := log.With().Str("type", "mdblist").Str("list", list.Name).Logger()
+	l := s.log.With().Str("type", "mdblist").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
 		errMsg := "no URL provided for Mdblist"
@@ -73,32 +72,19 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 		return nil
 	}
 
+	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
+
+	if list.MatchRelease {
+		filterUpdate.Shows = nil
+		filterUpdate.MatchReleases = &joinedTitles
+	}
+
 	for _, filter := range list.Filters {
 		l.Debug().Msgf("updating filter: %v", filter.ID)
 
-		//filterTitles := []string{}
-		//for _, title := range titles {
-		//	filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
-		//}
+		filterUpdate.ID = filter.ID
 
-		//joinedTitles := strings.Join(filterTitles, ",")
-
-		//l.Trace().Msgf("%s", joinedTitles)
-
-		//if len(joinedTitles) == 0 {
-		//	l.Debug().Msgf("no titles found for filter: %v", filterID)
-		//	return nil
-		//}
-
-		f := domain.FilterUpdate{Shows: &joinedTitles}
-
-		if list.MatchRelease {
-			f = domain.FilterUpdate{MatchReleases: &joinedTitles}
-		}
-
-		f.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
+		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
 			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 

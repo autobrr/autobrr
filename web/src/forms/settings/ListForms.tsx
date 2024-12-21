@@ -443,19 +443,37 @@ export const Checkbox = ({ name, label, id, description }: CheckBoxProps) => {
         {/*  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"*/}
         {/*/>*/}
         <Field name={name}>
-          {({ form: { setFieldValue, values } }: FieldProps) => (
+          {({ field, form: { setFieldValue, values } }: FieldProps) => {
+            console.debug("values", values);
+            console.debug("checkbox", field);
+            return (
             <input
               type="checkbox"
               id={name}
               name={name}
               // disabled={disabled}
-              checked={values[name]}
-              // checked={field.value}
+              // checked={values[field.name]}
+              // checked={field.checked ?? values[field.name]}
+              // value={!!field.checked}
+              checked={field.value}
+              // value={field.value}
               aria-describedby={`${id}-description`}
               className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-              onChange={(e) => setFieldValue(name, e.target.checked)}
+              onChange={(e) => {
+                console.log("on change: ",e )
+                console.log("on change value: ",e.target.checked )
+                console.log("on change current value: ",e.target.value)
+                console.log("filed",field.checked ?? false)
+                console.log("feiled",values[field.name])
+                // e.stopPropagation();
+                // e.nativeEvent.stopImmediatePropagation();
+                // setFieldValue(name, e.target.checked)
+                // let val = values[field.name];
+                // console.log("val",val)
+                setFieldValue(field?.name ?? "", e.target.checked ?? false);
+              }}
             />
-          )}
+          )}}
         </Field>
       </div>
       <div className="ml-3 text-sm">
@@ -475,40 +493,40 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
   switch (props.listType) {
     case "RADARR":
       return (
-        <fieldset className="space-y-5">
+        <fieldset>
           <legend className="sr-only">Settings</legend>
-          <Checkbox id="radarr-match_release" name="match_release" label="Match Release" description="Use Match Releases field" />
-          <Checkbox id="radarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field" />
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
     case "SONARR":
       return (
-        <fieldset className="space-y-5">
+        <fieldset>
           <legend className="sr-only">Settings</legend>
-          <Checkbox id="sonarr-match_release" name="match_release" label="Match Release" description="Use Match Releases field" />
-          <Checkbox id="sonarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-          <Checkbox id="sonarr-exclude-alternate-titles" name="exclude_alternate_titles" label="Exclude Alternate titles" description="Exclude alternate titles from the list." />
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field" />
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <SwitchGroupWide name="exclude_alternate_titles" label="Exclude Alternate Titles" description="Exclude alternate titles from the list." />
         </fieldset>
       );
     case "READARR":
       return (
-        <fieldset className="space-y-5">
+        <fieldset>
           <legend className="sr-only">Settings</legend>
-          <Checkbox id="readarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
     case "LIDARR":
       return (
-        <fieldset className="space-y-5">
+        <fieldset>
           <legend className="sr-only">Settings</legend>
-          <Checkbox id="lidarr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
     case "WHISPARR":
       return (
-        <fieldset className="space-y-5">
+        <fieldset>
           <legend className="sr-only">Settings</legend>
-          <Checkbox id="whisparr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
   }
@@ -553,7 +571,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
         </>
       )}
 
-      <div className="px-4 space-y-1">
+      <div className="space-y-1">
         <FilterOptionCheckBoxes listType={listType} clients={[]}/>
       </div>
     </div>
@@ -589,7 +607,7 @@ function ListTypeTrakt(props: ListTypeFormProps) {
         />
       )}
 
-      <div className="px-4 space-y-1">
+      <div className="space-y-1">
         <FilterOptionCheckBoxes listType={props.listType} clients={[]}/>
       </div>
     </div>
