@@ -416,78 +416,9 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "PLAINTEXT":
       return <ListTypePlainText />;
     default:
-      return (
-        <div></div>
-      );
+      return null;
   }
 }
-
-interface CheckBoxProps {
-  id: string;
-  name: string;
-  label: string;
-  disabled?: boolean;
-  description?: string;
-}
-
-export const Checkbox = ({ name, label, id, description }: CheckBoxProps) => {
-  return (
-    <div className="relative flex items-start">
-      <div className="flex items-center h-5">
-        {/*<Field*/}
-        {/*  type="checkbox"*/}
-        {/*  id={id}*/}
-        {/*  name={name}*/}
-        {/*  aria-describedby={`${id}-description`}*/}
-        {/*  disabled={disabled}*/}
-        {/*  className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"*/}
-        {/*/>*/}
-        <Field name={name}>
-          {({ field, form: { setFieldValue, values } }: FieldProps) => {
-            console.debug("values", values);
-            console.debug("checkbox", field);
-            return (
-            <input
-              type="checkbox"
-              id={name}
-              name={name}
-              // disabled={disabled}
-              // checked={values[field.name]}
-              // checked={field.checked ?? values[field.name]}
-              // value={!!field.checked}
-              checked={field.value}
-              // value={field.value}
-              aria-describedby={`${id}-description`}
-              className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-              onChange={(e) => {
-                console.log("on change: ",e )
-                console.log("on change value: ",e.target.checked )
-                console.log("on change current value: ",e.target.value)
-                console.log("filed",field.checked ?? false)
-                console.log("feiled",values[field.name])
-                // e.stopPropagation();
-                // e.nativeEvent.stopImmediatePropagation();
-                // setFieldValue(name, e.target.checked)
-                // let val = values[field.name];
-                // console.log("val",val)
-                setFieldValue(field?.name ?? "", e.target.checked ?? false);
-              }}
-            />
-          )}}
-        </Field>
-      </div>
-      <div className="ml-3 text-sm">
-        <label htmlFor={id} className="font-medium text-gray-900 dark:text-gray-100">
-          {label}
-        </label>
-        {description && (
-          <p className="text-gray-500">{description}</p>
-        )}
-      </div>
-    </div>
-  );
-};
-
 
 const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
   switch (props.listType) {
@@ -598,7 +529,7 @@ function ListTypeTrakt() {
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
         </fieldset>
       </div>
     </div>
@@ -637,7 +568,7 @@ function ListTypePlainText() {
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
         </fieldset>
       </div>
     </div>
@@ -683,7 +614,7 @@ function ListTypeMetacritic() {
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
         </fieldset>
       </div>
     </div>
@@ -712,7 +643,7 @@ function ListTypeMDBList() {
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
         </fieldset>
       </div>
     </div>
