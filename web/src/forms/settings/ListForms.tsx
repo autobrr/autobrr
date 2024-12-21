@@ -466,7 +466,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
           Source
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Update filters from titles in Radarr, Sonarr, Lidarr, Readarr, or Whisper.
+          Update filters from titles in Radarr, Sonarr, Lidarr, Readarr, or Whisparr.
         </p>
       </div>
 
