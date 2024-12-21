@@ -149,6 +149,9 @@ func (s *service) refreshAll(ctx context.Context, lists []*domain.List) error {
 		case domain.ListTypeTrakt:
 			err = s.trakt(ctx, listItem)
 
+		case domain.ListTypePlaintext:
+			err = s.plaintext(ctx, listItem)
+
 		default:
 			err = errors.Errorf("unsupported list type: %s", listItem.Type)
 		}
