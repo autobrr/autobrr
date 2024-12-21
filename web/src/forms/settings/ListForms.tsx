@@ -406,7 +406,7 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "WHISPARR":
       return <ListTypeArr {...props} />;
     case "TRAKT":
-      return <ListTypeTrakt {...props} />;
+      return <ListTypeTrakt />;
     case "STEAM":
       return <ListTypeSteam />;
     case "METACRITIC":
@@ -414,7 +414,7 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "MDBLIST":
       return <ListTypeMDBList />;
     case "PLAINTEXT":
-      return <ListTypeTrakt {...props} />;
+      return <ListTypePlainText />;
     default:
       return (
         <div></div>
@@ -508,21 +508,9 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <SwitchGroupWide name="exclude_alternate_titles" label="Exclude Alternate Titles" description="Exclude alternate titles from the list." />
         </fieldset>
       );
-    case "READARR":
-      return (
-        <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-        </fieldset>
-      );
     case "LIDARR":
-      return (
-        <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-        </fieldset>
-      );
     case "WHISPARR":
+    case "READARR":
       return (
         <fieldset>
           <legend className="sr-only">Settings</legend>
@@ -578,7 +566,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
   )
 }
 
-function ListTypeTrakt(props: ListTypeFormProps) {
+function ListTypeTrakt() {
   const { values } = useFormikContext<List>();
 
   return (
@@ -608,7 +596,49 @@ function ListTypeTrakt(props: ListTypeFormProps) {
       )}
 
       <div className="space-y-1">
-        <FilterOptionCheckBoxes listType={props.listType} clients={[]}/>
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+        </fieldset>
+      </div>
+    </div>
+  )
+}
+
+function ListTypePlainText() {
+  const { values } = useFormikContext<List>();
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Source list
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Use a Trakt list or one of the default autobrr hosted lists.
+        </p>
+      </div>
+
+      <SelectFieldCreatable
+        name="url"
+        label="List URL"
+        help="Default Trakt lists. Override with your own."
+        options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+      />
+
+      {!values.url.startsWith("https://api.autobrr.com/") && (
+        <PasswordFieldWide
+          name="api_key"
+          label="API Key"
+          help="Trakt API Key. Required for private lists."
+        />
+      )}
+
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+        </fieldset>
       </div>
     </div>
   )
@@ -649,6 +679,13 @@ function ListTypeMetacritic() {
         help="Metacritic lists. Override with your own."
         options={ListsMetacriticOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
+
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+        </fieldset>
+      </div>
     </div>
   )
 }
@@ -671,6 +708,13 @@ function ListTypeMDBList() {
         help="MDBLists.com lists. Override with your own."
         options={ListsMDBListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
+
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered."/>
+        </fieldset>
+      </div>
     </div>
   )
 }
