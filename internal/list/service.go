@@ -25,6 +25,7 @@ type Service interface {
 	RefreshList(ctx context.Context, listID int64) error
 	RefreshArrLists(ctx context.Context) error
 	RefreshOtherLists(ctx context.Context) error
+	Start()
 }
 
 type service struct {
@@ -244,4 +245,27 @@ func (s *service) RefreshOtherLists(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// scheduleJob start list updater in the background
+func (s *service) scheduleJob() error {
+	identifierKey := "lists-updater"
+
+	job := NewRefreshListsJob(s.log.With().Str("job", identifierKey).Logger(), s)
+
+	// schedule job to run every 6th hour
+	id, err := s.scheduler.AddJob(job, "0 */6 * * *", identifierKey)
+	if err != nil {
+		return err
+	}
+
+	s.log.Debug().Msgf("scheduled job with id %d", id)
+
+	return nil
+}
+
+func (s *service) Start() {
+	if err := s.scheduleJob(); err != nil {
+		s.log.Error().Err(err).Msg("error while scheduling job")
+	}
 }
