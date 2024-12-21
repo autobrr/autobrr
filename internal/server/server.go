@@ -69,7 +69,7 @@ func (s *Server) Start() error {
 	}
 
 	// start lists background updater
-	s.listService.Start()
+	go s.listService.Start()
 
 	return nil
 }

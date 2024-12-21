@@ -2,6 +2,7 @@ package list
 
 import (
 	"context"
+	stdErr "errors"
 	"net/http"
 	"time"
 
@@ -57,6 +58,7 @@ func (s *service) List(ctx context.Context) ([]*domain.List, error) {
 		return nil, err
 	}
 
+	// attach filters
 	for _, list := range data {
 		filters, err := s.repo.GetListFilters(ctx, list.ID)
 		if err != nil {
@@ -70,27 +72,74 @@ func (s *service) List(ctx context.Context) ([]*domain.List, error) {
 }
 
 func (s *service) FindByID(ctx context.Context, id int64) (*domain.List, error) {
-	return s.repo.FindByID(ctx, id)
+	list, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// attach filters
+	filters, err := s.repo.GetListFilters(ctx, list.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	list.Filters = filters
+
+	return list, nil
 }
 
 func (s *service) Store(ctx context.Context, list *domain.List) error {
 	if err := list.Validate(); err != nil {
+		s.log.Error().Err(err).Msgf("could not validate list %s", list.Name)
 		return err
 	}
 
-	return s.repo.Store(ctx, list)
+	if err := s.repo.Store(ctx, list); err != nil {
+		s.log.Error().Err(err).Msgf("could not store list %s", list.Name)
+		return err
+	}
+
+	s.log.Debug().Msgf("successfully created list %s", list.Name)
+
+	if err := s.refreshList(ctx, list); err != nil {
+		s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) Update(ctx context.Context, list *domain.List) error {
 	if err := list.Validate(); err != nil {
+		s.log.Error().Err(err).Msgf("could not validate list %s", list.Name)
 		return err
 	}
 
-	return s.repo.Update(ctx, list)
+	if err := s.repo.Update(ctx, list); err != nil {
+		s.log.Error().Err(err).Msgf("could not update list %s", list.Name)
+		return err
+	}
+
+	s.log.Debug().Msgf("successfully updated list %s", list.Name)
+
+	if err := s.refreshList(ctx, list); err != nil {
+		s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id int64) error {
-	return s.repo.Delete(ctx, id)
+	err := s.repo.Delete(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not delete list by id %d", id)
+		return err
+	}
+
+	s.log.Debug().Msgf("successfully deleted list %d", id)
+
+	return nil
 }
 
 func (s *service) RefreshAll(ctx context.Context) error {
@@ -115,81 +164,94 @@ func (s *service) refreshAll(ctx context.Context, lists []*domain.List) error {
 
 	for _, listItem := range lists {
 		if !listItem.Enabled {
+			s.log.Debug().Msgf("list %s is disabled, skipping...", listItem.Name)
 			continue
 		}
 
-		s.log.Debug().Msgf("run processing for %s - %s", listItem.Type, listItem.Name)
+		if err := s.refreshList(ctx, listItem); err != nil {
+			s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while refreshing %s, continuing with other lists", listItem.Type)
 
-		var err error
-
-		switch listItem.Type {
-		case domain.ListTypeRadarr:
-			err = s.radarr(ctx, listItem)
-
-		case domain.ListTypeSonarr:
-			err = s.sonarr(ctx, listItem)
-
-		case domain.ListTypeWhisparr:
-			err = s.sonarr(ctx, listItem)
-
-		case domain.ListTypeReadarr:
-			err = s.readarr(ctx, listItem)
-
-		case domain.ListTypeLidarr:
-			err = s.lidarr(ctx, listItem)
-
-		case domain.ListTypeMDBList:
-			err = s.mdblist(ctx, listItem)
-
-		case domain.ListTypeMetacritic:
-			err = s.metacritic(ctx, listItem)
-
-		case domain.ListTypeSteam:
-			err = s.steam(ctx, listItem)
-
-		case domain.ListTypeTrakt:
-			err = s.trakt(ctx, listItem)
-
-		case domain.ListTypePlaintext:
-			err = s.plaintext(ctx, listItem)
-
-		default:
-			err = errors.Errorf("unsupported list type: %s", listItem.Type)
-		}
-
-		if err != nil {
-			// update last run for list and set errs and status
-			listItem.LastRefreshStatus = domain.ListRefreshStatusError
-			listItem.LastRefreshData = err.Error()
-			listItem.LastRefreshTime = time.Now()
-
-			if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
-				s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while updating last refresh for %s, continuing with other lists", listItem.Type)
-				continue
-			}
-
-			s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while processing %s, continuing with other lists", listItem.Type)
-
-			processingErrors = append(processingErrors, errors.Wrapf(err, "%s - %s", listItem.Type, listItem.Name))
-
-		} else {
-			listItem.LastRefreshStatus = domain.ListRefreshStatusSuccess
-			//listItem.LastRefreshData = err.Error()
-			listItem.LastRefreshTime = time.Now()
-
-			if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
-				s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while updating last refresh for %s, continuing with other lists", listItem.Type)
-				continue
-			}
+			processingErrors = append(processingErrors, errors.Wrapf(err, "error while refreshing %s", listItem.Name))
 		}
 	}
 
 	if len(processingErrors) > 0 {
-		s.log.Error().Msg("Errors encountered during processing Arrs:")
-		for _, errMsg := range processingErrors {
-			s.log.Error().Err(errMsg).Msg("error message:")
-		}
+		err := stdErr.Join(processingErrors...)
+
+		s.log.Error().Err(err).Msg("Errors encountered during processing Arrs:")
+
+		return err
 	}
+
+	return nil
+}
+
+func (s *service) refreshList(ctx context.Context, listItem *domain.List) error {
+	s.log.Debug().Msgf("refresh list %s - %s", listItem.Type, listItem.Name)
+
+	var err error
+
+	switch listItem.Type {
+	case domain.ListTypeRadarr:
+		err = s.radarr(ctx, listItem)
+
+	case domain.ListTypeSonarr:
+		err = s.sonarr(ctx, listItem)
+
+	case domain.ListTypeWhisparr:
+		err = s.sonarr(ctx, listItem)
+
+	case domain.ListTypeReadarr:
+		err = s.readarr(ctx, listItem)
+
+	case domain.ListTypeLidarr:
+		err = s.lidarr(ctx, listItem)
+
+	case domain.ListTypeMDBList:
+		err = s.mdblist(ctx, listItem)
+
+	case domain.ListTypeMetacritic:
+		err = s.metacritic(ctx, listItem)
+
+	case domain.ListTypeSteam:
+		err = s.steam(ctx, listItem)
+
+	case domain.ListTypeTrakt:
+		err = s.trakt(ctx, listItem)
+
+	case domain.ListTypePlaintext:
+		err = s.plaintext(ctx, listItem)
+
+	default:
+		err = errors.Errorf("unsupported list type: %s", listItem.Type)
+	}
+
+	if err != nil {
+		s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error refreshing %s list", listItem.Name)
+
+		// update last run for list and set errs and status
+		listItem.LastRefreshStatus = domain.ListRefreshStatusError
+		listItem.LastRefreshData = err.Error()
+		listItem.LastRefreshTime = time.Now()
+
+		if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
+			s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error updating last refresh for %s list", listItem.Name)
+			return updateErr
+		}
+
+		return err
+	}
+
+	listItem.LastRefreshStatus = domain.ListRefreshStatusSuccess
+	//listItem.LastRefreshData = err.Error()
+	listItem.LastRefreshTime = time.Now()
+
+	if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
+		s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error updating last refresh for %s list", listItem.Name)
+		return updateErr
+	}
+
+	s.log.Debug().Msgf("successfully refreshed list %s", listItem.Name)
 
 	return nil
 }
@@ -200,7 +262,7 @@ func (s *service) RefreshList(ctx context.Context, listID int64) error {
 		return err
 	}
 
-	if err := s.refreshAll(ctx, []*domain.List{list}); err != nil {
+	if err := s.refreshList(ctx, list); err != nil {
 		return err
 	}
 
@@ -208,12 +270,12 @@ func (s *service) RefreshList(ctx context.Context, listID int64) error {
 }
 
 func (s *service) RefreshArrLists(ctx context.Context) error {
-	var selectedLists []*domain.List
 	lists, err := s.List(ctx)
 	if err != nil {
 		return err
 	}
 
+	var selectedLists []*domain.List
 	for _, list := range lists {
 		if list.ListTypeArr() && list.Enabled {
 			selectedLists = append(selectedLists, list)
@@ -228,12 +290,12 @@ func (s *service) RefreshArrLists(ctx context.Context) error {
 }
 
 func (s *service) RefreshOtherLists(ctx context.Context) error {
-	var selectedLists []*domain.List
 	lists, err := s.List(ctx)
 	if err != nil {
 		return err
 	}
 
+	var selectedLists []*domain.List
 	for _, list := range lists {
 		if list.ListTypeList() && list.Enabled {
 			selectedLists = append(selectedLists, list)
