@@ -18,7 +18,7 @@ func newWebhookHandler(encoder encoder, listSvc listService) *webhookHandler {
 }
 
 func (h *webhookHandler) Routes(r chi.Router) {
-	r.Route("lists", func(r chi.Router) {
+	r.Route("/lists", func(r chi.Router) {
 		r.Post("/trigger", h.refreshAll)
 		r.Post("/trigger/arr", h.refreshArr)
 		r.Post("/trigger/lists", h.refreshLists)

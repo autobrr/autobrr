@@ -99,6 +99,14 @@ export const DownloadClientsQueryOptions = () =>
     queryFn: () => APIClient.download_clients.getAll(),
   });
 
+export const DownloadClientsArrTagsQueryOptions = (clientID: number) =>
+  queryOptions({
+    queryKey: DownloadClientKeys.arrTags(clientID),
+    queryFn: () => APIClient.download_clients.getArrTags(clientID),
+    retry: false,
+    enabled: clientID > 0,
+  });
+
 export const NotificationsQueryOptions = () =>
   queryOptions({
     queryKey: NotificationKeys.lists(),

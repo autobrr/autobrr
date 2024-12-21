@@ -41,6 +41,7 @@ type Service interface {
 	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 
+	GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error)
 	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
 }
 
@@ -92,6 +93,57 @@ func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClien
 	}
 
 	return client, nil
+}
+
+func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error) {
+	data := make([]*domain.ArrTag, 0)
+
+	client, err := s.GetClient(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find download client by id: %v", id)
+		return data, nil
+	}
+
+	switch client.Type {
+	case "RADARR":
+		arrClient := client.Client.(*radarr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not get tags from radarr: %v", id)
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	case "SONARR":
+		arrClient := client.Client.(*sonarr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not get tags from sonarr: %v", id)
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	default:
+		return data, nil
+	}
 }
 
 func (s *service) Store(ctx context.Context, client *domain.DownloadClient) error {

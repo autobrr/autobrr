@@ -74,7 +74,7 @@ func (l *List) Validate() error {
 		return errors.New("type is required")
 	}
 
-	if !l.ListTypeArr() || !l.ListTypeList() {
+	if !l.ListTypeArr() && !l.ListTypeList() {
 		return errors.New("invalid list type: %s", l.Type)
 	}
 

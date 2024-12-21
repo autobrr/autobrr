@@ -296,6 +296,7 @@ export const APIClient = {
   },
   download_clients: {
     getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
+    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/download_clients/${clientID}/arr/tags`),
     create: (dc: DownloadClient) => appClient.Post("api/download_clients", {
       body: dc
     }),

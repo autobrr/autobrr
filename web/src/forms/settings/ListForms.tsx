@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, JSX, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
 import { Field, FieldProps, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
@@ -24,6 +24,7 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import {
+  MultiSelectOption,
   PasswordFieldWide,
   SwitchGroupWide,
   TextFieldWide
@@ -32,14 +33,23 @@ import {
   ListsMDBListOptions,
   ListsMetacriticOptions,
   ListsTraktOptions,
-  ListTypeOptions,
+  ListTypeOptions, OptionBasicTyped,
   SelectOption
 } from "@domain/constants";
 import { DEBUG } from "@components/debug";
-import { DownloadClientsQueryOptions, FiltersGetAllQueryOptions } from "@api/queries";
+import {
+  DownloadClientsArrTagsQueryOptions,
+  DownloadClientsQueryOptions,
+  FiltersGetAllQueryOptions
+} from "@api/queries";
 import { classNames } from "@utils";
-import { ListFilterMultiSelectField, SelectFieldCreatable } from "@components/inputs/select_wide";
+import {
+  ListFilterMultiSelectField,
+  SelectFieldCreatable
+} from "@components/inputs/select_wide";
 import { SlideOver } from "@components/panels";
+import { DocsTooltip } from "@components/tooltips/DocsTooltip";
+import { MultiSelect as RMSC } from "react-multi-select-component";
 
 interface ListAddFormValues {
   name: string;
@@ -363,6 +373,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 }
 
 interface ListTypeFormProps {
+  listID?: number;
   listType: string;
   clients: DownloadClient[];
 }
@@ -500,17 +511,17 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <Checkbox id="whisparr-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
-    // case "TRAKT":
-    //   return (
-    //     <fieldset className="space-y-5">
-    //       <legend className="sr-only">Settings</legend>
-    //       <Checkbox id="trakt-include_unmonitored" name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-    //     </fieldset>
-    //   );
   }
 }
 
 function ListTypeArr({ listType, clients }: ListTypeFormProps) {
+  const { values } = useFormikContext<List>();
+
+  useEffect(() => {
+  }, [values.client_id]);
+
+  const arrTagsQuery = useQuery(DownloadClientsArrTagsQueryOptions(values.client_id));
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
@@ -527,6 +538,20 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
         clients={clients}
         clientType={listType}
       />
+
+      {values.client_id > 0 && (values.type === "RADARR" || values.type == "SONARR") && (
+        <>
+          <ListArrTagsMultiSelectField name="tags_included" label="Tags Included" options={arrTagsQuery.data?.map(f => ({
+            value: f.label,
+            label: f.label
+          })) ?? []}/>
+
+          <ListArrTagsMultiSelectField name="tags_excluded" label="Tags Excluded" options={arrTagsQuery.data?.map(f => ({
+            value: f.label,
+            label: f.label
+          })) ?? []}/>
+        </>
+      )}
 
       <div className="px-4 space-y-1">
         <FilterOptionCheckBoxes listType={listType} clients={[]}/>
@@ -744,6 +769,66 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
             </Listbox>
           )}
         </Field>
+      </div>
+    </div>
+  );
+}
+
+export interface ListMultiSelectFieldProps {
+  name: string;
+  label: string;
+  help?: string;
+  placeholder?: string;
+  required?: boolean;
+  tooltip?: JSX.Element;
+  options: OptionBasicTyped<number | string>[];
+}
+
+export function ListArrTagsMultiSelectField({ name, label, help, tooltip, options }: ListMultiSelectFieldProps) {
+  return (
+    <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <div>
+        <label
+          htmlFor={name}
+          className="block ml-px text-sm font-medium text-gray-900 dark:text-white"
+        >
+          <div className="flex">
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
+          </div>
+        </label>
+      </div>
+      <div className="sm:col-span-2">
+        <Field name={name} type="select">
+          {({
+              field,
+              form: { setFieldValue }
+            }: FieldProps) => (
+            <>
+              <RMSC
+                {...field}
+                options={options}
+                // disabled={disabled}
+                labelledBy={name}
+                // isCreatable={creatable}
+                // onCreateOption={handleNewField}
+                value={field.value && field.value.map((item: MultiSelectOption) => ({
+                  value: item.value ? item.value : item,
+                  label: item.label ? item.label : item
+                }))}
+                onChange={(values: Array<MultiSelectOption>) => {
+                  const am = values && values.map((i) => i.value);
+
+                  setFieldValue(field.name, am);
+                }}
+              />
+            </>
+          )}
+        </Field>
+        {help && (
+          <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+        )}
       </div>
     </div>
   );

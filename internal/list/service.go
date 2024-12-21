@@ -23,6 +23,8 @@ type Service interface {
 	Delete(ctx context.Context, id int64) error
 	RefreshAll(ctx context.Context) error
 	RefreshList(ctx context.Context, listID int64) error
+	RefreshArrLists(ctx context.Context) error
+	RefreshOtherLists(ctx context.Context) error
 }
 
 type service struct {

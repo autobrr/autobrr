@@ -22,6 +22,7 @@ type downloadClientService interface {
 	Update(ctx context.Context, client *domain.DownloadClient) error
 	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
+	GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error)
 }
 
 type downloadClientHandler struct {
@@ -45,6 +46,8 @@ func (h downloadClientHandler) Routes(r chi.Router) {
 	r.Route("/{clientID}", func(r chi.Router) {
 		r.Get("/", h.findByID)
 		r.Delete("/", h.delete)
+
+		r.Get("/arr/tags", h.findArrTagsByID)
 	})
 }
 
@@ -66,6 +69,26 @@ func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	client, err := h.service.FindByID(r.Context(), int32(clientID))
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, client)
+}
+
+func (h downloadClientHandler) findArrTagsByID(w http.ResponseWriter, r *http.Request) {
+	clientID, err := strconv.ParseInt(chi.URLParam(r, "clientID"), 10, 32)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	client, err := h.service.GetArrTags(r.Context(), int32(clientID))
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
