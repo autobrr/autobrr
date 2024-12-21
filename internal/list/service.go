@@ -101,9 +101,11 @@ func (s *service) Store(ctx context.Context, list *domain.List) error {
 
 	s.log.Debug().Msgf("successfully created list %s", list.Name)
 
-	if err := s.refreshList(ctx, list); err != nil {
-		s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
-		return err
+	if list.Enabled {
+		if err := s.refreshList(ctx, list); err != nil {
+			s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
+			return err
+		}
 	}
 
 	return nil
@@ -122,9 +124,11 @@ func (s *service) Update(ctx context.Context, list *domain.List) error {
 
 	s.log.Debug().Msgf("successfully updated list %s", list.Name)
 
-	if err := s.refreshList(ctx, list); err != nil {
-		s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
-		return err
+	if list.Enabled {
+		if err := s.refreshList(ctx, list); err != nil {
+			s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
+			return err
+		}
 	}
 
 	return nil
