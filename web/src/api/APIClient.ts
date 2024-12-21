@@ -410,18 +410,18 @@ export const APIClient = {
     })
   },
   lists: {
-    list: () => appClient.Get<List[]>("api/list"),
-    getByID: (id: number) => appClient.Get<List>(`api/list/${id}`),
-    store: (list: List) => appClient.Post("api/list", {
+    list: () => appClient.Get<List[]>("api/lists"),
+    getByID: (id: number) => appClient.Get<List>(`api/lists/${id}`),
+    store: (list: List) => appClient.Post("api/lists", {
       body: list
     }),
-    update: (list: List) => appClient.Put(`api/list/${list.id}`, {
+    update: (list: List) => appClient.Put(`api/lists/${list.id}`, {
       body: list
     }),
-    delete: (id: number) => appClient.Delete(`api/list/${id}`),
-    refreshList: (id: number) => appClient.Post(`api/list/${id}/refresh`),
-    refreshAll: () => appClient.Post(`api/list/refresh`),
-    test: (list: List) => appClient.Post("api/list/test", {
+    delete: (id: number) => appClient.Delete(`api/lists/${id}`),
+    refreshList: (id: number) => appClient.Post(`api/lists/${id}/refresh`),
+    refreshAll: () => appClient.Post(`api/lists/refresh`),
+    test: (list: List) => appClient.Post("api/lists/test", {
       body: list
     })
   },
