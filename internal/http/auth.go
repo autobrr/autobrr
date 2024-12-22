@@ -38,20 +38,24 @@ type authHandler struct {
 }
 
 func newAuthHandler(encoder encoder, log zerolog.Logger, server Server, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
-	oidcHandler, err := auth.NewOIDCHandler(config, log)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to initialize OIDC handler")
-	}
-
-	return &authHandler{
+	h := &authHandler{
 		log:         log,
 		encoder:     encoder,
 		config:      config,
 		service:     service,
 		cookieStore: cookieStore,
 		server:      server,
-		oidcHandler: oidcHandler,
 	}
+
+	if config.OIDCEnabled {
+		oidcHandler, err := auth.NewOIDCHandler(config, log)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to initialize OIDC handler")
+		}
+		h.oidcHandler = oidcHandler
+	}
+
+	return h
 }
 
 func (h authHandler) Routes(r chi.Router) {
@@ -59,11 +63,13 @@ func (h authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
-	r.Route("/oidc", func(r chi.Router) {
-		r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
-		r.Get("/config", h.getOIDCConfig)
-		r.Get("/callback", h.handleOIDCCallback)
-	})
+	if h.config.OIDCEnabled {
+		r.Route("/oidc", func(r chi.Router) {
+			r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
+			r.Get("/config", h.getOIDCConfig)
+			r.Get("/callback", h.handleOIDCCallback)
+		})
+	}
 
 	// Group for authenticated routes
 	r.Group(func(r chi.Router) {
