@@ -20,8 +20,10 @@ import (
 
 func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
 	defer func() {
-		s.log.Error().Msgf("recovering from panic in run action %s", action.Name)
 		errors.RecoverPanic(recover(), &err)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("recovering from panic in run action %s", action.Name)
+		}
 	}()
 
 	// Check preconditions: download torrent file if needed
