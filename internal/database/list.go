@@ -40,7 +40,7 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 		"tags_included",
 		"tags_excluded",
 		"include_unmonitored",
-		"exclude_alternate_titles",
+		"include_alternate_titles",
 		"last_refresh_time",
 		"last_refresh_status",
 		"last_refresh_data",
@@ -69,7 +69,7 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 		var url, apiKey, lastRefreshStatus, lastRefreshData sql.Null[string]
 		var lastRefreshTime sql.Null[time.Time]
 
-		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.ExcludeAlternateTitles, &lastRefreshTime, &lastRefreshStatus, &lastRefreshData, &list.CreatedAt, &list.UpdatedAt)
+		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &lastRefreshTime, &lastRefreshStatus, &lastRefreshData, &list.CreatedAt, &list.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +101,7 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 		"tags_included",
 		"tags_excluded",
 		"include_unmonitored",
-		"exclude_alternate_titles",
+		"include_alternate_titles",
 		"last_refresh_time",
 		"last_refresh_status",
 		"last_refresh_data",
@@ -129,7 +129,7 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 
 	var url, apiKey sql.Null[string]
 
-	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.ExcludeAlternateTitles, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshData, &list.CreatedAt, &list.UpdatedAt)
+	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshData, &list.CreatedAt, &list.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			"tags_included",
 			"tags_excluded",
 			"include_unmonitored",
-			"exclude_alternate_titles",
+			"include_alternate_titles",
 		).
 		Values(
 			list.Name,
@@ -175,7 +175,7 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			pq.Array(list.TagsInclude),
 			pq.Array(list.TagsExclude),
 			list.IncludeUnmonitored,
-			list.ExcludeAlternateTitles,
+			list.IncludeAlternateTitles,
 		).Suffix("RETURNING id").RunWith(tx)
 
 	//query, args, err := qb.ToSql()
@@ -218,7 +218,7 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 		Set("tags_included", pq.Array(list.TagsInclude)).
 		Set("tags_excluded", pq.Array(list.TagsExclude)).
 		Set("include_unmonitored", list.IncludeUnmonitored).
-		Set("exclude_alternate_titles", list.ExcludeAlternateTitles).
+		Set("include_alternate_titles", list.IncludeAlternateTitles).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": list.ID})
 

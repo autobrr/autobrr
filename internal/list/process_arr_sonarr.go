@@ -125,7 +125,7 @@ func (s *service) processSonarr(ctx context.Context, list *domain.List, logger *
 			titleSet[title] = struct{}{}
 		}
 
-		if !list.ExcludeAlternateTitles {
+		if list.IncludeAlternateTitles {
 			for _, title := range show.AlternateTitles {
 				altTitles := processTitle(title.Title, list.MatchRelease)
 				for _, altTitle := range altTitles {

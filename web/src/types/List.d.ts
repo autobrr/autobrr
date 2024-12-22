@@ -17,7 +17,7 @@ interface List {
   tags_included: string[];
   tags_excluded: string[];
   include_unmonitored: boolean;
-  exclude_alternate_titles: boolean;
+  include_alternate_titles: boolean;
 }
 
 interface ListFilter {
@@ -38,7 +38,7 @@ interface ListCreate {
   tags_include: string[];
   tags_exclude: string[];
   include_unmonitored: boolean;
-  exclude_alternate_titles: boolean;
+  include_alternate_titles: boolean;
 }
 
 type ListType = "SONARR" | "RADARR" | "LIDARR" | "READARR" | "WHISPARR" | "MDBLIST" | "TRAKT" | "METACRITIC" | "STEAM" | "PLAINTEXT";

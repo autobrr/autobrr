@@ -122,7 +122,7 @@ func (s *service) processRadarr(ctx context.Context, list *domain.List, logger *
 			}
 		}
 
-		if !list.ExcludeAlternateTitles {
+		if list.IncludeAlternateTitles {
 			for _, title := range movie.AlternateTitles {
 				altTitles := processTitle(title.Title, list.MatchRelease)
 				for _, altTitle := range altTitles {

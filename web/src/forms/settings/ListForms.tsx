@@ -136,7 +136,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                     tags_included: [],
                     tags_excluded: [],
                     include_unmonitored: false,
-                    exclude_alternate_titles: false,
+                    include_alternate_titles: false,
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -429,7 +429,7 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <legend className="sr-only">Settings</legend>
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
           <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-          <SwitchGroupWide name="exclude_alternate_titles" label="Exclude Alternate Titles" description="Exclude alternate titles from the list." />
+          <SwitchGroupWide name="include_alternate_titles" label="Include Alternate Titles" description="Include alternate titles in the filter." />
         </fieldset>
       );
     case "LIDARR":

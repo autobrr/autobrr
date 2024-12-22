@@ -57,7 +57,7 @@ type List struct {
 	TagsInclude            []string          `json:"tags_included"`
 	TagsExclude            []string          `json:"tags_excluded"`
 	IncludeUnmonitored     bool              `json:"include_unmonitored"`
-	ExcludeAlternateTitles bool              `json:"exclude_alternate_titles"`
+	IncludeAlternateTitles bool              `json:"include_alternate_titles"`
 	LastRefreshTime        time.Time         `json:"last_refresh_time"`
 	LastRefreshData        string            `json:"last_refresh_error"`
 	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
