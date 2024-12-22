@@ -423,13 +423,6 @@ const ListTypeForm = (props: ListTypeFormProps) => {
 const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
   switch (props.listType) {
     case "RADARR":
-      return (
-        <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-        </fieldset>
-      );
     case "SONARR":
       return (
         <fieldset>

@@ -77,51 +77,53 @@ func (s *service) processRadarr(ctx context.Context, list *domain.List, logger *
 		tags = t
 	}
 
-	shows, err := client.GetMovies(ctx, 0)
+	movies, err := client.GetMovies(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debug().Msgf("found %d shows to process", len(shows))
+	logger.Debug().Msgf("found %d movies to process", len(movies))
 
 	titleSet := make(map[string]struct{})
 	var processedTitles int
 
-	for _, show := range shows {
-		series := show
-
-		if !list.ShouldProcessItem(series.Monitored) {
+	for _, movie := range movies {
+		if !list.ShouldProcessItem(movie.Monitored) {
 			continue
 		}
 
-		//if !s.shouldProcessItem(series.Monitored, list) {
+		//if !s.shouldProcessItem(movie.Monitored, list) {
 		//	continue
 		//}
 
 		if len(list.TagsInclude) > 0 {
-			if len(series.Tags) == 0 {
+			if len(movie.Tags) == 0 {
 				continue
 			}
-			if !containsTag(tags, series.Tags, list.TagsInclude) {
+			if !containsTag(tags, movie.Tags, list.TagsInclude) {
 				continue
 			}
 		}
 
 		if len(list.TagsExclude) > 0 {
-			if containsTag(tags, series.Tags, list.TagsExclude) {
+			if containsTag(tags, movie.Tags, list.TagsExclude) {
 				continue
 			}
 		}
 
 		processedTitles++
 
-		titles := processTitle(series.Title, list.MatchRelease)
-		for _, title := range titles {
-			titleSet[title] = struct{}{}
+		// Taking the international title and the original title and appending them to the titles array.
+		for _, title := range []string{movie.Title, movie.OriginalTitle} {
+			if title != "" {
+				for _, t := range processTitle(title, list.MatchRelease) {
+					titleSet[t] = struct{}{}
+				}
+			}
 		}
 
 		if !list.ExcludeAlternateTitles {
-			for _, title := range series.AlternateTitles {
+			for _, title := range movie.AlternateTitles {
 				altTitles := processTitle(title.Title, list.MatchRelease)
 				for _, altTitle := range altTitles {
 					titleSet[altTitle] = struct{}{}
@@ -136,7 +138,7 @@ func (s *service) processRadarr(ctx context.Context, list *domain.List, logger *
 	}
 
 	sort.Strings(uniqueTitles)
-	logger.Debug().Msgf("from a total of %d shows we found %d titles and created %d release titles", len(shows), processedTitles, len(uniqueTitles))
+	logger.Debug().Msgf("from a total of %d movies we found %d titles and created %d release titles", len(movies), processedTitles, len(uniqueTitles))
 
 	return uniqueTitles, nil
 }
