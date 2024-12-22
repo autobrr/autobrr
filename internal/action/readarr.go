@@ -27,7 +27,7 @@ func (s *service) readarr(ctx context.Context, action *domain.Action, release do
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(readarr.Client)
+	arr := client.Client.(*readarr.Client)
 
 	r := readarr.Release{
 		Title:            release.TorrentName,

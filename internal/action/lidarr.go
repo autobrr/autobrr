@@ -27,7 +27,7 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(lidarr.Client)
+	arr := client.Client.(*lidarr.Client)
 
 	r := lidarr.Release{
 		Title:            release.TorrentName,

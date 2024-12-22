@@ -27,7 +27,7 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(sonarr.Client)
+	arr := client.Client.(*sonarr.Client)
 
 	r := sonarr.Release{
 		Title:            release.TorrentName,

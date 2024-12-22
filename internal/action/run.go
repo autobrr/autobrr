@@ -18,18 +18,10 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
-	var (
-		err        error
-		rejections []string
-	)
-
+func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
 	defer func() {
-		if r := recover(); r != nil {
-			s.log.Error().Msgf("recovering from panic in run action %s error: %v", action.Name, r)
-			err = errors.New("panic in action: %s", action.Name)
-			return
-		}
+		s.log.Error().Msgf("recovering from panic in run action %s", action.Name)
+		errors.RecoverPanic(recover(), &err)
 	}()
 
 	// Check preconditions: download torrent file if needed
