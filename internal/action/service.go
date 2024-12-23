@@ -30,7 +30,7 @@ type Service interface {
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
 
-	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error)
+	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error)
 }
 
 type service struct {

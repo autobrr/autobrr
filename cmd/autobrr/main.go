@@ -25,6 +25,7 @@ import (
 	"github.com/autobrr/autobrr/internal/http"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/list"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/proxy"
@@ -116,6 +117,7 @@ func main() {
 		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
 		indexerRepo        = database.NewIndexerRepo(log, db)
 		ircRepo            = database.NewIrcRepo(log, db)
+		listRepo           = database.NewListRepo(log, db)
 		notificationRepo   = database.NewNotificationRepo(log, db)
 		releaseRepo        = database.NewReleaseRepo(log, db)
 		userRepo           = database.NewUserRepo(log, db)
@@ -140,6 +142,7 @@ func main() {
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
+		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
 	)
 
 	// register event subscribers
@@ -164,6 +167,7 @@ func main() {
 			feedService,
 			indexerService,
 			ircService,
+			listService,
 			notificationService,
 			proxyService,
 			releaseService,
@@ -175,7 +179,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, schedulingService, updateService)
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, listService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return

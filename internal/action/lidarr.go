@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/lidarr"
 )
 
 func (s *service) lidarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
@@ -27,7 +27,7 @@ func (s *service) lidarr(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(lidarr.Client)
+	arr := client.Client.(*lidarr.Client)
 
 	r := lidarr.Release{
 		Title:            release.TorrentName,

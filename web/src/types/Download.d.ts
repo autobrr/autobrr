@@ -65,3 +65,8 @@ interface DownloadClient {
   password: string;
   settings?: DownloadClientSettings;
 }
+
+interface ArrTag {
+  id: number;
+  label: string;
+}

@@ -490,8 +490,7 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 // it is necessary to download the torrent file and parse it to make the size
 // check. We use the API where available to minimize the number of torrents we
 // need to download.
-func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
-	var err error
+func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
@@ -554,8 +553,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	return true, nil
 }
 
-func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
-	var err error
+func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
@@ -634,9 +632,7 @@ func (s *service) CheckSmartEpisodeCanDownload(ctx context.Context, params *doma
 	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
 }
 
-func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (bool, error) {
-	var err error
-
+func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with the external filter checks
 		errors.RecoverPanic(recover(), &err)

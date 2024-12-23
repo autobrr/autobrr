@@ -205,3 +205,8 @@ func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
 	// make into new string and return
 	return u.String(), nil
 }
+
+type ArrTag struct {
+	ID    int    `json:"id"`
+	Label string `json:"label"`
+}

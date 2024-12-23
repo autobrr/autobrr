@@ -47,7 +47,8 @@ export const DownloadClientKeys = {
   lists: () => [...DownloadClientKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...DownloadClientKeys.all, "detail"] as const,
-  detail: (id: number) => [...DownloadClientKeys.details(), id] as const
+  detail: (id: number) => [...DownloadClientKeys.details(), id] as const,
+  arrTags: (id: number) => [...DownloadClientKeys.details(), id, "arr-tags"] as const
 };
 
 export const FeedKeys = {
@@ -88,4 +89,11 @@ export const ProxyKeys = {
   lists: () => [...ProxyKeys.all, "list"] as const,
   details: () => [...ProxyKeys.all, "detail"] as const,
   detail: (id: number) => [...ProxyKeys.details(), id] as const
+};
+
+export const ListKeys = {
+  all: ["list"] as const,
+  lists: () => [...ListKeys.all, "list"] as const,
+  details: () => [...ListKeys.all, "detail"] as const,
+  detail: (id: number) => [...ListKeys.details(), id] as const
 };
