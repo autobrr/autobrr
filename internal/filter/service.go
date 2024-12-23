@@ -520,12 +520,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 	switch release.Indexer.Identifier {
 	case "btn", "ggn", "redacted", "ops", "mock":
-		if (release.Size == 0 && release.AdditionalSizeCheckRequired) ||
-			(release.Uploader == "" && release.AdditionalUploaderCheckRequired) ||
-			(release.RecordLabel == "" && release.AdditionalRecordLabelCheckRequired &&
-				(release.Indexer.Identifier == "redacted" ||
-					release.Indexer.Identifier == "ops" ||
-					release.Indexer.Identifier == "mock")) {
+		if (release.Size == 0 && release.AdditionalSizeCheckRequired) || (release.Uploader == "" && release.AdditionalUploaderCheckRequired) || (release.RecordLabel == "" && release.AdditionalRecordLabelCheckRequired) {
 			l.Trace().Msgf("(%s) preparing to check size via api", f.Name)
 
 			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
@@ -545,10 +540,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 				release.Uploader = torrentInfo.Uploader
 			}
 
-			if (release.Indexer.Identifier == "redacted" ||
-				release.Indexer.Identifier == "ops" ||
-				release.Indexer.Identifier == "mock") &&
-				release.RecordLabel == "" {
+			if release.RecordLabel == "" {
 				release.RecordLabel = torrentInfo.RecordLabel
 			}
 		}
@@ -576,7 +568,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 	if !sizeOk {
 		l.Debug().Msgf("(%s) filter did not match after additional size check, trying next", f.Name)
-		return false, err
+		return false, nil
 	}
 
 	return true, nil
@@ -605,7 +597,7 @@ func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 
 		if !uploaderOk {
 			l.Debug().Msgf("(%s) filter did not match after additional uploaders check, trying next", f.Name)
-			return false, err
+			return false, nil
 		}
 
 		return true, nil
@@ -628,17 +620,10 @@ func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 		torrentSize := torrentInfo.ReleaseSizeBytes()
 		if release.Size == 0 && torrentSize > 0 {
 			release.Size = torrentSize
-
-			// reset AdditionalSizeCheckRequired to not re-trigger check
-			release.AdditionalSizeCheckRequired = false
 		}
 
-		recordLabel := torrentInfo.RecordLabel
 		if release.RecordLabel == "" {
-			release.RecordLabel = recordLabel
-
-			// reset AdditionalRecordLabelCheckRequired to not re-trigger check
-			release.AdditionalRecordLabelCheckRequired = false
+			release.RecordLabel = torrentInfo.RecordLabel
 		}
 
 		if release.Uploader == "" {
@@ -660,17 +645,19 @@ func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 
 	if !uploaderOk {
 		l.Debug().Msgf("(%s) filter did not match after additional uploaders check, trying next", f.Name)
-		return false, err
+		return false, nil
 	}
 
 	return true, nil
 }
 
-func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
-	var err error
+func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
+		if err != nil {
+			ok = false
+		}
 	}()
 
 	// do additional check against indexer api
@@ -689,7 +676,7 @@ func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 
 		if !recordLabelOk {
 			l.Debug().Msgf("(%s) filter did not match after additional record label check, trying next", f.Name)
-			return false, err
+			return false, nil
 		}
 
 		return true, nil
@@ -712,22 +699,14 @@ func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 		torrentSize := torrentInfo.ReleaseSizeBytes()
 		if release.Size == 0 && torrentSize > 0 {
 			release.Size = torrentSize
-
-			// reset AdditionalSizeCheckRequired to not re-trigger check
-			release.AdditionalSizeCheckRequired = false
 		}
 
-		uploader := torrentInfo.Uploader
 		if release.Uploader == "" {
-			release.Uploader = uploader
-
-			// reset AdditionalUploaderCheckRequired to not re-trigger check
-			release.AdditionalUploaderCheckRequired = false
+			release.Uploader = torrentInfo.Uploader
 		}
 
-		recordLabel := torrentInfo.RecordLabel
 		if release.RecordLabel == "" {
-			release.RecordLabel = recordLabel
+			release.RecordLabel = torrentInfo.RecordLabel
 		}
 
 	default:
@@ -745,7 +724,7 @@ func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 
 	if !recordLabelOk {
 		l.Debug().Msgf("(%s) filter did not match after additional record label check, trying next", f.Name)
-		return false, err
+		return false, nil
 	}
 
 	return true, nil
