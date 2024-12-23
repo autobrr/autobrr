@@ -591,7 +591,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           }}
           className="transition flex items-center w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
-          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 dark:text-purple-500" aria-hidden="true"/>}
+          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true"/>}
         </Link>
         <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
