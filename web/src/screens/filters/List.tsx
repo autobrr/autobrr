@@ -25,7 +25,7 @@ import {
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
-  PlusIcon,
+  PlusIcon, SparklesIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
@@ -589,9 +589,9 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           params={{
             filterId: filter.id
           }}
-          className="transition w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
+          className="transition flex items-center w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
-          {filter.name}
+          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 dark:text-purple-500" aria-hidden="true"/>}
         </Link>
         <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">

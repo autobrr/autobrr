@@ -52,6 +52,10 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 		Where("a.filter_id = f.id").
 		Where("a.enabled = '1'")
 
+	isAutoUpdated := r.db.squirrel.Select("CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END").
+		From("list_filter lf").
+		Where("lf.filter_id = f.id")
+
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -64,6 +68,7 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 		Distinct().
 		Column(sq.Alias(actionCountQuery, "action_count")).
 		Column(sq.Alias(actionEnabledCountQuery, "actions_enabled_count")).
+		Column(sq.Alias(isAutoUpdated, "is_auto_updated")).
 		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
 		LeftJoin("indexer i ON i.id = fi.indexer_id").
 		From("filter f")
@@ -103,7 +108,7 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 

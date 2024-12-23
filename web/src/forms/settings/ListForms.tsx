@@ -465,7 +465,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
         </div>
       </Dialog>
     </Transition>
-  )
+  );
 }
 
 interface SubmitButtonProps {
@@ -517,7 +517,7 @@ const SubmitButton = (props: SubmitButtonProps) => {
         <span>Save</span>
       )}
     </button>
-  )
+  );
 }
 
 interface ListTypeFormProps {
