@@ -1293,6 +1293,13 @@ func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) err
 }
 
 func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error begin transaction")
+	}
+
+	defer tx.Rollback()
+
 	queryBuilder := r.db.squirrel.
 		Delete("filter").
 		Where(sq.Eq{"id": filterID})
@@ -1302,7 +1309,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1311,6 +1318,22 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error getting rows affected")
 	} else if rowsAffected == 0 {
 		return domain.ErrRecordNotFound
+	}
+
+	listFilterQueryBuilder := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"filter_id": filterID})
+
+	deleteListFilterQuery, deleteListFilterArgs, err := listFilterQueryBuilder.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, deleteListFilterQuery, deleteListFilterArgs...)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error storing list and filters")
 	}
 
 	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)

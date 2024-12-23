@@ -439,7 +439,7 @@ CREATE TABLE list_filter
 (
     list_id   INTEGER,
     filter_id INTEGER,
-    FOREIGN KEY (list_id) REFERENCES list(id),
+    FOREIGN KEY (list_id) REFERENCES list(id) ON DELETE CASCADE,
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );
@@ -1704,7 +1704,7 @@ CREATE TABLE list_filter
 (
     list_id   INTEGER,
     filter_id INTEGER,
-    FOREIGN KEY (list_id) REFERENCES list(id),
+    FOREIGN KEY (list_id) REFERENCES list(id) ON DELETE CASCADE,
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );

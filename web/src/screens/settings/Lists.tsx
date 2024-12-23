@@ -171,6 +171,10 @@ interface ListItemFiltersProps {
 }
 
 const ListItemFilters = ({ filters }: ListItemFiltersProps) => {
+  if (!filters.length) {
+    return null;
+  }
+
   const res = filters.slice(2);
 
   return (

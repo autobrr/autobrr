@@ -283,13 +283,20 @@ func (r *ListRepo) UpdateLastRefresh(ctx context.Context, list *domain.List) err
 }
 
 func (r *ListRepo) Delete(ctx context.Context, listID int64) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error begin transaction")
+	}
+
+	defer tx.Rollback()
+
 	qb := r.db.squirrel.Delete("list").From("list").Where(sq.Eq{"id": listID})
 	query, args, err := qb.ToSql()
 	if err != nil {
 		return err
 	}
 
-	results, err := r.db.handler.ExecContext(ctx, query, args...)
+	results, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -301,6 +308,22 @@ func (r *ListRepo) Delete(ctx context.Context, listID int64) error {
 
 	if rowsAffected == 0 {
 		return domain.ErrDeleteFailed
+	}
+
+	listFilterQueryBuilder := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"list_id": listID})
+
+	deleteListFilterQuery, deleteListFilterArgs, err := listFilterQueryBuilder.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, deleteListFilterQuery, deleteListFilterArgs...)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error storing list and filters")
 	}
 
 	return nil
