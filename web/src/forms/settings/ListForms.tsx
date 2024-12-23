@@ -3,10 +3,18 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, JSX, useEffect, useState } from "react";
+import { Fragment, JSX, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
-import { Field, FieldProps, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
+import {
+  Field,
+  FieldProps,
+  Form,
+  Formik,
+  FormikErrors,
+  FormikValues,
+  useFormikContext
+} from "formik";
 import {
   Dialog,
   DialogPanel,
@@ -42,14 +50,15 @@ import {
   DownloadClientsQueryOptions,
   FiltersGetAllQueryOptions
 } from "@api/queries";
-import { classNames } from "@utils";
+import { classNames, sleep } from "@utils";
 import {
   ListFilterMultiSelectField,
   SelectFieldCreatable
 } from "@components/inputs/select_wide";
-import { SlideOver } from "@components/panels";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
+import { useToggle } from "@hooks/hooks.ts";
+import { DeleteModal } from "@components/modals";
 
 interface ListAddFormValues {
   name: string;
@@ -82,15 +91,6 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
   });
 
   const onSubmit = (formData: unknown) => createMutation.mutate(formData as List);
-
-  // const testMutation = useMutation({
-  //   mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
-  //   onError: (err) => {
-  //     console.error(err);
-  //   }
-  // });
-  //
-  // const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const validate = (values: ListAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
@@ -167,7 +167,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                           </div>
                         </div>
 
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <TextFieldWide
                             name="name"
                             label="Name"
@@ -237,7 +237,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
 
                         <ListTypeForm listType={values.type} clients={clients ?? []}/>
 
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
                             <div className="px-4 space-y-1">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
@@ -259,23 +259,11 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                           <button
                             type="button"
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            // onClick={() => testNotification(values)}
-                          >
-                            Test
-                          </button>
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
-                          <button
-                            type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                          >
-                            Save
-                          </button>
+                          <SubmitButton isPending={createMutation.isPending} isError={createMutation.isError} isSuccess={createMutation.isSuccess} />
                         </div>
                       </div>
 
@@ -299,6 +287,9 @@ interface UpdateFormProps<T> {
 }
 
 export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) {
+  const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
+  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
   const queryClient = useQueryClient();
 
   const clientsQuery = useQuery(DownloadClientsQueryOptions());
@@ -310,6 +301,8 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
       toast.custom((t) => <Toast type="success" body={`${data.name} was updated successfully`} t={t}/>);
+
+      sleep(1500);
       toggle();
     }
   });
@@ -328,48 +321,203 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
   const deleteAction = () => deleteMutation.mutate(data.id);
 
   return (
-    <SlideOver<List>
-      type="UPDATE"
-      title="List"
-      isOpen={isOpen}
-      toggle={toggle}
-      onSubmit={onSubmit}
-      deleteAction={deleteAction}
-      initialValues={data}
-      // testFn={testNotification}
-    >
-      {(values) => (
-        <div>
-          <TextFieldWide name="name" label="Name" required={true}/>
+    <Transition show={isOpen} as={Fragment}>
+      <Dialog
+        as="div"
+        static
+        className="fixed inset-0 overflow-hidden"
+        open={isOpen}
+        onClose={toggle}
+      >
+        {deleteAction && (
+          <DeleteModal
+            isOpen={deleteModalIsOpen}
+            isLoading={false}
+            toggle={toggleDeleteModal}
+            buttonRef={cancelModalButtonRef}
+            deleteAction={deleteAction}
+            title={`Remove ${data.name}`}
+            text={`Are you sure you want to remove this ${data.name}? This action cannot be undone.`}
+          />
+        )}
+        <div className="absolute inset-0 overflow-hidden">
+          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
+            <TransitionChild
+              as={Fragment}
+              enter="transform transition ease-in-out duration-500 sm:duration-700"
+              enterFrom="translate-x-full"
+              enterTo="translate-x-0"
+              leave="transform transition ease-in-out duration-500 sm:duration-700"
+              leaveFrom="translate-x-0"
+              leaveTo="translate-x-full"
+            >
+              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+                <Formik
+                  enableReinitialize={true}
+                  initialValues={{
+                    id: data.id,
+                    enabled: data.enabled,
+                    type: data.type,
+                    name: data.name,
+                    client_id: data.client_id,
+                    url: data.url,
+                    headers: data.headers || [],
+                    api_key: data.api_key,
+                    filters: data.filters,
+                    match_release: data.match_release,
+                    tags_included: data.tags_included,
+                    tags_excluded: data.tags_excluded,
+                    include_unmonitored: data.include_unmonitored,
+                    include_alternate_titles: data.include_alternate_titles,
+                  }}
+                  onSubmit={onSubmit}
+                  // validate={validate}
+                >
+                  {({ values }) => (
+                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
+                      <div className="flex-1">
+                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                          <div className="flex items-start justify-between space-x-3">
+                            <div className="space-y-1">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                                Update List
+                              </DialogTitle>
+                              <p className="text-sm text-gray-500 dark:text-gray-200">
+                                Auto update filters from lists and arrs.
+                              </p>
+                            </div>
+                            <div className="h-7 flex items-center">
+                              <button
+                                type="button"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                onClick={toggle}
+                              >
+                                <span className="sr-only">Close panel</span>
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
 
-          <TextFieldWide name="type" label="Type" required={true} disabled={true} />
+                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
 
-          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
-            <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
-          </div>
+                          <TextFieldWide name="name" label="Name" required={true}/>
 
-          <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-              <div className="px-4 space-y-1">
-                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                  Filters
-                </DialogTitle>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Select filters to update for this list.
-                </p>
+                          <TextFieldWide name="type" label="Type" required={true} disabled={true} />
+
+                          <SwitchGroupWide name="enabled" label="Enabled"/>
+
+                          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+                            <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
+                          </div>
+
+                          <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                              <div className="px-4 space-y-1">
+                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                                  Filters
+                                </DialogTitle>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  Select filters to update for this list.
+                                </p>
+                              </div>
+
+                              <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({
+                                value: f.id,
+                                label: f.name
+                              })) ?? []}/>
+
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+
+                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
+                        <div className="space-x-3 flex justify-between">
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                            onClick={toggleDeleteModal}
+                          >
+                            Remove
+                          </button>
+                          <div className="flex space-x-3">
+                          <button
+                            type="button"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            onClick={toggle}
+                          >
+                            Cancel
+                          </button>
+                          <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <DEBUG values={values}/>
+                    </Form>
+                  )}
+                </Formik>
               </div>
-
-              <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({
-                value: f.id,
-                label: f.name
-              })) ?? []}/>
-
-            </div>
-          </div>
+            </TransitionChild>
+          </DialogPanel>
         </div>
+      </Dialog>
+    </Transition>
+  )
+}
+
+interface SubmitButtonProps {
+  isPending?: boolean;
+  isError?: boolean;
+  isSuccess?: boolean;
+}
+
+const SubmitButton = (props: SubmitButtonProps) => {
+  return (
+    <button
+      type="submit"
+      className={classNames(
+        // isTestSuccessful
+        //   ? "text-green-500 border-green-500 bg-green-50"
+        //   : isError
+        //     ? "text-red-500 border-red-500 bg-red-50"
+        //     : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
+        props.isPending ? "cursor-not-allowed" : "",
+        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-blue-700 active:bg-blue-700"
       )}
-    </SlideOver>
-  );
+    >
+      {props.isPending ? (
+        <>
+          <svg
+            className="animate-spin h-5 w-5 text-green-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+
+          <span className="pl-2">Saving..</span>
+        </>
+      ) : (
+        <span>Save</span>
+      )}
+    </button>
+  )
 }
 
 interface ListTypeFormProps {
