@@ -144,6 +144,8 @@ type Filter struct {
 	ExceptCategories     string                 `json:"except_categories,omitempty"`
 	MatchUploaders       string                 `json:"match_uploaders,omitempty"`
 	ExceptUploaders      string                 `json:"except_uploaders,omitempty"`
+	MatchRecordLabels    string                 `json:"match_record_labels,omitempty"`
+	ExceptRecordLabels   string                 `json:"except_record_labels,omitempty"`
 	MatchLanguage        []string               `json:"match_language,omitempty"`
 	ExceptLanguage       []string               `json:"except_language,omitempty"`
 	Tags                 string                 `json:"tags,omitempty"`
@@ -274,6 +276,8 @@ type FilterUpdate struct {
 	ExceptCategories     *string                 `json:"except_categories,omitempty"`
 	MatchUploaders       *string                 `json:"match_uploaders,omitempty"`
 	ExceptUploaders      *string                 `json:"except_uploaders,omitempty"`
+	MatchRecordLabels    *string                 `json:"match_record_labels,omitempty"`
+	ExceptRecordLabels   *string                 `json:"except_record_labels,omitempty"`
 	MatchLanguage        *[]string               `json:"match_language,omitempty"`
 	ExceptLanguage       *[]string               `json:"except_language,omitempty"`
 	Tags                 *string                 `json:"tags,omitempty"`
@@ -363,6 +367,9 @@ func (f *Filter) Sanitize() error {
 
 	f.Artists = sanitize.FilterString(f.Artists)
 	f.Albums = sanitize.FilterString(f.Albums)
+
+	f.MatchRecordLabels = sanitize.FilterString(f.MatchRecordLabels)
+	f.ExceptRecordLabels = sanitize.FilterString(f.ExceptRecordLabels)
 
 	return nil
 }
@@ -463,6 +470,10 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 
 	if (f.MatchUploaders != "" || f.ExceptUploaders != "") && !f.checkUploader(r) {
 		// f.checkUploader sets the rejections
+	}
+
+	if (f.MatchRecordLabels != "" || f.ExceptRecordLabels != "") && !f.checkRecordLabel(r) {
+		// f.checkRecordLabel sets the rejections
 	}
 
 	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
@@ -744,6 +755,26 @@ func (f *Filter) checkUploader(r *Release) bool {
 
 	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
 		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
+	}
+
+	return true
+}
+
+// checkRecordLabel checks if the record label is within the given list.
+// if the haystack is not empty but the record label is, then a further
+// investigation is needed
+func (f *Filter) checkRecordLabel(r *Release) bool {
+	if r.RecordLabel == "" && (r.Indexer.Identifier == "redacted" || r.Indexer.Identifier == "ops") {
+		r.AdditionalRecordLabelCheckRequired = true
+		return true
+	}
+
+	if f.MatchRecordLabels != "" && !contains(r.RecordLabel, f.MatchRecordLabels) {
+		f.RejectReasons.Add("match record labels", r.RecordLabel, f.MatchRecordLabels)
+	}
+
+	if f.ExceptRecordLabels != "" && contains(r.RecordLabel, f.ExceptRecordLabels) {
+		f.RejectReasons.Add("except record labels", r.RecordLabel, f.ExceptRecordLabels)
 	}
 
 	return true
@@ -1194,6 +1225,20 @@ func (f *Filter) CheckUploader(uploader string) (bool, error) {
 
 	if f.ExceptUploaders != "" && contains(uploader, f.ExceptUploaders) {
 		f.RejectReasons.Add("except uploader", uploader, f.ExceptUploaders)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (f *Filter) CheckRecordLabel(recordLabel string) (bool, error) {
+	if f.MatchRecordLabels != "" && !contains(recordLabel, f.MatchRecordLabels) {
+		f.RejectReasons.Add("match record label", recordLabel, f.MatchRecordLabels)
+		return false, nil
+	}
+
+	if f.ExceptRecordLabels != "" && contains(recordLabel, f.ExceptRecordLabels) {
+		f.RejectReasons.Add("except record label", recordLabel, f.ExceptRecordLabels)
 		return false, nil
 	}
 
