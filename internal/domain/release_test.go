@@ -381,7 +381,7 @@ func TestRelease_Parse(t *testing.T) {
 				Audio:         []string{"DTS-HD.MA"},
 				AudioChannels: "5.1",
 				Group:         "CiNEPHiLES",
-				Type:          "movie",
+				Type:          rls.Movie,
 			},
 		},
 		{
@@ -400,7 +400,7 @@ func TestRelease_Parse(t *testing.T) {
 				Audio:         []string{"DTS-HD.MA"},
 				AudioChannels: "2.0",
 				Group:         "playBD",
-				Type:          "movie",
+				Type:          rls.Movie,
 			},
 		},
 		{
@@ -420,7 +420,7 @@ func TestRelease_Parse(t *testing.T) {
 				Audio:         []string{"DTS-HD.MA"},
 				AudioChannels: "5.1",
 				Group:         "VHS",
-				Type:          "movie",
+				Type:          rls.Movie,
 			},
 		},
 		{
@@ -440,7 +440,7 @@ func TestRelease_Parse(t *testing.T) {
 				Audio:         []string{"DTS-HD.MA"},
 				AudioChannels: "5.1",
 				Group:         "VHS",
-				Type:          "movie",
+				Type:          rls.Movie,
 			},
 		},
 	}
