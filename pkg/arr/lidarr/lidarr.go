@@ -6,10 +6,11 @@ package lidarr
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,26 +30,26 @@ type Config struct {
 	Log *log.Logger
 }
 
-type Client interface {
+type ClientInterface interface {
 	Test(ctx context.Context) (*SystemStatusResponse, error)
 	Push(ctx context.Context, release Release) ([]string, error)
 }
 
-type client struct {
+type Client struct {
 	config Config
 	http   *http.Client
 
 	Log *log.Logger
 }
 
-// New create new lidarr client
-func New(config Config) Client {
+// New create new lidarr Client
+func New(config Config) *Client {
 	httpClient := &http.Client{
 		Timeout:   time.Second * 120,
 		Transport: sharedhttp.Transport,
 	}
 
-	c := &client{
+	c := &Client{
 		config: config,
 		http:   httpClient,
 		Log:    log.New(io.Discard, "", log.LstdFlags),
@@ -61,47 +62,10 @@ func New(config Config) Client {
 	return c
 }
 
-type Release struct {
-	Title            string `json:"title"`
-	InfoUrl          string `json:"infoUrl,omitempty"`
-	DownloadUrl      string `json:"downloadUrl,omitempty"`
-	MagnetUrl        string `json:"magnetUrl,omitempty"`
-	Size             uint64 `json:"size"`
-	Indexer          string `json:"indexer"`
-	DownloadProtocol string `json:"downloadProtocol"`
-	Protocol         string `json:"protocol"`
-	PublishDate      string `json:"publishDate"`
-	DownloadClientId int    `json:"downloadClientId,omitempty"`
-	DownloadClient   string `json:"downloadClient,omitempty"`
-}
-
-type PushResponse struct {
-	Approved     bool     `json:"approved"`
-	Rejected     bool     `json:"rejected"`
-	TempRejected bool     `json:"temporarilyRejected"`
-	Rejections   []string `json:"rejections"`
-}
-
-type BadRequestResponse struct {
-	PropertyName   string `json:"propertyName"`
-	ErrorMessage   string `json:"errorMessage"`
-	ErrorCode      string `json:"errorCode"`
-	AttemptedValue string `json:"attemptedValue"`
-	Severity       string `json:"severity"`
-}
-
-func (r BadRequestResponse) String() string {
-	return fmt.Sprintf("[%s: %s] %s: %s - got value: %s", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
-}
-
-type SystemStatusResponse struct {
-	Version string `json:"version"`
-}
-
-func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
+func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	status, res, err := c.get(ctx, "system/status")
 	if err != nil {
-		return nil, errors.Wrap(err, "lidarr client get error")
+		return nil, errors.Wrap(err, "lidarr Client get error")
 	}
 
 	if status == http.StatusUnauthorized {
@@ -113,16 +77,16 @@ func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	response := SystemStatusResponse{}
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		return nil, errors.Wrap(err, "lidarr client error json unmarshal")
+		return nil, errors.Wrap(err, "lidarr Client error json unmarshal")
 	}
 
 	return &response, nil
 }
 
-func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
+func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 	status, res, err := c.postBody(ctx, "release/push", release)
 	if err != nil {
-		return nil, errors.Wrap(err, "lidarr client post error")
+		return nil, errors.Wrap(err, "lidarr Client post error")
 	}
 
 	c.Log.Printf("lidarr release/push response status: %v body: %v", status, string(res))
@@ -143,7 +107,7 @@ func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
 
 	pushResponse := PushResponse{}
 	if err = json.Unmarshal(res, &pushResponse); err != nil {
-		return nil, errors.Wrap(err, "lidarr client error json unmarshal")
+		return nil, errors.Wrap(err, "lidarr Client error json unmarshal")
 	}
 
 	// log and return if rejected
@@ -155,4 +119,29 @@ func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
 	}
 
 	return nil, nil
+}
+
+func (c *Client) GetAlbums(ctx context.Context, mbID int64) ([]Album, error) {
+	params := make(url.Values)
+	if mbID != 0 {
+		params.Set("ForeignAlbumId", strconv.FormatInt(mbID, 10))
+	}
+
+	data := make([]Album, 0)
+	err := c.getJSON(ctx, "album", params, &data)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get tags")
+	}
+
+	return data, nil
+}
+
+func (c *Client) GetArtistByID(ctx context.Context, artistID int64) (*Artist, error) {
+	var data Artist
+	err := c.getJSON(ctx, "artist/"+strconv.FormatInt(artistID, 10), nil, &data)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get tags")
+	}
+
+	return &data, nil
 }

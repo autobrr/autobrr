@@ -166,6 +166,7 @@ type Filter struct {
 	MaxLeechers          int                    `json:"max_leechers,omitempty"`
 	ActionsCount         int                    `json:"actions_count"`
 	ActionsEnabledCount  int                    `json:"actions_enabled_count"`
+	IsAutoUpdated        bool                   `json:"is_auto_updated"`
 	Actions              []*Action              `json:"actions,omitempty"`
 	External             []FilterExternal       `json:"external,omitempty"`
 	Indexers             []Indexer              `json:"indexers"`

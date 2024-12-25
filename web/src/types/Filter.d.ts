@@ -76,6 +76,7 @@ interface Filter {
   max_seeders: number;
   min_leechers: number;
   max_leechers: number;
+  is_auto_updated: boolean;
   actions_count: number;
   actions_enabled_count: number;
   actions: Action[];
