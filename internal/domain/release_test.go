@@ -912,43 +912,205 @@ func TestRelease_Hash(t *testing.T) {
 			fields: fields{
 				TorrentName: "That.Movie.2023.2160p.BluRay.DTS-HD.5.1.x265-GROUP",
 			},
-			want: "8861965eefd168acbc03f71ab94a3c1e",
+			want: "833e6c4c78e960ccbce4ef68f6564082",
 		},
 		{
 			name: "2",
 			fields: fields{
 				TorrentName: "That Movie 2023 2160p BluRay DTS-HD 5.1 x265-GROUP",
 			},
-			want: "8861965eefd168acbc03f71ab94a3c1e",
+			want: "833e6c4c78e960ccbce4ef68f6564082",
 		},
 		{
 			name: "3",
 			fields: fields{
 				TorrentName: "That Movie 2023 2160p BluRay DTS-HD 5 1 x265-GROUP",
 			},
-			want: "8861965eefd168acbc03f71ab94a3c1e",
+			want: "833e6c4c78e960ccbce4ef68f6564082",
 		},
 		{
 			name: "4",
 			fields: fields{
-				TorrentName: "That Movie 2023 2160p BluRay DDP 5.1 x265-GROUP",
+				TorrentName: "That Movie 2023 1080p Remux DTS-HD 5 1 AVC-GROUP",
 			},
-			want: "fd4fc455d16d9f6c41c6dd349f95b865",
+			want: "ee15fe3c926a5b40370aec970f6b4c43",
 		},
-		//{
-		//	name: "5",
-		//	fields: fields{
-		//		TorrentName: "That Movie 2023 2160p BluRay DD+ 5.1 x265-GROUP",
-		//	},
-		//	want: "fd4fc455d16d9f6c41c6dd349f95b865",
-		//},
+		{
+			name: "5",
+			fields: fields{
+				TorrentName: "That Movie 2023 Bluray 1080p Remux DTS-HD 5.1 AVC-GROUP",
+			},
+			want: "ee15fe3c926a5b40370aec970f6b4c43",
+		},
+		{
+			name: "6",
+			fields: fields{
+				TorrentName: "That Movie 2023 Theatrical Cut Bluray 1080p Remux DTS-HD 5.1 AVC-GROUP",
+			},
+			want: "db7e55fb3471e76ba27bf8a2e1e59236",
+		},
+		{
+			name: "7",
+			fields: fields{
+				TorrentName: "That Movie 2023 Directors Cut Bluray 1080p Remux DTS-HD 5.1 AVC-GROUP",
+			},
+			want: "bccfe6762b34cbc3a54784351b5424fd",
+		},
+		{
+			name: "8",
+			fields: fields{
+				TorrentName: "That Show 2023 S01 Bluray 1080p Remux DTS-HD 5.1 AVC-GROUP",
+			},
+			want: "d1c74c33e1c36f3545d06aa8857610b1",
+		},
+		{
+			name: "9",
+			fields: fields{
+				TorrentName: "That Show 2023 S01 Bluray 1080p Remux DTS-HD 5.1 AVC-GROUP2",
+			},
+			want: "29e228f705f070041e72ebaa7b29239e",
+		},
+		{
+			name: "10",
+			fields: fields{
+				TorrentName: "That Show 2023 S1 Bluray 1080p Remux DTS-HD 5.1 AVC-GROUP2",
+			},
+			want: "29e228f705f070041e72ebaa7b29239e",
+		},
+		{
+			name: "11",
+			fields: fields{
+				TorrentName: "That Show 2023 S2 Bluray 1080p Remux DTS-HD 5.1 AVC-GROUP2",
+			},
+			want: "cbc67f4eec93428361eddf040654e077",
+		},
+		{
+			name: "12",
+			fields: fields{
+				TorrentName: "That Show 2023 S01E01 2160p WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "806240c76cc32413efd5bcf033abf512",
+		},
+		{
+			name: "13",
+			fields: fields{
+				TorrentName: "That Show 2023 S01E01 This is the start 2160p WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "33c866b898a59d255a09c10bd23a5e3f",
+		},
+		{
+			name: "14",
+			fields: fields{
+				TorrentName: "That Show 2023 REPACK S01E01 This is the start 2160p WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "7be5ebeee948820f53f24091054fc7cd",
+		},
+		{
+			name: "15",
+			fields: fields{
+				TorrentName: "That Show 2023 REPACK2 S01E01 This is the start 2160p WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "84e3e70f6c983f96f10cba50213a338d",
+		},
+		{
+			name: "16",
+			fields: fields{
+				TorrentName: "That Show 2023 PROPER S01E01 This is the start 2160p WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "52d5d1a28a340bc5a836c0244c206c3b",
+		},
+		{
+			name: "17",
+			fields: fields{
+				TorrentName: "That Show 2023 S01E01 This is the start 2160p WEB-DL DV DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "5e196039d426649ab5221c3e87ed108d",
+		},
+		{
+			name: "18",
+			fields: fields{
+				TorrentName: "That Show 2023 S01E01 This is the start 2160p WEB-DL DoVi DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "5e196039d426649ab5221c3e87ed108d",
+		},
+		{
+			name: "19",
+			fields: fields{
+				TorrentName: "That Show 2023 S01E01 This is the start 2160p WEB-DL DoVi HDR10 DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "f52a9a2f26e94c90bdaa8eaca2136cc3",
+		},
+		{
+			name: "20",
+			fields: fields{
+				TorrentName: "That Show 2023 S01E01 This is the start 2160p WEB-DL DV HDR10 DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "f52a9a2f26e94c90bdaa8eaca2136cc3",
+		},
+		{
+			name: "21",
+			fields: fields{
+				TorrentName: "that show 2023 S01E01 this is the start 2160p WEB-DL DV HDR10 DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "f52a9a2f26e94c90bdaa8eaca2136cc3",
+		},
+		{
+			name: "22",
+			fields: fields{
+				TorrentName: "That Show 2023 S01E01 This is the start 2160p HYBRID WEB-DL DV HDR10 DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "414f792a345148ed4c8e070ef77340ff",
+		},
+		{
+			name: "23",
+			fields: fields{
+				TorrentName: "That Movie 2008 1080p GBR Blu-ray AVC TrueHD 5.1",
+			},
+			want: "70bb23ff5da4209419b6d83628310a43",
+		},
+		{
+			name: "24",
+			fields: fields{
+				TorrentName: "That Movie 2008 1080p GER Blu-ray AVC TrueHD 5.1",
+			},
+			want: "369ba9f92fb7819e0d07791fddf3c85f",
+		},
+		{
+			name: "25",
+			fields: fields{
+				TorrentName: "That Show 2023 PROPER S01E01 This is the start 2160p AMZN WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "28e215fee790fbad3957383162f7c5a6",
+		},
+		{
+			name: "26",
+			fields: fields{
+				TorrentName: "That Show 2023 PROPER S01E01 This is the start 2160p DSNP WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "6a26cd652170d0efc4b0e0320fbd38c1",
+		},
+		{
+			name: "27",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p WEB-DL DV HDR10 DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "544c2fc4024ece5664c0f623a5feaeab",
+		},
+		{
+			name: "28",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p WEB-DL DV HDR10+ DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "63b5d87abe5fb49131785de426708d31",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Release{
 				TorrentName: tt.fields.TorrentName,
 			}
-			assert.Equalf(t, tt.want, r.Hash(), "Hash()")
+			r.ParseString(tt.fields.TorrentName)
+			assert.Equalf(t, tt.want, r.NormalizedHash, "Hash()")
 		})
 	}
 }

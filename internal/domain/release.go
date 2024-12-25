@@ -10,6 +10,8 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"html"
 	"io"
 	"math"
@@ -20,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -130,10 +133,155 @@ type Release struct {
 
 // Hash return md5 hashed normalized release name
 func (r *Release) Hash() string {
-	normalized := rls.MustNormalize(r.TorrentName)
+	formatted := r.TorrentName
+
+	// for tv and movies we create the formatted title to have the best chance of matching
+	if r.IsTypeVideo() {
+		formatted = r.NormalizedTitle()
+	}
+
+	normalized := MustNormalize(formatted)
 	h := md5.Sum([]byte(normalized))
 	str := hex.EncodeToString(h[:])
 	return str
+}
+
+// MustNormalize applies the Normalize transform to s, returning a lower cased,
+// clean form of s useful for matching titles.
+func MustNormalize(s string) string {
+	s, _, err := transform.String(NewNormalizer(), s)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
+// NewNormalizer is a custom rls.Normalizer that keeps plus sign + for HDR10+ fx
+// It creates a new a text transformer chain (similiar to
+// NewCleaner) that normalizes text to lower case clean form useful for
+// matching titles.
+//
+// See: https://go.dev/blog/normalization
+func NewNormalizer() transform.Transformer {
+	return transform.Chain(
+		norm.NFD,
+		rls.NewCollapser(
+			true, true,
+			"`"+`':;~!@#%^*=()[]{}<>/?|\",`, " \t\r\n\f._",
+			func(r, prev, next rune) rune {
+				switch {
+				case r == '-' && unicode.IsSpace(prev):
+					return -1
+				case r == '$' && (unicode.IsLetter(prev) || unicode.IsLetter(next)):
+					return 'S'
+				case r == '£' && (unicode.IsLetter(prev) || unicode.IsLetter(next)):
+					return 'L'
+				case r == '$', r == '£':
+					return -1
+				}
+				return r
+			},
+		),
+		norm.NFC,
+	)
+}
+
+func (r *Release) NormalizedTitle() string {
+	var v []string
+
+	v = append(v, r.Title)
+
+	if r.Year > 0 && r.Month > 0 && r.Day > 0 {
+		v = append(v, fmt.Sprintf("%d %d", r.Month, r.Day))
+	} else if r.Year > 0 {
+		v = append(v, fmt.Sprintf("%d", r.Year))
+	}
+
+	if len(r.Cut) > 0 {
+		v = append(v, strings.Join(r.Cut, " "))
+	}
+
+	if len(r.Edition) > 0 {
+		v = append(v, strings.Join(r.Edition, " "))
+	}
+
+	if r.Season > 0 && r.Episode > 0 {
+		v = append(v, fmt.Sprintf("S%dE%d", r.Season, r.Episode))
+	} else if r.Season > 0 && r.Episode == 0 {
+		v = append(v, fmt.Sprintf("S%d", r.Season))
+	}
+
+	if r.Proper {
+		v = append(v, "PROPER")
+	}
+
+	if r.Repack {
+		v = append(v, r.RepackStr())
+	}
+
+	if r.Hybrid {
+		v = append(v, "HYBRiD")
+	}
+
+	if r.SubTitle != "" {
+		v = append(v, r.SubTitle)
+	}
+
+	if r.Resolution != "" {
+		v = append(v, r.Resolution)
+	}
+
+	if r.Website != "" {
+		v = append(v, r.Website)
+	}
+
+	if r.Region != "" {
+		v = append(v, r.Region)
+	}
+
+	if r.Source != "" {
+		v = append(v, r.Source)
+	}
+
+	// remux
+	if r.MediaProcessing == "REMUX" {
+		v = append(v, "REMUX")
+	}
+
+	if len(r.Codec) > 0 {
+		v = append(v, strings.Join(r.Codec, " "))
+	}
+
+	if len(r.HDR) > 0 {
+		v = append(v, strings.Join(r.HDR, " "))
+	}
+
+	if len(r.Audio) > 0 {
+		v = append(v, r.AudioString())
+	}
+
+	str := strings.Join(v, " ")
+
+	if r.Group != "" {
+		str = fmt.Sprintf("%s-%s", str, r.Group)
+	}
+
+	return str
+}
+
+func (r *Release) RepackStr() string {
+	if r.Other != nil {
+		if slices.Contains(r.Other, "REPACK") {
+			return "REPACK"
+		} else if slices.Contains(r.Other, "REREPACK") {
+			return "REREPACK"
+		} else if slices.Contains(r.Other, "REPACK2") {
+			return "REPACK2"
+		} else if slices.Contains(r.Other, "REPACK3") {
+			return "REPACK3"
+		}
+	}
+	return ""
 }
 
 func (r *Release) Raw(s string) rls.Release {
@@ -407,7 +555,6 @@ func (r *Release) ParseString(title string) {
 	r.Type = rel.Type
 
 	r.TorrentName = title
-	r.NormalizedHash = r.Hash()
 
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
@@ -477,6 +624,8 @@ func (r *Release) ParseString(title string) {
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
 	r.extraParseSource(rel)
+
+	r.NormalizedHash = r.Hash()
 }
 
 func (r *Release) extraParseSource(rel rls.Release) {
@@ -511,7 +660,7 @@ func (r *Release) extraParseSource(rel rls.Release) {
 	}
 
 	// check res to be 1080p or 2160p and codec to be AVC, HEVC or if other contains Remux, then set source to BluRay if it differs
-	if !basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) && basicContainsSlice(r.Resolution, []string{"1080p", "2160p"}) && basicContainsMatch(r.Codec, []string{"AVC", "HEVC"}) && basicContainsMatch(r.Other, []string{"REMUX"}) {
+	if !basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) && basicContainsSlice(r.Resolution, []string{"1080p", "2160p"}) && basicContainsMatch(r.Codec, []string{"AVC", "H.264", "H.265", "HEVC"}) && basicContainsMatch(r.Other, []string{"REMUX"}) {
 		// handle missing or unexpected source for some bluray releases
 		if r.Resolution == "1080p" {
 			r.Source = "BluRay"
