@@ -81,6 +81,7 @@ interface ReleaseProfileDuplicate {
   name: string;
   protocol: boolean;
   release_name: boolean;
+  hash: boolean;
   title: boolean;
   sub_title: boolean;
   year: boolean;

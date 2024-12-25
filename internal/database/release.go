@@ -124,8 +124,8 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 	if profile.ID == 0 {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_profile_duplicate").
-			Columns("name", "protocol", "release_name", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack").
-			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
+			Columns("name", "protocol", "release_name", "hash", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack").
+			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Hash, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
 			Suffix("RETURNING id").
 			RunWith(repo.db.handler)
 
@@ -144,6 +144,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Set("name", profile.Name).
 			Set("protocol", profile.Protocol).
 			Set("release_name", profile.ReleaseName).
+			Set("hash", profile.Hash).
 			Set("title", profile.Title).
 			Set("sub_title", profile.SubTitle).
 			Set("season", profile.Season).
@@ -502,6 +503,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 			"name",
 			"protocol",
 			"release_name",
+			"hash",
 			"title",
 			"sub_title",
 			"year",
@@ -543,7 +545,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 	for rows.Next() {
 		var p domain.DuplicateReleaseProfile
 
-		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
+		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Hash, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -1034,153 +1036,155 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 
 func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id, r.torrent_name, r.normalized_hash, r.title, r.audio, r.audio_channels, ras.action, ras.status").
+		Select("r.id, r.torrent_name, r.normalized_hash, r.title, ras.action, ras.status").
 		From("release r").
 		LeftJoin("release_action_status ras ON r.id = ras.release_id").
 		Where("ras.status = 'PUSH_APPROVED'")
 
-	//var fuzzy bool
-	fuzzy := profile.ReleaseName && !profile.Exact
-
-	if fuzzy || profile.Title {
-		queryBuilder = queryBuilder.Where(repo.db.ILike("r.title", release.Title))
-	}
-
-	if fuzzy || profile.SubTitle {
-		queryBuilder = queryBuilder.Where(repo.db.ILike("r.sub_title", release.SubTitle))
-	}
-
-	if profile.ReleaseName && profile.Exact {
+	if profile.ReleaseName && profile.Hash {
 		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.normalized_hash": release.NormalizedHash})
-	}
-
-	if fuzzy || profile.Year {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.year": release.Year})
-	}
-
-	if fuzzy || profile.Month {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.month": release.Month})
-	}
-
-	if fuzzy || profile.Day {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.day": release.Day})
-	}
-
-	if fuzzy || profile.Source {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.source": release.Source})
-	}
-
-	if fuzzy || profile.Container {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.container": release.Container})
-	}
-
-	if fuzzy || profile.Edition {
-		//queryBuilder = queryBuilder.Where(sq.Eq{"r.cut": release.Cut})
-		if len(release.Cut) > 1 {
-			var and sq.And
-			for _, cut := range release.Cut {
-				//and = append(and, sq.Eq{"r.cut": "%" + cut + "%"})
-				and = append(and, repo.db.ILike("r.cut", "%"+cut+"%"))
-			}
-			queryBuilder = queryBuilder.Where(and)
-		} else if len(release.Cut) == 1 {
-			queryBuilder = queryBuilder.Where(repo.db.ILike("r.cut", "%"+release.Cut[0]+"%"))
+	} else {
+		if profile.Title {
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.title", release.Title))
 		}
 
-		//queryBuilder = queryBuilder.Where(sq.Eq{"r.edition": release.Edition})
-		if len(release.Edition) > 1 {
-			var and sq.And
-			for _, edition := range release.Edition {
-				and = append(and, repo.db.ILike("r.edition", "%"+edition+"%"))
-			}
-			queryBuilder = queryBuilder.Where(and)
-		} else if len(release.Edition) == 1 {
-			queryBuilder = queryBuilder.Where(repo.db.ILike("r.edition", "%"+release.Edition[0]+"%"))
+		if profile.SubTitle {
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.sub_title", release.SubTitle))
 		}
-	}
 
-	// video features (hybrid, remux)
-	if fuzzy || release.IsTypeVideo() {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.hybrid": release.Hybrid})
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.media_processing": release.MediaProcessing})
-	}
+		if profile.ReleaseName && profile.Hash {
+			//queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.normalized_hash": release.NormalizedHash})
+		}
 
-	if fuzzy || profile.Language {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.region": release.Region})
+		if profile.Year {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.year": release.Year})
+		}
 
-		if len(release.Language) > 0 {
-			var and sq.And
-			for _, lang := range release.Language {
-				and = append(and, repo.db.ILike("r.language", "%"+lang+"%"))
+		if profile.Month {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.month": release.Month})
+		}
+
+		if profile.Day {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.day": release.Day})
+		}
+
+		if profile.Source {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.source": release.Source})
+		}
+
+		if profile.Container {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.container": release.Container})
+		}
+
+		if profile.Edition {
+			//queryBuilder = queryBuilder.Where(sq.Eq{"r.cut": release.Cut})
+			if len(release.Cut) > 1 {
+				var and sq.And
+				for _, cut := range release.Cut {
+					//and = append(and, sq.Eq{"r.cut": "%" + cut + "%"})
+					and = append(and, repo.db.ILike("r.cut", "%"+cut+"%"))
+				}
+				queryBuilder = queryBuilder.Where(and)
+			} else if len(release.Cut) == 1 {
+				queryBuilder = queryBuilder.Where(repo.db.ILike("r.cut", "%"+release.Cut[0]+"%"))
 			}
 
-			queryBuilder = queryBuilder.Where(and)
-		} else {
-			queryBuilder = queryBuilder.Where(sq.Eq{"r.language": ""})
-		}
-	}
-
-	if fuzzy || profile.Codec {
-		if len(release.Codec) > 1 {
-			var and sq.And
-			for _, codec := range release.Codec {
-				and = append(and, repo.db.ILike("r.codec", "%"+codec+"%"))
+			//queryBuilder = queryBuilder.Where(sq.Eq{"r.edition": release.Edition})
+			if len(release.Edition) > 1 {
+				var and sq.And
+				for _, edition := range release.Edition {
+					and = append(and, repo.db.ILike("r.edition", "%"+edition+"%"))
+				}
+				queryBuilder = queryBuilder.Where(and)
+			} else if len(release.Edition) == 1 {
+				queryBuilder = queryBuilder.Where(repo.db.ILike("r.edition", "%"+release.Edition[0]+"%"))
 			}
-			queryBuilder = queryBuilder.Where(and)
-		} else {
-			// FIXME this does an IN (arg)
-			queryBuilder = queryBuilder.Where(sq.Eq{"r.codec": release.Codec})
 		}
-	}
 
-	if fuzzy || profile.Resolution {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.resolution": release.Resolution})
-	}
+		// video features (hybrid, remux)
+		if release.IsTypeVideo() {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.hybrid": release.Hybrid})
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.media_processing": release.MediaProcessing})
+		}
 
-	if fuzzy || profile.DynamicRange {
-		//if len(release.HDR) > 1 {
-		//	var and sq.And
-		//	for _, hdr := range release.HDR {
-		//		and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
-		//	}
-		//	queryBuilder = queryBuilder.Where(and)
-		//} else {
-		//	queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.HDR})
-		//}
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": strings.Join(release.HDR, ",")})
-	}
+		if profile.Language {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.region": release.Region})
 
-	if fuzzy || profile.Audio {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.audio": strings.Join(release.Audio, ",")})
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.audio_channels": release.AudioChannels})
-	}
+			if len(release.Language) > 0 {
+				var and sq.And
+				for _, lang := range release.Language {
+					and = append(and, repo.db.ILike("r.language", "%"+lang+"%"))
+				}
 
-	if fuzzy || profile.Group {
-		queryBuilder = queryBuilder.Where(repo.db.ILike("r.release_group", release.Group))
-	}
+				queryBuilder = queryBuilder.Where(and)
+			} else {
+				queryBuilder = queryBuilder.Where(sq.Eq{"r.language": ""})
+			}
+		}
 
-	if fuzzy || profile.Season {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.season": release.Season})
-	}
+		if profile.Codec {
+			if len(release.Codec) > 1 {
+				var and sq.And
+				for _, codec := range release.Codec {
+					and = append(and, repo.db.ILike("r.codec", "%"+codec+"%"))
+				}
+				queryBuilder = queryBuilder.Where(and)
+			} else {
+				// FIXME this does an IN (arg)
+				queryBuilder = queryBuilder.Where(sq.Eq{"r.codec": release.Codec})
+			}
+		}
 
-	if fuzzy || profile.Episode {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.episode": release.Episode})
-	}
+		if profile.Resolution {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.resolution": release.Resolution})
+		}
 
-	if fuzzy || profile.Website {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.website": release.Website})
-	}
+		if profile.DynamicRange {
+			//if len(release.HDR) > 1 {
+			//	var and sq.And
+			//	for _, hdr := range release.HDR {
+			//		and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
+			//	}
+			//	queryBuilder = queryBuilder.Where(and)
+			//} else {
+			//	queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.HDR})
+			//}
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": strings.Join(release.HDR, ",")})
+		}
 
-	if fuzzy || profile.Proper {
-		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": release.Proper})
-	}
+		if profile.Audio {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.audio": strings.Join(release.Audio, ",")})
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.audio_channels": release.AudioChannels})
+		}
 
-	if fuzzy || profile.Repack {
-		queryBuilder = queryBuilder.Where(sq.And{
-			sq.Eq{"r.repack": release.Repack},
-			repo.db.ILike("r.release_group", release.Group),
-		})
+		if profile.Group {
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.release_group", release.Group))
+		}
+
+		if profile.Season {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.season": release.Season})
+		}
+
+		if profile.Episode {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.episode": release.Episode})
+		}
+
+		if profile.Website {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.website": release.Website})
+		}
+
+		if profile.Proper {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": release.Proper})
+		}
+
+		if profile.Repack {
+			queryBuilder = queryBuilder.Where(sq.And{
+				sq.Eq{"r.repack": release.Repack},
+				repo.db.ILike("r.release_group", release.Group),
+			})
+		}
 	}
 
 	query, args, err := queryBuilder.ToSql()
@@ -1200,21 +1204,19 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	}
 
 	type result struct {
-		id       int
-		release  string
-		hash     string
-		title    string
-		audio    string
-		channels string
-		action   string
-		status   string
+		id      int
+		release string
+		hash    string
+		title   string
+		action  string
+		status  string
 	}
 
 	var res []result
 
 	for rows.Next() {
 		r := result{}
-		if err := rows.Scan(&r.id, &r.release, &r.hash, &r.title, &r.audio, &r.channels, &r.action, &r.status); err != nil {
+		if err := rows.Scan(&r.id, &r.release, &r.hash, &r.title, &r.action, &r.status); err != nil {
 			return false, errors.Wrap(err, "error scan CheckIsDuplicateRelease")
 		}
 		res = append(res, r)

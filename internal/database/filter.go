@@ -474,6 +474,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"rdp.id",
 			"rdp.name",
 			"rdp.release_name",
+			"rdp.hash",
 			"rdp.title",
 			"rdp.sub_title",
 			"rdp.year",
@@ -526,7 +527,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		var releaseProfileDuplicateID, rdpId sql.NullInt64
 
 		var rdpName sql.NullString
-		var rdpRelName, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage sql.NullBool
+		var rdpRelName, rdpHash, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage sql.NullBool
 
 		err := rows.Scan(
 			&f.ID,
@@ -602,6 +603,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&rdpId,
 			&rdpName,
 			&rdpRelName,
+			&rdpHash,
 			&rdpTitle,
 			&rdpSubTitle,
 			&rdpYear,
@@ -673,9 +675,9 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			profile := domain.DuplicateReleaseProfile{
 				ID: rdpId.Int64,
 				//Protocol:    rdpName.String,
-				Name: rdpName.String,
-				//Exact:       rdpRelName.Bool,
+				Name:         rdpName.String,
 				ReleaseName:  rdpRelName.Bool,
+				Hash:         rdpHash.Bool,
 				Title:        rdpTitle.Bool,
 				SubTitle:     rdpSubTitle.Bool,
 				Year:         rdpYear.Bool,

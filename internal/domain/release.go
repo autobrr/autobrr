@@ -1232,7 +1232,7 @@ type DuplicateReleaseProfile struct {
 	Name         string `json:"name"`
 	Protocol     bool   `json:"protocol"`
 	ReleaseName  bool   `json:"release_name"`
-	Exact        bool   `json:"exact"`
+	Hash         bool   `json:"hash"`
 	Title        bool   `json:"title"`
 	SubTitle     bool   `json:"sub_title"`
 	Year         bool   `json:"year"`

@@ -53,6 +53,7 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
         </div>
         <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
           {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title="Release name" />}
+          {profile.hash && <EnabledPill value={profile.hash} label="Hash" title="Normalized hash of the release name. Use with Releae name for exact match" />}
           {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed titel" />}
           {profile.sub_title && <EnabledPill value={profile.sub_title} label="Sub Title" title="Parsed sub titel like Episode name" />}
           {profile.group && <EnabledPill value={profile.group} label="Group" title="Releae group" />}
@@ -258,7 +259,8 @@ function DeleteReleases() {
           <p className="text-sm mt-2 text-gray-500 dark:text-gray-400">
             Select the criteria below to permanently delete release history records that are older than the chosen age
             and optionally match the selected indexers and release statuses:
-            <ul className="list-disc pl-5 mt-2">
+          </p>
+            <ul className="list-disc pl-5 my-4 text-sm text-gray-500 dark:text-gray-400">
               <li>
                 Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong
                 className="text-gray-600 dark:text-gray-300">Required</strong>
@@ -266,11 +268,10 @@ function DeleteReleases() {
               <li>Indexers - Optional (if none selected, applies to all indexers)</li>
               <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
             </ul>
-            <p className="mt-2 text-red-600 dark:text-red-500">
+            <span className="pt-2 text-red-600 dark:text-red-500">
               <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records
               older than the selected age will be permanently deleted, regardless of indexer or status.
-            </p>
-          </p>
+            </span>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center text-sm">
