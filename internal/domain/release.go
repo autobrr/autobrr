@@ -132,6 +132,7 @@ type Release struct {
 	FilterID                           int                   `json:"-"`
 	Filter                             *Filter               `json:"-"`
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
+	MetaIMDB                           string                `json:"-"`
 }
 
 // Hash return md5 hashed normalized release name
@@ -1167,9 +1168,9 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Episode = episode
 	}
 
-	//if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
-	//	r.MetaIMDB = metaImdb
-	//}
+	if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
+		r.MetaIMDB = metaImdb
+	}
 
 	return nil
 }
