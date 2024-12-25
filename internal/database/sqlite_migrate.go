@@ -1717,4 +1717,8 @@ CREATE TABLE list_filter
   ALTER TABLE filter
   ADD COLUMN except_record_labels TEXT DEFAULT '';
 `,
+	`UPDATE irc_channel 
+    SET name = '#ptp-announce'
+    WHERE name = '#ptp-announce-dev';
+`,
 }
