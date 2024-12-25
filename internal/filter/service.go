@@ -185,6 +185,10 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
+	if filter.AnnounceTypes == nil || len(filter.AnnounceTypes) == 0 {
+		filter.AnnounceTypes = []string{string(domain.AnnounceTypeNew)}
+	}
+
 	if err := s.repo.Store(ctx, filter); err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter: %v", filter)
 		return err
