@@ -800,7 +800,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			mockAction.FilterID = mockData.ID
 			mockAction.ClientID = mockClient.ID
 
-			action, err := actionRepo.Store(context.Background(), mockAction)
+			err = actionRepo.Store(context.Background(), mockAction)
 
 			mockReleaseActionStatus.FilterID = int64(mockData.ID)
 			mockRelease.FilterID = mockData.ID
@@ -808,7 +808,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			err = releaseRepo.Store(context.Background(), mockRelease)
 			assert.NoError(t, err)
 
-			mockReleaseActionStatus.ActionID = int64(action.ID)
+			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
 
 			err = releaseRepo.StoreReleaseActionStatus(context.Background(), mockReleaseActionStatus)
@@ -827,7 +827,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			})
 
 			// Cleanup
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: action.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
 			_ = repo.Delete(context.Background(), mockData.ID)
 			_ = downloadClientRepo.Delete(context.Background(), mockClient.ID)
 			_ = releaseRepo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -861,13 +861,15 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			mockAction1.FilterID = mockData.ID
 			mockAction1.ClientID = mockClient.ID
 
-			action1, err := actionRepo.Store(context.Background(), mockAction1)
+			actionErr := actionRepo.Store(context.Background(), mockAction1)
+			assert.NoError(t, actionErr)
 
 			mockAction2 := getMockAction()
 			mockAction2.FilterID = mockData.ID
 			mockAction2.ClientID = mockClient.ID
 
-			action2, err := actionRepo.Store(context.Background(), mockAction2)
+			action2Err := actionRepo.Store(context.Background(), mockAction2)
+			assert.NoError(t, action2Err)
 
 			mockRelease.FilterID = mockData.ID
 
@@ -875,7 +877,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			assert.NoError(t, err)
 
 			mockReleaseActionStatus1 := getMockReleaseActionStatus()
-			mockReleaseActionStatus1.ActionID = int64(action1.ID)
+			mockReleaseActionStatus1.ActionID = int64(mockAction1.ID)
 			mockReleaseActionStatus1.FilterID = int64(mockData.ID)
 			mockReleaseActionStatus1.ReleaseID = mockRelease.ID
 
@@ -883,7 +885,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			assert.NoError(t, err)
 
 			mockReleaseActionStatus2 := getMockReleaseActionStatus()
-			mockReleaseActionStatus2.ActionID = int64(action2.ID)
+			mockReleaseActionStatus2.ActionID = int64(mockAction2.ID)
 			mockReleaseActionStatus2.FilterID = int64(mockData.ID)
 			mockReleaseActionStatus2.ReleaseID = mockRelease.ID
 
@@ -903,8 +905,8 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			})
 
 			// Cleanup
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: action1.ID})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: action2.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: mockAction1.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: mockAction2.ID})
 			_ = repo.Delete(context.Background(), mockData.ID)
 			_ = downloadClientRepo.Delete(context.Background(), mockClient.ID)
 			_ = releaseRepo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -924,13 +926,15 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			mockAction.FilterID = mockData.ID
 			mockAction.ClientID = mockClient.ID
 
-			action, err := actionRepo.Store(context.Background(), mockAction)
+			err = actionRepo.Store(context.Background(), mockAction)
+			assert.NoError(t, err)
 
 			mockAction2 := getMockAction()
 			mockAction2.FilterID = mockData.ID
 			mockAction2.ClientID = mockClient.ID
 
-			action2, err := actionRepo.Store(context.Background(), mockAction2)
+			err = actionRepo.Store(context.Background(), mockAction2)
+			assert.NoError(t, err)
 
 			mockRelease.FilterID = mockData.ID
 
@@ -938,7 +942,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			assert.NoError(t, err)
 
 			mockReleaseActionStatus = getMockReleaseActionStatus()
-			mockReleaseActionStatus.ActionID = int64(action.ID)
+			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockData.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
 			mockReleaseActionStatus.Timestamp = mockReleaseActionStatus.Timestamp.AddDate(0, -1, 0)
@@ -947,7 +951,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			assert.NoError(t, err)
 
 			mockReleaseActionStatus2 := getMockReleaseActionStatus()
-			mockReleaseActionStatus2.ActionID = int64(action2.ID)
+			mockReleaseActionStatus2.ActionID = int64(mockAction2.ID)
 			mockReleaseActionStatus2.FilterID = int64(mockData.ID)
 			mockReleaseActionStatus2.ReleaseID = mockRelease.ID
 			mockReleaseActionStatus2.Timestamp = mockReleaseActionStatus2.Timestamp.AddDate(0, -1, 0)
@@ -968,7 +972,7 @@ func TestFilterRepo_GetDownloadsByFilterId(t *testing.T) {
 			})
 
 			// Cleanup
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: action.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
 			_ = repo.Delete(context.Background(), mockData.ID)
 			_ = downloadClientRepo.Delete(context.Background(), mockClient.ID)
 			_ = releaseRepo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})

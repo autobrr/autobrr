@@ -455,7 +455,8 @@ export const FilterDetails = () => {
               max_leechers: filter.max_leechers,
               indexers: filter.indexers || [],
               actions: filter.actions || [],
-              external: filter.external || []
+              external: filter.external || [],
+              release_profile_duplicate_id: filter.release_profile_duplicate_id,
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}

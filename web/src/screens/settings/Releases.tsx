@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { AgeSelect } from "@components/inputs"
 
@@ -15,21 +15,150 @@ import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
 import { Section } from "./_components";
+import { ReleaseProfileDuplicateList } from "@api/queries.ts";
+import { EmptySimple } from "@components/emptystates";
+import { PlusIcon } from "@heroicons/react/24/solid";
+import { ReleaseProfileDuplicateAddForm, ReleaseProfileDuplicateUpdateForm } from "@forms/settings/ReleaseForms.tsx";
+import { classNames } from "@utils";
 
 const ReleaseSettings = () => (
-  <Section
-    title="Releases"
-    description="Manage release history."
-  >
-    <div className="border border-red-500 rounded">
-      <div className="py-6 px-4 sm:p-6">
-        <DeleteReleases />
+  <div className="lg:col-span-9">
+    <ReleaseProfileDuplicates/>
+
+    <div className="py-6 px-4 sm:p-6">
+      <div className="border border-red-500 rounded">
+        <div className="py-6 px-4 sm:p-6">
+          <DeleteReleases/>
+        </div>
       </div>
     </div>
-
-  </Section>
+  </div>
 );
 
+interface ReleaseProfileProps {
+  profile: ReleaseProfileDuplicate;
+}
+
+function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
+  const [updatePanelIsOpen, toggleUpdatePanel] = useToggle(false);
+
+  return (
+    <li>
+      <div className="grid grid-cols-12 items-center py-2">
+        <ReleaseProfileDuplicateUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={profile}/>
+        <div
+          className="col-span-2 sm:col-span-2 lg:col-span-2 pl-4 sm:pl-4 pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate"
+          title={profile.name}>
+          {profile.name}
+        </div>
+        <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
+          {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title="Release name" />}
+          {profile.hash && <EnabledPill value={profile.hash} label="Hash" title="Normalized hash of the release name. Use with Releae name for exact match" />}
+          {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed titel" />}
+          {profile.sub_title && <EnabledPill value={profile.sub_title} label="Sub Title" title="Parsed sub titel like Episode name" />}
+          {profile.group && <EnabledPill value={profile.group} label="Group" title="Releae group" />}
+          {profile.year && <EnabledPill value={profile.year} label="Year" title="Year" />}
+          {profile.month && <EnabledPill value={profile.month} label="Month" title="Month" />}
+          {profile.day && <EnabledPill value={profile.day} label="Day" title="Day" />}
+          {profile.source && <EnabledPill value={profile.source} label="Source" title="Source" />}
+          {profile.resolution && <EnabledPill value={profile.resolution} label="Resolution" title="Resolution" />}
+          {profile.codec && <EnabledPill value={profile.codec} label="Codec" title="Codec" />}
+          {profile.container && <EnabledPill value={profile.container} label="Container" title="Container" />}
+          {profile.dynamic_range && <EnabledPill value={profile.dynamic_range} label="Dynamic Range" title="Dynamic Range (HDR,DV)" />}
+          {profile.audio && <EnabledPill value={profile.audio} label="Audio" title="Audio formats" />}
+          {profile.season && <EnabledPill value={profile.season} label="Season" title="Season number" />}
+          {profile.episode && <EnabledPill value={profile.episode} label="Episode" title="Episode number" />}
+          {profile.website && <EnabledPill value={profile.website} label="Website" title="Website/Service" />}
+          {profile.proper && <EnabledPill value={profile.proper} label="Proper" title="Scene proper" />}
+          {profile.repack && <EnabledPill value={profile.repack} label="Repack" title="Scene repack" />}
+          {profile.edition && <EnabledPill value={profile.edition} label="Edition" title="Edition (eg. Collectors Edition) and Cut (eg. Directors Cut)" />}
+          {profile.language && <EnabledPill value={profile.language} label="Language" title="Language and Region" />}
+        </div>
+        <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
+          <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer"
+            onClick={toggleUpdatePanel}
+          >
+            Edit
+          </span>
+        </div>
+      </div>
+
+    </li>
+  )
+}
+
+interface PillProps {
+ value: boolean;
+ label: string;
+ title: string;
+}
+
+const EnabledPill = ({ value, label, title }: PillProps) => (
+  <span title={title} className={classNames("inline-flex items-center rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset", value ? "bg-blue-100 dark:bg-blue-400/10 text-blue-700 dark:text-blue-400 ring-blue-700/10 dark:ring-blue-400/30" : "bg-gray-100 dark:bg-gray-400/10 text-gray-600 dark:text-gray-400 ring-gray-500/10 dark:ring-gray-400/30")}>
+    {label}
+  </span>
+);
+
+function ReleaseProfileDuplicates() {
+  const [addPanelIsOpen, toggleAdd] = useToggle(false);
+
+  const releaseProfileQuery = useSuspenseQuery(ReleaseProfileDuplicateList())
+
+  return (
+    <Section
+      title="Release Duplicate Profiles"
+      description="Manage duplicate profiles."
+      rightSide={
+        <button
+          type="button"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          onClick={toggleAdd}
+        >
+          <PlusIcon className="h-5 w-5 mr-1"/>
+          Add new
+        </button>
+      }
+    >
+      <ReleaseProfileDuplicateAddForm isOpen={addPanelIsOpen} toggle={toggleAdd}/>
+
+      <div className="flex flex-col">
+        {releaseProfileQuery.data.length > 0 ? (
+          <ul className="min-w-full relative">
+            <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+              <div
+                className="col-span-2 sm:col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+              </div>
+              {/*<div*/}
+              {/*  className="col-span-6 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"*/}
+              {/*  // onClick={() => sortedClients.requestSort("name")}*/}
+              {/*>*/}
+              {/*  Name*/}
+              {/*</div>*/}
+
+              {/*<div*/}
+              {/*  className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"*/}
+              {/*  onClick={() => sortedClients.requestSort("host")}*/}
+              {/*>*/}
+              {/*  Host <span className="sort-indicator">{sortedClients.getSortIndicator("host")}</span>*/}
+              {/*</div>*/}
+              {/*<div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"*/}
+              {/*     onClick={() => sortedClients.requestSort("type")}*/}
+              {/*>*/}
+              {/*  Type <span className="sort-indicator">{sortedClients.getSortIndicator("type")}</span>*/}
+              {/*</div>*/}
+            </li>
+            {releaseProfileQuery.data.map((profile) => (
+              <ReleaseProfileListItem key={profile.id} profile={profile}/>
+            ))}
+          </ul>
+        ) : (
+          <EmptySimple title="No duplicate rlease profiles" subtitle="" buttonText="Add new profile"
+                       buttonAction={toggleAdd}/>
+        )}
+      </div>
+    </Section>
+  )
+}
 
 const getDurationLabel = (durationValue: number): string => {
   const durationOptions: Record<number, string> = {
@@ -87,11 +216,12 @@ function DeleteReleases() {
     onSuccess: () => {
       if (parsedDuration === 0) {
         toast.custom((t) => (
-          <Toast type="success" body={"All releases based on criteria were deleted."} t={t} />
+          <Toast type="success" body={"All releases based on criteria were deleted."} t={t}/>
         ));
       } else {
         toast.custom((t) => (
-          <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration ?? 0)} were deleted.`} t={t} />
+          <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration ?? 0)} were deleted.`}
+                 t={t}/>
         ));
       }
 
@@ -101,11 +231,15 @@ function DeleteReleases() {
 
   const deleteOlderReleases = () => {
     if (parsedDuration === undefined || isNaN(parsedDuration) || parsedDuration < 0) {
-      toast.custom((t) => <Toast type="error" body={"Please select a valid age."} t={t} />);
+      toast.custom((t) => <Toast type="error" body={"Please select a valid age."} t={t}/>);
       return;
     }
 
-    deleteOlderMutation.mutate({ olderThan: parsedDuration, indexers: indexers.map(i => i.value), releaseStatuses: releaseStatuses.map(rs => rs.value) });
+    deleteOlderMutation.mutate({
+      olderThan: parsedDuration,
+      indexers: indexers.map(i => i.value),
+      releaseStatuses: releaseStatuses.map(rs => rs.value)
+    });
   };
 
   return (
@@ -122,19 +256,22 @@ function DeleteReleases() {
       <div className="flex flex-col gap-2 w-full">
         <div>
           <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Delete release history</h2>
-          <p className="text-sm mt-1 text-gray-500 dark:text-gray-400">
-            Select the criteria below to permanently delete release history records that are older than the chosen age and optionally match the selected indexers and release statuses:
-            <ul className="list-disc pl-5 mt-2">
+          <p className="text-sm mt-2 text-gray-500 dark:text-gray-400">
+            Select the criteria below to permanently delete release history records that are older than the chosen age
+            and optionally match the selected indexers and release statuses:
+          </p>
+            <ul className="list-disc pl-5 my-4 text-sm text-gray-500 dark:text-gray-400">
               <li>
-                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong className="text-gray-600 dark:text-gray-300">Required</strong>
+                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong
+                className="text-gray-600 dark:text-gray-300">Required</strong>
               </li>
               <li>Indexers - Optional (if none selected, applies to all indexers)</li>
               <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
             </ul>
-            <p className="mt-2 text-red-600 dark:text-red-500">
-              <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records older than the selected age will be permanently deleted, regardless of indexer or status.
-            </p>
-          </p>
+            <span className="pt-2 text-red-600 dark:text-red-500">
+              <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records
+              older than the selected age will be permanently deleted, regardless of indexer or status.
+            </span>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center text-sm">
@@ -146,19 +283,23 @@ function DeleteReleases() {
                   <span className="text-red-600 dark:text-red-500"> *</span>
                 </>
               ),
-              content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} />
+              content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration}/>
             },
             {
               label: 'Indexers:',
-              content: <RMSC options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []} value={indexers} onChange={setIndexers} labelledBy="Select indexers" />
+              content: <RMSC
+                options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []}
+                value={indexers} onChange={setIndexers} labelledBy="Select indexers"/>
             },
             {
               label: 'Release statuses:',
-              content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses} labelledBy="Select release statuses" />
+              content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
+                             labelledBy="Select release statuses"/>
             }
           ].map((item, index) => (
             <div key={index} className="flex flex-col w-full">
-              <p className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase p-1 cursor-default">{item.label}</p>
+              <p
+                className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase p-1 cursor-default">{item.label}</p>
               {item.content}
             </div>
           ))}

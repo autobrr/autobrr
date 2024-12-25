@@ -498,7 +498,16 @@ export const APIClient = {
     },
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
-    )
+    ),
+    profiles: {
+      duplicates: {
+        list: () => appClient.Get<ReleaseProfileDuplicate[]>(`api/release/profiles/duplicate`),
+        delete: (id: number) => appClient.Delete(`api/release/profiles/duplicate/${id}`),
+        store: (profile: ReleaseProfileDuplicate) => appClient.Post(`api/release/profiles/duplicate`, {
+          body: profile
+        }),
+      }
+    }
   },
   updates: {
     check: () => appClient.Get("api/updates/check"),

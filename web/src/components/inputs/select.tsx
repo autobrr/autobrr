@@ -251,7 +251,7 @@ export function DownloadClientSelect({
 
 export interface SelectFieldOption {
   label: string;
-  value: string;
+  value: string | number | null;
 }
 
 export interface SelectFieldProps {
@@ -293,7 +293,7 @@ export const Select = ({
             onChange={(value) => setFieldValue(field.name, value)}
           >
             {({ open }) => (
-              <>
+              <div>
                 <Label className="flex text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
                   {tooltip ? (
                     <DocsTooltip label={label}>{tooltip}</DocsTooltip>
@@ -364,7 +364,7 @@ export const Select = ({
                     </ListboxOptions>
                   </Transition>
                 </div>
-              </>
+              </div>
             )}
           </Listbox>
         )}

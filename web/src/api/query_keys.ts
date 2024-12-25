@@ -35,6 +35,13 @@ export const ReleaseKeys = {
   latestActivity: () => [...ReleaseKeys.all, "latest-activity"] as const,
 };
 
+export const ReleaseProfileDuplicateKeys = {
+  all: ["releaseProfileDuplicate"] as const,
+  lists: () => [...ReleaseProfileDuplicateKeys.all, "list"] as const,
+  details: () => [...ReleaseProfileDuplicateKeys.all, "detail"] as const,
+  detail: (id: number) => [...ReleaseProfileDuplicateKeys.details(), id] as const,
+};
+
 export const ApiKeys = {
   all: ["api_keys"] as const,
   lists: () => [...ApiKeys.all, "list"] as const,

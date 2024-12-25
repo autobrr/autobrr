@@ -105,7 +105,7 @@ function ListItem({ notification }: ListItemProps) {
 
   return (
     <li key={notification.id} className="text-gray-500 dark:text-gray-400">
-      <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} notification={notification} />
+      <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} data={notification} />
 
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">

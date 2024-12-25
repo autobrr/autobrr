@@ -15,13 +15,9 @@ import { ApiKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { AddFormProps } from "@forms/_shared";
 
-interface apiKeyAddFormProps {
-  isOpen: boolean;
-  toggle: () => void;
-}
-
-export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
+export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
