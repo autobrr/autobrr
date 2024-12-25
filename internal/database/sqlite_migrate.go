@@ -1721,4 +1721,8 @@ CREATE TABLE list_filter
     SET name = '#ptp-announce'
     WHERE name = '#ptp-announce-dev';
 `,
+	`UPDATE irc_network
+  SET invite_command = REPLACE(invite_command, '#ptp-announce-dev', '#ptp-announce')
+  WHERE invite_command LIKE '%#ptp-announce-dev%';
+`,
 }
