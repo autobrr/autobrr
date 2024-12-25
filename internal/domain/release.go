@@ -195,7 +195,7 @@ func (r *Release) NormalizedTitle() string {
 	v = append(v, r.Title)
 
 	if r.Year > 0 && r.Month > 0 && r.Day > 0 {
-		v = append(v, fmt.Sprintf("%d %d", r.Month, r.Day))
+		v = append(v, fmt.Sprintf("%d %d %d", r.Year, r.Month, r.Day))
 	} else if r.Year > 0 {
 		v = append(v, fmt.Sprintf("%d", r.Year))
 	}
