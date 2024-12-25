@@ -50,6 +50,7 @@ type Macro struct {
 	IndexerIdentifierExternal string
 	IndexerName               string
 	InfoUrl                   string
+	IsDuplicate               bool
 	Language                  []string
 	Leechers                  int
 	LogScore                  int
@@ -66,6 +67,8 @@ type Macro struct {
 	Seeders                   int
 	Size                      uint64
 	SizeString                string
+	SkipDuplicateProfileID    int64
+	SkipDuplicateProfileName  string
 	Source                    string
 	Tags                      string
 	Title                     string
@@ -123,6 +126,7 @@ func NewMacro(release Release) Macro {
 		IndexerIdentifierExternal: release.Indexer.IdentifierExternal,
 		IndexerName:               release.Indexer.Name,
 		InfoUrl:                   release.InfoURL,
+		IsDuplicate:               release.IsDuplicate,
 		Language:                  release.Language,
 		Leechers:                  release.Leechers,
 		LogScore:                  release.LogScore,
@@ -140,6 +144,8 @@ func NewMacro(release Release) Macro {
 		Size:                      release.Size,
 		SizeString:                humanize.Bytes(release.Size),
 		Source:                    release.Source,
+		SkipDuplicateProfileID:    release.SkipDuplicateProfileID,
+		SkipDuplicateProfileName:  release.SkipDuplicateProfileName,
 		Tags:                      strings.Join(release.Tags, ", "),
 		Title:                     release.Title,
 		TorrentDataRawBytes:       release.TorrentDataRawBytes,
@@ -149,7 +155,7 @@ func NewMacro(release Release) Macro {
 		TorrentPathName:           release.TorrentTmpFile,
 		TorrentUrl:                release.DownloadURL,
 		TorrentTmpFile:            release.TorrentTmpFile,
-		Type:                      release.Type,
+		Type:                      release.Type.String(),
 		Uploader:                  release.Uploader,
 		RecordLabel:               release.RecordLabel,
 		Website:                   release.Website,

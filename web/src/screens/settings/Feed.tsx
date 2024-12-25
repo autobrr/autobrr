@@ -167,7 +167,7 @@ function ListItem({ feed }: ListItemProps) {
 
   return (
     <li key={feed.id}>
-      <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed} />
+      <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} data={feed} />
 
       <div className="grid grid-cols-12 items-center text-sm font-medium text-gray-900 dark:text-gray-500">
         <div className="col-span-2 sm:col-span-1 pl-6 flex items-center">

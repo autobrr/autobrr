@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
 )
 
@@ -127,7 +128,7 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		Repack                      bool
 		Website                     string
 		Artists                     string
-		Type                        string
+		Type                        rls.Type
 		LogScore                    int
 		Origin                      string
 		Tags                        []string

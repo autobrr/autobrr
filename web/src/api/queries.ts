@@ -12,7 +12,7 @@ import {
   FilterKeys,
   IndexerKeys,
   IrcKeys, ListKeys, NotificationKeys, ProxyKeys,
-  ReleaseKeys,
+  ReleaseKeys, ReleaseProfileDuplicateKeys,
   SettingsKeys
 } from "@api/query_keys";
 import { ColumnFilter } from "@tanstack/react-table";
@@ -163,6 +163,14 @@ export const ReleasesIndexersQueryOptions = () =>
     },
     refetchOnWindowFocus: false,
     staleTime: Infinity
+  });
+
+export const ReleaseProfileDuplicateList = () =>
+  queryOptions({
+    queryKey: ReleaseProfileDuplicateKeys.lists(),
+    queryFn: () => APIClient.release.profiles.duplicates.list(),
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
   });
 
 export const ProxiesQueryOptions = () =>
