@@ -23,7 +23,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
-				NormalizedHash: "2d3e57e203c359408bb50584619ad513",
+				NormalizedHash: "9b73e77d51fb0b69367ea96c761577b0",
 				Title:          "Servant",
 				Season:         1,
 				Episode:        0,
@@ -45,7 +45,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				NormalizedHash: "2d3e57e203c359408bb50584619ad513",
+				NormalizedHash: "9b73e77d51fb0b69367ea96c761577b0",
 				Title:          "Servant",
 				Season:         1,
 				Episode:        0,
@@ -68,7 +68,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				NormalizedHash: "2d3e57e203c359408bb50584619ad513",
+				NormalizedHash: "9b73e77d51fb0b69367ea96c761577b0",
 				ReleaseTags:    "MKV / 2160p / WEB-DL",
 				Title:          "Servant",
 				Season:         1,
@@ -93,7 +93,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				NormalizedHash: "2d3e57e203c359408bb50584619ad513",
+				NormalizedHash: "9b73e77d51fb0b69367ea96c761577b0",
 				ReleaseTags:    "MKV | 2160p | WEB-DL",
 				Title:          "Servant",
 				Season:         1,
@@ -118,7 +118,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				NormalizedHash: "2d3e57e203c359408bb50584619ad513",
+				NormalizedHash: "9b73e77d51fb0b69367ea96c761577b0",
 				ReleaseTags:    "MP4 | 2160p | WEB-DL",
 				Title:          "Servant",
 				Season:         1,
@@ -143,7 +143,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Servant.S01.2160p.ATVP.WEB-DL.DDP.5.1.Atmos.DV.HEVC-FLUX",
-				NormalizedHash: "2d3e57e203c359408bb50584619ad513",
+				NormalizedHash: "9b73e77d51fb0b69367ea96c761577b0",
 				ReleaseTags:    "MP4 | 2160p | WEB-DL | Freeleech!",
 				Title:          "Servant",
 				Season:         1,
@@ -169,7 +169,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Rippers.Revenge.2023.German.DL.1080p.BluRay.MPEG2-GROUP",
-				NormalizedHash: "1df35ff89526074161de2e0c4e351712",
+				NormalizedHash: "cb28c69ce117723d01ea6562ef3bae67",
 				Title:          "Rippers Revenge",
 				Year:           2023,
 				Language:       []string{"GERMAN", "DL"},
@@ -187,7 +187,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "Analogue.1080i.AHDTV.H264-ABCDEF",
-				NormalizedHash: "676aa2235a26a6ad615ab69679d8099a",
+				NormalizedHash: "1a1eb25b15269d3189138326658aafe0",
 				Title:          "Analogue",
 				Resolution:     "1080p", // rls does not differentiate between 1080i and 1080p which results in all 1080 releases being parsed as 1080p
 				Source:         "AHDTV",
@@ -324,7 +324,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:     "I Am Movie 2007 Theatrical UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP1",
-				NormalizedHash:  "c5d2ba4f3c46d614262a835d036c9dfe",
+				NormalizedHash:  "f70840f42149d7d2b539c75f5e853493",
 				Title:           "I Am Movie",
 				Resolution:      "2160p",
 				Source:          "UHD.BluRay",
@@ -348,7 +348,7 @@ func TestRelease_Parse(t *testing.T) {
 			},
 			want: Release{
 				TorrentName:    "The Peripheral (2022) S01 (2160p AMZN WEB-DL H265 HDR10+ DDP 5.1 English - GROUP1)",
-				NormalizedHash: "297437ec0ffa25546a1c433d8e61e4bb",
+				NormalizedHash: "33fe914c00ea5a2945883cffb4183923",
 				Title:          "The Peripheral",
 				Resolution:     "2160p",
 				Source:         "WEB-DL",
@@ -372,7 +372,7 @@ func TestRelease_Parse(t *testing.T) {
 			want: Release{
 				TorrentName:     "Old Movie 1954 2160p Remux DoVi HDR10 HEVC DTS-HD MA 5.1-CiNEPHiLES",
 				Title:           "Old Movie",
-				NormalizedHash:  "f32ab78ba9316864ea1f1cb1def8cced",
+				NormalizedHash:  "9990678babd4f24f268dfe7856b29f0e",
 				Year:            1954,
 				Source:          "UHD.BluRay",
 				Resolution:      "2160p",
@@ -394,7 +394,7 @@ func TestRelease_Parse(t *testing.T) {
 			want: Release{
 				TorrentName:     "Death Hunt 1981 1080p Remux AVC DTS-HD MA 2.0-playBD",
 				Title:           "Death Hunt",
-				NormalizedHash:  "f9144d9549ade13c106a8e619632d81f",
+				NormalizedHash:  "e6b1b708b8ea39470de6d327da2920d6",
 				Year:            1981,
 				Source:          "BluRay",
 				Resolution:      "1080p",
@@ -415,7 +415,7 @@ func TestRelease_Parse(t *testing.T) {
 			want: Release{
 				TorrentName:     "Old Movie 1954 2160p Remux DoVi HDR10 HEVC DTS-HD MA 5.1-VHS",
 				Title:           "Old Movie",
-				NormalizedHash:  "53ed51af6be55d233e193f4fb6f722f6",
+				NormalizedHash:  "1ea814c8c21979e7692efb1b24298e95",
 				Year:            1954,
 				Source:          "UHD.BluRay",
 				Resolution:      "2160p",
@@ -437,7 +437,7 @@ func TestRelease_Parse(t *testing.T) {
 			want: Release{
 				TorrentName:     "Old Movie 1954 2160p Remux DoVi HDR10 HEVC DTS-HD MA 5.1 VHS",
 				Title:           "Old Movie",
-				NormalizedHash:  "8a97d3714c4ef8a2b7bd8f91509c97d3",
+				NormalizedHash:  "1ea814c8c21979e7692efb1b24298e95",
 				Year:            1954,
 				Source:          "UHD.BluRay",
 				Resolution:      "2160p",

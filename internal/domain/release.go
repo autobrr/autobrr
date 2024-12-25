@@ -197,6 +197,10 @@ func (r *Release) NormalizedTitle() string {
 		v = append(v, fmt.Sprintf("%d", r.Year))
 	}
 
+	if len(r.Language) > 0 {
+		v = append(v, strings.Join(r.Language, " "))
+	}
+
 	if len(r.Cut) > 0 {
 		v = append(v, strings.Join(r.Cut, " "))
 	}
