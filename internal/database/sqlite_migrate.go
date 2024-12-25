@@ -1985,4 +1985,12 @@ CREATE INDEX release_cut_index
 CREATE INDEX release_hybrid_index
     ON "release" (hybrid);
 `,
+  `UPDATE irc_channel 
+    SET name = '#ptp-announce'
+    WHERE name = '#ptp-announce-dev';
+`,
+  `UPDATE irc_network
+  SET invite_command = REPLACE(invite_command, '#ptp-announce-dev', '#ptp-announce')
+  WHERE invite_command LIKE '%#ptp-announce-dev%';
+`,
 }
