@@ -126,6 +126,9 @@ type Release struct {
 	AdditionalSizeCheckRequired        bool                  `json:"-"`
 	AdditionalUploaderCheckRequired    bool                  `json:"-"`
 	AdditionalRecordLabelCheckRequired bool                  `json:"-"`
+	IsDuplicate                        bool                  `json:"-"`
+	SkipDuplicateProfileID             int64                 `json:"-"`
+	SkipDuplicateProfileName           string                `json:"-"`
 	FilterID                           int                   `json:"-"`
 	Filter                             *Filter               `json:"-"`
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`

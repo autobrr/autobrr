@@ -215,6 +215,11 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		release.FilterName = f.Name
 		release.FilterID = f.ID
 
+		// reset IsDuplicate
+		release.IsDuplicate = false
+		release.SkipDuplicateProfileID = 0
+		release.SkipDuplicateProfileName = ""
+
 		// test filter
 		match, err := s.filterSvc.CheckFilter(ctx, f, release)
 		if err != nil {
@@ -225,7 +230,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		if !match {
 			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectReasons.String())
 
-			l.Debug().Msgf("filter %s rejected release: %s", f.Name, release.TorrentName)
+			l.Debug().Msgf("filter %s rejected release: %s with reasons: %s", f.Name, release.TorrentName, f.RejectReasons.String())
 			continue
 		}
 
