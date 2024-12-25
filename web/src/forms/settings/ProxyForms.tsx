@@ -8,7 +8,6 @@ import { Form, Formik, FormikValues } from "formik";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 
 import { AddFormProps } from "@forms/_shared";
 import { DEBUG } from "@components/debug.tsx";
@@ -17,6 +16,7 @@ import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { ProxyTypeOptions } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
 import { ProxyKeys } from "@api/query_keys";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 

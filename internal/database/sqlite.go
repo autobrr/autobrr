@@ -18,6 +18,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const badFormat = "2006-01-02T15:04:05"
+const timeFormat = "2006-01-02.15-04-05"
+
 func (db *DB) openSQLite() error {
 	if db.DSN == "" {
 		return errors.New("DSN required")
@@ -268,17 +271,89 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 func (db *DB) databaseConsistencyCheckSQLite() error {
 	db.log.Info().Msg("Database integrity check..")
 
+	rows, err := db.handler.Query("PRAGMA integrity_check;")
+	if err != nil {
+		return errors.Wrap(err, "failed to query integrity check")
+	}
+
+	var results []string
+	for rows.Next() {
+		var result string
+		if err := rows.Scan(&result); err != nil {
+			return errors.Wrap(err, "backup integrity unexpected state")
+		}
+
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return errors.Wrap(err, "backup integrity unexpected state")
+	}
+
+	if len(results) == 1 && results[0] == "ok" {
+		db.log.Info().Msg("Database integrity check OK!")
+		return nil
+	}
+
+	if err := db.sqlitePerformReIndexing(results); err != nil {
+		return errors.Wrap(err, "failed to reindex database")
+	}
+
+	db.log.Info().Msg("Database integrity check post re-indexing..")
+
 	row := db.handler.QueryRow("PRAGMA integrity_check;")
 
 	var status string
 	if err := row.Scan(&status); err != nil {
 		return errors.Wrap(err, "backup integrity unexpected state")
 	}
+
+	db.log.Info().Msgf("Database integrity check: %s", status)
+
 	if status != "ok" {
 		return errors.New("backup integrity check failed: %q", status)
 	}
 
-	db.log.Info().Msg("Database integrity check OK!")
+	return nil
+}
+
+// sqlitePerformReIndexing try to reindex bad indexes
+func (db *DB) sqlitePerformReIndexing(results []string) error {
+	db.log.Warn().Msg("Database integrity check failed!")
+
+	db.log.Info().Msg("Backing up database before re-indexing..")
+
+	if err := db.backupSQLiteDatabase(); err != nil {
+		return errors.Wrap(err, "failed to create database backup")
+	}
+
+	db.log.Info().Msg("Database backup created!")
+
+	var badIndexes []string
+
+	for _, issue := range results {
+		index, found := strings.CutPrefix(issue, "wrong # of entries in index ")
+		if found {
+			db.log.Warn().Msgf("Database integrity check failed on index: %s", index)
+
+			badIndexes = append(badIndexes, index)
+		}
+	}
+
+	if len(badIndexes) == 0 {
+		return errors.New("found no indexes to reindex")
+	}
+
+	for _, index := range badIndexes {
+		db.log.Info().Msgf("Database attempt to re-index: %s", index)
+
+		_, err := db.handler.Exec(fmt.Sprintf("REINDEX %s;", index))
+		if err != nil {
+			return errors.Wrap(err, "failed to backup database")
+		}
+	}
+
+	db.log.Info().Msg("Database re-indexing OK!")
 
 	return nil
 }
@@ -289,7 +364,7 @@ func (db *DB) backupSQLiteDatabase() error {
 		return errors.Wrap(err, "failed to query schema version")
 	}
 
-	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format("2006-01-02T15:04:05"))
+	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format(timeFormat))
 
 	db.log.Info().Msgf("Creating database backup: %s", backupFile)
 
@@ -316,7 +391,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 	}
 
 	var backups []string
-
+	var broken []string
 	// Parse the filenames to extract timestamps
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".backup") {
@@ -326,8 +401,10 @@ func (db *DB) cleanupSQLiteBackups() error {
 				continue
 			}
 			timestamp := strings.TrimSuffix(parts[2], ".backup")
-			if _, err := time.Parse("2006-01-02T15:04:05", timestamp); err == nil {
+			if _, err := time.Parse(timeFormat, timestamp); err == nil {
 				backups = append(backups, file.Name())
+			} else if _, err := time.Parse(badFormat, timestamp); err == nil {
+				broken = append(broken, file.Name())
 			}
 		}
 	}
@@ -340,10 +417,20 @@ func (db *DB) cleanupSQLiteBackups() error {
 
 	// Sort backups by timestamp
 	sort.Slice(backups, func(i, j int) bool {
-		t1, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
-		t2, _ := time.Parse("2006-01-02T15:04:05", strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
+		t1, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
+		t2, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
 		return t1.After(t2)
 	})
+
+	for i := 0; len(broken) != 0 && len(backups) == db.cfg.DatabaseMaxBackups && i < len(broken); i++ {
+		db.log.Info().Msgf("Remove Old SQLite backup: %s", broken[i])
+
+		if err := os.Remove(filepath.Join(backupDir, broken[i])); err != nil {
+			return errors.Wrap(err, "failed to remove old backups")
+		}
+
+		db.log.Info().Msgf("Removed Old SQLite backup: %s", broken[i])
+	}
 
 	for i := db.cfg.DatabaseMaxBackups; i < len(backups); i++ {
 		db.log.Info().Msgf("Remove SQLite backup: %s", backups[i])

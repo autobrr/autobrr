@@ -5,7 +5,6 @@
 
 import { Fragment } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import type { FieldProps } from "formik";
@@ -14,6 +13,7 @@ import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { APIClient } from "@api/APIClient";
 import { ApiKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AddFormProps } from "@forms/_shared";
 

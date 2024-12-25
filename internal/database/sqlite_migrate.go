@@ -131,6 +131,7 @@ CREATE TABLE filter
     priority                       INTEGER   DEFAULT 0 NOT NULL,
     max_downloads                  INTEGER   DEFAULT 0,
     max_downloads_unit             TEXT,
+	announce_types                 TEXT []   DEFAULT '{}',
     match_releases                 TEXT,
     except_releases                TEXT,
     use_regex                      BOOLEAN,
@@ -175,6 +176,8 @@ CREATE TABLE filter
     except_categories              TEXT,
     match_uploaders                TEXT,
     except_uploaders               TEXT,
+    match_record_labels            TEXT,
+    except_record_labels           TEXT,
     match_language                 TEXT []   DEFAULT '{}',
     except_language                TEXT []   DEFAULT '{}',
     tags                           TEXT,
@@ -298,6 +301,7 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    announce_type     TEXT      DEFAULT 'NEW', 
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -528,6 +532,38 @@ CREATE TABLE api_key
     key        TEXT PRIMARY KEY,
     scopes     TEXT []   DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE list
+(
+    id                       INTEGER PRIMARY KEY,
+    name                     TEXT                 NOT NULL,
+    enabled                  BOOLEAN,
+    type                     TEXT                 NOT NULL,
+    client_id                INTEGER,
+    url                      TEXT,
+    headers                  TEXT [] DEFAULT '{}' NOT NULL,
+    api_key                  TEXT,
+    match_release            BOOLEAN,
+    tags_included            TEXT [] DEFAULT '{}' NOT NULL,
+    tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
+    include_unmonitored      BOOLEAN,
+    include_alternate_titles BOOLEAN,
+    last_refresh_time        TIMESTAMP,
+    last_refresh_status      TEXT,
+    last_refresh_data        TEXT,
+    created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
+
+CREATE TABLE list_filter
+(
+    list_id   INTEGER,
+    filter_id INTEGER,
+    FOREIGN KEY (list_id) REFERENCES list(id) ON DELETE CASCADE,
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    PRIMARY KEY (list_id, filter_id)
 );
 `
 
@@ -1748,6 +1784,58 @@ UPDATE irc_network
 UPDATE irc_network
 	SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
 	WHERE server = 'irc.ircnet.com';
+`,
+	`UPDATE indexer
+	SET base_url = 'https://redacted.sh/'
+	WHERE base_url = 'https://redacted.ch/';
+`,
+	`UPDATE irc_network
+    SET port = '6697', tls = true
+    WHERE server = 'irc.seedpool.org';
+`,
+	`ALTER TABLE "release"
+	ADD COLUMN announce_type TEXT DEFAULT 'NEW';
+
+	ALTER TABLE filter
+	ADD COLUMN announce_types TEXT []   DEFAULT '{}';
+`,
+	`CREATE TABLE list
+(
+    id                       INTEGER PRIMARY KEY,
+    name                     TEXT                 NOT NULL,
+    enabled                  BOOLEAN,
+    type                     TEXT                 NOT NULL,
+    client_id                INTEGER,
+    url                      TEXT,
+    headers                  TEXT [] DEFAULT '{}' NOT NULL,
+    api_key                  TEXT,
+    match_release            BOOLEAN,
+    tags_included            TEXT [] DEFAULT '{}' NOT NULL,
+    tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
+    include_unmonitored      BOOLEAN,
+    include_alternate_titles BOOLEAN,
+    last_refresh_time        TIMESTAMP,
+    last_refresh_status      TEXT,
+    last_refresh_data        TEXT,
+    created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
+
+CREATE TABLE list_filter
+(
+    list_id   INTEGER,
+    filter_id INTEGER,
+    FOREIGN KEY (list_id) REFERENCES list(id) ON DELETE CASCADE,
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    PRIMARY KEY (list_id, filter_id)
+);
+`,
+	`ALTER TABLE filter
+  ADD COLUMN match_record_labels TEXT DEFAULT '';
+
+  ALTER TABLE filter
+  ADD COLUMN except_record_labels TEXT DEFAULT '';
 `,
 	`CREATE TABLE release_profile_duplicate
 (

@@ -7,7 +7,6 @@ import { Fragment, MouseEvent, useEffect, useMemo, useRef, useState } from "reac
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
-import { toast } from "react-hot-toast";
 import {
   ArrowsPointingInIcon,
   ArrowsPointingOutIcon,
@@ -26,6 +25,7 @@ import { IrcKeys } from "@api/query_keys";
 import { IrcQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
@@ -478,7 +478,8 @@ const ListItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>

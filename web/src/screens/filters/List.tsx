@@ -5,7 +5,6 @@
 
 import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
-import { toast } from "react-hot-toast";
 import {
   Listbox,
   ListboxButton,
@@ -26,7 +25,7 @@ import {
   DocumentDuplicateIcon,
   EllipsisHorizontalIcon,
   PencilSquareIcon,
-  PlusIcon,
+  PlusIcon, SparklesIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
@@ -38,6 +37,7 @@ import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { FiltersQueryOptions, IndexersOptionsQueryOptions } from "@api/queries";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
@@ -589,9 +589,9 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           params={{
             filterId: filter.id
           }}
-          className="transition w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
+          className="transition flex items-center w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
-          {filter.name}
+          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true"/>}
         </Link>
         <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">

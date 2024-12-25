@@ -13,6 +13,7 @@ interface Filter {
   max_size: string;
   delay: number;
   priority: number;
+  announce_types: string[];
   max_downloads: number;
   max_downloads_unit: string;
   match_releases: string;
@@ -61,6 +62,8 @@ interface Filter {
   except_categories: string;
   match_uploaders: string;
   except_uploaders: string;
+  match_record_labels: string;
+  except_record_labels: string;
   match_language: string[];
   except_language: string[];
   tags: string;
@@ -73,6 +76,7 @@ interface Filter {
   max_seeders: number;
   min_leechers: number;
   max_leechers: number;
+  is_auto_updated: boolean;
   actions_count: number;
   actions_enabled_count: number;
   actions: Action[];

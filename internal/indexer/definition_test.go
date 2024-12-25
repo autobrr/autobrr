@@ -11,6 +11,7 @@ import (
 )
 
 func TestYamlExpectations(t *testing.T) {
+	t.Parallel()
 	s := &service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
 

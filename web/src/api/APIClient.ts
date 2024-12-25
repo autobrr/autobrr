@@ -5,10 +5,15 @@
 
 import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
-import { AuthContext } from "@utils/Context";
+import { AuthContext, AuthInfo } from "@utils/Context";
+import { ColumnFilter } from "@tanstack/react-table";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
+type ValidateResponse = {
+  username?: AuthInfo['username'];
+  auth_method?: AuthInfo['authMethod'];
+}
 
 interface HttpConfig {
   /**
@@ -151,6 +156,7 @@ export async function HttpClient<T = unknown>(
   }
 
   const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
+
   const isJson = response.headers.get("Content-Type")?.includes("application/json");
 
   if (response.status >= 200 && response.status < 300) {
@@ -237,19 +243,33 @@ const appClient = {
   })
 };
 
+
 export const APIClient = {
   auth: {
     login: (username: string, password: string) => appClient.Post("api/auth/login", {
       body: { username, password }
     }),
     logout: () => appClient.Post("api/auth/logout"),
-    validate: () => appClient.Get<void>("api/auth/validate"),
+    validate: async (): Promise<ValidateResponse> => {
+      const response = await appClient.Get<ValidateResponse>("api/auth/validate");
+      return response;
+    },
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }
     }),
     canOnboard: () => appClient.Get("api/auth/onboard"),
     updateUser: (req: UserUpdate) => appClient.Patch(`api/auth/user/${req.username_current}`,
-      { body: req })
+      { body: req }),
+    getOIDCConfig: async () => {
+      try {
+        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string }>("api/auth/oidc/config");
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message?.includes('404')) {
+          return { enabled: false, authorizationUrl: '', state: '' };
+        }
+        throw error;
+      }
+    },
   },
   actions: {
     create: (action: Action) => appClient.Post("api/actions", {
@@ -276,6 +296,7 @@ export const APIClient = {
   },
   download_clients: {
     getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
+    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/download_clients/${clientID}/arr/tags`),
     create: (dc: DownloadClient) => appClient.Post("api/download_clients", {
       body: dc
     }),
@@ -389,6 +410,22 @@ export const APIClient = {
       body: notification
     })
   },
+  lists: {
+    list: () => appClient.Get<List[]>("api/lists"),
+    getByID: (id: number) => appClient.Get<List>(`api/lists/${id}`),
+    store: (list: List) => appClient.Post("api/lists", {
+      body: list
+    }),
+    update: (list: List) => appClient.Put(`api/lists/${list.id}`, {
+      body: list
+    }),
+    delete: (id: number) => appClient.Delete(`api/lists/${id}`),
+    refreshList: (id: number) => appClient.Post(`api/lists/${id}/refresh`),
+    refreshAll: () => appClient.Post(`api/lists/refresh`),
+    test: (list: List) => appClient.Post("api/lists/test", {
+      body: list
+    })
+  },
   proxy: {
     list: () => appClient.Get<Proxy[]>("api/proxy"),
     getByID: (id: number) => appClient.Get<Proxy>(`api/proxy/${id}`),
@@ -406,7 +443,7 @@ export const APIClient = {
   release: {
     find: (query?: string) => appClient.Get<ReleaseFindResponse>(`api/release${query}`),
     findRecent: () => appClient.Get<ReleaseFindResponse>("api/release/recent"),
-    findQuery: (offset?: number, limit?: number, filters?: ReleaseFilter[]) => {
+    findQuery: (offset?: number, limit?: number, filters?: ColumnFilter[]) => {
       const params: Record<string, string[]> = {
         indexer: [],
         push_status: [],
@@ -418,13 +455,25 @@ export const APIClient = {
           return;
 
         if (filter.id == "indexer.identifier") {
-          params["indexer"].push(filter.value);
+          if (typeof filter.value === "string") {
+            params["indexer"].push(filter.value);
+          }
+        } else if (filter.id == "indexer_identifier") {
+          if (typeof filter.value === "string") {
+            params["indexer"].push(filter.value);
+          }
         } else if (filter.id === "action_status") {
-          params["push_status"].push(filter.value); // push_status is the correct value here otherwise the releases table won't load when filtered by push status
+          if (typeof filter.value === "string") {
+            params["push_status"].push(filter.value);
+          } // push_status is the correct value here otherwise the releases table won't load when filtered by push status
         } else if (filter.id === "push_status") {
-          params["push_status"].push(filter.value);
+          if (typeof filter.value === "string") {
+            params["push_status"].push(filter.value);
+          }
         } else if (filter.id == "name") {
-          params["q"].push(filter.value);
+          if (typeof filter.value === "string") {
+            params["q"].push(filter.value);
+          }
         }
       });
 

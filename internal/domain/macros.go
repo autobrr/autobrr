@@ -32,6 +32,7 @@ type Macro struct {
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
+	Description               string
 	DownloadUrl               string
 	Episode                   int
 	FilterID                  int
@@ -77,6 +78,7 @@ type Macro struct {
 	TorrentTmpFile            string
 	Type                      string
 	Uploader                  string
+	RecordLabel               string
 	Website                   string
 	Year                      int
 	Month                     int
@@ -103,6 +105,7 @@ func NewMacro(release Release) Macro {
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
+		Description:               release.Description,
 		DownloadUrl:               release.DownloadURL,
 		Episode:                   release.Episode,
 		FilterID:                  release.FilterID,
@@ -148,6 +151,7 @@ func NewMacro(release Release) Macro {
 		TorrentTmpFile:            release.TorrentTmpFile,
 		Type:                      release.Type.String(),
 		Uploader:                  release.Uploader,
+		RecordLabel:               release.RecordLabel,
 		Website:                   release.Website,
 		Year:                      release.Year,
 		Month:                     release.Month,

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { getRouteApi, redirect } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 import { LeftNav } from "./LeftNav";
@@ -20,7 +20,7 @@ import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { AuthContext } from "@utils/Context";
 
 export const Header = () => {
-  const router = useRouter()
+  const loginRoute = getRouteApi("/login");
 
   const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
@@ -39,7 +39,9 @@ export const Header = () => {
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
       AuthContext.reset();
-      router.history.push("/");
+      throw redirect({
+        to: loginRoute.id,
+      })
     },
     onError: (err) => {
       console.error("logout error", err)

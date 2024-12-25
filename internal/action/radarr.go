@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/radarr"
 )
 
 func (s *service) radarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
@@ -27,7 +27,7 @@ func (s *service) radarr(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(radarr.Client)
+	arr := client.Client.(*radarr.Client)
 
 	r := radarr.Release{
 		Title:            release.TorrentName,

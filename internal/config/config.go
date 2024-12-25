@@ -46,6 +46,14 @@ port = 7474
 #
 #baseUrl = "/autobrr/"
 
+# Base url mode legacy
+# This is kept for compatibility with older versions doing url rewrite on the proxy.
+# If you use baseUrl you can set this to false and skip any url rewrite in your proxy.
+#
+# Default: true
+#
+baseUrlModeLegacy = true
+
 # autobrr logs file
 # If not defined, logs to stdout
 # Make sure to use forward slashes and include the filename with extension. eg: "log/autobrr.log", "C:/autobrr/log/autobrr.log"
@@ -100,6 +108,25 @@ sessionSecret = "{{ .sessionSecret }}"
 #
 # Default: 6060
 #profilingPort = 6060
+
+# OpenID Connect Configuration
+#
+# Enable OIDC authentication
+#oidc_enabled = false
+#
+# OIDC Issuer URL (e.g. https://auth.example.com)
+#oidc_issuer = ""
+#
+# OIDC Client ID
+#oidc_client_id = ""
+#
+# OIDC Client Secret
+#oidc_client_secret = ""
+#
+# OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
+#oidc_redirect_url = ""
+
+# Custom definitions
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -224,6 +251,7 @@ func (c *AppConfig) defaults() {
 		LogMaxBackups:       3,
 		DatabaseMaxBackups:  5,
 		BaseURL:             "/",
+		BaseURLModeLegacy:   true,
 		SessionSecret:       api.GenerateSecureToken(16),
 		CustomDefinitions:   "",
 		CheckForUpdates:     true,
@@ -258,6 +286,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "BASE_URL"); v != "" {
 		c.Config.BaseURL = v
+	}
+
+	if v := os.Getenv(prefix + "BASE_URL_MODE_LEGACY"); v != "" {
+		c.Config.BaseURLModeLegacy = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
 	if v := os.Getenv(prefix + "LOG_LEVEL"); v != "" {
@@ -351,6 +383,27 @@ func (c *AppConfig) loadFromEnv() {
 		if i > 0 {
 			c.Config.ProfilingPort = int(i)
 		}
+	}
+
+	// OIDC Configuration
+	if v := os.Getenv(prefix + "OIDC_ENABLED"); v != "" {
+		c.Config.OIDCEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "OIDC_ISSUER"); v != "" {
+		c.Config.OIDCIssuer = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_CLIENT_ID"); v != "" {
+		c.Config.OIDCClientID = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_CLIENT_SECRET"); v != "" {
+		c.Config.OIDCClientSecret = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_REDIRECT_URL"); v != "" {
+		c.Config.OIDCRedirectURL = v
 	}
 }
 

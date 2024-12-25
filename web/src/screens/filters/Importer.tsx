@@ -6,10 +6,10 @@
 import { Fragment, useRef, useState } from "react";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 import { AutodlIrssiConfigParser } from "./_configParser";

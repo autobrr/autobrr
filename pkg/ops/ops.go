@@ -105,32 +105,32 @@ type Group struct {
 }
 
 type Torrent struct {
-	Id                      int    `json:"id"`
-	InfoHash                string `json:"infoHash"`
-	Media                   string `json:"media"`
-	Format                  string `json:"format"`
-	Encoding                string `json:"encoding"`
-	Remastered              bool   `json:"remastered"`
-	RemasterYear            int    `json:"remasterYear"`
-	RemasterTitle           string `json:"remasterTitle"`
-	RemasterRecordLabel     string `json:"remasterRecordLabel"`
-	RemasterCatalogueNumber string `json:"remasterCatalogueNumber"`
-	Scene                   bool   `json:"scene"`
-	HasLog                  bool   `json:"hasLog"`
-	HasCue                  bool   `json:"hasCue"`
-	LogScore                int    `json:"logScore"`
-	FileCount               int    `json:"fileCount"`
-	Size                    int    `json:"size"`
-	Seeders                 int    `json:"seeders"`
-	Leechers                int    `json:"leechers"`
-	Snatched                int    `json:"snatched"`
-	FreeTorrent             string `json:"freeTorrent"`
-	Time                    string `json:"time"`
-	Description             string `json:"description"`
-	FileList                string `json:"fileList"`
-	FilePath                string `json:"filePath"`
-	UserId                  int    `json:"userId"`
-	Username                string `json:"username"`
+	Id              int    `json:"id"`
+	InfoHash        string `json:"infoHash"`
+	Media           string `json:"media"`
+	Format          string `json:"format"`
+	Encoding        string `json:"encoding"`
+	Remastered      bool   `json:"remastered"`
+	RemasterYear    int    `json:"remasterYear"`
+	RemasterTitle   string `json:"remasterTitle"`
+	RecordLabel     string `json:"remasterRecordLabel"`     // remasterRecordLabel is the record label of the release, which should be used instead of the record label of the group
+	CatalogueNumber string `json:"remasterCatalogueNumber"` // remasterCatalogueNumber is the catalogue number of the release, which should be used instead of the catalogue number of the group
+	Scene           bool   `json:"scene"`
+	HasLog          bool   `json:"hasLog"`
+	HasCue          bool   `json:"hasCue"`
+	LogScore        int    `json:"logScore"`
+	FileCount       int    `json:"fileCount"`
+	Size            int    `json:"size"`
+	Seeders         int    `json:"seeders"`
+	Leechers        int    `json:"leechers"`
+	Snatched        int    `json:"snatched"`
+	FreeTorrent     string `json:"freeTorrent"`
+	Time            string `json:"time"`
+	Description     string `json:"description"`
+	FileList        string `json:"fileList"`
+	FilePath        string `json:"filePath"`
+	UserId          int    `json:"userId"`
+	Username        string `json:"username"`
 }
 
 type GetIndexResponse struct {
@@ -243,10 +243,11 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	}
 
 	res := &domain.TorrentBasic{
-		Id:       strconv.Itoa(response.Response.Torrent.Id),
-		InfoHash: response.Response.Torrent.InfoHash,
-		Size:     strconv.Itoa(response.Response.Torrent.Size),
-		Uploader: response.Response.Torrent.Username,
+		Id:          strconv.Itoa(response.Response.Torrent.Id),
+		InfoHash:    response.Response.Torrent.InfoHash,
+		Size:        strconv.Itoa(response.Response.Torrent.Size),
+		Uploader:    response.Response.Torrent.Username,
+		RecordLabel: response.Response.Torrent.RecordLabel,
 	}
 
 	return res, nil

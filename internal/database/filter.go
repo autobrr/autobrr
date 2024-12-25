@@ -52,6 +52,10 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 		Where("a.filter_id = f.id").
 		Where("a.enabled = '1'")
 
+	isAutoUpdated := r.db.squirrel.Select("CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END").
+		From("list_filter lf").
+		Where("lf.filter_id = f.id")
+
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
@@ -64,6 +68,7 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 		Distinct().
 		Column(sq.Alias(actionCountQuery, "action_count")).
 		Column(sq.Alias(actionEnabledCountQuery, "actions_enabled_count")).
+		Column(sq.Alias(isAutoUpdated, "is_auto_updated")).
 		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
 		LeftJoin("indexer i ON i.id = fi.indexer_id").
 		From("filter f")
@@ -103,7 +108,7 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -175,6 +180,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.max_size",
 			"f.delay",
 			"f.priority",
+			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
 			"f.match_releases",
@@ -220,6 +226,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_record_labels",
+			"f.except_record_labels",
 			"f.match_language",
 			"f.except_language",
 			"f.tags",
@@ -256,7 +264,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var f domain.Filter
 
 	// filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, maxDownloads, logScore sql.NullInt32
 	var releaseProfileDuplicateId sql.NullInt64
@@ -269,6 +277,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&maxSize,
 		&delay,
 		&f.Priority,
+		pq.Array(&f.AnnounceTypes),
 		&maxDownloads,
 		&maxDownloadsUnit,
 		&matchReleases,
@@ -314,6 +323,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&exceptCategories,
 		&matchUploaders,
 		&exceptUploaders,
+		&matchRecordLabels,
+		&exceptRecordLabels,
 		pq.Array(&f.MatchLanguage),
 		pq.Array(&f.ExceptLanguage),
 		&tags,
@@ -368,6 +379,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.ExceptCategories = exceptCategories.String
 	f.MatchUploaders = matchUploaders.String
 	f.ExceptUploaders = exceptUploaders.String
+	f.MatchRecordLabels = matchRecordLabels.String
+	f.ExceptRecordLabels = exceptRecordLabels.String
 	f.Tags = tags.String
 	f.ExceptTags = exceptTags.String
 	f.TagsMatchLogic = tagsMatchLogic.String
@@ -395,6 +408,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.max_size",
 			"f.delay",
 			"f.priority",
+			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
 			"f.match_releases",
@@ -440,6 +454,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_record_labels",
+			"f.except_record_labels",
 			"f.match_language",
 			"f.except_language",
 			"f.tags",
@@ -504,7 +520,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
 		var releaseProfileDuplicateID, rdpId sql.NullInt64
@@ -520,6 +536,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&maxSize,
 			&delay,
 			&f.Priority,
+			pq.Array(&f.AnnounceTypes),
 			&maxDownloads,
 			&maxDownloadsUnit,
 			&matchReleases,
@@ -565,6 +582,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&exceptCategories,
 			&matchUploaders,
 			&exceptUploaders,
+			&matchRecordLabels,
+			&exceptRecordLabels,
 			pq.Array(&f.MatchLanguage),
 			pq.Array(&f.ExceptLanguage),
 			&tags,
@@ -637,6 +656,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.ExceptCategories = exceptCategories.String
 		f.MatchUploaders = matchUploaders.String
 		f.ExceptUploaders = exceptUploaders.String
+		f.MatchRecordLabels = matchRecordLabels.String
+		f.ExceptRecordLabels = exceptRecordLabels.String
 		f.Tags = tags.String
 		f.ExceptTags = exceptTags.String
 		f.TagsMatchLogic = tagsMatchLogic.String
@@ -779,6 +800,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"max_size",
 			"delay",
 			"priority",
+			"announce_types",
 			"max_downloads",
 			"max_downloads_unit",
 			"match_releases",
@@ -814,6 +836,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"except_categories",
 			"match_uploaders",
 			"except_uploaders",
+			"match_record_labels",
+			"except_record_labels",
 			"match_language",
 			"except_language",
 			"tags",
@@ -845,6 +869,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MaxSize,
 			filter.Delay,
 			filter.Priority,
+			pq.Array(filter.AnnounceTypes),
 			filter.MaxDownloads,
 			filter.MaxDownloadsUnit,
 			filter.MatchReleases,
@@ -880,6 +905,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.ExceptCategories,
 			filter.MatchUploaders,
 			filter.ExceptUploaders,
+			filter.MatchRecordLabels,
+			filter.ExceptRecordLabels,
 			pq.Array(filter.MatchLanguage),
 			pq.Array(filter.ExceptLanguage),
 			filter.Tags,
@@ -929,6 +956,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("max_size", filter.MaxSize).
 		Set("delay", filter.Delay).
 		Set("priority", filter.Priority).
+		Set("announce_types", pq.Array(filter.AnnounceTypes)).
 		Set("max_downloads", filter.MaxDownloads).
 		Set("max_downloads_unit", filter.MaxDownloadsUnit).
 		Set("use_regex", filter.UseRegex).
@@ -964,6 +992,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("except_categories", filter.ExceptCategories).
 		Set("match_uploaders", filter.MatchUploaders).
 		Set("except_uploaders", filter.ExceptUploaders).
+		Set("match_record_labels", filter.MatchRecordLabels).
+		Set("except_record_labels", filter.ExceptRecordLabels).
 		Set("match_language", pq.Array(filter.MatchLanguage)).
 		Set("except_language", pq.Array(filter.ExceptLanguage)).
 		Set("tags", filter.Tags).
@@ -1031,6 +1061,9 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.Priority != nil {
 		q = q.Set("priority", filter.Priority)
+	}
+	if filter.AnnounceTypes != nil {
+		q = q.Set("announce_types", pq.Array(filter.AnnounceTypes))
 	}
 	if filter.MaxDownloads != nil {
 		q = q.Set("max_downloads", filter.MaxDownloads)
@@ -1136,6 +1169,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.ExceptUploaders != nil {
 		q = q.Set("except_uploaders", filter.ExceptUploaders)
+	}
+	if filter.MatchRecordLabels != nil {
+		q = q.Set("match_record_labels", filter.MatchRecordLabels)
+	}
+	if filter.ExceptRecordLabels != nil {
+		q = q.Set("except_record_labels", filter.ExceptRecordLabels)
 	}
 	if filter.MatchLanguage != nil {
 		q = q.Set("match_language", pq.Array(filter.MatchLanguage))
@@ -1370,6 +1409,13 @@ func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) err
 }
 
 func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error begin transaction")
+	}
+
+	defer tx.Rollback()
+
 	queryBuilder := r.db.squirrel.
 		Delete("filter").
 		Where(sq.Eq{"id": filterID})
@@ -1379,7 +1425,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1388,6 +1434,22 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error getting rows affected")
 	} else if rowsAffected == 0 {
 		return domain.ErrRecordNotFound
+	}
+
+	listFilterQueryBuilder := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"filter_id": filterID})
+
+	deleteListFilterQuery, deleteListFilterArgs, err := listFilterQueryBuilder.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, deleteListFilterQuery, deleteListFilterArgs...)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error storing list and filters")
 	}
 
 	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)

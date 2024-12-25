@@ -42,6 +42,8 @@ type Service interface {
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
 	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
+	AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
+	AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error)
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
 	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
@@ -444,8 +446,7 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		l.Debug().Msgf("found and matched filter: %s", f.Name)
 
 		// If size constraints are set in a filter and the indexer did not
-		// announce the size, we need to do an additional out of band size
-		// check.
+		// announce the size, we need to do an additional out of band size check.
 		if release.AdditionalSizeCheckRequired {
 			l.Debug().Msgf("(%s) additional size check required", f.Name)
 
@@ -457,6 +458,37 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 			if !ok {
 				l.Trace().Msgf("(%s) additional size check not matching what filter wanted", f.Name)
+				return false, nil
+			}
+		}
+
+		// check uploader if the indexer supports check via api
+		if release.AdditionalUploaderCheckRequired {
+			l.Debug().Msgf("(%s) additional uploader check required", f.Name)
+
+			ok, err := s.AdditionalUploaderCheck(ctx, f, release)
+			if err != nil {
+				l.Error().Err(err).Msgf("(%s) additional uploader check error", f.Name)
+				return false, err
+			}
+
+			if !ok {
+				l.Trace().Msgf("(%s) additional uploader check not matching what filter wanted", f.Name)
+				return false, nil
+			}
+		}
+
+		if release.AdditionalRecordLabelCheckRequired {
+			l.Debug().Msgf("(%s) additional record label check required", f.Name)
+
+			ok, err := s.AdditionalRecordLabelCheck(ctx, f, release)
+			if err != nil {
+				l.Error().Err(err).Msgf("(%s) additional record label check error", f.Name)
+				return false, err
+			}
+
+			if !ok {
+				l.Trace().Msgf("(%s) additional record label check not matching what filter wanted", f.Name)
 				return false, nil
 			}
 		}
@@ -482,15 +514,14 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	return false, nil
 }
 
-// AdditionalSizeCheck performs additional out of band checks to determine the
-// size of a torrent. Some indexers do not announce torrent size, so it is
+// AdditionalSizeCheck performs additional out-of-band checks to determine the
+// values of a torrent. Some indexers do not announce torrent size, so it is
 // necessary to determine the size of the torrent in some other way. Some
 // indexers have an API implemented to fetch this data. For those which don't,
 // it is necessary to download the torrent file and parse it to make the size
 // check. We use the API where available to minimize the number of torrents we
 // need to download.
-func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
-	var err error
+func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
@@ -499,12 +530,12 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	// do additional size check against indexer api or torrent for size
 	l := s.log.With().Str("method", "AdditionalSizeCheck").Logger()
 
-	l.Debug().Msgf("(%s) additional size check required", f.Name)
+	l.Debug().Msgf("(%s) additional api size check required", f.Name)
 
 	switch release.Indexer.Identifier {
-	case "ptp", "btn", "ggn", "redacted", "ops", "mock":
-		if release.Size == 0 {
-			l.Trace().Msgf("(%s) preparing to check via api", f.Name)
+	case "btn", "ggn", "redacted", "ops", "mock":
+		if (release.Size == 0 && release.AdditionalSizeCheckRequired) || (release.Uploader == "" && release.AdditionalUploaderCheckRequired) || (release.RecordLabel == "" && release.AdditionalRecordLabelCheckRequired) {
+			l.Trace().Msgf("(%s) preparing to check size via api", f.Name)
 
 			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
 			if err != nil || torrentInfo == nil {
@@ -514,16 +545,29 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 			l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
 
-			release.Size = torrentInfo.ReleaseSizeBytes()
+			torrentSize := torrentInfo.ReleaseSizeBytes()
+			if release.Size == 0 && torrentSize > 0 {
+				release.Size = torrentSize
+			}
+
+			if release.Uploader == "" {
+				release.Uploader = torrentInfo.Uploader
+			}
+
+			if release.RecordLabel == "" {
+				release.RecordLabel = torrentInfo.RecordLabel
+			}
 		}
 
 	default:
-		l.Trace().Msgf("(%s) preparing to download torrent metafile", f.Name)
+		if release.Size == 0 && release.AdditionalSizeCheckRequired {
+			l.Trace().Msgf("(%s) preparing to download torrent metafile", f.Name)
 
-		// if indexer doesn't have api, download torrent and add to tmpPath
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
-			l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
-			return false, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
+			// if indexer doesn't have api, download torrent and add to tmpPath
+			if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+				l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
+				return false, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
+			}
 		}
 	}
 
@@ -533,9 +577,167 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 		return false, err
 	}
 
+	// reset AdditionalSizeCheckRequired to not re-trigger check
+	release.AdditionalSizeCheckRequired = false
+
 	if !sizeOk {
 		l.Debug().Msgf("(%s) filter did not match after additional size check, trying next", f.Name)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
+	defer func() {
+		// try recover panic if anything went wrong with API or size checks
+		errors.RecoverPanic(recover(), &err)
+	}()
+
+	// do additional check against indexer api
+	l := s.log.With().Str("method", "AdditionalUploaderCheck").Logger()
+
+	// if uploader was fetched before during size check we check it and return early
+	if release.Uploader != "" {
+		uploaderOk, err := f.CheckUploader(release.Uploader)
+		if err != nil {
+			l.Error().Err(err).Msgf("(%s) error comparing release and uploaders", f.Name)
+			return false, err
+		}
+
+		// reset AdditionalUploaderCheckRequired to not re-trigger check
+		release.AdditionalUploaderCheckRequired = false
+
+		if !uploaderOk {
+			l.Debug().Msgf("(%s) filter did not match after additional uploaders check, trying next", f.Name)
+			return false, nil
+		}
+
+		return true, nil
+	}
+
+	l.Debug().Msgf("(%s) additional api uploader check required", f.Name)
+
+	switch release.Indexer.Identifier {
+	case "redacted", "ops", "mock":
+		l.Trace().Msgf("(%s) preparing to check via api", f.Name)
+
+		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
+		if err != nil || torrentInfo == nil {
+			l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
+			return false, err
+		}
+
+		l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
+
+		torrentSize := torrentInfo.ReleaseSizeBytes()
+		if release.Size == 0 && torrentSize > 0 {
+			release.Size = torrentSize
+		}
+
+		if release.RecordLabel == "" {
+			release.RecordLabel = torrentInfo.RecordLabel
+		}
+
+		if release.Uploader == "" {
+			release.Uploader = torrentInfo.Uploader
+		}
+
+	default:
+		return false, errors.New("additional uploader check not supported for this indexer: %s", release.Indexer.Identifier)
+	}
+
+	uploaderOk, err := f.CheckUploader(release.Uploader)
+	if err != nil {
+		l.Error().Err(err).Msgf("(%s) error comparing release and uploaders", f.Name)
 		return false, err
+	}
+
+	// reset AdditionalUploaderCheckRequired to not re-trigger check
+	release.AdditionalUploaderCheckRequired = false
+
+	if !uploaderOk {
+		l.Debug().Msgf("(%s) filter did not match after additional uploaders check, trying next", f.Name)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
+	defer func() {
+		// try recover panic if anything went wrong with API or size checks
+		errors.RecoverPanic(recover(), &err)
+		if err != nil {
+			ok = false
+		}
+	}()
+
+	// do additional check against indexer api
+	l := s.log.With().Str("method", "AdditionalRecordLabelCheck").Logger()
+
+	// if record label was fetched before during size check or uploader check we check it and return early
+	if release.RecordLabel != "" {
+		recordLabelOk, err := f.CheckRecordLabel(release.RecordLabel)
+		if err != nil {
+			l.Error().Err(err).Msgf("(%s) error comparing release and record label", f.Name)
+			return false, err
+		}
+
+		// reset AdditionalRecordLabelCheckRequired to not re-trigger check
+		release.AdditionalRecordLabelCheckRequired = false
+
+		if !recordLabelOk {
+			l.Debug().Msgf("(%s) filter did not match after additional record label check, trying next", f.Name)
+			return false, nil
+		}
+
+		return true, nil
+	}
+
+	l.Debug().Msgf("(%s) additional api record label check required", f.Name)
+
+	switch release.Indexer.Identifier {
+	case "redacted", "ops", "mock":
+		l.Trace().Msgf("(%s) preparing to check via api", f.Name)
+
+		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
+		if err != nil || torrentInfo == nil {
+			l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
+			return false, err
+		}
+
+		l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
+
+		torrentSize := torrentInfo.ReleaseSizeBytes()
+		if release.Size == 0 && torrentSize > 0 {
+			release.Size = torrentSize
+		}
+
+		if release.Uploader == "" {
+			release.Uploader = torrentInfo.Uploader
+		}
+
+		if release.RecordLabel == "" {
+			release.RecordLabel = torrentInfo.RecordLabel
+		}
+
+	default:
+		return false, errors.New("additional record label check not supported for this indexer: %s", release.Indexer.Identifier)
+	}
+
+	recordLabelOk, err := f.CheckRecordLabel(release.RecordLabel)
+	if err != nil {
+		l.Error().Err(err).Msgf("(%s) error comparing release and record label", f.Name)
+		return false, err
+	}
+
+	// reset AdditionalRecordLabelCheckRequired to not re-trigger check
+	release.AdditionalRecordLabelCheckRequired = false
+
+	if !recordLabelOk {
+		l.Debug().Msgf("(%s) filter did not match after additional record label check, trying next", f.Name)
+		return false, nil
 	}
 
 	return true, nil
@@ -549,9 +751,7 @@ func (s *service) CheckIsDuplicateRelease(ctx context.Context, profile *domain.D
 	return s.releaseRepo.CheckIsDuplicateRelease(ctx, profile, release)
 }
 
-func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (bool, error) {
-	var err error
-
+func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with the external filter checks
 		errors.RecoverPanic(recover(), &err)

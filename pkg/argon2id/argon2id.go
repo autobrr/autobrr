@@ -79,7 +79,7 @@ type Params struct {
 //
 //	$argon2id$v=19$m=65536,t=3,p=2$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG
 func CreateHash(password string, params *Params) (hash string, err error) {
-	salt, err := generateRandomBytes(params.SaltLength)
+	salt, err := GenerateRandomBytes(params.SaltLength)
 	if err != nil {
 		return "", err
 	}
@@ -125,7 +125,7 @@ func CheckHash(password, hash string) (match bool, params *Params, err error) {
 	return false, params, nil
 }
 
-func generateRandomBytes(n uint32) ([]byte, error) {
+func GenerateRandomBytes(n uint32) ([]byte, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
 	if err != nil {

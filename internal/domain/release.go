@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"math"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -52,75 +53,79 @@ type ReleaseRepo interface {
 }
 
 type Release struct {
-	ID                          int64                 `json:"id"`
-	FilterStatus                ReleaseFilterStatus   `json:"filter_status"`
-	Rejections                  []string              `json:"rejections"`
-	Indexer                     IndexerMinimal        `json:"indexer"`
-	FilterName                  string                `json:"filter"`
-	Protocol                    ReleaseProtocol       `json:"protocol"`
-	Implementation              ReleaseImplementation `json:"implementation"` // irc, rss, api
-	Timestamp                   time.Time             `json:"timestamp"`
-	Type                        rls.Type              `json:"type"` // rls.Type
-	InfoURL                     string                `json:"info_url"`
-	DownloadURL                 string                `json:"download_url"`
-	MagnetURI                   string                `json:"-"`
-	GroupID                     string                `json:"group_id"`
-	TorrentID                   string                `json:"torrent_id"`
-	TorrentTmpFile              string                `json:"-"`
-	TorrentDataRawBytes         []byte                `json:"-"`
-	TorrentHash                 string                `json:"-"`
-	TorrentName                 string                `json:"name"`            // full release name
-	NormalizedHash              string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
-	Size                        uint64                `json:"size"`
-	Title                       string                `json:"title"`     // Parsed title
-	SubTitle                    string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
-	Description                 string                `json:"-"`
-	Category                    string                `json:"category"`
-	Categories                  []string              `json:"categories,omitempty"`
-	Season                      int                   `json:"season"`
-	Episode                     int                   `json:"episode"`
-	Year                        int                   `json:"year"`
-	Month                       int                   `json:"month"`
-	Day                         int                   `json:"day"`
-	Resolution                  string                `json:"resolution"`
-	Source                      string                `json:"source"`
-	Codec                       []string              `json:"codec"`
-	Container                   string                `json:"container"`
-	HDR                         []string              `json:"hdr"`
-	Audio                       []string              `json:"-"`
-	AudioChannels               string                `json:"-"`
-	AudioFormat                 string                `json:"-"`
-	Bitrate                     string                `json:"-"`
-	Group                       string                `json:"group"`
-	Region                      string                `json:"-"`
-	Language                    []string              `json:"-"`
-	Proper                      bool                  `json:"proper"`
-	Repack                      bool                  `json:"repack"`
-	Website                     string                `json:"website"`
-	Hybrid                      bool                  `json:"hybrid"`
-	Edition                     []string              `json:"edition"`
-	Cut                         []string              `json:"cut"`
-	MediaProcessing             string                `json:"media_processing"` // Remux, Encode, Untouched
-	Artists                     string                `json:"-"`
-	LogScore                    int                   `json:"-"`
-	HasCue                      bool                  `json:"-"`
-	HasLog                      bool                  `json:"-"`
-	Origin                      string                `json:"origin"` // P2P, Internal
-	Tags                        []string              `json:"-"`
-	ReleaseTags                 string                `json:"-"`
-	Freeleech                   bool                  `json:"-"`
-	FreeleechPercent            int                   `json:"-"`
-	Bonus                       []string              `json:"-"`
-	Uploader                    string                `json:"uploader"`
-	PreTime                     string                `json:"pre_time"`
-	Other                       []string              `json:"-"`
-	RawCookie                   string                `json:"-"`
-	Seeders                     int                   `json:"-"`
-	Leechers                    int                   `json:"-"`
-	AdditionalSizeCheckRequired bool                  `json:"-"`
-	FilterID                    int                   `json:"-"`
-	Filter                      *Filter               `json:"-"`
-	ActionStatus                []ReleaseActionStatus `json:"action_status"`
+	ID                                 int64                 `json:"id"`
+	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
+	Rejections                         []string              `json:"rejections"`
+	Indexer                            IndexerMinimal        `json:"indexer"`
+	FilterName                         string                `json:"filter"`
+	Protocol                           ReleaseProtocol       `json:"protocol"`
+	Implementation                     ReleaseImplementation `json:"implementation"` // irc, rss, api
+	Timestamp                          time.Time             `json:"timestamp"`
+	AnnounceType                       AnnounceType          `json:"announce_type"`
+	Type                               rls.Type              `json:"type"` // rls.Type
+	InfoURL                            string                `json:"info_url"`
+	DownloadURL                        string                `json:"download_url"`
+	MagnetURI                          string                `json:"-"`
+	GroupID                            string                `json:"group_id"`
+	TorrentID                          string                `json:"torrent_id"`
+	TorrentTmpFile                     string                `json:"-"`
+	TorrentDataRawBytes                []byte                `json:"-"`
+	TorrentHash                        string                `json:"-"`
+	TorrentName                        string                `json:"name"`            // full release name
+	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
+	Size                               uint64                `json:"size"`
+	Title                              string                `json:"title"`     // Parsed title
+	SubTitle                           string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
+	Description                        string                `json:"-"`
+	Category                           string                `json:"category"`
+	Categories                         []string              `json:"categories,omitempty"`
+	Season                             int                   `json:"season"`
+	Episode                            int                   `json:"episode"`
+	Year                               int                   `json:"year"`
+	Month                              int                   `json:"month"`
+	Day                                int                   `json:"day"`
+	Resolution                         string                `json:"resolution"`
+	Source                             string                `json:"source"`
+	Codec                              []string              `json:"codec"`
+	Container                          string                `json:"container"`
+	HDR                                []string              `json:"hdr"`
+	Audio                              []string              `json:"-"`
+	AudioChannels                      string                `json:"-"`
+	AudioFormat                        string                `json:"-"`
+	Bitrate                            string                `json:"-"`
+	Group                              string                `json:"group"`
+	Region                             string                `json:"-"`
+	Language                           []string              `json:"-"`
+	Proper                             bool                  `json:"proper"`
+	Repack                             bool                  `json:"repack"`
+	Website                            string                `json:"website"`
+	Hybrid                             bool                  `json:"hybrid"`
+	Edition                            []string              `json:"edition"`
+	Cut                                []string              `json:"cut"`
+	MediaProcessing                    string                `json:"media_processing"` // Remux, Encode, Untouched
+	Artists                            string                `json:"-"`
+	LogScore                           int                   `json:"-"`
+	HasCue                             bool                  `json:"-"`
+	HasLog                             bool                  `json:"-"`
+	Origin                             string                `json:"origin"` // P2P, Internal
+	Tags                               []string              `json:"-"`
+	ReleaseTags                        string                `json:"-"`
+	Freeleech                          bool                  `json:"-"`
+	FreeleechPercent                   int                   `json:"-"`
+	Bonus                              []string              `json:"-"`
+	Uploader                           string                `json:"uploader"`
+	RecordLabel                        string                `json:"record_label"`
+	PreTime                            string                `json:"pre_time"`
+	Other                              []string              `json:"-"`
+	RawCookie                          string                `json:"-"`
+	Seeders                            int                   `json:"-"`
+	Leechers                           int                   `json:"-"`
+	AdditionalSizeCheckRequired        bool                  `json:"-"`
+	AdditionalUploaderCheckRequired    bool                  `json:"-"`
+	AdditionalRecordLabelCheckRequired bool                  `json:"-"`
+	FilterID                           int                   `json:"-"`
+	Filter                             *Filter               `json:"-"`
+	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
 }
 
 // Hash return md5 hashed normalized release name
@@ -141,6 +146,56 @@ func (r *Release) ParseType(s string) {
 
 func (r *Release) IsTypeVideo() bool {
 	return r.Type.Is(rls.Movie, rls.Series, rls.Episode)
+}
+
+type AnnounceType string
+
+const (
+	// AnnounceTypeNew Default announce type
+	AnnounceTypeNew AnnounceType = "NEW"
+	// AnnounceTypeChecked Checked release
+	AnnounceTypeChecked AnnounceType = "CHECKED"
+	// AnnounceTypePromo Marked as promotion (neutral/half/feeeleech etc.)
+	AnnounceTypePromo AnnounceType = "PROMO"
+	// AnnounceTypePromoGP Marked Golden Popcorn, PTP specific
+	AnnounceTypePromoGP AnnounceType = "PROMO_GP"
+	// AnnounceTypeResurrect Reseeded/revived from dead
+	AnnounceTypeResurrect AnnounceType = "RESURRECTED"
+)
+
+func (a AnnounceType) String() string {
+	switch a {
+	case AnnounceTypeNew:
+		return "NEW"
+	case AnnounceTypeChecked:
+		return "CHECKED"
+	case AnnounceTypePromo:
+		return "PROMO"
+	case AnnounceTypePromoGP:
+		return "PROMO_GP"
+	case AnnounceTypeResurrect:
+		return "RESURRECTED"
+	}
+
+	return ""
+}
+
+// ParseAnnounceType parse AnnounceType from string
+func ParseAnnounceType(s string) (AnnounceType, error) {
+	switch s {
+	case string(AnnounceTypeNew):
+		return AnnounceTypeNew, nil
+	case string(AnnounceTypeChecked):
+		return AnnounceTypeChecked, nil
+	case string(AnnounceTypePromo):
+		return AnnounceTypePromo, nil
+	case string(AnnounceTypePromoGP):
+		return AnnounceTypePromoGP, nil
+	case string(AnnounceTypeResurrect):
+		return AnnounceTypeResurrect, nil
+	default:
+		return "", fmt.Errorf("invalid AnnounceType: %s", s)
+	}
 }
 
 type ReleaseActionStatus struct {
@@ -340,6 +395,7 @@ func NewRelease(indexer IndexerMinimal) *Release {
 		Cut:            []string{},
 		Other:          []string{},
 		Size:           0,
+		AnnounceType:   AnnounceTypeNew,
 	}
 
 	return r
@@ -420,6 +476,50 @@ func (r *Release) ParseString(title string) {
 	}
 
 	r.ParseReleaseTagsString(r.ReleaseTags)
+	r.extraParseSource(rel)
+}
+
+func (r *Release) extraParseSource(rel rls.Release) {
+	if rel.Type != rls.Movie && rel.Type != rls.Series && rel.Type != rls.Episode {
+		return
+	}
+
+	tags := rel.Tags()
+	if len(tags) < 3 {
+		return
+	}
+
+	// handle special cases like -VHS
+	if r.Group == "" {
+		// check the next to last item separator to be - or whitespace then check the next and use as group if empty
+		//if tags[len(tags)-1].TagType() == rls.TagTypeSource && (tags[len(tags)-2].TagType() == rls.TagTypeDelim && (tags[len(tags)-2].Delim() == "-" || tags[len(tags)-2].Delim() == " ")) {
+		lastItem := tags[len(tags)-1]
+		if lastItem.TagType() == rls.TagTypeSource && lastItem.Prev() == rls.TagTypeWhitespace {
+			group := lastItem.Text()
+
+			// handle special cases like -VHS
+			if r.Source == group {
+				r.Source = ""
+			}
+
+			r.Group = group
+		}
+	}
+
+	if basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) {
+		return
+	}
+
+	// check res to be 1080p or 2160p and codec to be AVC, HEVC or if other contains Remux, then set source to BluRay if it differs
+	if !basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) && basicContainsSlice(r.Resolution, []string{"1080p", "2160p"}) && basicContainsMatch(r.Codec, []string{"AVC", "HEVC"}) && basicContainsMatch(r.Other, []string{"REMUX"}) {
+		// handle missing or unexpected source for some bluray releases
+		if r.Resolution == "1080p" {
+			r.Source = "BluRay"
+
+		} else if r.Resolution == "2160p" {
+			r.Source = "UHD.BluRay"
+		}
+	}
 }
 
 func (r *Release) ParseReleaseTagsString(tags string) {
@@ -701,7 +801,6 @@ const MagnetURIPrefix = "magnet:?"
 
 // MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
-
 	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
@@ -716,8 +815,15 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Category = category
 	}
 
+	if announceType, err := getStringMapValue(varMap, "announceType"); err == nil {
+		annType, parseErr := ParseAnnounceType(announceType)
+		if parseErr == nil {
+			r.AnnounceType = annType
+		}
+	}
+
 	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
-		fl := StringEqualFoldMulti(freeleech, "1", "free", "freeleech", "freeleech!", "yes", "VIP")
+		fl := StringEqualFoldMulti(freeleech, "1", "fl", "free", "freeleech", "freeleech!", "yes", "VIP", "★")
 		if fl {
 			r.Freeleech = true
 			// default to 100 and override if freeleechPercent is present in next function
@@ -740,32 +846,88 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
 
-		freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
-		if err != nil {
-			//log.Debug().Msgf("bad freeleechPercent var: %v", year)
-		}
+		freeleechPercentInt, parseErr := strconv.Atoi(freeleechPercent)
+		if parseErr == nil {
+			if freeleechPercentInt > 0 {
+				r.Freeleech = true
+				r.FreeleechPercent = freeleechPercentInt
 
-		if freeleechPercentInt > 0 {
-			r.Freeleech = true
-			r.FreeleechPercent = freeleechPercentInt
+				r.Bonus = append(r.Bonus, "Freeleech")
 
-			r.Bonus = append(r.Bonus, "Freeleech")
-
-			switch freeleechPercentInt {
-			case 25:
-				r.Bonus = append(r.Bonus, "Freeleech25")
-			case 50:
-				r.Bonus = append(r.Bonus, "Freeleech50")
-			case 75:
-				r.Bonus = append(r.Bonus, "Freeleech75")
-			case 100:
-				r.Bonus = append(r.Bonus, "Freeleech100")
+				switch freeleechPercentInt {
+				case 25:
+					r.Bonus = append(r.Bonus, "Freeleech25")
+				case 50:
+					r.Bonus = append(r.Bonus, "Freeleech50")
+				case 75:
+					r.Bonus = append(r.Bonus, "Freeleech75")
+				case 100:
+					r.Bonus = append(r.Bonus, "Freeleech100")
+				}
 			}
 		}
 	}
 
+	if downloadVolumeFactorVar, ok := varMap["downloadVolumeFactor"]; ok {
+		// special handling for BHD to map their freeleech into percent
+		//if def.Identifier == "beyondhd" {
+		//	if freeleechPercent == "Capped FL" {
+		//		freeleechPercent = "100%"
+		//	} else if strings.Contains(freeleechPercent, "% FL") {
+		//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+		//	}
+		//}
+
+		//r.downloadVolumeFactor = downloadVolumeFactor
+
+		// Parse the value as decimal number
+		downloadVolumeFactor, parseErr := strconv.ParseFloat(downloadVolumeFactorVar, 64)
+		if parseErr == nil {
+			// Values below 0.0 and above 1.0 are rejected
+			if downloadVolumeFactor >= 0 || downloadVolumeFactor <= 1 {
+				// Multiply by 100 to convert from ratio to percentage and round it
+				// to the nearest integer value
+				downloadPercentage := math.Round(downloadVolumeFactor * 100)
+
+				// To convert from download percentage to freeleech percentage the
+				// value is inverted
+				r.FreeleechPercent = 100 - int(downloadPercentage)
+				if r.FreeleechPercent > 0 {
+					r.Freeleech = true
+				}
+			}
+		}
+	}
+
+	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
+	//	// special handling for BHD to map their freeleech into percent
+	//	//if def.Identifier == "beyondhd" {
+	//	//	if freeleechPercent == "Capped FL" {
+	//	//		freeleechPercent = "100%"
+	//	//	} else if strings.Contains(freeleechPercent, "% FL") {
+	//	//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
+	//	//	}
+	//	//}
+	//
+	//	r.uploadVolumeFactor = uploadVolumeFactor
+	//
+	//	//freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
+	//	//if err != nil {
+	//	//	//log.Debug().Msgf("bad freeleechPercent var: %v", year)
+	//	//}
+	//	//
+	//	//if freeleechPercentInt > 0 {
+	//	//	r.Freeleech = true
+	//	//	r.FreeleechPercent = freeleechPercentInt
+	//	//}
+	//}
+
 	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
 		r.Uploader = uploader
+	}
+
+	if recordLabel, err := getStringMapValue(varMap, "recordLabel"); err == nil {
+		r.RecordLabel = recordLabel
 	}
 
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
@@ -777,11 +939,17 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
 		}
 
-		size, err := humanize.ParseBytes(torrentSize)
-		if err != nil {
-			// log could not parse into bytes
+		size, parseErr := humanize.ParseBytes(torrentSize)
+		if parseErr == nil {
+			r.Size = size
 		}
-		r.Size = size
+	}
+
+	if torrentSizeBytes, err := getStringMapValue(varMap, "torrentSizeBytes"); err == nil {
+		size, parseErr := strconv.ParseUint(torrentSizeBytes, 10, 64)
+		if parseErr == nil {
+			r.Size = size
+		}
 	}
 
 	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
@@ -802,24 +970,27 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
-		year, err := strconv.Atoi(yearVal)
-		if err != nil {
-			//log.Debug().Msgf("bad year var: %v", year)
+		year, parseErr := strconv.Atoi(yearVal)
+		if parseErr == nil {
+			r.Year = year
 		}
-		r.Year = year
 	}
 
 	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
-		tagsArr := []string{}
-		s := strings.Split(tags, ",")
-		for _, t := range s {
-			tagsArr = append(tagsArr, strings.Trim(t, " "))
+		if tags != "" && tags != "*" {
+			tagsArr := []string{}
+			s := strings.Split(tags, ",")
+			for _, t := range s {
+				tagsArr = append(tagsArr, strings.Trim(t, " "))
+			}
+			r.Tags = tagsArr
 		}
-		r.Tags = tagsArr
 	}
 
 	if title, err := getStringMapValue(varMap, "title"); err == nil {
-		r.Title = title
+		if title != "" && title != "*" {
+			r.Title = title
+		}
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful
@@ -839,6 +1010,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		episode, _ := strconv.Atoi(episodeVal)
 		r.Episode = episode
 	}
+
+	//if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
+	//	r.MetaIMDB = metaImdb
+	//}
 
 	return nil
 }

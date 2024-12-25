@@ -44,6 +44,7 @@ tmp/
 web/eslint-sarif-report.sarif
 test/mockindexer/feeds/*
 test/mockindexer/files/*
+cpu.pprof
 
 # Preserve files
 !.gitkeep

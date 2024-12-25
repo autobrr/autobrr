@@ -15,6 +15,7 @@ import (
 // A '*' in a provided string will not result in matching the strings before and after the '*' of the string provided.
 // Sample usage: In resource matching for bucket policy validation.
 func TestMatch(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		pattern string
 		text    string
@@ -151,6 +152,7 @@ func TestMatch(t *testing.T) {
 }
 
 func TestMatchSimple(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		pattern string
 		name    string
@@ -183,6 +185,7 @@ func TestMatchSimple(t *testing.T) {
 }
 
 func TestMatchSliceSimple(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		patterns []string
 		name     string
@@ -209,6 +212,7 @@ func TestMatchSliceSimple(t *testing.T) {
 }
 
 func TestMatchSlice(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		patterns []string
 		name     string

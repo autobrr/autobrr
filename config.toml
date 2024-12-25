@@ -20,6 +20,14 @@ port = 7474
 #
 #baseUrl = "/autobrr/"
 
+# Base url mode legacy
+# This is kept for compatibility with older versions doing url rewrite on the proxy.
+# If you use baseUrl you can set this to false and skip any url rewrite in your proxy.
+#
+# Default: true
+#
+baseUrlModeLegacy = true
+
 # autobrr logs file
 # If not defined, logs to stdout
 #
@@ -60,6 +68,23 @@ checkForUpdates = true
 # Session secret
 #
 sessionSecret = "secret-session-key"
+
+# OpenID Connect Configuration
+#
+# Enable OIDC authentication
+#oidc_enabled = false
+
+# OIDC Issuer URL (e.g. https://auth.example.com)
+#oidc_issuer = ""
+
+# OIDC Client ID
+#oidc_client_id = ""
+
+# OIDC Client Secret
+#oidc_client_secret = ""
+
+# OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
+#oidc_redirect_url = ""
 
 # Custom definitions
 #

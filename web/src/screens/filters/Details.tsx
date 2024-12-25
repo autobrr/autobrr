@@ -5,10 +5,10 @@
 
 import { useEffect, useRef } from "react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
-import { toast } from "react-hot-toast";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 
@@ -20,11 +20,10 @@ import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS } from "@domain/constants";
 
 import { DEBUG } from "@components/debug";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal } from "@components/modals";
 
-import { Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { FilterGetByIdRoute } from "@app/routes";
 
 interface tabType {
   name: string;
@@ -305,10 +304,11 @@ const schema = z.object({
 
 export const FilterDetails = () => {
   const navigate = useNavigate();
-  const ctx = FilterGetByIdRoute.useRouteContext()
-  const queryClient = ctx.queryClient
 
-  const params = FilterGetByIdRoute.useParams()
+  const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
+  const { queryClient } =  filterGetByIdRoute.useRouteContext();
+
+  const params = filterGetByIdRoute.useParams()
   const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(params.filterId))
   const filter = filterQuery.data
 
@@ -392,6 +392,7 @@ export const FilterDetails = () => {
               enabled: filter.enabled,
               min_size: filter.min_size,
               max_size: filter.max_size,
+              announce_types: filter.announce_types || [],
               delay: filter.delay,
               priority: filter.priority,
               max_downloads: filter.max_downloads,
@@ -430,6 +431,8 @@ export const FilterDetails = () => {
               except_tags_match_logic: filter.except_tags_match_logic,
               match_uploaders: filter.match_uploaders,
               except_uploaders: filter.except_uploaders,
+              match_record_labels: filter.match_record_labels,
+              except_record_labels: filter.except_record_labels,
               match_language: filter.match_language || [],
               except_language: filter.except_language || [],
               freeleech: filter.freeleech,

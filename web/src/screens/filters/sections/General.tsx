@@ -10,8 +10,17 @@ import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/q
 
 import { DocsLink } from "@components/ExternalLink";
 import { FilterLayout, FilterPage, FilterSection } from "./_components";
-import { IndexerMultiSelect, MultiSelectOption, NumberField, Select, SelectFieldOption, SwitchGroup, TextField } from "@components/inputs";
-
+import {
+  IndexerMultiSelect,
+  MultiSelect,
+  MultiSelectOption,
+  NumberField,
+  Select,
+  SelectFieldOption,
+  SwitchGroup,
+  TextField
+} from "@components/inputs";
+import * as CONSTS from "@domain/constants.ts";
 
 const MapIndexer = (indexer: Indexer) => (
   { label: indexer.name, value: indexer.id } as MultiSelectOption
@@ -36,9 +45,20 @@ export const General = () => {
         <FilterLayout>
           <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
 
-          {/*{!isLoading && (*/}
-            <IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={6} />
-          {/*)}*/}
+          <MultiSelect
+            name="announce_types"
+            options={CONSTS.AnnounceTypeOptions}
+            label="announce types"
+            columns={3}
+            tooltip={
+              <div>
+                <p>NEW! Match releases which contain any of the selected announce types.</p>
+                <DocsLink href="https://autobrr.com/filters#announce-type" />
+              </div>
+            }
+          />
+
+          <IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={3} />
         </FilterLayout>
       </FilterSection>
 

@@ -44,8 +44,8 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
-		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
+		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType,, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.handler)
 
 	q, args, err := queryBuilder.ToSql()
@@ -192,7 +192,7 @@ func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryPar
 
 var reservedSearch = map[string]*regexp.Regexp{
 	"r.title":         regexp.MustCompile(`(?i)(?:` + `title` + `:)(?P<value>'.*?'|".*?"|\S+)`),
-	"r.release_group": regexp.MustCompile(`(?i)(?:` + `release_group` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.release_group": regexp.MustCompile(`(?i)(?:` + `group` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.category":      regexp.MustCompile(`(?i)(?:` + `category` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.season":        regexp.MustCompile(`(?i)(?:` + `season` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.episode":       regexp.MustCompile(`(?i)(?:` + `episode` + `:)(?P<value>'.*?'|".*?"|\S+)`),
@@ -297,7 +297,8 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			"i.name",
 			"i.identifier_external",
 			"r.filter",
-			"r.protocol",
+      "r.protocol", 
+			"r.announce_type",
 			"r.info_url",
 			"r.download_url",
 			"r.title",
@@ -365,7 +366,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, infoUrl, downloadUrl, subTitle, normalizedHash, codec, hdr, rlsType, audioStr, languageStr, editionStr, cutStr, website sql.NullString
+		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, rlsAnnounceType, infoUrl, downloadUrl, subTitle, normalizedHash, codec, hdr, rlsType, audioStr, languageStr, editionStr, cutStr, website sql.NullString
 
 		var rlsIndexerID sql.NullInt64
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
@@ -383,6 +384,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			&rlsIndexerExternalName,
 			&rlsFilter,
 			&rls.Protocol,
+      &rlsAnnounceType.
 			&infoUrl,
 			&downloadUrl,
 			&rls.Title,
@@ -459,6 +461,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		rls.Indexer.IdentifierExternal = rlsIndexerExternalName.String
 
 		rls.FilterName = rlsFilter.String
+		rls.AnnounceType = domain.AnnounceType(rlsAnnounceType.String)
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 		rls.InfoURL = infoUrl.String
 		rls.DownloadURL = downloadUrl.String
@@ -629,7 +632,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.implementation", "r.info_url", "r.download_url", "r.title", "r.sub_title", "r.torrent_name", "r.category", "r.size", "r.group_id", "r.torrent_id", "r.uploader", "r.timestamp").
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.implementation", "r.announce_type", "r.info_url", "r.download_url", "r.title", "r.sub_title", "r.torrent_name", "r.category", "r.size", "r.group_id", "r.torrent_id", "r.uploader", "r.timestamp").
 		From("release r").
 		OrderBy("r.id DESC").
 		Where(sq.Eq{"r.id": req.Id})
@@ -648,10 +651,10 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	var rls domain.Release
 
-	var indexerName, filterName, infoUrl, downloadUrl, subTitle, groupId, torrentId, category, uploader sql.NullString
+	var indexerName, filterName, announceType, infoUrl, downloadUrl, subTitle, groupId, torrentId, category, uploader sql.NullString
 	var filterId sql.NullInt64
 
-	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &infoUrl, &downloadUrl, &rls.Title, &subTitle, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
+	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &announceType, &infoUrl, &downloadUrl, &rls.Title, &subTitle, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -663,6 +666,7 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 	rls.FilterName = filterName.String
 	rls.FilterID = int(filterId.Int64)
 	rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
+	rls.AnnounceType = domain.AnnounceType(announceType.String)
 	rls.InfoURL = infoUrl.String
 	rls.DownloadURL = downloadUrl.String
 	rls.SubTitle = subTitle.String

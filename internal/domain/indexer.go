@@ -228,10 +228,11 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 }
 
 type IndexerIRCParse struct {
-	Type          string                `json:"type"`
-	ForceSizeUnit string                `json:"forcesizeunit"`
-	Lines         []IndexerIRCParseLine `json:"lines"`
-	Match         IndexerIRCParseMatch  `json:"match"`
+	Type          string                                  `json:"type"`
+	ForceSizeUnit string                                  `json:"forcesizeunit"`
+	Lines         []IndexerIRCParseLine                   `json:"lines"`
+	Match         IndexerIRCParseMatch                    `json:"match"`
+	Mappings      map[string]map[string]map[string]string `json:"mappings"`
 }
 
 type LineTest struct {
@@ -352,7 +353,31 @@ func (p *IndexerIRCParseMatch) ParseTorrentName(vars map[string]string, rls *Rel
 	return nil
 }
 
+func (p *IndexerIRCParse) MapCustomVariables(vars map[string]string) error {
+	for varsKey, varsKeyMap := range p.Mappings {
+		varsValue, ok := vars[varsKey]
+		if !ok {
+			continue
+		}
+
+		keyValueMap, ok := varsKeyMap[varsValue]
+		if !ok {
+			continue
+		}
+
+		for k, v := range keyValueMap {
+			vars[k] = v
+		}
+	}
+
+	return nil
+}
+
 func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, rls *Release) error {
+	if err := p.MapCustomVariables(vars); err != nil {
+		return errors.Wrap(err, "could not map custom variables for release")
+	}
+
 	if err := rls.MapVars(def, vars); err != nil {
 		return errors.Wrap(err, "could not map variables for release")
 	}
@@ -404,11 +429,12 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 }
 
 type TorrentBasic struct {
-	Id        string `json:"Id"`
-	TorrentId string `json:"TorrentId,omitempty"`
-	InfoHash  string `json:"InfoHash"`
-	Size      string `json:"Size"`
-	Uploader  string `json:"Uploader"`
+	Id          string `json:"Id"`
+	TorrentId   string `json:"TorrentId,omitempty"`
+	InfoHash    string `json:"InfoHash"`
+	Size        string `json:"Size"`
+	Uploader    string `json:"Uploader"`
+	RecordLabel string `json:"RecordLabel"`
 }
 
 func (t TorrentBasic) ReleaseSizeBytes() uint64 {

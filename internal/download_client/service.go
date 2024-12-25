@@ -15,13 +15,13 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/arr/lidarr"
+	"github.com/autobrr/autobrr/pkg/arr/radarr"
+	"github.com/autobrr/autobrr/pkg/arr/readarr"
+	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/porla"
-	"github.com/autobrr/autobrr/pkg/radarr"
-	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
-	"github.com/autobrr/autobrr/pkg/sonarr"
 	"github.com/autobrr/autobrr/pkg/transmission"
 	"github.com/autobrr/autobrr/pkg/whisparr"
 
@@ -41,6 +41,7 @@ type Service interface {
 	Delete(ctx context.Context, clientID int32) error
 	Test(ctx context.Context, client domain.DownloadClient) error
 
+	GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error)
 	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
 }
 
@@ -92,6 +93,57 @@ func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClien
 	}
 
 	return client, nil
+}
+
+func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error) {
+	data := make([]*domain.ArrTag, 0)
+
+	client, err := s.GetClient(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find download client by id: %v", id)
+		return data, nil
+	}
+
+	switch client.Type {
+	case "RADARR":
+		arrClient := client.Client.(*radarr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not get tags from radarr: %v", id)
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	case "SONARR":
+		arrClient := client.Client.(*sonarr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not get tags from sonarr: %v", id)
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	default:
+		return data, nil
+	}
 }
 
 func (s *service) Store(ctx context.Context, client *domain.DownloadClient) error {
@@ -181,8 +233,13 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
+		clientHost, err := client.BuildLegacyHost()
+		if err != nil {
+			return nil, errors.Wrap(err, "error building qBittorrent host url: %v", client.Host)
+		}
+
 		client.Client = qbittorrent.NewClient(qbittorrent.Config{
-			Host:          client.BuildLegacyHost(),
+			Host:          clientHost,
 			Username:      client.Username,
 			Password:      client.Password,
 			TLSSkipVerify: client.TLSSkipVerify,

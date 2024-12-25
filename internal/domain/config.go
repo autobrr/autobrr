@@ -13,6 +13,7 @@ type Config struct {
 	LogMaxSize          int    `toml:"logMaxSize"`
 	LogMaxBackups       int    `toml:"logMaxBackups"`
 	BaseURL             string `toml:"baseUrl"`
+	BaseURLModeLegacy   bool   `toml:"baseUrlModeLegacy"`
 	SessionSecret       string `toml:"sessionSecret"`
 	CustomDefinitions   string `toml:"customDefinitions"`
 	CheckForUpdates     bool   `toml:"checkForUpdates"`
@@ -28,6 +29,12 @@ type Config struct {
 	ProfilingEnabled    bool   `toml:"profilingEnabled"`
 	ProfilingHost       string `toml:"profilingHost"`
 	ProfilingPort       int    `toml:"profilingPort"`
+	OIDCEnabled         bool   `mapstructure:"oidc_enabled"`
+	OIDCIssuer          string `mapstructure:"oidc_issuer"`
+	OIDCClientID        string `mapstructure:"oidc_client_id"`
+	OIDCClientSecret    string `mapstructure:"oidc_client_secret"`
+	OIDCRedirectURL     string `mapstructure:"oidc_redirect_url"`
+	OIDCScopes          string `mapstructure:"oidc_scopes"`
 }
 
 type ConfigUpdate struct {

@@ -10,6 +10,7 @@ import (
 )
 
 func TestRejectionReasons_String(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		data []Rejection
 	}
@@ -55,6 +56,7 @@ func TestRejectionReasons_String(t *testing.T) {
 }
 
 func TestRejectionReasons_StringTruncated(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		data []Rejection
 	}

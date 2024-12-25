@@ -4,7 +4,6 @@
  */
 
 import { useMemo, useState } from "react";
-import toast from "react-hot-toast";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
@@ -13,6 +12,7 @@ import { APIClient } from "@api/APIClient";
 import { IndexerKeys } from "@api/query_keys";
 import { IndexersQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptySimple } from "@components/emptystates";
 import { IndexerAddForm, IndexerUpdateForm } from "@forms";

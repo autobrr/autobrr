@@ -5,6 +5,29 @@
 
 import { MultiSelectOption } from "@components/inputs/select";
 
+export const AnnounceTypeOptions: MultiSelectOption[] = [
+  {
+    label: "New",
+    value: "NEW"
+  },
+  {
+    label: "Checked",
+    value: "CHECKED"
+  },
+  {
+    label: "Promo",
+    value: "PROMO"
+  },
+  {
+    label: "Promo GP",
+    value: "PROMO_GP"
+  },
+  {
+    label: "Resurrected",
+    value: "RESURRECTED"
+  }
+];
+
 export const resolutions = [
   "2160p",
   "1080p",
@@ -386,6 +409,49 @@ export const PushStatusOptions: OptionBasic[] = [
   }
 ];
 
+export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
+  {
+    label: "Sonarr",
+    value: "SONARR"
+  },
+  {
+    label: "Radarr",
+    value: "RADARR"
+  },
+  {
+    label: "Lidarr",
+    value: "LIDARR"
+  },
+  {
+    label: "Readarr",
+    value: "READARR"
+  },
+  {
+    label: "Whisparr",
+    value: "WHISPARR"
+  },
+  {
+    label: "MDBList",
+    value: "MDBLIST"
+  },
+  {
+    label: "Trakt",
+    value: "TRAKT"
+  },
+  {
+    label: "Plaintext",
+    value: "PLAINTEXT"
+  },
+  {
+    label: "Steam",
+    value: "STEAM"
+  },
+  {
+    label: "Metacritic",
+    value: "METACRITIC"
+  },
+];
+
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Discord",
@@ -582,5 +648,50 @@ export const ProxyTypeOptions: OptionBasicTyped<ProxyType>[] = [
   {
     label: "SOCKS5",
     value: "SOCKS5"
+  },
+];
+
+export const ListsTraktOptions: OptionBasic[] = [
+  {
+    label: "Anticipated TV",
+    value: "https://api.autobrr.com/lists/trakt/anticipated-tv"
+  },
+  {
+    label: "Popular TV",
+    value: "https://api.autobrr.com/lists/trakt/popular-tv"
+  },
+  {
+    label: "Upcoming Movies",
+    value: "https://api.autobrr.com/lists/trakt/upcoming-movies"
+  },
+  {
+    label: "Upcoming BluRay",
+    value: "https://api.autobrr.com/lists/trakt/upcoming-bluray"
+  },
+  {
+    label: "Popular TV",
+    value: "https://api.autobrr.com/lists/trakt/popular-tv"
+  },
+  {
+    label: "Steven Lu",
+    value: "https://api.autobrr.com/lists/stevenlu"
+  },
+];
+
+export const ListsMetacriticOptions: OptionBasic[] = [
+  {
+    label: "Upcoming Albums",
+    value: "https://api.autobrr.com/lists/metacritic/upcoming-albums"
+  },
+  {
+    label: "New Albums",
+    value: "https://api.autobrr.com/lists/metacritic/new-albums"
+  }
+];
+
+export const ListsMDBListOptions: OptionBasic[] = [
+  {
+    label: "Latest TV Shows",
+    value: "https://mdblist.com/lists/garycrawfordgc/latest-tv-shows/json"
   },
 ];
