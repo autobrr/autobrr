@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/lidarr"
+	"github.com/autobrr/autobrr/pkg/arr/radarr"
+	"github.com/autobrr/autobrr/pkg/arr/readarr"
+	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/lidarr"
 	"github.com/autobrr/autobrr/pkg/porla"
-	"github.com/autobrr/autobrr/pkg/radarr"
-	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
-	"github.com/autobrr/autobrr/pkg/sonarr"
 	"github.com/autobrr/autobrr/pkg/transmission"
 	"github.com/autobrr/autobrr/pkg/whisparr"
 
