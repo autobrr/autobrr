@@ -6,7 +6,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient.ts";
 import { ReleaseProfileDuplicateKeys } from "@api/query_keys.ts";
-import { toast } from "react-hot-toast";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast.tsx";
 import { SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
