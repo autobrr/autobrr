@@ -227,7 +227,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 			return err
 		}
 
-		if !match {
+		if !match || f.RejectReasons.Len() > 0 {
 			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectReasons.String())
 
 			l.Debug().Msgf("filter %s rejected release: %s with reasons: %s", f.Name, release.TorrentName, f.RejectReasons.String())
