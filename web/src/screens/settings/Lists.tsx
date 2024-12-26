@@ -28,11 +28,7 @@ function ListsSettings() {
   return (
     <Section
       title="Lists"
-      description={
-        <>
-          Lists can automatically update your filters from arrs or other sources.<br/>
-        </>
-      }
+      description="Lists can automatically update your filters from arrs or other sources."
       rightSide={
         <button
           type="button"
