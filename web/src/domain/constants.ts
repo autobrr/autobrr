@@ -452,6 +452,19 @@ export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
   },
 ];
 
+export const ListTypeNameMap: Record<ListType, string> = {
+  "SONARR": "Sonarr",
+  "RADARR": "Radarr",
+  "LIDARR": "Lidarr",
+  "READARR": "Readarr",
+  "WHISPARR": "Whisparr",
+  "MDBLIST": "MDBList",
+  "TRAKT": "Trakt",
+  "METACRITIC": "Metacritic",
+  "STEAM": "Steam",
+  "PLAINTEXT": "Plaintext",
+};
+
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
     label: "Discord",

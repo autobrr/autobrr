@@ -18,6 +18,7 @@ import { EmptySimple } from "@components/emptystates";
 import { ListAddForm, ListUpdateForm } from "@forms";
 import { FC } from "react";
 import { Link } from "@tanstack/react-router";
+import { ListTypeNameMap } from "@domain/constants";
 
 function ListsSettings() {
   const [addFormIsOpen, toggleAddList] = useToggle(false);
@@ -147,7 +148,7 @@ function ListItem({ list }: ListItemProps) {
         </div>
         <div
           className="hidden md:block col-span-2 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate">
-          {list.type}
+          {ListTypeNameMap[list.type]}
         </div>
         <div className="col-span-1 flex first-letter:px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
           <span
