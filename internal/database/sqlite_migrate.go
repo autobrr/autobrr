@@ -1902,7 +1902,7 @@ ALTER TABLE "release"
     ADD cut TEXT;
 
 ALTER TABLE "release"
-    ADD hybrid TEXT;
+    ADD hybrid BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE "release"
     ADD region TEXT;

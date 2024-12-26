@@ -278,10 +278,10 @@ function DeleteReleases() {
           {[
             {
               label: (
-                <>
+                <span>
                   Older than:
                   <span className="text-red-600 dark:text-red-500"> *</span>
-                </>
+                </span>
               ),
               content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration}/>
             },
