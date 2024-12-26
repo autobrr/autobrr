@@ -1352,4 +1352,8 @@ CREATE INDEX release_hybrid_index
 	SET announce_types = '{"NEW"}'
 	WHERE announce_types = '{}';
 `,
+	`UPDATE "release" 
+	SET hybrid = FALSE 
+	WHERE hybrid IS NULL;
+`,
 }
