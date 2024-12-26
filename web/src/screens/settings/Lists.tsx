@@ -118,7 +118,7 @@ function ListItem({ list }: ListItemProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom(t => <Toast type="success" body={`List ${list.name} was ${list.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
+      toast.custom(t => <Toast type="success" body={`List ${list.name} was ${list.enabled ? "disabled" : "enabled"} successfully.`} t={t} />);
     },
     onError: () => {
       toast.custom((t) => <Toast type="error" body="List state could not be updated" t={t} />);
