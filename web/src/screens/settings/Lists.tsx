@@ -172,20 +172,17 @@ const ListItemFilters = ({ filters }: ListItemFiltersProps) => {
     return null;
   }
 
-  const res = filters.slice(2);
+  const res = filters.slice(1);
 
   return (
     <div className="flex flex-row gap-1 truncate">
       <FilterPill filter={filters[0]} />
       {filters.length > 1 ? (
-        <FilterPill filter={filters[1]} />
-      ) : null}
-      {filters.length > 2 ? (
         <span
           className="mr-2 inline-flex items-center px-2 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
-          title={res.map(v => v.name).toString()}
+          title={res.map((v) => v.name).toString()}
         >
-          +{filters.length - 2}
+          +{filters.length - 1}
         </span>
       ) : null}
     </div>
