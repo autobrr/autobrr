@@ -368,6 +368,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var ras domain.ReleaseActionStatus
 
 		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, rlsAnnounceType, infoUrl, downloadUrl, subTitle, normalizedHash, codec, hdr, rlsType, audioStr, audioChannels, region, languageStr, editionStr, cutStr, website, mediaProcessing sql.NullString
+		var hybrid sql.NullBool
 
 		var rlsIndexerID sql.NullInt64
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
@@ -409,7 +410,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			&languageStr,
 			&editionStr,
 			&cutStr,
-			&rls.Hybrid,
+			&hybrid,
 			&rls.Proper,
 			&rls.Repack,
 			&website,
@@ -476,6 +477,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		rls.Region = region.String
 		rls.Edition = strings.Split(editionStr.String, ",")
 		rls.Cut = strings.Split(cutStr.String, ",")
+		rls.Hybrid = hybrid.Bool
 		rls.Website = website.String
 		rls.MediaProcessing = mediaProcessing.String
 		//rls.Type = rlsType.String
