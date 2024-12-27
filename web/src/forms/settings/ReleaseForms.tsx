@@ -71,7 +71,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
           <TextFieldWide required name="name" label="Name"/>
 
           <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
-          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Releae name for exact match" />
+          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
           <SwitchGroupWide name="title" label="Title" description="Parsed title" />
           <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
           <SwitchGroupWide name="year" label="Year" />
@@ -171,7 +171,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
           <TextFieldWide required name="name" label="Name"/>
 
           <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
-          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Releae name for exact match" />
+          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
           <SwitchGroupWide name="title" label="Title" description="Parsed title" />
           <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
           <SwitchGroupWide name="year" label="Year" />

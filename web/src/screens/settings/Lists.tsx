@@ -18,6 +18,7 @@ import { EmptySimple } from "@components/emptystates";
 import { ListAddForm, ListUpdateForm } from "@forms";
 import { FC } from "react";
 import { Link } from "@tanstack/react-router";
+import { ListTypeNameMap } from "@domain/constants";
 
 function ListsSettings() {
   const [addFormIsOpen, toggleAddList] = useToggle(false);
@@ -28,11 +29,7 @@ function ListsSettings() {
   return (
     <Section
       title="Lists"
-      description={
-        <>
-          Lists can automatically update your filters from arrs or other sources.<br/>
-        </>
-      }
+      description="Lists can automatically update your filters from arrs or other sources."
       rightSide={
         <button
           type="button"
@@ -47,26 +44,26 @@ function ListsSettings() {
       <ListAddForm isOpen={addFormIsOpen} toggle={toggleAddList} />
 
       <div className="flex flex-col">
-        {lists.length ? (
+        {lists.length > 0 ? (
           <ul className="min-w-full relative">
             <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
               <div
-                className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="col-span-2 sm:col-span-1 pl-0 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
                 Enabled
               </div>
               <div
-                className="col-span-5 sm:col-span-4 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="col-span-6 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
                 Name
               </div>
               <div
-                className="hidden md:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
                 Filters
               </div>
               <div
-                className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
                 Type
               </div>
@@ -136,26 +133,26 @@ function ListItem({ list }: ListItemProps) {
     <li>
       <ListUpdateForm isOpen={isOpen} toggle={toggleUpdate} data={list} />
 
-      <div className="grid grid-cols-12 items-center py-1.5">
-        <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
+      <div className="grid grid-cols-12 items-center py-2">
+        <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">
           <Checkbox value={list.enabled ?? false} setValue={onToggleMutation}/>
         </div>
         <div
-          className="col-span-5 sm:col-span-4 pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
+          className="col-span-8 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 pr-6 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
           {list.name}
         </div>
         <div
-          className="hidden md:block col-span-4 pr-6 py-3 space-x-1 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate">
+          className="hidden sm:block col-span-4 pr-6 text-left items-center whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
           {/*{list.filters.map(filter => <FilterPill filter={filter} key={filter.id} />)}*/}
           <ListItemFilters filters={list.filters} />
         </div>
         <div
-          className="hidden md:block col-span-2 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate">
-          {list.type}
+          className="hidden sm:block col-span-2 text-left items-center text-sm text-gray-600 dark:text-gray-400">
+          {ListTypeNameMap[list.type]}
         </div>
-        <div className="col-span-1 flex first-letter:px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
+        <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
           <span
-            className="col-span-1 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
+            className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer"
             onClick={toggleUpdate}
           >
             Edit
@@ -175,20 +172,17 @@ const ListItemFilters = ({ filters }: ListItemFiltersProps) => {
     return null;
   }
 
-  const res = filters.slice(2);
+  const res = filters.slice(1);
 
   return (
-    <div className="flex flex-row gap-1">
+    <div className="flex flex-row gap-1 truncate">
       <FilterPill filter={filters[0]} />
       {filters.length > 1 ? (
-        <FilterPill filter={filters[1]} />
-      ) : null}
-      {filters.length > 2 ? (
         <span
           className="mr-2 inline-flex items-center px-2 py-0.5 rounded-md text-sm font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
-          title={res.map(v => v.name).toString()}
+          title={res.map((v) => v.name).toString()}
         >
-          +{filters.length - 2}
+          +{filters.length - 1}
         </span>
       ) : null}
     </div>

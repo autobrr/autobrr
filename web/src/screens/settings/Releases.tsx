@@ -53,10 +53,10 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
         </div>
         <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
           {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title="Release name" />}
-          {profile.hash && <EnabledPill value={profile.hash} label="Hash" title="Normalized hash of the release name. Use with Releae name for exact match" />}
+          {profile.hash && <EnabledPill value={profile.hash} label="Hash" title="Normalized hash of the release name. Use with Release name for exact match" />}
           {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed titel" />}
           {profile.sub_title && <EnabledPill value={profile.sub_title} label="Sub Title" title="Parsed sub titel like Episode name" />}
-          {profile.group && <EnabledPill value={profile.group} label="Group" title="Releae group" />}
+          {profile.group && <EnabledPill value={profile.group} label="Group" title="Release group" />}
           {profile.year && <EnabledPill value={profile.year} label="Year" title="Year" />}
           {profile.month && <EnabledPill value={profile.month} label="Month" title="Month" />}
           {profile.day && <EnabledPill value={profile.day} label="Day" title="Day" />}
