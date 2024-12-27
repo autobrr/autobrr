@@ -68,12 +68,14 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 
 		var url, apiKey, lastRefreshStatus, lastRefreshData sql.Null[string]
 		var lastRefreshTime sql.Null[time.Time]
+		var clientID sql.Null[int]
 
-		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &lastRefreshTime, &lastRefreshStatus, &lastRefreshData, &list.CreatedAt, &list.UpdatedAt)
+		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &lastRefreshTime, &lastRefreshStatus, &lastRefreshData, &list.CreatedAt, &list.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
 
+		list.ClientID = clientID.V
 		list.URL = url.V
 		list.APIKey = apiKey.V
 		list.LastRefreshTime = lastRefreshTime.V
@@ -128,12 +130,14 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 	var list domain.List
 
 	var url, apiKey sql.Null[string]
+	var clientID sql.Null[int]
 
-	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &list.ClientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshData, &list.CreatedAt, &list.UpdatedAt)
+	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshData, &list.CreatedAt, &list.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 
+	list.ClientID = clientID.V
 	list.URL = url.V
 	list.APIKey = apiKey.V
 
@@ -167,7 +171,7 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			list.Name,
 			list.Enabled,
 			list.Type,
-			list.ClientID,
+			toNullInt32(int32(list.ClientID)),
 			list.URL,
 			pq.Array(list.Headers),
 			list.APIKey,
@@ -210,7 +214,7 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 		Set("name", list.Name).
 		Set("enabled", list.Enabled).
 		Set("type", list.Type).
-		Set("client_id", list.ClientID).
+		Set("client_id", toNullInt32(int32(list.ClientID))).
 		Set("url", list.URL).
 		Set("headers", pq.Array(list.Headers)).
 		Set("api_key", list.APIKey).
