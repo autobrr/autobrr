@@ -127,7 +127,6 @@ sessionSecret = "{{ .sessionSecret }}"
 #oidc_redirect_url = ""
 #
 # OIDC Disable Built In Login Form
-#
 #oidc_disable_built_in_login = false
 
 # Custom definitions
