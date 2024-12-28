@@ -125,6 +125,10 @@ sessionSecret = "{{ .sessionSecret }}"
 #
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
 #oidc_redirect_url = ""
+#
+# OIDC Disable Built In Login Form
+#
+#oidc_disable_built_in_login = false
 
 # Custom definitions
 `
@@ -404,6 +408,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "OIDC_REDIRECT_URL"); v != "" {
 		c.Config.OIDCRedirectURL = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_DISABLE_BUILT_IN_LOGIN"); v != "" {
+		c.Config.OIDCDisableBuiltInLogin = strings.EqualFold(strings.ToLower(v), "true")
 	}
 }
 

@@ -141,9 +141,9 @@ export const Login = () => {
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
-        <div className={`px-6 ${!canOnboard ? 'py-12 bg-white dark:bg-gray-800 shadow sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
-          {/* Only show regular login form if onboarding is not available */}
-          {!canOnboard && (
+        <div className={`px-6 ${(!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin)) ? 'py-12 bg-white dark:bg-gray-800 shadow sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
+          {/* Show built-in login form only if OIDC is not enabled or if built-in login is not disabled */}
+          {!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin) && (
             <>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <TextInput<LoginFormFields>
@@ -204,7 +204,7 @@ export const Login = () => {
 
           {/* OIDC login button */}
           {oidcConfig?.enabled && (
-            <div className={!canOnboard ? 'mt-6' : ''}>
+            <div className={!canOnboard && !oidcConfig?.disableBuiltInLogin ? 'mt-6' : ''}>
               <button
                 type="button"
                 onClick={handleOIDCLogin}

@@ -21,12 +21,13 @@ import (
 )
 
 type OIDCConfig struct {
-	Enabled      bool
-	Issuer       string
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
-	Scopes       []string
+	Enabled             bool
+	Issuer              string
+	ClientID            string
+	ClientSecret        string
+	RedirectURL         string
+	DisableBuiltInLogin bool
+	Scopes              []string
 }
 
 type OIDCHandler struct {
@@ -124,12 +125,13 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 	handler := &OIDCHandler{
 		log: log,
 		config: &OIDCConfig{
-			Enabled:      cfg.OIDCEnabled,
-			Issuer:       cfg.OIDCIssuer,
-			ClientID:     cfg.OIDCClientID,
-			ClientSecret: cfg.OIDCClientSecret,
-			RedirectURL:  cfg.OIDCRedirectURL,
-			Scopes:       scopes,
+			Enabled:             cfg.OIDCEnabled,
+			Issuer:              cfg.OIDCIssuer,
+			ClientID:            cfg.OIDCClientID,
+			ClientSecret:        cfg.OIDCClientSecret,
+			RedirectURL:         cfg.OIDCRedirectURL,
+			DisableBuiltInLogin: cfg.OIDCDisableBuiltInLogin,
+			Scopes:              scopes,
 		},
 		provider: provider,
 		verifier: provider.Verifier(oidcConfig),
@@ -282,27 +284,30 @@ func (h *OIDCHandler) GetAuthorizationURL() string {
 }
 
 type GetConfigResponse struct {
-	Enabled          bool   `json:"enabled"`
-	AuthorizationURL string `json:"authorizationUrl"`
-	State            string `json:"state"`
+	Enabled             bool   `json:"enabled"`
+	AuthorizationURL    string `json:"authorizationUrl"`
+	State               string `json:"state"`
+	DisableBuiltInLogin bool   `json:"disableBuiltInLogin"`
 }
 
 func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 	if h == nil {
 		return GetConfigResponse{
-			Enabled: false,
+			Enabled:             false,
+			DisableBuiltInLogin: false,
 		}
 	}
 
 	state := generateRandomState()
 	authURL := h.oauthConfig.AuthCodeURL(state)
 
-	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Msg("returning OIDC config response")
+	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.config.DisableBuiltInLogin).Msg("returning OIDC config response")
 
 	return GetConfigResponse{
-		Enabled:          h.config.Enabled,
-		AuthorizationURL: authURL,
-		State:            state,
+		Enabled:             h.config.Enabled,
+		AuthorizationURL:    authURL,
+		State:               state,
+		DisableBuiltInLogin: h.config.DisableBuiltInLogin,
 	}
 }
 
