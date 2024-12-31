@@ -3,6 +3,7 @@ package list
 import (
 	"context"
 	stdErr "errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -37,9 +38,10 @@ type service struct {
 	scheduler         scheduler.Service
 	downloadClientSvc download_client.Service
 	filterSvc         filter.Service
+	config            *domain.Config
 }
 
-func NewService(log logger.Logger, repo domain.ListRepo, downloadClientSvc download_client.Service, filterSvc filter.Service, schedulerSvc scheduler.Service) Service {
+func NewService(log logger.Logger, repo domain.ListRepo, downloadClientSvc download_client.Service, filterSvc filter.Service, schedulerSvc scheduler.Service, config *domain.Config) Service {
 	return &service{
 		log:  log.With().Str("module", "list").Logger(),
 		repo: repo,
@@ -49,6 +51,7 @@ func NewService(log logger.Logger, repo domain.ListRepo, downloadClientSvc downl
 		downloadClientSvc: downloadClientSvc,
 		filterSvc:         filterSvc,
 		scheduler:         schedulerSvc,
+		config:            config,
 	}
 }
 
@@ -317,10 +320,16 @@ func (s *service) RefreshOtherLists(ctx context.Context) error {
 func (s *service) scheduleJob() error {
 	identifierKey := "lists-updater"
 
+	// Fetch schedule from the configuration
+	schedule := s.config.Schedule
+	if schedule == "" {
+		return fmt.Errorf("scheduler configuration is missing")
+	}
+
 	job := NewRefreshListsJob(s.log.With().Str("job", identifierKey).Logger(), s)
 
-	// schedule job to run every 6th hour
-	id, err := s.scheduler.AddJob(job, "0 */6 * * *", identifierKey)
+	// schedule job
+	id, err := s.scheduler.AddJob(job, schedule, identifierKey)
 	if err != nil {
 		return err
 	}
