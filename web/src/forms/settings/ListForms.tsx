@@ -678,8 +678,6 @@ function ListTypeTrakt() {
 }
 
 function ListTypePlainText() {
-  const { values } = useFormikContext<List>();
-
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
@@ -687,24 +685,16 @@ function ListTypePlainText() {
           Source list
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Use a Trakt list or one of the default autobrr hosted lists.
+          Use a plain text list with one item per line.
         </p>
       </div>
 
-      <SelectFieldCreatable
-        name="url"
+      <TextFieldWide 
+        name="url" 
         label="List URL"
-        help="Default Trakt lists. Override with your own."
-        options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        help="URL to a plain text file with one item per line"
+        placeholder="https://example.com/list.txt"
       />
-
-      {!values.url.startsWith("https://api.autobrr.com/") && (
-        <PasswordFieldWide
-          name="api_key"
-          label="API Key"
-          help="Trakt API Key. Required for private lists."
-        />
-      )}
 
       <div className="space-y-1">
         <fieldset>
