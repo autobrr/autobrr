@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package list
 
 import (
@@ -12,7 +15,7 @@ import (
 var (
 	replaceRegexp        = regexp.MustCompile(`[\p{P}\p{Z}\x{00C0}-\x{017E}\x{00AE}]`)
 	questionmarkRegexp   = regexp.MustCompile(`[?]{2,}`)
-	regionCodeRegexp     = regexp.MustCompile(`\(.+\)$`)
+	regionCodeRegexp     = regexp.MustCompile(`\(.{2,3}\)$`) // TODO should this only be 2 or 3 letters
 	parenthesesEndRegexp = regexp.MustCompile(`\)$`)
 )
 
@@ -83,6 +86,10 @@ func NewTitleSlice() *Titles {
 }
 
 func (ts *Titles) Add(title string, matchRelease bool) {
+	if title == "" || title == "*" {
+		return
+	}
+
 	if matchRelease {
 		title = strings.Trim(title, "?")
 		title = fmt.Sprintf("*%v*", title)
