@@ -15,10 +15,11 @@ import (
 var (
 	replaceRegexp        = regexp.MustCompile(`[\p{P}\p{Z}\x{00C0}-\x{017E}\x{00AE}]`)
 	questionmarkRegexp   = regexp.MustCompile(`[?]{2,}`)
-	regionCodeRegexp     = regexp.MustCompile(`\(.{2,3}\)$`) // TODO should this only be 2 or 3 letters
+	regionCodeRegexp     = regexp.MustCompile(`\(.+\)$`)
 	parenthesesEndRegexp = regexp.MustCompile(`\)$`)
 )
 
+// yearRegexp           = regexp.MustCompile(`\(\d{4}\)$`)
 func processTitle(title string, matchRelease bool) []string {
 	// Checking if the title is empty.
 	if strings.TrimSpace(title) == "" {
