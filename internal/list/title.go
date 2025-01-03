@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package list
 
 import (
@@ -16,6 +19,7 @@ var (
 	parenthesesEndRegexp = regexp.MustCompile(`\)$`)
 )
 
+// yearRegexp           = regexp.MustCompile(`\(\d{4}\)$`)
 func processTitle(title string, matchRelease bool) []string {
 	// Checking if the title is empty.
 	if strings.TrimSpace(title) == "" {
@@ -83,6 +87,10 @@ func NewTitleSlice() *Titles {
 }
 
 func (ts *Titles) Add(title string, matchRelease bool) {
+	if title == "" || title == "*" {
+		return
+	}
+
 	if matchRelease {
 		title = strings.Trim(title, "?")
 		title = fmt.Sprintf("*%v*", title)
