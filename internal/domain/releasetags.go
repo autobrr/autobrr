@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"github.com/moistari/rls"
+	"github.com/moistari/rls/taginfo"
 )
 
 var types map[string][]*TagInfo
@@ -264,6 +267,49 @@ func init() {
 			info.re = regexp.MustCompile(`(?i)(?:` + info.RE() + `)`)
 		}
 	}
+
+	var extraTagInfos = map[string][]*taginfo.Taginfo{}
+
+	extraCollections := [][]string{
+		{"4OD", "4OD", "(?-i:4OD)", "", "", ""},
+		{"ABEMA", "Abema", "(?-i:ABEMA)", "", "", ""},
+		{"ADN", "Animation Digital Network", "(?-i:ADN)", "", "", ""},
+		{"AUBC", "Australian Broadcasting Corporation", "", "", "", ""},
+		{"AUViO", "French AUViO", "(?-i:AUViO)", "", "", ""},
+		{"Bilibili", "Bilibili", "(?-i:Bilibili)", "", "", ""},
+		{"CRiT", "Criterion Channel", "(?-i:CRiT)", "", "", ""},
+		{"FOD", "Fuji Television On Demand", "(?-i:FOD)", "", "", ""},
+		{"HIDIVE", "HIDIVE", "(?-i:HIDIVE)", "", "", ""},
+		{"ITVX", "ITVX aka ITV", "", "", "", ""},
+		{"MA", "Movies Anywhere", "(?-i:MA)", "", "", ""},
+		{"MY5", "MY5 aka Channel 5", "", "", "", ""},
+		{"MyCanal", "French Groupe Canal+", "(?-i:MyCanal)", "", "", ""},
+		{"NOW", "Now", "(?-i:NOW)", "", "", ""},
+		{"NLZ", "Dutch NLZiet", "(?-i:NLZ|NLZiet)", "", "", ""},
+		{"OViD", "OViD", "(?-i:OViD)", "", "", ""},
+		{"STRP", "Star+", "(?-i:STRP)", "", "", ""},
+		{"U-NEXT", "U-NEXT", "(?-i:U-NEXT)", "", "", ""},
+		{"TVer", "TVer", "(?-i:TVer)", "", "", ""},
+		{"TVING", "TVING", "(?-i:TVING)", "", "", ""},
+		{"VIU", "VIU", "(?-i:VIU)", "", "", ""},
+		{"VDL", "Videoland", "(?-i:VDL)", "", "", ""},
+		{"VRV", "VRV", "(?-i:VRV)", "", "", ""},
+		{"Pathe", "Pathé Thuis", "(?-i:Pathe)", "", "", ""},
+		{"SALTO", "SALTO", "(?-i:SALTO)", "", "", ""},
+		{"SHOWTIME", "SHOWTIME", "(?-i:SHO|SHOWTIME)", "", "", ""},
+		{"SYFY", "SYFY", "(?-i:SYFY)", "", "", ""},
+		{"QUIBI", "QUIBI", "(?-i:QIBI|QUIBI)", "", "", ""},
+	}
+
+	for _, collection := range extraCollections {
+		inf, err := taginfo.New(collection[0], collection[1], collection[2], collection[3], collection[4], collection[5])
+		if err != nil {
+			//log.Fatal(err)
+		}
+		extraTagInfos["collection"] = append(extraTagInfos["collection"], inf)
+	}
+
+	rls.DefaultParser = rls.NewTagParser(taginfo.All(extraTagInfos), rls.DefaultLexers()...)
 }
 
 type TagInfo struct {
