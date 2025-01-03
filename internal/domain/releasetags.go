@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"github.com/moistari/rls"
+	"github.com/moistari/rls/taginfo"
 )
 
 var types map[string][]*TagInfo
@@ -264,6 +267,16 @@ func init() {
 			info.re = regexp.MustCompile(`(?i)(?:` + info.RE() + `)`)
 		}
 	}
+
+	var extraTagInfos = map[string][]*taginfo.Taginfo{}
+
+	inf, err := taginfo.New("MA", "Movies Anywhere", "(?-i:MA)", "", "", "")
+	if err != nil {
+		//log.Fatal(err)
+	}
+	extraTagInfos["collection"] = []*taginfo.Taginfo{inf}
+
+	rls.DefaultParser = rls.NewTagParser(taginfo.All(extraTagInfos), rls.DefaultLexers()...)
 }
 
 type TagInfo struct {
