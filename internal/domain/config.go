@@ -35,6 +35,7 @@ type Config struct {
 	OIDCClientSecret    string `mapstructure:"oidc_client_secret"`
 	OIDCRedirectURL     string `mapstructure:"oidc_redirect_url"`
 	OIDCScopes          string `mapstructure:"oidc_scopes"`
+	Schedule            string `toml:"schedule"`
 }
 
 type ConfigUpdate struct {
