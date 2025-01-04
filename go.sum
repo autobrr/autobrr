@@ -69,6 +69,8 @@ github.com/autobrr/go-qbittorrent v1.11.0 h1:Xmt28ECvZYDiamabEUtDZvJxiO/NaoGjJF4
 github.com/autobrr/go-qbittorrent v1.11.0/go.mod h1:sIwIdqDcFbN67tSC5p5Lp27M8/BQFoSoW5XqXyVdHF0=
 github.com/autobrr/go-rtorrent v1.11.0 h1:T1NRPgFLooFFMX0kfvewftLk4hFQUsMlDNB8WMynBSw=
 github.com/autobrr/go-rtorrent v1.11.0/go.mod h1:1CyQ2tcLOGP+p9drOqFiVPb/+QvfExMPCHnEGQd0BmM=
+github.com/autobrr/go-rtorrent v1.12.0 h1:9ErIBHFWHWG2HP17USfS+7SAhjwgdYeMQNNvsMCPmcw=
+github.com/autobrr/go-rtorrent v1.12.0/go.mod h1:xEJQEUNU2GfFk8mzIb02lxNgnIJ9SDOgqKVXA4tQqvw=
 github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d h1:9EGCYgeugAVWLBAtjHC7AFnXSwUdYfCB98WaOgdDREE=
 github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d/go.mod h1:zCozZ9lp4DE340T2+wfMPL/eoQwLVIGDOCKCDEFwTQU=
 github.com/avast/retry-go v3.0.0+incompatible h1:4SOWQ7Qs+oroOTQOYnAHqelpCO0biHSxpiH9JdtuBj0=

@@ -12,7 +12,7 @@ require (
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.2.0
 	github.com/autobrr/go-qbittorrent v1.11.0
-	github.com/autobrr/go-rtorrent v1.11.0
+	github.com/autobrr/go-rtorrent v1.12.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/containrrr/shoutrrr v0.8.0
