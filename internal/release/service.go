@@ -180,6 +180,11 @@ func (s *service) Process(release *domain.Release) {
 	ctx := context.Background()
 
 	// TODO check in config for "Save all releases"
+	if err := s.Store(ctx, release); err != nil {
+		s.log.Error().Err(err).Msgf("release.Process: error writing release to database: %+v", release)
+		return
+	}
+
 	// TODO cross-seed check
 	// TODO dupe checks
 
@@ -255,6 +260,15 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 			release.FilterStatus = domain.ReleaseStatusFilterApproved
 
 			if err = s.Store(ctx, release); err != nil {
+				l.Error().Err(err).Msgf("release.Process: error writing release to database: %+v", release)
+				return err
+			}
+		}
+
+		if release.ID > 0 {
+			release.FilterStatus = domain.ReleaseStatusFilterApproved
+
+			if err = s.Update(ctx, release); err != nil {
 				l.Error().Err(err).Msgf("release.Process: error writing release to database: %+v", release)
 				return err
 			}

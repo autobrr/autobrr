@@ -67,6 +67,7 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 func (repo *ReleaseRepo) Update(ctx context.Context, r *domain.Release) error {
 	queryBuilder := repo.db.squirrel.
 		Update("release").
+		Set("filter_status", r.FilterStatus).
 		Set("size", r.Size).
 		Where(sq.Eq{"id": r.ID})
 
@@ -1041,10 +1042,11 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 
 func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id, r.torrent_name, r.normalized_hash, r.title, ras.action, ras.status").
+		Select("r.id, r.torrent_name, r.normalized_hash, r.title").
 		From("release r").
-		LeftJoin("release_action_status ras ON r.id = ras.release_id").
-		Where("ras.status = 'PUSH_APPROVED'")
+		Where(sq.Or{sq.Eq{"r.filter_status": domain.ReleaseStatusFilterApproved}, sq.Eq{"r.filter_status": domain.ReleaseStatusFilterPending}})
+	//LeftJoin("release_action_status ras ON r.id = ras.release_id").
+	//Where("ras.status = 'PUSH_APPROVED'")
 
 	if profile.ReleaseName && profile.Hash {
 		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
@@ -1221,7 +1223,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 
 	for rows.Next() {
 		r := result{}
-		if err := rows.Scan(&r.id, &r.release, &r.hash, &r.title, &r.action, &r.status); err != nil {
+		if err := rows.Scan(&r.id, &r.release, &r.hash, &r.title); err != nil {
 			return false, errors.Wrap(err, "error scan CheckIsDuplicateRelease")
 		}
 		res = append(res, r)
