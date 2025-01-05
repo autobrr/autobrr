@@ -60,7 +60,8 @@ func TestEndToEnd(t *testing.T) {
 
 	res, err := page.Goto(baseUrl("/"))
 	assertErrorToNilf("could not goto: %w", err)
-	log.Println(res.Body())
+	log.Printf("status code: %d status: %s\n", res.Status(), res.StatusText())
+	log.Println(res.Text())
 
 	// Run tests
 	tests := []struct {
@@ -79,13 +80,15 @@ func TestEndToEnd(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		fmt.Printf("Running test: %s\n", tt.name)
-		if err := tt.fn(page); err != nil {
-			fmt.Printf("Test %s failed: %v\n", tt.name, err)
-		} else {
-			fmt.Printf("Test %s passed\n", tt.name)
-		}
-		time.Sleep(time.Millisecond * 1000) // Wait between tests
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("Running test: %s\n", tt.name)
+			if err := tt.fn(page); err != nil {
+				t.Errorf("Test %s failed: %v\n", tt.name, err)
+			} else {
+				t.Logf("Test %s passed\n", tt.name)
+			}
+			time.Sleep(time.Millisecond * 1000) // Wait between tests
+		})
 	}
 
 	assertErrorToNilf("could not close browser: %w", browser.Close())
