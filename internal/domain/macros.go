@@ -32,7 +32,7 @@ type Macro struct {
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
-	Description               string		  
+	Description               string
 	DownloadUrl               string
 	Episode                   int
 	FilterID                  int
@@ -50,10 +50,12 @@ type Macro struct {
 	IndexerIdentifierExternal string
 	IndexerName               string
 	InfoUrl                   string
+	IsDuplicate               bool
 	Language                  []string
 	Leechers                  int
 	LogScore                  int
 	MagnetURI                 string
+	MetaIMDB                  string
 	Origin                    string
 	Other                     []string
 	PreTime                   string
@@ -66,6 +68,8 @@ type Macro struct {
 	Seeders                   int
 	Size                      uint64
 	SizeString                string
+	SkipDuplicateProfileID    int64
+	SkipDuplicateProfileName  string
 	Source                    string
 	Tags                      string
 	Title                     string
@@ -78,6 +82,7 @@ type Macro struct {
 	TorrentTmpFile            string
 	Type                      string
 	Uploader                  string
+	RecordLabel               string
 	Website                   string
 	Year                      int
 	Month                     int
@@ -122,10 +127,12 @@ func NewMacro(release Release) Macro {
 		IndexerIdentifierExternal: release.Indexer.IdentifierExternal,
 		IndexerName:               release.Indexer.Name,
 		InfoUrl:                   release.InfoURL,
+		IsDuplicate:               release.IsDuplicate,
 		Language:                  release.Language,
 		Leechers:                  release.Leechers,
 		LogScore:                  release.LogScore,
 		MagnetURI:                 release.MagnetURI,
+		MetaIMDB:                  release.MetaIMDB,
 		Origin:                    release.Origin,
 		Other:                     release.Other,
 		PreTime:                   release.PreTime,
@@ -139,6 +146,8 @@ func NewMacro(release Release) Macro {
 		Size:                      release.Size,
 		SizeString:                humanize.Bytes(release.Size),
 		Source:                    release.Source,
+		SkipDuplicateProfileID:    release.SkipDuplicateProfileID,
+		SkipDuplicateProfileName:  release.SkipDuplicateProfileName,
 		Tags:                      strings.Join(release.Tags, ", "),
 		Title:                     release.Title,
 		TorrentDataRawBytes:       release.TorrentDataRawBytes,
@@ -148,8 +157,9 @@ func NewMacro(release Release) Macro {
 		TorrentPathName:           release.TorrentTmpFile,
 		TorrentUrl:                release.DownloadURL,
 		TorrentTmpFile:            release.TorrentTmpFile,
-		Type:                      release.Type,
+		Type:                      release.Type.String(),
 		Uploader:                  release.Uploader,
+		RecordLabel:               release.RecordLabel,
 		Website:                   release.Website,
 		Year:                      release.Year,
 		Month:                     release.Month,

@@ -81,11 +81,7 @@ function ProxySettings() {
   return (
     <Section
       title="Proxies"
-      description={
-        <>
-          Proxies that can be used with Indexers, feeds and IRC.<br/>
-        </>
-      }
+      description="Proxies that can be used with Indexers, feeds and IRC."
       rightSide={
         <button
           type="button"

@@ -237,7 +237,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
-          network={network}
+          data={network}
         />
         <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
           <Checkbox
@@ -478,7 +478,8 @@ const ListItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>

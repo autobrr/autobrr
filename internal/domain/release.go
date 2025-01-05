@@ -7,7 +7,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"html"
 	"io"
 	"math"
@@ -18,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -43,78 +48,260 @@ type ReleaseRepo interface {
 
 	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
 	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
+
+	StoreDuplicateProfile(ctx context.Context, profile *DuplicateReleaseProfile) error
+	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
+	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *Release) (bool, error)
 }
 
 type Release struct {
-	ID                              int64                 `json:"id"`
-	FilterStatus                    ReleaseFilterStatus   `json:"filter_status"`
-	Rejections                      []string              `json:"rejections"`
-	Indexer                         IndexerMinimal        `json:"indexer"`
-	FilterName                      string                `json:"filter"`
-	Protocol                        ReleaseProtocol       `json:"protocol"`
-	Implementation                  ReleaseImplementation `json:"implementation"` // irc, rss, api
-	Timestamp                       time.Time             `json:"timestamp"`
-	AnnounceType                    AnnounceType          `json:"announce_type"`
-	InfoURL                         string                `json:"info_url"`
-	DownloadURL                     string                `json:"download_url"`
-	MagnetURI                       string                `json:"-"`
-	GroupID                         string                `json:"group_id"`
-	TorrentID                       string                `json:"torrent_id"`
-	TorrentTmpFile                  string                `json:"-"`
-	TorrentDataRawBytes             []byte                `json:"-"`
-	TorrentHash                     string                `json:"-"`
-	TorrentName                     string                `json:"name"` // full release name
-	Size                            uint64                `json:"size"`
-	Title                           string                `json:"title"` // Parsed title
-	Description                     string                `json:"-"`
-	Category                        string                `json:"category"`
-	Categories                      []string              `json:"categories,omitempty"`
-	Season                          int                   `json:"season"`
-	Episode                         int                   `json:"episode"`
-	Year                            int                   `json:"year"`
-	Month                           int                   `json:"month"`
-	Day                             int                   `json:"day"`
-	Resolution                      string                `json:"resolution"`
-	Source                          string                `json:"source"`
-	Codec                           []string              `json:"codec"`
-	Container                       string                `json:"container"`
-	HDR                             []string              `json:"hdr"`
-	Audio                           []string              `json:"-"`
-	AudioChannels                   string                `json:"-"`
-	AudioFormat                     string                `json:"-"`
-	Bitrate                         string                `json:"-"`
-	Group                           string                `json:"group"`
-	Region                          string                `json:"-"`
-	Language                        []string              `json:"-"`
-	Proper                          bool                  `json:"proper"`
-	Repack                          bool                  `json:"repack"`
-	Website                         string                `json:"website"`
-	Artists                         string                `json:"-"`
-	Type                            string                `json:"type"` // Album,Single,EP
-	LogScore                        int                   `json:"-"`
-	HasCue                          bool                  `json:"-"`
-	HasLog                          bool                  `json:"-"`
-	Origin                          string                `json:"origin"` // P2P, Internal
-	Tags                            []string              `json:"-"`
-	ReleaseTags                     string                `json:"-"`
-	Freeleech                       bool                  `json:"-"`
-	FreeleechPercent                int                   `json:"-"`
-	Bonus                           []string              `json:"-"`
-	Uploader                        string                `json:"uploader"`
-	PreTime                         string                `json:"pre_time"`
-	Other                           []string              `json:"-"`
-	RawCookie                       string                `json:"-"`
-	Seeders                         int                   `json:"-"`
-	Leechers                        int                   `json:"-"`
-	AdditionalSizeCheckRequired     bool                  `json:"-"`
-	AdditionalUploaderCheckRequired bool                  `json:"-"`
-	FilterID                        int                   `json:"-"`
-	Filter                          *Filter               `json:"-"`
-	ActionStatus                    []ReleaseActionStatus `json:"action_status"`
+	ID                                 int64                 `json:"id"`
+	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
+	Rejections                         []string              `json:"rejections"`
+	Indexer                            IndexerMinimal        `json:"indexer"`
+	FilterName                         string                `json:"filter"`
+	Protocol                           ReleaseProtocol       `json:"protocol"`
+	Implementation                     ReleaseImplementation `json:"implementation"` // irc, rss, api
+	Timestamp                          time.Time             `json:"timestamp"`
+	AnnounceType                       AnnounceType          `json:"announce_type"`
+	Type                               rls.Type              `json:"type"` // rls.Type
+	InfoURL                            string                `json:"info_url"`
+	DownloadURL                        string                `json:"download_url"`
+	MagnetURI                          string                `json:"-"`
+	GroupID                            string                `json:"group_id"`
+	TorrentID                          string                `json:"torrent_id"`
+	TorrentTmpFile                     string                `json:"-"`
+	TorrentDataRawBytes                []byte                `json:"-"`
+	TorrentHash                        string                `json:"-"`
+	TorrentName                        string                `json:"name"`            // full release name
+	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
+	Size                               uint64                `json:"size"`
+	Title                              string                `json:"title"`     // Parsed title
+	SubTitle                           string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
+	Description                        string                `json:"-"`
+	Category                           string                `json:"category"`
+	Categories                         []string              `json:"categories,omitempty"`
+	Season                             int                   `json:"season"`
+	Episode                            int                   `json:"episode"`
+	Year                               int                   `json:"year"`
+	Month                              int                   `json:"month"`
+	Day                                int                   `json:"day"`
+	Resolution                         string                `json:"resolution"`
+	Source                             string                `json:"source"`
+	Codec                              []string              `json:"codec"`
+	Container                          string                `json:"container"`
+	HDR                                []string              `json:"hdr"`
+	Audio                              []string              `json:"-"`
+	AudioChannels                      string                `json:"-"`
+	AudioFormat                        string                `json:"-"`
+	Bitrate                            string                `json:"-"`
+	Group                              string                `json:"group"`
+	Region                             string                `json:"-"`
+	Language                           []string              `json:"-"`
+	Proper                             bool                  `json:"proper"`
+	Repack                             bool                  `json:"repack"`
+	Website                            string                `json:"website"`
+	Hybrid                             bool                  `json:"hybrid"`
+	Edition                            []string              `json:"edition"`
+	Cut                                []string              `json:"cut"`
+	MediaProcessing                    string                `json:"media_processing"` // Remux, Encode, Untouched
+	Artists                            string                `json:"-"`
+	LogScore                           int                   `json:"-"`
+	HasCue                             bool                  `json:"-"`
+	HasLog                             bool                  `json:"-"`
+	Origin                             string                `json:"origin"` // P2P, Internal
+	Tags                               []string              `json:"-"`
+	ReleaseTags                        string                `json:"-"`
+	Freeleech                          bool                  `json:"-"`
+	FreeleechPercent                   int                   `json:"-"`
+	Bonus                              []string              `json:"-"`
+	Uploader                           string                `json:"uploader"`
+	RecordLabel                        string                `json:"record_label"`
+	PreTime                            string                `json:"pre_time"`
+	Other                              []string              `json:"-"`
+	RawCookie                          string                `json:"-"`
+	Seeders                            int                   `json:"-"`
+	Leechers                           int                   `json:"-"`
+	AdditionalSizeCheckRequired        bool                  `json:"-"`
+	AdditionalUploaderCheckRequired    bool                  `json:"-"`
+	AdditionalRecordLabelCheckRequired bool                  `json:"-"`
+	IsDuplicate                        bool                  `json:"-"`
+	SkipDuplicateProfileID             int64                 `json:"-"`
+	SkipDuplicateProfileName           string                `json:"-"`
+	FilterID                           int                   `json:"-"`
+	Filter                             *Filter               `json:"-"`
+	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
+	MetaIMDB                           string                `json:"-"`
+}
+
+// Hash return md5 hashed normalized release name
+func (r *Release) Hash() string {
+	formatted := r.TorrentName
+
+	// for tv and movies we create the formatted title to have the best chance of matching
+	if r.IsTypeVideo() {
+		formatted = r.NormalizedTitle()
+	}
+
+	normalized := MustNormalize(formatted)
+	h := md5.Sum([]byte(normalized))
+	str := hex.EncodeToString(h[:])
+	return str
+}
+
+// MustNormalize applies the Normalize transform to s, returning a lower cased,
+// clean form of s useful for matching titles.
+func MustNormalize(s string) string {
+	s, _, err := transform.String(NewNormalizer(), s)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
+// NewNormalizer is a custom rls.Normalizer that keeps plus sign + for HDR10+ fx
+// It creates a new a text transformer chain (similiar to
+// NewCleaner) that normalizes text to lower case clean form useful for
+// matching titles.
+//
+// See: https://go.dev/blog/normalization
+func NewNormalizer() transform.Transformer {
+	return transform.Chain(
+		norm.NFD,
+		rls.NewCollapser(
+			true, true,
+			"`"+`':;~!@#%^*=()[]{}<>/?|\",`, " \t\r\n\f._",
+			func(r, prev, next rune) rune {
+				switch {
+				case r == '-' && unicode.IsSpace(prev):
+					return -1
+				case r == '$' && (unicode.IsLetter(prev) || unicode.IsLetter(next)):
+					return 'S'
+				case r == '£' && (unicode.IsLetter(prev) || unicode.IsLetter(next)):
+					return 'L'
+				case r == '$', r == '£':
+					return -1
+				}
+				return r
+			},
+		),
+		norm.NFC,
+	)
+}
+
+func (r *Release) NormalizedTitle() string {
+	var v []string
+
+	v = append(v, r.Title)
+
+	if r.Year > 0 && r.Month > 0 && r.Day > 0 {
+		v = append(v, fmt.Sprintf("%d %d %d", r.Year, r.Month, r.Day))
+	} else if r.Year > 0 {
+		v = append(v, fmt.Sprintf("%d", r.Year))
+	}
+
+	if len(r.Language) > 0 {
+		v = append(v, strings.Join(r.Language, " "))
+	}
+
+	if len(r.Cut) > 0 {
+		v = append(v, strings.Join(r.Cut, " "))
+	}
+
+	if len(r.Edition) > 0 {
+		v = append(v, strings.Join(r.Edition, " "))
+	}
+
+	if r.Season > 0 && r.Episode > 0 {
+		v = append(v, fmt.Sprintf("S%dE%d", r.Season, r.Episode))
+	} else if r.Season > 0 && r.Episode == 0 {
+		v = append(v, fmt.Sprintf("S%d", r.Season))
+	}
+
+	if r.Proper {
+		v = append(v, "PROPER")
+	}
+
+	if r.Repack {
+		v = append(v, r.RepackStr())
+	}
+
+	if r.Hybrid {
+		v = append(v, "HYBRiD")
+	}
+
+	if r.SubTitle != "" {
+		v = append(v, r.SubTitle)
+	}
+
+	if r.Resolution != "" {
+		v = append(v, r.Resolution)
+	}
+
+	if r.Website != "" {
+		v = append(v, r.Website)
+	}
+
+	if r.Region != "" {
+		v = append(v, r.Region)
+	}
+
+	if r.Source != "" {
+		v = append(v, r.Source)
+	}
+
+	// remux
+	if r.MediaProcessing == "REMUX" {
+		v = append(v, "REMUX")
+	}
+
+	if len(r.Codec) > 0 {
+		v = append(v, strings.Join(r.Codec, " "))
+	}
+
+	if len(r.HDR) > 0 {
+		v = append(v, strings.Join(r.HDR, " "))
+	}
+
+	if len(r.Audio) > 0 {
+		v = append(v, r.AudioString())
+	}
+
+	str := strings.Join(v, " ")
+
+	if r.Group != "" {
+		str = fmt.Sprintf("%s-%s", str, r.Group)
+	}
+
+	return str
+}
+
+func (r *Release) RepackStr() string {
+	if r.Other != nil {
+		if slices.Contains(r.Other, "REPACK") {
+			return "REPACK"
+		} else if slices.Contains(r.Other, "REREPACK") {
+			return "REREPACK"
+		} else if slices.Contains(r.Other, "REPACK2") {
+			return "REPACK2"
+		} else if slices.Contains(r.Other, "REPACK3") {
+			return "REPACK3"
+		}
+	}
+	return ""
 }
 
 func (r *Release) Raw(s string) rls.Release {
 	return rls.ParseString(s)
+}
+
+func (r *Release) ParseType(s string) {
+	r.Type = rls.ParseType(s)
+}
+
+func (r *Release) IsTypeVideo() bool {
+	return r.Type.Is(rls.Movie, rls.Series, rls.Episode)
 }
 
 type AnnounceType string
@@ -359,6 +546,10 @@ func NewRelease(indexer IndexerMinimal) *Release {
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),
 		Tags:           []string{},
+		Language:       []string{},
+		Edition:        []string{},
+		Cut:            []string{},
+		Other:          []string{},
 		Size:           0,
 		AnnounceType:   AnnounceTypeNew,
 	}
@@ -369,28 +560,42 @@ func NewRelease(indexer IndexerMinimal) *Release {
 func (r *Release) ParseString(title string) {
 	rel := rls.ParseString(title)
 
-	r.Type = rel.Type.String()
+	r.Type = rel.Type
 
 	r.TorrentName = title
+
 	r.Source = rel.Source
 	r.Resolution = rel.Resolution
 	r.Region = rel.Region
+
+	if rel.Language != nil {
+		r.Language = rel.Language
+	}
+
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
 	r.Artists = rel.Artist
-	r.Language = rel.Language
 
-	r.Other = rel.Other
+	if rel.Other != nil {
+		r.Other = rel.Other
+	}
 
 	r.Proper = slices.Contains(r.Other, "PROPER")
-	r.Repack = slices.Contains(r.Other, "REPACK")
+	r.Repack = slices.Contains(r.Other, "REPACK") || slices.Contains(r.Other, "REREPACK")
+	r.Hybrid = slices.Contains(r.Other, "HYBRiD")
+
+	// TODO default to Encode and set Untouched for discs
+	if slices.Contains(r.Other, "REMUX") {
+		r.MediaProcessing = "REMUX"
+	}
 
 	if r.Title == "" {
 		r.Title = rel.Title
 	}
+	r.SubTitle = rel.Subtitle
 
 	if r.Season == 0 {
 		r.Season = rel.Series
@@ -413,8 +618,22 @@ func (r *Release) ParseString(title string) {
 		r.Group = rel.Group
 	}
 
+	if r.Website == "" {
+		r.Website = rel.Collection
+	}
+
+	if rel.Cut != nil {
+		r.Cut = rel.Cut
+	}
+
+	if rel.Edition != nil {
+		r.Edition = rel.Edition
+	}
+
 	r.ParseReleaseTagsString(r.ReleaseTags)
 	r.extraParseSource(rel)
+
+	r.NormalizedHash = r.Hash()
 }
 
 func (r *Release) extraParseSource(rel rls.Release) {
@@ -449,7 +668,7 @@ func (r *Release) extraParseSource(rel rls.Release) {
 	}
 
 	// check res to be 1080p or 2160p and codec to be AVC, HEVC or if other contains Remux, then set source to BluRay if it differs
-	if !basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) && basicContainsSlice(r.Resolution, []string{"1080p", "2160p"}) && basicContainsMatch(r.Codec, []string{"AVC", "HEVC"}) && basicContainsMatch(r.Other, []string{"REMUX"}) {
+	if !basicContainsSlice(r.Source, []string{"WEB-DL", "BluRay", "UHD.BluRay"}) && basicContainsSlice(r.Resolution, []string{"1080p", "2160p"}) && basicContainsMatch(r.Codec, []string{"AVC", "H.264", "H.265", "HEVC"}) && basicContainsMatch(r.Other, []string{"REMUX"}) {
 		// handle missing or unexpected source for some bluray releases
 		if r.Resolution == "1080p" {
 			r.Source = "BluRay"
@@ -461,6 +680,10 @@ func (r *Release) extraParseSource(rel rls.Release) {
 }
 
 func (r *Release) ParseReleaseTagsString(tags string) {
+	if tags == "" {
+		return
+	}
+
 	cleanTags := CleanReleaseTags(tags)
 	t := ParseReleaseTagString(cleanTags)
 
@@ -539,6 +762,20 @@ func (r *Release) OpenTorrentFile() error {
 	r.TorrentDataRawBytes = tmpFile
 
 	return nil
+}
+
+// AudioString takes r.Audio and r.AudioChannels and returns a string like "DDP Atmos 5.1"
+func (r *Release) AudioString() string {
+	var audio []string
+
+	audio = append(audio, r.Audio...)
+	audio = append(audio, r.AudioChannels)
+
+	if len(audio) > 0 {
+		return strings.Join(audio, " ")
+	}
+
+	return ""
 }
 
 func (r *Release) DownloadTorrentFileCtx(ctx context.Context) error {
@@ -846,6 +1083,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Uploader = uploader
 	}
 
+	if recordLabel, err := getStringMapValue(varMap, "recordLabel"); err == nil {
+		r.RecordLabel = recordLabel
+	}
+
 	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
 		// Some indexers like BTFiles announces size with comma. Humanize does not handle that well and strips it.
 		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
@@ -927,9 +1168,9 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Episode = episode
 	}
 
-	//if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
-	//	r.MetaIMDB = metaImdb
-	//}
+	if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
+		r.MetaIMDB = metaImdb
+	}
 
 	return nil
 }
@@ -985,4 +1226,31 @@ func getUniqueTags(target []string, source []string) []string {
 	target = append(target, toAppend...)
 
 	return target
+}
+
+type DuplicateReleaseProfile struct {
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Protocol     bool   `json:"protocol"`
+	ReleaseName  bool   `json:"release_name"`
+	Hash         bool   `json:"hash"`
+	Title        bool   `json:"title"`
+	SubTitle     bool   `json:"sub_title"`
+	Year         bool   `json:"year"`
+	Month        bool   `json:"month"`
+	Day          bool   `json:"day"`
+	Source       bool   `json:"source"`
+	Resolution   bool   `json:"resolution"`
+	Codec        bool   `json:"codec"`
+	Container    bool   `json:"container"`
+	DynamicRange bool   `json:"dynamic_range"`
+	Audio        bool   `json:"audio"`
+	Group        bool   `json:"group"`
+	Season       bool   `json:"season"`
+	Episode      bool   `json:"episode"`
+	Website      bool   `json:"website"`
+	Proper       bool   `json:"proper"`
+	Repack       bool   `json:"repack"`
+	Edition      bool   `json:"edition"`
+	Language     bool   `json:"language"`
 }

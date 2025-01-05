@@ -35,6 +35,13 @@ export const ReleaseKeys = {
   latestActivity: () => [...ReleaseKeys.all, "latest-activity"] as const,
 };
 
+export const ReleaseProfileDuplicateKeys = {
+  all: ["releaseProfileDuplicate"] as const,
+  lists: () => [...ReleaseProfileDuplicateKeys.all, "list"] as const,
+  details: () => [...ReleaseProfileDuplicateKeys.all, "detail"] as const,
+  detail: (id: number) => [...ReleaseProfileDuplicateKeys.details(), id] as const,
+};
+
 export const ApiKeys = {
   all: ["api_keys"] as const,
   lists: () => [...ApiKeys.all, "list"] as const,
@@ -47,7 +54,8 @@ export const DownloadClientKeys = {
   lists: () => [...DownloadClientKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...DownloadClientKeys.all, "detail"] as const,
-  detail: (id: number) => [...DownloadClientKeys.details(), id] as const
+  detail: (id: number) => [...DownloadClientKeys.details(), id] as const,
+  arrTags: (id: number) => [...DownloadClientKeys.details(), id, "arr-tags"] as const
 };
 
 export const FeedKeys = {
@@ -88,4 +96,11 @@ export const ProxyKeys = {
   lists: () => [...ProxyKeys.all, "list"] as const,
   details: () => [...ProxyKeys.all, "detail"] as const,
   detail: (id: number) => [...ProxyKeys.details(), id] as const
+};
+
+export const ListKeys = {
+  all: ["list"] as const,
+  lists: () => [...ListKeys.all, "list"] as const,
+  details: () => [...ListKeys.all, "detail"] as const,
+  detail: (id: number) => [...ListKeys.details(), id] as const
 };

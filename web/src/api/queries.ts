@@ -11,11 +11,18 @@ import {
   FeedKeys,
   FilterKeys,
   IndexerKeys,
-  IrcKeys, NotificationKeys, ProxyKeys,
-  ReleaseKeys,
+  IrcKeys, ListKeys, NotificationKeys, ProxyKeys,
+  ReleaseKeys, ReleaseProfileDuplicateKeys,
   SettingsKeys
 } from "@api/query_keys";
 import { ColumnFilter } from "@tanstack/react-table";
+
+export const FiltersGetAllQueryOptions = () =>
+  queryOptions({
+    queryKey: FilterKeys.lists(),
+    queryFn: () => APIClient.filters.getAll(),
+    refetchOnWindowFocus: false
+  });
 
 export const FiltersQueryOptions = (indexers: string[], sortOrder: string) =>
   queryOptions({
@@ -92,6 +99,14 @@ export const DownloadClientsQueryOptions = () =>
     queryFn: () => APIClient.download_clients.getAll(),
   });
 
+export const DownloadClientsArrTagsQueryOptions = (clientID: number) =>
+  queryOptions({
+    queryKey: DownloadClientKeys.arrTags(clientID),
+    queryFn: () => APIClient.download_clients.getArrTags(clientID),
+    retry: false,
+    enabled: clientID > 0,
+  });
+
 export const NotificationsQueryOptions = () =>
   queryOptions({
     queryKey: NotificationKeys.lists(),
@@ -150,6 +165,14 @@ export const ReleasesIndexersQueryOptions = () =>
     staleTime: Infinity
   });
 
+export const ReleaseProfileDuplicateList = () =>
+  queryOptions({
+    queryKey: ReleaseProfileDuplicateKeys.lists(),
+    queryFn: () => APIClient.release.profiles.duplicates.list(),
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
+  });
+
 export const ProxiesQueryOptions = () =>
   queryOptions({
     queryKey: ProxyKeys.lists(),
@@ -162,4 +185,11 @@ export const ProxyByIdQueryOptions = (proxyId: number) =>
     queryKey: ProxyKeys.detail(proxyId),
     queryFn: async ({queryKey}) => await APIClient.proxy.getByID(queryKey[2]),
     retry: false,
+  });
+
+export const ListsQueryOptions = () =>
+  queryOptions({
+    queryKey: ListKeys.lists(),
+    queryFn: () => APIClient.lists.list(),
+    refetchOnWindowFocus: false
   });

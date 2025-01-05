@@ -18,13 +18,7 @@ import { componentMapType } from "./DownloadClientForms";
 import { sleep } from "@utils";
 import { ImplementationBadges } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
-
-
-interface UpdateProps {
-  isOpen: boolean;
-  toggle: () => void;
-  feed: Feed;
-}
+import { UpdateFormProps } from "@forms/_shared";
 
 interface InitialValues {
   id: number;
@@ -41,7 +35,8 @@ interface InitialValues {
   settings: FeedSettings;
 }
 
-export function FeedUpdateForm({ isOpen, toggle, feed }: UpdateProps) {
+export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
+  const feed = data;
   const [isTesting, setIsTesting] = useState(false);
   const [isTestSuccessful, setIsSuccessfulTest] = useState(false);
   const [isTestError, setIsErrorTest] = useState(false);

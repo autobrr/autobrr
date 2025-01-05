@@ -106,9 +106,9 @@ function ListItem({ client }: DLSettingsItemProps) {
     <li>
       <div className="grid grid-cols-12 items-center py-2">
         <DownloadClientUpdateForm
-          client={client}
           isOpen={updateClientIsOpen}
           toggle={toggleUpdateClient}
+          data={client}
         />
         <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-6 flex items-center">
           <Checkbox

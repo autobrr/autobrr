@@ -22,6 +22,7 @@ import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { classNames } from "@utils";
 import { ProxiesQueryOptions } from "@api/queries";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 interface ChannelsFieldArrayProps {
   channels: IrcChannel[];
@@ -33,9 +34,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
       {({ remove, push }: FieldArrayRenderProps) => (
         <div className="flex flex-col space-y-2">
           {channels && channels.length > 0 ? (
-            channels.map((channel: IrcChannel, index) => {
-              const isDisabled = channel.name === "#ptp-announce-dev";
-              return (
+              channels.map((_, index) => (
                 <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
                   <div className="flex gap-2">
                     <Field name={`channels.${index}.name`}>
@@ -49,10 +48,8 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                             meta.touched && meta.error
                               ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                               : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5",
-                            isDisabled ? "disabled dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed" : "bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
                           )}
-                          disabled={isDisabled}
                         />
                       )}
                     </Field>
@@ -69,10 +66,8 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                             meta.touched && meta.error
                               ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                               : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5",
-                            isDisabled ? "disabled dark:bg-gray-700 dark:text-white cursor-not-allowed" : "bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
                           )}
-                          disabled={isDisabled}
                         />
                       )}
                     </Field>
@@ -80,19 +75,14 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
 
                   <button
                     type="button"
-                    className={classNames(
-                      "bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500",
-                      isDisabled ? "hidden" : ""
-                    )}
+                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                     onClick={() => remove(index)}
-                    disabled={isDisabled}
                   >
                     <span className="sr-only">Remove</span>
                     <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                   </button>
                 </div>
-              );
-            })
+              ))
           ) : (
             <span className="text-center text-sm text-grey-darker dark:text-white">
               No channels!
@@ -120,11 +110,6 @@ interface IrcNetworkAddFormValues {
     nick: string;
     auth: IrcAuth;
     channels: IrcChannel[];
-}
-
-interface AddFormProps {
-  isOpen: boolean;
-  toggle: () => void;
 }
 
 export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
@@ -275,17 +260,11 @@ interface IrcNetworkUpdateFormValues {
     proxy_id: number;
 }
 
-interface IrcNetworkUpdateFormProps {
-    isOpen: boolean;
-    toggle: () => void;
-    network: IrcNetwork;
-}
-
 export function IrcNetworkUpdateForm({
   isOpen,
   toggle,
-  network
-}: IrcNetworkUpdateFormProps) {
+  data: network
+}: UpdateFormProps<IrcNetwork>) {
   const queryClient = useQueryClient();
 
   const proxies = useQuery(ProxiesQueryOptions());

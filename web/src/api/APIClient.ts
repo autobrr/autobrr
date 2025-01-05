@@ -296,6 +296,7 @@ export const APIClient = {
   },
   download_clients: {
     getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
+    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/download_clients/${clientID}/arr/tags`),
     create: (dc: DownloadClient) => appClient.Post("api/download_clients", {
       body: dc
     }),
@@ -409,6 +410,22 @@ export const APIClient = {
       body: notification
     })
   },
+  lists: {
+    list: () => appClient.Get<List[]>("api/lists"),
+    getByID: (id: number) => appClient.Get<List>(`api/lists/${id}`),
+    store: (list: List) => appClient.Post("api/lists", {
+      body: list
+    }),
+    update: (list: List) => appClient.Put(`api/lists/${list.id}`, {
+      body: list
+    }),
+    delete: (id: number) => appClient.Delete(`api/lists/${id}`),
+    refreshList: (id: number) => appClient.Post(`api/lists/${id}/refresh`),
+    refreshAll: () => appClient.Post(`api/lists/refresh`),
+    test: (list: List) => appClient.Post("api/lists/test", {
+      body: list
+    })
+  },
   proxy: {
     list: () => appClient.Get<Proxy[]>("api/proxy"),
     getByID: (id: number) => appClient.Get<Proxy>(`api/proxy/${id}`),
@@ -481,7 +498,16 @@ export const APIClient = {
     },
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
-    )
+    ),
+    profiles: {
+      duplicates: {
+        list: () => appClient.Get<ReleaseProfileDuplicate[]>(`api/release/profiles/duplicate`),
+        delete: (id: number) => appClient.Delete(`api/release/profiles/duplicate/${id}`),
+        store: (profile: ReleaseProfileDuplicate) => appClient.Post(`api/release/profiles/duplicate`, {
+          body: profile
+        }),
+      }
+    }
   },
   updates: {
     check: () => appClient.Get("api/updates/check"),

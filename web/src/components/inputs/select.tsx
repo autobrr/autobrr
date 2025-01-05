@@ -251,7 +251,7 @@ export function DownloadClientSelect({
 
 export interface SelectFieldOption {
   label: string;
-  value: string;
+  value: string | number | null;
 }
 
 export interface SelectFieldProps {
@@ -293,7 +293,7 @@ export const Select = ({
             onChange={(value) => setFieldValue(field.name, value)}
           >
             {({ open }) => (
-              <>
+              <div>
                 <Label className="flex text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">
                   {tooltip ? (
                     <DocsTooltip label={label}>{tooltip}</DocsTooltip>
@@ -364,7 +364,7 @@ export const Select = ({
                     </ListboxOptions>
                   </Transition>
                 </div>
-              </>
+              </div>
             )}
           </Listbox>
         )}
@@ -510,7 +510,7 @@ export const AgeSelect = ({
         setDuration(value);
       }}>
         {({ open }) => (
-          <>
+          <div>
             <div className="mt-0 relative">
               <ListboxButton className="block w-full relative shadow-sm text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-400">
                 <span className="block truncate text-gray-500 dark:text-white">
@@ -552,7 +552,7 @@ export const AgeSelect = ({
                 </ListboxOptions>
               </Transition>
             </div>
-          </>
+          </div>
         )}
       </Listbox>
     </div>

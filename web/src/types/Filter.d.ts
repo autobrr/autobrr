@@ -62,6 +62,8 @@ interface Filter {
   except_categories: string;
   match_uploaders: string;
   except_uploaders: string;
+  match_record_labels: string;
+  except_record_labels: string;
   match_language: string[];
   except_language: string[];
   tags: string;
@@ -74,11 +76,13 @@ interface Filter {
   max_seeders: number;
   min_leechers: number;
   max_leechers: number;
+  is_auto_updated: boolean;
   actions_count: number;
   actions_enabled_count: number;
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
+  release_profile_duplicate_id?: number;
 }
 
 interface Action {

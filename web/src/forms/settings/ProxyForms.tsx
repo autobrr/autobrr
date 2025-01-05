@@ -9,7 +9,7 @@ import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { AddProps } from "@forms/settings/IndexerForms";
+import { AddFormProps } from "@forms/_shared";
 import { DEBUG } from "@components/debug.tsx";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
@@ -20,7 +20,7 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 
-export function ProxyAddForm({ isOpen, toggle }: AddProps) {
+export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
