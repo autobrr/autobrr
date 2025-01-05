@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -36,7 +36,7 @@ function Table({ columns, data }: TableProps) {
       <div
         className="mt-4 mb-2 bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
         <div className="flex items-center justify-center py-16">
-          <EmptyListState text="No recent activity"/>
+          <EmptyListState text="No recent activity" />
         </div>
       </div>
     )
@@ -65,7 +65,7 @@ function Table({ columns, data }: TableProps) {
                         )}
                     </div>
                   </th>
-                  )
+                )
                 )}
               </tr>
             ))}
@@ -128,7 +128,7 @@ export const ActivityTable = () => {
           Recent activity
         </h3>
         <div className="animate-pulse text-black dark:text-white">
-          <EmptyListState text="Loading..."/>
+          <EmptyListState text="Loading..." />
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ export const ActivityTable = () => {
         Recent activity
       </h3>
 
-      <Table columns={columns} data={displayData}/>
+      <Table columns={columns} data={displayData} />
 
       <button
         onClick={toggleReleaseNames}
@@ -169,9 +169,9 @@ export const ActivityTable = () => {
         title="Go incognito"
       >
         {showLinuxIsos ? (
-          <EyeIcon className="h-4 w-4"/>
+          <EyeIcon className="h-4 w-4" />
         ) : (
-          <EyeSlashIcon className="h-4 w-4"/>
+          <EyeSlashIcon className="h-4 w-4" />
         )}
       </button>
     </div>

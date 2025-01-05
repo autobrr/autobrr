@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -140,7 +140,7 @@ export const General = () => {
             name={`release_profile_duplicate_id`}
             label="Skip Duplicates profile"
             optionDefaultText="Select profile"
-            options={[{label: "Select profile", value: null}, ...duplicateProfilesOptions]}
+            options={[{ label: "Select profile", value: null }, ...duplicateProfilesOptions]}
             tooltip={<div><p>Select the skip duplicate profile.</p></div>}
           />
         </FilterLayout>

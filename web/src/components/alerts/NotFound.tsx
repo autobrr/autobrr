@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -12,7 +12,7 @@ export const NotFound = () => {
   return (
     <div className="min-h-screen flex flex-col justify-center ">
       <div className="flex justify-center">
-        <Logo className="h-24 sm:h-48"/>
+        <Logo className="h-24 sm:h-48" />
       </div>
       <h2 className="text-2xl text-center font-bold text-gray-900 dark:text-gray-200 my-8 px-2">
         404 Page not found

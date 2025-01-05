@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -60,7 +60,7 @@ function SubNavLink({ item }: NavLinkProps) {
       activeOptions={{ exact: item.exact }}
       search={{}}
       params={{}}
-      // aria-current={splitLocation[2] === item.href ? "page" : undefined}
+    // aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
       {({ isActive }) => {
         return (
@@ -110,8 +110,8 @@ export function Settings() {
       <div className="max-w-screen-xl mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-table border border-gray-250 dark:border-gray-775">
           <div className="lg:grid lg:grid-cols-12">
-            <SidebarNav subNavigation={subNavigation}/>
-              <Outlet />
+            <SidebarNav subNavigation={subNavigation} />
+            <Outlet />
           </div>
         </div>
       </div>

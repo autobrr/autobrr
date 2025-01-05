@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -59,7 +59,7 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 
 function LogSettings() {
   const settingsLogRoute = getRouteApi("/auth/authenticated-routes/settings/logs");
-  const { queryClient} =  settingsLogRoute.useRouteContext();
+  const { queryClient } = settingsLogRoute.useRouteContext();
 
   const configQuery = useSuspenseQuery(ConfigQueryOptions())
 
@@ -83,7 +83,7 @@ function LogSettings() {
         <div className="divide-y divide-gray-200 dark:divide-gray-750">
           {!configQuery.isLoading && config && (
             <form className="divide-y divide-gray-200 dark:divide-gray-750" action="#" method="POST">
-              <RowItem label="Path" value={config?.log_path} title="Set in config.toml" emptyText="Not set!"/>
+              <RowItem label="Path" value={config?.log_path} title="Set in config.toml" emptyText="Not set!" />
               <RowItem
                 className="sm:col-span-1"
                 label="Level"
@@ -97,13 +97,13 @@ function LogSettings() {
                   />
                 }
               />
-              <RowItem label="Max Size" value={config?.log_max_size} title="Set in config.toml" rightSide="MB"/>
-              <RowItem label="Max Backups" value={config?.log_max_backups} title="Set in config.toml"/>
+              <RowItem label="Max Size" value={config?.log_max_size} title="Set in config.toml" rightSide="MB" />
+              <RowItem label="Max Backups" value={config?.log_max_backups} title="Set in config.toml" />
             </form>
           )}
 
           <div className="px-6 pt-4">
-            <LogFiles/>
+            <LogFiles />
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -55,20 +55,20 @@ function TabNavLink({ item }: NavLinkProps) {
       activeOptions={{ exact: item.exact }}
       search={{}}
       params={{}}
-      // aria-current={splitLocation[2] === item.href ? "page" : undefined}
-      // className="transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg"
+    // aria-current={splitLocation[2] === item.href ? "page" : undefined}
+    // className="transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg"
     >
       {({ isActive }) => {
         return (
           <span
             className={
-            classNames(
-              "transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
-              isActive
-                ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
-                : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
-            )
-          }>
+              classNames(
+                "transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
+                isActive
+                  ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
+                  : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
+              )
+            }>
             {item.name}
           </span>
         )
@@ -306,7 +306,7 @@ export const FilterDetails = () => {
   const navigate = useNavigate();
 
   const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
-  const { queryClient } =  filterGetByIdRoute.useRouteContext();
+  const { queryClient } = filterGetByIdRoute.useRouteContext();
 
   const params = filterGetByIdRoute.useParams()
   const filterQuery = useSuspenseQuery(FilterByIdQueryOptions(params.filterId))
@@ -381,7 +381,7 @@ export const FilterDetails = () => {
           <div className="rounded-t-lg bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
             <nav className="px-4 py-4 -mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">
               {tabs.map((tab) => (
-                <TabNavLink key={tab.href} item={tab}  />
+                <TabNavLink key={tab.href} item={tab} />
               ))}
             </nav>
           </div>

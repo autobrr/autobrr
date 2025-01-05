@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -44,17 +44,17 @@ const EmptyReleaseList = () => (
     className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
     <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
       <thead className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
-      <tr>
-        <th>
-          <div className="flex items-center justify-between">
-            <span className="h-10"/>
-          </div>
-        </th>
-      </tr>
+        <tr>
+          <th>
+            <div className="flex items-center justify-between">
+              <span className="h-10" />
+            </div>
+          </th>
+        </tr>
       </thead>
     </table>
     <div className="flex items-center justify-center py-52">
-      <EmptyListState text="No results"/>
+      <EmptyListState text="No results" />
     </div>
   </div>
 );
@@ -64,13 +64,13 @@ function Filter({ column }: { column: Column<Release, unknown> }) {
 
   switch (filterVariant) {
     case "search":
-      return <SearchColumnFilter column={column}/>
+      return <SearchColumnFilter column={column} />
 
     case "indexerSelect":
-      return <IndexerSelectColumnFilter column={column}/>
+      return <IndexerSelectColumnFilter column={column} />
 
     case "actionPushStatus":
-      return <PushStatusSelectColumnFilter column={column}/>
+      return <PushStatusSelectColumnFilter column={column} />
 
     default:
       return null;
@@ -223,7 +223,7 @@ export const ReleaseTable = () => {
           {tableInstance.getHeaderGroups().map((headerGroup) =>
             headerGroup.headers.map((header) => (
               header.column.getCanFilter() ? (
-                <Filter key={header.column.id} column={header.column}/>
+                <Filter key={header.column.id} column={header.column} />
               ) : null
             ))
           )}
@@ -231,10 +231,10 @@ export const ReleaseTable = () => {
         <div
           className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-lg rounded-md mt-4">
           <div className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
-            <div className="flex h-10"/>
+            <div className="flex h-10" />
           </div>
           <div className="flex items-center justify-center py-64">
-            <RingResizeSpinner className="text-blue-500 size-24"/>
+            <RingResizeSpinner className="text-blue-500 size-24" />
           </div>
         </div>
       </div>
@@ -247,74 +247,74 @@ export const ReleaseTable = () => {
         {tableInstance.getHeaderGroups().map((headerGroup) =>
           headerGroup.headers.map((header) => (
             header.column.getCanFilter() ? (
-              <Filter key={header.column.id} column={header.column}/>
+              <Filter key={header.column.id} column={header.column} />
             ) : null
           ))
         )}
       </div>
       <div className="relative">
         {displayData.length === 0
-          ? <EmptyReleaseList/>
+          ? <EmptyReleaseList />
           : (
             <div
               className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
               <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
                 <thead className="bg-gray-100 dark:bg-gray-850">
-                {tableInstance.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        scope="col"
-                        colSpan={header.colSpan}
-                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
-                      >
-                        <div className="flex items-center justify-between">
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                          {/*<>{header.render("Header")}</>*/}
-                          {/*/!* Add a sort direction indicator *!/*/}
-                          {/*<span>*/}
-                          {/*  {header.isSorted ? (*/}
-                          {/*    header.isSortedDesc ? (*/}
-                          {/*      <SortDownIcon className="w-4 h-4 text-gray-400"/>*/}
-                          {/*    ) : (*/}
-                          {/*      <SortUpIcon className="w-4 h-4 text-gray-400"/>*/}
-                          {/*    )*/}
-                          {/*  ) : (*/}
-                          {/*    <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100"/>*/}
-                          {/*  )}*/}
-                          {/*</span>*/}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                ))}
+                  {tableInstance.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          scope="col"
+                          colSpan={header.colSpan}
+                          className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
+                        >
+                          <div className="flex items-center justify-between">
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                            {/*<>{header.render("Header")}</>*/}
+                            {/*/!* Add a sort direction indicator *!/*/}
+                            {/*<span>*/}
+                            {/*  {header.isSorted ? (*/}
+                            {/*    header.isSortedDesc ? (*/}
+                            {/*      <SortDownIcon className="w-4 h-4 text-gray-400"/>*/}
+                            {/*    ) : (*/}
+                            {/*      <SortUpIcon className="w-4 h-4 text-gray-400"/>*/}
+                            {/*    )*/}
+                            {/*  ) : (*/}
+                            {/*    <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100"/>*/}
+                            {/*  )}*/}
+                            {/*</span>*/}
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
                 </thead>
 
                 <tbody className="divide-y divide-gray-150 dark:divide-gray-750">
-                {tableInstance.getRowModel().rows.map((row) => (
-                  <tr key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
-                        role="cell"
-                      >
-                        <>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </>
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                  {tableInstance.getRowModel().rows.map((row) => (
+                    <tr key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
+                          role="cell"
+                        >
+                          <>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
 
@@ -326,10 +326,10 @@ export const ReleaseTable = () => {
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div className="flex items-baseline gap-x-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-500">
-                  Page <span className="font-medium">{tableInstance.getState().pagination.pageIndex + 1}</span> of <span
-                    className="font-medium">{tableInstance.getPageCount()}</span>
-                  </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-500">
+                      Page <span className="font-medium">{tableInstance.getState().pagination.pageIndex + 1}</span> of <span
+                        className="font-medium">{tableInstance.getPageCount()}</span>
+                    </span>
                     <label>
                       <span className="sr-only bg-gray-700">Items Per Page</span>
                       <select
@@ -355,14 +355,14 @@ export const ReleaseTable = () => {
                         disabled={!tableInstance.getCanPreviousPage()}
                       >
                         <span className="sr-only">First</span>
-                        <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true"/>
+                        <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true" />
                       </TablePageButton>
                       <TablePageButton
                         className="pl-1 pr-2"
                         onClick={() => tableInstance.previousPage()}
                         disabled={!tableInstance.getCanPreviousPage()}
                       >
-                        <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true"/>
+                        <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true" />
                         <span>Prev</span>
                       </TablePageButton>
                       <TablePageButton
@@ -370,14 +370,14 @@ export const ReleaseTable = () => {
                         onClick={() => tableInstance.nextPage()}
                         disabled={!tableInstance.getCanNextPage()}>
                         <span>Next</span>
-                        <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true"/>
+                        <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true" />
                       </TablePageButton>
                       <TablePageButton
                         className="rounded-r-md"
                         onClick={() => tableInstance.lastPage()}
                         disabled={!tableInstance.getCanNextPage()}
                       >
-                        <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true"/>
+                        <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true" />
                         <span className="sr-only">Last</span>
                       </TablePageButton>
                     </nav>
@@ -393,9 +393,9 @@ export const ReleaseTable = () => {
                   title="Go incognito"
                 >
                   {showLinuxIsos ? (
-                    <EyeIcon className="h-4 w-4"/>
+                    <EyeIcon className="h-4 w-4" />
                   ) : (
-                    <EyeSlashIcon className="h-4 w-4"/>
+                    <EyeSlashIcon className="h-4 w-4" />
                   )}
                 </button>
               </div>

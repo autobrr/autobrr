@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -8,20 +8,20 @@ import { RadioGroup, Description, Label, Radio } from "@headlessui/react";
 import { classNames } from "@utils";
 
 export interface radioFieldsetOption {
-    label: string;
-    description: string;
-    value: string;
-    type?: string;
+  label: string;
+  description: string;
+  value: string;
+  type?: string;
 }
 
 interface props {
-    name: string;
-    legend: string;
-    options: radioFieldsetOption[];
+  name: string;
+  legend: string;
+  options: radioFieldsetOption[];
 }
 
 interface anyObj {
-    [key: string]: string
+  [key: string]: string
 }
 
 function RadioFieldsetWide({ name, legend, options }: props) {

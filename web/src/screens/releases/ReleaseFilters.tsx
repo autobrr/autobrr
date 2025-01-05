@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -15,11 +15,11 @@ import { PushStatusOptions } from "@domain/constants";
 import { ReleasesIndexersQueryOptions } from "@api/queries";
 
 interface ListboxFilterProps {
-    id: string;
-    label: string;
-    currentValue: string;
-    onChange: (newValue: string) => void;
-    children: React.ReactNode;
+  id: string;
+  label: string;
+  currentValue: string;
+  onChange: (newValue: string) => void;
+  children: React.ReactNode;
 }
 
 const ListboxFilter = ({
@@ -85,8 +85,8 @@ export const IndexerSelectColumnFilter = ({ column }: { column: Column<Release, 
 };
 
 interface FilterOptionProps {
-    label: string;
-    value?: string;
+  label: string;
+  value?: string;
 }
 
 const FilterOption = ({ label, value }: FilterOptionProps) => (

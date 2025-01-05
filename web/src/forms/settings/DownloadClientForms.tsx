@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -852,7 +852,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: UpdateFormProps<DownloadClient>) {
+export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: UpdateFormProps<DownloadClient>) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);

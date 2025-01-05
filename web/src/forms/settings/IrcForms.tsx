@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -34,55 +34,55 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
       {({ remove, push }: FieldArrayRenderProps) => (
         <div className="flex flex-col space-y-2">
           {channels && channels.length > 0 ? (
-              channels.map((_, index) => (
-                <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
-                  <div className="flex gap-2">
-                    <Field name={`channels.${index}.name`}>
-                      {({ field, meta }: FieldProps) => (
-                        <input
-                          {...field}
-                          type="text"
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          className={classNames(
-                            meta.touched && meta.error
-                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
-                          )}
-                        />
-                      )}
-                    </Field>
+            channels.map((_, index) => (
+              <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
+                <div className="flex gap-2">
+                  <Field name={`channels.${index}.name`}>
+                    {({ field, meta }: FieldProps) => (
+                      <input
+                        {...field}
+                        type="text"
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        className={classNames(
+                          meta.touched && meta.error
+                            ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                            : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                          "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                        )}
+                      />
+                    )}
+                  </Field>
 
-                    <Field name={`channels.${index}.password`}>
-                      {({ field, meta }: FieldProps) => (
-                        <input
-                          {...field}
-                          type="text"
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          placeholder="Channel password"
-                          className={classNames(
-                            meta.touched && meta.error
-                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
-                          )}
-                        />
-                      )}
-                    </Field>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                    onClick={() => remove(index)}
-                  >
-                    <span className="sr-only">Remove</span>
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                  </button>
+                  <Field name={`channels.${index}.password`}>
+                    {({ field, meta }: FieldProps) => (
+                      <input
+                        {...field}
+                        type="text"
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder="Channel password"
+                        className={classNames(
+                          meta.touched && meta.error
+                            ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                            : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                          "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                        )}
+                      />
+                    )}
+                  </Field>
                 </div>
-              ))
+
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={() => remove(index)}
+                >
+                  <span className="sr-only">Remove</span>
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                </button>
+              </div>
+            ))
           ) : (
             <span className="text-center text-sm text-grey-darker dark:text-white">
               No channels!
@@ -101,15 +101,15 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
   </div>
 );
 interface IrcNetworkAddFormValues {
-    name: string;
-    enabled: boolean;
-    server : string;
-    port: number;
-    tls: boolean;
-    pass: string;
-    nick: string;
-    auth: IrcAuth;
-    channels: IrcChannel[];
+  name: string;
+  enabled: boolean;
+  server: string;
+  port: number;
+  tls: boolean;
+  pass: string;
+  nick: string;
+  auth: IrcAuth;
+  channels: IrcChannel[];
 }
 
 export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
@@ -242,22 +242,22 @@ const validateNetwork = (values: FormikValues) => {
 };
 
 interface IrcNetworkUpdateFormValues {
-    id: number;
-    name: string;
-    enabled: boolean;
-    server: string;
-    port: number;
-    tls: boolean;
-    pass: string;
-    nick: string;
-    auth?: IrcAuth;
-    invite_command: string;
-    use_bouncer: boolean;
-    bouncer_addr: string;
-    bot_mode: boolean;
-    channels: Array<IrcChannel>;
-    use_proxy: boolean;
-    proxy_id: number;
+  id: number;
+  name: string;
+  enabled: boolean;
+  server: string;
+  port: number;
+  tls: boolean;
+  pass: string;
+  nick: string;
+  auth?: IrcAuth;
+  invite_command: string;
+  use_bouncer: boolean;
+  bouncer_addr: string;
+  bot_mode: boolean;
+  channels: Array<IrcChannel>;
+  use_proxy: boolean;
+  proxy_id: number;
 }
 
 export function IrcNetworkUpdateForm({
@@ -334,7 +334,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWide name="enabled" label="Enabled"/>
+          <SwitchGroupWide name="enabled" label="Enabled" />
           <TextFieldWide
             name="server"
             label="Server"
@@ -348,7 +348,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWide name="tls" label="TLS"/>
+          <SwitchGroupWide name="tls" label="TLS" />
 
           <PasswordFieldWide
             name="pass"
@@ -363,7 +363,7 @@ export function IrcNetworkUpdateForm({
             required={true}
           />
 
-          <SwitchGroupWide name="use_bouncer" label="Bouncer (BNC)"/>
+          <SwitchGroupWide name="use_bouncer" label="Bouncer (BNC)" />
           {values.use_bouncer && (
             <TextFieldWide
               name="bouncer_addr"
@@ -372,7 +372,7 @@ export function IrcNetworkUpdateForm({
             />
           )}
 
-          <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode"/>
+          <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode" />
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
             <div className="flex justify-between px-4">
@@ -384,7 +384,7 @@ export function IrcNetworkUpdateForm({
                   Set a proxy to be used for connecting to the irc server.
                 </p>
               </div>
-              <SwitchButton name="use_proxy"/>
+              <SwitchButton name="use_proxy" />
             </div>
 
             {values.use_proxy === true && (
@@ -427,7 +427,7 @@ export function IrcNetworkUpdateForm({
             />
           </div>
 
-          <PasswordFieldWide name="invite_command" label="Invite command"/>
+          <PasswordFieldWide name="invite_command" label="Invite command" />
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
@@ -437,7 +437,7 @@ export function IrcNetworkUpdateForm({
               </p>
             </div>
 
-            <ChannelsFieldArray channels={values.channels}/>
+            <ChannelsFieldArray channels={values.channels} />
           </div>
         </div>
       )}
@@ -466,9 +466,9 @@ export function SelectField<T>({ name, label, options, placeholder }: SelectFiel
       <div className="sm:col-span-2">
         <Field name={name} type="select">
           {({
-              field,
-              form: { setFieldValue }
-            }: FieldProps) => (
+            field,
+            form: { setFieldValue }
+          }: FieldProps) => (
             <Select
               {...field}
               id={name}

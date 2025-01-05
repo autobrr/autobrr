@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -7,10 +7,10 @@ import React from "react";
 import { classNames } from "@utils";
 
 interface ButtonProps {
-    className?: string;
-    children: React.ReactNode;
-    disabled?: boolean;
-    onClick?: () => void;
+  className?: string;
+  children: React.ReactNode;
+  disabled?: boolean;
+  onClick?: () => void;
 }
 
 export const TableButton = ({ children, className, disabled, onClick }: ButtonProps) => (

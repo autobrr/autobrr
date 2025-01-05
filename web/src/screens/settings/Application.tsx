@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -21,9 +21,9 @@ function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
   const settingsIndexRoute = getRouteApi("/auth/authenticated-routes/settings/");
-  const { queryClient } =  settingsIndexRoute.useRouteContext();
+  const { queryClient } = settingsIndexRoute.useRouteContext();
 
-  const { isError:isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
+  const { isError: isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
   if (isConfigError) {
     console.log(configError);
   }

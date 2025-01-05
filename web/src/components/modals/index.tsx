@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -150,7 +150,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
       }, 400);
     }
   };
-  
+
   // When the 'Cancel' button is clicked
   const handleCancel = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -178,7 +178,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
           >
             <DialogPanel className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
               <ModalUpper title={props.title} text={props.text} />
-              
+
               <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 flex justify-center">
                 <input
                   type="text"
@@ -203,9 +203,8 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
                     <button
                       type="button"
                       disabled={!isInputCorrect}
-                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 ${
-                        isInputCorrect ? "bg-red-600 text-white hover:bg-red-700" : "bg-gray-300"
-                      } text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm`}
+                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 ${isInputCorrect ? "bg-red-600 text-white hover:bg-red-700" : "bg-gray-300"
+                        } text-base font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm`}
                       onClick={handleForceRun}
                     >
                       Force Run

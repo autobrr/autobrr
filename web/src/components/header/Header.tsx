@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -22,7 +22,7 @@ import { AuthContext } from "@utils/Context";
 export const Header = () => {
   const loginRoute = getRouteApi("/login");
 
-  const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
+  const { isError: isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
     console.log(configError);
   }
