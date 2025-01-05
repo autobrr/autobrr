@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -83,7 +83,7 @@ function FormFieldsLunaSea() {
           Settings
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
+        LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Read the "}
@@ -308,8 +308,8 @@ const componentMap: componentMapType = {
 };
 
 interface NotificationAddFormValues {
-  name: string;
-  enabled: boolean;
+    name: string;
+    enabled: boolean;
 }
 
 export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
@@ -585,7 +585,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t} />);
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
       toggle();
     }
   });
@@ -597,7 +597,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t} />);
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
     }
   });
 
@@ -641,7 +641,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     >
       {(values) => (
         <div>
-          <TextFieldWide name="name" label="Name" required={true} />
+          <TextFieldWide name="name" label="Name" required={true}/>
 
           <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
@@ -694,7 +694,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                 </Field>
               </div>
             </div>
-            <SwitchGroupWide name="enabled" label="Enabled" />
+            <SwitchGroupWide name="enabled" label="Enabled"/>
             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
               <div className="px-4 space-y-1">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">

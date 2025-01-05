@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -35,7 +35,7 @@ interface InitialValues {
   settings: FeedSettings;
 }
 
-export function FeedUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Feed>) {
+export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
   const feed = data;
   const [isTesting, setIsTesting] = useState(false);
   const [isTestSuccessful, setIsSuccessfulTest] = useState(false);
@@ -47,7 +47,7 @@ export function FeedUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Feed>) 
     mutationFn: (feed: Feed) => APIClient.feeds.update(feed),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
-
+      
       toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t} />);
       toggle();
     }
@@ -191,10 +191,10 @@ function FormFieldsTorznab() {
       <PasswordFieldWide name="api_key" label="API key" />
 
       {interval < 15 && <WarningLabel />}
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban." />
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
-      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh." />
-      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed." />
+      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
     </div>
   );
 }
@@ -215,10 +215,10 @@ function FormFieldsNewznab() {
       <PasswordFieldWide name="api_key" label="API key" />
 
       {interval < 15 && <WarningLabel />}
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban." />
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
-      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh." />
-      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed." />
+      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
     </div>
   );
 }
@@ -239,9 +239,9 @@ function FormFieldsRSS() {
       <SelectFieldBasic name="settings.download_type" label="Download type" options={FeedDownloadTypeOptions} />
 
       {interval < 15 && <WarningLabel />}
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban." />
-      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh." />
-      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed." />
+      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
 
       <PasswordFieldWide name="cookie" label="Cookie" help="Not commonly used" />
     </div>

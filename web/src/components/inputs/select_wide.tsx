@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -76,7 +76,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
                 }
               })}
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
-              value={field?.value ? { value: field.value, label: field.value } : field.value}
+              value={field?.value ? { value: field.value, label: field.value  } : field.value}
               onChange={(newValue: unknown) => {
                 if (newValue) {
                   setFieldValue(field.name, (newValue as { value: string }).value);
@@ -85,7 +85,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
                   setFieldValue(field.name, "")
                 }
               }}
-              options={[...[...options, { value: field.value, label: field.value }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+              options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
           )}
         </Field>
@@ -141,7 +141,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
                 }
               })}
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
-              value={field?.value ? { value: field.value, label: field.value } : field.value}
+              value={field?.value ? { value: field.value, label: field.value  } : field.value}
               onChange={(newValue: unknown) => {
                 if (newValue) {
                   setFieldValue(field.name, (newValue as { value: string }).value);
@@ -150,7 +150,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
                   setFieldValue(field.name, "")
                 }
               }}
-              options={[...[...options, { value: field.value, label: field.value }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+              options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
           )}
         </Field>
@@ -265,26 +265,26 @@ export function ListFilterMultiSelectField({ name, label, help, tooltip, options
       <div className="sm:col-span-2">
         <Field name={name} type="select">
           {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
-            <>
-              <RMSC
-                {...field}
-                options={options}
-                // disabled={disabled}
-                labelledBy={name}
-                // isCreatable={creatable}
-                // onCreateOption={handleNewField}
-                value={field.value && field.value.map((item: ListFilterMultiSelectOption) => ({
-                  value: item.id,
-                  label: item.name
-                }))}
-                onChange={(values: MultiSelectOption[]) => {
-                  const item = values && values.map((i) => ({ id: i.value, name: i.label }));
-                  setFieldValue(field.name, item);
-                }}
-              />
+              field,
+              form: { setFieldValue }
+            }: FieldProps) => (
+              <>
+                <RMSC
+                  {...field}
+                  options={options}
+                  // disabled={disabled}
+                  labelledBy={name}
+                  // isCreatable={creatable}
+                  // onCreateOption={handleNewField}
+                  value={field.value && field.value.map((item: ListFilterMultiSelectOption) => ({
+                    value: item.id,
+                    label: item.name
+                  }))}
+                  onChange={(values: MultiSelectOption[]) => {
+                    const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+                    setFieldValue(field.name, item);
+                  }}
+                />
             </>
           )}
         </Field>

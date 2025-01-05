@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -23,12 +23,12 @@ import { classNames } from "@utils";
 
 const ReleaseSettings = () => (
   <div className="lg:col-span-9">
-    <ReleaseProfileDuplicates />
+    <ReleaseProfileDuplicates/>
 
     <div className="py-6 px-4 sm:p-6">
       <div className="border border-red-500 rounded">
         <div className="py-6 px-4 sm:p-6">
-          <DeleteReleases />
+          <DeleteReleases/>
         </div>
       </div>
     </div>
@@ -45,7 +45,7 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
   return (
     <li>
       <div className="grid grid-cols-12 items-center py-2">
-        <ReleaseProfileDuplicateUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={profile} />
+        <ReleaseProfileDuplicateUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={profile}/>
         <div
           className="col-span-2 sm:col-span-2 lg:col-span-2 pl-4 sm:pl-4 pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate"
           title={profile.name}>
@@ -88,9 +88,9 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
 }
 
 interface PillProps {
-  value: boolean;
-  label: string;
-  title: string;
+ value: boolean;
+ label: string;
+ title: string;
 }
 
 const EnabledPill = ({ value, label, title }: PillProps) => (
@@ -114,12 +114,12 @@ function ReleaseProfileDuplicates() {
           className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           onClick={toggleAdd}
         >
-          <PlusIcon className="h-5 w-5 mr-1" />
+          <PlusIcon className="h-5 w-5 mr-1"/>
           Add new
         </button>
       }
     >
-      <ReleaseProfileDuplicateAddForm isOpen={addPanelIsOpen} toggle={toggleAdd} />
+      <ReleaseProfileDuplicateAddForm isOpen={addPanelIsOpen} toggle={toggleAdd}/>
 
       <div className="flex flex-col">
         {releaseProfileQuery.data.length > 0 ? (
@@ -148,12 +148,12 @@ function ReleaseProfileDuplicates() {
               {/*</div>*/}
             </li>
             {releaseProfileQuery.data.map((profile) => (
-              <ReleaseProfileListItem key={profile.id} profile={profile} />
+              <ReleaseProfileListItem key={profile.id} profile={profile}/>
             ))}
           </ul>
         ) : (
           <EmptySimple title="No duplicate rlease profiles" subtitle="" buttonText="Add new profile"
-            buttonAction={toggleAdd} />
+                       buttonAction={toggleAdd}/>
         )}
       </div>
     </Section>
@@ -216,12 +216,12 @@ function DeleteReleases() {
     onSuccess: () => {
       if (parsedDuration === 0) {
         toast.custom((t) => (
-          <Toast type="success" body={"All releases based on criteria were deleted."} t={t} />
+          <Toast type="success" body={"All releases based on criteria were deleted."} t={t}/>
         ));
       } else {
         toast.custom((t) => (
           <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration ?? 0)} were deleted.`}
-            t={t} />
+                 t={t}/>
         ));
       }
 
@@ -231,7 +231,7 @@ function DeleteReleases() {
 
   const deleteOlderReleases = () => {
     if (parsedDuration === undefined || isNaN(parsedDuration) || parsedDuration < 0) {
-      toast.custom((t) => <Toast type="error" body={"Please select a valid age."} t={t} />);
+      toast.custom((t) => <Toast type="error" body={"Please select a valid age."} t={t}/>);
       return;
     }
 
@@ -260,18 +260,18 @@ function DeleteReleases() {
             Select the criteria below to permanently delete release history records that are older than the chosen age
             and optionally match the selected indexers and release statuses:
           </p>
-          <ul className="list-disc pl-5 my-4 text-sm text-gray-500 dark:text-gray-400">
-            <li>
-              Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong
+            <ul className="list-disc pl-5 my-4 text-sm text-gray-500 dark:text-gray-400">
+              <li>
+                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong
                 className="text-gray-600 dark:text-gray-300">Required</strong>
-            </li>
-            <li>Indexers - Optional (if none selected, applies to all indexers)</li>
-            <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
-          </ul>
-          <span className="pt-2 text-red-600 dark:text-red-500">
-            <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records
-            older than the selected age will be permanently deleted, regardless of indexer or status.
-          </span>
+              </li>
+              <li>Indexers - Optional (if none selected, applies to all indexers)</li>
+              <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
+            </ul>
+            <span className="pt-2 text-red-600 dark:text-red-500">
+              <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records
+              older than the selected age will be permanently deleted, regardless of indexer or status.
+            </span>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center text-sm">
@@ -283,18 +283,18 @@ function DeleteReleases() {
                   <span className="text-red-600 dark:text-red-500"> *</span>
                 </span>
               ),
-              content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration} />
+              content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration}/>
             },
             {
               label: 'Indexers:',
               content: <RMSC
                 options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []}
-                value={indexers} onChange={setIndexers} labelledBy="Select indexers" />
+                value={indexers} onChange={setIndexers} labelledBy="Select indexers"/>
             },
             {
               label: 'Release statuses:',
               content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
-                labelledBy="Select release statuses" />
+                             labelledBy="Select release statuses"/>
             }
           ].map((item, index) => (
             <div key={index} className="flex flex-col w-full">

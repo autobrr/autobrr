@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -68,7 +68,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name" />
+          <TextFieldWide required name="name" label="Name"/>
 
           <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
           <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
@@ -168,7 +168,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name" />
+          <TextFieldWide required name="name" label="Name"/>
 
           <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
           <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />

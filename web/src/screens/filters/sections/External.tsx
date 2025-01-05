@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -252,121 +252,121 @@ interface TypeFormProps {
 
 const TypeForm = ({ external, idx }: TypeFormProps) => {
   switch (external.type) {
-    case "EXEC": {
-      return (
+  case "EXEC": {
+    return (
+      <FilterSection
+        title="Execute"
+        subtitle="Specify the executable, the argument and the expected exit status to run as a pre-filter"
+      >
+        <FilterLayout>
+          <TextAreaAutoResize
+            name={`external.${idx}.exec_cmd`}
+            label="Path to Executable"
+            columns={5}
+            placeholder="Absolute path to executable eg. /bin/test"
+            tooltip={
+              <div>
+                <p>
+                  For custom commands you should specify the full path to the binary/program
+                  you want to run. And you can include your own static variables:
+                </p>
+                <DocsLink href="https://autobrr.com/filters/actions#custom-commands--exec" />
+              </div>
+            }
+          />
+          <TextAreaAutoResize
+            name={`external.${idx}.exec_args`}
+            label="Exec Arguments"
+            columns={5}
+            placeholder={"Arguments eg. --test \"{{ .TorrentName }}\""}
+          />
+          <div className="col-span-12 sm:col-span-2">
+            <NumberField
+              name={`external.${idx}.exec_expect_status`}
+              label="Expected exit status"
+              placeholder="0"
+            />
+          </div>
+        </FilterLayout>
+      </FilterSection>
+    );
+  }
+  case "WEBHOOK": {
+    return (
+      <>
         <FilterSection
-          title="Execute"
-          subtitle="Specify the executable, the argument and the expected exit status to run as a pre-filter"
+          title="Request"
+          subtitle="Specify your request destination endpoint, headers and expected return status"
+        >
+          <FilterLayout>
+            <TextField
+              name={`external.${idx}.webhook_host`}
+              label="Endpoint"
+              columns={6}
+              placeholder="Host eg. http://localhost/webhook"
+              tooltip={<p>URL or IP to your API. Pass params and set API tokens etc.</p>}
+            />
+            <Select
+              name={`external.${idx}.webhook_method`}
+              label="HTTP method"
+              optionDefaultText="Select http method"
+              options={ExternalFilterWebhookMethodOptions}
+              tooltip={<div><p>Select the HTTP method for this webhook. Defaults to POST</p></div>}
+            />
+            <TextField
+              name={`external.${idx}.webhook_headers`}
+              label="HTTP Request Headers"
+              columns={6}
+              placeholder="HEADER=custom1,HEADER2=custom2"
+            />
+            <NumberField
+              name={`external.${idx}.webhook_expect_status`}
+              label="Expected HTTP status code"
+              placeholder="200"
+            />
+          </FilterLayout>
+        </FilterSection>
+        <FilterSection
+          title="Retry"
+          subtitle="Retry behavior on request failure"
+        >
+          <FilterLayout>
+            <TextField
+              name={`external.${idx}.webhook_retry_status`}
+              label="Retry http status code(s)"
+              placeholder="Retry on status eg. 202, 204"
+              columns={6}
+            />
+            <NumberField
+              name={`external.${idx}.webhook_retry_attempts`}
+              label="Maximum retry attempts"
+              placeholder="10"
+            />
+            <NumberField
+              name={`external.${idx}.webhook_retry_delay_seconds`}
+              label="Retry delay in seconds"
+              placeholder="1"
+            />
+          </FilterLayout>
+        </FilterSection>
+        <FilterSection
+          title="Payload"
+          subtitle="Specify your JSON payload"
         >
           <FilterLayout>
             <TextAreaAutoResize
-              name={`external.${idx}.exec_cmd`}
-              label="Path to Executable"
-              columns={5}
-              placeholder="Absolute path to executable eg. /bin/test"
-              tooltip={
-                <div>
-                  <p>
-                    For custom commands you should specify the full path to the binary/program
-                    you want to run. And you can include your own static variables:
-                  </p>
-                  <DocsLink href="https://autobrr.com/filters/actions#custom-commands--exec" />
-                </div>
-              }
+              name={`external.${idx}.webhook_data`}
+              label="Data (json)"
+              placeholder={"Request data: { \"key\": \"value\" }"}
             />
-            <TextAreaAutoResize
-              name={`external.${idx}.exec_args`}
-              label="Exec Arguments"
-              columns={5}
-              placeholder={"Arguments eg. --test \"{{ .TorrentName }}\""}
-            />
-            <div className="col-span-12 sm:col-span-2">
-              <NumberField
-                name={`external.${idx}.exec_expect_status`}
-                label="Expected exit status"
-                placeholder="0"
-              />
-            </div>
           </FilterLayout>
         </FilterSection>
-      );
-    }
-    case "WEBHOOK": {
-      return (
-        <>
-          <FilterSection
-            title="Request"
-            subtitle="Specify your request destination endpoint, headers and expected return status"
-          >
-            <FilterLayout>
-              <TextField
-                name={`external.${idx}.webhook_host`}
-                label="Endpoint"
-                columns={6}
-                placeholder="Host eg. http://localhost/webhook"
-                tooltip={<p>URL or IP to your API. Pass params and set API tokens etc.</p>}
-              />
-              <Select
-                name={`external.${idx}.webhook_method`}
-                label="HTTP method"
-                optionDefaultText="Select http method"
-                options={ExternalFilterWebhookMethodOptions}
-                tooltip={<div><p>Select the HTTP method for this webhook. Defaults to POST</p></div>}
-              />
-              <TextField
-                name={`external.${idx}.webhook_headers`}
-                label="HTTP Request Headers"
-                columns={6}
-                placeholder="HEADER=custom1,HEADER2=custom2"
-              />
-              <NumberField
-                name={`external.${idx}.webhook_expect_status`}
-                label="Expected HTTP status code"
-                placeholder="200"
-              />
-            </FilterLayout>
-          </FilterSection>
-          <FilterSection
-            title="Retry"
-            subtitle="Retry behavior on request failure"
-          >
-            <FilterLayout>
-              <TextField
-                name={`external.${idx}.webhook_retry_status`}
-                label="Retry http status code(s)"
-                placeholder="Retry on status eg. 202, 204"
-                columns={6}
-              />
-              <NumberField
-                name={`external.${idx}.webhook_retry_attempts`}
-                label="Maximum retry attempts"
-                placeholder="10"
-              />
-              <NumberField
-                name={`external.${idx}.webhook_retry_delay_seconds`}
-                label="Retry delay in seconds"
-                placeholder="1"
-              />
-            </FilterLayout>
-          </FilterSection>
-          <FilterSection
-            title="Payload"
-            subtitle="Specify your JSON payload"
-          >
-            <FilterLayout>
-              <TextAreaAutoResize
-                name={`external.${idx}.webhook_data`}
-                label="Data (json)"
-                placeholder={"Request data: { \"key\": \"value\" }"}
-              />
-            </FilterLayout>
-          </FilterSection>
-        </>
-      );
-    }
+      </>
+    );
+  }
 
-    default: {
-      return null;
-    }
+  default: {
+    return null;
+  }
   }
 };

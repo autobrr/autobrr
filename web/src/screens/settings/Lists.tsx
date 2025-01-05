@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -36,7 +36,7 @@ function ListsSettings() {
           onClick={toggleAddList}
           className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
-          <PlusIcon className="h-5 w-5 mr-1" />
+          <PlusIcon className="h-5 w-5 mr-1"/>
           Add new
         </button>
       }
@@ -69,7 +69,7 @@ function ListsSettings() {
               </div>
             </li>
             {lists.map((list) => (
-              <ListItem list={list} key={list.id} />
+              <ListItem list={list} key={list.id}/>
             ))}
           </ul>
         ) : (
@@ -135,7 +135,7 @@ function ListItem({ list }: ListItemProps) {
 
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">
-          <Checkbox value={list.enabled ?? false} setValue={onToggleMutation} />
+          <Checkbox value={list.enabled ?? false} setValue={onToggleMutation}/>
         </div>
         <div
           className="col-span-8 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 pr-6 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">

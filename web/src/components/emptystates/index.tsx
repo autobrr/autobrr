@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { PlusIcon } from "@heroicons/react/24/solid";
 
 interface EmptySimpleProps {
-  title: string;
-  subtitle?: string;
-  buttonText?: string;
-  buttonAction?: () => void;
+    title: string;
+    subtitle?: string;
+    buttonText?: string;
+    buttonAction?: () => void;
 }
 
 export const EmptySimple = ({
@@ -39,9 +39,9 @@ export const EmptySimple = ({
 );
 
 interface EmptyListStateProps {
-  text: string;
-  buttonText?: string;
-  buttonOnClick?: () => void;
+    text: string;
+    buttonText?: string;
+    buttonOnClick?: () => void;
 }
 
 export function EmptyListState({ text, buttonText, buttonOnClick }: EmptyListStateProps) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -47,7 +47,7 @@ export const Deluge = ({ idx, action, clients }: ClientActionProps) => (
           />
         </FilterHalfRow>
         <FilterHalfRow>
-          <SwitchGroup
+        <SwitchGroup
             name={`actions.${idx}.skip_hash_check`}
             label="Skip hash check"
             description="Add torrent and skip hash check"

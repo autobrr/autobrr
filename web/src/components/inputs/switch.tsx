@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -86,26 +86,26 @@ interface SwitchButtonProps {
 }
 
 const SwitchButton = ({ name, defaultValue }: SwitchButtonProps) => (
-  <Field as="div" className="flex items-center justify-between">
-    <FormikField
-      name={name}
-      defaultValue={defaultValue as boolean}
-      type="checkbox"
-    >
-      {({
-        field,
-        form: { setFieldValue }
-      }: FieldProps) => (
-        <Checkbox
-          {...field}
-          value={!!field.checked}
-          setValue={(value) => {
-            setFieldValue(field?.name ?? "", value);
-          }}
-        />
-      )}
-    </FormikField>
-  </Field>
+    <Field as="div" className="flex items-center justify-between">
+      <FormikField
+        name={name}
+        defaultValue={defaultValue as boolean}
+        type="checkbox"
+      >
+        {({
+            field,
+            form: { setFieldValue }
+          }: FieldProps) => (
+          <Checkbox
+            {...field}
+            value={!!field.checked}
+            setValue={(value) => {
+              setFieldValue(field?.name ?? "", value);
+            }}
+          />
+        )}
+      </FormikField>
+    </Field>
 );
 
 export { SwitchGroup, SwitchButton };

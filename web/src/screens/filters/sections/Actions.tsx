@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -147,40 +147,40 @@ const TypeForm = (props: ClientActionProps) => {
   }, [action.type, idx, prevActionType, setFieldValue]);
 
   switch (action.type) {
-    // torrent clients
-    case "QBITTORRENT":
-      return <QBittorrent {...props} />;
-    case "DELUGE_V1":
-    case "DELUGE_V2":
-      return <Deluge {...props} />;
-    case "RTORRENT":
-      return <RTorrent {...props} />;
-    case "TRANSMISSION":
-      return <Transmission {...props} />;
-    case "PORLA":
-      return <Porla {...props} />;
-    // arrs
-    case "RADARR":
-    case "SONARR":
-    case "LIDARR":
-    case "WHISPARR":
-    case "READARR":
-      return <Arr {...props} />;
-    // nzb
-    case "SABNZBD":
-      return <SABnzbd {...props} />;
-    // autobrr actions
-    case "TEST":
-      return <Test />;
-    case "EXEC":
-      return <Exec {...props} />;
-    case "WATCH_FOLDER":
-      return <WatchFolder {...props} />;
-    case "WEBHOOK":
-      return <WebHook {...props} />;
-    default:
-      // TODO(stacksmash76): Indicate error
-      return null;
+  // torrent clients
+  case "QBITTORRENT":
+    return <QBittorrent {...props} />;
+  case "DELUGE_V1":
+  case "DELUGE_V2":
+    return <Deluge {...props} />;
+  case "RTORRENT":
+    return <RTorrent {...props} />;
+  case "TRANSMISSION":
+    return <Transmission {...props} />;
+  case "PORLA":
+    return <Porla {...props} />;
+  // arrs
+  case "RADARR":
+  case "SONARR":
+  case "LIDARR":
+  case "WHISPARR":
+  case "READARR":
+    return <Arr {...props} />;
+  // nzb
+  case "SABNZBD":
+    return <SABnzbd {...props} />;
+  // autobrr actions
+  case "TEST":
+    return <Test />;
+  case "EXEC":
+    return <Exec {...props} />;
+  case "WATCH_FOLDER":
+    return <WatchFolder {...props} />;
+  case "WEBHOOK":
+    return <WebHook {...props} />;
+  default:
+    // TODO(stacksmash76): Indicate error
+    return null;
   }
 };
 

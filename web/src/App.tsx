@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -20,7 +20,7 @@ declare module '@tanstack/react-router' {
 }
 
 export function App() {
-  const [, setSettings] = SettingsContext.use();
+  const [ , setSettings] = SettingsContext.use();
 
   useEffect(() => {
     const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

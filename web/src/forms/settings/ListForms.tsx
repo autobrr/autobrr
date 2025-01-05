@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -82,11 +82,11 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body="List added!" t={t} />);
+      toast.custom((t) => <Toast type="success" body="List added!" t={t}/>);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="List could not be added" t={t} />);
+      toast.custom((t) => <Toast type="error" body="List could not be added" t={t}/>);
     }
   });
 
@@ -161,7 +161,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
                               </button>
                             </div>
                           </div>
@@ -184,9 +184,9 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             <div className="sm:col-span-2">
                               <Field name="type" type="select">
                                 {({
-                                  field,
-                                  form: { setFieldValue }
-                                }: FieldProps) => (
+                                    field,
+                                    form: { setFieldValue }
+                                  }: FieldProps) => (
                                   <Select
                                     {...field}
                                     isClearable={true}
@@ -232,10 +232,10 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             </div>
                           </div>
 
-                          <SwitchGroupWide name="enabled" label="Enabled" />
+                          <SwitchGroupWide name="enabled" label="Enabled"/>
                         </div>
 
-                        <ListTypeForm listType={values.type} clients={clients ?? []} />
+                        <ListTypeForm listType={values.type} clients={clients ?? []}/>
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -267,7 +267,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                         </div>
                       </div>
 
-                      <DEBUG values={values} />
+                      <DEBUG values={values}/>
                     </Form>
                   )}
                 </Formik>
@@ -300,7 +300,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${data.name} was updated successfully`} t={t} />);
+      toast.custom((t) => <Toast type="success" body={`${data.name} was updated successfully`} t={t}/>);
 
       sleep(1500);
       toggle();
@@ -314,7 +314,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${data.name} was deleted.`} t={t} />);
+      toast.custom((t) => <Toast type="success" body={`${data.name} was deleted.`} t={t}/>);
     }
   });
 
@@ -371,7 +371,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                     include_alternate_titles: data.include_alternate_titles,
                   }}
                   onSubmit={onSubmit}
-                // validate={validate}
+                  // validate={validate}
                 >
                   {({ values }) => (
                     <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
@@ -393,7 +393,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
                               </button>
                             </div>
                           </div>
@@ -401,14 +401,14 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
 
-                          <TextFieldWide name="name" label="Name" required={true} />
+                          <TextFieldWide name="name" label="Name" required={true}/>
 
                           <TextFieldWide name="type" label="Type" required={true} disabled={true} />
 
-                          <SwitchGroupWide name="enabled" label="Enabled" />
+                          <SwitchGroupWide name="enabled" label="Enabled"/>
 
                           <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
-                            <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []} />
+                            <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
                           </div>
 
                           <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
@@ -425,7 +425,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                               <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({
                                 value: f.id,
                                 label: f.name
-                              })) ?? []} />
+                              })) ?? []}/>
 
                             </div>
                           </div>
@@ -443,19 +443,19 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                             Remove
                           </button>
                           <div className="flex space-x-3">
-                            <button
-                              type="button"
-                              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                              onClick={toggle}
-                            >
-                              Cancel
-                            </button>
-                            <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
+                          <button
+                            type="button"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            onClick={toggle}
+                          >
+                            Cancel
+                          </button>
+                          <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
                           </div>
                         </div>
                       </div>
 
-                      <DEBUG values={values} />
+                      <DEBUG values={values}/>
                     </Form>
                   )}
                 </Formik>
@@ -622,17 +622,17 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
           <ListArrTagsMultiSelectField name="tags_included" label="Tags Included" options={arrTagsQuery.data?.map(f => ({
             value: f.label,
             label: f.label
-          })) ?? []} />
+          })) ?? []}/>
 
           <ListArrTagsMultiSelectField name="tags_excluded" label="Tags Excluded" options={arrTagsQuery.data?.map(f => ({
             value: f.label,
             label: f.label
-          })) ?? []} />
+          })) ?? []}/>
         </>
       )}
 
       <div className="space-y-1">
-        <FilterOptionCheckBoxes listType={listType} clients={[]} />
+        <FilterOptionCheckBoxes listType={listType} clients={[]}/>
       </div>
     </div>
   )
@@ -689,8 +689,8 @@ function ListTypePlainText() {
         </p>
       </div>
 
-      <TextFieldWide
-        name="url"
+      <TextFieldWide 
+        name="url" 
         label="List URL"
         help="URL to a plain text file with one item per line"
         placeholder="https://example.com/list.txt"
@@ -718,7 +718,7 @@ function ListTypeSteam() {
         </p>
       </div>
 
-      <TextFieldWide name="url" label="URL" help={"Steam Wishlist URL"} placeholder="https://store.steampowered.com/wishlist/id/USERNAME/wishlistdata" />
+      <TextFieldWide name="url" label="URL" help={"Steam Wishlist URL"} placeholder="https://store.steampowered.com/wishlist/id/USERNAME/wishlistdata"/>
     </div>
   )
 }
@@ -803,10 +803,10 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
       <div className="sm:col-span-2">
         <Field name={name} type="select">
           {({
-            field,
-            meta,
-            form: { setFieldValue }
-          }: FieldProps) => (
+              field,
+              meta,
+              form: { setFieldValue }
+            }: FieldProps) => (
             <Listbox
               value={field.value}
               onChange={(value) => setFieldValue(field?.name, value)}
@@ -819,16 +819,16 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                   <div className="relative">
                     <ListboxButton
                       className="block w-full shadow-sm sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
-                      <span className="block truncate">
-                        {field.value
-                          ? clients.find((c) => c.id === field.value)?.name
-                          : "Choose a client"}
-                      </span>
+                    <span className="block truncate">
+                      {field.value
+                        ? clients.find((c) => c.id === field.value)?.name
+                        : "Choose a client"}
+                    </span>
                       <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                        <ChevronUpDownIcon
-                          className="h-5 w-5 text-gray-400 dark:text-gray-300"
-                          aria-hidden="true" />
-                      </span>
+                      <ChevronUpDownIcon
+                        className="h-5 w-5 text-gray-400 dark:text-gray-300"
+                        aria-hidden="true"/>
+                    </span>
                     </ListboxButton>
 
                     <Transition
@@ -857,14 +857,14 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                             >
                               {({ selected, focus }) => (
                                 <>
-                                  <span
-                                    className={classNames(
-                                      selected ? "font-semibold" : "font-normal",
-                                      "block truncate"
-                                    )}
-                                  >
-                                    {client.name}
-                                  </span>
+                                <span
+                                  className={classNames(
+                                    selected ? "font-semibold" : "font-normal",
+                                    "block truncate"
+                                  )}
+                                >
+                                  {client.name}
+                                </span>
 
                                   {selected ? (
                                     <span
@@ -873,10 +873,10 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                                         "absolute inset-y-0 right-0 flex items-center pr-4"
                                       )}
                                     >
-                                      <CheckIcon
-                                        className="h-5 w-5"
-                                        aria-hidden="true" />
-                                    </span>
+                                    <CheckIcon
+                                      className="h-5 w-5"
+                                      aria-hidden="true"/>
+                                  </span>
                                   ) : null}
                                 </>
                               )}
@@ -926,9 +926,9 @@ export function ListArrTagsMultiSelectField({ name, label, help, tooltip, option
       <div className="sm:col-span-2">
         <Field name={name} type="select">
           {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+              field,
+              form: { setFieldValue }
+            }: FieldProps) => (
             <>
               <RMSC
                 {...field}

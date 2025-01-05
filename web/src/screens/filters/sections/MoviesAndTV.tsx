@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -41,7 +41,7 @@ const SeasonsAndEpisodes = () => (
         tooltip={
           <div>
             <p>See docs for information about how to <b>only</b> grab episodes:</p>
-            <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs" />
+            <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs"/>
           </div>
         }
       />
@@ -54,7 +54,7 @@ const SeasonsAndEpisodes = () => (
         tooltip={
           <div>
             <p>This field takes a range of years and/or comma separated single years.</p>
-            <DocsLink href="https://autobrr.com/filters#tvmovies" />
+            <DocsLink href="https://autobrr.com/filters#tvmovies"/>
           </div>
         }
       />
@@ -66,7 +66,7 @@ const SeasonsAndEpisodes = () => (
         tooltip={
           <div>
             <p>This field takes a range of years and/or comma separated single months.</p>
-            <DocsLink href="https://autobrr.com/filters#tvmovies" />
+            <DocsLink href="https://autobrr.com/filters#tvmovies"/>
           </div>
         }
       />
@@ -78,7 +78,7 @@ const SeasonsAndEpisodes = () => (
         tooltip={
           <div>
             <p>This field takes a range of years and/or comma separated single days.</p>
-            <DocsLink href="https://autobrr.com/filters#tvmovies" />
+            <DocsLink href="https://autobrr.com/filters#tvmovies"/>
           </div>
         }
       />

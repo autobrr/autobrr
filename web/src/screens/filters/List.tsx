@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -66,27 +66,27 @@ type Actions =
 
 const FilterListReducer = (state: FilterListState, action: Actions): FilterListState => {
   switch (action.type) {
-    case ActionType.INDEXER_FILTER_CHANGE: {
-      return { ...state, indexerFilter: action.payload };
-    }
-    case ActionType.INDEXER_FILTER_RESET: {
-      return { ...state, indexerFilter: [] };
-    }
-    case ActionType.SORT_ORDER_CHANGE: {
-      return { ...state, sortOrder: action.payload };
-    }
-    case ActionType.SORT_ORDER_RESET: {
-      return { ...state, sortOrder: "" };
-    }
-    case ActionType.STATUS_CHANGE: {
-      return { ...state, status: action.payload };
-    }
-    case ActionType.STATUS_RESET: {
-      return { ...state, status: "" };
-    }
-    default: {
-      throw new Error(`Unhandled action type: ${action}`);
-    }
+  case ActionType.INDEXER_FILTER_CHANGE: {
+    return { ...state, indexerFilter: action.payload };
+  }
+  case ActionType.INDEXER_FILTER_RESET: {
+    return { ...state, indexerFilter: [] };
+  }
+  case ActionType.SORT_ORDER_CHANGE: {
+    return { ...state, sortOrder: action.payload };
+  }
+  case ActionType.SORT_ORDER_RESET: {
+    return { ...state, sortOrder: "" };
+  }
+  case ActionType.STATUS_CHANGE: {
+    return { ...state, status: action.payload };
+  }
+  case ActionType.STATUS_RESET: {
+    return { ...state, status: "" };
+  }
+  default: {
+    throw new Error(`Unhandled action type: ${action}`);
+  }
   }
 };
 
@@ -223,17 +223,17 @@ function FilterList({ toggleCreateFilter }: any) {
         </div>
 
         {isLoading
-          ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24" /></div>
+          ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
           : data && data.length > 0 ? (
-            <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
-              {filtered.filtered.length > 0
-                ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
-                : <EmptyListState text={`No ${status} filters`} />
-              }
-            </ul>
-          ) : (
-            <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter} />
-          )
+              <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
+                {filtered.filtered.length > 0
+                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx}/>)
+                  : <EmptyListState text={`No ${status} filters`}/>
+                }
+              </ul>
+            ) : (
+              <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter}/>
+            )
         }
       </div>
     </div>
@@ -591,7 +591,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           }}
           className="transition flex items-center w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
-          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true" />}
+          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true"/>}
         </Link>
         <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -611,7 +611,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
-                      Actions: {filter.actions_enabled_count}/{filter.actions_count}
+          Actions: {filter.actions_enabled_count}/{filter.actions_count}
                     </span>
                   </Link>
                 }
@@ -635,7 +635,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
-                  Actions: {filter.actions_enabled_count}/{filter.actions_count}
+          Actions: {filter.actions_enabled_count}/{filter.actions_count}
                 </span>
               </Link>
             )}

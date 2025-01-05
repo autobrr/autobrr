@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -55,7 +55,7 @@ export const LinksCell = (props: CellContext<Release, unknown>) => {
           requiresClick
           label={<DocumentTextIcon
             className="h-5 w-5 cursor-pointer text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"
-            aria-hidden={true} />}
+            aria-hidden={true}/>}
           title="Details"
         >
           <div className="mb-1">
@@ -70,9 +70,9 @@ export const LinksCell = (props: CellContext<Release, unknown>) => {
             <CellLine title="Title">{props.row.original.title}</CellLine>
             {props.row.original.year > 0 && <CellLine title="Year">{props.row.original.year.toString()}</CellLine>}
             {props.row.original.season > 0 &&
-              <CellLine title="Season">{props.row.original.season.toString()}</CellLine>}
+                <CellLine title="Season">{props.row.original.season.toString()}</CellLine>}
             {props.row.original.episode > 0 &&
-              <CellLine title="Episode">{props.row.original.episode.toString()}</CellLine>}
+                <CellLine title="Episode">{props.row.original.episode.toString()}</CellLine>}
             <CellLine title="Resolution">{props.row.original.resolution}</CellLine>
             <CellLine title="Source">{props.row.original.source}</CellLine>
             <CellLine title="Codec">{props.row.original.codec}</CellLine>
@@ -105,32 +105,32 @@ export const LinksCell = (props: CellContext<Release, unknown>) => {
   );
 };
 
-export const AgeCell = ({ cell }: CellContext<Release, unknown>) => (
+export const AgeCell = ({cell}: CellContext<Release, unknown>) => (
   <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue() as string)}>
-    {formatDistanceToNowStrict(new Date(cell.getValue() as string), { addSuffix: false })}
+    {formatDistanceToNowStrict(new Date(cell.getValue() as string), {addSuffix: false})}
   </div>
 );
 
 export const IndexerCell = (props: CellContext<Release, unknown>) => (
-  <div
-    className={classNames(
-      "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
-    )}
-  >
-    <Tooltip
-      requiresClick
-      label={props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
-      maxWidth="max-w-[90vw]"
+    <div
+      className={classNames(
+        "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+        "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
+      )}
     >
+      <Tooltip
+        requiresClick
+        label={props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
+        maxWidth="max-w-[90vw]"
+      >
       <span className="whitespace-pre-wrap break-words">
         {props.row.original.indexer.name ? props.row.original.indexer.name : props.row.original.indexer.identifier}
       </span>
-    </Tooltip>
-  </div>
+      </Tooltip>
+    </div>
 );
 
-export const TitleCell = ({ cell }: CellContext<Release, string>) => (
+export const TitleCell = ({cell}: CellContext<Release, string>) => (
   <div
     className={classNames(
       "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -175,7 +175,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
 
   const replayAction = () => {
     console.log("replay action");
-    mutation.mutate({ releaseId: status.release_id, actionId: status.id });
+    mutation.mutate({ releaseId: status.release_id,actionId: status.id });
   };
 
   return (
@@ -190,9 +190,9 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
 };
 
 interface StatusCellMapEntry {
-  colors: string;
-  icon: React.ReactElement;
-  textFormatter: (status: ReleaseActionStatus) => React.ReactElement;
+    colors: string;
+    icon: React.ReactElement;
+    textFormatter: (status: ReleaseActionStatus) => React.ReactElement;
 }
 
 const StatusCellMap: Record<string, StatusCellMapEntry> = {
@@ -202,10 +202,10 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     textFormatter: (status: ReleaseActionStatus) => (
       <>
         <span>
-          Action
+        Action
           {" "}
           <span className="font-bold underline underline-offset-2 decoration-2 decoration-red-500">
-            error
+          error
           </span>
           {": "}
           {status.action}
@@ -222,12 +222,12 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     textFormatter: (status: ReleaseActionStatus) => (
       <>
         <span>
-          Action
+        Action
           {" "}
           <span
             className="font-bold underline underline-offset-2 decoration-2 decoration-sky-500"
           >
-            rejected
+          rejected
           </span>
           {": "}
           {status.action}
@@ -247,7 +247,7 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
           Action
           {" "}
           <span className="font-bold underline underline-offset-2 decoration-2 decoration-green-500">
-            approved
+          approved
           </span>
           {": "}
           {status.action}
@@ -267,7 +267,7 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
           Action
           {" "}
           <span className="font-bold underline underline-offset-2 decoration-2 decoration-yellow-500">
-            pending
+          pending
           </span>
           {": "}
           {status.action}

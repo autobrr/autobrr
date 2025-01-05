@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -478,8 +478,8 @@ const ListItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>
@@ -538,8 +538,8 @@ const ListItemDropdown = ({
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={classNames(
                     "w-5 h-5 mr-2",
                     network.enabled
-                      ? active ? "text-white" : "text-blue-500 dark:text-blue-500"
-                      : "text-gray-600 dark:text-gray-500"
+                    ? active ? "text-white" : "text-blue-500 dark:text-blue-500"
+                    : "text-gray-600 dark:text-gray-500"
                   )}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
                   </svg>
@@ -609,12 +609,12 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
 
   return (
     <div className="block">
-      <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
-        {mutation.isPending
-          ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
-          : <ArrowPathIcon />
-        }
-      </button>
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
+      {mutation.isPending
+        ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
+        : <ArrowPathIcon />
+      }
+    </button>
     </div>
   );
 

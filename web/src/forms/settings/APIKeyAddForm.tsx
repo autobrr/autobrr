@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -25,7 +25,7 @@ export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
     onSuccess: (_, key) => {
       queryClient.invalidateQueries({ queryKey: ApiKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`API key ${key.name} was added`} t={t} />);
+      toast.custom((t) => <Toast type="success" body={`API key ${key.name} was added`} t={t}/>);
 
       toggle();
     }
@@ -81,7 +81,7 @@ export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
                               </button>
                             </div>
                           </div>
@@ -139,7 +139,7 @@ export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
                           </button>
                         </div>
                       </div>
-                      <DEBUG values={values} />
+                      <DEBUG values={values}/>
                     </Form>
                   )}
                 </Formik>

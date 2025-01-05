@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -7,7 +7,7 @@ import { FC } from "react";
 import { SettingsContext } from "@utils/Context";
 
 interface DebugProps {
-  values: unknown;
+    values: unknown;
 }
 
 export const DEBUG: FC<DebugProps> = ({ values }) => {
