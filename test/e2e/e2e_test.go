@@ -6,6 +6,7 @@ package e2e_test
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"reflect"
@@ -42,6 +43,18 @@ func TestEndToEnd(t *testing.T) {
 
 	if os.Getenv("HEADLESS") == "false" {
 		headless = false
+	}
+
+	healthResp, err := http.Get(baseUrl("/api/healtz/liveness"))
+	if err != nil {
+		log.Fatalf("could not get health check: %v", err)
+	}
+	defer healthResp.Body.Close()
+
+	log.Printf("health check status: %v\n", healthResp.Status)
+
+	if healthResp.StatusCode != http.StatusOK {
+		log.Fatalf("health check failed: %v", healthResp.Status)
 	}
 
 	pw, err := playwright.Run()
