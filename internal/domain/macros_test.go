@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/moistari/rls"
-
 	"github.com/stretchr/testify/assert"
 )
 

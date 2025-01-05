@@ -10,9 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/proxy"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"

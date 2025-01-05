@@ -22,9 +22,6 @@ import (
 	"time"
 	"unicode"
 
-	"golang.org/x/text/transform"
-	"golang.org/x/text/unicode/norm"
-
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -34,6 +31,8 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
 	"golang.org/x/net/publicsuffix"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 type ReleaseRepo interface {
