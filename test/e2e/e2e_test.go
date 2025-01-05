@@ -1,4 +1,7 @@
-package main
+//go:build e2e
+// +build e2e
+
+package e2e_test
 
 import (
 	"fmt"
@@ -7,28 +10,11 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
 )
-
-func assertErrorToNilf(message string, err error) {
-	if err != nil {
-		log.Fatalf(message, err)
-	}
-}
-
-func assertBool(message string, actual, expect bool) {
-	if actual != expect {
-		log.Fatalf(message, actual)
-	}
-}
-
-func assertEqual(expected, actual interface{}) {
-	if !reflect.DeepEqual(expected, actual) {
-		panic(fmt.Sprintf("%v does not equal %v", actual, expected))
-	}
-}
 
 var (
 	baseURL    = "http://localhost:7474"
@@ -48,6 +34,79 @@ var (
 	// Test data for qBittorrent client
 	qbitHost = "http://localhost:8080"
 )
+
+func TestEndToEnd(t *testing.T) {
+	var (
+		headless = true
+	)
+
+	if os.Getenv("HEADLESS") == "false" {
+		headless = false
+	}
+
+	pw, err := playwright.Run()
+	assertErrorToNilf("could not launch playwright: %w", err)
+
+	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+		Headless: &headless,
+	})
+	assertErrorToNilf("could not launch Chromium: %w", err)
+
+	context, err := browser.NewContext()
+	assertErrorToNilf("could not create context: %w", err)
+
+	page, err := context.NewPage()
+	assertErrorToNilf("could not create page: %w", err)
+
+	_, err = page.Goto(baseUrl("/"))
+	assertErrorToNilf("could not goto: %w", err)
+
+	// Run tests
+	tests := []struct {
+		name string
+		fn   func(playwright.Page) error
+	}{
+		{"Login", testLogin},
+		{"Add Indexer", testAddIndexer},
+		{"Add Filter", testAddFilter},
+		{"Add Notification", testNotifications},
+		{"Configure IRC", testIRCSettings},
+		{"Configure API", testAPISettings},
+		{"Configure Application", testApplicationSettings},
+		{"Configure Download Clients", testDownloadClients},
+	}
+
+	for _, tt := range tests {
+		fmt.Printf("Running test: %s\n", tt.name)
+		if err := tt.fn(page); err != nil {
+			fmt.Printf("Test %s failed: %v\n", tt.name, err)
+		} else {
+			fmt.Printf("Test %s passed\n", tt.name)
+		}
+		time.Sleep(time.Millisecond * 1000) // Wait between tests
+	}
+
+	assertErrorToNilf("could not close browser: %w", browser.Close())
+	assertErrorToNilf("could not stop Playwright: %w", pw.Stop())
+}
+
+func assertErrorToNilf(message string, err error) {
+	if err != nil {
+		log.Fatalf(message, err)
+	}
+}
+
+func assertBool(message string, actual, expect bool) {
+	if actual != expect {
+		log.Fatalf(message, actual)
+	}
+}
+
+func assertEqual(expected, actual interface{}) {
+	if !reflect.DeepEqual(expected, actual) {
+		panic(fmt.Sprintf("%v does not equal %v", actual, expected))
+	}
+}
 
 func baseUrl(endpoint string) string {
 	b, _ := url.JoinPath(baseURL, endpoint)
@@ -385,59 +444,4 @@ func testDownloadClients(page playwright.Page) error {
 	}
 
 	return nil
-}
-
-func main() {
-	var (
-		headless = true
-	)
-
-	if os.Getenv("HEADLESS") == "false" {
-		headless = false
-	}
-
-	pw, err := playwright.Run()
-	assertErrorToNilf("could not launch playwright: %w", err)
-
-	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: &headless,
-	})
-	assertErrorToNilf("could not launch Chromium: %w", err)
-
-	context, err := browser.NewContext()
-	assertErrorToNilf("could not create context: %w", err)
-
-	page, err := context.NewPage()
-	assertErrorToNilf("could not create page: %w", err)
-
-	_, err = page.Goto(baseUrl("/"))
-	assertErrorToNilf("could not goto: %w", err)
-
-	// Run tests
-	tests := []struct {
-		name string
-		fn   func(playwright.Page) error
-	}{
-		{"Login", testLogin},
-		{"Add Indexer", testAddIndexer},
-		{"Add Filter", testAddFilter},
-		{"Add Notification", testNotifications},
-		{"Configure IRC", testIRCSettings},
-		{"Configure API", testAPISettings},
-		{"Configure Application", testApplicationSettings},
-		{"Configure Download Clients", testDownloadClients},
-	}
-
-	for _, tt := range tests {
-		fmt.Printf("Running test: %s\n", tt.name)
-		if err := tt.fn(page); err != nil {
-			fmt.Printf("Test %s failed: %v\n", tt.name, err)
-		} else {
-			fmt.Printf("Test %s passed\n", tt.name)
-		}
-		time.Sleep(time.Millisecond * 1000) // Wait between tests
-	}
-
-	assertErrorToNilf("could not close browser: %w", browser.Close())
-	assertErrorToNilf("could not stop Playwright: %w", pw.Stop())
 }

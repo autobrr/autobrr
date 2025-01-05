@@ -83,7 +83,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+#          submodules: true
+          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -120,21 +121,26 @@ jobs:
       - name: Start Application and generate pprof Profile
         run: |
           go build -o autobrr cmd/autobrr/main.go
-          nohup ./autobrr --config . --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &  # Run the app in the background 
+          nohup ./autobrr --config . --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &
 
       # Step 4: Initialize and run integration tests
-      - name: Run Integration Tests
+      - name: Run E2E Tests
         run: |
-          echo "Running integration tests..."
-          go test -v ./test/e2e/main.go
-#          go test -v -tags=integration ./test/e2e/main.go
+          echo "Running E2E tests..."
+          go test -v -tags=e2e ./test/e2e/
 
       # (Optional) Step 5: Stop Background Application
-      - name: Stop Application
-        run: pkill -QUIT autobrr
+      - name: Stop Application and MockIndexer
+        if: runner.os != 'Windows'
+        run: |
+          kill -QUIT autobrr
+          kill mockindexer
 
-      - name: Stop MockIndexer
-        run: pkill mockindexer
+      - name: Stop Application and MockIndexer
+        if: runner.os == 'Windows'
+        run: |
+          tasklist | findstr autobrr.exe
+          tasklist | findstr mockindexer.exe
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
@@ -142,14 +148,8 @@ jobs:
           name: pprof-pgo-${{ matrix.os }}
           path: cpu-${{ matrix.os }}.pprof
 
-#      - name: Upload pprof
-#        uses: actions/upload-artifact@v4
+#      - name: Test Summary
+#        uses: test-summary/action@v2
 #        with:
-#          name: pprof-test-${{ matrix.os }}
-#          path: profile
-
-      - name: Test Summary
-        uses: test-summary/action@v2
-        with:
-          paths: "unit-tests.xml"
-        if: always()
+#          paths: "unit-tests.xml"
+#        if: always()
