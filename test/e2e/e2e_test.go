@@ -66,6 +66,7 @@ func TestEndToEnd(t *testing.T) {
 		name string
 		fn   func(playwright.Page) error
 	}{
+		{"Register", testRegister},
 		{"Login", testLogin},
 		{"Add Indexer", testAddIndexer},
 		{"Add Filter", testAddFilter},
@@ -170,6 +171,21 @@ func elementContainsText(page playwright.Page, selector string, text string) boo
 		return false
 	}
 	return strings.Contains(content, text)
+}
+
+func testRegister(page playwright.Page) error {
+	// Test register
+	assertErrorToNilf("could not type: %v", page.Locator("input#username").Fill(username))
+	assertErrorToNilf("could not type: %v", page.Locator("input#password1").Fill(password))
+	assertErrorToNilf("could not type: %v", page.Locator("input#password2").Fill(password))
+	assertErrorToNilf("could not press: %v", page.Locator("text=Create account").Click())
+
+	// Verify successful onboarding by checking for Login form
+	err := waitForElement(page, "text=Sign in", 5000)
+	if err != nil {
+		return fmt.Errorf("register failed: %v", err)
+	}
+	return nil
 }
 
 func testLogin(page playwright.Page) error {
