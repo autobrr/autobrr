@@ -1,4 +1,4 @@
-name: build
+name: E2E tests
 
 on:
   push:
@@ -122,6 +122,7 @@ jobs:
         run: |
           go build -o autobrr cmd/autobrr/main.go
           nohup ./autobrr --config . --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &
+          echo "pass" | go run cmd/autobrrctl/main.go create-user dev
 
       # Step 4: Initialize and run integration tests
       - name: Run E2E Tests
