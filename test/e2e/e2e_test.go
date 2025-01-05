@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	baseURL    = "http://localhost:7474"
+	baseURL    = "http://127.0.0.1:7474"
 	username   = "dev"
 	password   = "pass"
 	filterName = "Filter1"
@@ -58,8 +58,9 @@ func TestEndToEnd(t *testing.T) {
 	page, err := context.NewPage()
 	assertErrorToNilf("could not create page: %w", err)
 
-	_, err = page.Goto(baseUrl("/"))
+	res, err := page.Goto(baseUrl("/"))
 	assertErrorToNilf("could not goto: %w", err)
+	log.Println(res.Body())
 
 	// Run tests
 	tests := []struct {
