@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/url"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -29,6 +31,7 @@ func assertEqual(expected, actual interface{}) {
 }
 
 var (
+	baseURL    = "http://localhost:7474"
 	username   = "dev"
 	password   = "pass"
 	filterName = "Filter1"
@@ -45,6 +48,11 @@ var (
 	// Test data for qBittorrent client
 	qbitHost = "http://localhost:8080"
 )
+
+func baseUrl(endpoint string) string {
+	b, _ := url.JoinPath(baseURL, endpoint)
+	return b
+}
 
 // Helper function to fill input field
 func fillInput(page playwright.Page, selector string, value string) error {
@@ -121,7 +129,7 @@ func testLogin(page playwright.Page) error {
 
 func testAddIndexer(page playwright.Page) error {
 	// Navigate to indexers page
-	_, err := page.Goto("http://localhost:3000/settings/indexers")
+	_, err := page.Goto(baseUrl("/settings/indexers"))
 	if err != nil {
 		return fmt.Errorf("could not navigate to settings/indexers: %v", err)
 	}
@@ -158,7 +166,7 @@ func testAddFilter(page playwright.Page) error {
 	var err error
 
 	// Navigate to filters page
-	if _, err = page.Goto("http://localhost:3000/filters"); err != nil {
+	if _, err = page.Goto(baseUrl("/filters")); err != nil {
 		return fmt.Errorf("could not navigate to filters: %v", err)
 	}
 
@@ -189,7 +197,7 @@ func testAddFilter(page playwright.Page) error {
 
 func testNotifications(page playwright.Page) error {
 	// Navigate to notifications settings
-	_, err := page.Goto("http://localhost:3000/settings/notifications")
+	_, err := page.Goto(baseUrl("/settings/notifications"))
 	if err != nil {
 		return fmt.Errorf("could not navigate to notifications settings: %v", err)
 	}
@@ -236,7 +244,7 @@ func testNotifications(page playwright.Page) error {
 
 func testIRCSettings(page playwright.Page) error {
 	// Navigate to IRC settings
-	_, err := page.Goto("http://localhost:3000/settings/irc")
+	_, err := page.Goto(baseUrl("/settings/irc"))
 	if err != nil {
 		return fmt.Errorf("could not navigate to IRC settings: %v", err)
 	}
@@ -277,7 +285,7 @@ func testIRCSettings(page playwright.Page) error {
 
 func testAPISettings(page playwright.Page) error {
 	// Navigate to API settings
-	_, err := page.Goto("http://localhost:3000/settings/api")
+	_, err := page.Goto(baseUrl("/settings/api"))
 	if err != nil {
 		return fmt.Errorf("could not navigate to API settings: %v", err)
 	}
@@ -306,7 +314,7 @@ func testAPISettings(page playwright.Page) error {
 
 func testApplicationSettings(page playwright.Page) error {
 	// Navigate to logs settings
-	_, err := page.Goto("http://localhost:3000/settings/logs")
+	_, err := page.Goto(baseUrl("/settings/logs"))
 	if err != nil {
 		return fmt.Errorf("could not navigate to logs settings: %v", err)
 	}
@@ -366,7 +374,7 @@ func addDownloadClient(page playwright.Page, name, host string) error {
 
 func testDownloadClients(page playwright.Page) error {
 	// Navigate to download clients settings
-	_, err := page.Goto("http://localhost:3000/settings/clients")
+	_, err := page.Goto(baseUrl("/settings/clients"))
 	if err != nil {
 		return fmt.Errorf("could not navigate to download clients settings: %v", err)
 	}
@@ -380,11 +388,19 @@ func testDownloadClients(page playwright.Page) error {
 }
 
 func main() {
+	var (
+		headless = true
+	)
+
+	if os.Getenv("HEADLESS") == "false" {
+		headless = false
+	}
+
 	pw, err := playwright.Run()
 	assertErrorToNilf("could not launch playwright: %w", err)
 
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: playwright.Bool(false),
+		Headless: &headless,
 	})
 	assertErrorToNilf("could not launch Chromium: %w", err)
 
@@ -394,7 +410,7 @@ func main() {
 	page, err := context.NewPage()
 	assertErrorToNilf("could not create page: %w", err)
 
-	_, err = page.Goto("http://localhost:3000")
+	_, err = page.Goto(baseUrl("/"))
 	assertErrorToNilf("could not goto: %w", err)
 
 	// Run tests
