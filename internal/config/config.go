@@ -266,6 +266,9 @@ func (c *AppConfig) defaults() {
 		ProfilingEnabled:    false,
 		ProfilingHost:       "127.0.0.1",
 		ProfilingPort:       6060,
+		MetricsEnabled:      false,
+		MetricsHost:         "127.0.0.1",
+		MetricsPort:         7475,
 	}
 
 }
@@ -404,6 +407,21 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "OIDC_REDIRECT_URL"); v != "" {
 		c.Config.OIDCRedirectURL = v
+	}
+
+	if v := os.Getenv(prefix + "METRICS_ENABLED"); v != "" {
+		c.Config.MetricsEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "METRICS_HOST"); v != "" {
+		c.Config.MetricsHost = v
+	}
+
+	if v := os.Getenv(prefix + "METRICS_PORT"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.MetricsPort = int(i)
+		}
 	}
 }
 

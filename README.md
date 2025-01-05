@@ -341,6 +341,9 @@ The following environment variables can be used:
 | `AUTOBRR__OIDC_CLIENT_ID`        | OIDC client ID                       | -                                        |
 | `AUTOBRR__OIDC_CLIENT_SECRET`    | OIDC client secret                   | -                                        |
 | `AUTOBRR__OIDC_REDIRECT_URL`     | OIDC callback URL                    | `https://baseurl/api/auth/oidc/callback` |
+| `AUTOBRR__METRICS_ENABLED`       | Enable Metrics server                | `false`                                  |
+| `AUTOBRR__METRICS_HOST`          | Metrics listen address               | `127.0.0.1`                              |
+| `AUTOBRR__METRICS_PORT`          | Metrics listen port                  | `7475`                                   |
 
 ## Community
 
