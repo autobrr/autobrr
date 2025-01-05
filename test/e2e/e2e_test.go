@@ -45,7 +45,7 @@ func TestEndToEnd(t *testing.T) {
 		headless = false
 	}
 
-	healthResp, err := http.Get(baseUrl("/api/healtz/liveness"))
+	healthResp, err := http.Get(baseUrl("/api/healthz/liveness"))
 	if err != nil {
 		log.Fatalf("could not get health check: %v", err)
 	}
