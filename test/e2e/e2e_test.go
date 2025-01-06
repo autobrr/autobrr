@@ -162,11 +162,6 @@ func waitForElement(page playwright.Page, selector string, timeout float64) erro
 		State:   playwright.WaitForSelectorStateVisible,
 		Timeout: playwright.Float(timeout),
 	})
-	//_, err := page.WaitForSelector(selector, playwright.PageWaitForSelectorOptions{
-	//	State:   playwright.WaitForSelectorStateVisible,
-	//	Timeout: playwright.Float(timeout),
-	//})
-	//return err
 }
 
 // Helper function to check if element contains text
@@ -184,11 +179,6 @@ func elementContainsText(page playwright.Page, selector string, text string) boo
 
 func testRegister(t *testing.T, page playwright.Page) error {
 	// Test register
-	//assertErrorToNilf("could not type: %v", page.Locator("input#username").Fill(username))
-	//assertErrorToNilf("could not type: %v", page.Locator("input#password1").Fill(password))
-	//assertErrorToNilf("could not type: %v", page.Locator("input#password2").Fill(password))
-	//assertErrorToNilf("could not press: %v", page.Locator("text=Create account").Click())
-
 	assert.NoErrorf(t, page.Locator("input#username").Fill(username), "could not fill input #username")
 	assert.NoErrorf(t, page.Locator("input#password1").Fill(password), "could not fill input #password1")
 	assert.NoErrorf(t, page.Locator("input#password2").Fill(password), "could not fill input #password2")
@@ -196,10 +186,7 @@ func testRegister(t *testing.T, page playwright.Page) error {
 
 	// Verify successful onboarding by checking for Login form
 	assert.NoErrorf(t, waitForElement(page, "text=Sign in", 5000), "register failed: could not find login form")
-	//err := waitForElement(page, "text=Sign in", 5000)
-	//if err != nil {
-	//	return fmt.Errorf("register failed: %v", err)
-	//}
+
 	return nil
 }
 
@@ -226,7 +213,6 @@ func testAddIndexer(t *testing.T, page playwright.Page) error {
 
 	// Wait for and select indexer type
 	assert.NoError(t, page.Locator("[id^='react-select'][id$='-input']").WaitFor(), "could not wait for indexer type dropdown")
-	//assertErrorToNilf("could not wait for indexer type dropdown: %v", page.Locator("[id^='react-select'][id$='-input']").WaitFor())
 
 	err = selectFromDropdown(page, "[id^='react-select'][id$='-input']", "Generic RSS")
 	assert.NoError(t, err, "could not select indexer type")
@@ -235,9 +221,6 @@ func testAddIndexer(t *testing.T, page playwright.Page) error {
 	assert.NoError(t, page.Locator("input#feed\\.url").WaitFor(), "could not find RSS URL input field")
 	assert.NoError(t, page.Locator("input#feed\\.url").Fill(rssUrl), "could not type in RSS URL")
 
-	//assertErrorToNilf("could not find RSS URL input field: %v", page.Locator("input#feed\\.url").WaitFor())
-	//assertErrorToNilf("could not type in RSS URL: %v", page.Locator("input#feed\\.url").Fill(rssUrl))
-
 	//time.Sleep(time.Millisecond * 1000)
 
 	// Save indexer
@@ -245,10 +228,6 @@ func testAddIndexer(t *testing.T, page playwright.Page) error {
 
 	err = page.Locator("ul > li").GetByText("Generic RSS").WaitFor()
 	assert.NoError(t, err, "could not find indexer in list")
-
-	//// Verify indexer was added
-	//err = waitForElement(page, "ul:has(li) >> :has(div:text=Generic RSS", 5000)
-	//assert.NoError(t, err, "indexer was not added successfully")
 
 	return nil
 }
@@ -309,7 +288,6 @@ func testNotifications(t *testing.T, page playwright.Page) error {
 	assert.NoError(t, page.Locator("input#webhook").Fill(discordWebhook), "could not fill webhook URL")
 
 	// Select an event (using the first event checkbox)
-	//assert.NoError(t, page.Locator("fieldset > input[type='checkbox']").First().Check(), "could not select event")
 	assert.NoError(t, page.Locator("input#events-PUSH_APPROVED").Click(), "could not select event")
 
 	// Wait for form to be ready
@@ -319,9 +297,6 @@ func testNotifications(t *testing.T, page playwright.Page) error {
 	assert.NoError(t, page.Locator("button[type='submit']").Click(), "could not click Save button")
 
 	// Verify notification was added
-	//err = waitForElement(page, "text=Discord", 5000)
-	//assert.NoError(t, err, "notification was not added successfully")
-
 	err = page.Locator("ul > li").GetByText("Discord Test").WaitFor()
 	assert.NoError(t, err, "could not find notification in list")
 
@@ -346,27 +321,16 @@ func testIRCSettings(t *testing.T, page playwright.Page) error {
 	assert.NoError(t, page.Locator("input#auth\\.account").Fill(ircNick), "could not fill auth account")
 	assert.NoError(t, page.Locator("input#auth\\.password").Fill("testpass"), "could not fill auth password")
 
-	//assertErrorToNilf("could not fill server: %v", page.Locator("input#server").Fill(ircServer))
-	//assertErrorToNilf("could not fill nick: %v", page.Locator("input#nick").Fill(ircNick))
-	//assertErrorToNilf("could not fill auth account: %v", page.Locator("input#auth\\.account").Fill(ircNick))
-	//assertErrorToNilf("could not fill auth password: %v", page.Locator("input#auth\\.password").Fill("testpass"))
-
 	// Uncheck enabled switch (it's true by default)
 	assert.NoError(t, page.Locator("button#enabled").Click(), "could not click disabled switch")
-	//assert.NoError(t, page.Locator("button[role='switch'][aria-checked='false']").Click(), "could not click disabled switch")
 
 	// Wait for switch state to be updated
 	time.Sleep(time.Millisecond * 500)
 
 	// Create IRC network
-	assert.NoError(t, page.Locator("button", playwright.PageLocatorOptions{
-		HasText: "Create",
-	}).Click(), "could not click Create button")
+	assert.NoError(t, page.Locator("button", playwright.PageLocatorOptions{HasText: "Create"}).Click(), "could not click Create button")
 
 	// Verify IRC network was added
-	//err = waitForElement(page, fmt.Sprintf("text=%s", ircServer), 5000)
-	//assert.NoError(t, err, "IRC network was not added successfully")
-
 	err = page.Locator("ul > li").GetByText(ircServer).WaitFor()
 	assert.NoError(t, err, "could not find IRC network in list")
 
@@ -391,9 +355,6 @@ func testAPISettings(t *testing.T, page playwright.Page) error {
 	assert.NoError(t, page.Locator("button.bg-blue-600[type='submit']").Click(), "could not click Create button")
 
 	// Verify API key was added
-	//err = waitForElement(page, fmt.Sprintf("text=%s", apiKey), 5000)
-	//assert.NoError(t, err, "API key was not added successfully")
-
 	err = page.Locator("ul > li").GetByText(apiKey).WaitFor()
 	assert.NoError(t, err, "could not find API key in list")
 
@@ -406,13 +367,9 @@ func testApplicationSettings(t *testing.T, page playwright.Page) error {
 	assert.NoError(t, err, "could not navigate to logs settings")
 
 	// Wait for and change log level
-	//assertErrorToNilf("could not wait for log level dropdown: %v", page.Locator("[id^='react-select'][id$='-input']").WaitFor())
 	assert.NoError(t, page.Locator("[id^='react-select'][id$='-input']").WaitFor(), "could not find log level dropdown")
 
 	assert.NoError(t, selectFromDropdown(page, "[id^='react-select'][id$='-input']", "Debug"), "could not select log level")
-	//if err := selectFromDropdown(page, "[id^='react-select'][id$='-input']", logLevel); err != nil {
-	//	return fmt.Errorf("could not select log level: %v", err)
-	//}
 
 	// Wait for settings to be saved automatically
 	err = waitForElement(page, "text=Config successfully updated!", 5000)
@@ -431,14 +388,12 @@ func addDownloadClient(t *testing.T, page playwright.Page, name, host string) er
 	time.Sleep(time.Millisecond * 700)
 
 	// Wait for form to be ready and fill name
-	//assertErrorToNilf("could not wait for name field: %v", page.Locator("input#name").WaitFor())
 	assert.NoError(t, page.Locator("input#name").WaitFor(), "could not find input name")
 
 	err = fillInput(page, "input#name", name)
 	assert.NoError(t, err, "could not fill input name")
 
 	// Wait for and fill host field
-	//assertErrorToNilf("could not wait for host field: %v", page.Locator("input#host").WaitFor())
 	assert.NoError(t, page.Locator("input#host").WaitFor(), "could not find input host")
 
 	err = fillInput(page, "input#host", host)
@@ -452,9 +407,6 @@ func addDownloadClient(t *testing.T, page playwright.Page, name, host string) er
 	assert.NoError(t, err, "could not click Create button")
 
 	// Verify client was added
-	//err = waitForElement(page, fmt.Sprintf("text=%s", name), 5000)
-	//assert.NoErrorf(t, err, "download client %s was not added successfully", name)
-
 	err = page.Locator("ul > li").GetByText(name).WaitFor()
 	assert.NoError(t, err, "could not find Download Client in list")
 
