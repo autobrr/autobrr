@@ -94,12 +94,12 @@ func TestEndToEnd(t *testing.T) {
 		{"Register", testRegister},
 		{"Login", testLogin},
 		{"Add Indexer", testAddIndexer},
-		{"Add Filter", testAddFilter},
 		{"Add Notification", testNotifications},
 		{"Configure IRC", testIRCSettings},
 		{"Configure API", testAPISettings},
 		{"Configure Application", testApplicationSettings},
 		{"Configure Download Clients", testDownloadClients},
+		{"Add Filter", testAddFilter},
 	}
 
 	for _, tt := range tests {
@@ -254,9 +254,12 @@ func testAddFilter(t *testing.T, page playwright.Page) error {
 	err = page.Locator("button[type='submit']").Click()
 	assert.NoError(t, err, "could not click Create button")
 
+	_, err = page.Goto(baseUrl("/filters"))
+	assert.NoError(t, err, "could not navigate to filters page")
+
 	// Verify filter was created
-	err = waitForElement(page, fmt.Sprintf("text=%s", filterName), 5000)
-	assert.NoError(t, err, "filter was not created successfully")
+	err = page.Locator("ul > li").GetByText(filterName).WaitFor()
+	assert.NoError(t, err, "could not find filter in list")
 
 	return nil
 }
