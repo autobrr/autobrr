@@ -403,24 +403,24 @@ jobs:
           cache: true
         id: go
 
-      - name: Cache drivers
-        uses: actions/cache@v4
-        with:
-          # In order:
-          # * Driver for linux
-          # * Driver for macOS
-          # * Driver for windows
-          path: |
-            ~/.cache/ms-playwright-go
-            ~/.cache/ms-playwright
-            ~/Library/Caches/ms-playwright-go
-            ~/Library/Caches/ms-playwright
-            ~\AppData\Local\ms-playwright-go
-            ~\AppData\Local\ms-playwright
-          key: ${{ runner.os }}-chromium-${{ hashFiles('**/run.go') }}
-      - run: |
-          go install github.com/playwright-community/playwright-go/cmd/playwright@latest
-          playwright install --with-deps chromium
+#      - name: Cache drivers
+#        uses: actions/cache@v4
+#        with:
+#          # In order:
+#          # * Driver for linux
+#          # * Driver for macOS
+#          # * Driver for windows
+#          path: |
+#            ~/.cache/ms-playwright-go
+#            ~/.cache/ms-playwright
+#            ~/Library/Caches/ms-playwright-go
+#            ~/Library/Caches/ms-playwright
+#            ~\AppData\Local\ms-playwright-go
+#            ~\AppData\Local\ms-playwright
+#          key: ${{ runner.os }}-chromium-${{ hashFiles('**/run.go') }}
+#      - run: |
+#          go install github.com/playwright-community/playwright-go/cmd/playwright@latest
+#          playwright install --with-deps chromium
 
       - name: Build MockIndexer (Windows)
         run: |

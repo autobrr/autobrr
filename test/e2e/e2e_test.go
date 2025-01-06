@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -45,6 +46,19 @@ func TestEndToEnd(t *testing.T) {
 		headless = false
 	}
 
+	runOption := &playwright.RunOptions{
+		Browsers: []string{"chromium"},
+		//SkipInstallBrowsers: true,
+	}
+
+	if runtime.GOOS == "windows" {
+		log.Println("Installing Playwright deps on Windows ..")
+
+		if err := playwright.Install(runOption); err != nil {
+			log.Fatalf("could not install Playwright: %v", err)
+		}
+	}
+
 	healthResp, err := http.Get(baseUrl("/api/healthz/liveness"))
 	if err != nil {
 		log.Fatalf("could not get health check: %v", err)
@@ -57,7 +71,7 @@ func TestEndToEnd(t *testing.T) {
 		log.Fatalf("health check failed: %v", healthResp.Status)
 	}
 
-	pw, err := playwright.Run()
+	pw, err := playwright.Run(runOption)
 	assertErrorToNilf("could not launch playwright: %w", err)
 
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
