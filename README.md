@@ -316,32 +316,32 @@ If you are not running a reverse proxy change `host` in the `config.toml` to `0.
 
 The following environment variables can be used:
 
-| Variable                               | Description                          | Default                                  |
-| -------------------------------------- | ------------------------------------ | ---------------------------------------- |
-| `AUTOBRR__HOST`                        | Listen address                       | `127.0.0.1`                              |
-| `AUTOBRR__PORT`                        | Listen port                          | `7474`                                   |
-| `AUTOBRR__BASE_URL`                    | Base URL for reverse proxy           | `/`                                      |
-| `AUTOBRR__LOG_LEVEL`                   | Log level (DEBUG, INFO, WARN, ERROR) | `INFO`                                   |
-| `AUTOBRR__LOG_PATH`                    | Log file location                    | `/config/logs`                           |
-| `AUTOBRR__LOG_MAX_SIZE`                | Max size in MB before rotation       | `10`                                     |
-| `AUTOBRR__LOG_MAX_BACKUPS`             | Number of rotated logs to keep       | `5`                                      |
-| `AUTOBRR__SESSION_SECRET`              | Random string for session encryption | -                                        |
-| `AUTOBRR__CUSTOM_DEFINITIONS`          | Path to custom indexer definitions   | -                                        |
-| `AUTOBRR__CHECK_FOR_UPDATES`           | Enable update checks                 | `true`                                   |
-| `AUTOBRR__DATABASE_TYPE`               | Database type (sqlite/postgres)      | `sqlite`                                 |
-| `AUTOBRR__POSTGRES_HOST`               | PostgreSQL host                      | -                                        |
-| `AUTOBRR__POSTGRES_PORT`               | PostgreSQL port                      | `5432`                                   |
-| `AUTOBRR__POSTGRES_DATABASE`           | PostgreSQL database name             | -                                        |
-| `AUTOBRR__POSTGRES_USER`               | PostgreSQL username                  | -                                        |
-| `AUTOBRR__POSTGRES_PASS`               | PostgreSQL password                  | -                                        |
-| `AUTOBRR__POSTGRES_SSLMODE`            | PostgreSQL SSL mode                  | `disable`                                |
-| `AUTOBRR__POSTGRES_EXTRA_PARAMS`       | Additional PostgreSQL parameters     | -                                        |
-| `AUTOBRR__OIDC_ENABLED`                | Enable OpenID Connect authentication | `false`                                  |
-| `AUTOBRR__OIDC_ISSUER`                 | OIDC issuer URL                      | -                                        |
-| `AUTOBRR__OIDC_CLIENT_ID`              | OIDC client ID                       | -                                        |
-| `AUTOBRR__OIDC_CLIENT_SECRET`          | OIDC client secret                   | -                                        |
-| `AUTOBRR__OIDC_REDIRECT_URL`           | OIDC callback URL                    | `https://baseurl/api/auth/oidc/callback` |
-| `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` | Disable built-in login form          | `false`                                  |
+| Variable                          | Description                                              | Default                                  |
+| --------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
+| `AUTOBRR__HOST`                   | Listen address                                           | `127.0.0.1`                              |
+| `AUTOBRR__PORT`                   | Listen port                                              | `7474`                                   |
+| `AUTOBRR__BASE_URL`               | Base URL for reverse proxy                               | `/`                                      |
+| `AUTOBRR__LOG_LEVEL`              | Log level (DEBUG, INFO, WARN, ERROR)                     | `INFO`                                   |
+| `AUTOBRR__LOG_PATH`               | Log file location                                        | `/config/logs`                           |
+| `AUTOBRR__LOG_MAX_SIZE`           | Max size in MB before rotation                           | `10`                                     |
+| `AUTOBRR__LOG_MAX_BACKUPS`        | Number of rotated logs to keep                           | `5`                                      |
+| `AUTOBRR__SESSION_SECRET`         | Random string for session encryption                     | -                                        |
+| `AUTOBRR__CUSTOM_DEFINITIONS`     | Path to custom indexer definitions                       | -                                        |
+| `AUTOBRR__CHECK_FOR_UPDATES`      | Enable update checks                                     | `true`                                   |
+| `AUTOBRR__DATABASE_TYPE`          | Database type (sqlite/postgres)                          | `sqlite`                                 |
+| `AUTOBRR__POSTGRES_HOST`          | PostgreSQL host                                          | -                                        |
+| `AUTOBRR__POSTGRES_PORT`          | PostgreSQL port                                          | `5432`                                   |
+| `AUTOBRR__POSTGRES_DATABASE`      | PostgreSQL database name                                 | -                                        |
+| `AUTOBRR__POSTGRES_USER`          | PostgreSQL username                                      | -                                        |
+| `AUTOBRR__POSTGRES_PASS`          | PostgreSQL password                                      | -                                        |
+| `AUTOBRR__POSTGRES_SSLMODE`       | PostgreSQL SSL mode                                      | `disable`                                |
+| `AUTOBRR__POSTGRES_EXTRA_PARAMS`  | Additional PostgreSQL parameters                         | -                                        |
+| `AUTOBRR__OIDC_ENABLED`           | Enable OpenID Connect authentication                     | `false`                                  |
+| `AUTOBRR__OIDC_ISSUER`            | OIDC issuer URL                                          | -                                        |
+| `AUTOBRR__OIDC_CLIENT_ID`         | OIDC client ID                                           | -                                        |
+| `AUTOBRR__OIDC_CLIENT_SECRET`     | OIDC client secret                                       | -                                        |
+| `AUTOBRR__OIDC_REDIRECT_URL`      | OIDC callback URL                                        | `https://baseurl/api/auth/oidc/callback` |
+| `AUTOBRR__DISABLE_BUILT_IN_LOGIN` | Disable login form (only works when using external auth) | `false`                                  |
 
 ## Community
 
