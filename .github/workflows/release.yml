@@ -338,11 +338,28 @@ jobs:
           go build -o mockindexer ./test/mockindexer/main.go
           nohup ./mockindexer &  # Run the app in the background 
           echo $! > mockindexer.pid
+          
 
-      - name: Start autobrr and generate pprof Profile
+      - name: Build autobrr
         run: |
           mkdir .dev
           go build -o autobrr cmd/autobrr/main.go
+
+      - name: Create config.toml
+        run: |
+          cat <<EOF > .dev/config.toml
+          host = "127.0.0.1"
+          port = 7474
+          #baseUrl = "/autobrr/"
+          baseUrlModeLegacy = true
+          logLevel = "TRACE"
+          checkForUpdates = true
+          sessionSecret = "e49ad7e08ce3069fb8c1f71b48a21a32"
+          customDefinitions = "./test/definitions"
+          EOF
+
+      - name: Start autobrr and generate pprof Profile
+        run: |
           nohup ./autobrr --config .dev --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &
           echo $! > autobrr.pid
 
@@ -435,6 +452,19 @@ jobs:
           mkdir .dev
           go build -o autobrr.exe cmd/autobrr/main.go
 
+      - name: Create config.toml
+        run: |
+          @"
+          host = "127.0.0.1"
+          port = 7474
+          #baseUrl = "/autobrr/"
+          baseUrlModeLegacy = true
+          logLevel = "TRACE"
+          checkForUpdates = true
+          sessionSecret = "e49ad7e08ce3069fb8c1f71b48a21a32"
+          customDefinitions = "./test/definitions"
+          "@ | Out-File -FilePath .dev/config.toml -Encoding utf8
+
       - name: Run autobrr in the background and generate pprof Profile
         run: |
           $process = Start-Process -FilePath ./autobrr.exe -ArgumentList "--config=.dev", "--pgo=cpu-${{ matrix.os }}.pprof", "--pgo-autokill=false" -PassThru
@@ -455,9 +485,6 @@ jobs:
       - name: Run E2E Tests
         run: |
           echo "Running E2E tests..."
-          sleep 2
-          echo 'customDefinitions = "./test/definitions"' >> .dev/config.toml
-          sleep 2
           go run gotest.tools/gotestsum@latest --junitfile unit-tests-${{matrix.os}}.xml --format pkgname -- ./test/e2e/ -tags=e2e
 
       - name: Test Summary
