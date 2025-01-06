@@ -72,13 +72,23 @@ jobs:
           name: web-dist
           path: web/dist
 
+      - name: Copy dist to shared location
+        run: |
+          mv web/dist $GITHUB_WORKSPACE/
+
+      - name: Create web-dist artifact
+        if: startsWith(github.ref, 'refs/tags/')
+        run: mkdir -p dist && tar czf dist/web-dist.tar.gz web/dist
+
+      - name: Upload web-dist to release assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/web-dist.tar.gz
   test:
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ ubuntu-latest ]
-    name: Test ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Run Unit and Integration tests
+    runs-on: ubuntu-latest
     services:
       test_postgres:
         image: postgres:12.10
@@ -103,21 +113,24 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Create Profile environment
-        run:
-          |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
-          chmod +x profile.sh;
-          mkdir profile;
+#      - name: Create Profile environment
+#        run:
+#          |
+#          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+#          chmod +x profile.sh;
+#          mkdir profile;
+#
+#      - name: Test with PGO
+#        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
+#
+#      - name: Upload pprof
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: pprof-test-${{ matrix.os }}
+#          path: profile
 
       - name: Test
-        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v4
-        with:
-          name: pprof-test-${{ matrix.os }}
-          path: profile
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./... -tags=integration
 
       - name: Test Summary
         uses: test-summary/action@v2
@@ -125,89 +138,287 @@ jobs:
           paths: "unit-tests.xml"
         if: always()
 
-  testother:
+#  testother:
+#    strategy:
+#      fail-fast: true
+#      matrix:
+#        os: [ macos-latest, windows-latest ]
+#    name: Test ${{ matrix.os }}
+#    runs-on: ${{ matrix.os }}
+#    env:
+#      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+#      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+#      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+#      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+#      CGO_ENABLED: 0
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+#      - name: Set up Go
+#        uses: actions/setup-go@v5
+#        with:
+#          go-version: ${{ env.GO_VERSION }}
+#          cache: true
+#
+#      - name: Create Profile environment
+#        shell: bash
+#        run:
+#          |
+#          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+#          chmod +x profile.sh;
+#          mkdir profile;
+#
+#      - name: Profile
+#        shell: bash
+#        run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
+#
+#      - name: Upload pprof
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: pprof-test-${{ matrix.os }}
+#          path: profile
+#
+#      - name: Test Summary
+#        uses: test-summary/action@v2
+#        with:
+#          paths: "unit-tests.xml"
+#        if: always() && startsWith(matrix.os, 'windows') == false
+
+#  pgo:
+#    strategy:
+#      fail-fast: true
+#      matrix:
+#        os: [ ubuntu-latest, macos-latest, windows-latest ]
+#    name: Automatic PGO run ${{ matrix.os }}
+#    runs-on: ${{ matrix.os }}
+#    needs: [ web ]
+#    env:
+#      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+#      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+#      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+#      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+#      CGO_ENABLED: 0
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0
+#
+##      - name: Download web production build
+##        uses: actions/download-artifact@v4
+##        with:
+##          name: web-dist
+##          path: web/dist
+#
+#      - name: Copy web production build from shared dir
+#        run: |
+#          ls -lah $GITHUB_WORKSPACE/
+#          ls -lah $GITHUB_WORKSPACE/dist
+#          cp $GITHUB_WORKSPACE/dist web/dist
+#
+#      - name: Set up Go
+#        uses: actions/setup-go@v5
+#        with:
+#          go-version: ${{ env.GO_VERSION }}
+#          cache: true
+#
+#      - name: Generate Profile
+#        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
+#
+#      - name: Upload pprof
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: pprof-pgo-${{ matrix.os }}
+#          path: cpu-${{ matrix.os }}.pprof
+
+  test-e2e-unix:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ macos-latest, windows-latest ]
-    name: Test ${{ matrix.os }}
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
-      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
-      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
-      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
-      CGO_ENABLED: 0
+    needs: [ web ]
+    name:  E2E tests on ${{ matrix.os }} with Chromium
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+#      - name: Download web production build
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: web-dist
+#          path: web/dist
+
+      - name: Copy web production build from shared dir
+        run: |
+          ls -lah $GITHUB_WORKSPACE/
+          ls -lah $GITHUB_WORKSPACE/dist
+          cp $GITHUB_WORKSPACE/dist web/dist
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+        id: go
 
-      - name: Create Profile environment
-        shell: bash
-        run:
-          |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
-          chmod +x profile.sh;
-          mkdir profile;
-
-      - name: Profile
-        shell: bash
-        run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v4
+      - name: Cache drivers
+        uses: actions/cache@v4
         with:
-          name: pprof-test-${{ matrix.os }}
-          path: profile
+          # In order:
+          # * Driver for linux
+          # * Driver for macOS
+          # * Driver for windows
+          path: |
+            ~/.cache/ms-playwright-go
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright-go
+            ~/Library/Caches/ms-playwright
+            ~\AppData\Local\ms-playwright-go
+            ~\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-chromium-${{ hashFiles('**/run.go') }}
+      - run: |
+          go install github.com/playwright-community/playwright-go/cmd/playwright@latest
+          playwright install --with-deps chromium
+
+      - name: Start MockIndexer
+        run: |
+          go build -o mockindexer ./test/mockindexer/main.go
+          nohup ./mockindexer &  # Run the app in the background 
+          echo $! > mockindexer.pid
+
+      - name: Start autobrr and generate pprof Profile
+        run: |
+          mkdir .dev
+          go build -o autobrr cmd/autobrr/main.go
+          nohup ./autobrr --config .dev --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &
+          echo $! > autobrr.pid
+
+      - name: Run E2E Tests
+        run: |
+          echo "Running E2E tests..."
+          sleep 2
+          echo 'customDefinitions = "./test/definitions"' >> .dev/config.toml
+          sleep 2
+          go run gotest.tools/gotestsum@latest --junitfile unit-tests-${{matrix.os}}.xml --format pkgname -- ./test/e2e/ -tags=e2e
 
       - name: Test Summary
         uses: test-summary/action@v2
         with:
-          paths: "unit-tests.xml"
-        if: always() && startsWith(matrix.os, 'windows') == false
+          paths: "unit-tests-${{matrix.os}}.xml"
+        if: always()
 
-  pgo:
+      - name: Stop autobrr and MockIndexer
+        run: |
+          kill -QUIT "$(cat autobrr.pid)"
+          kill -QUIT "$(cat mockindexer.pid)"
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-pgo-${{ matrix.os }}
+          path: cpu-${{ matrix.os }}.pprof
+
+  test-e2e-windows:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-    name: Automatic PGO run ${{ matrix.os }}
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     needs: [ web ]
-    env:
-      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
-      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
-      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
-      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
-      CGO_ENABLED: 0
+    name:  E2E tests on ${{ matrix.os }} with Chromium
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download web production build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: web/dist
+#      - name: Download web production build
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: web-dist
+#          path: web/dist
+
+      - name: Copy web production build from shared dir
+        run: |
+          ls -lah $GITHUB_WORKSPACE/
+          ls -lah $GITHUB_WORKSPACE/dist
+          cp $GITHUB_WORKSPACE/dist web/dist
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: true
+        id: go
 
-      - name: Generate Profile
-        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
+      - name: Cache drivers
+        uses: actions/cache@v4
+        with:
+          # In order:
+          # * Driver for linux
+          # * Driver for macOS
+          # * Driver for windows
+          path: |
+            ~/.cache/ms-playwright-go
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright-go
+            ~/Library/Caches/ms-playwright
+            ~\AppData\Local\ms-playwright-go
+            ~\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-chromium-${{ hashFiles('**/run.go') }}
+      - run: |
+          go install github.com/playwright-community/playwright-go/cmd/playwright@latest
+          playwright install --with-deps chromium
+
+      - name: Build MockIndexer (Windows)
+        run: |
+          go build -o mockindexer.exe ./test/mockindexer/main.go
+
+      - name: Run MockIndexer in the background
+        run: Start-Process -FilePath ./mockindexer.exe -NoNewWindow
+        shell: pwsh
+
+      - name: Build autobrr
+        run: |
+          mkdir .dev
+          go build -o autobrr.exe cmd/autobrr/main.go
+
+      - name: Run autobrr in the background and generate pprof Profile
+        run: |
+          $process = Start-Process -FilePath ./autobrr.exe -ArgumentList "--config=.dev", "--pgo=cpu-${{ matrix.os }}.pprof", "--pgo-autokill=false" -PassThru
+          $process.Id | Set-Content autobrr-service.pid
+        shell: pwsh
+
+      - name: Check if autobrr service is running on port 7474
+        run: |
+          $result = Test-NetConnection -ComputerName 127.0.0.1 -Port 7474
+          if ($result.TcpTestSucceeded) {
+            Write-Host "autobrr is reachable on port 7474."
+          } else {
+            Write-Host "autobrr is NOT reachable on port 7474."
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Run E2E Tests
+        run: |
+          echo "Running E2E tests..."
+          sleep 2
+          echo 'customDefinitions = "./test/definitions"' >> .dev/config.toml
+          sleep 2
+          go run gotest.tools/gotestsum@latest --junitfile unit-tests-${{matrix.os}}.xml --format pkgname -- ./test/e2e/ -tags=e2e
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests-${{matrix.os}}.xml"
+        if: always()
+
+      - name: Clean up autobrr
+        run: Stop-Process -Name autobrr -Force
+        shell: pwsh
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
@@ -218,7 +429,7 @@ jobs:
   goprofilecombine:
     name: Combine pprof profiles
     runs-on: ubuntu-latest
-    needs: [ pgo, test, testother ]
+    needs: [ test, test-e2e-unix, test-e2e-windows ]
     steps:
       - name: Download pprof profiles
         uses: actions/download-artifact@v4
@@ -255,11 +466,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download web production build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: web/dist
+#      - name: Download web production build
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: web-dist
+#          path: web/dist
+
+      - name: Copy web production build from shared dir
+        run: |
+          ls -lah $GITHUB_WORKSPACE/
+          ls -lah $GITHUB_WORKSPACE/dist
+          cp $GITHUB_WORKSPACE/dist web/dist
+          ls -lah web/dist/
 
       - name: Download pprof profile
         uses: actions/download-artifact@v4
@@ -292,16 +510,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create web-dist artifact
-        if: startsWith(github.ref, 'refs/tags/')
-        run: mkdir -p dist && tar czf dist/web-dist.tar.gz web/dist
-
-      - name: Upload web-dist to release assets
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            dist/web-dist.tar.gz
+#      - name: Create web-dist artifact
+#        if: startsWith(github.ref, 'refs/tags/')
+#        run: mkdir -p dist && tar czf dist/web-dist.tar.gz web/dist
+#
+#      - name: Upload web-dist to release assets
+#        uses: softprops/action-gh-release@v2
+#        if: startsWith(github.ref, 'refs/tags/')
+#        with:
+#          files: |
+#            dist/web-dist.tar.gz
 
       - name: Upload assets
         uses: actions/upload-artifact@v4
@@ -341,11 +559,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download web production build
-        uses: actions/download-artifact@v4
-        with:
-          name: web-dist
-          path: web/dist
+#      - name: Download web production build
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: web-dist
+#          path: web/dist
+
+      - name: Copy web production build from shared dir
+        run: |
+          ls -lah $GITHUB_WORKSPACE/
+          ls -lah $GITHUB_WORKSPACE/dist
+          cp $GITHUB_WORKSPACE/dist web/dist
+          ls -lah web/dist/
 
       - name: Download pprof profile
         uses: actions/download-artifact@v4
