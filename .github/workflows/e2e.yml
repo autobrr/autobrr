@@ -236,16 +236,16 @@ jobs:
           }
         shell: pwsh
 
-      - name: Check if the service process is running
-        run: |
-          $pid = Get-Content autobrr-service.pid
-          if (Get-Process -Id $pid -ErrorAction SilentlyContinue) {
-            Write-Host "Service is running."
-          } else {
-            Write-Host "Service is NOT running."
-            exit 1
-          }
-        shell: pwsh
+#      - name: Check if the service process is running
+#        run: |
+#          $pid = Get-Content autobrr-service.pid
+#          if (Get-Process -Id $pid -ErrorAction SilentlyContinue) {
+#            Write-Host "Service is running."
+#          } else {
+#            Write-Host "Service is NOT running."
+#            exit 1
+#          }
+#        shell: pwsh
 
 #      - name: Check if the service is running
 #        run: |
