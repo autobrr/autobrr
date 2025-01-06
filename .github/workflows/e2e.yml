@@ -196,7 +196,7 @@ jobs:
         run: |
           go build -o mockindexer.exe ./test/mockindexer/main.go
 
-      - name: Run MockIndexer in the background (windows)
+      - name: Run MockIndexer in the background
         run: Start-Process -FilePath ./mockindexer.exe -NoNewWindow
         shell: pwsh
 
@@ -206,8 +206,10 @@ jobs:
           mkdir .dev
           go build -o autobrr.exe cmd/autobrr/main.go
 
-      - name: Run autobrr in the background and generate pprof Profile (windows)
-        run: Start-Process -FilePath ./autobrr.exe -ArgumentList "--config=.dev", "--pgo=cpu-${{ matrix.os }}.pprof", "--pgo-autokill=false" -NoNewWindow
+      - name: Run autobrr in the background and generate pprof Profile
+        run: |
+          $process = Start-Process -FilePath ./autobrr.exe -ArgumentList "--config=.dev", "--pgo=cpu-${{ matrix.os }}.pprof", "--pgo-autokill=false" -PassThru
+          $process.Id | Set-Content autobrr-service.pid
         shell: pwsh
 
       #      - name: Start autobrr and generate pprof Profile (Windows)
@@ -223,22 +225,44 @@ jobs:
 #          tasklist | findstr "autobrr"
 #          tasklist | findstr "mockindexer"
 
-      - name: Check if the service is running
+      - name: Check if service is running on port 7474
         run: |
-          if (Get-Process -Name "autobrr" -ErrorAction SilentlyContinue) {
-            Write-Host "Service is running."
+          $result = Test-NetConnection -ComputerName 127.0.0.1 -Port 7474
+          if ($result.TcpTestSucceeded) {
+            Write-Host "Service is reachable on port 7474."
           } else {
-            Write-Host "Service is NOT running."
+            Write-Host "Service is NOT reachable on port 7474."
             exit 1
           }
-          
-          if (Get-Process -Name "mockindexer" -ErrorAction SilentlyContinue) {
+        shell: pwsh
+
+      - name: Check if the service process is running
+        run: |
+          $pid = Get-Content autobrr-service.pid
+          if (Get-Process -Id $pid -ErrorAction SilentlyContinue) {
             Write-Host "Service is running."
           } else {
             Write-Host "Service is NOT running."
             exit 1
           }
         shell: pwsh
+
+#      - name: Check if the service is running
+#        run: |
+#          if (Get-Process -Name "autobrr" -ErrorAction SilentlyContinue) {
+#            Write-Host "Service is running."
+#          } else {
+#            Write-Host "Service is NOT running."
+#            exit 1
+#          }
+#
+#          if (Get-Process -Name "mockindexer" -ErrorAction SilentlyContinue) {
+#            Write-Host "Service is running."
+#          } else {
+#            Write-Host "Service is NOT running."
+#            exit 1
+#          }
+#        shell: pwsh
 
       # Step 4: Initialize and run integration tests
       - name: Run E2E Tests
@@ -256,11 +280,11 @@ jobs:
       #          taskkill /IM autobrr.exe /F
       #          taskkill /IM mockindexer.exe /F
 
-      - name: Clean up autobrr (windows)
+      - name: Clean up autobrr
         run: Stop-Process -Name autobrr -Force
         shell: pwsh
 
-      - name: Clean up mockindexer (windows)
+      - name: Clean up mockindexer
         run: Stop-Process -Name mockindexer -Force
         shell: pwsh
 
