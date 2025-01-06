@@ -124,6 +124,7 @@ function ApplicationSettings() {
         <RowItem label="Database" value={data?.database} />
         <div className="py-0.5">
           <Checkbox
+            name="debug"
             label="WebUI Debug mode"
             value={settings.debug}
             className="p-4 sm:px-6"
@@ -136,6 +137,7 @@ function ApplicationSettings() {
           />
         </div>
         <Checkbox
+          name="check_for_updates"
           label="Check for updates"
           description="Get notified of new updates."
           value={data?.check_for_updates ?? true}
@@ -145,6 +147,7 @@ function ApplicationSettings() {
           }}
         />
         <Checkbox
+          name="darkTheme"
           label="Dark theme"
           description="Switch between dark and light theme."
           value={settings.darkTheme}

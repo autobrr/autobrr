@@ -286,6 +286,7 @@ export const SwitchGroupWide = ({
       </div>
 
       <FormikField
+        id={name}
         name={name}
         defaultValue={defaultValue as boolean}
         type="checkbox"
