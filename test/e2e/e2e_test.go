@@ -26,6 +26,7 @@ var (
 	password   = "pass"
 	filterName = "Filter1"
 	rssUrl     = "https://distrowatch.com/news/torrents.xml"
+	rssKey     = "test-key-123"
 	// Test data for notifications
 	discordWebhook = "https://discord.com/api/webhooks/test"
 	// Test data for IRC settings
@@ -94,8 +95,10 @@ func TestEndToEnd(t *testing.T) {
 		{"Register", testRegister},
 		{"Login", testLogin},
 		{"Add Indexer", testAddIndexer},
+		{"Add MockIndexer", testAddMockIndexer},
 		{"Add Notification", testNotifications},
-		{"Configure IRC", testIRCSettings},
+		//{"Configure IRC", testIRCSettings},
+		{"Enable Mock IRC", testIRCEnableMockIndexer},
 		{"Configure API", testAPISettings},
 		{"Configure Application", testApplicationSettings},
 		{"Configure Download Clients", testDownloadClients},
@@ -232,6 +235,45 @@ func testAddIndexer(t *testing.T, page playwright.Page) error {
 	return nil
 }
 
+func testAddMockIndexer(t *testing.T, page playwright.Page) error {
+	// Navigate to indexers page
+	_, err := page.Goto(baseUrl("/settings/indexers"))
+	assert.NoError(t, err, "could not navigate to settings/indexers")
+
+	// Add new indexer
+	assert.NoError(t, page.Locator("button", playwright.PageLocatorOptions{HasText: "Add new"}).Click(), "could not find and click 'Add new' button")
+
+	// Wait for and select indexer type
+	assert.NoError(t, page.Locator("[id^='react-select'][id$='-input']").WaitFor(), "could not wait for indexer type dropdown")
+
+	//page.GetByRole()
+
+	err = page.Locator("[id^='react-select'][id$='-input']").Click()
+	assert.NoError(t, err, "could not click dropdown")
+
+	// Wait a bit for the dropdown to open
+	time.Sleep(time.Millisecond * 500)
+
+	err = selectFromDropdown(page, "[id^='react-select'][id$='-input']", "MockIndexer")
+	assert.NoError(t, err, "could not select indexer type")
+
+	// Wait for and fill RSS key
+	assert.NoError(t, page.Locator("input#settings\\.rsskey").WaitFor(), "could not find RSS key input field")
+	assert.NoError(t, page.Locator("input#settings\\.rsskey").Fill(rssKey), "could not type in RSS key")
+
+	assert.NoError(t, page.Locator("input#irc\\.nick").Fill(ircNick), "could not type in IRC nick")
+
+	//time.Sleep(time.Millisecond * 1000)
+
+	// Save indexer
+	assert.NoError(t, page.Locator("button[type='submit']").Click(), "could not click Save button")
+
+	err = page.Locator("ul > li").GetByText("MockIndexer").WaitFor()
+	assert.NoError(t, err, "could not find indexer in list")
+
+	return nil
+}
+
 func testAddFilter(t *testing.T, page playwright.Page) error {
 	var err error
 
@@ -312,7 +354,7 @@ func testIRCSettings(t *testing.T, page playwright.Page) error {
 	assert.NoErrorf(t, err, "could not navigate to IRC settings")
 
 	// Add new IRC network
-	assert.NoErrorf(t, page.Locator("button", playwright.PageLocatorOptions{HasText: "Add new network"}).Click(), "could not find and click 'Add new network' button")
+	assert.NoErrorf(t, page.Locator("button", playwright.PageLocatorOptions{HasText: "Add new"}).Click(), "could not find and click 'Add new' button")
 
 	// Wait for form to be ready
 	time.Sleep(time.Millisecond * 1000)
@@ -325,7 +367,7 @@ func testIRCSettings(t *testing.T, page playwright.Page) error {
 	assert.NoError(t, page.Locator("input#auth\\.password").Fill("testpass"), "could not fill auth password")
 
 	// Uncheck enabled switch (it's true by default)
-	assert.NoError(t, page.Locator("button#enabled").Click(), "could not click disabled switch")
+	assert.NoError(t, page.Locator("form > button#enabled").Click(), "could not click disabled switch")
 
 	// Wait for switch state to be updated
 	time.Sleep(time.Millisecond * 500)
@@ -336,6 +378,21 @@ func testIRCSettings(t *testing.T, page playwright.Page) error {
 	// Verify IRC network was added
 	err = page.Locator("ul > li").GetByText(ircServer).WaitFor()
 	assert.NoError(t, err, "could not find IRC network in list")
+
+	return nil
+}
+
+func testIRCEnableMockIndexer(t *testing.T, page playwright.Page) error {
+	// Navigate to IRC settings
+	_, err := page.Goto(baseUrl("/settings/irc"))
+	assert.NoErrorf(t, err, "could not navigate to IRC settings")
+
+	// Verify IRC network was added
+	err = page.Locator("ul > li").GetByText("Mock").WaitFor()
+	assert.NoError(t, err, "could not find IRC network in list")
+
+	err = page.Locator("ul > li").Locator("button#enabled").Click()
+	assert.NoError(t, err, "could not click enabled switch")
 
 	return nil
 }
