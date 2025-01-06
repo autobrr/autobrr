@@ -71,10 +71,8 @@ func TestEndToEnd(t *testing.T) {
 	page, err := context.NewPage()
 	assertErrorToNilf("could not create page: %w", err)
 
-	res, err := page.Goto(baseUrl("/"))
+	_, err = page.Goto(baseUrl("/"))
 	assertErrorToNilf("could not goto: %w", err)
-	log.Printf("status code: %d status: %s\n", res.Status(), res.StatusText())
-	log.Println(res.Text())
 
 	// Run tests
 	tests := []struct {
@@ -94,7 +92,6 @@ func TestEndToEnd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Logf("Running test: %s\n", tt.name)
 			if err := tt.fn(page); err != nil {
 				t.Errorf("Test %s failed: %v\n", tt.name, err)
 			} else {

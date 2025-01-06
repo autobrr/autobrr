@@ -83,7 +83,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-#          submodules: true
           fetch-depth: 0
 
       - name: Download web production build
@@ -117,42 +116,42 @@ jobs:
           go install github.com/playwright-community/playwright-go/cmd/playwright@latest
           playwright install --with-deps chromium
 
-      # start mockindexer
       - name: Start MockIndexer
         run: |
           go build -o mockindexer ./test/mockindexer/main.go
           nohup ./mockindexer &  # Run the app in the background 
+          echo $! > mockindexer.pid
 
       # Step 3: Build and run the application (main.go) in the background
-      - name: Start Application and generate pprof Profile
+      - name: Start autobrr and generate pprof Profile
         run: |
           mkdir .dev
           go build -o autobrr cmd/autobrr/main.go
           nohup ./autobrr --config .dev --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &
-
-      # edit config and append test/definitions
+          echo $! > autobrr.pid
 
       # Step 4: Initialize and run integration tests
       - name: Run E2E Tests
         run: |
           echo "Running E2E tests..."
           sleep 2
-          echo "customDefinitions = \".\/test/definitions\"" >> .dev/config.toml
+          echo 'customDefinitions = "./test/definitions"' >> .dev/config.toml
           sleep 2
           go test -v -tags=e2e ./test/e2e/
 
       # (Optional) Step 5: Stop Background Application
-      - name: Stop Application and MockIndexer
+      - name: Stop autobrr and MockIndexer (linux/macos)
         if: runner.os != 'Windows'
         run: |
-          kill -QUIT autobrr
-          kill mockindexer
+          ps aux
+          kill -QUIT "$(cat autobrr.pid)"
+          kill -QUIT "$(cat mockindexer.pid)"
 
-      - name: Stop Application and MockIndexer
+      - name: Stop autobrr and MockIndexer (Windows)
         if: runner.os == 'Windows'
         run: |
-          tasklist | findstr autobrr.exe
-          tasklist | findstr mockindexer.exe
+          taskkill /IM autobrr.exe /F
+          taskkill /IM mockindexer.exe /F
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
