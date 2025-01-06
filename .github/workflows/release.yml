@@ -311,6 +311,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache: true
         id: go
 
       - name: Cache drivers
@@ -378,6 +379,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: [ web ]
     name:  E2E tests on ${{ matrix.os }} with Chromium
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+      CGO_ENABLED: 0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -393,6 +400,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache: true
         id: go
 
       - name: Cache drivers
