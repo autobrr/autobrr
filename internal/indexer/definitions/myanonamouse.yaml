@@ -61,7 +61,7 @@ irc:
             language: English
             baseUrl: https://www.myanonamouse.net/
             torrentId: "000000"
-            freeleech: ""
+            releaseTags: ""
         - line: 'New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP'
           expect:
             torrentName: Some famous book
@@ -72,7 +72,7 @@ irc:
             language: English
             baseUrl: https://www.myanonamouse.net/
             torrentId: "000000"
-            freeleech: VIP
+            releaseTags: VIP
         pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
         vars:
           - torrentName
@@ -83,7 +83,12 @@ irc:
           - language
           - baseUrl
           - torrentId
-          - freeleech
+          - releaseTags
+
+    mappings:
+      releaseTags:
+        "VIP":
+          freeleech: VIP
 
     match:
       infourl: "/t/{{ .torrentId }}"
