@@ -72,11 +72,11 @@ jobs:
           name: web-dist
           path: web/dist
 
-  test:
+  test-unix:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     needs: [ web ]
     name:  E2E tests on ${{ matrix.os }} with Chromium
@@ -117,54 +117,128 @@ jobs:
           playwright install --with-deps chromium
 
       - name: Start MockIndexer (linux/macos)
-        if: runner.os != 'Windows'
         run: |
           go build -o mockindexer ./test/mockindexer/main.go
           nohup ./mockindexer &  # Run the app in the background 
           echo $! > mockindexer.pid
 
-      - name: Build MockIndexer (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          go build -o mockindexer.exe ./test/mockindexer/main.go
-
-      - name: Run MockIndexer in the background (windows)
-        if: runner.os == 'Windows'
-        run: Start-Process -FilePath ./mockindexer.exe -NoNewWindow
-        shell: pwsh
-
-      # Step 3: Build and run the application (main.go) in the background
       - name: Start autobrr and generate pprof Profile (linux/macos)
-        if: runner.os != 'Windows'
         run: |
           mkdir .dev
           go build -o autobrr cmd/autobrr/main.go
           nohup ./autobrr --config .dev --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &
           echo $! > autobrr.pid
 
+      - name: Run E2E Tests
+        run: |
+          echo "Running E2E tests..."
+          sleep 2
+          echo 'customDefinitions = "./test/definitions"' >> .dev/config.toml
+          sleep 2
+          go test -v -tags=e2e ./test/e2e/
+
+      - name: Stop autobrr and MockIndexer (linux/macos)
+        run: |
+          kill -QUIT "$(cat autobrr.pid)"
+          kill -QUIT "$(cat mockindexer.pid)"
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-pgo-${{ matrix.os }}
+          path: cpu-${{ matrix.os }}.pprof
+
+  test-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+    runs-on: ${{ matrix.os }}
+    needs: [ web ]
+    name:  E2E tests on ${{ matrix.os }} with Chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        id: go
+
+      - name: Cache drivers
+        uses: actions/cache@v4
+        with:
+          # In order:
+          # * Driver for linux
+          # * Driver for macOS
+          # * Driver for windows
+          path: |
+            ~/.cache/ms-playwright-go
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright-go
+            ~/Library/Caches/ms-playwright
+            ~\AppData\Local\ms-playwright-go
+            ~\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-chromium-${{ hashFiles('**/run.go') }}
+      - run: |
+          go install github.com/playwright-community/playwright-go/cmd/playwright@latest
+          playwright install --with-deps chromium
+
+      - name: Build MockIndexer (Windows)
+        run: |
+          go build -o mockindexer.exe ./test/mockindexer/main.go
+
+      - name: Run MockIndexer in the background (windows)
+        run: Start-Process -FilePath ./mockindexer.exe -NoNewWindow
+        shell: pwsh
+
+      # Step 3: Build and run the application (main.go) in the background
       - name: Build autobrr (Windows)
-        if: runner.os == 'Windows'
         run: |
           mkdir .dev
           go build -o autobrr.exe cmd/autobrr/main.go
 
       - name: Run autobrr in the background and generate pprof Profile (windows)
-        if: runner.os == 'Windows'
         run: Start-Process -FilePath ./autobrr.exe -ArgumentList "--config=.dev", "--pgo=cpu-${{ matrix.os }}.pprof", "--pgo-autokill=false" -NoNewWindow
         shell: pwsh
 
-#      - name: Start autobrr and generate pprof Profile (Windows)
+      #      - name: Start autobrr and generate pprof Profile (Windows)
+      #        if: runner.os == 'Windows'
+      #        run: |
+      #          mkdir .dev
+      #          go build -o autobrr.exe cmd/autobrr/main.go
+      #          start /B ./autobrr.exe --config .dev --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false
+
+#      - name: Verify application process is running (Windows)
 #        if: runner.os == 'Windows'
 #        run: |
-#          mkdir .dev
-#          go build -o autobrr.exe cmd/autobrr/main.go
-#          start /B ./autobrr.exe --config .dev --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false
+#          tasklist | findstr "autobrr"
+#          tasklist | findstr "mockindexer"
 
-      - name: Verify application process is running (Windows)
-        if: runner.os == 'Windows'
+      - name: Check if the service is running
         run: |
-          tasklist | findstr "autobrr.exe"
-          tasklist | findstr "mockindexer.exe"
+          if (Get-Process -Name "autobrr" -ErrorAction SilentlyContinue) {
+            Write-Host "Service is running."
+          } else {
+            Write-Host "Service is NOT running."
+            exit 1
+          }
+          
+          if (Get-Process -Name "mockindexer" -ErrorAction SilentlyContinue) {
+            Write-Host "Service is running."
+          } else {
+            Write-Host "Service is NOT running."
+            exit 1
+          }
+        shell: pwsh
 
       # Step 4: Initialize and run integration tests
       - name: Run E2E Tests
@@ -176,25 +250,17 @@ jobs:
           go test -v -tags=e2e ./test/e2e/
 
       # (Optional) Step 5: Stop Background Application
-      - name: Stop autobrr and MockIndexer (linux/macos)
-        if: runner.os != 'Windows'
-        run: |
-          kill -QUIT "$(cat autobrr.pid)"
-          kill -QUIT "$(cat mockindexer.pid)"
-
-#      - name: Stop autobrr and MockIndexer (Windows)
-#        if: runner.os == 'Windows'
-#        run: |
-#          taskkill /IM autobrr.exe /F
-#          taskkill /IM mockindexer.exe /F
+      #      - name: Stop autobrr and MockIndexer (Windows)
+      #        if: runner.os == 'Windows'
+      #        run: |
+      #          taskkill /IM autobrr.exe /F
+      #          taskkill /IM mockindexer.exe /F
 
       - name: Clean up autobrr (windows)
-        if: runner.os == 'Windows'
         run: Stop-Process -Name autobrr -Force
         shell: pwsh
 
       - name: Clean up mockindexer (windows)
-        if: runner.os == 'Windows'
         run: Stop-Process -Name mockindexer -Force
         shell: pwsh
 
