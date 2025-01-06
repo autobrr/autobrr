@@ -284,9 +284,9 @@ jobs:
         run: Stop-Process -Name autobrr -Force
         shell: pwsh
 
-      - name: Clean up mockindexer
-        run: Stop-Process -Name mockindexer -Force
-        shell: pwsh
+#      - name: Clean up mockindexer
+#        run: Stop-Process -Name mockindexer -Force
+#        shell: pwsh
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
