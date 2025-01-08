@@ -126,6 +126,10 @@ sessionSecret = "{{ .sessionSecret }}"
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
 #oidc_redirect_url = ""
 
+# List schedule
+# Every 6th hour
+schedule = "0 */6 * * *"
+
 # Custom definitions
 `
 
@@ -266,6 +270,7 @@ func (c *AppConfig) defaults() {
 		ProfilingEnabled:    false,
 		ProfilingHost:       "127.0.0.1",
 		ProfilingPort:       6060,
+		Schedule:            "0 */6 * * *",
 	}
 
 }
