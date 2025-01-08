@@ -35,6 +35,9 @@ type Config struct {
 	OIDCClientSecret    string `mapstructure:"oidc_client_secret"`
 	OIDCRedirectURL     string `mapstructure:"oidc_redirect_url"`
 	OIDCScopes          string `mapstructure:"oidc_scopes"`
+	MetricsEnabled      bool   `toml:"metricsEnabled"`
+	MetricsHost         string `toml:"metricsHost"`
+	MetricsPort         int    `toml:"metricsPort"`
 }
 
 type ConfigUpdate struct {
