@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"runtime"
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -92,7 +93,7 @@ func (a *Action) CheckMacrosNeedRawDataBytes(release *Release) bool {
 func (a *Action) ParseMacros(release *Release) error {
 	var err error
 
-	m := NewMacro(*release)
+	m := NewMacro(*release, runtime.GOOS)
 
 	a.ExecArgs, err = m.Parse(a.ExecArgs)
 	if err != nil {

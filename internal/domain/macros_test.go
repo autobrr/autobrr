@@ -5,6 +5,7 @@ package domain
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 	"time"
 
@@ -277,7 +278,7 @@ func TestMacros_Parse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := NewMacro(tt.release)
+			m := NewMacro(tt.release, runtime.GOOS)
 			got, err := m.Parse(tt.args.text)
 
 			assert.Equal(t, currentTime.Year(), m.CurrentYear)
@@ -286,6 +287,97 @@ func TestMacros_Parse(t *testing.T) {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestMacros_WindowsPaths(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		release  Release
+		platform string
+		template string
+		want     string
+		wantErr  bool
+	}{
+		{
+			name: "windows_absolute_path_conversion",
+			release: Release{
+				TorrentTmpFile: "C:/Users/XXX/AppData/Local/Temp/autobrr-3007150180",
+			},
+			platform: "windows",
+			template: "{{.TorrentPathName}}",
+			want:     `C:\Users\XXX\AppData\Local\Temp\autobrr-3007150180`,
+			wantErr:  false,
+		},
+		{
+			name: "windows_relative_path_unchanged",
+			release: Release{
+				TorrentTmpFile: "./downloads/folder/file.torrent",
+			},
+			platform: "windows",
+			template: "{{.TorrentPathName}}",
+			want:     "./downloads/folder/file.torrent",
+			wantErr:  false,
+		},
+		{
+			name: "windows_relative_path_with_parent_unchanged",
+			release: Release{
+				TorrentTmpFile: "../downloads/folder/file.torrent",
+			},
+			platform: "windows",
+			template: "{{.TorrentPathName}}",
+			want:     "../downloads/folder/file.torrent",
+			wantErr:  false,
+		},
+		{
+			name: "unix_path_unchanged",
+			release: Release{
+				TorrentTmpFile: "/tmp/autobrr-3007150180",
+			},
+			platform: "linux",
+			template: "{{.TorrentPathName}}",
+			want:     "/tmp/autobrr-3007150180",
+			wantErr:  false,
+		},
+		{
+			name: "windows_path_in_args",
+			release: Release{
+				TorrentTmpFile: "C:/Users/XXX/AppData/Local/Temp/autobrr-3007150180",
+			},
+			platform: "windows",
+			template: `python3 "c:\scripts\script.py" "{{.TorrentPathName}}"`,
+			want:     `python3 "c:\scripts\script.py" "C:\Users\XXX\AppData\Local\Temp\autobrr-3007150180"`,
+			wantErr:  false,
+		},
+		{
+			name: "empty_path",
+			release: Release{
+				TorrentTmpFile: "",
+			},
+			platform: "windows",
+			template: "{{.TorrentPathName}}",
+			want:     "",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			m := NewMacro(tt.release, tt.platform)
+			got, err := m.Parse(tt.template)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
 			assert.Equal(t, tt.want, got)
 		})
 	}

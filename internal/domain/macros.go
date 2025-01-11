@@ -89,8 +89,18 @@ type Macro struct {
 	Day                       int
 }
 
-func NewMacro(release Release) Macro {
+func NewMacro(release Release, platform string) Macro {
 	currentTime := time.Now()
+
+	formattedPath := release.TorrentTmpFile
+	if formattedPath != "" && platform == "windows" {
+		// Windows uses backslashes for absolute paths (e.g. C:\Program Files\...)
+		// but allows forward slashes for relative paths (e.g. ./folder/file.txt)
+		// We only convert absolute paths that contain a drive letter (e.g. C:/ or C:\)
+		if strings.Contains(formattedPath, ":/") || strings.Contains(formattedPath, ":\\") {
+			formattedPath = strings.ReplaceAll(formattedPath, "/", "\\")
+		}
+	}
 
 	ma := Macro{
 		Artists:                   release.Artists,
@@ -154,9 +164,9 @@ func NewMacro(release Release) Macro {
 		TorrentHash:               release.TorrentHash,
 		TorrentID:                 release.TorrentID,
 		TorrentName:               release.TorrentName,
-		TorrentPathName:           release.TorrentTmpFile,
+		TorrentPathName:           formattedPath,
+		TorrentTmpFile:            formattedPath,
 		TorrentUrl:                release.DownloadURL,
-		TorrentTmpFile:            release.TorrentTmpFile,
 		Type:                      release.Type.String(),
 		Uploader:                  release.Uploader,
 		RecordLabel:               release.RecordLabel,
