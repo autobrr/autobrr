@@ -7,6 +7,7 @@ import { Switch, Field, Label, Description } from "@headlessui/react";
 import { classNames } from "@utils";
 
 interface CheckboxProps {
+  name: string;
   value: boolean;
   setValue: (newValue: boolean) => void;
   label?: string;
@@ -16,6 +17,7 @@ interface CheckboxProps {
 }
 
 export const Checkbox = ({
+  name,
   label,
   description,
   value,
@@ -46,6 +48,8 @@ export const Checkbox = ({
       </div>
     ) : null}
     <Switch
+      id={name}
+      name={name}
       checked={value}
       onChange={(newValue) => {
         !disabled && setValue(newValue);

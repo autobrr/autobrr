@@ -172,6 +172,7 @@ function ListItem({ feed }: ListItemProps) {
       <div className="grid grid-cols-12 items-center text-sm font-medium text-gray-900 dark:text-gray-500">
         <div className="col-span-2 sm:col-span-1 pl-6 flex items-center">
           <Checkbox
+            name="enabled"
             value={feed.enabled}
             setValue={toggleActive}
           />

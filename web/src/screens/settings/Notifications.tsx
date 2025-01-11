@@ -110,6 +110,7 @@ function ListItem({ notification }: ListItemProps) {
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">
           <Checkbox
+            name="enabled"
             value={notification.enabled}
             setValue={onToggleMutation}
           />

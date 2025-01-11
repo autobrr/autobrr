@@ -135,7 +135,7 @@ function ListItem({ list }: ListItemProps) {
 
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">
-          <Checkbox value={list.enabled ?? false} setValue={onToggleMutation}/>
+          <Checkbox name="enabled" value={list.enabled ?? false} setValue={onToggleMutation}/>
         </div>
         <div
           className="col-span-8 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 pr-6 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">

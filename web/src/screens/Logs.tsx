@@ -329,6 +329,7 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
+                  name="scrollOnNewLog"
                   label="Scroll to bottom on new message"
                   value={settings.scrollOnNewLog}
                   setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
@@ -338,6 +339,7 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
+                  name="indentLogLines"
                   label="Indent log lines"
                   description="Indent each log line according to their respective starting position."
                   value={settings.indentLogLines}
@@ -348,6 +350,7 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
+                  name="hideWrappedText"
                   label="Hide wrapped text"
                   description="Hides text that is meant to be wrapped."
                   value={settings.hideWrappedText}

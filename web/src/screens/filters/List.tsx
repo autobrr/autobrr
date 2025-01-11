@@ -579,6 +579,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
         className="pl-2 pr-4 sm:px-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
       >
         <Checkbox
+          name="enabled"
           value={filter.enabled}
           setValue={toggleActive}
         />

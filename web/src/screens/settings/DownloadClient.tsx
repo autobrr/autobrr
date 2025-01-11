@@ -112,6 +112,7 @@ function ListItem({ client }: DLSettingsItemProps) {
         />
         <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-6 flex items-center">
           <Checkbox
+            name="enabled"
             value={client.enabled}
             setValue={onToggleMutation}
           />

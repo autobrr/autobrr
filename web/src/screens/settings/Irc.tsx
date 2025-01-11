@@ -241,6 +241,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         />
         <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
           <Checkbox
+            name="enabled"
             value={network.enabled}
             setValue={onToggleMutation}
           />
@@ -796,6 +797,7 @@ const IRCLogsDropdown = () => {
           <MenuItem>
             {() => (
               <Checkbox
+                name="scrollOnNewLog"
                 label="Scroll to bottom on new message"
                 value={settings.scrollOnNewLog}
                 setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}

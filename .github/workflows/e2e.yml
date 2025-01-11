@@ -1,0 +1,248 @@
+name: E2E tests
+
+on:
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - "master"
+#      - "develop"
+#    tags:
+#      - 'v*'
+#    paths-ignore:
+#      - '.github/ISSUE_TEMPLATE/**'
+#      - '.github/images/**'
+#      - 'config.toml'
+#      - 'docker-compose.yml'
+#      - 'Makefile'
+#      - '**.md'
+#  pull_request:
+#    paths-ignore:
+#      - '.github/ISSUE_TEMPLATE/**'
+#      - '.github/images/**'
+#      - 'config.toml'
+#      - 'docker-compose.yml'
+#      - 'Makefile'
+#      - '**.md'
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  GO_VERSION: '1.23'
+  NODE_VERSION: '20.17.0'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  web:
+    name: Build web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up corepack
+        run: corepack enable
+
+      # It can not be done before enable corepack
+      - name: Set up cache
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Fetch web dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web frontend
+        working-directory: web
+        run: CI= pnpm run build
+
+      - name: Upload web production build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+  test-unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    needs: [ web ]
+    name:  E2E tests on ${{ matrix.os }} with Chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        id: go
+
+      - name: Cache drivers
+        uses: actions/cache@v4
+        with:
+          # In order:
+          # * Driver for linux
+          # * Driver for macOS
+          # * Driver for windows
+          path: |
+            ~/.cache/ms-playwright-go
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright-go
+            ~/Library/Caches/ms-playwright
+            ~\AppData\Local\ms-playwright-go
+            ~\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-chromium-${{ hashFiles('**/run.go') }}
+      - run: |
+          go install github.com/playwright-community/playwright-go/cmd/playwright@latest
+          playwright install --with-deps chromium
+
+      - name: Start MockIndexer
+        run: |
+          go build -o mockindexer ./test/mockindexer/main.go
+          nohup ./mockindexer &  # Run the app in the background 
+          echo $! > mockindexer.pid
+
+      - name: Start autobrr and generate pprof Profile
+        run: |
+          mkdir .dev
+          go build -o autobrr cmd/autobrr/main.go
+          nohup ./autobrr --config .dev --pgo cpu-${{ matrix.os }}.pprof --pgo-autokill=false &
+          echo $! > autobrr.pid
+
+      - name: Run E2E Tests
+        run: |
+          echo "Running E2E tests..."
+          sleep 2
+          echo 'customDefinitions = "./test/definitions"' >> .dev/config.toml
+          sleep 2
+          go test -v -tags=e2e ./test/e2e/
+
+      - name: Stop autobrr and MockIndexer
+        run: |
+          kill -QUIT "$(cat autobrr.pid)"
+          kill -QUIT "$(cat mockindexer.pid)"
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-pgo-${{ matrix.os }}
+          path: cpu-${{ matrix.os }}.pprof
+
+  test-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+    runs-on: ${{ matrix.os }}
+    needs: [ web ]
+    name:  E2E tests on ${{ matrix.os }} with Chromium
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+        id: go
+
+      - name: Cache drivers
+        uses: actions/cache@v4
+        with:
+          # In order:
+          # * Driver for linux
+          # * Driver for macOS
+          # * Driver for windows
+          path: |
+            ~/.cache/ms-playwright-go
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright-go
+            ~/Library/Caches/ms-playwright
+            ~\AppData\Local\ms-playwright-go
+            ~\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-chromium-${{ hashFiles('**/run.go') }}
+      - run: |
+          go install github.com/playwright-community/playwright-go/cmd/playwright@latest
+          playwright install --with-deps chromium
+
+      - name: Build MockIndexer (Windows)
+        run: |
+          go build -o mockindexer.exe ./test/mockindexer/main.go
+
+      - name: Run MockIndexer in the background
+        run: Start-Process -FilePath ./mockindexer.exe -NoNewWindow
+        shell: pwsh
+
+      - name: Build autobrr
+        run: |
+          mkdir .dev
+          go build -o autobrr.exe cmd/autobrr/main.go
+
+      - name: Run autobrr in the background and generate pprof Profile
+        run: |
+          $process = Start-Process -FilePath ./autobrr.exe -ArgumentList "--config=.dev", "--pgo=cpu-${{ matrix.os }}.pprof", "--pgo-autokill=false" -PassThru
+          $process.Id | Set-Content autobrr-service.pid
+        shell: pwsh
+
+      - name: Check if autobrr service is running on port 7474
+        run: |
+          $result = Test-NetConnection -ComputerName 127.0.0.1 -Port 7474
+          if ($result.TcpTestSucceeded) {
+            Write-Host "autobrr is reachable on port 7474."
+          } else {
+            Write-Host "autobrr is NOT reachable on port 7474."
+            exit 1
+          }
+        shell: pwsh
+
+      - name: Run E2E Tests
+        run: |
+          echo "Running E2E tests..."
+          sleep 2
+          echo 'customDefinitions = "./test/definitions"' >> .dev/config.toml
+          sleep 2
+          go test -v -tags=e2e ./test/e2e/
+
+      - name: Clean up autobrr
+        run: Stop-Process -Name autobrr -Force
+        shell: pwsh
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v4
+        with:
+          name: pprof-pgo-${{ matrix.os }}
+          path: cpu-${{ matrix.os }}.pprof
+
+#      - name: Test Summary
+#        uses: test-summary/action@v2
+#        with:
+#          paths: "unit-tests.xml"
+#        if: always()
