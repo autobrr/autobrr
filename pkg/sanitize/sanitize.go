@@ -29,6 +29,14 @@ func FilterString(str string) string {
 	return str
 }
 
+func PathSeparators(str string) string {
+	// convert all backslashes to forward slashes
+	str = strings.ReplaceAll(str, "\\", "/")
+	// remove any duplicate slashes
+	str = repeatedReplaceAll(str, "//", "/")
+	return str
+}
+
 func repeatedReplaceAll(src, old, new string) string {
 	for i := 0; i != len(src); {
 		i = len(src)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sanitize"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
@@ -93,11 +94,14 @@ func NewMacro(release Release, platform string) Macro {
 	currentTime := time.Now()
 
 	formattedPath := release.TorrentTmpFile
-	if formattedPath != "" && platform == "windows" {
+	if formattedPath != "" {
+		// normalize all slashes to forward slashes and remove duplicates
+		formattedPath = sanitize.PathSeparators(formattedPath)
+
 		// Windows uses backslashes for absolute paths (e.g. C:\Program Files\...)
 		// but allows forward slashes for relative paths (e.g. ./folder/file.txt)
-		// We only convert absolute paths that contain a drive letter (e.g. C:/ or C:\)
-		if strings.Contains(formattedPath, ":/") || strings.Contains(formattedPath, ":\\") {
+		// We only convert absolute paths that contain a drive letter (e.g. C:/)
+		if platform == "windows" && strings.Contains(formattedPath, ":/") {
 			formattedPath = strings.ReplaceAll(formattedPath, "/", "\\")
 		}
 	}
