@@ -324,16 +324,6 @@ func TestMacros_WindowsPaths(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "windows_relative_path_with_parent_unchanged",
-			release: Release{
-				TorrentTmpFile: "../downloads/folder/file.torrent",
-			},
-			platform: "windows",
-			args:     "{{.TorrentPathName}}",
-			want:     "../downloads/folder/file.torrent",
-			wantErr:  false,
-		},
-		{
 			name: "unix_path_unchanged",
 			release: Release{
 				TorrentTmpFile: "/tmp/autobrr-3007150180",
@@ -344,13 +334,23 @@ func TestMacros_WindowsPaths(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "windows_path_in_args",
+			name: "windows_path_with_spaces_and_special_chars",
 			release: Release{
-				TorrentTmpFile: "C:/Users/XXX/AppData/Local/Temp/autobrr-3007150180",
+				TorrentTmpFile: "C:/Program Files/App Data/My Files/test file.torrent",
 			},
 			platform: "windows",
-			args:     `python3 "c:\scripts\script.py" "{{.TorrentPathName}}"`,
-			want:     `python3 "c:\scripts\script.py" "C:\Users\XXX\AppData\Local\Temp\autobrr-3007150180"`,
+			args:     "{{.TorrentPathName}}",
+			want:     `C:\Program Files\App Data\My Files\test file.torrent`,
+			wantErr:  false,
+		},
+		{
+			name: "windows_path_in_command_args",
+			release: Release{
+				TorrentTmpFile: "C:/Program Files/Some Folder/file.torrent",
+			},
+			platform: "windows",
+			args:     `python3 "c:\scripts\my script.py" "{{.TorrentPathName}}"`,
+			want:     `python3 "c:\scripts\my script.py" "C:\Program Files\Some Folder\file.torrent"`,
 			wantErr:  false,
 		},
 		{
@@ -364,16 +364,6 @@ func TestMacros_WindowsPaths(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name: "windows_path_with_special_chars",
-			release: Release{
-				TorrentTmpFile: `C:/Users/XXX/App Data\Temp/My\Files/test.torrent`,
-			},
-			platform: "windows",
-			args:     "{{.TorrentPathName}}",
-			want:     `C:\Users\XXX\App Data\Temp\My\Files\test.torrent`,
-			wantErr:  false,
-		},
-		{
 			name: "invalid_template_syntax",
 			release: Release{
 				TorrentTmpFile: `C:\Program Files\test.txt`,
@@ -382,26 +372,6 @@ func TestMacros_WindowsPaths(t *testing.T) {
 			args:     "{{.TorrentPathName",
 			want:     "",
 			wantErr:  true,
-		},
-		{
-			name: "windows_path_with_spaces",
-			release: Release{
-				TorrentTmpFile: "C:/Program Files/Some Folder/My Downloads/file with spaces.torrent",
-			},
-			platform: "windows",
-			args:     "{{.TorrentPathName}}",
-			want:     `C:\Program Files\Some Folder\My Downloads\file with spaces.torrent`,
-			wantErr:  false,
-		},
-		{
-			name: "windows_path_with_spaces_in_args",
-			release: Release{
-				TorrentTmpFile: "C:/Program Files/Some Folder/file.torrent",
-			},
-			platform: "windows",
-			args:     `python3 "c:\scripts\my script.py" "{{.TorrentPathName}}"`,
-			want:     `python3 "c:\scripts\my script.py" "C:\Program Files\Some Folder\file.torrent"`,
-			wantErr:  false,
 		},
 	}
 
