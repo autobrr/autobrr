@@ -299,7 +299,7 @@ func TestMacros_WindowsPaths(t *testing.T) {
 		name     string
 		release  Release
 		platform string
-		template string
+		args     string
 		want     string
 		wantErr  bool
 	}{
@@ -309,7 +309,7 @@ func TestMacros_WindowsPaths(t *testing.T) {
 				TorrentTmpFile: "C:/Users/XXX/AppData/Local/Temp/autobrr-3007150180",
 			},
 			platform: "windows",
-			template: "{{.TorrentPathName}}",
+			args:     "{{.TorrentPathName}}",
 			want:     `C:\Users\XXX\AppData\Local\Temp\autobrr-3007150180`,
 			wantErr:  false,
 		},
@@ -319,7 +319,7 @@ func TestMacros_WindowsPaths(t *testing.T) {
 				TorrentTmpFile: "./downloads/folder/file.torrent",
 			},
 			platform: "windows",
-			template: "{{.TorrentPathName}}",
+			args:     "{{.TorrentPathName}}",
 			want:     "./downloads/folder/file.torrent",
 			wantErr:  false,
 		},
@@ -329,7 +329,7 @@ func TestMacros_WindowsPaths(t *testing.T) {
 				TorrentTmpFile: "../downloads/folder/file.torrent",
 			},
 			platform: "windows",
-			template: "{{.TorrentPathName}}",
+			args:     "{{.TorrentPathName}}",
 			want:     "../downloads/folder/file.torrent",
 			wantErr:  false,
 		},
@@ -339,7 +339,7 @@ func TestMacros_WindowsPaths(t *testing.T) {
 				TorrentTmpFile: "/tmp/autobrr-3007150180",
 			},
 			platform: "linux",
-			template: "{{.TorrentPathName}}",
+			args:     "{{.TorrentPathName}}",
 			want:     "/tmp/autobrr-3007150180",
 			wantErr:  false,
 		},
@@ -349,7 +349,7 @@ func TestMacros_WindowsPaths(t *testing.T) {
 				TorrentTmpFile: "C:/Users/XXX/AppData/Local/Temp/autobrr-3007150180",
 			},
 			platform: "windows",
-			template: `python3 "c:\scripts\script.py" "{{.TorrentPathName}}"`,
+			args:     `python3 "c:\scripts\script.py" "{{.TorrentPathName}}"`,
 			want:     `python3 "c:\scripts\script.py" "C:\Users\XXX\AppData\Local\Temp\autobrr-3007150180"`,
 			wantErr:  false,
 		},
@@ -359,8 +359,48 @@ func TestMacros_WindowsPaths(t *testing.T) {
 				TorrentTmpFile: "",
 			},
 			platform: "windows",
-			template: "{{.TorrentPathName}}",
+			args:     "{{.TorrentPathName}}",
 			want:     "",
+			wantErr:  false,
+		},
+		{
+			name: "windows_path_with_special_chars",
+			release: Release{
+				TorrentTmpFile: `C:/Users/XXX/App Data\Temp/My\Files/test.torrent`,
+			},
+			platform: "windows",
+			args:     "{{.TorrentPathName}}",
+			want:     `C:\Users\XXX\App Data\Temp\My\Files\test.torrent`,
+			wantErr:  false,
+		},
+		{
+			name: "invalid_template_syntax",
+			release: Release{
+				TorrentTmpFile: `C:\Program Files\test.txt`,
+			},
+			platform: "windows",
+			args:     "{{.TorrentPathName",
+			want:     "",
+			wantErr:  true,
+		},
+		{
+			name: "windows_path_with_spaces",
+			release: Release{
+				TorrentTmpFile: "C:/Program Files/Some Folder/My Downloads/file with spaces.torrent",
+			},
+			platform: "windows",
+			args:     "{{.TorrentPathName}}",
+			want:     `C:\Program Files\Some Folder\My Downloads\file with spaces.torrent`,
+			wantErr:  false,
+		},
+		{
+			name: "windows_path_with_spaces_in_args",
+			release: Release{
+				TorrentTmpFile: "C:/Program Files/Some Folder/file.torrent",
+			},
+			platform: "windows",
+			args:     `python3 "c:\scripts\my script.py" "{{.TorrentPathName}}"`,
+			want:     `python3 "c:\scripts\my script.py" "C:\Program Files\Some Folder\file.torrent"`,
 			wantErr:  false,
 		},
 	}
@@ -371,7 +411,7 @@ func TestMacros_WindowsPaths(t *testing.T) {
 			t.Parallel()
 
 			m := NewMacro(tt.release, tt.platform)
-			got, err := m.Parse(tt.template)
+			got, err := m.Parse(tt.args)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)

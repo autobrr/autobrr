@@ -192,7 +192,7 @@ func (m Macro) Parse(text string) (string, error) {
 	// TODO implement template cache
 
 	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Option("missingkey=error").Parse(text)
 	if err != nil {
 		return "", errors.Wrap(err, "could parse macro template")
 	}
