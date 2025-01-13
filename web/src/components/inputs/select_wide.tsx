@@ -78,12 +78,8 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
               value={field?.value ? { value: field.value, label: field.value  } : field.value}
               onChange={(newValue: unknown) => {
-                if (newValue) {
-                  setFieldValue(field.name, (newValue as { value: string }).value);
-                }
-                else {
-                  setFieldValue(field.name, "")
-                }
+                const option = newValue as { value: string };
+                setFieldValue(field.name, option?.value ?? "");
               }}
               options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
@@ -143,12 +139,8 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
               value={field?.value ? { value: field.value, label: field.value  } : field.value}
               onChange={(newValue: unknown) => {
-                if (newValue) {
-                  setFieldValue(field.name, (newValue as { value: string }).value);
-                }
-                else {
-                  setFieldValue(field.name, "")
-                }
+                const option = newValue as { value: string };
+                setFieldValue(field.name, option?.value ?? "");
               }}
               options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
@@ -213,12 +205,8 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
               defaultValue={defaultValue}
               value={field?.value && options.find(o => o.value == field?.value)}
               onChange={(newValue: unknown) => {
-                if (newValue) {
-                  setFieldValue(field.name, (newValue as { value: string }).value);
-                }
-                else {
-                  setFieldValue(field.name, "")
-                }
+                const option = newValue as { value: string };
+                setFieldValue(field.name, option?.value ?? "");
               }}
               options={options}
             />
