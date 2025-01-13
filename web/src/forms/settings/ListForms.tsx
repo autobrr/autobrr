@@ -41,8 +41,8 @@ import {
   ListsMDBListOptions,
   ListsMetacriticOptions,
   ListsTraktOptions,
-  ListTypeOptions, OptionBasicTyped,
-  SelectOption
+  ListTypeOptions,
+  OptionBasicTyped
 } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import {
@@ -215,15 +215,9 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                                       }
                                     })}
                                     value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      // resetForm();
-
-                                      const opt = option as SelectOption;
-                                      // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(
-                                        field.name,
-                                        opt.value ?? ""
-                                      );
+                                    onChange={(newValue: unknown) => {
+                                      const option = newValue as { value: string };
+                                      setFieldValue(field.name, option?.value ?? "");
                                     }}
                                     options={ListTypeOptions}
                                   />
