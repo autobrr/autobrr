@@ -1,4 +1,4 @@
-.PHONY: all deps test build build/app build/ctl build/web build/docker clean install dev
+.PHONY: all deps test build build/app build/ctl build/web build/docker clean install install-man dev
 .POSIX:
 .SUFFIXES:
 
@@ -11,6 +11,7 @@ RM = rm
 GOFLAGS = "-X main.commit=$(GIT_COMMIT) -X main.version=$(GIT_TAG)"
 PREFIX = /usr/local
 BINDIR = bin
+MANDIR = share/man
 
 all: clean build
 
@@ -39,8 +40,11 @@ build/docker:
 clean:
 	$(RM) -rf bin
 
-install: all
-	echo $(DESTDIR)$(PREFIX)/$(BINDIR)
+install-man:
+	mkdir -p $(DESTDIR)$(PREFIX)/$(MANDIR)/man1
+	cp -f man/autobrr.1 $(DESTDIR)$(PREFIX)/$(MANDIR)/man1/
+
+install: all install-man
 	mkdir -p $(DESTDIR)$(PREFIX)/$(BINDIR)
 	cp -f bin/$(SERVICE) $(DESTDIR)$(PREFIX)/$(BINDIR)
 

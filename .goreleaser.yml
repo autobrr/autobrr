@@ -117,7 +117,10 @@ nfpms:
     homepage: https://autobrr.com
     maintainer: Autobrr <packages@autobrr.com>
     description: |-
-            autobrr is the modern download automation tool for torrents and usenet.
+      autobrr is the modern download automation tool for torrents and usenet.
+    contents:
+      - src: man/autobrr.1
+        dst: /usr/share/man/man1/autobrr.1
     formats:
       - apk
       - deb
