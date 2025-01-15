@@ -42,7 +42,7 @@ clean:
 
 install-man:
 	mkdir -p $(DESTDIR)$(PREFIX)/$(MANDIR)/man1
-	cp -f man/autobrr.1 $(DESTDIR)$(PREFIX)/$(MANDIR)/man1/
+	cp -f docs/man/autobrr.1 $(DESTDIR)$(PREFIX)/$(MANDIR)/man1/
 
 install: all install-man
 	mkdir -p $(DESTDIR)$(PREFIX)/$(BINDIR)
