@@ -76,7 +76,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ ubuntu-latest ]
+        os: [ ubuntu-latest, ubuntu-24.04-arm ]
         cgo: [ 1, 0 ]
     name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
