@@ -12,7 +12,7 @@ func String(str string) string {
 	return str
 }
 
-func SanitizeURLEncoding(str string) string {
+func URLEncoding(str string) string {
 	replacements := []struct {
 		old string
 		new string

@@ -159,7 +159,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 			if parentURL, _ := url.Parse(j.URL); parentURL != nil {
 				parentURL.Path, parentURL.RawPath = "", ""
 
-				downloadURL := sanitize.SanitizeURLEncoding(rls.DownloadURL)
+				downloadURL := sanitize.URLEncoding(rls.DownloadURL)
 				escapedUrl, _ := url.QueryUnescape(parentURL.JoinPath(downloadURL).String())
 				rls.DownloadURL = escapedUrl
 			}
