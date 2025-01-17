@@ -12,6 +12,30 @@ func String(str string) string {
 	return str
 }
 
+func SanitizeURLEncoding(str string) string {
+	replacements := []struct {
+		old string
+		new string
+	}{
+		{`\u0026`, "&"},
+		{`\u003d`, "="},
+		{`\u003f`, "?"},
+		{`\u002f`, "/"},
+		{`\u003a`, ":"},
+		{`\u0023`, "#"},
+		{`\u0040`, "@"},
+		{`\u0025`, "%"},
+		{`\u002b`, "+"},
+	}
+
+	for _, r := range replacements {
+		str = repeatedReplaceAll(str, r.old, r.new)
+	}
+
+	str = strings.TrimSpace(str)
+	return str
+}
+
 func FilterString(str string) string {
 	// replace newline with comma
 	str = strings.ReplaceAll(str, "\r", ",")
