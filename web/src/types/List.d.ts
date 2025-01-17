@@ -41,4 +41,15 @@ interface ListCreate {
   include_alternate_titles: boolean;
 }
 
-type ListType = "SONARR" | "RADARR" | "LIDARR" | "READARR" | "WHISPARR" | "MDBLIST" | "TRAKT" | "METACRITIC" | "STEAM" | "PLAINTEXT";
+type ListType =
+  | "SONARR"
+  | "RADARR"
+  | "LIDARR"
+  | "READARR"
+  | "WHISPARR"
+  | "MDBLIST"
+  | "TRAKT"
+  | "METACRITIC"
+  | "STEAM"
+  | "PLAINTEXT"
+  | "ANILIST";
