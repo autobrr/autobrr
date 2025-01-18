@@ -149,7 +149,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	}
 
 	if rls.DownloadURL == "" && item.Link != "" {
-		rls.DownloadURL = item.Link
+		rls.DownloadURL = sanitize.URLEncoding(item.Link)
 	}
 
 	if rls.DownloadURL != "" {
