@@ -8,6 +8,7 @@ GIT_TAG := $(shell git describe --abbrev=0 --tags)
 SERVICE = autobrr
 GO = go
 RM = rm
+INSTALL = install
 GOFLAGS = "-X main.commit=$(GIT_COMMIT) -X main.version=$(GIT_TAG)"
 PREFIX = /usr/local
 BINDIR = bin
@@ -41,12 +42,12 @@ clean:
 	$(RM) -rf bin web/dist/*
 
 install-man:
-	mkdir -p $(DESTDIR)$(PREFIX)/$(MANDIR)/man1
-	cp -f docs/man/autobrr.1 $(DESTDIR)$(PREFIX)/$(MANDIR)/man1/
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/$(MANDIR)/man1
+	$(INSTALL) -m644 docs/man/autobrr.1 $(DESTDIR)$(PREFIX)/$(MANDIR)/man1/autobrr.1
 
 install: all install-man
-	mkdir -p $(DESTDIR)$(PREFIX)/$(BINDIR)
-	cp -f bin/$(SERVICE) $(DESTDIR)$(PREFIX)/$(BINDIR)
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/$(BINDIR)
+	$(INSTALL) -m755 bin/$(SERVICE) $(DESTDIR)$(PREFIX)/$(BINDIR)/$(SERVICE)
 
 dev:
 	@if ! command -v tmux >/dev/null 2>&1; then \
