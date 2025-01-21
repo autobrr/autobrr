@@ -32,13 +32,13 @@ build/ctl:
 
 build/web:
 	pnpm --dir web run build
-	@touch web/dist/.gitkeep 2>/dev/null  # To avoid accidental commit of the deletionn
+	@touch web/dist/.gitkeep 2>/dev/null # To avoid accidental commit of the deletionn
 
 build/docker:
 	docker build -t autobrr:dev -f Dockerfile . --build-arg GIT_TAG=$(GIT_TAG) --build-arg GIT_COMMIT=$(GIT_COMMIT)
 
 clean:
-	$(RM) -rf bin
+	$(RM) -rf bin web/dist/*
 
 install-man:
 	mkdir -p $(DESTDIR)$(PREFIX)/$(MANDIR)/man1
