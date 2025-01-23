@@ -26,6 +26,7 @@ irc:
   tls: true
   channels:
     - "#announce"
+    - "#announce-music"
   announcers:
     - torrentseeds
   settings:
@@ -50,21 +51,32 @@ irc:
           expect:
             torrentName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
             category: TV/HD
+            tags: ""
             torrentSize: 706.15 MiB
             baseUrl: https://www.torrentseeds.org/
             torrentId: "0000000"
             uploader: George
             freeleech: ""
-        pattern: 'New: (.+) \.:\. Category: (.+) \.:\. Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+/(\d+) \.:\. Uploaded by: (\w+)\s?(FREELEECH)?.*'
+        - line: 'New: The_Artist-The_Album-(ID)-WEB-2024-GROUP .:. Category: Music .:. Genre: Banger .:. Size: 13.37 MiB .:. URL:  https://www.torrentseeds.org/torrents/0000000 .:. Uploaded by: Uploader.'
+          expect:
+            torrentName: The_Artist-The_Album-(ID)-WEB-2024-GROUP
+            category: Music
+            tags: Banger
+            torrentSize: 13.37 MiB
+            baseUrl: https://www.torrentseeds.org/
+            torrentId: "0000000"
+            uploader: Uploader
+            freeleech: ""
+        pattern: 'New: (.+) \.:\. Category: ([\w /-]+) \.:\. (?:Genre: ([\w .&/+-]+) \.:\. )?Size: (.+) \.:\. URL:  (https?\:\/\/.+\/).+/(\d+) \.:\. Uploaded by: (\w+)\s?(FREELEECH)?.*'
         vars:
           - torrentName
           - category
+          - tags
           - torrentSize
           - baseUrl
           - torrentId
           - uploader
           - freeleech
-
     match:
       infourl: "/torrents/{{ .torrentId }}"
       torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
