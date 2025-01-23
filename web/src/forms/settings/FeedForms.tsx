@@ -131,7 +131,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
         <div>
           <TextFieldWide name="name" label="Name" required={true} />
 
-          <div className="space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div
               className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>

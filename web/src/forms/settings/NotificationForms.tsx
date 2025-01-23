@@ -643,7 +643,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
         <div>
           <TextFieldWide name="name" label="Name" required={true}/>
 
-          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>
                 <label
@@ -695,7 +695,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
               </div>
             </div>
             <SwitchGroupWide name="enabled" label="Enabled"/>
-            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+            <div className="py-4">
               <div className="px-4 space-y-1">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                   Events
