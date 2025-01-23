@@ -101,7 +101,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.torznab && ind.torznab.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
+            <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Torznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Torznab feed
@@ -142,7 +142,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.newznab && ind.newznab.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
+            <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Newznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Newznab feed
@@ -175,7 +175,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.rss && ind.rss.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
+            <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">RSS</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 RSS feed
