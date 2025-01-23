@@ -432,7 +432,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -471,8 +471,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
                           </div>
                         </div>
 
-                        <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-                          <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                          <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
                             <div>
                               <label
                                 htmlFor="identifier"
@@ -832,7 +832,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
     >
       {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+          <div className="p-4 sm:grid sm:grid-cols-3 sm:gap-4">
             <label
               htmlFor="name"
               className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"

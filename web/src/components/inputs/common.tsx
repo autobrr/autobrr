@@ -51,7 +51,7 @@ export const SelectInput = (props: InputProps) => (
 export const SelectControl = (props: ControlProps) => (
   <components.Control
     {...props}
-    className="p-1 block w-full bg-gray-100! dark:bg-gray-850! border border-gray-300 dark:border-gray-700 dark:hover:border-gray-600 rounded-md shadow-xs focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+    className="p-1 block w-full bg-gray-100! dark:bg-gray-850! border border-gray-300 dark:border-gray-700! dark:hover:border-gray-600 rounded-md shadow-xs focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
     children={props.children}
   />
 );
@@ -59,7 +59,7 @@ export const SelectControl = (props: ControlProps) => (
 export const SelectMenu = (props: MenuProps) => (
   <components.Menu
     {...props}
-    className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-xs cursor-pointer"
+    className="dark:bg-gray-800! border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-xs cursor-pointer"
     children={props.children}
   />
 );
@@ -68,8 +68,8 @@ export const SelectOption = (props: OptionProps) => (
   <components.Option
     {...props}
     className={classNames(
-      "transition dark:hover:bg-gray-900 dark:focus:bg-gray-900",
-      props.isSelected ? "dark:bg-gray-875 dark:text-gray-200" : "dark:bg-gray-800 dark:text-gray-400"
+      "transition dark:hover:bg-gray-900! dark:focus:bg-gray-900!",
+      props.isSelected ? "dark:bg-gray-875! dark:text-gray-200" : "dark:bg-gray-800! dark:text-gray-400"
     )}
     children={props.children}
   />

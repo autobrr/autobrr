@@ -120,7 +120,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -351,7 +351,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
