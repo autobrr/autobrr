@@ -20,7 +20,9 @@ import {
   DialogPanel,
   DialogTitle,
   Listbox,
-  ListboxButton, ListboxOption, ListboxOptions,
+  ListboxButton,
+  ListboxOption,
+  ListboxOptions,
   Transition,
   TransitionChild
 } from "@headlessui/react";
@@ -532,20 +534,20 @@ interface ListTypeFormProps {
 const ListTypeForm = (props: ListTypeFormProps) => {
   const { setFieldValue } = useFormikContext();
   const [prevActionType, setPrevActionType] = useState<string | null>(null);
-
   const { listType } = props;
 
   useEffect(() => {
-    // if (prevActionType !== null && prevActionType !== list.type && ListTypeOptions.map(l => l.value).includes(list.type)) {
     if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType)) {
       // Reset the client_id field value
-      setFieldValue(`client_id`, 0);
+      setFieldValue('client_id', 0);
+      // Reset the  url
+      setFieldValue('url', '');
     }
 
     setPrevActionType(listType);
   }, [listType, prevActionType, setFieldValue]);
 
-  switch (props.listType) {
+  switch (listType) {
     case "RADARR":
       return <ListTypeArr {...props} />;
     case "SONARR":
