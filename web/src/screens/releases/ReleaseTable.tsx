@@ -267,7 +267,7 @@ export const ReleaseTable = () => {
                         key={header.id}
                         scope="col"
                         colSpan={header.colSpan}
-                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
+                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400"
                       >
                         <div className="flex items-center justify-between">
                           {header.isPlaceholder
