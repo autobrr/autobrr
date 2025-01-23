@@ -244,7 +244,12 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                            <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []} />
+                            <ListFilterMultiSelectField
+                              name="filters"
+                              label="Filters"
+                              required={true}
+                              options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                            />
 
                           </div>
                         </div>
@@ -418,10 +423,12 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                                 </p>
                               </div>
 
-                              <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({
-                                value: f.id,
-                                label: f.name
-                              })) ?? []}/>
+                              <ListFilterMultiSelectField
+                                name="filters"
+                                label="Filters"
+                                required={true}
+                                options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                              />
 
                             </div>
                           </div>

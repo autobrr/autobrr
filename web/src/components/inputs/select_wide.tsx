@@ -235,7 +235,7 @@ interface ListFilterMultiSelectOption {
   name: string;
 }
 
-export function ListFilterMultiSelectField({ name, label, help, tooltip, options }: MultiSelectFieldProps) {
+export function ListFilterMultiSelectField({ name, label, help, tooltip, options, required }: MultiSelectFieldProps) {
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -247,11 +247,12 @@ export function ListFilterMultiSelectField({ name, label, help, tooltip, options
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
+            <common.RequiredField required={required} />
           </div>
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
+        <Field name={name} type="select" required={required}>
           {({
               field,
               form: { setFieldValue }
