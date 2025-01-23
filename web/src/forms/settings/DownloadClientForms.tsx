@@ -778,7 +778,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl border-l dark:border-gray-700">
+              <div className="w-screen max-w-2xl ">
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
@@ -964,7 +964,7 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: Update
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl border-l dark:border-gray-700">
+              <div className="w-screen max-w-2xl ">
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
