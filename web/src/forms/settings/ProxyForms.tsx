@@ -110,10 +110,9 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                           </div>
                         </div>
 
-                        <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-                          <SwitchGroupWide name="enabled" label="Enabled" />
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
                           <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
-
+                          <SwitchGroupWide name="enabled" label="Enabled" />
                           <SelectFieldBasic
                             name="type"
                             label="Proxy type"
@@ -121,7 +120,6 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                             tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
                             help="Usually SOCKS5"
                           />
-
                           <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
                         </div>
 
@@ -241,12 +239,9 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     >
       {() => (
         <div>
-          <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-
-            <SwitchGroupWide name="enabled" label="Enabled"/>
-
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <TextFieldWide name="name" label="Name" defaultValue="" required={true}/>
-
+            <SwitchGroupWide name="enabled" label="Enabled"/>
             <SelectFieldBasic
               name="type"
               label="Proxy type"
@@ -255,7 +250,6 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
               tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
               help="Usually SOCKS5"
             />
-
             <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
           </div>
 
