@@ -46,7 +46,6 @@
     "formik": "^2.4.6",
     "goober": "^2.1.16",
     "http-proxy-middleware": "^3.0.3",
-    "postcss": "^8.4.49",
     "react": "^19.0.0",
     "react-debounce-input": "^3.3.0",
     "react-dom": "^19.0.0",

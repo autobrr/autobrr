@@ -88,9 +88,6 @@ importers:
       http-proxy-middleware:
         specifier: ^3.0.3
         version: 3.0.3
-      postcss:
-        specifier: ^8.4.49
-        version: 8.4.49
       react:
         specifier: ^19.0.0
         version: 19.0.0
