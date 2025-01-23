@@ -43,7 +43,7 @@ export const SelectInput = (props: InputProps) => (
   <components.Input
     {...props}
     inputClassName="outline-hidden border-none shadow-none focus:ring-transparent"
-    className="text-gray-400 dark:text-gray-100"
+    className="text-gray-400! dark:text-gray-100!"
     children={props.children}
   />
 );
