@@ -141,7 +141,7 @@ export const Login = () => {
       </div>
 
       <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
-        <div className={`px-6 ${!canOnboard ? 'py-12 bg-white dark:bg-gray-800 shadow sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
+        <div className={`px-6 ${!canOnboard ? 'py-12 bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
           {/* Only show regular login form if onboarding is not available */}
           {!canOnboard && (
             <>
@@ -182,7 +182,7 @@ export const Login = () => {
 
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <RocketLaunchIcon className="w-4 h-4 mr-1.5" />
                   Sign in
@@ -208,7 +208,7 @@ export const Login = () => {
               <button
                 type="button"
                 onClick={handleOIDCLogin}
-                className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <FontAwesomeIcon icon={faOpenid} className="h-5 w-5" />
                 <span>OpenID Connect</span>

@@ -41,7 +41,7 @@ export const Section = ({
         {titleElement ?? <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">{title}</h2>}
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
       </div>
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {rightSide ?? null}
       </div>
     </div>
@@ -80,7 +80,7 @@ export const RowItem = ({
         ? (
           <>
             {typeof (value) === "string" ? (
-              <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded shadow text-ellipsis leading-7">
+              <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded-sm shadow-sm text-ellipsis leading-7">
                 {value}
               </span>
             ) : value}

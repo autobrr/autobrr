@@ -35,7 +35,7 @@ export const RightNav = (props: RightNavProps) => {
         <div className="mt-1 items-center">
           <button
             onClick={toggleTheme}
-            className="p-1 rounded-full focus:outline-none focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
+            className="p-1 rounded-full focus:outline-hidden focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
             title={settings.darkTheme ? "Switch to light mode (currently dark mode)" : "Switch to dark mode (currently light mode)"}
           >
             {settings.darkTheme ? (
@@ -89,7 +89,7 @@ export const RightNav = (props: RightNavProps) => {
               >
                 <MenuItems
                   static
-                  className="origin-top-right absolute right-0 mt-2 w-48 z-10 divide-y divide-gray-100 dark:divide-gray-750 rounded-md shadow-lg bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 focus:outline-none"
+                  className="origin-top-right absolute right-0 mt-2 w-48 z-10 divide-y divide-gray-100 dark:divide-gray-750 rounded-md shadow-lg bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 focus:outline-hidden"
                 >
                   <MenuItem>
                     {({ active }) => (

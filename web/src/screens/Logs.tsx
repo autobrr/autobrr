@@ -100,11 +100,11 @@ export const Logs = () => {
 
   return (
     <main>
-      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
       </div>
 
-      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-4 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
             <DebounceInput
@@ -116,7 +116,7 @@ export const Logs = () => {
               }}
               className={classNames(
                 "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-                "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
+                "block w-full dark:bg-gray-900 shadow-xs dark:text-gray-100 sm:text-sm rounded-md"
               )}
               placeholder="Enter a regex pattern to filter logs by..."
             />
@@ -162,7 +162,7 @@ export const Logs = () => {
         </div>
       </div>
 
-      <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-10 px-2 sm:px-4 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-4 sm:px-6 pt-3 sm:pt-4">
           <LogFiles />
         </div>
@@ -323,7 +323,7 @@ const LogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-hidden"
         >
           <div className="p-3">
             <MenuItem>

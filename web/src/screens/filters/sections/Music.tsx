@@ -149,7 +149,7 @@ export const Music = () => {
             />
           </FilterLayout>
 
-          <FilterLayout className="items-end sm:!gap-x-6">
+          <FilterLayout className="items-end sm:gap-x-6!">
             <FilterRow className="sm:col-span-4">
               <SwitchGroup
                 name="cue"
@@ -197,7 +197,7 @@ export const Music = () => {
           <span className="border-b border-gray-150 dark:border-gray-750 w-full" />
         </div>
 
-        <FilterLayout className="sm:!gap-x-6">
+        <FilterLayout className="sm:gap-x-6!">
           <SwitchGroup
             name="perfect_flac"
             label="Perfect FLAC"

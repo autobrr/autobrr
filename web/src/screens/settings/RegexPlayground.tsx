@@ -80,7 +80,7 @@ const RegexPlayground = () => {
           id="input-regex"
           type="text"
           autoComplete="true"
-          className="mt-1 mb-4 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 sm:text-sm"
+          className="mt-1 mb-4 block w-full border rounded-md shadow-xs py-2 px-3 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 sm:text-sm"
         />
         <label
           htmlFor="input-lines"
@@ -90,7 +90,7 @@ const RegexPlayground = () => {
         </label>
         <div
           id="input-lines"
-          className="mt-1 mb-4 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+          className="mt-1 mb-4 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs py-2 px-3 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
           onInput={(e) => onInput(e.currentTarget.innerText ?? "")}
           contentEditable
         ></div>

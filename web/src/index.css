@@ -3,101 +3,120 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
 
-body {
-  margin: 0;
-}
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
-}
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
 
-@keyframes enter {
-  0% {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-
-  to {
-    transform: scale(1);
-    opacity: 1;
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
   }
 }
 
-.animate-enter {
-  animation: enter 0.2s ease-out;
-}
-
-@keyframes leave {
-  0% {
-    transform: scale(1);
-    opacity: 1;
+@layer utilities {
+  body {
+    margin: 0;
   }
 
-  to {
-    transform: scale(0.9);
-    opacity: 0;
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
   }
-}
 
-.animate-leave {
-  animation: leave 0.15s ease-in forwards;
-}
+  @keyframes enter {
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+    }
 
-.rmsc {
-  --rmsc-p: 0.75rem !important;
-  --rmsc-radius: 0.375rem !important;
-  --rmsc-h: unset !important;
-}
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
 
-.rmsc .dropdown-heading {
-  padding: 0.5rem 0.75rem !important;
-}
+  .animate-enter {
+    animation: enter 0.2s ease-out;
+  }
 
-.rmsc .dropdown-heading-value {
-  line-height: 1.5rem;
-}
+  @keyframes leave {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
 
-.rmsc .dropdown-heading-dropdown-arrow {
-  width: 18px;
-  height: 18px;
-  margin: -6px 0 0 -6px;
-}
+    to {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+  }
 
-.rmsc .dropdown-search-clear-icon {
-  width: 18px;
-  height: 18px;
-  margin: -6px 10px 0 -6px;
-}
+  .animate-leave {
+    animation: leave 0.15s ease-in forwards;
+  }
 
-.rmsc .search input {
-  height: unset !important;
-  padding: 0.5rem 0.75rem !important;
-}
+  .rmsc {
+    --rmsc-p: 0.75rem !important;
+    --rmsc-radius: 0.375rem !important;
+    --rmsc-h: unset !important;
+  }
 
-.rmsc .item-renderer {
-  align-items: center !important;
-}
+  .rmsc .dropdown-heading {
+    padding: 0.5rem 0.75rem !important;
+  }
 
-.rmsc .item-renderer input {
-  margin: 0 0.5rem 0 0 !important;
-}
+  .rmsc .dropdown-heading-value {
+    line-height: 1.5rem;
+  }
 
-.rmsc .item-renderer > input[type="checkbox"] {
-  border: 1px solid var(--rmsc-main);
-}
+  .rmsc .dropdown-heading-dropdown-arrow {
+    width: 18px;
+    height: 18px;
+    margin: -6px 0 0 -6px;
+  }
 
-.rmsc.dark .item-renderer > input[type="checkbox"] {
-  background-color: unset;
-}
+  .rmsc .dropdown-search-clear-icon {
+    width: 18px;
+    height: 18px;
+    margin: -6px 10px 0 -6px;
+  }
 
-.rmsc .item-renderer > input[type="checkbox"]:hover {
-  border: 1px solid var(--rmsc-main);
-}
+  .rmsc .search input {
+    height: unset !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  .rmsc .item-renderer {
+    align-items: center !important;
+  }
+
+  .rmsc .item-renderer input {
+    margin: 0 0.5rem 0 0 !important;
+  }
+
+  .rmsc .item-renderer > input[type='checkbox'] {
+    border: 1px solid var(--rmsc-main);
+  }
+
+  .rmsc.dark .item-renderer > input[type='checkbox'] {
+    background-color: unset;
+  }
+
+  .rmsc .item-renderer > input[type='checkbox']:hover {
+    border: 1px solid var(--rmsc-main);
+  }
 
 html:not(.dark) .rmsc {
   --rmsc-main: theme(colors.blue.500) !important;
@@ -119,24 +138,25 @@ html.dark .rmsc {
   color: #fff !important;
 }
 
-html:not(.dark) .rmsc input[type="checkbox"] {
-  @apply border-gray-400;
-}
+  html:not(.dark) .rmsc input[type='checkbox'] {
+    @apply border-gray-400;
+  }
 
-html .rmsc input[type="checkbox"]:checked {
-  @apply bg-blue-500 border-blue-500;
-}
+  html .rmsc input[type='checkbox']:checked {
+    @apply bg-blue-500 border-blue-500;
+  }
 
-html.dark .rmsc input[type="checkbox"] {
-  @apply bg-gray-775 border-gray-650;
-}
+  html.dark .rmsc input[type='checkbox'] {
+    @apply bg-gray-775 border-gray-650;
+  }
 
-html .dropdown-content > div.panel-content {
-  @apply border border-gray-350 !shadow-2xl;
-}
+  html .dropdown-content > div.panel-content {
+    @apply border border-gray-350 shadow-2xl!;
+  }
 
-html.dark .dropdown-content > div.panel-content {
-  @apply border border-gray-700 !shadow-2xl;
+  html.dark .dropdown-content > div.panel-content {
+    @apply border border-gray-700 shadow-2xl!;
+  }
 }
 
 @layer base {

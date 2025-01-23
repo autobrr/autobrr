@@ -65,7 +65,7 @@ export const Checkbox = ({
         className={classNames(
           value ? "translate-x-6" : "translate-x-[0.15rem]",
           disabled ? "bg-gray-650 dark:bg-gray-800" : "bg-white",
-          "inline-flex items-center align-center h-4 w-4 transform rounded-full transition ring-0 shadow"
+          "inline-flex items-center align-center h-4 w-4 transform rounded-full transition ring-0 shadow-sm"
         )}
       >
         {value

@@ -40,7 +40,7 @@ function NotificationSettings() {
         <button
           type="button"
           onClick={toggleAddNotifications}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
           Add new
@@ -67,7 +67,7 @@ function NotificationSettings() {
   );
 }
 
-const iconStyle = "flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400";
+const iconStyle = "flex items-center px-2 py-0.5 rounded-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400";
 const iconComponentMap: componentMapType = {
   DISCORD: <span className={iconStyle}><DiscordIcon /> Discord</span>,
   NOTIFIARR: <span className={iconStyle}><NotifiarrIcon /> Notifiarr</span>,

@@ -31,14 +31,14 @@ export const FilterNotFound = () => {
         {" "}
         <ExternalLink
           href="https://github.com/autobrr/autobrr"
-          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
         >
           GitHub page
         </ExternalLink>
         {" or to "}
         <ExternalLink
           href="https://discord.gg/WQ2eUycxyT"
-          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
         >
           our official Discord channel
         </ExternalLink>
@@ -50,7 +50,7 @@ export const FilterNotFound = () => {
       <div className="flex justify-center">
         <Link to="/filters">
           <button
-            className="w-48 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="w-48 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           >
             Back to filters
           </button>
