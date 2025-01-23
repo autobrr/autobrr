@@ -239,7 +239,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4 space-y-1">
+                            <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Filters
                               </DialogTitle>
@@ -413,7 +413,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 
                           <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                              <div className="px-4 space-y-1">
+                              <div className="px-4">
                                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                   Filters
                                 </DialogTitle>
@@ -602,7 +602,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source
         </DialogTitle>
@@ -643,7 +643,7 @@ function ListTypeTrakt() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -680,7 +680,7 @@ function ListTypeTrakt() {
 function ListTypePlainText() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -709,7 +709,7 @@ function ListTypePlainText() {
 function ListTypeSteam() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -726,7 +726,7 @@ function ListTypeSteam() {
 function ListTypeMetacritic() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -755,7 +755,7 @@ function ListTypeMetacritic() {
 function ListTypeMDBList() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>

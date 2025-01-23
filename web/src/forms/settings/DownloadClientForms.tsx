@@ -418,7 +418,7 @@ function FormFieldsRulesBasic() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
 
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Rules</DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads.
@@ -453,7 +453,7 @@ function FormFieldsRulesArr() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Download Client
         </DialogTitle>
@@ -476,7 +476,7 @@ function FormFieldsRulesQbit() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
         </DialogTitle>
@@ -544,7 +544,7 @@ function FormFieldsRulesTransmission() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
         </DialogTitle>

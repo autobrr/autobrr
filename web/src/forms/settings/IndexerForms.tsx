@@ -51,7 +51,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
     <>
       {ind && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-          <div className="px-4 space-y-1">
+          <div className="px-4">
             <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">IRC</DialogTitle>
             <p className="text-sm text-gray-500 dark:text-gray-200">
               Networks and channels are configured automatically in the background.

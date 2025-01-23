@@ -28,7 +28,7 @@ import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 function FormFieldsDiscord() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -57,7 +57,7 @@ function FormFieldsDiscord() {
 function FormFieldsNotifiarr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -78,7 +78,7 @@ function FormFieldsNotifiarr() {
 function FormFieldsLunaSea() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -110,7 +110,7 @@ function FormFieldsLunaSea() {
 function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -160,7 +160,7 @@ function FormFieldsTelegram() {
 function FormFieldsPushover() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -199,7 +199,7 @@ function FormFieldsPushover() {
 function FormFieldsGotify() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -225,7 +225,7 @@ function FormFieldsGotify() {
 function FormFieldsNtfy() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -269,7 +269,7 @@ function FormFieldsNtfy() {
 function FormFieldsShoutrrr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -407,7 +407,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                           </div>
                         </div>
 
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                        <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
                           <TextFieldWide
                             name="name"
                             label="Name"
@@ -476,8 +476,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
 
                           <SwitchGroupWide name="enabled" label="Enabled" />
 
-                          <div className="border-t mt-2 border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4 space-y-1">
+                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                            <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Events
                               </DialogTitle>
@@ -486,7 +486,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                            <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-4">
+                              <div className="p-4 sm:grid sm:gap-4">
                               <EventCheckBoxes />
                             </div>
                           </div>
@@ -695,8 +695,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
               </div>
             </div>
             <SwitchGroupWide name="enabled" label="Enabled"/>
-            <div className="py-4">
-              <div className="px-4 space-y-1">
+            <div className="pb-2">
+              <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                   Events
                 </DialogTitle>
@@ -705,7 +705,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                 </p>
               </div>
 
-              <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-2">
+              <div className="p-4 sm:grid sm:gap-4">
                 <EventCheckBoxes />
               </div>
             </div>
