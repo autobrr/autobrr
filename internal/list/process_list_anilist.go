@@ -41,7 +41,7 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 	}
 
 	var data []struct {
-		Romaji	 string   `json:"romaji"`
+		Romaji   string   `json:"romaji"`
 		English  string   `json:"english"`
 		Synonyms []string `json:"synonyms"`
 	}
@@ -50,18 +50,25 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
 	}
 
-	filterTitles := []string{}
+	titleSet := make(map[string]struct{})
 	for _, item := range data {
-		filterTitles = append(filterTitles, processTitle(item.Romaji, list.MatchRelease)...)
-		if item.English != item.Romaji {
-			filterTitles = append(filterTitles, processTitle(item.English, list.MatchRelease)...)
+		titlesToProcess := make(map[string]struct{})
+		titlesToProcess[item.Romaji] = struct{}{}
+		titlesToProcess[item.English] = struct{}{}
+		for _, synonym := range item.Synonyms {
+			titlesToProcess[synonym] = struct{}{}
 		}
 
-		for _, synonym := range item.Synonyms {
-			if synonym != item.English && synonym != item.Romaji {
-				filterTitles = append(filterTitles, processTitle(synonym, list.MatchRelease)...)
+		for title := range titlesToProcess {
+			for _, processedTitle := range processTitle(title, list.MatchRelease) {
+				titleSet[processedTitle] = struct{}{}
 			}
 		}
+	}
+
+	filterTitles := make([]string, 0, len(titleSet))
+	for title := range titleSet {
+		filterTitles = append(filterTitles, title)
 	}
 
 	if len(filterTitles) == 0 {
