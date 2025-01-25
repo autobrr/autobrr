@@ -24,6 +24,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
 )
 
@@ -278,6 +279,19 @@ func main() {
 			fmt.Println("Database reset and reseed completed successfully!")
 		}
 
+	case "htpasswd":
+		password, err := readPassword()
+		if err != nil {
+			log.Fatalf("failed to read password: %v", err)
+		}
+
+		hash, err := CreateHtpasswdHash(string(password))
+		if err != nil {
+			log.Fatalf("failed to hash password: %v", err)
+		}
+
+		fmt.Println(hash)
+
 	default:
 		flag.Usage()
 		if cmd != "help" {
@@ -315,4 +329,16 @@ func readPassword() (password []byte, err error) {
 	}
 
 	return password, nil
+}
+
+// CreateHtpasswdHash generates a bcrypt hash of the password for use in basic auth
+func CreateHtpasswdHash(password string) (string, error) {
+	// Generate a bcrypt hash from the input password
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate hash: %v", err)
+	}
+
+	// Return the formatted bcrypt hash (with the bcrypt marker "$2y$")
+	return string(hash), nil
 }
