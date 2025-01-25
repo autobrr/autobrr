@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sanitize"
 
 	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
@@ -148,7 +149,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	}
 
 	if rls.DownloadURL == "" && item.Link != "" {
-		rls.DownloadURL = item.Link
+		rls.DownloadURL = sanitize.URLEncoding(item.Link)
 	}
 
 	if rls.DownloadURL != "" {
@@ -158,8 +159,8 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 			if parentURL, _ := url.Parse(j.URL); parentURL != nil {
 				parentURL.Path, parentURL.RawPath = "", ""
 
-				// unescape the query params for max compatibility
-				escapedUrl, _ := url.QueryUnescape(parentURL.JoinPath(rls.DownloadURL).String())
+				downloadURL := sanitize.URLEncoding(rls.DownloadURL)
+				escapedUrl, _ := url.QueryUnescape(parentURL.JoinPath(downloadURL).String())
 				rls.DownloadURL = escapedUrl
 			}
 		}
