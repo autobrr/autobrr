@@ -51,7 +51,7 @@ function ListItem({ proxy }: ListItemProps) {
 
       <div className="grid grid-cols-12 items-center py-1.5">
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
-          <Checkbox value={proxy.enabled ?? false} setValue={onToggleMutation} />
+          <Checkbox name="enabled" value={proxy.enabled ?? false} setValue={onToggleMutation} />
         </div>
         <div className="col-span-7 sm:col-span-8 pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
           {proxy.name}
