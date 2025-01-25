@@ -86,6 +86,26 @@ sessionSecret = "secret-session-key"
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
 #oidc_redirect_url = ""
 
+# Metrics
+#
+# Enable metrics endpoint
+#metricsEnabled = true
+
+# Metrics server host
+#
+# metricsHost = "127.0.0.1"
+
+# Metrics server port
+#
+# metricsPort = "9074"
+
+# Metrics basic auth
+#
+# Comma separate list of user:password. Password must be htpasswd bcrypt hashed. Use autobrrctl to generate.
+# Only enabled if correctly set with user:pass.
+#
+#metricsBasicAuthUsers = ""
+
 # Custom definitions
 #
 #customDefinitions = "test/definitions"

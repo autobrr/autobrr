@@ -86,6 +86,10 @@ func (s MetricsServer) Handler() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(LoggerMiddleware(&s.log))
 
+	if s.config.Config.MetricsBasicAuthUsers != "" {
+		r.Use(BasicAuth("metrics", s.config.Config.MetricsBasicAuthUsers))
+	}
+
 	r.Get("/metrics", promhttp.HandlerFor(s.metricsManager.GetRegistry(), promhttp.HandlerOpts{}).ServeHTTP)
 
 	return r
