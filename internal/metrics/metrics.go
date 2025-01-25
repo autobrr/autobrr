@@ -10,7 +10,9 @@ import (
 	"github.com/autobrr/autobrr/internal/list"
 	"github.com/autobrr/autobrr/internal/metrics/collector"
 	"github.com/autobrr/autobrr/internal/release"
+
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
 type MetricsManager struct {
@@ -20,6 +22,8 @@ type MetricsManager struct {
 func NewMetricsManager(version string, commit string, date string, releaseService release.Service, ircService irc.Service, feedService feed.Service, listService list.Service, filterService filter.Service) *MetricsManager {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		prometheus.NewGaugeFunc(
 			prometheus.GaugeOpts{
 				Name: "autobrr_info",
