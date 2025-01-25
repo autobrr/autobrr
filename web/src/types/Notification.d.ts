@@ -26,4 +26,5 @@ interface ServiceNotification {
   topic?: string;
   host?: string;
   username?: string;
+  password?: string;
 }
