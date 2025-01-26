@@ -1,0 +1,135 @@
+.TH AUTOBRR 1 "2024-03-24" "autobrr" "User Commands"
+.\" Add comments for maintainers
+.SH NAME
+autobrr \- modern download automation for torrents and usenet
+.SH SYNOPSIS
+.SY autobrr
+.OP \-\-config path
+.YS
+.SY autobrrctl
+.OP \-\-config path
+.I action
+.RI [ options ]
+.YS
+.SH DESCRIPTION
+.B autobrr
+is a download automation tool that monitors IRC announce channels and RSS feeds
+to automatically download desired content from torrent and usenet sources.
+.PP
+The application supports over 75 torrent trackers with IRC announces, Newznab,
+Torznab and RSS feeds. It features powerful filtering with RegEx support and
+a mobile-friendly web UI.
+.SH OPTIONS
+.SS "autobrr options"
+.TP
+.BR \-\-config=\fIPATH\fR
+Path to configuration directory (default: ~/.config/autobrr)
+.SS "autobrrctl actions"
+.TP
+.B create-user \fIusername\fR
+Create a new user
+.TP
+.B change-password \fIusername\fR
+Change the password for a user
+.TP
+.B db:seed
+Seed the sqlite database. Requires \fB\-\-db-path\fR and
+.BR \-\-seed-db
+.TP
+.B db:reset
+Reset and seed the sqlite database. Requires \fB\-\-db-path\fR and
+.BR \-\-seed-db
+.TP
+.B version
+Display version information
+.TP
+.B help
+Show help message
+.SS "autobrrctl options"
+.TP
+.BR \-\-db-path=\fIPATH\fR
+Path to database file (for db:seed and db:reset)
+.TP
+.BR \-\-seed-db=\fIPATH\fR
+Path to SQL seed file (for db:seed and db:reset)
+.SH FEATURES
+.TP
+.B Download Clients
+.RS
+.IP \[bu] 2
+qBittorrent with built-in re-announce and categories
+.IP \[bu]
+Deluge v1+ and v2+
+.IP \[bu]
+rTorrent
+.IP \[bu]
+Transmission
+.IP \[bu]
+Porla
+.IP \[bu]
+SABnzbd
+.IP \[bu]
+Watch Folder support
+.RE
+.TP
+.B Integration
+.RS
+.IP \[bu] 2
+Sonarr, Radarr, Lidarr, Whisparr, Readarr support
+.IP \[bu]
+Custom script execution
+.IP \[bu]
+Webhook support
+.IP \[bu]
+Notifications (Discord, Telegram, Notifiarr, Pushover, Gotify)
+.RE
+.SH FILES
+.TP
+.I ~/.config/autobrr/config.toml
+Default configuration file location
+.SH ENVIRONMENT
+.TP
+.B AUTOBRR__HOST
+Listen address (default: 127.0.0.1)
+.TP
+.B AUTOBRR__PORT
+Listen port (default: 7474)
+.TP
+.B AUTOBRR__BASE_URL
+Base URL for reverse proxy (default: /)
+.TP
+.B AUTOBRR__LOG_LEVEL
+Log level (DEBUG, INFO, WARN, ERROR) (default: INFO)
+.TP
+.B AUTOBRR__DATABASE_TYPE
+Database type (sqlite/postgres) (default: sqlite)
+.PP
+For a complete list of environment variables, see:
+.br
+https://autobrr.com
+.SH EXAMPLES
+.TP
+Basic usage with default configuration:
+.B autobrr
+.TP
+Using custom configuration directory:
+.B autobrr --config=/path/to/config
+.SH BUGS
+Report bugs at https://github.com/autobrr/autobrr/issues
+.SH AUTHORS
+Ludvig Lundgren and the autobrr contributors
+.SH COPYRIGHT
+Copyright (C) 2021-2024 Ludvig Lundgren
+.br
+License GPLv2+: GNU GPL version 2 or later
+.SH SEE ALSO
+Full documentation at: https://autobrr.com
+.PP
+Discord community: https://discord.gg/WQ2eUycxyT
+.SH "EXIT STATUS"
+.TP
+.B 0
+Successful program execution.
+.TP
+.B 1
+Usage, syntax or configuration file error.
