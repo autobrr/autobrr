@@ -112,19 +112,22 @@ sessionSecret = "{{ .sessionSecret }}"
 # OpenID Connect Configuration
 #
 # Enable OIDC authentication
-#oidc_enabled = false
+#oidcEnabled = false
 #
 # OIDC Issuer URL (e.g. https://auth.example.com)
-#oidc_issuer = ""
+#oidcIssuer = ""
 #
 # OIDC Client ID
-#oidc_client_id = ""
+#oidcClientId = ""
 #
 # OIDC Client Secret
-#oidc_client_secret = ""
+#oidcClientSecret = ""
 #
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
-#oidc_redirect_url = ""
+#oidcRedirectUrl = ""
+#
+# Disable Built In Login Form (only works when using external auth)
+#oidcDisableBuiltInLogin = false
 
 # Metrics
 #
@@ -430,6 +433,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "OIDC_REDIRECT_URL"); v != "" {
 		c.Config.OIDCRedirectURL = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_DISABLE_BUILT_IN_LOGIN"); v != "" {
+		c.Config.OIDCDisableBuiltInLogin = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
 	if v := os.Getenv(prefix + "METRICS_ENABLED"); v != "" {
