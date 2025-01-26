@@ -130,7 +130,7 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 			ClientID:            cfg.OIDCClientID,
 			ClientSecret:        cfg.OIDCClientSecret,
 			RedirectURL:         cfg.OIDCRedirectURL,
-			DisableBuiltInLogin: cfg.DisableBuiltInLogin,
+			DisableBuiltInLogin: cfg.OIDCDisableBuiltInLogin,
 			Scopes:              scopes,
 		},
 		provider: provider,

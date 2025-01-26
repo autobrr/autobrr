@@ -16,25 +16,41 @@ Full documentation can be found at [https://autobrr.com](https://autobrr.com)
 
 ## Table of Contents
 
-1. [What Is Autobrr?](#what-is-autobrr)
-2. [Key Features](#key-features)
-   - [Available Download Clients and Actions](#available-download-clients-and-actions)
-   - [RSS and Usenet Support](#rss-and-usenet-support)
-3. [Installation](#installation)
-   - [Swizzin](#swizzin-dedi)
-   - [Saltbox](#saltbox)
-   - [QuickBox](#quickbox)
-   - [Shared Seedbox](#shared-seedbox)
-   - [Docker Compose](#docker-compose)
-      - [Distroless docker images](#distroless-docker-images)
-   - [Windows](#windows)
-   - [MacOS](#macos)
-   - [Linux Generic](#linux-generic)
-   - [Environment Variables](#environment-variables)
-4. [Community](#community)
-5. [Contributing](#contributing)
-6. [Code of Conduct](#code-of-conduct)
-7. [License](#license)
+- [Documentation](#documentation)
+- [Table of Contents](#table-of-contents)
+- [What Is Autobrr?](#what-is-autobrr)
+- [Key Features](#key-features)
+  - [Available Download Clients and Actions](#available-download-clients-and-actions)
+  - [RSS and Usenet Support](#rss-and-usenet-support)
+- [Installation](#installation)
+  - [Swizzin (dedi)](#swizzin-dedi)
+  - [Saltbox](#saltbox)
+  - [QuickBox](#quickbox)
+  - [Shared Seedbox](#shared-seedbox)
+    - [One-Click Installer \& Quick Installer](#one-click-installer--quick-installer)
+      - [Installation Scripts](#installation-scripts)
+    - [WhatBox](#whatbox)
+    - [Feralhosting](#feralhosting)
+    - [Bytesized Hosting](#bytesized-hosting)
+    - [Other providers](#other-providers)
+  - [Docker Compose](#docker-compose)
+  - [Distroless Docker Images](#distroless-docker-images)
+  - [Windows](#windows)
+  - [MacOS](#macos)
+    - [Install Homebrew](#install-homebrew)
+    - [Install autobrr](#install-autobrr)
+    - [Run](#run)
+  - [Linux Generic](#linux-generic)
+    - [Unpack](#unpack)
+    - [Systemd (Recommended)](#systemd-recommended)
+  - [Environment Variables](#environment-variables)
+- [Community](#community)
+- [Contributing](#contributing)
+  - [Reporting Issues and Suggestions](#reporting-issues-and-suggestions)
+  - [Code Contributions](#code-contributions)
+  - [Documentation](#documentation-1)
+- [Code of Conduct](#code-of-conduct)
+- [License](#license)
 
 ## What Is Autobrr?
 
@@ -316,36 +332,36 @@ If you are not running a reverse proxy change `host` in the `config.toml` to `0.
 
 The following environment variables can be used:
 
-| Variable                            | Description                                              | Default                                  |
-| ----------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
-| `AUTOBRR__HOST`                     | Listen address                                           | `127.0.0.1`                              |
-| `AUTOBRR__PORT`                     | Listen port                                              | `7474`                                   |
-| `AUTOBRR__BASE_URL`                 | Base URL for reverse proxy                               | `/`                                      |
-| `AUTOBRR__LOG_LEVEL`                | Log level (DEBUG, INFO, WARN, ERROR)                     | `INFO`                                   |
-| `AUTOBRR__LOG_PATH`                 | Log file location                                        | `/config/logs`                           |
-| `AUTOBRR__LOG_MAX_SIZE`             | Max size in MB before rotation                           | `10`                                     |
-| `AUTOBRR__LOG_MAX_BACKUPS`          | Number of rotated logs to keep                           | `5`                                      |
-| `AUTOBRR__SESSION_SECRET`           | Random string for session encryption                     | -                                        |
-| `AUTOBRR__CUSTOM_DEFINITIONS`       | Path to custom indexer definitions                       | -                                        |
-| `AUTOBRR__CHECK_FOR_UPDATES`        | Enable update checks                                     | `true`                                   |
-| `AUTOBRR__DATABASE_TYPE`            | Database type (sqlite/postgres)                          | `sqlite`                                 |
-| `AUTOBRR__POSTGRES_HOST`            | PostgreSQL host                                          | -                                        |
-| `AUTOBRR__POSTGRES_PORT`            | PostgreSQL port                                          | `5432`                                   |
-| `AUTOBRR__POSTGRES_DATABASE`        | PostgreSQL database name                                 | -                                        |
-| `AUTOBRR__POSTGRES_USER`            | PostgreSQL username                                      | -                                        |
-| `AUTOBRR__POSTGRES_PASS`            | PostgreSQL password                                      | -                                        |
-| `AUTOBRR__POSTGRES_SSLMODE`         | PostgreSQL SSL mode                                      | `disable`                                |
-| `AUTOBRR__POSTGRES_EXTRA_PARAMS`    | Additional PostgreSQL parameters                         | -                                        |
-| `AUTOBRR__OIDC_ENABLED`             | Enable OpenID Connect authentication                     | `false`                                  |
-| `AUTOBRR__OIDC_ISSUER`              | OIDC issuer URL                                          | -                                        |
-| `AUTOBRR__OIDC_CLIENT_ID`           | OIDC client ID                                           | -                                        |
-| `AUTOBRR__OIDC_CLIENT_SECRET`       | OIDC client secret                                       | -                                        |
-| `AUTOBRR__OIDC_REDIRECT_URL`        | OIDC callback URL                                        | `https://baseurl/api/auth/oidc/callback` |
-| `AUTOBRR__DISABLE_BUILT_IN_LOGIN`   | Disable login form (only works when using external auth) | `false`                                  |
-| `AUTOBRR__METRICS_ENABLED`          | Enable Metrics server                                    | `false`                                  |
-| `AUTOBRR__METRICS_HOST`             | Metrics listen address                                   | `127.0.0.1`                              |
-| `AUTOBRR__METRICS_PORT`             | Metrics listen port                                      | `9074`                                   |
-| `AUTOBRR__METRICS_BASIC_AUTH_USERS` | Metrics basic auth users                                 | -                                        |
+| Variable                               | Description                                              | Default                                  |
+| -------------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
+| `AUTOBRR__HOST`                        | Listen address                                           | `127.0.0.1`                              |
+| `AUTOBRR__PORT`                        | Listen port                                              | `7474`                                   |
+| `AUTOBRR__BASE_URL`                    | Base URL for reverse proxy                               | `/`                                      |
+| `AUTOBRR__LOG_LEVEL`                   | Log level (DEBUG, INFO, WARN, ERROR)                     | `INFO`                                   |
+| `AUTOBRR__LOG_PATH`                    | Log file location                                        | `/config/logs`                           |
+| `AUTOBRR__LOG_MAX_SIZE`                | Max size in MB before rotation                           | `10`                                     |
+| `AUTOBRR__LOG_MAX_BACKUPS`             | Number of rotated logs to keep                           | `5`                                      |
+| `AUTOBRR__SESSION_SECRET`              | Random string for session encryption                     | -                                        |
+| `AUTOBRR__CUSTOM_DEFINITIONS`          | Path to custom indexer definitions                       | -                                        |
+| `AUTOBRR__CHECK_FOR_UPDATES`           | Enable update checks                                     | `true`                                   |
+| `AUTOBRR__DATABASE_TYPE`               | Database type (sqlite/postgres)                          | `sqlite`                                 |
+| `AUTOBRR__POSTGRES_HOST`               | PostgreSQL host                                          | -                                        |
+| `AUTOBRR__POSTGRES_PORT`               | PostgreSQL port                                          | `5432`                                   |
+| `AUTOBRR__POSTGRES_DATABASE`           | PostgreSQL database name                                 | -                                        |
+| `AUTOBRR__POSTGRES_USER`               | PostgreSQL username                                      | -                                        |
+| `AUTOBRR__POSTGRES_PASS`               | PostgreSQL password                                      | -                                        |
+| `AUTOBRR__POSTGRES_SSLMODE`            | PostgreSQL SSL mode                                      | `disable`                                |
+| `AUTOBRR__POSTGRES_EXTRA_PARAMS`       | Additional PostgreSQL parameters                         | -                                        |
+| `AUTOBRR__OIDC_ENABLED`                | Enable OpenID Connect authentication                     | `false`                                  |
+| `AUTOBRR__OIDC_ISSUER`                 | OIDC issuer URL                                          | -                                        |
+| `AUTOBRR__OIDC_CLIENT_ID`              | OIDC client ID                                           | -                                        |
+| `AUTOBRR__OIDC_CLIENT_SECRET`          | OIDC client secret                                       | -                                        |
+| `AUTOBRR__OIDC_REDIRECT_URL`           | OIDC callback URL                                        | `https://baseurl/api/auth/oidc/callback` |
+| `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` | Disable login form (only works when using external auth) | `false`                                  |
+| `AUTOBRR__METRICS_ENABLED`             | Enable Metrics server                                    | `false`                                  |
+| `AUTOBRR__METRICS_HOST`                | Metrics listen address                                   | `127.0.0.1`                              |
+| `AUTOBRR__METRICS_PORT`                | Metrics listen port                                      | `9074`                                   |
+| `AUTOBRR__METRICS_BASIC_AUTH_USERS`    | Metrics basic auth users                                 | -                                        |
 
 ## Community
 
