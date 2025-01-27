@@ -575,6 +575,7 @@ interface InitialValues {
   host?: string;
   events: NotificationEvent[];
   username?: string
+  password?: string
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
@@ -625,7 +626,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     topic: notification.topic,
     host: notification.host,
     events: notification.events || [],
-    username: notification.username
+    username: notification.username,
+    password: notification.password
   };
 
   return (

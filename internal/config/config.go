@@ -112,21 +112,46 @@ sessionSecret = "{{ .sessionSecret }}"
 # OpenID Connect Configuration
 #
 # Enable OIDC authentication
-#oidc_enabled = false
+#oidcEnabled = false
 #
 # OIDC Issuer URL (e.g. https://auth.example.com)
-#oidc_issuer = ""
+#oidcIssuer = ""
 #
 # OIDC Client ID
-#oidc_client_id = ""
+#oidcClientId = ""
 #
 # OIDC Client Secret
-#oidc_client_secret = ""
+#oidcClientSecret = ""
 #
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
-#oidc_redirect_url = ""
+#oidcRedirectUrl = ""
+#
+# Disable Built In Login Form (only works when using external auth)
+#oidcDisableBuiltInLogin = false
+
+# Metrics
+#
+# Enable metrics endpoint
+#metricsEnabled = true
+#
+# Metrics server host
+#
+#metricsHost = "127.0.0.1"
+#
+# Metrics server port
+#
+#metricsPort = 9074
+#
+# Metrics basic auth
+#
+# Comma separate list of user:password. Password must be htpasswd bcrypt hashed. Use autobrrctl to generate.
+# Only enabled if correctly set with user:pass.
+#
+#metricsBasicAuthUsers = ""
 
 # Custom definitions
+#
+#customDefinitions = "test/definitions"
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -242,30 +267,34 @@ func New(configPath string, version string) *AppConfig {
 
 func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
-		Version:             "dev",
-		Host:                "localhost",
-		Port:                7474,
-		LogLevel:            "TRACE",
-		LogPath:             "",
-		LogMaxSize:          50,
-		LogMaxBackups:       3,
-		DatabaseMaxBackups:  5,
-		BaseURL:             "/",
-		BaseURLModeLegacy:   true,
-		SessionSecret:       api.GenerateSecureToken(16),
-		CustomDefinitions:   "",
-		CheckForUpdates:     true,
-		DatabaseType:        "sqlite",
-		PostgresHost:        "",
-		PostgresPort:        0,
-		PostgresDatabase:    "",
-		PostgresUser:        "",
-		PostgresPass:        "",
-		PostgresSSLMode:     "disable",
-		PostgresExtraParams: "",
-		ProfilingEnabled:    false,
-		ProfilingHost:       "127.0.0.1",
-		ProfilingPort:       6060,
+		Version:               "dev",
+		Host:                  "localhost",
+		Port:                  7474,
+		LogLevel:              "TRACE",
+		LogPath:               "",
+		LogMaxSize:            50,
+		LogMaxBackups:         3,
+		DatabaseMaxBackups:    5,
+		BaseURL:               "/",
+		BaseURLModeLegacy:     true,
+		SessionSecret:         api.GenerateSecureToken(16),
+		CustomDefinitions:     "",
+		CheckForUpdates:       true,
+		DatabaseType:          "sqlite",
+		PostgresHost:          "",
+		PostgresPort:          0,
+		PostgresDatabase:      "",
+		PostgresUser:          "",
+		PostgresPass:          "",
+		PostgresSSLMode:       "disable",
+		PostgresExtraParams:   "",
+		ProfilingEnabled:      false,
+		ProfilingHost:         "127.0.0.1",
+		ProfilingPort:         6060,
+		MetricsEnabled:        false,
+		MetricsHost:           "127.0.0.1",
+		MetricsPort:           9074,
+		MetricsBasicAuthUsers: "",
 	}
 
 }
@@ -404,6 +433,29 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "OIDC_REDIRECT_URL"); v != "" {
 		c.Config.OIDCRedirectURL = v
+	}
+
+	if v := os.Getenv(prefix + "OIDC_DISABLE_BUILT_IN_LOGIN"); v != "" {
+		c.Config.OIDCDisableBuiltInLogin = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "METRICS_ENABLED"); v != "" {
+		c.Config.MetricsEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := os.Getenv(prefix + "METRICS_HOST"); v != "" {
+		c.Config.MetricsHost = v
+	}
+
+	if v := os.Getenv(prefix + "METRICS_PORT"); v != "" {
+		i, _ := strconv.ParseInt(v, 10, 32)
+		if i > 0 {
+			c.Config.MetricsPort = int(i)
+		}
+	}
+
+	if v := os.Getenv(prefix + "METRICS_BASIC_AUTH_USERS"); v != "" {
+		c.Config.MetricsBasicAuthUsers = v
 	}
 }
 
