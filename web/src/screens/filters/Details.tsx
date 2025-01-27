@@ -63,7 +63,7 @@ function TabNavLink({ item }: NavLinkProps) {
           <span
             className={
             classNames(
-              "transition duration-1000 border-b-2 whitespace-nowrap py-4 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
+              "border-b-2 whitespace-nowrap py-4 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
               isActive
                 ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
                 : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
