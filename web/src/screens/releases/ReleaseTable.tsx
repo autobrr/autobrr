@@ -267,7 +267,7 @@ export const ReleaseTable = () => {
                         key={header.id}
                         scope="col"
                         colSpan={header.colSpan}
-                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
+                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400"
                       >
                         <div className="flex items-center justify-between">
                           {header.isPlaceholder
@@ -333,7 +333,7 @@ export const ReleaseTable = () => {
                     <label>
                       <span className="sr-only bg-gray-700">Items Per Page</span>
                       <select
-                        className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                        className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-xs cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50"
                         value={tableInstance.getState().pagination.pageSize}
                         onChange={e => {
                           tableInstance.setPageSize(Number(e.target.value));
@@ -348,7 +348,7 @@ export const ReleaseTable = () => {
                     </label>
                   </div>
                   <div>
-                    <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <nav className="inline-flex -space-x-px rounded-md shadow-xs" aria-label="Pagination">
                       <TablePageButton
                         className="rounded-l-md"
                         onClick={() => tableInstance.firstPage()}

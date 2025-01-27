@@ -120,7 +120,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -157,7 +157,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -239,7 +239,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4 space-y-1">
+                            <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Filters
                               </DialogTitle>
@@ -254,11 +254,11 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                         </div>
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
@@ -351,7 +351,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -389,7 +389,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -413,7 +413,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 
                           <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                              <div className="px-4 space-y-1">
+                              <div className="px-4">
                                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                   Filters
                                 </DialogTitle>
@@ -433,11 +433,11 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                         </div>
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
+                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
                         <div className="space-x-3 flex justify-between">
                           <button
                             type="button"
-                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                             onClick={toggleDeleteModal}
                           >
                             Remove
@@ -445,7 +445,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                           <div className="flex space-x-3">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
@@ -485,7 +485,7 @@ const SubmitButton = (props: SubmitButtonProps) => {
         //     ? "text-red-500 border-red-500 bg-red-50"
         //     : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
         props.isPending ? "cursor-not-allowed" : "",
-        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-blue-700 active:bg-blue-700"
+        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-blue-700 active:bg-blue-700"
       )}
     >
       {props.isPending ? (
@@ -602,7 +602,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source
         </DialogTitle>
@@ -643,7 +643,7 @@ function ListTypeTrakt() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -680,7 +680,7 @@ function ListTypeTrakt() {
 function ListTypePlainText() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -709,7 +709,7 @@ function ListTypePlainText() {
 function ListTypeSteam() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -726,7 +726,7 @@ function ListTypeSteam() {
 function ListTypeMetacritic() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -755,7 +755,7 @@ function ListTypeMetacritic() {
 function ListTypeMDBList() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -818,7 +818,7 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                   {/*</Label>*/}
                   <div className="relative">
                     <ListboxButton
-                      className="block w-full shadow-sm sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
+                      className="block w-full shadow-xs sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
                       {field.value
                         ? clients.find((c) => c.id === field.value)?.name
@@ -840,7 +840,7 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                     >
                       <ListboxOptions
                         static
-                        className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-none sm:text-sm"
+                        className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-hidden sm:text-sm"
                       >
                         {clients
                           .filter((c) => c.type === clientType)

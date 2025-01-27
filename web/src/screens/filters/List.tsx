@@ -106,13 +106,13 @@ export function Filters() {
         setIsOpen={setShowImportModal}
       />
 
-      <div className="flex justify-between items-center flex-row flex-wrap my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center flex-row flex-wrap my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
         <Menu as="div" className="relative">
           {({ open }) => (
             <>
               <button
-                className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                className="relative inline-flex items-center px-4 py-2 shadow-xs text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                 onClick={(e: { stopPropagation: () => void; }) => {
                   if (!open) {
                     e.stopPropagation();
@@ -123,7 +123,7 @@ export function Filters() {
                 <PlusIcon className="h-5 w-5 mr-1" />
                 Create Filter
               </button>
-              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-xs text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
                 <ChevronDownIcon className="h-5 w-5" />
               </MenuButton>
               <Transition
@@ -143,7 +143,7 @@ export function Filters() {
                         type="button"
                         className={classNames(
                           active ? "bg-gray-50 dark:bg-gray-600" : "",
-                          "flex items-center w-full text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none"
+                          "flex items-center w-full text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-hidden"
                         )}
                         onClick={() => setShowImportModal(true)}
                       >
@@ -207,7 +207,7 @@ function FilterList({ toggleCreateFilter }: any) {
   const filtered = filteredData(data ?? [], status);
 
   return (
-    <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
+    <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
       <div className="align-middle min-w-full rounded-t-lg rounded-b-lg shadow-table bg-gray-50 dark:bg-gray-800 border border-gray-250 dark:border-gray-775">
         <div className="rounded-t-lg flex justify-between px-4 bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
           <div className="flex gap-4">
@@ -406,7 +406,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       >
         <MenuItems
           anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>
@@ -737,7 +737,7 @@ const ListboxFilter = ({
         leaveTo="opacity-0"
       >
         <ListboxOptions
-          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
+          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-hidden sm:text-sm"
         >
           {children}
         </ListboxOptions>

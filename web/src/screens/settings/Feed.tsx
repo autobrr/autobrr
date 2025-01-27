@@ -319,7 +319,7 @@ const FeedItemDropdown = ({
       >
         <MenuItems
             anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>

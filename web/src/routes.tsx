@@ -383,7 +383,7 @@ const routeTree = RootRoute.addChildren([
 export const Router = createRouter({
   routeTree,
   defaultPendingComponent: () => (
-    <div className="flex flex-grow items-center justify-center col-span-9">
+    <div className="flex grow items-center justify-center col-span-9">
       <RingResizeSpinner className="text-blue-500 size-24" />
     </div>
   ),

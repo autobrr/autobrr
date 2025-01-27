@@ -28,7 +28,7 @@ import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 function FormFieldsDiscord() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -57,7 +57,7 @@ function FormFieldsDiscord() {
 function FormFieldsNotifiarr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -78,7 +78,7 @@ function FormFieldsNotifiarr() {
 function FormFieldsLunaSea() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -110,7 +110,7 @@ function FormFieldsLunaSea() {
 function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -160,7 +160,7 @@ function FormFieldsTelegram() {
 function FormFieldsPushover() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -199,7 +199,7 @@ function FormFieldsPushover() {
 function FormFieldsGotify() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -225,7 +225,7 @@ function FormFieldsGotify() {
 function FormFieldsNtfy() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -269,7 +269,7 @@ function FormFieldsNtfy() {
 function FormFieldsShoutrrr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -367,7 +367,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -397,7 +397,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -407,7 +407,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                           </div>
                         </div>
 
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                        <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
                           <TextFieldWide
                             name="name"
                             label="Name"
@@ -476,8 +476,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
 
                           <SwitchGroupWide name="enabled" label="Enabled" />
 
-                          <div className="border-t mt-2 border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4 space-y-1">
+                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                            <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Events
                               </DialogTitle>
@@ -486,7 +486,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                            <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-4">
+                              <div className="p-4 sm:grid sm:gap-4">
                               <EventCheckBoxes />
                             </div>
                           </div>
@@ -494,25 +494,25 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                         {componentMap[values.type]}
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={() => testNotification(values)}
                           >
                             Test
                           </button>
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
                             Save
                           </button>
@@ -544,7 +544,7 @@ const EventCheckBoxes = () => (
             name="events"
             type="checkbox"
             value={e.value}
-            className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+            className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded-sm"
           />
         </div>
         <div className="ml-3 text-sm">
@@ -645,7 +645,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
         <div>
           <TextFieldWide name="name" label="Name" required={true}/>
 
-          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>
                 <label
@@ -697,8 +697,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
               </div>
             </div>
             <SwitchGroupWide name="enabled" label="Enabled"/>
-            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-              <div className="px-4 space-y-1">
+            <div className="pb-2">
+              <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                   Events
                 </DialogTitle>
@@ -707,7 +707,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                 </p>
               </div>
 
-              <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-2">
+              <div className="p-4 sm:grid sm:gap-4">
                 <EventCheckBoxes />
               </div>
             </div>

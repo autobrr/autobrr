@@ -63,7 +63,7 @@ function TabNavLink({ item }: NavLinkProps) {
           <span
             className={
             classNames(
-              "transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
+              "border-b-2 whitespace-nowrap py-4 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
               isActive
                 ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
                 : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
@@ -105,7 +105,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
       <div className="px-0.5 mt-8 flex flex-col-reverse sm:flex-row flex-wrap-reverse justify-between">
         <button
           type="button"
-          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
+          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
           onClick={toggleDeleteModal}
         >
           Delete Filter
@@ -115,7 +115,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
           {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
           <button
             type="button"
-            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             onClick={(e) => {
               e.preventDefault();
               reset();
@@ -127,7 +127,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
           </button>
           <button
             type="submit"
-            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Save
           </button>
@@ -367,7 +367,7 @@ export const FilterDetails = () => {
 
   return (
     <main>
-      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center text-black dark:text-white">
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8 flex items-center text-black dark:text-white">
         <h1 className="text-3xl font-bold">
           <Link to="/filters">
             Filters
@@ -376,7 +376,7 @@ export const FilterDetails = () => {
         <ChevronRightIcon className="h-6 w-4 shrink-0 sm:shrink sm:h-6 sm:w-6 mx-1" aria-hidden="true" />
         <h1 className="text-3xl font-bold truncate" title={filter.name}>{filter.name}</h1>
       </div>
-      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-6 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775">
           <div className="rounded-t-lg bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
             <nav className="px-4 py-4 -mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">

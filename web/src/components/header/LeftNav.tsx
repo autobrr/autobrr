@@ -18,7 +18,7 @@ import Logo from "@app/logo.svg?react";
 
 export const LeftNav = () => (
   <div className="flex items-center">
-    <div className="flex-shrink-0 flex items-center">
+    <div className="shrink-0 flex items-center">
       <Link to="/">
         <Logo className="h-10" />
       </Link>

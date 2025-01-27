@@ -3,101 +3,101 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
 
-body {
-  margin: 0;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-    monospace;
-}
-
-@keyframes enter {
-  0% {
-    transform: scale(0.9);
-    opacity: 0;
+@layer utilities {
+  body {
+    margin: 0;
   }
 
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.animate-enter {
-  animation: enter 0.2s ease-out;
-}
-
-@keyframes leave {
-  0% {
-    transform: scale(1);
-    opacity: 1;
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
   }
 
-  to {
-    transform: scale(0.9);
-    opacity: 0;
+  @keyframes enter {
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
-}
 
-.animate-leave {
-  animation: leave 0.15s ease-in forwards;
-}
+  .animate-enter {
+    animation: enter 0.2s ease-out;
+  }
 
-.rmsc {
-  --rmsc-p: 0.75rem !important;
-  --rmsc-radius: 0.375rem !important;
-  --rmsc-h: unset !important;
-}
+  @keyframes leave {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
 
-.rmsc .dropdown-heading {
-  padding: 0.5rem 0.75rem !important;
-}
+    to {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+  }
 
-.rmsc .dropdown-heading-value {
-  line-height: 1.5rem;
-}
+  .animate-leave {
+    animation: leave 0.15s ease-in forwards;
+  }
 
-.rmsc .dropdown-heading-dropdown-arrow {
-  width: 18px;
-  height: 18px;
-  margin: -6px 0 0 -6px;
-}
+  .rmsc {
+    --rmsc-p: 0.75rem !important;
+    --rmsc-radius: 0.375rem !important;
+    --rmsc-h: unset !important;
+  }
 
-.rmsc .dropdown-search-clear-icon {
-  width: 18px;
-  height: 18px;
-  margin: -6px 10px 0 -6px;
-}
+  .rmsc .dropdown-heading {
+    padding: 0.5rem 0.75rem !important;
+  }
 
-.rmsc .search input {
-  height: unset !important;
-  padding: 0.5rem 0.75rem !important;
-}
+  .rmsc .dropdown-heading-value {
+    line-height: 1.5rem;
+  }
 
-.rmsc .item-renderer {
-  align-items: center !important;
-}
+  .rmsc .dropdown-heading-dropdown-arrow {
+    width: 18px;
+    height: 18px;
+    margin: -6px 0 0 -6px;
+  }
 
-.rmsc .item-renderer input {
-  margin: 0 0.5rem 0 0 !important;
-}
+  .rmsc .dropdown-search-clear-icon {
+    width: 18px;
+    height: 18px;
+    margin: -6px 10px 0 -6px;
+  }
 
-.rmsc .item-renderer > input[type="checkbox"] {
-  border: 1px solid var(--rmsc-main);
-}
+  .rmsc .search input {
+    height: unset !important;
+    padding: 0.5rem 0.75rem !important;
+  }
 
-.rmsc.dark .item-renderer > input[type="checkbox"] {
-  background-color: unset;
-}
+  .rmsc .item-renderer {
+    align-items: center !important;
+  }
 
-.rmsc .item-renderer > input[type="checkbox"]:hover {
-  border: 1px solid var(--rmsc-main);
-}
+  .rmsc .item-renderer input {
+    margin: 0 0.5rem 0 0 !important;
+  }
+
+  .rmsc .item-renderer > input[type='checkbox'] {
+    border: 1px solid var(--rmsc-main);
+  }
+
+  .rmsc.dark .item-renderer > input[type='checkbox'] {
+    background-color: unset;
+  }
+
+  .rmsc .item-renderer > input[type='checkbox']:hover {
+    border: 1px solid var(--rmsc-main);
+  }
 
 html:not(.dark) .rmsc {
   --rmsc-main: theme(colors.blue.500) !important;
@@ -119,24 +119,25 @@ html.dark .rmsc {
   color: #fff !important;
 }
 
-html:not(.dark) .rmsc input[type="checkbox"] {
-  @apply border-gray-400;
-}
+  html:not(.dark) .rmsc input[type='checkbox'] {
+    @apply border-gray-400;
+  }
 
-html .rmsc input[type="checkbox"]:checked {
-  @apply bg-blue-500 border-blue-500;
-}
+  html .rmsc input[type='checkbox']:checked {
+    @apply bg-blue-500 border-blue-500;
+  }
 
-html.dark .rmsc input[type="checkbox"] {
-  @apply bg-gray-775 border-gray-650;
-}
+  html.dark .rmsc input[type='checkbox'] {
+    @apply bg-gray-775 border-gray-650;
+  }
 
-html .dropdown-content > div.panel-content {
-  @apply border border-gray-350 !shadow-2xl;
-}
+  html .dropdown-content > div.panel-content {
+    @apply border border-gray-350 shadow-2xl!;
+  }
 
-html.dark .dropdown-content > div.panel-content {
-  @apply border border-gray-700 !shadow-2xl;
+  html.dark .dropdown-content > div.panel-content {
+    @apply border border-gray-700 shadow-2xl!;
+  }
 }
 
 @layer base {

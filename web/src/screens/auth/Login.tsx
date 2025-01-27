@@ -143,7 +143,7 @@ export const Login = () => {
       {/* Wait for OIDC config to load before rendering any login forms */}
       {typeof oidcConfig !== 'undefined' && (
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
-          <div className={`px-6 ${(!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin)) ? 'py-12 bg-white dark:bg-gray-800 shadow sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
+          <div className={`px-6 ${(!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin)) ? 'py-12 bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
             {/* Built-in login form */}
             {!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin) && (
               <>
@@ -173,7 +173,8 @@ export const Login = () => {
                       <Tooltip
                         label={
                           <div className="flex flex-row items-center cursor-pointer text-gray-700 dark:text-gray-200">
-                            Forgot password? <svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72"><path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10" /></svg>
+                            Forgot password? <svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72">
+                            <path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10" /></svg>
                           </div>
                         }
                       >
@@ -184,9 +185,9 @@ export const Login = () => {
 
                   <button
                     type="submit"
-                    className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
-                    <RocketLaunchIcon className="w-4 h-4 mr-1.5" />
+                    <RocketLaunchIcon className="w-4 h-4 mr-1.5"/>
                     Sign in
                   </button>
                 </form>
@@ -210,7 +211,7 @@ export const Login = () => {
                 <button
                   type="button"
                   onClick={handleOIDCLogin}
-                  className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <FontAwesomeIcon icon={faOpenid} className="h-5 w-5" />
                   <span>OpenID Connect</span>
