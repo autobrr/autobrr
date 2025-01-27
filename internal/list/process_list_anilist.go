@@ -7,11 +7,15 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/pkg/errors"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
 )
 
 func (s *service) anilist(ctx context.Context, list *domain.List) error {
@@ -50,6 +54,7 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
 	}
 
+	// remove duplicates
 	titleSet := make(map[string]struct{})
 	for _, item := range data {
 		titlesToProcess := make(map[string]struct{})
@@ -60,7 +65,11 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 		}
 
 		for title := range titlesToProcess {
-			for _, processedTitle := range processTitle(title, list.MatchRelease) {
+			clearedTitle := removeUnicodes(title)
+			if title != clearedTitle {
+				l.Debug().Msgf("title cleared: %s -> %s", title, clearedTitle)
+			}
+			for _, processedTitle := range processTitle(clearedTitle, list.MatchRelease) {
 				titleSet[processedTitle] = struct{}{}
 			}
 		}
@@ -76,6 +85,7 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 		return nil
 	}
 
+	sort.Strings(filterTitles)
 	joinedTitles := strings.Join(filterTitles, ",")
 
 	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
@@ -100,4 +110,28 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 	}
 
 	return nil
+}
+
+
+func removeUnicodes(text string) string {
+	// https://pkg.go.dev/unicode#pkg-variables
+	// https://www.compart.com/en/unicode/category
+	var filterTable = []*unicode.RangeTable{
+		{ R16: []unicode.Range16{{ 0x0080, 0x00FF, 1 }}}, // Latin-1 Supplement
+		unicode.S,  // Symbols
+		// unicode.Ps, // Open punctuation
+		// unicode.Pe, // Close punctiation
+		// unicode.Pi, // Initial quote
+		// unicode.Pf, // Final quote
+	}
+
+	// Replace the characters with "?" instead of remove it to match when its first or last character
+	filter := runes.Map(func(r rune) rune {
+		if unicode.IsOneOf(filterTable, r) {
+			return '?'
+		}
+		return r
+	})
+	result, _, _ := transform.String(filter, text)
+	return result
 }
