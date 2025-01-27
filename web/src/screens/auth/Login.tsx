@@ -173,7 +173,8 @@ export const Login = () => {
                       <Tooltip
                         label={
                           <div className="flex flex-row items-center cursor-pointer text-gray-700 dark:text-gray-200">
-                            Forgot password? <svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72"><path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10" /></svg>
+                            Forgot password? <svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72">
+                            <path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10" /></svg>
                           </div>
                         }
                       >
@@ -182,14 +183,14 @@ export const Login = () => {
                     </div>
                   </div>
 
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <RocketLaunchIcon className="w-4 h-4 mr-1.5" />
-                  Sign in
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <RocketLaunchIcon className="w-4 h-4 mr-1.5"/>
+                    Sign in
+                  </button>
+                </form>
 
                 {oidcConfig?.enabled && (
                   <div className="relative mt-10">
