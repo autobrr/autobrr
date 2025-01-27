@@ -121,7 +121,7 @@ export const TextInput = <TFormValues extends Record<string, unknown>>({
           name={name}
           aria-invalid={hasError}
           className={classNames(
-            "block mt-1 w-full shadow-sm sm:text-sm rounded-md py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
+            "block mt-1 w-full shadow-xs sm:text-sm rounded-md py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
             hasError
               ? "border-red-500 focus:ring-red-500 focus:border-red-500"
               : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500"
@@ -175,7 +175,7 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
             aria-invalid={hasError}
             type={isVisible ? "text" : "password"}
             className={classNames(
-              "block mt-1 w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
+              "block mt-1 w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
               hasError
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500"

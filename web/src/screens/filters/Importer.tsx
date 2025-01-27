@@ -39,7 +39,7 @@ const ModalLower = ({ isOpen, setIsOpen, onImportClick }: ModalLowerProps) => (
   <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 px-4 py-3 sm:px-4 sm:flex sm:flex-row-reverse">
     <button
       type="button"
-      className="w-full inline-flex justify-center rounded-md border border-blue-500 shadow-sm px-4 py-2 bg-blue-700 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+      className="w-full inline-flex justify-center rounded-md border border-blue-500 shadow-xs px-4 py-2 bg-blue-700 text-base font-medium text-white hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
       onClick={(e) => {
         e.preventDefault();
         if (isOpen) {
@@ -52,7 +52,7 @@ const ModalLower = ({ isOpen, setIsOpen, onImportClick }: ModalLowerProps) => (
     </button>
     <button
       type="button"
-      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-xs px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
       onClick={(e) => {
         e.preventDefault();
         setIsOpen(false);
@@ -246,7 +246,7 @@ export const Importer = ({
             <DialogPanel className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition sm:my-8 sm:align-middle w-full sm:max-w-6xl">
               <ModalUpper>
                 <textarea
-                  className="form-input resize-y block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
+                  className="form-input resize-y block w-full shadow-xs sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                   placeholder="Paste your filter data here (either autobrr JSON format or your entire autodl-irssi config)"
                   value={inputFilterText}
                   onChange={(event) => {

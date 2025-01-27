@@ -51,11 +51,11 @@ export const Header = () => {
   return (
     <Disclosure
       as="nav"
-      className="bg-gradient-to-b from-gray-100 dark:from-gray-925"
+      className="bg-linear-to-b from-gray-100 dark:from-gray-925"
     >
       {({ open }) => (
         <>
-          <div className="max-w-screen-xl mx-auto sm:px-6 lg:px-8">
+          <div className="max-w-(--breakpoint-xl) mx-auto sm:px-6 lg:px-8">
             <div className="border-b border-gray-300 dark:border-gray-775">
               <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                 <LeftNav />
@@ -82,7 +82,7 @@ export const Header = () => {
 
             {data?.html_url && (
               <ExternalLink href={data.html_url}>
-                <div className="flex mt-4 py-2 bg-blue-500 rounded justify-center">
+                <div className="flex mt-4 py-2 bg-blue-500 rounded-sm justify-center">
                   <MegaphoneIcon className="h-6 w-6 text-blue-100" />
                   <span className="text-blue-100 font-medium mx-3">New update available!</span>
                   <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>

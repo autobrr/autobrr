@@ -27,7 +27,7 @@ const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) 
     params={{}}
   >
     <dt>
-      <div className="flex items-center text-sm font-medium text-gray-500 group-hover:dark:text-gray-475 group-hover:text-gray-600 transition-colors duration-200 ease-in-out">
+      <div className="flex items-center text-sm font-medium text-gray-500 dark:group-hover:text-gray-475 group-hover:text-gray-600 transition-colors duration-200 ease-in-out">
         <p className="pb-0.5 truncate">{name}</p>
         <LinkIcon className="h-3 w-3 ml-2" aria-hidden="true" />
       </div>

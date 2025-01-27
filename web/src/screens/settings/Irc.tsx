@@ -104,7 +104,7 @@ const IrcSettings = () => {
         <button
           type="button"
           onClick={toggleAddNetwork}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
           Add new
@@ -145,7 +145,7 @@ const IrcSettings = () => {
         </ul>
         <div className="flex gap-x-2">
           <button
-            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
             onClick={toggleExpand}
             title={expandNetworks ? "collapse" : "expand"}
           >
@@ -390,7 +390,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
           </span>
         </div>
         <div className="col-span-1 flex items-center justify-end">
-          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
+          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded-sm dark:border-gray-900">
             {viewChannel ? "Hide" : "View"}
           </button>
         </div>
@@ -479,7 +479,7 @@ const ListItemDropdown = ({
       >
         <MenuItems
             anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>
@@ -609,7 +609,7 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
 
   return (
     <div className="block">
-    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon />
@@ -720,7 +720,7 @@ export const Events = ({ network, channel }: EventsProps) => {
       <div
         className={classNames(
           "overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto",
-          isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
+          isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-2/1"
         )}
         ref={messagesEndRef}
       >
@@ -730,7 +730,7 @@ export const Events = ({ network, channel }: EventsProps) => {
             className={classNames(
               settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
               settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
-              "flex items-center hover:bg-gray-200 hover:dark:bg-gray-800"
+              "flex items-center hover:bg-gray-200 dark:hover:bg-gray-800"
             )}
           >
             <ReprocessAnnounceButton networkId={network.id} channel={channel} msg={entry.msg} />
@@ -777,7 +777,7 @@ const IRCLogsDropdown = () => {
   //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
     <Menu as="div" className="relative">
-      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
         <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
       </MenuButton>
       <Transition
@@ -791,7 +791,7 @@ const IRCLogsDropdown = () => {
       >
         <MenuItems
           anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-none"
+          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-hidden"
         >
           <MenuItem>
             {() => (

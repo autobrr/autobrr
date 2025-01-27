@@ -179,7 +179,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   };
 
   return (
-    <button className="flex items-center px-1.5 py-1 ml-2 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
+    <button className="flex items-center px-1.5 py-1 ml-2 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
       <span className="mr-1.5">Retry</span>
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
@@ -299,7 +299,7 @@ export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => (
         key={idx}
         className={classNames(
           StatusCellMap[v.status].colors,
-          "mr-1 inline-flex items-center rounded text-xs cursor-pointer"
+          "mr-1 inline-flex items-center rounded-sm text-xs cursor-pointer"
         )}
       >
         <Tooltip

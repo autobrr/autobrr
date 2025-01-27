@@ -5,6 +5,7 @@ import react from "@vitejs/plugin-react-swc";
 import svgr from "vite-plugin-svgr";
 import path from "node:path";
 import fs from "node:fs";
+import tailwindcss from '@tailwindcss/vite'
 
 interface PreRenderedAsset {
   name: string | undefined;
@@ -21,7 +22,7 @@ export default ({ mode }: ConfigEnv) => {
   return defineConfig({
     // __BASE_URL__: "{{.BaseUrl}}",
     base: "",
-    plugins: [react(), svgr(), VitePWA({
+    plugins: [react(), svgr(), tailwindcss(), VitePWA({
       injectRegister: null,
       selfDestroying: true,
       scope: "{{.BaseUrl}}",

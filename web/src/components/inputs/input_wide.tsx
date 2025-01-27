@@ -85,7 +85,7 @@ export const TextFieldWide = ({
               meta.touched && meta.error
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 dark:text-gray-100",
+              "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 dark:text-gray-100",
               disabled ? "bg-gray-200 dark:bg-gray-700" : "bg-gray-100 dark:bg-gray-850 "
             )}
             placeholder={placeholder}
@@ -161,7 +161,7 @@ export const PasswordFieldWide = ({
                   meta.touched && meta.error
                     ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                     : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                  "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100 overflow-hidden pr-8"
+                  "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100 overflow-hidden pr-8"
                 )}
                 placeholder={placeholder}
                 required={required}
@@ -232,7 +232,7 @@ export const NumberFieldWide = ({
               meta.touched && meta.error
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+              "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
             )}
             onWheel={(event) => {
               if (event.currentTarget === document.activeElement) {

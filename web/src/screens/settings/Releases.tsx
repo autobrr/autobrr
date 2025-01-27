@@ -26,7 +26,7 @@ const ReleaseSettings = () => (
     <ReleaseProfileDuplicates/>
 
     <div className="py-6 px-4 sm:p-6">
-      <div className="border border-red-500 rounded">
+      <div className="border border-red-500 rounded-sm">
         <div className="py-6 px-4 sm:p-6">
           <DeleteReleases/>
         </div>
@@ -111,7 +111,7 @@ function ReleaseProfileDuplicates() {
       rightSide={
         <button
           type="button"
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           onClick={toggleAdd}
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
@@ -320,7 +320,7 @@ function DeleteReleases() {
                 toggleDeleteModal();
               }
             }}
-            className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 sm:mt-6 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
+            className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 sm:mt-6 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-hidden focus:ring-1 focus:ring-inset focus:ring-red-600"
           >
             Delete
           </button>

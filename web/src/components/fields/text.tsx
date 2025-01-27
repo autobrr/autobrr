@@ -60,19 +60,19 @@ export const KeyField = ({ value }: KeyFieldProps) => {
 
   return (
     <div className="sm:col-span-2 w-full">
-      <div className="flex rounded-md shadow-sm">
-        <div className="relative flex items-stretch flex-grow focus-within:z-10">
+      <div className="flex rounded-md shadow-xs">
+        <div className="relative flex items-stretch grow focus-within:z-10">
           <input
             id="keyfield"
             type={isVisible ? "text" : "password"}
             value={value}
             readOnly={true}
-            className="focus:outline-none dark:focus:border-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 block w-full rounded-none rounded-l-md sm:text-sm border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
+            className="focus:outline-hidden dark:focus:border-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 block w-full rounded-none rounded-l-md sm:text-sm border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
           />
         </div>
         <button
           type="button"
-          className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-100  text-sm font-medium text-gray-700 bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700  focus:outline-none"
+          className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-100  text-sm font-medium text-gray-700 bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700  focus:outline-hidden"
           onClick={toggleVisibility}
           title="show"
         >
@@ -80,7 +80,7 @@ export const KeyField = ({ value }: KeyFieldProps) => {
         </button>
         <button
           type="button"
-          className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-100  text-sm font-medium rounded-r-md text-gray-700 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 focus:outline-none"
+          className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-100  text-sm font-medium rounded-r-md text-gray-700 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 focus:outline-hidden"
           onClick={handleCopyClick}
           title="Copy to clipboard"
         >

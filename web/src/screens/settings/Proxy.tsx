@@ -86,7 +86,7 @@ function ProxySettings() {
         <button
           type="button"
           onClick={toggleAddProxy}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
           Add new
@@ -100,21 +100,21 @@ function ProxySettings() {
           <ul className="min-w-full relative">
             <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
               <div
-                className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 // onClick={() => sortedIndexers.requestSort("enabled")}
               >
                 Enabled
                 {/*<span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>*/}
               </div>
               <div
-                className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 // onClick={() => sortedIndexers.requestSort("name")}
               >
                 Name
                 {/*<span className="sort-indicator">{sortedIndexers.getSortIndicator("name")}</span>*/}
               </div>
               <div
-                className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 hover:dark:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 // onClick={() => sortedIndexers.requestSort("implementation")}
               >
                 Type
