@@ -20,6 +20,7 @@ var (
 	// including math and curreny symbols: $¤<~♡+=^ etc
 	symbolsRegexp          = regexp.MustCompile(`\p{S}`)
 	latin1SupplementRegexp = regexp.MustCompile(`[\x{0080}-\x{00FF}]`) // Unicode Block “Latin-1 Supplement”
+	latinExtendedARegexp   = regexp.MustCompile(`[\x{0100}-\x{017F}]`)
 )
 
 func (s *service) anilist(ctx context.Context, list *domain.List) error {
@@ -69,9 +70,10 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 		}
 
 		for title := range titlesToProcess {
-			// replace unicode symbols and Unicode Block “Latin-1 Supplement” chars by "?"
+			// replace unicode symbols, Unicode Block “Latin-1 Supplement” and Unicode Block “Latin Extended-A” chars by "?"
 			clearedTitle := symbolsRegexp.ReplaceAllString(title, "?")
 			clearedTitle = latin1SupplementRegexp.ReplaceAllString(clearedTitle, "?")
+			clearedTitle = latinExtendedARegexp.ReplaceAllString(clearedTitle, "?")
 			for _, processedTitle := range processTitle(clearedTitle, list.MatchRelease) {
 				titleSet[processedTitle] = struct{}{}
 			}
