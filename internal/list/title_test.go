@@ -41,7 +41,7 @@ func Test_processTitle(t *testing.T) {
 				title:        "The Matrix -(Test)- Reloaded (2929)",
 				matchRelease: false,
 			},
-			want: []string{"The?Matrix*", "The?Matrix", "The?Matrix*Test*Reloaded*2929?", "The?Matrix*Test*Reloaded*2929"},
+			want: []string{"The?Matrix*Reloaded", "The?Matrix*Test*Reloaded*2929?", "The?Matrix*Test*Reloaded*2929"},
 		},
 		{
 			name: "test_04",
@@ -252,6 +252,14 @@ func Test_processTitle(t *testing.T) {
 				matchRelease: false,
 			},
 			want: []string{"The?Office", "The?Office*US", "The?Office*US?"},
+		},
+		{
+			name: "test_30",
+			args: args{
+				title:        "this is him (can’t be anyone else)",
+				matchRelease: false,
+			},
+			want: []string{"this?is?him*can?t?be?anyone?else?", "this?is?him*can?t?be?anyone?else", "this?is?him*cant?be?anyone?else?", "this?is?him*cant?be?anyone?else"},
 		},
 	}
 	for _, tt := range tests {
