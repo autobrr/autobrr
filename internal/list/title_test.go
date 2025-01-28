@@ -261,6 +261,22 @@ func Test_processTitle(t *testing.T) {
 			},
 			want: []string{"this?is?him*can?t?be?anyone?else?", "this?is?him*can?t?be?anyone?else", "this?is?him*cant?be?anyone?else?", "this?is?him*cant?be?anyone?else"},
 		},
+		{
+			name: "test_31",
+			args: args{
+				title:        "solo leveling 2ª temporada -ergam-se das sombras-",
+				matchRelease: false,
+			},
+			want: []string{"solo?leveling?2ª?temporada*ergam?se?das?sombras", "solo?leveling?2ª?temporada*ergam?se?das?sombras?"},
+		},
+		{
+			name: "test_32",
+			args: args{
+				title:        "pokémon",
+				matchRelease: false,
+			},
+			want: []string{"pok?mon"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
