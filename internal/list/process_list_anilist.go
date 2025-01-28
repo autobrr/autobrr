@@ -7,15 +7,18 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
-	"unicode"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/pkg/errors"
-	"golang.org/x/text/runes"
-	"golang.org/x/text/transform"
+)
+
+var (
+	// including math and curreny symbols: $¤<~♡+=^ etc
+	symbolsRegexp = regexp.MustCompile(`\p{S}`)
 )
 
 func (s *service) anilist(ctx context.Context, list *domain.List) error {
@@ -65,8 +68,9 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 		}
 
 		for title := range titlesToProcess {
-			clearedTitle := removeUnicodes(title)
-			if title != clearedTitle {
+			// replace unicode symbols by "?"
+			clearedTitle := symbolsRegexp.ReplaceAllString(title, "?")
+			if clearedTitle != title {
 				l.Debug().Msgf("title cleared: %s -> %s", title, clearedTitle)
 			}
 			for _, processedTitle := range processTitle(clearedTitle, list.MatchRelease) {
@@ -110,28 +114,4 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 	}
 
 	return nil
-}
-
-
-func removeUnicodes(text string) string {
-	// https://pkg.go.dev/unicode#pkg-variables
-	// https://www.compart.com/en/unicode/category
-	var filterTable = []*unicode.RangeTable{
-		{ R16: []unicode.Range16{{ 0x0080, 0x00FF, 1 }}}, // Latin-1 Supplement
-		unicode.S,  // Symbols
-		// unicode.Ps, // Open punctuation
-		// unicode.Pe, // Close punctiation
-		// unicode.Pi, // Initial quote
-		// unicode.Pf, // Final quote
-	}
-
-	// Replace the characters with "?" instead of remove it to match when its first or last character
-	filter := runes.Map(func(r rune) rune {
-		if unicode.IsOneOf(filterTable, r) {
-			return '?'
-		}
-		return r
-	})
-	result, _, _ := transform.String(filter, text)
-	return result
 }
