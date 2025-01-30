@@ -230,7 +230,7 @@ func (s *service) refreshList(ctx context.Context, listItem *domain.List) error 
 		err = s.plaintext(ctx, listItem)
 
 	case domain.ListTypeAniList:
-		err = s.anilist(ctx, listItem)
+		_, err = s.anilist(ctx, listItem)
 
 	default:
 		err = errors.Errorf("unsupported list type: %s", listItem.Type)

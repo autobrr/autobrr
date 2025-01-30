@@ -23,30 +23,30 @@ var (
 	latinExtendedARegexp   = regexp.MustCompile(`[\x{0100}-\x{017F}]`)
 )
 
-func (s *service) anilist(ctx context.Context, list *domain.List) error {
+func (s *service) anilist(ctx context.Context, list *domain.List) ([]string, error) {
 	l := s.log.With().Str("type", "anilist").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
-		return errors.New("no URL provided for AniList")
+		return nil, errors.New("no URL provided for AniList")
 	}
 
 	l.Debug().Msgf("fetching titles from %s", list.URL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
 	if err != nil {
-		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+		return nil, errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
 	}
 
 	list.SetRequestHeaders(req)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
+		return nil, errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
+		return nil, errors.Errorf("failed to fetch titles from URL: %s", list.URL)
 	}
 
 	var data []struct {
@@ -56,7 +56,7 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
+		return nil, errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
 	}
 
 	// remove duplicates
@@ -87,7 +87,7 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 
 	if len(filterTitles) == 0 {
 		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
-		return nil
+		return nil, nil
 	}
 
 	sort.Strings(filterTitles)
@@ -108,11 +108,11 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 		filterUpdate.ID = filter.ID
 
 		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
+			return nil, errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 
 		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
 	}
 
-	return nil
+	return filterTitles, nil
 }
