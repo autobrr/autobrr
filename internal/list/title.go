@@ -15,7 +15,7 @@ import (
 var (
 	replaceRegexp        = regexp.MustCompile(`[\p{P}\p{Z}\x{00C0}-\x{017E}\x{00AE}]`)
 	questionmarkRegexp   = regexp.MustCompile(`[?]{2,}`)
-	regionCodeRegexp     = regexp.MustCompile(`\(.+\)$`)
+	regionCodeRegexp     = regexp.MustCompile(`\(\S+\)`)
 	parenthesesEndRegexp = regexp.MustCompile(`\)$`)
 )
 
@@ -27,8 +27,8 @@ func processTitle(title string, matchRelease bool) []string {
 	}
 
 	// cleans year like (2020) from arr title
-	//var re = regexp.MustCompile(`(?m)\s(\(\d+\))`)
-	//title = re.ReplaceAllString(title, "")
+	// var re = regexp.MustCompile(`(?m)\s(\(\d+\))`)
+	// title = re.ReplaceAllString(title, "")
 
 	t := NewTitleSlice()
 
@@ -45,7 +45,7 @@ func processTitle(title string, matchRelease bool) []string {
 
 		// title with apostrophes removed and all non-alphanumeric characters replaced by "?"
 		noApostropheTitle := parenthesesEndRegexp.ReplaceAllString(title, "?")
-		noApostropheTitle = strings.ReplaceAll(noApostropheTitle, "'", "")
+		noApostropheTitle = strings.NewReplacer("'", "", "´", "", "`", "", "‘", "", "’", "").Replace(noApostropheTitle)
 		noApostropheTitle = replaceRegexp.ReplaceAllString(noApostropheTitle, "?")
 		noApostropheTitle = questionmarkRegexp.ReplaceAllString(noApostropheTitle, "*")
 
@@ -64,7 +64,7 @@ func processTitle(title string, matchRelease bool) []string {
 		// title with regions in parentheses and apostrophes removed and all non-alphanumeric characters replaced by "?"
 		removedRegionCodeNoApostrophe := regionCodeRegexp.ReplaceAllString(title, "")
 		removedRegionCodeNoApostrophe = strings.TrimRight(removedRegionCodeNoApostrophe, " ")
-		removedRegionCodeNoApostrophe = strings.ReplaceAll(removedRegionCodeNoApostrophe, "'", "")
+		removedRegionCodeNoApostrophe = strings.NewReplacer("'", "", "´", "", "`", "", "‘", "", "’", "").Replace(removedRegionCodeNoApostrophe)
 		removedRegionCodeNoApostrophe = replaceRegexp.ReplaceAllString(removedRegionCodeNoApostrophe, "?")
 		removedRegionCodeNoApostrophe = questionmarkRegexp.ReplaceAllString(removedRegionCodeNoApostrophe, "*")
 

@@ -37,6 +37,7 @@ const (
 	ListTypePlaintext  ListType = "PLAINTEXT"
 	ListTypeTrakt      ListType = "TRAKT"
 	ListTypeSteam      ListType = "STEAM"
+	ListTypeAniList    ListType = "ANILIST"
 )
 
 type ListRefreshStatus string
@@ -108,7 +109,7 @@ func (l *List) ListTypeArr() bool {
 }
 
 func (l *List) ListTypeList() bool {
-	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam
+	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam || l.Type == ListTypeAniList
 }
 
 func (l *List) ShouldProcessItem(monitored bool) bool {

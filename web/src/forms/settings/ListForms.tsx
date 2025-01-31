@@ -20,7 +20,9 @@ import {
   DialogPanel,
   DialogTitle,
   Listbox,
-  ListboxButton, ListboxOption, ListboxOptions,
+  ListboxButton,
+  ListboxOption,
+  ListboxOptions,
   Transition,
   TransitionChild
 } from "@headlessui/react";
@@ -41,8 +43,9 @@ import {
   ListsMDBListOptions,
   ListsMetacriticOptions,
   ListsTraktOptions,
-  ListTypeOptions, OptionBasicTyped,
-  SelectOption
+  ListsAniListOptions,
+  ListTypeOptions,
+  OptionBasicTyped
 } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import {
@@ -53,6 +56,7 @@ import {
 import { classNames, sleep } from "@utils";
 import {
   ListFilterMultiSelectField,
+  SelectFieldBasic,
   SelectFieldCreatable
 } from "@components/inputs/select_wide";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
@@ -215,15 +219,9 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                                       }
                                     })}
                                     value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      // resetForm();
-
-                                      const opt = option as SelectOption;
-                                      // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(
-                                        field.name,
-                                        opt.value ?? ""
-                                      );
+                                    onChange={(newValue: unknown) => {
+                                      const option = newValue as { value: string };
+                                      setFieldValue(field.name, option?.value ?? "");
                                     }}
                                     options={ListTypeOptions}
                                   />
@@ -235,7 +233,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                           <SwitchGroupWide name="enabled" label="Enabled"/>
                         </div>
 
-                        <ListTypeForm listType={values.type} clients={clients ?? []}/>
+                        <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -248,7 +246,12 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                            <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []} />
+                            <ListFilterMultiSelectField
+                              name="filters"
+                              label="Filters"
+                              required={true}
+                              options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                            />
 
                           </div>
                         </div>
@@ -422,10 +425,12 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                                 </p>
                               </div>
 
-                              <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({
-                                value: f.id,
-                                label: f.name
-                              })) ?? []}/>
+                              <ListFilterMultiSelectField
+                                name="filters"
+                                label="Filters"
+                                required={true}
+                                options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                              />
 
                             </div>
                           </div>
@@ -522,27 +527,27 @@ const SubmitButton = (props: SubmitButtonProps) => {
 
 interface ListTypeFormProps {
   listID?: number;
-  listType: string;
+  listType: ListType;
   clients: DownloadClient[];
 }
 
 const ListTypeForm = (props: ListTypeFormProps) => {
   const { setFieldValue } = useFormikContext();
   const [prevActionType, setPrevActionType] = useState<string | null>(null);
-
   const { listType } = props;
 
   useEffect(() => {
-    // if (prevActionType !== null && prevActionType !== list.type && ListTypeOptions.map(l => l.value).includes(list.type)) {
-    if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType as ListType)) {
+    if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType)) {
       // Reset the client_id field value
-      setFieldValue(`client_id`, 0);
+      setFieldValue('client_id', 0);
+      // Reset the  url
+      setFieldValue('url', '');
     }
 
     setPrevActionType(listType);
   }, [listType, prevActionType, setFieldValue]);
 
-  switch (props.listType) {
+  switch (listType) {
     case "RADARR":
       return <ListTypeArr {...props} />;
     case "SONARR":
@@ -563,6 +568,8 @@ const ListTypeForm = (props: ListTypeFormProps) => {
       return <ListTypeMDBList />;
     case "PLAINTEXT":
       return <ListTypePlainText />;
+    case "ANILIST":
+        return <ListTypeAniList />;
     default:
       return null;
   }
@@ -677,6 +684,34 @@ function ListTypeTrakt() {
   )
 }
 
+function ListTypeAniList() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4 space-y-1">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Source list
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Use an AniList list from one of the default autobrr hosted lists.
+        </p>
+      </div>
+
+      <SelectFieldBasic
+        name="url"
+        label="List URL"
+        options={ListsAniListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+      />
+
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+        </fieldset>
+      </div>
+    </div>
+  )
+}
+
 function ListTypePlainText() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -689,8 +724,8 @@ function ListTypePlainText() {
         </p>
       </div>
 
-      <TextFieldWide 
-        name="url" 
+      <TextFieldWide
+        name="url"
         label="List URL"
         help="URL to a plain text file with one item per line"
         placeholder="https://example.com/list.txt"

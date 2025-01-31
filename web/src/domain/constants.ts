@@ -450,6 +450,10 @@ export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
     label: "Metacritic",
     value: "METACRITIC"
   },
+  {
+    label: "AniList",
+    value: "ANILIST"
+  },
 ];
 
 export const ListTypeNameMap: Record<ListType, string> = {
@@ -463,6 +467,7 @@ export const ListTypeNameMap: Record<ListType, string> = {
   "METACRITIC": "Metacritic",
   "STEAM": "Steam",
   "PLAINTEXT": "Plaintext",
+  "ANILIST": "AniList",
 };
 
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
@@ -706,5 +711,20 @@ export const ListsMDBListOptions: OptionBasic[] = [
   {
     label: "Latest TV Shows",
     value: "https://mdblist.com/lists/garycrawfordgc/latest-tv-shows/json"
+  },
+];
+
+export const ListsAniListOptions: OptionBasic[] = [
+  {
+    label: "Current anime season",
+    value: "https://api.autobrr.com/lists/anilist/seasonal"
+  },
+  {
+    label: "Trending animes",
+    value: "https://api.autobrr.com/lists/anilist/trending"
+  },
+  {
+    label: "Next anime season",
+    value: "https://api.autobrr.com/lists/anilist/upcoming"
   },
 ];

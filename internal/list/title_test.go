@@ -41,7 +41,7 @@ func Test_processTitle(t *testing.T) {
 				title:        "The Matrix -(Test)- Reloaded (2929)",
 				matchRelease: false,
 			},
-			want: []string{"The?Matrix*", "The?Matrix", "The?Matrix*Test*Reloaded*2929?", "The?Matrix*Test*Reloaded*2929"},
+			want: []string{"The?Matrix*Reloaded", "The?Matrix*Test*Reloaded*2929?", "The?Matrix*Test*Reloaded*2929"},
 		},
 		{
 			name: "test_04",
@@ -252,6 +252,30 @@ func Test_processTitle(t *testing.T) {
 				matchRelease: false,
 			},
 			want: []string{"The?Office", "The?Office*US", "The?Office*US?"},
+		},
+		{
+			name: "test_30",
+			args: args{
+				title:        "this is him (can’t be anyone else)",
+				matchRelease: false,
+			},
+			want: []string{"this?is?him*can?t?be?anyone?else?", "this?is?him*can?t?be?anyone?else", "this?is?him*cant?be?anyone?else?", "this?is?him*cant?be?anyone?else"},
+		},
+		{
+			name: "test_31",
+			args: args{
+				title:        "solo leveling 2ª temporada -ergam-se das sombras-",
+				matchRelease: false,
+			},
+			want: []string{"solo?leveling?2ª?temporada*ergam?se?das?sombras", "solo?leveling?2ª?temporada*ergam?se?das?sombras?"},
+		},
+		{
+			name: "test_32",
+			args: args{
+				title:        "pokémon",
+				matchRelease: false,
+			},
+			want: []string{"pok?mon"},
 		},
 	}
 	for _, tt := range tests {
