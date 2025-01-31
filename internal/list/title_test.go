@@ -267,7 +267,7 @@ func Test_processTitle(t *testing.T) {
 				title:        "solo leveling 2ª temporada -ergam-se das sombras-",
 				matchRelease: false,
 			},
-			want: []string{"solo?leveling?2ª?temporada*ergam?se?das?sombras", "solo?leveling?2ª?temporada*ergam?se?das?sombras?"},
+			want: []string{"solo?leveling?2*temporada*ergam?se?das?sombras", "solo?leveling?2*temporada*ergam?se?das?sombras?"},
 		},
 		{
 			name: "test_32",
