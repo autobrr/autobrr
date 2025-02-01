@@ -16,7 +16,7 @@ interface SwitchGroupProps {
   label?: string;
   description?: string | React.ReactNode;
   heading?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   disabled?: boolean;
   className?: string;
 }

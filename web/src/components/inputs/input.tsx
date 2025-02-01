@@ -24,8 +24,9 @@ interface TextFieldProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
+
 
 export const TextField = ({
   name,
@@ -101,7 +102,7 @@ interface RegexFieldProps {
   useRegex?: boolean;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const RegexField = ({
@@ -399,7 +400,7 @@ interface TextAreaProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const TextArea = ({
@@ -472,7 +473,7 @@ interface TextAreaAutoResizeProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   className?: string;
 }
 
@@ -549,7 +550,7 @@ interface PasswordFieldProps {
   defaultValue?: string;
   help?: string;
   required?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const PasswordField = ({
@@ -633,7 +634,7 @@ interface NumberFieldProps {
   required?: boolean;
   min?: number;
   max?: number;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   className?: string;
   isDecimal?: boolean;
 }
