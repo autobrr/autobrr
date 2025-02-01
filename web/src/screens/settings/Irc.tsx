@@ -114,8 +114,8 @@ const IrcSettings = () => {
       <IrcNetworkAddForm isOpen={addNetworkIsOpen} toggle={toggleAddNetwork} />
 
       <div className="flex justify-between flex-col md:flex-row px-1">
-        <ul className="flex flex-col md:flex-row md:gap-2 pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
-          <li className="flex items-center">
+        <ul className="flex flex-col md:flex-row pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 relative"
               title="Network healthy"
@@ -126,7 +126,7 @@ const IrcSettings = () => {
             <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
           </li>
 
-          <li className="flex items-center md:pl-2">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
               title="Network unhealthy"
@@ -134,7 +134,7 @@ const IrcSettings = () => {
             <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
           </li>
 
-          <li className="flex items-center md:pl-2">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
               title="Network disabled"
