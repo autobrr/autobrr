@@ -21,6 +21,7 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { Checkbox } from "@components/Checkbox";
 
 import { componentMapType } from "./DownloadClientForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
@@ -532,31 +533,34 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
+const EventCheckBox = ({ event }: { event: typeof EventOptions[number] }) => (
+  <Field name="events">
+    {({ field, form }: FieldProps<string[]>) => (
+      <div className="flex items-center justify-between">
+        <span className="text-sm">
+          <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+          {event.description && <p className="text-gray-500">{event.description}</p>}
+        </span>
+        <Checkbox
+          value={field.value.includes(event.value)}
+          setValue={(checked) => 
+            form.setFieldValue('events', 
+              checked 
+                ? [...field.value, event.value]
+                : field.value.filter(e => e !== event.value)
+            )
+          }
+        />
+      </div>
+    )}
+  </Field>
+);
+
 const EventCheckBoxes = () => (
   <fieldset className="space-y-5">
     <legend className="sr-only">Notifications</legend>
-    {EventOptions.map((e, idx) => (
-      <div key={idx} className="relative flex items-start">
-        <div className="flex items-center h-5">
-          <Field
-            id={`events-${e.value}`}
-            aria-describedby={`events-${e.value}-description`}
-            name="events"
-            type="checkbox"
-            value={e.value}
-            className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded-sm"
-          />
-        </div>
-        <div className="ml-3 text-sm">
-          <label htmlFor={`events-${e.value}`}
-            className="font-medium text-gray-900 dark:text-gray-100">
-            {e.label}
-          </label>
-          {e.description && (
-            <p className="text-gray-500">{e.description}</p>
-          )}
-        </div>
-      </div>
+    {EventOptions.map((event, idx) => (
+      <EventCheckBox key={idx} event={event} />
     ))}
   </fieldset>
 );
