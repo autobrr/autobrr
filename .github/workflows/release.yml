@@ -49,7 +49,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up corepack
-        run: corepack enable
+        run: npm install -g corepack@latest && corepack enable
 
       # It can not be done before enable corepack
       - name: Set up cache
