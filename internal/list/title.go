@@ -9,13 +9,21 @@ import (
 	"strings"
 )
 
-// Regex patterns
-// https://www.regular-expressions.info/unicode.html#category
-// https://www.ncbi.nlm.nih.gov/staff/beck/charents/hex.html
 var (
-	replaceRegexp        = regexp.MustCompile(`[\p{P}\p{Z}\x{00C0}-\x{017E}\x{00AE}]`)
+	/*
+		replaceRegexp replaces various character classes/categories such as
+		\p{P} all Unicode punctuation category characters
+		\p{S} all Unicode symbol category characters
+		\p{Z) the Unicode seperator category characters
+		\x{0080}-\x{017F} Unicode block "Latin-1 Supplement" and "Latin Extended-A" characters
+		https://www.unicode.org/reports/tr44/#General_Category_Values
+		https://www.regular-expressions.info/unicode.html#category
+		https://www.compart.com/en/unicode/block/U+0080
+		https://www.compart.com/en/unicode/block/U+0100
+	*/
+	replaceRegexp        = regexp.MustCompile(`[\p{P}\p{S}\p{Z}\x{0080}-\x{017F}]`)
 	questionmarkRegexp   = regexp.MustCompile(`[?]{2,}`)
-	regionCodeRegexp     = regexp.MustCompile(`\(\S+\)`)
+	regionCodeRegexp     = regexp.MustCompile(`\(\S+\)`) // also cleans titles from years like (YYYY)!
 	parenthesesEndRegexp = regexp.MustCompile(`\)$`)
 )
 
