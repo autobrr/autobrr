@@ -78,7 +78,16 @@ irc:
             baseUrl: http://fuzer.me/
             torrentId: "616161"
             torrentName: The.Best.S01E05.1080p.WEB.H264-TEST
-        pattern: 'New Torrent:.*\| .* Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/.*\/).*attachmentid=(\d+) \[(.*)\]'
+        - line: 'New Torrent: Some Simulation Game-GROUP Category: משחקים PC By: SomeUploader Size: 58.58GB Link: http://fuzer.me/attachment.php?attachmentid=000000 [Some.Simulation.Game-GROUP]'
+          expect:
+            category: "משחקים PC"
+            uploader: SomeUploader
+            torrentSize: 58.58GB
+            baseUrl: http://fuzer.me/
+            torrentId: "000000"
+            torrentName: Some.Simulation.Game-GROUP
+
+        pattern: 'New Torrent:.*Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/.*\/).*attachmentid=(\d+) \[(.*)\]'
         vars:
           - category
           - uploader
