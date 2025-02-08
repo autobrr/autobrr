@@ -738,7 +738,7 @@ const ListboxFilter = ({
         leaveTo="opacity-0"
       >
         <ListboxOptions
-          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-hidden sm:text-sm"
+          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-black/5 dark:border-gray-700/40 focus:outline-hidden sm:text-sm"
         >
           {children}
         </ListboxOptions>
