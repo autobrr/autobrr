@@ -26,7 +26,7 @@ interface MultiSelectProps {
   columns?: COL_WIDTHS;
   creatable?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const MultiSelect = ({
@@ -260,7 +260,7 @@ export interface SelectFieldProps {
   optionDefaultText: string;
   options: SelectFieldOption[];
   columns?: COL_WIDTHS;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   className?: string;
 }
 

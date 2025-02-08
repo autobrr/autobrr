@@ -6,7 +6,7 @@
 import { classNames } from "@utils";
 
 interface WarningAlertProps {
-  text: string | JSX.Element;
+  text: string | React.JSX.Element;
   alert?: string;
   colors?: string;
   className?: string;
