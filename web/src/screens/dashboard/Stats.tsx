@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useQuery} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { classNames } from "@utils";
 import { LinkIcon } from "@heroicons/react/24/solid";
@@ -20,7 +20,7 @@ interface StatsItemProps {
 const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) => (
   <Link
     className="group relative px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 hover:scale-110 hover:shadow-xl transition-all duration-200 ease-in-out"
-    to={to}
+    to={to ?? ""}
     search={{
       action_status: eventType
     }}

@@ -99,7 +99,7 @@ export const TextInput = <TFormValues extends Record<string, unknown>>({
   isHidden,
   columnWidth,
   ...props
-}: FormInputProps<TFormValues>): JSX.Element => {
+}: FormInputProps<TFormValues>): React.JSX.Element => {
   // If the name is in a FieldArray, it will be 'fields.index.fieldName' and errors[name] won't return anything, so we are using lodash get
   const errorMessages = get(errors, name);
   const hasError = !!(errors && errorMessages);
@@ -149,7 +149,7 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
   isHidden,
   columnWidth,
   ...props
-}: FormInputProps<TFormValues>): JSX.Element => {
+}: FormInputProps<TFormValues>): React.JSX.Element => {
   const [isVisible, toggleVisibility] = useToggle(false);
 
   // If the name is in a FieldArray, it will be 'fields.index.fieldName' and errors[name] won't return anything, so we are using lodash get
