@@ -277,6 +277,14 @@ func Test_processTitle(t *testing.T) {
 			},
 			want: []string{"pok?mon"},
 		},
+		{
+			name: "test_33",
+			args: args{
+				title:        "What If…?",
+				matchRelease: true,
+			},
+			want: []string{"*What?If*"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
