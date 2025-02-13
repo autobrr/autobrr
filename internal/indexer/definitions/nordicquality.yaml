@@ -1,0 +1,81 @@
+---
+#id: nordicquality
+name: NordicQuality
+identifier: nordicquality
+description: NordicQuality is a private torrent tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://nordicq.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to your profile and under Settings > Security, copy your RSS Key (RID)"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#nordicquality"
+  announcers:
+    - NordicQuality
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: '[ NEW ][ TV ][ WEB-DL ][ Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP ][ 6.74 GiB ][ https://nordicq.org/torrents/0000 ]'
+            expect:
+              announceTypeEnum: NEW
+              category: TV
+              releaseTags: WEB-DL
+              torrentName: Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP
+              torrentSize: 6.74 GiB
+              baseUrl: https://nordicq.org/
+              torrentId: "0000"
+
+        pattern: '\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (https.*\/).*\/(\d+) \]'
+        vars:
+          - announceTypeEnum
+          - category
+          - releaseTags
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    mappings:
+      announceTypeEnum:
+        "NEW":
+          announceType: NEW
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
