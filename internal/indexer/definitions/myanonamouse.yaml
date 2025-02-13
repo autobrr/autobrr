@@ -17,7 +17,7 @@ settings:
     type: secret
     required: true
     label: Cookie (mam_id)
-    help: "Check how to get cookies in your browser and find the mam_id cookie. Changes monthly. Format mam_id=$ID;"
+    help: "Under your username, go to preferences then security and generate a session using the IP address Autobrr runs on. Changes monthly. Format mam_id=$ID;"
 
 irc:
   network: MyAnonamouse
