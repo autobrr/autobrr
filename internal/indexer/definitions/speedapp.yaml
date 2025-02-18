@@ -27,6 +27,7 @@ irc:
     - "#speedapp"
   announcers:
     - speedapp-announcer
+    - speedapp-announcer4
   settings:
     - name: nick
       type: text
