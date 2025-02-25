@@ -2,7 +2,7 @@
 #id: CapybaraBR
 name: CapybaraBR
 identifier: capybarabr
-description: CapybaraBR (CBR) is a Brazilian general private torrent tracker focused on various types of content, including movies, TV shows, and more.
+description: CapybaraBR (CBR) is a Brazilian general private torrent tracker focused on movies, TV shows, and more.
 language: pt-BR
 urls:
   - https://capybarabr.com/
