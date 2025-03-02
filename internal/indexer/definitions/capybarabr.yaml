@@ -1,0 +1,136 @@
+---
+#id: CapybaraBR
+name: CapybaraBR
+identifier: capybarabr
+description: CapybaraBR (CBR) is a Brazilian general private torrent tracker focused on movies, TV shows, and more.
+language: pt-BR
+urls:
+  - https://capybarabr.com/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile tab, Settings > Security, copy RSS Key (RID)"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#cbr.announce"
+  announcers:
+    - CBRAnnounce
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: "[Series] [Encode] [576p] [A Barreira Ainda Não Virou Baile 2024 S02 576p DVDRip FLAC 2.0 x264 MULTI-SleepCOUTO] [https://capybarabr.com/torrents/15123] [25.36 GiB] [tmdb-28136]"
+            expect:
+              category: Series
+              releaseTags: Encode
+              resolution: 576p
+              torrentName: "A Barreira Ainda Não Virou Baile 2024 S02 576p DVDRip FLAC 2.0 x264 MULTI-SleepCOUTO"
+              baseUrl: https://capybarabr.com/
+              torrentId: "15123"
+              torrentSize: 25.36 GiB
+              tags: "28136"
+          - line: "[Cursos] [Saúde] [NOTSMART: Como ficar pobre [2022]] [https://capybarabr.com/torrents/15049] [6.76 GiB]"
+            expect:
+              category: Cursos
+              releaseTags: Saúde
+              resolution: ""
+              torrentName: "NOTSMART: Como ficar pobre [2022]"
+              baseUrl: https://capybarabr.com/
+              torrentId: "15049"
+              torrentSize: 6.76 GiB
+              tags: ""
+          - line: "[Jogos] [PC] [Damas - FREE [MULTI]] [https://capybarabr.com/torrents/15046] [568.96 MiB]"
+            expect:
+              category: Jogos
+              releaseTags: PC
+              resolution: ""
+              torrentName: "Damas - FREE [MULTI]"
+              baseUrl: https://capybarabr.com/
+              torrentId: "15046"
+              torrentSize: 568.96 MiB
+              tags: ""
+          - line: "[Esportes] [WEB-DL] [Rinha de Patos 1080p COMB WEB-DL AAC2.0 H.264 MULTI-LiberaARINHA] [https://capybarabr.com/torrents/8773] [6.06 GiB]"
+            expect:
+              category: Esportes
+              releaseTags: WEB-DL
+              resolution: ""
+              torrentName: "Rinha de Patos 1080p COMB WEB-DL AAC2.0 H.264 MULTI-LiberaARINHA"
+              baseUrl: https://capybarabr.com/
+              torrentId: "8773"
+              torrentSize: 6.06 GiB
+              tags: ""
+          - line: "[Programas] [Arquitetura] [Castelos de areia 3D [PT-BR]] [https://capybarabr.com/torrents/13381] [4.48 GiB]"
+            expect:
+              category: Programas
+              releaseTags: Arquitetura
+              resolution: ""
+              torrentName: "Castelos de areia 3D [PT-BR]"
+              baseUrl: https://capybarabr.com/
+              torrentId: "13381"
+              torrentSize: 4.48 GiB
+              tags: ""
+          - line: "[HQs] [CBR] [Num seir le - Vol. 02 - FundoDeQuintal [2024]] [https://capybarabr.com/torrents/14021] [186.16 MiB]"
+            expect:
+              category: HQs
+              releaseTags: CBR
+              resolution: ""
+              torrentName: "Num seir le - Vol. 02 - FundoDeQuintal [2024]"
+              baseUrl: https://capybarabr.com/
+              torrentId: "14021"
+              torrentSize: 186.16 MiB
+              tags: ""
+          - line: "[Revistas] [PDF] [Cavalos Voadores - Editora Quatro Cascos [2024]] [https://capybarabr.com/torrents/15094] [15.81 MiB]"
+            expect:
+              category: Revistas
+              releaseTags: PDF
+              resolution: ""
+              torrentName: "Cavalos Voadores - Editora Quatro Cascos [2024]"
+              baseUrl: https://capybarabr.com/
+              torrentId: "15094"
+              torrentSize: 15.81 MiB
+              tags: ""
+        pattern: '\[(.+?)\] \[(.+?)\] (?:\[(.+?)\] )?\[(.+?)\] \[(https?:\/\/[^\/]+\/).+?(\d+)\] \[(.+?)\](?: \[tmdb-(\d+)\])?'
+        vars:
+          - category
+          - releaseTags
+          - resolution
+          - torrentName
+          - baseUrl
+          - torrentId
+          - torrentSize
+          - tags
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
