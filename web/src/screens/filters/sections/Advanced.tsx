@@ -79,7 +79,7 @@ const Releases = () => {
                 <DocsLink href="https://autobrr.com/filters#advanced" />
                 <br />
                 <br />
-                <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+                <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
               </div>
             }
           />
@@ -445,7 +445,7 @@ const FeedSpecific = () => {
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
           </div>
         }
       />
@@ -461,7 +461,7 @@ const FeedSpecific = () => {
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
           </div>
         }
       />
