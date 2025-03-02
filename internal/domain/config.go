@@ -29,13 +29,13 @@ type Config struct {
 	ProfilingEnabled        bool   `toml:"profilingEnabled"`
 	ProfilingHost           string `toml:"profilingHost"`
 	ProfilingPort           int    `toml:"profilingPort"`
-	OIDCEnabled             bool   `toml:"oidcEnabled" mapstructure:"oidc_enabled"`
-	OIDCIssuer              string `toml:"oidcIssuer" mapstructure:"oidc_issuer"`
-	OIDCClientID            string `toml:"oidcClientId" mapstructure:"oidc_client_id"`
-	OIDCClientSecret        string `toml:"oidcClientSecret" mapstructure:"oidc_client_secret"`
-	OIDCRedirectURL         string `toml:"oidcRedirectUrl" mapstructure:"oidc_redirect_url"`
-	OIDCScopes              string `toml:"oidcScopes" mapstructure:"oidc_scopes"`
-	OIDCDisableBuiltInLogin bool   `toml:"oidcDisableBuiltInLogin" mapstructure:"disable_built_in_login"`
+	OIDCEnabled             bool   `toml:"oidcEnabled"`
+	OIDCIssuer              string `toml:"oidcIssuer"`
+	OIDCClientID            string `toml:"oidcClientId"`
+	OIDCClientSecret        string `toml:"oidcClientSecret"`
+	OIDCRedirectURL         string `toml:"oidcRedirectUrl"`
+	OIDCScopes              string `toml:"oidcScopes"`
+	OIDCDisableBuiltInLogin bool   `toml:"oidcDisableBuiltInLogin"`
 	MetricsEnabled          bool   `toml:"metricsEnabled"`
 	MetricsHost             string `toml:"metricsHost"`
 	MetricsPort             int    `toml:"metricsPort"`
