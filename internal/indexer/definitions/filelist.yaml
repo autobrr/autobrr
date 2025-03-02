@@ -6,6 +6,7 @@ description: FileList (FL) is a ROMANIAN private torrent tracker for MOVIES / TV
 language: en-us
 urls:
   - https://filelist.io/
+  - https://thefl.org/
 privacy: private
 protocol: torrent
 supports:
