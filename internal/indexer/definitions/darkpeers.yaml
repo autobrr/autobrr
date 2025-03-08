@@ -1,0 +1,81 @@
+---
+#id: darkpeers
+name: DarkPeers
+identifier: darkpeers
+description: DarkPeers (DP) is a private torrent tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://darkpeers.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to My Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#dpannounce"
+  announcers:
+    - darkpeers
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: '[New-upload]-[Movies]-[WEB-DL]-[Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE]-[Size: 4.79 GiB]-[Link: https://darkpeers.org/torrents/1704]'
+            expect:
+              announceTypeEnum: New-upload
+              category: Movies
+              releaseTags: WEB-DL
+              torrentName: Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE
+              torrentSize: 4.79 GiB
+              baseUrl: https://darkpeers.org/
+              torrentId: "1704"
+
+        pattern: '\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]'
+        vars:
+          - announceTypeEnum
+          - category
+          - releaseTags
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    mappings:
+      announceTypeEnum:
+        "New-upload":
+          announceType: NEW
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
