@@ -17,7 +17,7 @@ settings:
     type: secret
     required: true
     label: RSS key
-    help: "Go to your profile and under Settings > Security, copy your RSS Key (RID)"
+    help: "Go to My Settings > RSS Key, and copy your RSS Key"
 
 irc:
   network: P2P-Network
