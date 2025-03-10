@@ -30,6 +30,7 @@ type LoginFormFields = {
 type ValidateResponse = {
   username?: AuthInfo['username'];
   auth_method?: AuthInfo['authMethod'];
+  profile_picture?: AuthInfo['profilePicture'];
 }
 
 export const Login = () => {
@@ -85,7 +86,8 @@ export const Login = () => {
         setAuth({
           isLoggedIn: true,
           username: response.username || 'unknown',
-          authMethod: response.auth_method || (oidcConfig?.enabled ? 'oidc' : 'password')
+          authMethod: response.auth_method || (oidcConfig?.enabled ? 'oidc' : 'password'),
+          profilePicture: response.profile_picture
         });
         router.invalidate();
       }).catch((error) => {

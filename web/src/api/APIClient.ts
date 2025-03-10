@@ -13,6 +13,7 @@ type Primitive = string | number | boolean | symbol | undefined;
 type ValidateResponse = {
   username?: AuthInfo['username'];
   auth_method?: AuthInfo['authMethod'];
+  profile_picture?: AuthInfo['profilePicture'];
 }
 
 interface HttpConfig {

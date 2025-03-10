@@ -160,6 +160,8 @@ function Credentials() {
 }
 
 function OIDCAccount() {
+  const auth = AuthContext.get();
+  
   return (
     <Section
       titleElement={
@@ -172,6 +174,42 @@ function OIDCAccount() {
       description="Your account credentials are managed by your OpenID Connect provider. To change your username, please visit your provider's settings page and log in again."
       noLeftPadding
     >
+      <div className="px-2 pb-6 bg-white dark:bg-gray-800">
+        <div className="mt-4 flex items-center">
+          <div className="flex-shrink-0">
+            {auth.profilePicture ? (
+              <img
+                src={auth.profilePicture}
+                alt="Profile"
+                className="h-16 w-16 rounded-full"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    const iconContainer = document.createElement('div');
+                    iconContainer.className = "h-16 w-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center";
+                    iconContainer.innerHTML = '<svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="openid" class="h-8 w-8 text-gray-500 dark:text-gray-400" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M271.5 432l-68 32C88.5 453.7 0 392.5 0 318.2c0-71.5 82.5-131 191.7-144.3v43c-71.5 12.5-124 53-124 101.3 0 51 58.5 93.3 135.5 103v-340l68-33.2v384zM448 291l-131.3-28.5 36.8-20.7c-19.5-11.5-43.5-20-70-24.8v-43c46.2 5.5 87.7 19.5 120.3 39.3l35-19.8L448 291z"></path></svg>';
+                    parent.appendChild(iconContainer);
+                  }
+                }}
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <FontAwesomeIcon icon={faOpenid} className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+              </div>
+            )}
+          </div>
+          <div className="ml-4">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-200">
+              {auth.username}
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+              Authenticated via OpenID Connect
+            </p>
+          </div>
+        </div>
+      </div>
     </Section>
   );
 }

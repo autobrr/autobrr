@@ -213,8 +213,9 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 		h.log.Debug().Msgf("found user session: %+v", session)
 		// Return username if available in session
 		response := map[string]interface{}{
-			"username":    session.Values["username"],
-			"auth_method": session.Values["auth_method"],
+			"username":        session.Values["username"],
+			"auth_method":     session.Values["auth_method"],
+			"profile_picture": session.Values["profile_picture"],
 		}
 
 		h.encoder.StatusResponse(w, http.StatusOK, response)
@@ -279,7 +280,7 @@ func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	username, err := h.oidcHandler.HandleCallback(w, r)
+	username, profilePicture, err := h.oidcHandler.HandleCallback(w, r)
 	if err != nil {
 		h.encoder.StatusError(w, http.StatusUnauthorized, errors.Wrap(err, "OIDC authentication failed"))
 		return
@@ -298,6 +299,10 @@ func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) 
 	session.Values["created"] = time.Now().Unix()
 	session.Values["username"] = username
 	session.Values["auth_method"] = "oidc"
+	if profilePicture != "" {
+		session.Values["profile_picture"] = profilePicture
+		h.log.Debug().Str("profile_picture", profilePicture).Msg("storing profile picture URL in session")
+	}
 
 	// Set cookie options
 	session.Options.HttpOnly = true

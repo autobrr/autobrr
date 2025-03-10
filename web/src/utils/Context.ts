@@ -24,13 +24,15 @@ export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
   authMethod?: 'password' | 'oidc';
+  profilePicture?: string;
 }
 
 // Default values
 const AuthContextDefaults: AuthInfo = {
   username: "",
   isLoggedIn: false,
-  authMethod: undefined
+  authMethod: undefined,
+  profilePicture: undefined
 };
 
 const SettingsContextDefaults: SettingsType = {

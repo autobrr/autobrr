@@ -180,25 +180,25 @@ func (h *OIDCHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (string, error) {
+func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (string, string, error) {
 	h.log.Debug().Msg("handling OIDC callback")
 
 	// get state from session
 	session, err := h.cookieStore.Get(r, "oidc_state")
 	if err != nil {
 		h.log.Error().Err(err).Msg("state session not found")
-		return "", errors.New("state session not found")
+		return "", "", errors.New("state session not found")
 	}
 
 	expectedState, ok := session.Values["state"].(string)
 	if !ok {
 		h.log.Error().Msg("state not found in session")
-		return "", errors.New("state not found in session")
+		return "", "", errors.New("state not found in session")
 	}
 
 	if r.URL.Query().Get("state") != expectedState {
 		h.log.Error().Str("expected", expectedState).Str("got", r.URL.Query().Get("state")).Msg("state did not match")
-		return "", errors.New("state did not match")
+		return "", "", errors.New("state did not match")
 	}
 
 	// clear the state session after use
@@ -210,25 +210,25 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.log.Error().Msg("authorization code is missing from callback request")
-		return "", errors.New("authorization code is missing from callback request")
+		return "", "", errors.New("authorization code is missing from callback request")
 	}
 
 	oauth2Token, err := h.oauthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
-		return "", errors.Wrap(err, "failed to exchange token")
+		return "", "", errors.Wrap(err, "failed to exchange token")
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		h.log.Error().Msg("no id_token found in oauth2 token")
-		return "", errors.New("no id_token found in oauth2 token")
+		return "", "", errors.New("no id_token found in oauth2 token")
 	}
 
 	idToken, err := h.verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to verify ID Token")
-		return "", errors.Wrap(err, "failed to verify ID Token")
+		return "", "", errors.Wrap(err, "failed to verify ID Token")
 	}
 
 	var claims struct {
@@ -238,10 +238,11 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		GivenName string `json:"given_name"`
 		Nickname  string `json:"nickname"`
 		Sub       string `json:"sub"`
+		Picture   string `json:"picture"`
 	}
 	if err := idToken.Claims(&claims); err != nil {
 		h.log.Error().Err(err).Msg("failed to parse claims")
-		return "", errors.Wrap(err, "failed to parse claims")
+		return "", "", errors.Wrap(err, "failed to parse claims")
 	}
 
 	// Try different claims in order of preference for username
@@ -261,9 +262,9 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		}
 	}
 
-	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
+	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Str("picture", claims.Picture).Msg("successfully processed OIDC claims")
 
-	return username, nil
+	return username, claims.Picture, nil
 }
 
 func generateRandomState() string {

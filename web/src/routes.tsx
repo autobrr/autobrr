@@ -307,7 +307,8 @@ export const AuthRoute = createRoute({
         AuthContext.set({
           isLoggedIn: true,
           username: response.username || 'unknown',
-          authMethod: response.auth_method
+          authMethod: response.auth_method,
+          profilePicture: response.profile_picture
         });
       } catch (error) {
         console.debug("Authentication validation failed:", error);
