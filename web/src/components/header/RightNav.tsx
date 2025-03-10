@@ -35,7 +35,7 @@ export const RightNav = (props: RightNavProps) => {
         <div className="mt-1 items-center">
           <button
             onClick={toggleTheme}
-            className="p-1 rounded-full focus:outline-hidden focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
+            className="p-1 rounded-full hover:cursor-pointer focus:outline-hidden focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
             title={settings.darkTheme ? "Switch to light mode (currently dark mode)" : "Switch to dark mode (currently light mode)"}
           >
             {settings.darkTheme ? (
@@ -56,7 +56,7 @@ export const RightNav = (props: RightNavProps) => {
                   "transition duration-200"
                 )}
               >
-                <span className="hidden text-sm font-medium sm:flex items-center space-x-2">
+                <span className="hidden hover:cursor-pointer text-sm font-medium sm:flex items-center space-x-2">
                   <span className="sr-only">
                     Open user menu for{" "}
                   </span>
