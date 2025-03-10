@@ -289,6 +289,7 @@ type GetConfigResponse struct {
 	AuthorizationURL    string `json:"authorizationUrl"`
 	State               string `json:"state"`
 	DisableBuiltInLogin bool   `json:"disableBuiltInLogin"`
+	IssuerURL           string `json:"issuerUrl"`
 }
 
 func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
@@ -296,19 +297,21 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 		return GetConfigResponse{
 			Enabled:             false,
 			DisableBuiltInLogin: false,
+			IssuerURL:           "",
 		}
 	}
 
 	state := generateRandomState()
 	authURL := h.oauthConfig.AuthCodeURL(state)
 
-	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.config.DisableBuiltInLogin).Msg("returning OIDC config response")
+	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.config.DisableBuiltInLogin).Str("issuer_url", h.config.Issuer).Msg("returning OIDC config response")
 
 	return GetConfigResponse{
 		Enabled:             h.config.Enabled,
 		AuthorizationURL:    authURL,
 		State:               state,
 		DisableBuiltInLogin: h.config.DisableBuiltInLogin,
+		IssuerURL:           h.config.Issuer,
 	}
 }
 

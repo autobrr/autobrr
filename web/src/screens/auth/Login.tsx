@@ -87,7 +87,7 @@ export const Login = () => {
           isLoggedIn: true,
           username: response.username || 'unknown',
           authMethod: response.auth_method || (oidcConfig?.enabled ? 'oidc' : 'password'),
-          profilePicture: response.profile_picture
+          profilePicture: response.profile_picture,
         });
         router.invalidate();
       }).catch((error) => {

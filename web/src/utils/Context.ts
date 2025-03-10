@@ -25,6 +25,7 @@ export interface AuthInfo {
   isLoggedIn: boolean;
   authMethod?: 'password' | 'oidc';
   profilePicture?: string;
+  issuerUrl?: string;
 }
 
 // Default values
@@ -32,7 +33,8 @@ const AuthContextDefaults: AuthInfo = {
   username: "",
   isLoggedIn: false,
   authMethod: undefined,
-  profilePicture: undefined
+  profilePicture: undefined,
+  issuerUrl: undefined
 };
 
 const SettingsContextDefaults: SettingsType = {

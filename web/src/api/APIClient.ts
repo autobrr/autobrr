@@ -263,10 +263,10 @@ export const APIClient = {
       { body: req }),
     getOIDCConfig: async () => {
       try {
-        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string; disableBuiltInLogin: boolean }>("api/auth/oidc/config");
+        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string; disableBuiltInLogin: boolean; issuerUrl: string }>("api/auth/oidc/config");
       } catch (error: unknown) {
         if (error instanceof Error && error.message?.includes('404')) {
-          return { enabled: false, authorizationUrl: '', state: '', disableBuiltInLogin: false };
+          return { enabled: false, authorizationUrl: '', state: '', disableBuiltInLogin: false, issuerUrl: '' };
         }
         throw error;
       }
