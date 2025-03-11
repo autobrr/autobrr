@@ -19,46 +19,46 @@ import (
 
 // Release is a GitHub release
 type Release struct {
-	ID              int64     `json:"id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	PublishedAt     time.Time `json:"published_at"`
+	Name            *string   `json:"name,omitempty"`
+	Body            *string   `json:"body,omitempty"`
+	Author          Author    `json:"author"`
 	NodeID          string    `json:"node_id,omitempty"`
 	URL             string    `json:"url,omitempty"`
 	HtmlURL         string    `json:"html_url,omitempty"`
 	TagName         string    `json:"tag_name,omitempty"`
 	TargetCommitish string    `json:"target_commitish,omitempty"`
-	Name            *string   `json:"name,omitempty"`
-	Body            *string   `json:"body,omitempty"`
+	Assets          []Asset   `json:"assets"`
+	ID              int64     `json:"id,omitempty"`
 	Draft           bool      `json:"draft,omitempty"`
 	Prerelease      bool      `json:"prerelease,omitempty"`
-	CreatedAt       time.Time `json:"created_at"`
-	PublishedAt     time.Time `json:"published_at"`
-	Author          Author    `json:"author"`
-	Assets          []Asset   `json:"assets"`
 }
 
 type Author struct {
 	Login      string `json:"login"`
-	Id         int64  `json:"id"`
 	NodeId     string `json:"node_id"`
 	AvatarUrl  string `json:"avatar_url"`
 	GravatarId string `json:"gravatar_id"`
 	Url        string `json:"url"`
 	HtmlUrl    string `json:"html_url"`
 	Type       string `json:"type"`
+	Id         int64  `json:"id"`
 }
 type Asset struct {
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	Uploader           Author    `json:"uploader"`
 	Url                string    `json:"url"`
-	Id                 int64     `json:"id"`
 	NodeId             string    `json:"node_id"`
 	Name               string    `json:"name"`
 	Label              string    `json:"label"`
-	Uploader           Author    `json:"uploader"`
 	ContentType        string    `json:"content_type"`
 	State              string    `json:"state"`
+	BrowserDownloadUrl string    `json:"browser_download_url"`
+	Id                 int64     `json:"id"`
 	Size               int64     `json:"size"`
 	DownloadCount      int64     `json:"download_count"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
-	BrowserDownloadUrl string    `json:"browser_download_url"`
 }
 
 func (r *Release) IsPreOrDraft() bool {
@@ -69,12 +69,11 @@ func (r *Release) IsPreOrDraft() bool {
 }
 
 type Checker struct {
+	httpClient *http.Client
 	// user/repo-name or org/repo-name
 	Owner          string
 	Repo           string
 	CurrentVersion string
-
-	httpClient *http.Client
 }
 
 func NewChecker(owner, repo, currentVersion string) *Checker {

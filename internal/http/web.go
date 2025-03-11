@@ -21,10 +21,10 @@ import (
 type webHandler struct {
 	log          zerolog.Logger
 	embedFS      fs.FS
+	files        map[string]string
 	baseUrl      string
 	assetBaseURL string
 	version      string
-	files        map[string]string
 }
 
 func newWebHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL, assetBaseURL string) *webHandler {
@@ -184,8 +184,8 @@ func (h *webHandler) parseFallbackIndex() *template.Template {
 }
 
 type defaultFS struct {
-	prefix string
 	fs     fs.FS
+	prefix string
 }
 
 type IndexParams struct {

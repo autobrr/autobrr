@@ -34,30 +34,31 @@ type FeedRepo interface {
 }
 
 type Feed struct {
-	ID           int               `json:"id"`
-	Name         string            `json:"name"`
-	Indexer      IndexerMinimal    `json:"indexer"`
-	Type         string            `json:"type"`
-	Enabled      bool              `json:"enabled"`
-	URL          string            `json:"url"`
-	Interval     int               `json:"interval"`
-	Timeout      int               `json:"timeout"` // seconds
-	MaxAge       int               `json:"max_age"` // seconds
-	Capabilities []string          `json:"capabilities"`
-	ApiKey       string            `json:"api_key"`
-	Cookie       string            `json:"cookie"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	LastRun   time.Time `json:"last_run"`
+	NextRun   time.Time `json:"next_run"`
+
 	Settings     *FeedSettingsJSON `json:"settings"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
-	IndexerID    int               `json:"indexer_id,omitempty"`
-	LastRun      time.Time         `json:"last_run"`
-	LastRunData  string            `json:"last_run_data"`
-	NextRun      time.Time         `json:"next_run"`
+	Proxy        *Proxy
+	Indexer      IndexerMinimal `json:"indexer"`
+	Name         string         `json:"name"`
+	Type         string         `json:"type"`
+	URL          string         `json:"url"`
+	ApiKey       string         `json:"api_key"`
+	Cookie       string         `json:"cookie"`
+	LastRunData  string         `json:"last_run_data"`
+	Capabilities []string       `json:"capabilities"`
+	ID           int            `json:"id"`
+	Interval     int            `json:"interval"`
+	Timeout      int            `json:"timeout"` // seconds
+	MaxAge       int            `json:"max_age"` // seconds
+	IndexerID    int            `json:"indexer_id,omitempty"`
 
 	// belongs to Indexer
 	ProxyID  int64
+	Enabled  bool `json:"enabled"`
 	UseProxy bool
-	Proxy    *Proxy
 }
 
 type FeedSettingsJSON struct {
@@ -65,9 +66,9 @@ type FeedSettingsJSON struct {
 }
 
 type FeedIndexer struct {
-	ID         int    `json:"id"`
 	Name       string `json:"name"`
 	Identifier string `json:"identifier"`
+	ID         int    `json:"id"`
 }
 
 type FeedType string
@@ -86,14 +87,14 @@ const (
 )
 
 type FeedCacheItem struct {
+	TTL    time.Time `json:"ttl"`
 	FeedId string    `json:"feed_id"`
 	Key    string    `json:"key"`
 	Value  []byte    `json:"value"`
-	TTL    time.Time `json:"ttl"`
 }
 
 type FindOneParams struct {
+	IndexerIdentifier string
 	FeedID            int
 	IndexerID         int
-	IndexerIdentifier string
 }

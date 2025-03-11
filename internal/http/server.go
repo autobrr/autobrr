@@ -24,15 +24,6 @@ import (
 
 type Server struct {
 	log zerolog.Logger
-	sse *sse.Server
-	db  *database.DB
-
-	config      *config.AppConfig
-	cookieStore *sessions.CookieStore
-
-	version string
-	commit  string
-	date    string
 
 	actionService         actionService
 	apiService            apikeyService
@@ -47,6 +38,15 @@ type Server struct {
 	proxyService          proxyService
 	releaseService        releaseService
 	updateService         updateService
+	sse                   *sse.Server
+	db                    *database.DB
+
+	config      *config.AppConfig
+	cookieStore *sessions.CookieStore
+
+	version string
+	commit  string
+	date    string
 }
 
 func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, listSvc listService, notificationSvc notificationService, proxySvc proxyService, releaseSvc releaseService, updateSvc updateService) Server {

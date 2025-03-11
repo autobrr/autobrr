@@ -37,12 +37,13 @@ var (
 )
 
 type channelHealth struct {
-	m deadlock.RWMutex
-
-	name            string
-	monitoring      bool
 	monitoringSince time.Time
 	lastAnnounce    time.Time
+
+	name string
+	m    deadlock.RWMutex
+
+	monitoring bool
 }
 
 // SetLastAnnounce set last announce to now
@@ -78,29 +79,31 @@ const (
 )
 
 type Handler struct {
-	log                 zerolog.Logger
-	sse                 *sse.Server
-	network             *domain.IrcNetwork
+	log zerolog.Logger
+
+	connectedSince      time.Time
 	releaseSvc          release.Service
 	notificationService notification.Service
+	sse                 *sse.Server
+	network             *domain.IrcNetwork
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
-	client      *ircevent.Connection
-	clientState ircState
-	m           deadlock.RWMutex
-
-	connectedSince   time.Time
-	haveDisconnected bool
+	client *ircevent.Connection
 
 	validAnnouncers map[string]struct{}
 	validChannels   map[string]struct{}
 	channelHealth   map[string]*channelHealth
 
+	botModeChar string
+
 	connectionErrors       []string
+	clientState            ircState
 	failedNickServAttempts int
 
-	botModeChar string
+	m deadlock.RWMutex
+
+	haveDisconnected bool
 
 	authenticated bool
 	saslauthed    bool

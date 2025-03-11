@@ -18,15 +18,15 @@ import (
 )
 
 type Config struct {
+	Log      *log.Logger
 	Hostname string
 	APIKey   string
 
+	Username string
+	Password string
+
 	// basic auth username and password
 	BasicAuth bool
-	Username  string
-	Password  string
-
-	Log *log.Logger
 }
 
 type Client interface {
@@ -65,20 +65,20 @@ type Release struct {
 	InfoUrl          string `json:"infoUrl,omitempty"`
 	DownloadUrl      string `json:"downloadUrl,omitempty"`
 	MagnetUrl        string `json:"magnetUrl,omitempty"`
-	Size             uint64 `json:"size"`
 	Indexer          string `json:"indexer"`
 	DownloadProtocol string `json:"downloadProtocol"`
 	Protocol         string `json:"protocol"`
 	PublishDate      string `json:"publishDate"`
-	DownloadClientId int    `json:"downloadClientId,omitempty"`
 	DownloadClient   string `json:"downloadClient,omitempty"`
+	Size             uint64 `json:"size"`
+	DownloadClientId int    `json:"downloadClientId,omitempty"`
 }
 
 type PushResponse struct {
+	Rejections   []string `json:"rejections"`
 	Approved     bool     `json:"approved"`
 	Rejected     bool     `json:"rejected"`
 	TempRejected bool     `json:"temporarilyRejected"`
-	Rejections   []string `json:"rejections"`
 }
 
 type SystemStatusResponse struct {

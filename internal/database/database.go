@@ -19,18 +19,19 @@ import (
 )
 
 type DB struct {
-	log     zerolog.Logger
-	handler *sql.DB
-	lock    sync.RWMutex
-	ctx     context.Context
-	cfg     *domain.Config
+	log zerolog.Logger
+	ctx context.Context
+
+	squirrel sq.StatementBuilderType
+	handler  *sql.DB
+	cfg      *domain.Config
 
 	cancel func()
 
 	Driver string
 	DSN    string
 
-	squirrel sq.StatementBuilderType
+	lock sync.RWMutex
 }
 
 func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {

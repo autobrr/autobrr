@@ -77,11 +77,15 @@ type TorrentResponse struct {
 	TorrentId     string    `json:"TorrentId"`
 	ImdbId        string    `json:"ImdbId"`
 	ImdbRating    string    `json:"ImdbRating"`
-	ImdbVoteCount int       `json:"ImdbVoteCount"`
 	Torrents      []Torrent `json:"Torrents"`
+	ImdbVoteCount int       `json:"ImdbVoteCount"`
 }
 
 type Torrent struct {
+	ReleaseGroup  *string `json:"ReleaseGroup"`
+	FreeleechType *string `json:"FreeleechType,omitempty"`
+	RemasterTitle *string `json:"RemasterTitle,omitempty"`
+	RemasterYear  *string `json:"RemasterYear,omitempty"`
 	Id            string  `json:"Id"`
 	InfoHash      string  `json:"InfoHash"`
 	Quality       string  `json:"Quality"`
@@ -90,18 +94,14 @@ type Torrent struct {
 	Codec         string  `json:"Codec"`
 	Resolution    string  `json:"Resolution"`
 	Size          string  `json:"Size"`
-	Scene         bool    `json:"Scene"`
 	UploadTime    string  `json:"UploadTime"`
 	Snatched      string  `json:"Snatched"`
 	Seeders       string  `json:"Seeders"`
 	Leechers      string  `json:"Leechers"`
 	ReleaseName   string  `json:"ReleaseName"`
-	ReleaseGroup  *string `json:"ReleaseGroup"`
+	Scene         bool    `json:"Scene"`
 	Checked       bool    `json:"Checked"`
 	GoldenPopcorn bool    `json:"GoldenPopcorn"`
-	FreeleechType *string `json:"FreeleechType,omitempty"`
-	RemasterTitle *string `json:"RemasterTitle,omitempty"`
-	RemasterYear  *string `json:"RemasterYear,omitempty"`
 }
 
 // custom unmarshal method for Torrent
@@ -237,24 +237,24 @@ func (c *Client) TestAPI(ctx context.Context) (bool, error) {
 
 type TorrentListResponse struct {
 	TotalResults string  `json:"TotalResults"`
-	Movies       []Movie `json:"Movies"`
 	Page         string  `json:"Page"`
+	Movies       []Movie `json:"Movies"`
 }
 
 type Movie struct {
+	ImdbID         *string    `json:"ImdbId,omitempty"`
 	GroupID        string     `json:"GroupId"`
 	Title          string     `json:"Title"`
 	Year           string     `json:"Year"`
 	Cover          string     `json:"Cover"`
+	LastUploadTime string     `json:"LastUploadTime"`
 	Tags           []string   `json:"Tags"`
 	Directors      []Director `json:"Directors,omitempty"`
-	ImdbID         *string    `json:"ImdbId,omitempty"`
-	LastUploadTime string     `json:"LastUploadTime"`
+	Torrents       []Torrent  `json:"Torrents"`
 	MaxSize        int64      `json:"MaxSize"`
 	TotalSnatched  int64      `json:"TotalSnatched"`
 	TotalSeeders   int64      `json:"TotalSeeders"`
 	TotalLeechers  int64      `json:"TotalLeechers"`
-	Torrents       []Torrent  `json:"Torrents"`
 }
 
 type Director struct {

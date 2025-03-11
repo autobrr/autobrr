@@ -20,8 +20,8 @@ var (
 )
 
 type defaultFS struct {
-	prefix string
 	fs     fs.FS
+	prefix string
 }
 
 func (fs defaultFS) Open(name string) (fs.File, error) {

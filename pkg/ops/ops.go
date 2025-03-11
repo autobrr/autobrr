@@ -68,25 +68,25 @@ type ErrorResponse struct {
 type TorrentDetailsResponse struct {
 	Status   string `json:"status"`
 	Response struct {
-		Group   Group   `json:"group"`
 		Torrent Torrent `json:"torrent"`
+		Group   Group   `json:"group"`
 	} `json:"response"`
 	Error string `json:"error,omitempty"`
 }
 
 type Group struct {
-	//WikiBody        string `json:"wikiBody"`
-	//WikiImage       string `json:"wikiImage"`
-	Id              int    `json:"id"`
 	Name            string `json:"name"`
-	Year            int    `json:"year"`
 	RecordLabel     string `json:"recordLabel"`
 	CatalogueNumber string `json:"catalogueNumber"`
-	ReleaseType     int    `json:"releaseType"`
-	CategoryId      int    `json:"categoryId"`
 	CategoryName    string `json:"categoryName"`
 	Time            string `json:"time"`
-	VanityHouse     bool   `json:"vanityHouse"`
+	//WikiBody        string `json:"wikiBody"`
+	//WikiImage       string `json:"wikiImage"`
+	Id          int  `json:"id"`
+	Year        int  `json:"year"`
+	ReleaseType int  `json:"releaseType"`
+	CategoryId  int  `json:"categoryId"`
+	VanityHouse bool `json:"vanityHouse"`
 	//MusicInfo       struct {
 	//	Composers []interface{} `json:"composers"`
 	//	Dj        []interface{} `json:"dj"`
@@ -105,32 +105,32 @@ type Group struct {
 }
 
 type Torrent struct {
-	Id              int    `json:"id"`
 	InfoHash        string `json:"infoHash"`
 	Media           string `json:"media"`
 	Format          string `json:"format"`
 	Encoding        string `json:"encoding"`
-	Remastered      bool   `json:"remastered"`
-	RemasterYear    int    `json:"remasterYear"`
 	RemasterTitle   string `json:"remasterTitle"`
 	RecordLabel     string `json:"remasterRecordLabel"`     // remasterRecordLabel is the record label of the release, which should be used instead of the record label of the group
 	CatalogueNumber string `json:"remasterCatalogueNumber"` // remasterCatalogueNumber is the catalogue number of the release, which should be used instead of the catalogue number of the group
-	Scene           bool   `json:"scene"`
-	HasLog          bool   `json:"hasLog"`
-	HasCue          bool   `json:"hasCue"`
+	FreeTorrent     string `json:"freeTorrent"`
+	Time            string `json:"time"`
+	Description     string `json:"description"`
+	FileList        string `json:"fileList"`
+	FilePath        string `json:"filePath"`
+	Username        string `json:"username"`
+	Id              int    `json:"id"`
+	RemasterYear    int    `json:"remasterYear"`
 	LogScore        int    `json:"logScore"`
 	FileCount       int    `json:"fileCount"`
 	Size            int    `json:"size"`
 	Seeders         int    `json:"seeders"`
 	Leechers        int    `json:"leechers"`
 	Snatched        int    `json:"snatched"`
-	FreeTorrent     string `json:"freeTorrent"`
-	Time            string `json:"time"`
-	Description     string `json:"description"`
-	FileList        string `json:"fileList"`
-	FilePath        string `json:"filePath"`
 	UserId          int    `json:"userId"`
-	Username        string `json:"username"`
+	Remastered      bool   `json:"remastered"`
+	Scene           bool   `json:"scene"`
+	HasLog          bool   `json:"hasLog"`
+	HasCue          bool   `json:"hasCue"`
 }
 
 type GetIndexResponse struct {
@@ -145,12 +145,12 @@ type Info struct {
 }
 
 type Response struct {
-	Username      string        `json:"username"`
-	ID            int64         `json:"id"`
-	Notifications Notifications `json:"notifications"`
-	Userstats     Userstats     `json:"userstats"`
+	Userstats Userstats `json:"userstats"`
 	//Authkey       string        `json:"authkey"`
 	//Passkey       string        `json:"passkey"`
+	Username      string        `json:"username"`
+	Notifications Notifications `json:"notifications"`
+	ID            int64         `json:"id"`
 }
 
 type Notifications struct {
@@ -162,13 +162,13 @@ type Notifications struct {
 }
 
 type Userstats struct {
+	Class              string  `json:"class"`
 	Uploaded           int64   `json:"uploaded"`
 	Downloaded         int64   `json:"downloaded"`
 	Ratio              float64 `json:"ratio"`
 	Requiredratio      float64 `json:"requiredratio"`
 	BonusPoints        int64   `json:"bonusPoints"`
 	BonusPointsPerHour float64 `json:"bonusPointsPerHour"`
-	Class              string  `json:"class"`
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {

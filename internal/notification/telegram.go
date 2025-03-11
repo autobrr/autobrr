@@ -29,12 +29,13 @@ type TelegramMessage struct {
 }
 
 type telegramSender struct {
+	builder MessageBuilderHTML
+
 	log      zerolog.Logger
 	Settings *domain.Notification
-	ThreadID int
-	builder  MessageBuilderHTML
 
 	httpClient *http.Client
+	ThreadID   int
 }
 
 func (s *telegramSender) Name() string {

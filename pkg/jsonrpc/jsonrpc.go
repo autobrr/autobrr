@@ -21,9 +21,9 @@ type Client interface {
 }
 
 type RPCRequest struct {
+	Params  interface{} `json:"params"`
 	JsonRPC string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
 	ID      int         `json:"id"`
 }
 
@@ -37,16 +37,16 @@ func NewRequest(method string, params ...interface{}) *RPCRequest {
 }
 
 type RPCResponse struct {
-	JsonRPC string      `json:"jsonrpc"`
 	Result  interface{} `json:"result,omitempty"`
 	Error   *RPCError   `json:"error,omitempty"`
+	JsonRPC string      `json:"jsonrpc"`
 	ID      int         `json:"id"`
 }
 
 type RPCError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
 	Data    interface{} `json:"data,omitempty"`
+	Message string      `json:"message"`
+	Code    int         `json:"code"`
 }
 
 func (e *RPCError) Error() string {
@@ -54,8 +54,8 @@ func (e *RPCError) Error() string {
 }
 
 type HTTPError struct {
-	Code int
 	err  error
+	Code int
 }
 
 func (e *HTTPError) Error() string {

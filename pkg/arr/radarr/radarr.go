@@ -20,15 +20,15 @@ import (
 )
 
 type Config struct {
+	Log      *log.Logger
 	Hostname string
 	APIKey   string
 
+	Username string
+	Password string
+
 	// basic auth username and password
 	BasicAuth bool
-	Username  string
-	Password  string
-
-	Log *log.Logger
 }
 
 type ClientInterface interface {

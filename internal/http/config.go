@@ -21,16 +21,16 @@ type configJson struct {
 	ConfigDir       string `json:"config_dir"`
 	Database        string `json:"database"`
 	Host            string `json:"host"`
-	Port            int    `json:"port"`
 	LogLevel        string `json:"log_level"`
 	LogPath         string `json:"log_path"`
-	LogMaxSize      int    `json:"log_max_size"`
-	LogMaxBackups   int    `json:"log_max_backups"`
 	BaseURL         string `json:"base_url"`
-	CheckForUpdates bool   `json:"check_for_updates"`
 	Version         string `json:"version"`
 	Commit          string `json:"commit"`
 	Date            string `json:"date"`
+	Port            int    `json:"port"`
+	LogMaxSize      int    `json:"log_max_size"`
+	LogMaxBackups   int    `json:"log_max_backups"`
+	CheckForUpdates bool   `json:"check_for_updates"`
 }
 
 type configHandler struct {

@@ -18,25 +18,23 @@ import (
 )
 
 type Client struct {
+	log *log.Logger
+
+	http   *http.Client
 	addr   string
 	apiKey string
 
 	basicUser string
 	basicPass string
-
-	log *log.Logger
-
-	http *http.Client
 }
 
 type Options struct {
+	Log    *log.Logger
 	Addr   string
 	ApiKey string
 
 	BasicUser string
 	BasicPass string
-
-	Log *log.Logger
 }
 
 func New(opts Options) *Client {
@@ -164,8 +162,8 @@ type VersionResponse struct {
 }
 
 type AddFileResponse struct {
-	NzoIDs []string `json:"nzo_ids"`
 	ApiError
+	NzoIDs []string `json:"nzo_ids"`
 }
 
 type ApiError struct {

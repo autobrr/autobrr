@@ -1209,12 +1209,12 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	}
 
 	type result struct {
-		id      int
 		release string
 		hash    string
 		title   string
 		action  string
 		status  string
+		id      int
 	}
 
 	var res []result

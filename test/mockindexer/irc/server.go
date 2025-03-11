@@ -11,8 +11,8 @@ import (
 
 type Server struct {
 	listener net.Listener
-	clients  []*Client
 	options  *ServerOptions
+	clients  []*Client
 }
 
 type ServerOptions struct {

@@ -68,23 +68,32 @@ type Group struct {
 	BbWikiBody   string   `json:"bbWikiBody"`
 	WikiBody     string   `json:"wikiBody"`
 	WikiImage    string   `json:"wikiImage"`
-	Id           int      `json:"id"`
 	Name         string   `json:"name"`
+	CategoryName string   `json:"categoryName"`
+	Time         string   `json:"time"`
+	Platform     string   `json:"platform"`
 	Aliases      []string `json:"aliases"`
+	Tags         []string `json:"tags"`
+	Id           int      `json:"id"`
 	Year         int      `json:"year"`
 	CategoryId   int      `json:"categoryId"`
-	CategoryName string   `json:"categoryName"`
 	MasterGroup  int      `json:"masterGroup"`
-	Time         string   `json:"time"`
-	Tags         []string `json:"tags"`
-	Platform     string   `json:"platform"`
 }
 
 type GameInfo struct {
-	Screenshots []string `json:"screenshots"`
-	Trailer     string   `json:"trailer"`
-	Rating      string   `json:"rating"`
-	MetaRating  struct {
+	Weblinks struct {
+		GamesWebsite  string `json:"GamesWebsite"`
+		Wikipedia     string `json:"Wikipedia"`
+		Giantbomb     string `json:"Giantbomb"`
+		GameFAQs      string `json:"GameFAQs"`
+		PCGamingWiki  string `json:"PCGamingWiki"`
+		Steam         string `json:"Steam"`
+		Amazon        string `json:"Amazon"`
+		GOG           string `json:"GOG"`
+		HowLongToBeat string `json:"HowLongToBeat"`
+	} `json:"weblinks"`
+	//`json:"gameInfo"`
+	MetaRating struct {
 		Score   string `json:"score"`
 		Percent string `json:"percent"`
 		Link    string `json:"link"`
@@ -99,22 +108,12 @@ type GameInfo struct {
 		Percent string `json:"percent"`
 		Link    string `json:"link"`
 	} `json:"gamespotRating"`
-	Weblinks struct {
-		GamesWebsite  string `json:"GamesWebsite"`
-		Wikipedia     string `json:"Wikipedia"`
-		Giantbomb     string `json:"Giantbomb"`
-		GameFAQs      string `json:"GameFAQs"`
-		PCGamingWiki  string `json:"PCGamingWiki"`
-		Steam         string `json:"Steam"`
-		Amazon        string `json:"Amazon"`
-		GOG           string `json:"GOG"`
-		HowLongToBeat string `json:"HowLongToBeat"`
-	} `json:"weblinks"`
-	//`json:"gameInfo"`
+	Trailer     string   `json:"trailer"`
+	Rating      string   `json:"rating"`
+	Screenshots []string `json:"screenshots"`
 }
 
 type Torrent struct {
-	Id             int    `json:"id"`
 	InfoHash       string `json:"infoHash"`
 	Type           string `json:"type"`
 	Link           string `json:"link"`
@@ -122,34 +121,35 @@ type Torrent struct {
 	Encoding       string `json:"encoding"`
 	Region         string `json:"region"`
 	Language       string `json:"language"`
-	Remastered     bool   `json:"remastered"`
-	RemasterYear   int    `json:"remasterYear"`
 	RemasterTitle  string `json:"remasterTitle"`
-	Scene          bool   `json:"scene"`
-	HasCue         bool   `json:"hasCue"`
 	ReleaseTitle   string `json:"releaseTitle"`
 	ReleaseType    string `json:"releaseType"`
 	GameDOXType    string `json:"gameDOXType"`
 	GameDOXVersion string `json:"gameDOXVersion"`
-	FileCount      int    `json:"fileCount"`
-	Size           uint64 `json:"size"`
-	Seeders        int    `json:"seeders"`
-	Leechers       int    `json:"leechers"`
-	Snatched       int    `json:"snatched"`
-	FreeTorrent    bool   `json:"freeTorrent"`
-	NeutralTorrent bool   `json:"neutralTorrent"`
-	Reported       bool   `json:"reported"`
 	Time           string `json:"time"`
 	BbDescription  string `json:"bbDescription"`
 	Description    string `json:"description"`
+	FilePath       string `json:"filePath"`
+	Username       string `json:"username"`
 	FileList       []struct {
 		Ext  string `json:"ext"`
 		Size string `json:"size"`
 		Name string `json:"name"`
 	} `json:"fileList"`
-	FilePath string `json:"filePath"`
-	UserId   int    `json:"userId"`
-	Username string `json:"username"`
+	Id             int    `json:"id"`
+	RemasterYear   int    `json:"remasterYear"`
+	FileCount      int    `json:"fileCount"`
+	Size           uint64 `json:"size"`
+	Seeders        int    `json:"seeders"`
+	Leechers       int    `json:"leechers"`
+	Snatched       int    `json:"snatched"`
+	UserId         int    `json:"userId"`
+	Remastered     bool   `json:"remastered"`
+	Scene          bool   `json:"scene"`
+	HasCue         bool   `json:"hasCue"`
+	FreeTorrent    bool   `json:"freeTorrent"`
+	NeutralTorrent bool   `json:"neutralTorrent"`
+	Reported       bool   `json:"reported"`
 }
 
 type TorrentResponse struct {

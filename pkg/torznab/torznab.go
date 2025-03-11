@@ -29,15 +29,15 @@ type Client interface {
 type client struct {
 	http *http.Client
 
+	Capabilities *Caps
+
+	Log       *log.Logger
+	BasicAuth BasicAuth
+
 	Host   string
 	ApiKey string
 
 	UseBasicAuth bool
-	BasicAuth    BasicAuth
-
-	Capabilities *Caps
-
-	Log *log.Logger
 }
 
 func (c *client) WithHTTPClient(client *http.Client) {
@@ -50,14 +50,14 @@ type BasicAuth struct {
 }
 
 type Config struct {
+	Log       *log.Logger
+	BasicAuth BasicAuth
+
 	Host    string
 	ApiKey  string
 	Timeout time.Duration
 
 	UseBasicAuth bool
-	BasicAuth    BasicAuth
-
-	Log *log.Logger
 }
 
 type Capabilities struct {

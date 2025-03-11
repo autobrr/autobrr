@@ -21,18 +21,19 @@ import (
 )
 
 type TorznabJob struct {
-	Feed         *domain.Feed
-	Name         string
 	Log          zerolog.Logger
-	URL          string
 	Client       torznab.Client
 	Repo         domain.FeedRepo
 	CacheRepo    domain.FeedCacheRepo
 	ReleaseSvc   release.Service
 	SchedulerSvc scheduler.Service
 
+	Feed   *domain.Feed
+	Name   string
+	URL    string
+	errors []error
+
 	attempts int
-	errors   []error
 
 	JobID int
 }

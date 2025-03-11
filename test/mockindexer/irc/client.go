@@ -14,12 +14,12 @@ type Client struct {
 	conn   net.Conn
 	writer chan string
 
+	handler func(c *Client, cmd []string)
+
 	botName     string
 	channelName string
 	nick        string
 	user        string
-
-	handler func(c *Client, cmd []string)
 }
 
 type ClientHandler interface {

@@ -21,13 +21,13 @@ import (
 )
 
 type OIDCConfig struct {
-	Enabled             bool
 	Issuer              string
 	ClientID            string
 	ClientSecret        string
 	RedirectURL         string
-	DisableBuiltInLogin bool
 	Scopes              []string
+	Enabled             bool
+	DisableBuiltInLogin bool
 }
 
 type OIDCHandler struct {
@@ -284,9 +284,9 @@ func (h *OIDCHandler) GetAuthorizationURL() string {
 }
 
 type GetConfigResponse struct {
-	Enabled             bool   `json:"enabled"`
 	AuthorizationURL    string `json:"authorizationUrl"`
 	State               string `json:"state"`
+	Enabled             bool   `json:"enabled"`
 	DisableBuiltInLogin bool   `json:"disableBuiltInLogin"`
 }
 

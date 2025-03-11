@@ -30,17 +30,18 @@ var (
 )
 
 type RSSJob struct {
-	Feed       *domain.Feed
-	Name       string
 	Log        zerolog.Logger
-	URL        string
 	Repo       domain.FeedRepo
 	CacheRepo  domain.FeedCacheRepo
 	ReleaseSvc release.Service
-	Timeout    time.Duration
+	Feed       *domain.Feed
+	Name       string
+	URL        string
+	errors     []error
+
+	Timeout time.Duration
 
 	attempts int
-	errors   []error
 
 	JobID int
 }
@@ -383,6 +384,6 @@ func readSizeFromDescription(str string, r *domain.Release) bool {
 // itemCustomElement
 // used for some feeds like Aviztas network
 type itemCustomElement struct {
-	ContentLength int64  `xml:"contentLength,contentlength"`
 	InfoHash      string `xml:"infoHash"`
+	ContentLength int64  `xml:"contentLength,contentlength"`
 }

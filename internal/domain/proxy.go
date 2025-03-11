@@ -20,14 +20,14 @@ type ProxyRepo interface {
 }
 
 type Proxy struct {
-	ID      int64     `json:"id"`
 	Name    string    `json:"name"`
-	Enabled bool      `json:"enabled"`
 	Type    ProxyType `json:"type"`
 	Addr    string    `json:"addr"`
 	User    string    `json:"user"`
 	Pass    string    `json:"pass"`
+	ID      int64     `json:"id"`
 	Timeout int       `json:"timeout"`
+	Enabled bool      `json:"enabled"`
 }
 
 type ProxyType string

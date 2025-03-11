@@ -27,11 +27,11 @@ type DiscordMessage struct {
 }
 
 type DiscordEmbeds struct {
+	Timestamp   time.Time             `json:"timestamp"`
 	Title       string                `json:"title"`
 	Description string                `json:"description"`
-	Color       int                   `json:"color"`
 	Fields      []DiscordEmbedsFields `json:"fields,omitempty"`
-	Timestamp   time.Time             `json:"timestamp"`
+	Color       int                   `json:"color"`
 }
 type DiscordEmbedsFields struct {
 	Name   string `json:"name"`

@@ -132,8 +132,8 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		Cursor: uint64(cursor),
 		Sort:   nil,
 		Filters: struct {
-			Indexers   []string
 			PushStatus string
+			Indexers   []string
 		}{Indexers: indexer, PushStatus: pushStatus},
 		Search: search,
 	}

@@ -16,8 +16,8 @@ type ClientCacheStore interface {
 }
 
 type ClientCache struct {
-	mu      sync.RWMutex
 	clients map[int32]*domain.DownloadClient
+	mu      sync.RWMutex
 }
 
 func NewClientCache() *ClientCache {
