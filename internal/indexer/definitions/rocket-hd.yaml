@@ -3,7 +3,7 @@
 name: RocketHD
 identifier: rocket-hd
 description: RocketHD (RHD) is a GERMAN private torrent tracker for MOVIES / TV
-language: en-us
+language: de-DE
 urls:
   - https://rocket-hd.cc/
 privacy: private
