@@ -62,6 +62,8 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 			"f.enabled",
 			"f.name",
 			"f.priority",
+			"f.max_downloads",
+			"f.max_downloads_unit",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -108,8 +110,19 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
+		var maxDownloadsUnit sql.Null[string]
+		var maxDownloads sql.Null[int32]
+
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &maxDownloads, &maxDownloadsUnit, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		if maxDownloads.Valid {
+			f.MaxDownloads = int(maxDownloads.V)
+		}
+
+		if maxDownloadsUnit.Valid {
+			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.V)
 		}
 
 		filters = append(filters, f)
