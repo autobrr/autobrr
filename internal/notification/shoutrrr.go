@@ -11,9 +11,9 @@ import (
 )
 
 type shoutrrrSender struct {
+	builder  MessageBuilderPlainText
 	log      zerolog.Logger
 	Settings *domain.Notification
-	builder  MessageBuilderPlainText
 }
 
 func (s *shoutrrrSender) Name() string {

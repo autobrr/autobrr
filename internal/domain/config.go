@@ -7,39 +7,39 @@ type Config struct {
 	Version                 string
 	ConfigPath              string
 	Host                    string `toml:"host"`
-	Port                    int    `toml:"port"`
 	LogLevel                string `toml:"logLevel"`
 	LogPath                 string `toml:"logPath"`
-	LogMaxSize              int    `toml:"logMaxSize"`
-	LogMaxBackups           int    `toml:"logMaxBackups"`
 	BaseURL                 string `toml:"baseUrl"`
-	BaseURLModeLegacy       bool   `toml:"baseUrlModeLegacy"`
 	SessionSecret           string `toml:"sessionSecret"`
 	CustomDefinitions       string `toml:"customDefinitions"`
-	CheckForUpdates         bool   `toml:"checkForUpdates"`
 	DatabaseType            string `toml:"databaseType"`
-	DatabaseMaxBackups      int    `toml:"databaseMaxBackups"`
 	PostgresHost            string `toml:"postgresHost"`
-	PostgresPort            int    `toml:"postgresPort"`
 	PostgresDatabase        string `toml:"postgresDatabase"`
 	PostgresUser            string `toml:"postgresUser"`
 	PostgresPass            string `toml:"postgresPass"`
 	PostgresSSLMode         string `toml:"postgresSSLMode"`
 	PostgresExtraParams     string `toml:"postgresExtraParams"`
-	ProfilingEnabled        bool   `toml:"profilingEnabled"`
 	ProfilingHost           string `toml:"profilingHost"`
-	ProfilingPort           int    `toml:"profilingPort"`
-	OIDCEnabled             bool   `toml:"oidcEnabled"`
 	OIDCIssuer              string `toml:"oidcIssuer"`
 	OIDCClientID            string `toml:"oidcClientId"`
 	OIDCClientSecret        string `toml:"oidcClientSecret"`
 	OIDCRedirectURL         string `toml:"oidcRedirectUrl"`
 	OIDCScopes              string `toml:"oidcScopes"`
+	MetricsHost             string `toml:"metricsHost"`
+	MetricsBasicAuthUsers   string `toml:"metricsBasicAuthUsers"`
+	Port                    int    `toml:"port"`
+	LogMaxSize              int    `toml:"logMaxSize"`
+	LogMaxBackups           int    `toml:"logMaxBackups"`
+	DatabaseMaxBackups      int    `toml:"databaseMaxBackups"`
+	PostgresPort            int    `toml:"postgresPort"`
+	ProfilingPort           int    `toml:"profilingPort"`
+	MetricsPort             int    `toml:"metricsPort"`
+	BaseURLModeLegacy       bool   `toml:"baseUrlModeLegacy"`
+	CheckForUpdates         bool   `toml:"checkForUpdates"`
+	ProfilingEnabled        bool   `toml:"profilingEnabled"`
+	OIDCEnabled             bool   `toml:"oidcEnabled"`
 	OIDCDisableBuiltInLogin bool   `toml:"oidcDisableBuiltInLogin"`
 	MetricsEnabled          bool   `toml:"metricsEnabled"`
-	MetricsHost             string `toml:"metricsHost"`
-	MetricsPort             int    `toml:"metricsPort"`
-	MetricsBasicAuthUsers   string `toml:"metricsBasicAuthUsers"`
 }
 
 type ConfigUpdate struct {

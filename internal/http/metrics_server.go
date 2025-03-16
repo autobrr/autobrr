@@ -26,13 +26,13 @@ type metricsManager interface {
 type MetricsServer struct {
 	log zerolog.Logger
 
+	metricsManager metricsManager
+
 	config *config.AppConfig
 
 	version string
 	commit  string
 	date    string
-
-	metricsManager metricsManager
 }
 
 func NewMetricsServer(log logger.Logger, config *config.AppConfig, version string, commit string, date string, metricsManager metricsManager) MetricsServer {

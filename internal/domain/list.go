@@ -48,25 +48,25 @@ const (
 )
 
 type List struct {
-	ID                     int64             `json:"id"`
-	Name                   string            `json:"name"`
-	Type                   ListType          `json:"type"`
-	Enabled                bool              `json:"enabled"`
-	ClientID               int               `json:"client_id"`
-	URL                    string            `json:"url"`
-	Headers                []string          `json:"headers"`
-	APIKey                 string            `json:"api_key"`
-	Filters                []ListFilter      `json:"filters"`
-	MatchRelease           bool              `json:"match_release"`
-	TagsInclude            []string          `json:"tags_included"`
-	TagsExclude            []string          `json:"tags_excluded"`
-	IncludeUnmonitored     bool              `json:"include_unmonitored"`
-	IncludeAlternateTitles bool              `json:"include_alternate_titles"`
 	LastRefreshTime        time.Time         `json:"last_refresh_time"`
-	LastRefreshData        string            `json:"last_refresh_error"`
-	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
 	CreatedAt              time.Time         `json:"created_at"`
 	UpdatedAt              time.Time         `json:"updated_at"`
+	Name                   string            `json:"name"`
+	Type                   ListType          `json:"type"`
+	URL                    string            `json:"url"`
+	APIKey                 string            `json:"api_key"`
+	LastRefreshData        string            `json:"last_refresh_error"`
+	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
+	Headers                []string          `json:"headers"`
+	Filters                []ListFilter      `json:"filters"`
+	TagsInclude            []string          `json:"tags_included"`
+	TagsExclude            []string          `json:"tags_excluded"`
+	ID                     int64             `json:"id"`
+	ClientID               int               `json:"client_id"`
+	Enabled                bool              `json:"enabled"`
+	MatchRelease           bool              `json:"match_release"`
+	IncludeUnmonitored     bool              `json:"include_unmonitored"`
+	IncludeAlternateTitles bool              `json:"include_alternate_titles"`
 }
 
 func (l *List) Validate() error {
@@ -132,6 +132,6 @@ func (l *List) SetRequestHeaders(req *http.Request) {
 }
 
 type ListFilter struct {
-	ID   int    `json:"id"`
 	Name string `json:"name"`
+	ID   int    `json:"id"`
 }

@@ -35,10 +35,10 @@ func WithUrl(url string) OptFunc {
 type Client struct {
 	rpcClient   jsonrpc.Client
 	rateLimiter *rate.Limiter
-	APIKey      string
-	url         string
 
-	Log *log.Logger
+	Log    *log.Logger
+	APIKey string
+	url    string
 }
 
 func NewClient(apiKey string, opts ...OptFunc) ApiClient {

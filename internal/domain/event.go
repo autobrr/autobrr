@@ -13,17 +13,17 @@ const (
 )
 
 type EventsReleasePushed struct {
+	Timestamp      time.Time
 	ReleaseName    string
 	Filter         string
 	Indexer        string
 	InfoHash       string
-	Size           uint64
 	Status         ReleasePushStatus
 	Action         string
 	ActionType     ActionType
 	ActionClient   string
-	Rejections     []string
 	Protocol       ReleaseProtocol       // torrent, usenet
 	Implementation ReleaseImplementation // irc, rss, api
-	Timestamp      time.Time
+	Rejections     []string
+	Size           uint64
 }

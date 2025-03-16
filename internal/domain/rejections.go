@@ -18,8 +18,8 @@ type Rejection struct {
 }
 
 type RejectionReasons struct {
-	m    sync.RWMutex
 	data []Rejection
+	m    sync.RWMutex
 }
 
 func (r *RejectionReasons) Len() int {

@@ -10,9 +10,9 @@ import (
 )
 
 type Category struct {
-	ID            int        `xml:"id,attr"`
 	Name          string     `xml:"name,attr"`
 	SubCategories []Category `xml:"subcat"`
+	ID            int        `xml:"id,attr"`
 }
 
 func (c Category) String() string {

@@ -19,22 +19,20 @@ var (
 )
 
 type Client struct {
-	Name      string
-	Hostname  string
 	cfg       Config
 	rpcClient jsonrpc.Client
 	http      *http.Client
-	timeout   time.Duration
 
-	log *log.Logger
+	log      *log.Logger
+	Name     string
+	Hostname string
+	timeout  time.Duration
 }
 
 type Config struct {
+	Log       *log.Logger
 	Hostname  string
 	AuthToken string
-
-	// TLS skip cert validation
-	TLSSkipVerify bool
 
 	// HTTP Basic auth username
 	BasicUser string
@@ -43,7 +41,9 @@ type Config struct {
 	BasicPass string
 
 	Timeout int
-	Log     *log.Logger
+
+	// TLS skip cert validation
+	TLSSkipVerify bool
 }
 
 func NewClient(cfg Config) *Client {

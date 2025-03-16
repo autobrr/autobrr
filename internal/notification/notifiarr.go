@@ -19,14 +19,12 @@ import (
 )
 
 type notifiarrMessage struct {
-	Event string               `json:"event"`
 	Data  notifiarrMessageData `json:"data"`
+	Event string               `json:"event"`
 }
 
 type notifiarrMessageData struct {
-	Subject        string                        `json:"subject"`
-	Message        string                        `json:"message"`
-	Event          domain.NotificationEvent      `json:"event"`
+	Timestamp      time.Time                     `json:"timestamp"`
 	ReleaseName    *string                       `json:"release_name,omitempty"`
 	Filter         *string                       `json:"filter,omitempty"`
 	Indexer        *string                       `json:"indexer,omitempty"`
@@ -36,18 +34,20 @@ type notifiarrMessageData struct {
 	Action         *string                       `json:"action,omitempty"`
 	ActionType     *domain.ActionType            `json:"action_type,omitempty"`
 	ActionClient   *string                       `json:"action_client,omitempty"`
-	Rejections     []string                      `json:"rejections,omitempty"`
 	Protocol       *domain.ReleaseProtocol       `json:"protocol,omitempty"`       // torrent, usenet
 	Implementation *domain.ReleaseImplementation `json:"implementation,omitempty"` // irc, rss, api
-	Timestamp      time.Time                     `json:"timestamp"`
+	Subject        string                        `json:"subject"`
+	Message        string                        `json:"message"`
+	Event          domain.NotificationEvent      `json:"event"`
+	Rejections     []string                      `json:"rejections,omitempty"`
 }
 
 type notifiarrSender struct {
 	log      zerolog.Logger
 	Settings *domain.Notification
-	baseUrl  string
 
 	httpClient *http.Client
+	baseUrl    string
 }
 
 func (s *notifiarrSender) Name() string {

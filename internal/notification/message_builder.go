@@ -18,9 +18,9 @@ type MessageBuilder interface {
 }
 
 type ConditionMessagePart struct {
-	Condition bool
 	Format    string
 	Bits      []interface{}
+	Condition bool
 }
 
 // MessageBuilderPlainText constructs the body of the notification message in plain text format.

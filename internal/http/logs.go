@@ -135,10 +135,10 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 }
 
 type LogFile struct {
-	Name      string    `json:"filename"`
-	SizeBytes int64     `json:"size_bytes"`
-	Size      string    `json:"size"`
 	UpdatedAt time.Time `json:"updated_at"`
+	Name      string    `json:"filename"`
+	Size      string    `json:"size"`
+	SizeBytes int64     `json:"size_bytes"`
 }
 
 type LogfilesResponse struct {

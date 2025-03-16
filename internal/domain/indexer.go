@@ -27,17 +27,17 @@ type IndexerRepo interface {
 }
 
 type Indexer struct {
-	ID                 int64             `json:"id"`
+	Proxy              *Proxy            `json:"proxy"`
+	Settings           map[string]string `json:"settings,omitempty"`
 	Name               string            `json:"name"`
 	Identifier         string            `json:"identifier"`
 	IdentifierExternal string            `json:"identifier_external"`
-	Enabled            bool              `json:"enabled"`
 	Implementation     string            `json:"implementation"`
 	BaseURL            string            `json:"base_url,omitempty"`
-	UseProxy           bool              `json:"use_proxy"`
-	Proxy              *Proxy            `json:"proxy"`
+	ID                 int64             `json:"id"`
 	ProxyID            int64             `json:"proxy_id"`
-	Settings           map[string]string `json:"settings,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	UseProxy           bool              `json:"use_proxy"`
 }
 
 func (i Indexer) ImplementationIsFeed() bool {
@@ -45,10 +45,10 @@ func (i Indexer) ImplementationIsFeed() bool {
 }
 
 type IndexerMinimal struct {
-	ID                 int    `json:"id"`
 	Name               string `json:"name"`
 	Identifier         string `json:"identifier"`
 	IdentifierExternal string `json:"identifier_external"`
+	ID                 int    `json:"id"`
 }
 
 func (m IndexerMinimal) GetExternalIdentifier() string {
@@ -60,27 +60,27 @@ func (m IndexerMinimal) GetExternalIdentifier() string {
 }
 
 type IndexerDefinition struct {
-	ID                 int               `json:"id,omitempty"`
+	SettingsMap        map[string]string `json:"-"`
+	IRC                *IndexerIRC       `json:"irc,omitempty"`
+	Torznab            *Torznab          `json:"torznab,omitempty"`
+	Newznab            *Newznab          `json:"newznab,omitempty"`
+	RSS                *FeedSettings     `json:"rss,omitempty"`
 	Name               string            `json:"name"`
 	Identifier         string            `json:"identifier"`
 	IdentifierExternal string            `json:"identifier_external"`
 	Implementation     string            `json:"implementation"`
 	BaseURL            string            `json:"base_url,omitempty"`
-	Enabled            bool              `json:"enabled"`
 	Description        string            `json:"description"`
 	Language           string            `json:"language"`
 	Privacy            string            `json:"privacy"`
 	Protocol           string            `json:"protocol"`
 	URLS               []string          `json:"urls"`
 	Supports           []string          `json:"supports"`
-	UseProxy           bool              `json:"use_proxy"`
-	ProxyID            int64             `json:"proxy_id"`
 	Settings           []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap        map[string]string `json:"-"`
-	IRC                *IndexerIRC       `json:"irc,omitempty"`
-	Torznab            *Torznab          `json:"torznab,omitempty"`
-	Newznab            *Newznab          `json:"newznab,omitempty"`
-	RSS                *FeedSettings     `json:"rss,omitempty"`
+	ID                 int               `json:"id,omitempty"`
+	ProxyID            int64             `json:"proxy_id"`
+	Enabled            bool              `json:"enabled"`
+	UseProxy           bool              `json:"use_proxy"`
 }
 
 type IndexerImplementation string
@@ -120,12 +120,16 @@ func (i IndexerDefinition) HasApi() bool {
 }
 
 type IndexerDefinitionCustom struct {
-	ID             int               `json:"id,omitempty"`
+	SettingsMap    map[string]string `json:"-"`
+	IRC            *IndexerIRC       `json:"irc,omitempty"`
+	Torznab        *Torznab          `json:"torznab,omitempty"`
+	Newznab        *Newznab          `json:"newznab,omitempty"`
+	RSS            *FeedSettings     `json:"rss,omitempty"`
+	Parse          *IndexerIRCParse  `json:"parse,omitempty"`
 	Name           string            `json:"name"`
 	Identifier     string            `json:"identifier"`
 	Implementation string            `json:"implementation"`
 	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled,omitempty"`
 	Description    string            `json:"description"`
 	Language       string            `json:"language"`
 	Privacy        string            `json:"privacy"`
@@ -133,12 +137,8 @@ type IndexerDefinitionCustom struct {
 	URLS           []string          `json:"urls"`
 	Supports       []string          `json:"supports"`
 	Settings       []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap    map[string]string `json:"-"`
-	IRC            *IndexerIRC       `json:"irc,omitempty"`
-	Torznab        *Torznab          `json:"torznab,omitempty"`
-	Newznab        *Newznab          `json:"newznab,omitempty"`
-	RSS            *FeedSettings     `json:"rss,omitempty"`
-	Parse          *IndexerIRCParse  `json:"parse,omitempty"`
+	ID             int               `json:"id,omitempty"`
+	Enabled        bool              `json:"enabled,omitempty"`
 }
 
 func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
@@ -172,7 +172,6 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 
 type IndexerSetting struct {
 	Name        string `json:"name"`
-	Required    bool   `json:"required,omitempty"`
 	Type        string `json:"type"`
 	Value       string `json:"value,omitempty"`
 	Label       string `json:"label"`
@@ -180,33 +179,34 @@ type IndexerSetting struct {
 	Description string `json:"description,omitempty"`
 	Help        string `json:"help,omitempty"`
 	Regex       string `json:"regex,omitempty"`
+	Required    bool   `json:"required,omitempty"`
 }
 
 type Torznab struct {
-	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
+	MinInterval int              `json:"minInterval"`
 }
 
 type Newznab struct {
-	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
+	MinInterval int              `json:"minInterval"`
 }
 
 type FeedSettings struct {
-	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
+	MinInterval int              `json:"minInterval"`
 }
 
 type IndexerIRC struct {
+	SettingsMap map[string]string `json:"-"`
+	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
 	Network     string            `json:"network"`
 	Server      string            `json:"server"`
-	Port        int               `json:"port"`
-	TLS         bool              `json:"tls"`
 	Channels    []string          `json:"channels"`
 	Announcers  []string          `json:"announcers"`
-	SettingsMap map[string]string `json:"-"`
 	Settings    []IndexerSetting  `json:"settings"`
-	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
+	Port        int               `json:"port"`
+	TLS         bool              `json:"tls"`
 }
 
 func (i IndexerIRC) ValidAnnouncer(announcer string) bool {
@@ -228,16 +228,16 @@ func (i IndexerIRC) ValidChannel(channel string) bool {
 }
 
 type IndexerIRCParse struct {
+	Mappings      map[string]map[string]map[string]string `json:"mappings"`
 	Type          string                                  `json:"type"`
 	ForceSizeUnit string                                  `json:"forcesizeunit"`
-	Lines         []IndexerIRCParseLine                   `json:"lines"`
 	Match         IndexerIRCParseMatch                    `json:"match"`
-	Mappings      map[string]map[string]map[string]string `json:"mappings"`
+	Lines         []IndexerIRCParseLine                   `json:"lines"`
 }
 
 type LineTest struct {
-	Line   string            `json:"line"`
 	Expect map[string]string `json:"expect"`
+	Line   string            `json:"line"`
 }
 
 type IndexerIRCParseLine struct {
@@ -451,14 +451,14 @@ func (t TorrentBasic) ReleaseSizeBytes() uint64 {
 }
 
 type IndexerTestApiRequest struct {
-	IndexerId  int    `json:"id,omitempty"`
 	Identifier string `json:"identifier,omitempty"`
 	ApiUser    string `json:"api_user,omitempty"`
 	ApiKey     string `json:"api_key"`
+	IndexerId  int    `json:"id,omitempty"`
 }
 
 type GetIndexerRequest struct {
-	ID         int
 	Identifier string
 	Name       string
+	ID         int
 }

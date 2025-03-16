@@ -313,10 +313,10 @@ func init() {
 }
 
 type TagInfo struct {
+	re     *regexp.Regexp
 	tag    string
 	title  string
 	regexp string
-	re     *regexp.Regexp
 }
 
 // Tag returns the tag info tag.
@@ -384,21 +384,21 @@ func Find(infos ...*TagInfo) FindFunc {
 }
 
 type ReleaseTags struct {
-	Audio        []string
 	AudioBitrate string
 	AudioFormat  string
-	LogScore     int
-	HasLog       bool
-	HasCue       bool
-	Bonus        []string
 	Channels     string
 	Codec        string
 	Container    string
-	HDR          []string
 	Origin       string
-	Other        []string
 	Resolution   string
 	Source       string
+	Audio        []string
+	Bonus        []string
+	HDR          []string
+	Other        []string
+	LogScore     int
+	HasLog       bool
+	HasCue       bool
 }
 
 func ParseReleaseTags(tags []string) ReleaseTags {

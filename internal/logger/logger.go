@@ -36,8 +36,8 @@ type Logger interface {
 // DefaultLogger default logging controller
 type DefaultLogger struct {
 	log     zerolog.Logger
-	level   zerolog.Level
 	writers []io.Writer
+	level   zerolog.Level
 }
 
 func New(cfg *domain.Config) Logger {

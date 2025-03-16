@@ -12,8 +12,8 @@ import (
 )
 
 type Feed struct {
-	Channel Channel `xml:"channel"`
 	Raw     string
+	Channel Channel `xml:"channel"`
 }
 
 func (f Feed) Len() int {

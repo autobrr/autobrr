@@ -17,63 +17,35 @@ import (
 
 type Macro struct {
 	Artists                   string
-	Audio                     []string
 	AudioChannels             string
 	AudioFormat               string
 	Bitrate                   string
-	Bonus                     []string
-	Categories                []string
 	Category                  string
-	Codec                     []string
 	Container                 string
-	CurrentDay                int
-	CurrentHour               int
-	CurrentMinute             int
-	CurrentMonth              int
-	CurrentSecond             int
-	CurrentYear               int
 	Description               string
 	DownloadUrl               string
-	Episode                   int
-	FilterID                  int
 	FilterName                string
-	Freeleech                 bool
-	FreeleechPercent          int
 	Group                     string
 	GroupID                   string
 	HDR                       string
-	HasCue                    bool
-	HasLog                    bool
 	Implementation            string
 	Indexer                   string
 	IndexerIdentifier         string
 	IndexerIdentifierExternal string
 	IndexerName               string
 	InfoUrl                   string
-	IsDuplicate               bool
-	Language                  []string
-	Leechers                  int
-	LogScore                  int
 	MagnetURI                 string
 	MetaIMDB                  string
 	Origin                    string
-	Other                     []string
 	PreTime                   string
 	Protocol                  string
-	Proper                    bool
 	Region                    string
-	Repack                    bool
 	Resolution                string
-	Season                    int
-	Seeders                   int
-	Size                      uint64
 	SizeString                string
-	SkipDuplicateProfileID    int64
 	SkipDuplicateProfileName  string
 	Source                    string
 	Tags                      string
 	Title                     string
-	TorrentDataRawBytes       []byte
 	TorrentHash               string
 	TorrentID                 string
 	TorrentName               string
@@ -84,9 +56,37 @@ type Macro struct {
 	Uploader                  string
 	RecordLabel               string
 	Website                   string
+	Audio                     []string
+	Bonus                     []string
+	Categories                []string
+	Codec                     []string
+	Language                  []string
+	Other                     []string
+	TorrentDataRawBytes       []byte
+	CurrentDay                int
+	CurrentHour               int
+	CurrentMinute             int
+	CurrentMonth              int
+	CurrentSecond             int
+	CurrentYear               int
+	Episode                   int
+	FilterID                  int
+	FreeleechPercent          int
+	Leechers                  int
+	LogScore                  int
+	Season                    int
+	Seeders                   int
+	Size                      uint64
+	SkipDuplicateProfileID    int64
 	Year                      int
 	Month                     int
 	Day                       int
+	Freeleech                 bool
+	HasCue                    bool
+	HasLog                    bool
+	IsDuplicate               bool
+	Proper                    bool
+	Repack                    bool
 }
 
 func NewMacro(release Release) Macro {

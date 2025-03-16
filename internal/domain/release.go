@@ -56,83 +56,83 @@ type ReleaseRepo interface {
 }
 
 type Release struct {
-	ID                                 int64                 `json:"id"`
-	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
-	Rejections                         []string              `json:"rejections"`
+	Timestamp                          time.Time             `json:"timestamp"`
+	Filter                             *Filter               `json:"-"`
 	Indexer                            IndexerMinimal        `json:"indexer"`
+	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
 	FilterName                         string                `json:"filter"`
 	Protocol                           ReleaseProtocol       `json:"protocol"`
 	Implementation                     ReleaseImplementation `json:"implementation"` // irc, rss, api
-	Timestamp                          time.Time             `json:"timestamp"`
 	AnnounceType                       AnnounceType          `json:"announce_type"`
-	Type                               rls.Type              `json:"type"` // rls.Type
 	InfoURL                            string                `json:"info_url"`
 	DownloadURL                        string                `json:"download_url"`
 	MagnetURI                          string                `json:"-"`
 	GroupID                            string                `json:"group_id"`
 	TorrentID                          string                `json:"torrent_id"`
 	TorrentTmpFile                     string                `json:"-"`
-	TorrentDataRawBytes                []byte                `json:"-"`
 	TorrentHash                        string                `json:"-"`
 	TorrentName                        string                `json:"name"`            // full release name
 	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
-	Size                               uint64                `json:"size"`
-	Title                              string                `json:"title"`     // Parsed title
-	SubTitle                           string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
+	Title                              string                `json:"title"`           // Parsed title
+	SubTitle                           string                `json:"sub_title"`       // Parsed secondary title for shows e.g. episode name
 	Description                        string                `json:"-"`
 	Category                           string                `json:"category"`
-	Categories                         []string              `json:"categories,omitempty"`
-	Season                             int                   `json:"season"`
-	Episode                            int                   `json:"episode"`
-	Year                               int                   `json:"year"`
-	Month                              int                   `json:"month"`
-	Day                                int                   `json:"day"`
 	Resolution                         string                `json:"resolution"`
 	Source                             string                `json:"source"`
-	Codec                              []string              `json:"codec"`
 	Container                          string                `json:"container"`
-	HDR                                []string              `json:"hdr"`
-	Audio                              []string              `json:"-"`
 	AudioChannels                      string                `json:"-"`
 	AudioFormat                        string                `json:"-"`
 	Bitrate                            string                `json:"-"`
 	Group                              string                `json:"group"`
 	Region                             string                `json:"-"`
-	Language                           []string              `json:"-"`
-	Proper                             bool                  `json:"proper"`
-	Repack                             bool                  `json:"repack"`
 	Website                            string                `json:"website"`
-	Hybrid                             bool                  `json:"hybrid"`
-	Edition                            []string              `json:"edition"`
-	Cut                                []string              `json:"cut"`
 	MediaProcessing                    string                `json:"media_processing"` // Remux, Encode, Untouched
 	Artists                            string                `json:"-"`
-	LogScore                           int                   `json:"-"`
-	HasCue                             bool                  `json:"-"`
-	HasLog                             bool                  `json:"-"`
 	Origin                             string                `json:"origin"` // P2P, Internal
-	Tags                               []string              `json:"-"`
 	ReleaseTags                        string                `json:"-"`
-	Freeleech                          bool                  `json:"-"`
-	FreeleechPercent                   int                   `json:"-"`
-	Bonus                              []string              `json:"-"`
 	Uploader                           string                `json:"uploader"`
 	RecordLabel                        string                `json:"record_label"`
 	PreTime                            string                `json:"pre_time"`
-	Other                              []string              `json:"-"`
 	RawCookie                          string                `json:"-"`
+	SkipDuplicateProfileName           string                `json:"-"`
+	MetaIMDB                           string                `json:"-"`
+	Rejections                         []string              `json:"rejections"`
+	TorrentDataRawBytes                []byte                `json:"-"`
+	Categories                         []string              `json:"categories,omitempty"`
+	Codec                              []string              `json:"codec"`
+	HDR                                []string              `json:"hdr"`
+	Audio                              []string              `json:"-"`
+	Language                           []string              `json:"-"`
+	Edition                            []string              `json:"edition"`
+	Cut                                []string              `json:"cut"`
+	Tags                               []string              `json:"-"`
+	Bonus                              []string              `json:"-"`
+	Other                              []string              `json:"-"`
+	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
+	ID                                 int64                 `json:"id"`
+	Type                               rls.Type              `json:"type"` // rls.Type
+	Size                               uint64                `json:"size"`
+	Season                             int                   `json:"season"`
+	Episode                            int                   `json:"episode"`
+	Year                               int                   `json:"year"`
+	Month                              int                   `json:"month"`
+	Day                                int                   `json:"day"`
+	LogScore                           int                   `json:"-"`
+	FreeleechPercent                   int                   `json:"-"`
 	Seeders                            int                   `json:"-"`
 	Leechers                           int                   `json:"-"`
+	SkipDuplicateProfileID             int64                 `json:"-"`
+	FilterID                           int                   `json:"-"`
+	Proper                             bool                  `json:"proper"`
+	Repack                             bool                  `json:"repack"`
+	Hybrid                             bool                  `json:"hybrid"`
+	HasCue                             bool                  `json:"-"`
+	HasLog                             bool                  `json:"-"`
+	Freeleech                          bool                  `json:"-"`
 	AdditionalSizeCheckRequired        bool                  `json:"-"`
 	AdditionalUploaderCheckRequired    bool                  `json:"-"`
 	AdditionalRecordLabelCheckRequired bool                  `json:"-"`
 	IsDuplicate                        bool                  `json:"-"`
-	SkipDuplicateProfileID             int64                 `json:"-"`
-	SkipDuplicateProfileName           string                `json:"-"`
-	FilterID                           int                   `json:"-"`
-	Filter                             *Filter               `json:"-"`
-	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
-	MetaIMDB                           string                `json:"-"`
 }
 
 // Hash return md5 hashed normalized release name
@@ -355,23 +355,23 @@ func ParseAnnounceType(s string) (AnnounceType, error) {
 }
 
 type ReleaseActionStatus struct {
-	ID         int64             `json:"id"`
+	Timestamp  time.Time         `json:"timestamp"`
 	Status     ReleasePushStatus `json:"status"`
 	Action     string            `json:"action"`
-	ActionID   int64             `json:"action_id"`
 	Type       ActionType        `json:"type"`
 	Client     string            `json:"client"`
 	Filter     string            `json:"filter"`
-	FilterID   int64             `json:"filter_id"`
 	Rejections []string          `json:"rejections"`
+	ID         int64             `json:"id"`
+	ActionID   int64             `json:"action_id"`
+	FilterID   int64             `json:"filter_id"`
 	ReleaseID  int64             `json:"release_id"`
-	Timestamp  time.Time         `json:"timestamp"`
 }
 
 type DeleteReleaseRequest struct {
-	OlderThan       int
 	Indexers        []string
 	ReleaseStatuses []string
+	OlderThan       int
 }
 
 func NewReleaseActionStatus(action *Action, release *Release) *ReleaseActionStatus {
@@ -500,15 +500,15 @@ func (r ReleaseImplementation) String() string {
 }
 
 type ReleaseQueryParams struct {
-	Limit   uint64
-	Offset  uint64
-	Cursor  uint64
 	Sort    map[string]string
 	Filters struct {
-		Indexers   []string
 		PushStatus string
+		Indexers   []string
 	}
 	Search string
+	Limit  uint64
+	Offset uint64
+	Cursor uint64
 }
 
 type FindReleasesResponse struct {
@@ -1229,8 +1229,8 @@ func getUniqueTags(target []string, source []string) []string {
 }
 
 type DuplicateReleaseProfile struct {
-	ID           int64  `json:"id"`
 	Name         string `json:"name"`
+	ID           int64  `json:"id"`
 	Protocol     bool   `json:"protocol"`
 	ReleaseName  bool   `json:"release_name"`
 	Hash         bool   `json:"hash"`

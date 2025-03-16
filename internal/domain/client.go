@@ -21,29 +21,30 @@ type DownloadClientRepo interface {
 }
 
 type DownloadClient struct {
-	ID            int32                  `json:"id"`
-	Name          string                 `json:"name"`
-	Type          DownloadClientType     `json:"type"`
-	Enabled       bool                   `json:"enabled"`
-	Host          string                 `json:"host"`
-	Port          int                    `json:"port"`
-	TLS           bool                   `json:"tls"`
-	TLSSkipVerify bool                   `json:"tls_skip_verify"`
-	Username      string                 `json:"username"`
-	Password      string                 `json:"password"`
-	Settings      DownloadClientSettings `json:"settings,omitempty"`
 
 	// cached http client
-	Client any
+	Client   any
+	Settings DownloadClientSettings `json:"settings,omitempty"`
+
+	Name          string             `json:"name"`
+	Type          DownloadClientType `json:"type"`
+	Host          string             `json:"host"`
+	Username      string             `json:"username"`
+	Password      string             `json:"password"`
+	Port          int                `json:"port"`
+	ID            int32              `json:"id"`
+	Enabled       bool               `json:"enabled"`
+	TLS           bool               `json:"tls"`
+	TLSSkipVerify bool               `json:"tls_skip_verify"`
 }
 
 type DownloadClientSettings struct {
-	APIKey                   string              `json:"apikey,omitempty"`
+	Auth                     DownloadClientAuth  `json:"auth,omitempty"`
 	Basic                    BasicAuth           `json:"basic,omitempty"` // Deprecated: Use Auth instead
+	APIKey                   string              `json:"apikey,omitempty"`
+	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 	Rules                    DownloadClientRules `json:"rules,omitempty"`
 	ExternalDownloadClientId int                 `json:"external_download_client_id,omitempty"`
-	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
-	Auth                     DownloadClientAuth  `json:"auth,omitempty"`
 }
 
 // MarshalJSON Custom method to translate Basic into Auth without including Basic in JSON output
@@ -101,25 +102,25 @@ const (
 )
 
 type DownloadClientAuth struct {
-	Enabled  bool                   `json:"enabled,omitempty"`
 	Type     DownloadClientAuthType `json:"type,omitempty"`
 	Username string                 `json:"username,omitempty"`
 	Password string                 `json:"password,omitempty"`
+	Enabled  bool                   `json:"enabled,omitempty"`
 }
 
 type DownloadClientRules struct {
-	Enabled                     bool                        `json:"enabled"`
-	MaxActiveDownloads          int                         `json:"max_active_downloads"`
-	IgnoreSlowTorrents          bool                        `json:"ignore_slow_torrents"`
 	IgnoreSlowTorrentsCondition IgnoreSlowTorrentsCondition `json:"ignore_slow_torrents_condition,omitempty"`
+	MaxActiveDownloads          int                         `json:"max_active_downloads"`
 	DownloadSpeedThreshold      int64                       `json:"download_speed_threshold"`
 	UploadSpeedThreshold        int64                       `json:"upload_speed_threshold"`
+	Enabled                     bool                        `json:"enabled"`
+	IgnoreSlowTorrents          bool                        `json:"ignore_slow_torrents"`
 }
 
 type BasicAuth struct {
-	Auth     bool   `json:"auth,omitempty"`
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
+	Auth     bool   `json:"auth,omitempty"`
 }
 
 type IgnoreSlowTorrentsCondition string
@@ -207,6 +208,6 @@ func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
 }
 
 type ArrTag struct {
-	ID    int    `json:"id"`
 	Label string `json:"label"`
+	ID    int    `json:"id"`
 }

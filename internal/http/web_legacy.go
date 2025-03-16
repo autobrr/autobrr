@@ -16,13 +16,13 @@ import (
 )
 
 type webLegacyHandler struct {
-	log          zerolog.Logger
-	embedFS      fs.FS
+	log     zerolog.Logger
+	embedFS fs.FS
+
+	files        map[string]string
 	baseUrl      string
 	assetBaseURL string
 	version      string
-
-	files map[string]string
 }
 
 func newWebLegacyHandler(log zerolog.Logger, embedFS fs.FS, version, baseURL, assetBaseURL string) *webLegacyHandler {

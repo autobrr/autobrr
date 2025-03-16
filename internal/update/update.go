@@ -18,9 +18,10 @@ type Service struct {
 	log    zerolog.Logger
 	config *domain.Config
 
-	m              sync.RWMutex
 	releaseChecker *version.Checker
 	latestRelease  *version.Release
+
+	m sync.RWMutex
 }
 
 func NewUpdate(log logger.Logger, config *domain.Config) *Service {

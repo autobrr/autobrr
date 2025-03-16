@@ -16,8 +16,8 @@ type APIRepo interface {
 }
 
 type APIKey struct {
+	CreatedAt time.Time `json:"created_at"`
 	Name      string    `json:"name"`
 	Key       string    `json:"key"`
 	Scopes    []string  `json:"scopes"`
-	CreatedAt time.Time `json:"created_at"`
 }

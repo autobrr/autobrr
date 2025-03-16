@@ -4,8 +4,8 @@
 package arr
 
 type Tag struct {
-	ID    int
 	Label string
+	ID    int
 }
 
 type Link struct {
@@ -27,29 +27,29 @@ type Ratings struct {
 }
 
 type Value struct {
-	ID   int64  `json:"id"`
 	Name string `json:"name"`
+	ID   int64  `json:"id"`
 }
 
 // BaseQuality is a base quality profile.
 type BaseQuality struct {
-	ID         int64  `json:"id"`
 	Name       string `json:"name"`
 	Source     string `json:"source,omitempty"`
-	Resolution int    `json:"resolution,omitempty"`
 	Modifier   string `json:"modifier,omitempty"`
+	ID         int64  `json:"id"`
+	Resolution int    `json:"resolution,omitempty"`
 }
 
 // Quality is a download quality profile attached to a movie, book, track or series.
 // It may contain 1 or more profiles.
 // Sonarr nor Readarr use Name or ID in this struct.
 type Quality struct {
-	Name     string           `json:"name,omitempty"`
-	ID       int              `json:"id,omitempty"`
 	Quality  *BaseQuality     `json:"quality,omitempty"`
-	Items    []*Quality       `json:"items,omitempty"`
-	Allowed  bool             `json:"allowed"`
 	Revision *QualityRevision `json:"revision,omitempty"` // Not sure which app had this....
+	Name     string           `json:"name,omitempty"`
+	Items    []*Quality       `json:"items,omitempty"`
+	ID       int              `json:"id,omitempty"`
+	Allowed  bool             `json:"allowed"`
 }
 
 // QualityRevision is probably used in Sonarr.

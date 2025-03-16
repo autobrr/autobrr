@@ -21,22 +21,23 @@ import (
 )
 
 type pushoverMessage struct {
+	Timestamp time.Time `json:"timestamp"`
 	Token     string    `json:"api_key"`
 	User      string    `json:"token"`
 	Message   string    `json:"message"`
-	Priority  int32     `json:"priority"`
 	Title     string    `json:"title"`
-	Timestamp time.Time `json:"timestamp"`
 	Html      int       `json:"html,omitempty"`
+	Priority  int32     `json:"priority"`
 }
 
 type pushoverSender struct {
+	builder MessageBuilderHTML
+
 	log      zerolog.Logger
 	Settings *domain.Notification
-	baseUrl  string
-	builder  MessageBuilderHTML
 
 	httpClient *http.Client
+	baseUrl    string
 }
 
 func (s *pushoverSender) Name() string {

@@ -28,14 +28,14 @@ type Service interface {
 
 type service struct {
 	log             zerolog.Logger
-	config          *domain.Config
-	version         string
 	notificationSvc notification.Service
+	config          *domain.Config
 	updateSvc       *update.Service
 
-	cron *cron.Cron
-	jobs map[string]cron.EntryID
-	m    sync.RWMutex
+	cron    *cron.Cron
+	jobs    map[string]cron.EntryID
+	version string
+	m       sync.RWMutex
 }
 
 func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Service, updateSvc *update.Service) Service {
@@ -165,10 +165,10 @@ func (s *service) getEntryById(id string) cron.Entry {
 }
 
 type GenericJob struct {
-	Name string
-	Log  zerolog.Logger
+	Log zerolog.Logger
 
 	callback func()
+	Name     string
 }
 
 func (j *GenericJob) Run() {

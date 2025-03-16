@@ -24,11 +24,10 @@ type NotificationSender interface {
 }
 
 type Notification struct {
-	ID        int              `json:"id"`
+	CreatedAt time.Time        `json:"created_at"`
+	UpdatedAt time.Time        `json:"updated_at"`
 	Name      string           `json:"name"`
 	Type      NotificationType `json:"type"`
-	Enabled   bool             `json:"enabled"`
-	Events    []string         `json:"events"`
 	Token     string           `json:"token"`
 	APIKey    string           `json:"api_key"`
 	Webhook   string           `json:"webhook"`
@@ -41,13 +40,15 @@ type Notification struct {
 	Rooms     string           `json:"rooms"`
 	Targets   string           `json:"targets"`
 	Devices   string           `json:"devices"`
-	Priority  int32            `json:"priority"`
 	Topic     string           `json:"topic"`
-	CreatedAt time.Time        `json:"created_at"`
-	UpdatedAt time.Time        `json:"updated_at"`
+	Events    []string         `json:"events"`
+	ID        int              `json:"id"`
+	Priority  int32            `json:"priority"`
+	Enabled   bool             `json:"enabled"`
 }
 
 type NotificationPayload struct {
+	Timestamp      time.Time
 	Subject        string
 	Message        string
 	Event          NotificationEvent
@@ -55,16 +56,15 @@ type NotificationPayload struct {
 	Filter         string
 	Indexer        string
 	InfoHash       string
-	Size           uint64
 	Status         ReleasePushStatus
 	Action         string
 	ActionType     ActionType
 	ActionClient   string
-	Rejections     []string
 	Protocol       ReleaseProtocol       // torrent, usenet
 	Implementation ReleaseImplementation // irc, rss, api
-	Timestamp      time.Time
 	Sender         string
+	Rejections     []string
+	Size           uint64
 }
 
 type NotificationType string
@@ -102,12 +102,12 @@ const (
 type NotificationEventArr []NotificationEvent
 
 type NotificationQueryParams struct {
-	Limit   uint64
-	Offset  uint64
 	Sort    map[string]string
 	Filters struct {
-		Indexers   []string
 		PushStatus string
+		Indexers   []string
 	}
 	Search string
+	Limit  uint64
+	Offset uint64
 }

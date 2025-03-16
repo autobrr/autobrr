@@ -200,8 +200,8 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 	defer rows.Close()
 
 	type tmpDataStruct struct {
-		id      int
 		sources []string
+		id      int
 	}
 
 	var tmpData []tmpDataStruct
