@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -849,7 +850,7 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	}
 
 	// handle args and replace vars
-	m := domain.NewMacro(*release)
+	m := domain.NewMacro(*release, runtime.GOOS)
 
 	// parse and replace values in argument string before continuing
 	parsedArgs, err := m.Parse(external.ExecArgs)
@@ -934,7 +935,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		}
 	}
 
-	m := domain.NewMacro(*release)
+	m := domain.NewMacro(*release, runtime.GOOS)
 
 	// parse and replace values in argument string before continuing
 	dataArgs, err := m.Parse(external.WebhookData)
