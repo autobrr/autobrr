@@ -45,11 +45,11 @@ type FilterRepo interface {
 }
 
 type FilterDownloads struct {
-	HourCount  int
-	DayCount   int
-	WeekCount  int
-	MonthCount int
-	TotalCount int
+	HourCount  int `json:"hour_count"`
+	DayCount   int `json:"day_count"`
+	WeekCount  int `json:"week_count"`
+	MonthCount int `json:"month_count"`
+	TotalCount int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
@@ -172,7 +172,7 @@ type Filter struct {
 	Indexers                  []Indexer                `json:"indexers"`
 	ReleaseProfileDuplicateID int64                    `json:"release_profile_duplicate_id,omitempty"`
 	DuplicateHandling         *DuplicateReleaseProfile `json:"release_profile_duplicate"`
-	Downloads                 *FilterDownloads         `json:"-"`
+	Downloads                 *FilterDownloads         `json:"downloads,omitempty"`
 	Rejections                []string                 `json:"-"`
 	RejectReasons             *RejectionReasons        `json:"-"`
 }

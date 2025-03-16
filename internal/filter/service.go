@@ -94,6 +94,15 @@ func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]
 		}
 		filter.Indexers = indexers
 
+		if filter.MaxDownloads > 0 && filter.MaxDownloadsUnit != "" {
+			counts, err := s.repo.GetDownloadsByFilterId(ctx, filter.ID)
+			if err != nil {
+				return ret, err
+			}
+
+			filter.Downloads = counts
+		}
+
 		ret = append(ret, filter)
 	}
 

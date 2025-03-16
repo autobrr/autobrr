@@ -612,7 +612,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
-          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                      Actions: {filter.actions_enabled_count}/{filter.actions_count}
                     </span>
                   </Link>
                 }
@@ -636,11 +636,16 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
-          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                  Actions: {filter.actions_enabled_count}/{filter.actions_count}
                 </span>
               </Link>
             )}
           </span>
+          {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
+            <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+              Downloads: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} per {filter.max_downloads_unit}
+            </span>
+          )}
         </div>
       </div>
       <span className="hidden md:flex px-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -654,6 +659,23 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       </span>
     </li>
   );
+}
+
+function renderMaxDownloads(unit: string, downloads: FilterDownloads): number {
+  switch (unit) {
+    case "HOUR":
+      return downloads.hour_count
+    case "DAY":
+      return downloads.day_count
+    case "WEEK":
+      return downloads.week_count
+    case "MONTH":
+      return downloads.month_count
+    case "EVER":
+      return downloads.total_count
+    default:
+      return 0
+  }
 }
 
 interface IndexerTagProps {

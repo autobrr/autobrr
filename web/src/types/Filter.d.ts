@@ -82,6 +82,7 @@ interface Filter {
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
+  downloads?: FilterDownloads;
   release_profile_duplicate_id?: number;
 }
 
@@ -151,4 +152,13 @@ interface ExternalFilter {
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
   filter_id?: number;
+}
+
+interface FilterDownloads {
+  hour_count: number;
+  day_count: number;
+  week_count: number;
+  month_count: number;
+  year_count: number;
+  total_count: number;
 }
