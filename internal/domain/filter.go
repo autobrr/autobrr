@@ -133,8 +133,8 @@ type Filter struct {
 	Albums                    string                   `json:"albums,omitempty"`
 	MatchReleaseTypes         []string                 `json:"match_release_types,omitempty"` // Album,Single,EP
 	ExceptReleaseTypes        string                   `json:"except_release_types,omitempty"`
-	Formats                   []string                 `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                   []string                 `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Formats                   []string                 `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   []string                 `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
 	Media                     []string                 `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
 	PerfectFlac               bool                     `json:"perfect_flac,omitempty"`
 	Cue                       bool                     `json:"cue,omitempty"`
@@ -267,8 +267,8 @@ type FilterUpdate struct {
 	Albums                    *string                 `json:"albums,omitempty"`
 	MatchReleaseTypes         *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
 	ExceptReleaseTypes        *string                 `json:"except_release_types,omitempty"`
-	Formats                   *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                   *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Formats                   *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
 	Media                     *[]string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
 	PerfectFlac               *bool                   `json:"perfect_flac,omitempty"`
 	Cue                       *bool                   `json:"cue,omitempty"`
