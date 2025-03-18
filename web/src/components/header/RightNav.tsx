@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -19,7 +19,7 @@ import { AuthContext, SettingsContext } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
-
+  const [imageError, setImageError] = useState(false);
   const auth = AuthContext.get();
 
   const toggleTheme = () => {
@@ -62,37 +62,27 @@ export const RightNav = (props: RightNavProps) => {
                   </span>
                   <span className="flex items-center">{auth.username}</span>
                   {auth.authMethod === 'oidc' ? (
-                    auth.profilePicture ? (
+                    auth.profilePicture && !imageError ? (
                       <div className="relative flex-shrink-0 ml-2 w-6 h-6 overflow-hidden rounded-full ring-1 ring-white dark:ring-gray-700">
                         <img
                           src={auth.profilePicture}
                           alt={`${auth.username}'s profile`}
                           className="object-cover w-full h-full transition-opacity duration-200"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.className = "inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 ring-2 ring-white dark:ring-gray-700";
-                              const icon = document.createElement('span');
-                              icon.innerHTML = '<svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="openid" class="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M271.5 432l-68 32C88.5 453.7 0 392.5 0 318.2c0-71.5 82.5-131 191.7-144.3v43c-71.5 12.5-124 53-124 101.3 0 51 58.5 93.3 135.5 103v-340l68-33.2v384zM448 291l-131.3-28.5 36.8-20.7c-19.5-11.5-43.5-20-70-24.8v-43c46.2 5.5 87.7 19.5 120.3 39.3l35-19.8L448 291z"></path></svg>';
-                              parent.appendChild(icon);
-                            }
-                          }}
+                          onError={() => setImageError(true)}
                         />
                       </div>
                     ) : (
                       <FontAwesomeIcon
-                        icon={faOpenid}
-                        className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
-                        aria-hidden="true"
-                      />
+                      icon={faOpenid}
+                      className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
+                      aria-hidden="true"
+                    />
                     )
                   ) : (
                     <UserIcon
-                    className="inline ml-1 h-5 w-5"
-                    aria-hidden="true"
-                  />
+                      className="inline ml-1 h-5 w-5"
+                      aria-hidden="true"
+                    />
                   )}
                 </span>
               </MenuButton>

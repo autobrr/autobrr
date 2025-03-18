@@ -8,6 +8,7 @@ import { Form, Formik } from "formik";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
+import { useState } from "react";
 
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
@@ -161,6 +162,7 @@ function Credentials() {
 
 function OIDCAccount() {
   const auth = AuthContext.get();
+  const [imageError, setImageError] = useState(false);
   
   // Helper function to format the issuer URL for display
   const getFormattedIssuerName = () => {
@@ -190,28 +192,20 @@ function OIDCAccount() {
       <div className="px-4 py-5 sm:p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 transition duration-150">
         <div className="flex flex-col sm:flex-row items-center">
           <div className="flex-shrink-0 relative">
-            {auth.profilePicture ? (
+            {auth.profilePicture && !imageError ? (
               <img
                 src={auth.profilePicture}
                 alt={`${auth.username}'s profile picture`}
                 className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-1 border-gray-200 dark:border-gray-700 transition duration-200"
-                onError={(e) => {
-                  // Fallback to OIDC icon if image fails to load
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  // Create and append OIDC icon element
-                  const parent = target.parentElement;
-                  if (parent) {
-                    const iconContainer = document.createElement('div');
-                    iconContainer.className = "h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center border-2 border-blue-100 dark:border-blue-900";
-                    iconContainer.innerHTML = '<svg aria-hidden="true" focusable="false" data-prefix="fab" data-icon="openid" class="h-8 w-8 text-gray-500 dark:text-gray-400" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path fill="currentColor" d="M271.5 432l-68 32C88.5 453.7 0 392.5 0 318.2c0-71.5 82.5-131 191.7-144.3v43c-71.5 12.5-124 53-124 101.3 0 51 58.5 93.3 135.5 103v-340l68-33.2v384zM448 291l-131.3-28.5 36.8-20.7c-19.5-11.5-43.5-20-70-24.8v-43c46.2 5.5 87.7 19.5 120.3 39.3l35-19.8L448 291z"></path></svg>';
-                    parent.appendChild(iconContainer);
-                  }
-                }}
+                onError={() => setImageError(true)}
               />
             ) : (
-              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center border-2 border-blue-100 dark:border-blue-900 transition duration-200">
-                <FontAwesomeIcon icon={faOpenid} className="h-7 w-7 text-gray-500 dark:text-gray-400" />
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition duration-200">
+                <FontAwesomeIcon 
+                  icon={faOpenid} 
+                  className="h-8 w-8 text-gray-500 dark:text-gray-400" 
+                  aria-hidden="true"
+                />
               </div>
             )}
           </div>
