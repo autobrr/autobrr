@@ -194,7 +194,7 @@ function OIDCAccount() {
               <img
                 src={auth.profilePicture}
                 alt={`${auth.username}'s profile picture`}
-                className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-400 transition duration-200"
+                className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-1 border-gray-200 dark:border-gray-700 transition duration-200"
                 onError={(e) => {
                   // Fallback to OIDC icon if image fails to load
                   const target = e.target as HTMLImageElement;

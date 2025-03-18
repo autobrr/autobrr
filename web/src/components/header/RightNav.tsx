@@ -56,14 +56,14 @@ export const RightNav = (props: RightNavProps) => {
                   "transition duration-200"
                 )}
               >
-                <span className="hidden hover:cursor-pointer text-sm font-medium sm:flex items-center space-x-2">
+                <span className="hidden hover:cursor-pointer text-sm font-medium sm:flex items-center">
                   <span className="sr-only">
                     Open user menu for{" "}
                   </span>
-                  <span className="mr-1">{auth.username}</span>
+                  <span className="flex items-center">{auth.username}</span>
                   {auth.authMethod === 'oidc' ? (
                     auth.profilePicture ? (
-                      <div className="relative flex-shrink-0 w-6 h-6 overflow-hidden rounded-full ring-2 ring-white dark:ring-gray-700">
+                      <div className="relative flex-shrink-0 ml-2 w-6 h-6 overflow-hidden rounded-full ring-1 ring-white dark:ring-gray-700">
                         <img
                           src={auth.profilePicture}
                           alt={`${auth.username}'s profile`}
@@ -82,21 +82,17 @@ export const RightNav = (props: RightNavProps) => {
                         />
                       </div>
                     ) : (
-                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 ring-2 ring-white dark:ring-gray-700">
-                        <FontAwesomeIcon
-                          icon={faOpenid}
-                          className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400"
-                          aria-hidden="true"
-                        />
-                      </div>
-                    )
-                  ) : (
-                    <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 ring-2 ring-white dark:ring-gray-700">
-                      <UserIcon
-                        className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400"
+                      <FontAwesomeIcon
+                        icon={faOpenid}
+                        className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
                         aria-hidden="true"
                       />
-                    </div>
+                    )
+                  ) : (
+                    <UserIcon
+                    className="inline ml-1 h-5 w-5"
+                    aria-hidden="true"
+                  />
                   )}
                 </span>
               </MenuButton>
