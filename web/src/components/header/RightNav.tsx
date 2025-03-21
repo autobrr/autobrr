@@ -19,7 +19,6 @@ import { AuthContext, SettingsContext } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
-  const [imageError, setImageError] = useState(false);
   const auth = AuthContext.get();
 
   const toggleTheme = () => {
@@ -62,21 +61,21 @@ export const RightNav = (props: RightNavProps) => {
                   </span>
                   <span className="flex items-center">{auth.username}</span>
                   {auth.authMethod === 'oidc' ? (
-                    auth.profilePicture && !imageError ? (
+                    auth.profilePicture ? (
                       <div className="relative flex-shrink-0 ml-2 w-6 h-6 overflow-hidden rounded-full ring-1 ring-white dark:ring-gray-700">
                         <img
                           src={auth.profilePicture}
                           alt={`${auth.username}'s profile`}
                           className="object-cover w-full h-full transition-opacity duration-200"
-                          onError={() => setImageError(true)}
+                          onError={() => auth.profilePicture = undefined}
                         />
                       </div>
                     ) : (
                       <FontAwesomeIcon
-                      icon={faOpenid}
-                      className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
-                      aria-hidden="true"
-                    />
+                        icon={faOpenid}
+                        className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
+                        aria-hidden="true"
+                      />
                     )
                   ) : (
                     <UserIcon

@@ -162,7 +162,6 @@ function Credentials() {
 
 function OIDCAccount() {
   const auth = AuthContext.get();
-  const [imageError, setImageError] = useState(false);
   
   // Helper function to format the issuer URL for display
   const getFormattedIssuerName = () => {
@@ -192,18 +191,18 @@ function OIDCAccount() {
       <div className="px-4 py-5 sm:p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 transition duration-150">
         <div className="flex flex-col sm:flex-row items-center">
           <div className="flex-shrink-0 relative">
-            {auth.profilePicture && !imageError ? (
+            {auth.profilePicture ? (
               <img
                 src={auth.profilePicture}
                 alt={`${auth.username}'s profile picture`}
                 className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-1 border-gray-200 dark:border-gray-700 transition duration-200"
-                onError={() => setImageError(true)}
+                onError={() => auth.profilePicture = undefined}
               />
             ) : (
               <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition duration-200">
                 <FontAwesomeIcon 
                   icon={faOpenid} 
-                  className="h-8 w-8 text-gray-500 dark:text-gray-400" 
+                  className="h-16 w-16 text-gray-500 dark:text-gray-400" 
                   aria-hidden="true"
                 />
               </div>
