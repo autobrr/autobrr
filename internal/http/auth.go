@@ -213,9 +213,12 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 		h.log.Debug().Msgf("found user session: %+v", session)
 		// Return username if available in session
 		response := map[string]interface{}{
-			"username":        session.Values["username"],
-			"auth_method":     session.Values["auth_method"],
-			"profile_picture": session.Values["profile_picture"],
+			"username":    session.Values["username"],
+			"auth_method": session.Values["auth_method"],
+		}
+
+		if profilePicture, ok := session.Values["profile_picture"].(string); ok && profilePicture != "" {
+			response["profile_picture"] = profilePicture
 		}
 
 		h.encoder.StatusResponse(w, http.StatusOK, response)
