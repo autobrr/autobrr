@@ -8,7 +8,6 @@ import { Form, Formik } from "formik";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
-import { useState } from "react";
 
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
