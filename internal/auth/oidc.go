@@ -264,14 +264,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*O
 		}
 	}
 
-	h.log.Debug().
-		Str("username", claims.Username).
-		Str("email", claims.Email).
-		Str("nickname", claims.Nickname).
-		Str("name", claims.Name).
-		Str("sub", claims.Sub).
-		Str("picture", claims.Picture).
-		Msg("successfully processed OIDC claims")
+	h.log.Debug().Str("username", claims.Username).Str("email", claims.Email).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Str("picture", claims.Picture).Msg("successfully processed OIDC claims")
 
 	return &claims, nil
 }
