@@ -304,10 +304,19 @@ export const AuthRoute = createRoute({
     if (!AuthContext.get().isLoggedIn) {
       try {
         const response = await APIClient.auth.validate();
+        // Also get OIDC config if needed
+        let issuerUrl;
+        if (response.auth_method === 'oidc') {
+          const oidcConfig = await APIClient.auth.getOIDCConfig();
+          issuerUrl = oidcConfig.issuerUrl;
+        }
+        
         AuthContext.set({
           isLoggedIn: true,
           username: response.username || 'unknown',
-          authMethod: response.auth_method
+          authMethod: response.auth_method,
+          profilePicture: response.profile_picture,
+          issuerUrl: issuerUrl
         });
       } catch (error) {
         console.debug("Authentication validation failed:", error);
