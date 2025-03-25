@@ -83,11 +83,11 @@ func (s *service) StartHandlers() {
 			continue
 		}
 
-		if network.ProxyId != 0 {
+		if network.UseProxy && network.ProxyId != 0 {
 			networkProxy, err := s.proxyService.FindByID(context.Background(), network.ProxyId)
 			if err != nil {
 				s.log.Error().Err(err).Msgf("failed to get proxy for network: %s", network.Server)
-				return
+				continue
 			}
 			network.Proxy = networkProxy
 		}
@@ -147,38 +147,40 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 				}
 			}(existingHandler)
 		}
-	} else {
-		// if not found in handlers, lets add it and run it
-		channels, err := s.repo.ListChannels(network.ID)
-		if err != nil {
-			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
-		}
 
-		for _, channel := range channels {
-			// setup SSE stream per channel
-			s.createSSEStream(network.ID, channel.Name)
-		}
-
-		// find indexer definitions for network and add
-		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
-
-		s.lock.Lock()
-		network.Channels = channels
-
-		// init new irc handler
-		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
-
-		s.handlers[network.ID] = handler
-		s.lock.Unlock()
-
-		s.log.Debug().Msgf("starting network: %s", network.Name)
-
-		go func(network domain.IrcNetwork) {
-			if err := handler.Run(); err != nil {
-				s.log.Error().Err(err).Msgf("failed to start handler for network: %s", network.Name)
-			}
-		}(network)
+		return nil
 	}
+
+	// if not found in handlers, lets add it and run it
+	channels, err := s.repo.ListChannels(network.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
+	}
+
+	for _, channel := range channels {
+		// setup SSE stream per channel
+		s.createSSEStream(network.ID, channel.Name)
+	}
+
+	// find indexer definitions for network and add
+	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+
+	s.lock.Lock()
+	network.Channels = channels
+
+	// init new irc handler
+	handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
+
+	s.handlers[network.ID] = handler
+	s.lock.Unlock()
+
+	s.log.Debug().Msgf("starting network: %s", network.Name)
+
+	go func(network domain.IrcNetwork) {
+		if err := handler.Run(); err != nil {
+			s.log.Error().Err(err).Msgf("failed to start handler for network: %s", network.Name)
+		}
+	}(network)
 
 	return nil
 }
