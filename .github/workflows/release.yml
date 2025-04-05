@@ -284,7 +284,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "~> v2"
-          args: build --clean --skip=validate,publish --single-target .goreleaser-build.yml
+          args: build --clean --skip=validate,publish --single-target -f .goreleaser-build.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
