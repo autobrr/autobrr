@@ -1,0 +1,79 @@
+version: 2
+
+builds:
+  - builder: prebuilt
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 6
+    ignore:
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+      - goos: darwin
+        goarch: arm
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: arm64
+    prebuilt:
+      path: dist-{{ .Os }}/foo_{{ .Os }}_{{ .Arch }}{{ with .Amd64 }}_{{ . }}{{ end }}/foo{{ .Ext }}
+    binary: foo
+
+release:
+  prerelease: auto
+  footer: |
+    **Full Changelog**: https://github.com/autobrr/autobrr/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ## Docker images
+
+    - `docker pull ghcr.io/autobrr/autobrr:{{ .Tag }}`
+
+    ## What to do next?
+
+    - Read the [documentation](https://autobrr.com)
+    - Join our [Discord server](https://discord.gg/WQ2eUycxyT)
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: "New Features"
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: "Bug fixes"
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 10
+    - title: Other work
+      order: 999
+
+nfpms:
+  - package_name: autobrr
+    homepage: https://autobrr.com
+    maintainer: Autobrr <packages@autobrr.com>
+    description: |-
+      autobrr is the modern download automation tool for torrents and usenet.
+    contents:
+      - src: docs/man/autobrr.1
+        dst: /usr/share/man/man1/autobrr.1
+    formats:
+      - apk
+      - deb
+      - rpm
+      - archlinux
