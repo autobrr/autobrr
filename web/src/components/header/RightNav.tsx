@@ -19,7 +19,6 @@ import { AuthContext, SettingsContext } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
-
   const auth = AuthContext.get();
 
   const toggleTheme = () => {
@@ -35,7 +34,7 @@ export const RightNav = (props: RightNavProps) => {
         <div className="mt-1 items-center">
           <button
             onClick={toggleTheme}
-            className="p-1 rounded-full focus:outline-hidden focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
+            className="p-1 rounded-full hover:cursor-pointer focus:outline-hidden focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
             title={settings.darkTheme ? "Switch to light mode (currently dark mode)" : "Switch to dark mode (currently light mode)"}
           >
             {settings.darkTheme ? (
@@ -56,25 +55,34 @@ export const RightNav = (props: RightNavProps) => {
                   "transition duration-200"
                 )}
               >
-                <span className="hidden text-sm font-medium sm:block">
+                <span className="hidden hover:cursor-pointer text-sm font-medium sm:flex items-center">
                   <span className="sr-only">
                     Open user menu for{" "}
                   </span>
-                  <span className="flex items-center">
-                    {auth.username}
-                    {auth.authMethod === 'oidc' ? (
+                  <span className="flex items-center">{auth.username}</span>
+                  {auth.authMethod === 'oidc' ? (
+                    auth.profilePicture ? (
+                      <div className="relative flex-shrink-0 ml-2 w-6 h-6 overflow-hidden rounded-full ring-1 ring-white dark:ring-gray-700">
+                        <img
+                          src={auth.profilePicture}
+                          alt={`${auth.username}'s profile`}
+                          className="object-cover w-full h-full transition-opacity duration-200"
+                          onError={() => auth.profilePicture = undefined}
+                        />
+                      </div>
+                    ) : (
                       <FontAwesomeIcon
                         icon={faOpenid}
                         className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
                         aria-hidden="true"
                       />
-                    ) : (
-                      <UserIcon
-                        className="inline ml-1 h-5 w-5"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </span>
+                    )
+                  ) : (
+                    <UserIcon
+                      className="inline ml-1 h-5 w-5"
+                      aria-hidden="true"
+                    />
+                  )}
                 </span>
               </MenuButton>
               <Transition
