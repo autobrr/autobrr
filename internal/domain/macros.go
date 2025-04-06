@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sanitize"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
@@ -89,8 +90,21 @@ type Macro struct {
 	Day                       int
 }
 
-func NewMacro(release Release) Macro {
+func NewMacro(release Release, platform string) Macro {
 	currentTime := time.Now()
+
+	formattedPath := release.TorrentTmpFile
+	if formattedPath != "" {
+		// normalize all slashes to forward slashes and remove duplicates
+		formattedPath = sanitize.PathSeparators(formattedPath)
+
+		// Windows uses backslashes for absolute paths (e.g. C:\Program Files\...)
+		// but allows forward slashes for relative paths (e.g. ./folder/file.txt)
+		// We only convert absolute paths that contain a drive letter (e.g. C:/)
+		if platform == "windows" && strings.Contains(formattedPath, ":/") {
+			formattedPath = strings.ReplaceAll(formattedPath, "/", "\\")
+		}
+	}
 
 	ma := Macro{
 		Artists:                   release.Artists,
@@ -154,9 +168,9 @@ func NewMacro(release Release) Macro {
 		TorrentHash:               release.TorrentHash,
 		TorrentID:                 release.TorrentID,
 		TorrentName:               release.TorrentName,
-		TorrentPathName:           release.TorrentTmpFile,
+		TorrentPathName:           formattedPath,
+		TorrentTmpFile:            formattedPath,
 		TorrentUrl:                release.DownloadURL,
-		TorrentTmpFile:            release.TorrentTmpFile,
 		Type:                      release.Type.String(),
 		Uploader:                  release.Uploader,
 		RecordLabel:               release.RecordLabel,
@@ -178,7 +192,7 @@ func (m Macro) Parse(text string) (string, error) {
 	// TODO implement template cache
 
 	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Option("missingkey=error").Parse(text)
 	if err != nil {
 		return "", errors.Wrap(err, "could parse macro template")
 	}
