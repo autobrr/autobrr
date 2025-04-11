@@ -231,6 +231,15 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		return "", errors.Wrap(err, "failed to verify ID Token")
 	}
 
+	userInfo, err := h.provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
+	if err != nil {
+		h.log.Error().Err(err).Msg("failed to get userinfo")
+		// Depending on the provider, this might be optional.
+		// For now, log the error but continue, as ID token claims might be sufficient.
+		// If userinfo is strictly required, return an error here.
+		// return "", errors.Wrap(err, "failed to get userinfo")
+	}
+
 	var claims struct {
 		Email     string `json:"email"`
 		Username  string `json:"preferred_username"`
@@ -239,13 +248,41 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		Nickname  string `json:"nickname"`
 		Sub       string `json:"sub"`
 	}
+
+	// try parsing claims from the ID token
 	if err := idToken.Claims(&claims); err != nil {
-		h.log.Error().Err(err).Msg("failed to parse claims")
-		return "", errors.Wrap(err, "failed to parse claims")
+		h.log.Error().Err(err).Msg("failed to parse claims from ID token")
+		// If ID token parsing fails, we might still rely on Userinfo
+		// return "", errors.Wrap(err, "failed to parse claims from ID token")
 	}
 
-	// Try different claims in order of preference for username
-	// This is solely used for frontend display
+	if userInfo != nil {
+		var userInfoClaims struct {
+			Email    string `json:"email"`
+			Username string `json:"preferred_username"`
+			Name     string `json:"name"`
+			Nickname string `json:"nickname"`
+		}
+		if err := userInfo.Claims(&userInfoClaims); err != nil {
+			h.log.Warn().Err(err).Msg("failed to parse claims from userinfo endpoint, proceeding with ID token claims if available")
+		} else {
+			h.log.Debug().Str("userinfo_email", userInfoClaims.Email).Str("userinfo_username", userInfoClaims.Username).Str("userinfo_name", userInfoClaims.Name).Str("userinfo_nickname", userInfoClaims.Nickname).Msg("successfully parsed claims from userinfo endpoint")
+
+			if userInfoClaims.Email != "" {
+				claims.Email = userInfoClaims.Email
+			}
+			if userInfoClaims.Username != "" {
+				claims.Username = userInfoClaims.Username
+			}
+			if userInfoClaims.Name != "" {
+				claims.Name = userInfoClaims.Name
+			}
+			if userInfoClaims.Nickname != "" {
+				claims.Nickname = userInfoClaims.Nickname
+			}
+		}
+	}
+
 	username := claims.Username
 	if username == "" {
 		if claims.Nickname != "" {
@@ -261,7 +298,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		}
 	}
 
-	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
+	h.log.Debug().Str("username", username).Str("claim_email", claims.Email).Str("claim_preferred_username", claims.Username).Str("claim_nickname", claims.Nickname).Str("claim_name", claims.Name).Str("claim_sub", claims.Sub).Msg("successfully processed and merged OIDC claims")
 
 	return username, nil
 }
