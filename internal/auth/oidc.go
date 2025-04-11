@@ -234,10 +234,6 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	userInfo, err := h.provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to get userinfo")
-		// Depending on the provider, this might be optional.
-		// For now, log the error but continue, as ID token claims might be sufficient.
-		// If userinfo is strictly required, return an error here.
-		// return "", errors.Wrap(err, "failed to get userinfo")
 	}
 
 	var claims struct {
@@ -252,8 +248,6 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	// try parsing claims from the ID token
 	if err := idToken.Claims(&claims); err != nil {
 		h.log.Error().Err(err).Msg("failed to parse claims from ID token")
-		// If ID token parsing fails, we might still rely on Userinfo
-		// return "", errors.Wrap(err, "failed to parse claims from ID token")
 	}
 
 	if userInfo != nil {
