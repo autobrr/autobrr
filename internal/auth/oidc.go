@@ -292,7 +292,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		}
 	}
 
-	h.log.Debug().Str("username", username).Str("claim_email", claims.Email).Str("claim_preferred_username", claims.Username).Str("claim_nickname", claims.Nickname).Str("claim_name", claims.Name).Str("claim_sub", claims.Sub).Msg("successfully processed and merged OIDC claims")
+	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("preferred_username", claims.Username).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
 
 	return username, nil
 }
