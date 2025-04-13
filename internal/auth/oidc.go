@@ -242,15 +242,49 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*O
 		return nil, errors.Wrap(err, "failed to verify ID Token")
 	}
 
-	var claims OIDCClaims
-	if err := idToken.Claims(&claims); err != nil {
-		h.log.Error().Err(err).Msg("failed to parse claims")
-		return nil, errors.Wrap(err, "failed to parse claims")
+	userInfo, err := h.provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
+	if err != nil {
+		h.log.Error().Err(err).Msg("failed to get userinfo")
 	}
 
-	// Try different claims in order of preference for username
-	// This is solely used for frontend display
-	if claims.Username == "" {
+	var claims OIDCClaims
+	if err := idToken.Claims(&claims); err != nil {
+		h.log.Error().Err(err).Msg("failed to parse claims from ID token")
+	}
+
+	if userInfo != nil {
+		var userInfoClaims struct {
+			Email    string `json:"email"`
+			Username string `json:"preferred_username"`
+			Name     string `json:"name"`
+			Nickname string `json:"nickname"`
+			Picture  string `json:"picture"`
+		}
+		if err := userInfo.Claims(&userInfoClaims); err != nil {
+			h.log.Warn().Err(err).Msg("failed to parse claims from userinfo endpoint, proceeding with ID token claims if available")
+		} else {
+			h.log.Debug().Str("userinfo_email", userInfoClaims.Email).Str("userinfo_username", userInfoClaims.Username).Str("userinfo_name", userInfoClaims.Name).Str("userinfo_nickname", userInfoClaims.Nickname).Msg("successfully parsed claims from userinfo endpoint")
+
+			if userInfoClaims.Email != "" {
+				claims.Email = userInfoClaims.Email
+			}
+			if userInfoClaims.Username != "" {
+				claims.Username = userInfoClaims.Username
+			}
+			if userInfoClaims.Name != "" {
+				claims.Name = userInfoClaims.Name
+			}
+			if userInfoClaims.Nickname != "" {
+				claims.Nickname = userInfoClaims.Nickname
+			}
+			if userInfoClaims.Picture != "" {
+				claims.Picture = userInfoClaims.Picture
+			}
+		}
+	}
+
+	username := claims.Username
+	if username == "" {
 		if claims.Nickname != "" {
 			claims.Username = claims.Nickname
 		} else if claims.Name != "" {
@@ -264,7 +298,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*O
 		}
 	}
 
-	h.log.Debug().Str("username", claims.Username).Str("email", claims.Email).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Str("picture", claims.Picture).Msg("successfully processed OIDC claims")
+	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("preferred_username", claims.Username).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
 
 	return &claims, nil
 }
