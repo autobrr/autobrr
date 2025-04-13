@@ -258,6 +258,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*O
 			Username string `json:"preferred_username"`
 			Name     string `json:"name"`
 			Nickname string `json:"nickname"`
+			Picture  string `json:"picture"`
 		}
 		if err := userInfo.Claims(&userInfoClaims); err != nil {
 			h.log.Warn().Err(err).Msg("failed to parse claims from userinfo endpoint, proceeding with ID token claims if available")
@@ -275,6 +276,9 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*O
 			}
 			if userInfoClaims.Nickname != "" {
 				claims.Nickname = userInfoClaims.Nickname
+			}
+			if userInfoClaims.Picture != "" {
+				claims.Picture = userInfoClaims.Picture
 			}
 		}
 	}
