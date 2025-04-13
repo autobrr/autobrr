@@ -39,6 +39,17 @@ type OIDCHandler struct {
 	cookieStore *sessions.CookieStore
 }
 
+// OIDCClaims represents the claims returned from the OIDC provider
+type OIDCClaims struct {
+	Email     string `json:"email"`
+	Username  string `json:"preferred_username"`
+	Name      string `json:"name"`
+	GivenName string `json:"given_name"`
+	Nickname  string `json:"nickname"`
+	Sub       string `json:"sub"`
+	Picture   string `json:"picture"`
+}
+
 func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error) {
 	log.Debug().
 		Bool("oidc_enabled", cfg.OIDCEnabled).
@@ -180,25 +191,25 @@ func (h *OIDCHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (string, error) {
+func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*OIDCClaims, error) {
 	h.log.Debug().Msg("handling OIDC callback")
 
 	// get state from session
 	session, err := h.cookieStore.Get(r, "oidc_state")
 	if err != nil {
 		h.log.Error().Err(err).Msg("state session not found")
-		return "", errors.New("state session not found")
+		return nil, errors.New("state session not found")
 	}
 
 	expectedState, ok := session.Values["state"].(string)
 	if !ok {
 		h.log.Error().Msg("state not found in session")
-		return "", errors.New("state not found in session")
+		return nil, errors.New("state not found in session")
 	}
 
 	if r.URL.Query().Get("state") != expectedState {
 		h.log.Error().Str("expected", expectedState).Str("got", r.URL.Query().Get("state")).Msg("state did not match")
-		return "", errors.New("state did not match")
+		return nil, errors.New("state did not match")
 	}
 
 	// clear the state session after use
@@ -210,25 +221,25 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.log.Error().Msg("authorization code is missing from callback request")
-		return "", errors.New("authorization code is missing from callback request")
+		return nil, errors.New("authorization code is missing from callback request")
 	}
 
 	oauth2Token, err := h.oauthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
-		return "", errors.Wrap(err, "failed to exchange token")
+		return nil, errors.Wrap(err, "failed to exchange token")
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		h.log.Error().Msg("no id_token found in oauth2 token")
-		return "", errors.New("no id_token found in oauth2 token")
+		return nil, errors.New("no id_token found in oauth2 token")
 	}
 
 	idToken, err := h.verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to verify ID Token")
-		return "", errors.Wrap(err, "failed to verify ID Token")
+		return nil, errors.Wrap(err, "failed to verify ID Token")
 	}
 
 	userInfo, err := h.provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
@@ -236,16 +247,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 		h.log.Error().Err(err).Msg("failed to get userinfo")
 	}
 
-	var claims struct {
-		Email     string `json:"email"`
-		Username  string `json:"preferred_username"`
-		Name      string `json:"name"`
-		GivenName string `json:"given_name"`
-		Nickname  string `json:"nickname"`
-		Sub       string `json:"sub"`
-	}
-
-	// try parsing claims from the ID token
+	var claims OIDCClaims
 	if err := idToken.Claims(&claims); err != nil {
 		h.log.Error().Err(err).Msg("failed to parse claims from ID token")
 	}
@@ -280,21 +282,21 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (st
 	username := claims.Username
 	if username == "" {
 		if claims.Nickname != "" {
-			username = claims.Nickname
+			claims.Username = claims.Nickname
 		} else if claims.Name != "" {
-			username = claims.Name
+			claims.Username = claims.Name
 		} else if claims.Email != "" {
-			username = claims.Email
+			claims.Username = claims.Email
 		} else if claims.Sub != "" {
-			username = claims.Sub
+			claims.Username = claims.Sub
 		} else {
-			username = "oidc_user"
+			claims.Username = "oidc_user"
 		}
 	}
 
 	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("preferred_username", claims.Username).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
 
-	return username, nil
+	return &claims, nil
 }
 
 func generateRandomState() string {
@@ -319,6 +321,7 @@ type GetConfigResponse struct {
 	AuthorizationURL    string `json:"authorizationUrl"`
 	State               string `json:"state"`
 	DisableBuiltInLogin bool   `json:"disableBuiltInLogin"`
+	IssuerURL           string `json:"issuerUrl"`
 }
 
 func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
@@ -326,19 +329,21 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 		return GetConfigResponse{
 			Enabled:             false,
 			DisableBuiltInLogin: false,
+			IssuerURL:           "",
 		}
 	}
 
 	state := generateRandomState()
 	authURL := h.oauthConfig.AuthCodeURL(state)
 
-	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.config.DisableBuiltInLogin).Msg("returning OIDC config response")
+	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.config.DisableBuiltInLogin).Str("issuer_url", h.config.Issuer).Msg("returning OIDC config response")
 
 	return GetConfigResponse{
 		Enabled:             h.config.Enabled,
 		AuthorizationURL:    authURL,
 		State:               state,
 		DisableBuiltInLogin: h.config.DisableBuiltInLogin,
+		IssuerURL:           h.config.Issuer,
 	}
 }
 
