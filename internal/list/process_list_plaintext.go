@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -38,11 +39,14 @@ func (s *service) plaintext(ctx context.Context, list *domain.List) error {
 	case "file":
 		// Read from filesystem for file:// URLs
 		filePath := parsedURL.Path
-		// On Windows, remove leading slash from path if needed
-		if len(filePath) > 0 && filePath[0] == '/' && len(parsedURL.Host) > 0 {
-			filePath = parsedURL.Host + filePath
-		} else if len(filePath) > 0 && filePath[0] == '/' {
-			filePath = filePath[1:]
+
+		if runtime.GOOS == "windows" {
+			// On Windows, remove leading slash from path if needed
+			if len(filePath) > 0 && filePath[0] == '/' && len(parsedURL.Host) > 0 {
+				filePath = parsedURL.Host + filePath
+			} else if len(filePath) > 0 && filePath[0] == '/' {
+				filePath = filePath[1:]
+			}
 		}
 
 		l.Debug().Msgf("reading from file: %s", filePath)
@@ -94,22 +98,17 @@ func (s *service) plaintext(ctx context.Context, list *domain.List) error {
 		if title == "" {
 			continue
 		}
-		titles = append(titles, title)
+		titles = append(titles, processTitle(title, list.MatchRelease)...)
 	}
 
-	filterTitles := []string{}
-	for _, title := range titles {
-		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
-	}
-
-	if len(filterTitles) == 0 {
+	if len(titles) == 0 {
 		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
 		return nil
 	}
 
-	joinedTitles := strings.Join(filterTitles, ",")
+	joinedTitles := strings.Join(titles, ",")
 
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(filterTitles))
+	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(titles))
 
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 
