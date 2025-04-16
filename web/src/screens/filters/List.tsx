@@ -38,7 +38,7 @@ import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
-import { FiltersQueryOptions, IndexersOptionsQueryOptions, IndexersQueryOptions } from "@api/queries";
+import { FiltersQueryOptions, IndexersOptionsQueryOptions } from "@api/queries";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptyListState } from "@components/emptystates";
@@ -197,13 +197,6 @@ function FilterList({ toggleCreateFilter }: any) {
   );
 
   const { isLoading: isLoadingFilters, data: filtersData, error: filtersError } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
-  const { data: indexersData, isLoading: isLoadingIndexers } = useQuery(IndexersQueryOptions());
-
-  // create a set of disabled indexer IDs for quick lookup
-  const disabledIndexerIds = useMemo(() => {
-    if (!indexersData) return new Set<number>();
-    return new Set(indexersData.filter(indexer => !indexer.enabled).map(indexer => indexer.id));
-  }, [indexersData]);
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
@@ -232,12 +225,12 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
         </div>
 
-        {isLoadingFilters || isLoadingIndexers
+        {isLoadingFilters
           ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
           : filtersData && filtersData.length > 0 ? (
               <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
                 {filtered.filtered.length > 0
-                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} disabledIndexerIds={disabledIndexerIds} />)
+                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
                   : <EmptyListState text={`No ${status} filters`}/>
                 }
               </ul>
@@ -554,23 +547,22 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
 interface FilterListItemProps {
   filter: Filter;
   idx: number;
-  disabledIndexerIds: Set<number>;
 }
 
-function FilterListItem({ filter, idx, disabledIndexerIds }: FilterListItemProps) {
+function FilterListItem({ filter, idx }: FilterListItemProps) {
   const queryClient = useQueryClient();
 
   // Check if this filter uses any disabled indexers and get their names
   const disabledIndexersInfo = useMemo(() => {
-    if (!filter.enabled || !filter.indexers) {
+    if (!filter.enabled || !filter.indexers || filter.indexers.length === 0) {
       return { hasDisabled: false, names: [] };
     }
-    const disabled = filter.indexers.filter(indexer => disabledIndexerIds.has(indexer.id));
+    const disabled = filter.indexers.filter(indexer => !indexer.enabled);
     return {
       hasDisabled: disabled.length > 0,
       names: disabled.map(indexer => indexer.name)
     };
-  }, [filter.enabled, filter.indexers, disabledIndexerIds]);
+  }, [filter.enabled, filter.indexers]);
 
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
