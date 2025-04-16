@@ -976,7 +976,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					ExceptHDR:          []string{"DV", "HDR", "DoVi"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR", "DoVi"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: "DV", want: []string{"DV", "HDR", "DoVi"}}}},
 			},
 			want: false,
 		},
@@ -998,7 +998,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					MatchHDR:           []string{"DV", "HDR", "DoVi"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string(nil), want: []string{"DV", "HDR", "DoVi"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "", want: []string{"DV", "HDR", "DoVi"}}}},
 			},
 			want: false,
 		},
@@ -1114,7 +1114,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:  true,
 					MatchHDR: []string{"DV HDR"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"DV", "HDR10"}, want: []string{"DV HDR"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV HDR10", want: []string{"DV HDR"}}}},
 			},
 			want: false,
 		},
@@ -1128,7 +1128,71 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:  true,
 					MatchHDR: []string{"DV", "HDR"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"HDR10"}, want: []string{"DV", "HDR"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "HDR10", want: []string{"DV", "HDR"}}}},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_12",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:   true,
+					ExceptHDR: []string{"DV"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_13",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:   true,
+					ExceptHDR: []string{"DV HDR"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: "DV HDR", want: []string{"DV HDR"}}}},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_14",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV HDR", want: []string{"DV"}}}},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_15",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV HDR"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV", want: []string{"DV HDR"}}}},
 			},
 			want: false,
 		},
@@ -1498,7 +1562,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchHDR:           []string{"HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"DV"}, want: []string{"HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV", want: []string{"HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1513,7 +1577,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:          []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1528,7 +1592,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:          []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1543,7 +1607,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:           []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1558,7 +1622,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:           []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "source", got: "WEB", want: []string{"WEB-DL"}}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "source", got: "WEB", want: []string{"WEB-DL"}}, {key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
