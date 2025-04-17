@@ -569,6 +569,8 @@ const ListTypeForm = (props: ListTypeFormProps) => {
       return <ListTypeMDBList />;
     case "PLAINTEXT":
       return <ListTypePlainText />;
+    case "PLAINTEXTUNTOUCHED":
+      return <ListTypePlainTextUntouched />;
     case "ANILIST":
         return <ListTypeAniList />;
     default:
@@ -751,6 +753,47 @@ function ListTypePlainText() {
     </div>
   )
 }
+
+function ListTypePlainTextUntouched() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Source list
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Use a plain text list with one item per line.
+        </p>
+      </div>
+
+      <TextFieldWide
+        name="url"
+        label="List URL"
+        help="URL to a plain text file with one item per line"
+        placeholder="https://example.com/list.txt"
+        tooltip={
+            <div>
+                <p>Plaintext (untouched) list can read from both http urls and local files on disk.</p>
+                <p>This list is not being cleaned in any way!</p>
+                <br />
+                <p>Remote: https://service.com/file.txt</p>
+                <br />
+                <p>Local: file:///home/username/file.txt</p>
+                <DocsLink href="https://autobrr.com/filters/lists" />
+            </div>
+        }
+      />
+
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+        </fieldset>
+      </div>
+    </div>
+  )
+}
+
 
 function ListTypeSteam() {
   return (

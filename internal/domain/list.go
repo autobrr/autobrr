@@ -35,6 +35,7 @@ const (
 	ListTypeMDBList    ListType = "MDBLIST"
 	ListTypeMetacritic ListType = "METACRITIC"
 	ListTypePlaintext  ListType = "PLAINTEXT"
+	ListTypePlaintextUntouched  ListType = "PLAINTEXTUNTOUCHED"
 	ListTypeTrakt      ListType = "TRAKT"
 	ListTypeSteam      ListType = "STEAM"
 	ListTypeAniList    ListType = "ANILIST"
@@ -109,7 +110,7 @@ func (l *List) ListTypeArr() bool {
 }
 
 func (l *List) ListTypeList() bool {
-	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam || l.Type == ListTypeAniList
+	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypePlaintextUntouched || l.Type == ListTypeTrakt || l.Type == ListTypeSteam || l.Type == ListTypeAniList
 }
 
 func (l *List) ShouldProcessItem(monitored bool) bool {
