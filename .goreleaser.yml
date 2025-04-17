@@ -1,15 +1,7 @@
 version: 2
 
-before:
-  hooks:
-    - go mod tidy
-
 builds:
-  - id: autobrr
-    env:
-      - CGO_ENABLED=0
-    flags:
-      - -pgo=cpu.pprof
+  - builder: prebuilt
     goos:
       - linux
       - windows
@@ -32,50 +24,9 @@ builds:
         goarch: arm
       - goos: freebsd
         goarch: arm64
-    main: ./cmd/autobrr/main.go
-    binary: autobrr
-  - id: autobrrctl
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-      - freebsd
-    goarch:
-      - amd64
-      - arm
-      - arm64
-    goarm:
-      - 6
-    ignore:
-      - goos: windows
-        goarch: arm
-      - goos: windows
-        goarch: arm64
-      - goos: darwin
-        goarch: arm
-      - goos: freebsd
-        goarch: arm
-      - goos: freebsd
-        goarch: arm64
-    main: ./cmd/autobrrctl/main.go
-    binary: autobrrctl
-
-archives:
-  - id: autobrr
-    builds:
-      - autobrr
-      - autobrrctl
-    format_overrides:
-      - goos: windows
-        format: zip
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- .Version }}_
-      {{- .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else }}{{ .Arch }}{{ end }}
+    prebuilt:
+      path: dist-{{ .Os }}/foo_{{ .Os }}_{{ .Arch }}{{ with .Amd64 }}_{{ . }}{{ end }}/foo{{ .Ext }}
+    binary: foo
 
 release:
   prerelease: auto
