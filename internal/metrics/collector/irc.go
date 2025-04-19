@@ -59,7 +59,7 @@ func (collector *ircCollector) Collect(ch chan<- prometheus.Metric) {
 		channelsEnabled := 0
 		channelsMonitoring := 0
 		for _, c := range n.Channels {
-			if c.Enabled {
+			if n.Enabled && c.Enabled {
 				channelsEnabled++
 			}
 			if c.Monitoring {
