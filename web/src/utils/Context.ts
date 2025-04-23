@@ -79,6 +79,17 @@ function ContextMerger<T extends {}>(
 const AuthKey = "autobrr_user_auth";
 const SettingsKey = "autobrr_settings";
 const FilterListKey = "autobrr_filter_list";
+const IncognitoKey = "autobrr_incognito";
+
+const getInitialIncognitoState = (): boolean => {
+  try {
+    const stored = localStorage.getItem(IncognitoKey);
+    return stored ? JSON.parse(stored) : false;
+  } catch (e) {
+    console.error(`Failed to read ${IncognitoKey} from localStorage`, e);
+    return false;
+  }
+};
 
 export const InitializeGlobalContext = () => {
   ContextMerger<AuthInfo>(AuthKey, AuthContextDefaults, AuthContext);
@@ -144,5 +155,12 @@ export const FilterListContext = newRidgeState<FilterListState>(
   FilterListContextDefaults,
   {
     onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
+  }
+);
+
+export const IncognitoContext = newRidgeState<boolean>(
+  getInitialIncognitoState(),
+  {
+    onSet: (newState, prevState) => DefaultSetter(IncognitoKey, newState, prevState)
   }
 );

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
   useReactTable,
@@ -15,9 +15,10 @@ import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 import { EmptyListState } from "@components/emptystates";
 import * as DataTable from "@components/data-table";
-import { RandomLinuxIsos } from "@utils";
+import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
 import { ReleasesLatestQueryOptions } from "@api/queries";
 import { IndexerCell } from "@components/data-table";
+import { IncognitoContext } from "@utils/Context";
 
 interface TableProps {
   columns: ColumnDef<Release>[];
@@ -119,7 +120,30 @@ export const ActivityTable = () => {
   const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
-  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
+  const [showLinuxIsos, setShowLinuxIsos] = IncognitoContext.use();
+
+  useEffect(() => {
+    if (showLinuxIsos && data?.data) {
+      const randomIsoNames = RandomLinuxIsos(data.data.length);
+      const randomTorrentSiteNames = RandomIsoTracker(data.data.length);
+      const newData: Release[] = data.data.map((item, index) => {
+        const siteName = randomTorrentSiteNames[index % randomTorrentSiteNames.length];
+        return {
+          ...item,
+          name: randomIsoNames[index],
+          indexer: {
+            id: 0,
+            name: siteName,
+            identifier: siteName,
+            identifier_external: siteName,
+          },
+        };
+      });
+      setModifiedData(newData);
+    } else {
+      setModifiedData([]);
+    }
+  }, [showLinuxIsos, data?.data]);
 
   if (isLoading) {
     return (
@@ -136,20 +160,6 @@ export const ActivityTable = () => {
 
   const toggleReleaseNames = () => {
     setShowLinuxIsos(!showLinuxIsos);
-    if (!showLinuxIsos && data && data.data) {
-      const randomNames = RandomLinuxIsos(data.data.length);
-      const newData: Release[] = data.data.map((item, index) => ({
-        ...item,
-        name: `${randomNames[index]}.iso`,
-        indexer: {
-          id: 0,
-          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-          identifier_external: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-        },
-      }));
-      setModifiedData(newData);
-    }
   };
 
   const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
