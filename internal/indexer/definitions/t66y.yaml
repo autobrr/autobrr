@@ -73,4 +73,4 @@ irc:
           - torrentName
 
     match:
-      magneturi: 'magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .torrentName }}&tr=http://sukebei.tracker.wf:8888/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=http://tracker.bt4g.com:2095/announce&tr=http://1337.abcvg.info/announce&tr=http://tracker.opentrackr.org:1337/announce&tr=http://93.158.213.92:1337/announce&tr=udp://open.stealth.si:80/announce&tr=udp://exodus.desync.com:6969/announce&tr=udp://tracker.torrent.eu.org:451/announce'
+      magneturi: 'magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .torrentName }}'
