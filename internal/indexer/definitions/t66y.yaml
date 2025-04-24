@@ -55,14 +55,14 @@ irc:
             expect:
               postId: 6768519
               category: 4
-              torrentHash: f4a122e2684045f45ed10f4ca803852fd94e70e7
+              torrentHash: 39d9edb94572e82dd534547b785c98fe2df7ea51
               torrentName: '[MP4/FHD]RARBG1023650-足交后入'
 
           - line: '6768127 2 81c758d0eca5372d59e43879ecf2e2bce33a06c4 [MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで    em(6768127)'
             expect:
               postId: 6768127
               category: 2
-              torrentHash: f4a122e2684045f45ed10f4ca803852fd94e70e7
+              torrentHash: 81c758d0eca5372d59e43879ecf2e2bce33a06c4
               torrentName: '[MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで    em(6768127)'
 
         pattern: '(\d+)\ (\d+)\ ([a-z0-9]{40})\ (.*)'
