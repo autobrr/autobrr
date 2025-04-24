@@ -250,6 +250,8 @@ type IndexerIRCParseLine struct {
 type IndexerIRCParseMatch struct {
 	TorrentURL  string   `json:"torrenturl"`
 	TorrentName string   `json:"torrentname"`
+	TorrentHash string   `json:"torrenthash"`
+	MagnetURI   string   `json:"magneturi"`
 	InfoURL     string   `json:"infourl"`
 	Encode      []string `json:"encode"`
 }
@@ -331,6 +333,15 @@ func (p *IndexerIRCParseMatch) ParseURLs(baseURL string, vars map[string]string,
 		rls.DownloadURL = downloadURL.String()
 	}
 
+	if p.MagnetURI != "" {
+		magnetURI, err := parseTemplateURL("magnet:", p.MagnetURI, vars, "magneturi")
+		if err != nil {
+			return err
+		}
+
+		rls.MagnetURI = magnetURI.String()
+	}
+
 	return nil
 }
 
@@ -348,6 +359,24 @@ func (p *IndexerIRCParseMatch) ParseTorrentName(vars map[string]string, rls *Rel
 		}
 
 		rls.TorrentName = nameBytes.String()
+	}
+
+	return nil
+}
+
+func (p *IndexerIRCParseMatch) ParseTorrentHash(vars map[string]string, rls *Release) error {
+	if p.TorrentHash != "" {
+		tmplTorrentHash, err := template.New("torrenthash").Funcs(sprig.TxtFuncMap()).Parse(p.TorrentHash)
+		if err != nil {
+			return err
+		}
+
+		var torrentHashBytes bytes.Buffer
+		if err := tmplTorrentHash.Execute(&torrentHashBytes, &vars); err != nil {
+			return errors.New("could not write torrent hash template output")
+		}
+
+		rls.TorrentHash = torrentHashBytes.String()
 	}
 
 	return nil
@@ -399,9 +428,14 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 		return errors.Wrap(err, "could not parse urls for release")
 	}
 
-	// parse torrent var
+	// parse torrent name
 	if err := def.IRC.Parse.Match.ParseTorrentName(mergedVars, rls); err != nil {
 		return errors.Wrap(err, "could not parse release name")
+	}
+
+	// parse torrent hash
+	if err := def.IRC.Parse.Match.ParseTorrentHash(mergedVars, rls); err != nil {
+		return errors.Wrap(err, "could not parse release hash")
 	}
 
 	var parser IRCParser

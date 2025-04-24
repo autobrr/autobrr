@@ -1,0 +1,76 @@
+---
+#id: t66y
+name: T66y
+identifier: t66y
+description: T66y is an indexer for the Caoliu Community.
+language: en-us
+urls:
+  - https://t66y.com/
+privacy: public
+protocol: torrent
+supports:
+  - irc
+#source: custom
+
+irc:
+  network: Rizon
+  server: irc.rizon.net
+  port: 6697
+  tls: true
+  channels:
+    - '#t66y'
+  announcers:
+    - 'ty'
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: '6769288 28 f3df71e5bdf2ca66168be7c1390e5685742bf6a8 [MP4/3.81G]JUR-274【破壊版】会社の地味な人妻経理を≪濃厚マゾ潮≫吹き散らかす、俺専用の愛人に仕立て上げた―。 椎名ゆな    em(6769288)'
+            expect:
+              postId: 6769288
+              category: 28
+              torrentHash: f4a122e2684045f45ed10f4ca803852fd94e70e7
+              torrentName: '[MP4/3.81G]JUR-274【破壊版】会社の地味な人妻経理を≪濃厚マゾ潮≫吹き散らかす、俺専用の愛人に仕立て上げた―。 椎名ゆな    em(6769288)'
+
+          - line: '6768519 4 39d9edb94572e82dd534547b785c98fe2df7ea51 [MP4/FHD]RARBG1023625-第一视角催情SPA性交'
+            expect:
+              postId: 6768519
+              category: 4
+              torrentHash: f4a122e2684045f45ed10f4ca803852fd94e70e7
+              torrentName: '[MP4/FHD]RARBG1023650-足交后入'
+
+          - line: '6768127 2 81c758d0eca5372d59e43879ecf2e2bce33a06c4 [MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで    em(6768127)'
+            expect:
+              postId: 6768127
+              category: 2
+              torrentHash: f4a122e2684045f45ed10f4ca803852fd94e70e7
+              torrentName: '[MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで    em(6768127)'
+
+        pattern: '(\d+)\ (\d+)\ ([a-z0-9]{40})\ (.*)'
+        vars:
+          - postId
+          - category
+          - torrentHash
+          - torrentName
+
+    match:
+      magneturi: 'magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .torrentName }}&tr=http://sukebei.tracker.wf:8888/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=http://tracker.bt4g.com:2095/announce&tr=http://1337.abcvg.info/announce&tr=http://tracker.opentrackr.org:1337/announce&tr=http://93.158.213.92:1337/announce&tr=udp://open.stealth.si:80/announce&tr=udp://exodus.desync.com:6969/announce&tr=udp://tracker.torrent.eu.org:451/announce'
