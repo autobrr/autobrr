@@ -433,11 +433,6 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 		return errors.Wrap(err, "could not parse release name")
 	}
 
-	// parse torrent hash
-	if err := def.IRC.Parse.Match.ParseTorrentHash(mergedVars, rls); err != nil {
-		return errors.Wrap(err, "could not parse release hash")
-	}
-
 	var parser IRCParser
 
 	switch def.Identifier {

@@ -161,10 +161,14 @@ type IRCParser interface {
 
 type IRCParserDefault struct{}
 
-func (p IRCParserDefault) Parse(rls *Release, _ map[string]string) error {
+func (p IRCParserDefault) Parse(rls *Release, vars map[string]string) error {
 	// parse fields
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
+
+	if vars["torrenthash"] != "" {
+		rls.TorrentHash = vars["torrenthash"]
+	}
 
 	return nil
 }
