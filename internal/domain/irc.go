@@ -166,10 +166,6 @@ func (p IRCParserDefault) Parse(rls *Release, vars map[string]string) error {
 	// run before ParseMatch to not potentially use a reconstructed TorrentName
 	rls.ParseString(rls.TorrentName)
 
-	if vars["torrenthash"] != "" {
-		rls.TorrentHash = vars["torrenthash"]
-	}
-
 	return nil
 }
 

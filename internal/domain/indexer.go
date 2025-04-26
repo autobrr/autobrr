@@ -364,24 +364,6 @@ func (p *IndexerIRCParseMatch) ParseTorrentName(vars map[string]string, rls *Rel
 	return nil
 }
 
-func (p *IndexerIRCParseMatch) ParseTorrentHash(vars map[string]string, rls *Release) error {
-	if p.TorrentHash != "" {
-		tmplTorrentHash, err := template.New("torrenthash").Funcs(sprig.TxtFuncMap()).Parse(p.TorrentHash)
-		if err != nil {
-			return err
-		}
-
-		var torrentHashBytes bytes.Buffer
-		if err := tmplTorrentHash.Execute(&torrentHashBytes, &vars); err != nil {
-			return errors.New("could not write torrent hash template output")
-		}
-
-		rls.TorrentHash = torrentHashBytes.String()
-	}
-
-	return nil
-}
-
 func (p *IndexerIRCParse) MapCustomVariables(vars map[string]string) error {
 	for varsKey, varsKeyMap := range p.Mappings {
 		varsValue, ok := vars[varsKey]
