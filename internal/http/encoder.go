@@ -6,7 +6,6 @@ package http
 import (
 	"encoding/json"
 	"net/http"
-	"slices"
 
 	"github.com/rs/zerolog"
 )
@@ -138,13 +137,7 @@ func (e encoder) StatusWarning(w http.ResponseWriter, status int, message string
 		Message: message,
 	}
 
-	var messages = []string{
-		"onboarding unavailable",
-	}
-
-	if !slices.Contains(messages, message) {
-		e.log.Warn().Str("warning", message).Int("status", status).Msg("server warning")
-	}
+	e.log.Warn().Str("warning", message).Int("status", status).Msg("server warning")
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
