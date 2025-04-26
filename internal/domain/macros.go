@@ -188,7 +188,7 @@ func (m Macro) Parse(text string) (string, error) {
 		var err error
 		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
 		if err != nil {
-			return "", errors.Wrap(err, "could parse macro template")
+			return "", errors.Wrap(err, "could not parse macro template")
 		}
 		templateCache.Set(text, tmpl, ttlcache.NoTTL)
 	}
