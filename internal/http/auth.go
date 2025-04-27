@@ -199,8 +199,8 @@ func (h authHandler) onboardEligible(ctx context.Context) (int, error) {
 	}
 
 	if userCount > 0 {
-		h.log.Trace().Msg("onboarding unavailable")
-		return http.StatusServiceUnavailable, errors.New("onboarding unavailable")
+		h.log.Trace().Msg("onboarding unavailable: user already registered")
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: user already registered")
 	}
 
 	return http.StatusOK, nil
