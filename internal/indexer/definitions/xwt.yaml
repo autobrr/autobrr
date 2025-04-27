@@ -1,0 +1,73 @@
+---
+#id: xwtorrents
+name: XtremeWrestlingTorrents
+identifier: xwtorrents
+description: XtremeWrestlingTorrents (XWT) is a private torrent tracker for WRESTLING / MMA
+language: en-us
+urls:
+  - https://xtremewrestlingtorrents.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+#source: custom
+
+irc:
+  network: XWT
+  server: irc.xwt.info
+  port: 6697
+  tls: true
+  channels:
+    - '#announce'
+  announcers:
+    - 'XWT-BOT'
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: 'New Torrent: WWE.Raw.Classics.Seth.Freakin.Rollins.NETFLIX.1080p.WEB.H265-WWEFANS (Netflix HD) ⸺ https://xtremewrestlingtorrents.net/details.php?id=10&hit=1'
+            expect:
+              torrentName: WWE.Raw.Classics.Seth.Freakin.Rollins.NETFLIX.1080p.WEB.H265-WWEFANS
+              category: Netflix HD
+              baseUrl: https://xtremewrestlingtorrents.net/
+              torrentId: 10
+
+          - line: 'New Torrent: WWE.This.Week.2025.03.27.720p.WEBRip.H264-Star (WWE Network HD) ⸺ https://xtremewrestlingtorrents.net/details.php?id=11&hit=1'
+            expect:
+              torrentName: WWE.This.Week.2025.03.27.720p.WEBRip.H264-Star
+              category: WWE Network HD
+              baseUrl: https://xtremewrestlingtorrents.net/
+              torrentId: 11
+
+        pattern: 'New Torrent: (.*) \((.*)\) ⸺ (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
+        vars:
+          - torrentName
+          - category
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/download2.php?id={{ .torrentId }}&name={{ .torrentName }}.torrent"
+      encode:
+        - torrentName
