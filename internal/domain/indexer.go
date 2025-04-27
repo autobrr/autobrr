@@ -250,7 +250,6 @@ type IndexerIRCParseLine struct {
 type IndexerIRCParseMatch struct {
 	TorrentURL  string   `json:"torrenturl"`
 	TorrentName string   `json:"torrentname"`
-	TorrentHash string   `json:"torrenthash"`
 	MagnetURI   string   `json:"magneturi"`
 	InfoURL     string   `json:"infourl"`
 	Encode      []string `json:"encode"`
