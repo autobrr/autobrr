@@ -250,6 +250,7 @@ type IndexerIRCParseLine struct {
 type IndexerIRCParseMatch struct {
 	TorrentURL  string   `json:"torrenturl"`
 	TorrentName string   `json:"torrentname"`
+	MagnetURI   string   `json:"magneturi"`
 	InfoURL     string   `json:"infourl"`
 	Encode      []string `json:"encode"`
 }
@@ -331,6 +332,15 @@ func (p *IndexerIRCParseMatch) ParseURLs(baseURL string, vars map[string]string,
 		rls.DownloadURL = downloadURL.String()
 	}
 
+	if p.MagnetURI != "" {
+		magnetURI, err := parseTemplateURL("magnet:", p.MagnetURI, vars, "magneturi")
+		if err != nil {
+			return err
+		}
+
+		rls.MagnetURI = magnetURI.String()
+	}
+
 	return nil
 }
 
@@ -399,7 +409,7 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 		return errors.Wrap(err, "could not parse urls for release")
 	}
 
-	// parse torrent var
+	// parse torrent name
 	if err := def.IRC.Parse.Match.ParseTorrentName(mergedVars, rls); err != nil {
 		return errors.Wrap(err, "could not parse release name")
 	}
