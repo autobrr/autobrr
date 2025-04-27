@@ -18,6 +18,7 @@ import (
 
 var templateCache = ttlcache.New(
 	ttlcache.Options[string, *template.Template]{}.
+		SetTimerResolution(5 * time.Minute).
 		SetDefaultTTL(15 * time.Minute),
 )
 
