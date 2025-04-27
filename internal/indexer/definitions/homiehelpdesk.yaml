@@ -1,0 +1,85 @@
+---
+#id: HomieHelpDesk
+name: HomieHelpDesk
+identifier: homiehelpdesk
+description: HomieHelpDesk (HHD) is a private torrent tracker for MOVIES / TV
+language: en-us
+urls:
+  - https://homiehelpdesk.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to My Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: HomieHelpDesk
+  server: irc.homiehelpdesk.net
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - HHDBot
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: multi
+    lines:
+      - tests:
+          - line: '[HHD] TheUploader has uploaded Shattered Glass 2003 1080p BluRay REMUX AVC DTS-HD MA 5.1-NOGROUP grab it now!'
+            expect:
+              uploader: TheUploader
+              torrentName: Shattered Glass 2003 1080p BluRay REMUX AVC DTS-HD MA 5.1-NOGROUP
+        pattern: '^\[HHD\] (.+) has uploaded (.+) grab it now!'
+        vars:
+          - uploader
+          - torrentName
+      - tests:
+          - line: '[Category: Movies] [Type: Remux] [Size: 18 GiB] [TMDB vote average: 0] [TMDB vote count: 0]'
+            expect:
+              category: Movies
+              releaseTags: Remux
+              torrentSize: "18 GiB"
+        pattern: '^\[Category: (.+)\] \[Type: (.+)\] \[Size: (.+)\] \[TMDB vote average: \d+\] \[TMDB vote count: \d+\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentSize
+      - tests:
+          - line: '[Link: https://homiehelpdesk.net/torrents/2773]'
+            expect:
+              baseUrl: https://homiehelpdesk.net/
+              torrentId: "2773"
+        pattern: '^\[Link: (https?\:\/\/.+\/)torrents\/(\d+)\]'
+        vars:
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
