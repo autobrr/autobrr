@@ -18,7 +18,6 @@ import (
 
 var templateCache = ttlcache.New(
 	ttlcache.Options[string, *template.Template]{}.
-		SetTimerResolution(5 * time.Minute).
 		SetDefaultTTL(15 * time.Minute),
 )
 
@@ -190,7 +189,7 @@ func (m Macro) Parse(text string) (string, error) {
 		if err != nil {
 			return "", errors.Wrap(err, "could not parse macro template")
 		}
-		templateCache.Set(text, tmpl, ttlcache.NoTTL)
+		templateCache.Set(text, tmpl, ttlcache.DefaultTTL)
 	}
 
 	var tpl bytes.Buffer
@@ -216,7 +215,7 @@ func (m Macro) MustParse(text string) string {
 		if err != nil {
 			return ""
 		}
-		templateCache.Set(text, tmpl, ttlcache.NoTTL)
+		templateCache.Set(text, tmpl, ttlcache.DefaultTTL)
 	}
 
 	var tpl bytes.Buffer
