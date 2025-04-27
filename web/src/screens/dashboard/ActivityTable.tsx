@@ -18,7 +18,7 @@ import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
 import { ReleasesLatestQueryOptions } from "@api/queries";
 import { IndexerCell } from "@components/data-table";
-import { IncognitoContext } from "@utils/Context";
+import { SettingsContext } from "@utils/Context";
 
 interface TableProps {
   columns: ColumnDef<Release>[];
@@ -94,7 +94,7 @@ function Table({ columns, data }: TableProps) {
 }
 
 export const ActivityTable = () => {
-  const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
+  const columns = React.useMemo<ColumnDef<Release>[]>(() => [
     {
       header: "Age",
       accessorKey: "timestamp",
@@ -103,7 +103,7 @@ export const ActivityTable = () => {
     {
       header: "Release",
       accessorKey: "name",
-      cell: DataTable.TitleCell,
+      cell: DataTable.TitleCell
     },
     {
       header: "Actions",
@@ -120,10 +120,10 @@ export const ActivityTable = () => {
   const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
-  const [showLinuxIsos, setShowLinuxIsos] = IncognitoContext.use();
+  const [settings, setSettings] = SettingsContext.use();
 
   useEffect(() => {
-    if (showLinuxIsos && data?.data) {
+    if (settings.incognitoMode && data?.data) {
       const randomIsoNames = RandomLinuxIsos(data.data.length);
       const randomTorrentSiteNames = RandomIsoTracker(data.data.length);
       const newData: Release[] = data.data.map((item, index) => {
@@ -143,7 +143,7 @@ export const ActivityTable = () => {
     } else {
       setModifiedData([]);
     }
-  }, [showLinuxIsos, data?.data]);
+  }, [settings.incognitoMode, data?.data]);
 
   if (isLoading) {
     return (
@@ -159,10 +159,10 @@ export const ActivityTable = () => {
   }
 
   const toggleReleaseNames = () => {
-    setShowLinuxIsos(!showLinuxIsos);
+    setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
   };
 
-  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? []);
+  const displayData = settings.incognitoMode ? modifiedData : (data?.data ?? []);
 
   return (
     <div className="flex flex-col mt-12 relative">
@@ -178,7 +178,7 @@ export const ActivityTable = () => {
         aria-label="Toggle view"
         title="Go incognito"
       >
-        {showLinuxIsos ? (
+        {settings.incognitoMode ? (
           <EyeIcon className="h-4 w-4"/>
         ) : (
           <EyeSlashIcon className="h-4 w-4"/>

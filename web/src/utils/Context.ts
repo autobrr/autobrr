@@ -12,6 +12,7 @@ interface SettingsType {
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
   hideWrappedText: boolean;
+  incognitoMode: boolean;
 }
 
 export type FilterListState = {
@@ -42,7 +43,8 @@ const SettingsContextDefaults: SettingsType = {
   darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
   scrollOnNewLog: false,
   indentLogLines: false,
-  hideWrappedText: false
+  hideWrappedText: false,
+  incognitoMode: false
 };
 
 const FilterListContextDefaults: FilterListState = {
@@ -55,7 +57,8 @@ const FilterListContextDefaults: FilterListState = {
 function ContextMerger<T extends {}>(
   key: string,
   defaults: T,
-  ctxState: StateWithValue<T>
+  ctxState: StateWithValue<T>,
+  incognitoKey?: string
 ) {
   let values = structuredClone(defaults);
 
@@ -73,6 +76,18 @@ function ContextMerger<T extends {}>(
     }
   }
 
+  if (key === SettingsKey && incognitoKey) {
+    try {
+      const incognitoStored = localStorage.getItem(incognitoKey);
+      const incognitoValue = incognitoStored ? JSON.parse(incognitoStored) : false;
+
+      (values as unknown as SettingsType).incognitoMode = incognitoValue;
+    } catch (e) {
+      console.error(`Failed to read ${incognitoKey} from localStorage`, e);
+      (values as unknown as SettingsType).incognitoMode = false;
+    }
+  }
+
   ctxState.set(values);
 }
 
@@ -81,22 +96,13 @@ const SettingsKey = "autobrr_settings";
 const FilterListKey = "autobrr_filter_list";
 const IncognitoKey = "autobrr_incognito";
 
-const getInitialIncognitoState = (): boolean => {
-  try {
-    const stored = localStorage.getItem(IncognitoKey);
-    return stored ? JSON.parse(stored) : false;
-  } catch (e) {
-    console.error(`Failed to read ${IncognitoKey} from localStorage`, e);
-    return false;
-  }
-};
-
 export const InitializeGlobalContext = () => {
   ContextMerger<AuthInfo>(AuthKey, AuthContextDefaults, AuthContext);
   ContextMerger<SettingsType>(
     SettingsKey,
     SettingsContextDefaults,
-    SettingsContext
+    SettingsContext,
+    IncognitoKey
   );
   ContextMerger<FilterListState>(
     FilterListKey,
@@ -129,7 +135,9 @@ export const SettingsContext = newRidgeState<SettingsType>(
   {
     onSet: (newState, prevState) => {
       document.documentElement.classList.toggle("dark", newState.darkTheme);
-      DefaultSetter(SettingsKey, newState, prevState);
+      const { incognitoMode, ...settingsToSave } = newState;
+      DefaultSetter(SettingsKey, settingsToSave, prevState);
+      DefaultSetter(IncognitoKey, incognitoMode, prevState.incognitoMode);
       updateMetaThemeColor(newState.darkTheme);
     }
   }
@@ -155,12 +163,5 @@ export const FilterListContext = newRidgeState<FilterListState>(
   FilterListContextDefaults,
   {
     onSet: (newState, prevState) => DefaultSetter(FilterListKey, newState, prevState)
-  }
-);
-
-export const IncognitoContext = newRidgeState<boolean>(
-  getInitialIncognitoState(),
-  {
-    onSet: (newState, prevState) => DefaultSetter(IncognitoKey, newState, prevState)
   }
 );

@@ -30,7 +30,7 @@ import { RingResizeSpinner } from "@components/Icons";
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
 import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
-import { IncognitoContext } from "@utils/Context";
+import { SettingsContext } from "@utils/Context";
 
 declare module '@tanstack/react-table' {
   //allows us to define custom properties for our columns
@@ -148,10 +148,10 @@ export const ReleaseTable = () => {
   } = useQuery(ReleasesListQueryOptions(pagination.pageIndex * pagination.pageSize, pagination.pageSize, columnFilters));
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
-  const [showLinuxIsos, setShowLinuxIsos] = IncognitoContext.use();
+  const [settings, setSettings] = SettingsContext.use();
 
   useEffect(() => {
-    if (showLinuxIsos && data?.data) {
+    if (settings.incognitoMode && data?.data) {
       const randomIsoNames = RandomLinuxIsos(data.data.length);
       const randomTorrentSiteNames = RandomIsoTracker(data.data.length);
       const newData: Release[] = data.data.map((item, index) => {
@@ -177,14 +177,14 @@ export const ReleaseTable = () => {
     } else {
       setModifiedData([]);
     }
-  }, [showLinuxIsos, data?.data]);
+  }, [settings.incognitoMode, data?.data]);
 
   const toggleReleaseNames = () => {
-    setShowLinuxIsos(!showLinuxIsos);
+    setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
   };
 
   const defaultData = React.useMemo(() => [], [])
-  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? defaultData);
+  const displayData = settings.incognitoMode ? modifiedData : (data?.data ?? defaultData);
 
   const tableInstance = useReactTable({
     columns,
@@ -402,7 +402,7 @@ export const ReleaseTable = () => {
                   aria-label="Toggle view"
                   title="Go incognito"
                 >
-                  {showLinuxIsos ? (
+                  {settings.incognitoMode ? (
                     <EyeIcon className="h-4 w-4"/>
                   ) : (
                     <EyeSlashIcon className="h-4 w-4"/>
