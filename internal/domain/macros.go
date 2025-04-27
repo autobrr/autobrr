@@ -216,7 +216,7 @@ func (m Macro) MustParse(text string) string {
 		if err != nil {
 			return ""
 		}
-		templateCache.Set(text, tmpl, ttlcache.DefaultTTL)
+		templateCache.Set(text, tmpl, ttlcache.NoTTL)
 	}
 
 	var tpl bytes.Buffer
