@@ -601,7 +601,9 @@ func (r *Release) ParseString(title string) {
 		r.Season = rel.Series
 	}
 	if r.Episode == 0 {
-		r.Episode = rel.Episode
+		if len(rel.Episodes) > 0 {
+			r.Episode = rel.Episodes[0]
+		}
 	}
 
 	if r.Year == 0 {
