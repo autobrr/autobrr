@@ -63,6 +63,7 @@ import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { useToggle } from "@hooks/hooks.ts";
 import { DeleteModal } from "@components/modals";
+import {DocsLink} from "@components/ExternalLink.tsx";
 
 interface ListAddFormValues {
   name: string;
@@ -729,6 +730,16 @@ function ListTypePlainText() {
         label="List URL"
         help="URL to a plain text file with one item per line"
         placeholder="https://example.com/list.txt"
+        tooltip={
+            <div>
+                <p>Plaintext list can read from both http urls and local files on disk.</p>
+                <br />
+                <p>Remote: https://service.com/file.txt</p>
+                <br />
+                <p>Local: file:///home/username/file.txt</p>
+                <DocsLink href="https://autobrr.com/filters/lists" />
+            </div>
+        }
       />
 
       <div className="space-y-1">

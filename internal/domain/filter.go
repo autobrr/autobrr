@@ -45,11 +45,11 @@ type FilterRepo interface {
 }
 
 type FilterDownloads struct {
-	HourCount  int
-	DayCount   int
-	WeekCount  int
-	MonthCount int
-	TotalCount int
+	HourCount  int `json:"hour_count"`
+	DayCount   int `json:"day_count"`
+	WeekCount  int `json:"week_count"`
+	MonthCount int `json:"month_count"`
+	TotalCount int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
@@ -172,7 +172,7 @@ type Filter struct {
 	Indexers                  []Indexer                `json:"indexers"`
 	ReleaseProfileDuplicateID int64                    `json:"release_profile_duplicate_id,omitempty"`
 	DuplicateHandling         *DuplicateReleaseProfile `json:"release_profile_duplicate"`
-	Downloads                 *FilterDownloads         `json:"-"`
+	Downloads                 *FilterDownloads         `json:"downloads,omitempty"`
 	Rejections                []string                 `json:"-"`
 	RejectReasons             *RejectionReasons        `json:"-"`
 }
@@ -504,11 +504,11 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	}
 
 	if len(f.MatchHDR) > 0 && !matchHDR(r.HDR, f.MatchHDR) {
-		f.RejectReasons.Add("match hdr", r.HDR, f.MatchHDR)
+		f.RejectReasons.Add("match hdr", strings.Join(r.HDR, " "), f.MatchHDR)
 	}
 
 	if len(f.ExceptHDR) > 0 && matchHDR(r.HDR, f.ExceptHDR) {
-		f.RejectReasons.Add("except hdr", r.HDR, f.ExceptHDR)
+		f.RejectReasons.Add("except hdr", strings.Join(r.HDR, " "), f.ExceptHDR)
 	}
 
 	// Other is parsed into the Other slice from rls
@@ -1168,6 +1168,7 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
 
+		// for filter with dual tag like "DV HDR"
 		parts := strings.Split(filter, " ")
 		if len(parts) == 2 {
 			partsMatched := 0
@@ -1186,13 +1187,30 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 				}
 			}
 		} else {
-			for _, tag := range releaseValues {
-				if tag == "" {
-					continue
+			matches := 0
+			if len(releaseValues) == 2 {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						matches++
+					}
 				}
-				tag = strings.ToLower(tag)
-				if tag == filter {
+
+				if matches == len(releaseValues) {
 					return true
+				}
+			} else {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						return true
+					}
 				}
 			}
 		}

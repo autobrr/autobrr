@@ -14,6 +14,7 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 	type fields struct {
 		TorrentURL  string
 		TorrentName string
+		MagnetURI   string
 		InfoURL     string
 		Encode      []string
 	}
@@ -150,16 +151,34 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 				DownloadURL: "https://mock.local/rss/?action=download&key=KEY&token=TOKEN&hash=240860011&title=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
 			},
 		},
+		{
+			name: "magnet_uri",
+			fields: fields{
+				MagnetURI: "magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .torrentName }}",
+			},
+			args: args{
+				vars: map[string]string{
+					"torrentHash": "81c758d0eca5372d59e43879ecf2e2bce33a06c4",
+					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+				},
+				rls: &Release{},
+			},
+			want: &Release{
+				MagnetURI: "magnet:?xt=urn:btih:81c758d0eca5372d59e43879ecf2e2bce33a06c4&dn=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &IndexerIRCParseMatch{
 				TorrentURL:  tt.fields.TorrentURL,
 				TorrentName: tt.fields.TorrentName,
+				MagnetURI:   tt.fields.MagnetURI,
 				InfoURL:     tt.fields.InfoURL,
 				Encode:      tt.fields.Encode,
 			}
-			p.ParseURLs(tt.args.baseURL, tt.args.vars, tt.args.rls)
+			err := p.ParseURLs(tt.args.baseURL, tt.args.vars, tt.args.rls)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.want, tt.args.rls)
 		})
 	}

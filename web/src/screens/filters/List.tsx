@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
 import {
   Listbox,
@@ -27,7 +27,8 @@ import {
   EllipsisHorizontalIcon,
   PencilSquareIcon,
   PlusIcon, SparklesIcon,
-  TrashIcon
+  TrashIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
@@ -195,17 +196,18 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { isLoading, data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
+  const { isLoading: isLoadingFilters, data: filtersData, error: filtersError } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
   }, [indexerFilter, sortOrder, status]);
 
-  if (error) {
-    return <p>An error has occurred:</p>;
+  if (filtersError) {
+    // TODO: Better error handling
+    return <p>An error has occurred loading filters.</p>;
   }
 
-  const filtered = filteredData(data ?? [], status);
+  const filtered = filteredData(filtersData ?? [], status);
 
   return (
     <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
@@ -223,12 +225,12 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
         </div>
 
-        {isLoading
+        {isLoadingFilters
           ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
-          : data && data.length > 0 ? (
+          : filtersData && filtersData.length > 0 ? (
               <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
                 {filtered.filtered.length > 0
-                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx}/>)
+                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
                   : <EmptyListState text={`No ${status} filters`}/>
                 }
               </ul>
@@ -550,6 +552,18 @@ interface FilterListItemProps {
 function FilterListItem({ filter, idx }: FilterListItemProps) {
   const queryClient = useQueryClient();
 
+  // Check if this filter uses any disabled indexers and get their names
+  const disabledIndexersInfo = useMemo(() => {
+    if (!filter.enabled || !filter.indexers || filter.indexers.length === 0) {
+      return { hasDisabled: false, names: [] };
+    }
+    const disabled = filter.indexers.filter(indexer => !indexer.enabled);
+    return {
+      hasDisabled: disabled.length > 0,
+      names: disabled.map(indexer => indexer.name)
+    };
+  }, [filter.enabled, filter.indexers]);
+
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
     onSuccess: () => {
@@ -592,7 +606,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           }}
           className="transition flex items-center w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
-          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true"/>}
+          {filter.name}
+          {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400 inline" aria-hidden="true"/>}
         </Link>
         <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -612,7 +627,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
-          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                      Actions: {filter.actions_enabled_count}/{filter.actions_count}
                     </span>
                   </Link>
                 }
@@ -636,14 +651,29 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
-          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                  Actions: {filter.actions_enabled_count}/{filter.actions_count}
                 </span>
               </Link>
             )}
           </span>
+          {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
+            <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+              Downloads: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} per {filter.max_downloads_unit}
+            </span>
+          )}
         </div>
       </div>
-      <span className="hidden md:flex px-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden md:flex items-center justify-center py-4">
+        {disabledIndexersInfo.hasDisabled && (
+          <span
+            className="inline-flex items-center"
+            title={`Uses disabled indexer(s): ${disabledIndexersInfo.names.join(", ")}`}
+          >
+            <ExclamationTriangleIcon className="w-4 h-4 text-red-500 dark:text-red-400 relative top-px" aria-hidden="true"/>
+          </span>
+        )}
+      </span>
+      <span className="hidden md:flex pl-2 pr-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
       <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
@@ -654,6 +684,23 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       </span>
     </li>
   );
+}
+
+function renderMaxDownloads(unit: string, downloads: FilterDownloads): number {
+  switch (unit) {
+    case "HOUR":
+      return downloads.hour_count
+    case "DAY":
+      return downloads.day_count
+    case "WEEK":
+      return downloads.week_count
+    case "MONTH":
+      return downloads.month_count
+    case "EVER":
+      return downloads.total_count
+    default:
+      return 0
+  }
 }
 
 interface IndexerTagProps {

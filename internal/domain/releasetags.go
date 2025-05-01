@@ -498,6 +498,12 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 				continue
 			}
 
+			if info.Tag() == "Log" {
+				releaseTags.HasLog = true
+				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
+				continue
+			}
+
 			if info.Tag() == "LogScore" {
 				m := info.FindMatch(tags)
 				if len(m) == 2 {

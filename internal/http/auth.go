@@ -179,7 +179,7 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 	if status, err := h.onboardEligible(r.Context()); err != nil {
 		if status == http.StatusServiceUnavailable {
-			h.encoder.StatusWarning(w, status, err.Error())
+			h.encoder.StatusResponse(w, status, err.Error())
 			return
 		}
 		h.encoder.StatusError(w, status, err)
@@ -199,7 +199,8 @@ func (h authHandler) onboardEligible(ctx context.Context) (int, error) {
 	}
 
 	if userCount > 0 {
-		return http.StatusServiceUnavailable, errors.New("onboarding unavailable")
+		h.log.Trace().Msg("onboarding unavailable: user already registered")
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: user already registered")
 	}
 
 	return http.StatusOK, nil
@@ -215,6 +216,10 @@ func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
 		response := map[string]interface{}{
 			"username":    session.Values["username"],
 			"auth_method": session.Values["auth_method"],
+		}
+
+		if profilePicture, ok := session.Values["profile_picture"].(string); ok && profilePicture != "" {
+			response["profile_picture"] = profilePicture
 		}
 
 		h.encoder.StatusResponse(w, http.StatusOK, response)
@@ -279,7 +284,7 @@ func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	username, err := h.oidcHandler.HandleCallback(w, r)
+	claims, err := h.oidcHandler.HandleCallback(w, r)
 	if err != nil {
 		h.encoder.StatusError(w, http.StatusUnauthorized, errors.Wrap(err, "OIDC authentication failed"))
 		return
@@ -288,7 +293,7 @@ func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) 
 	// Create new session
 	session, err := h.cookieStore.Get(r, "user_session")
 	if err != nil {
-		h.log.Error().Err(err).Msgf("Auth: Failed to create cookies with attempt username: [%s] ip: %s", username, r.RemoteAddr)
+		h.log.Error().Err(err).Msgf("Auth: Failed to create cookies with attempt username: [%s] ip: %s", claims.Username, r.RemoteAddr)
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not create cookies"))
 		return
 	}
@@ -296,8 +301,12 @@ func (h authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) 
 	// Set user as authenticated
 	session.Values["authenticated"] = true
 	session.Values["created"] = time.Now().Unix()
-	session.Values["username"] = username
+	session.Values["username"] = claims.Username
 	session.Values["auth_method"] = "oidc"
+	if claims.Picture != "" {
+		session.Values["profile_picture"] = claims.Picture
+		h.log.Debug().Str("profile_picture", claims.Picture).Msg("storing profile picture URL in session")
+	}
 
 	// Set cookie options
 	session.Options.HttpOnly = true

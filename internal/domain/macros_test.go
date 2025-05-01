@@ -290,3 +290,28 @@ func TestMacros_Parse(t *testing.T) {
 		})
 	}
 }
+
+func TestMacros_TemplateCache(t *testing.T) {
+	t.Parallel()
+
+	release := Release{
+		TorrentName: "Test Movie 2024",
+		Year:        2024,
+	}
+
+	m := NewMacro(release)
+	template := "{{.TorrentName}} ({{.Year}})"
+
+	// parse and cache
+	got1, err := m.Parse(template)
+	assert.NoError(t, err)
+	assert.Equal(t, "Test Movie 2024 (2024)", got1)
+
+	// use cached template
+	got2, err := m.Parse(template)
+	assert.NoError(t, err)
+	assert.Equal(t, "Test Movie 2024 (2024)", got2)
+
+	_, ok := templateCache.Get(template)
+	assert.True(t, ok, "template should be in cache")
+}
