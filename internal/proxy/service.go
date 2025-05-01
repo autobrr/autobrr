@@ -141,7 +141,7 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New("got unexpected status code: %d", resp.Status)
+		return errors.New("got unexpected status code: %d", resp.StatusCode)
 	}
 
 	s.log.Debug().Msgf("proxy %s test OK!", proxy.Addr)
