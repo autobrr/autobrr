@@ -18,6 +18,7 @@ type Config struct {
 	CustomDefinitions       string `toml:"customDefinitions"`
 	CheckForUpdates         bool   `toml:"checkForUpdates"`
 	DatabaseType            string `toml:"databaseType"`
+	DatabaseDSN             string `toml:"databaseDSN"`
 	DatabaseMaxBackups      int    `toml:"databaseMaxBackups"`
 	PostgresHost            string `toml:"postgresHost"`
 	PostgresPort            int    `toml:"postgresPort"`
@@ -25,6 +26,7 @@ type Config struct {
 	PostgresUser            string `toml:"postgresUser"`
 	PostgresPass            string `toml:"postgresPass"`
 	PostgresSSLMode         string `toml:"postgresSSLMode"`
+	PostgresSocket          string `toml:"postgresSocket"`
 	PostgresExtraParams     string `toml:"postgresExtraParams"`
 	ProfilingEnabled        bool   `toml:"profilingEnabled"`
 	ProfilingHost           string `toml:"profilingHost"`

@@ -355,6 +355,10 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.CheckForUpdates = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
+	if v := os.Getenv(prefix + "DATABASE_DSN"); v != "" {
+		c.Config.DatabaseDSN = v
+	}
+
 	if v := os.Getenv(prefix + "DATABASE_TYPE"); v != "" {
 		if validDatabaseType(v) {
 			c.Config.DatabaseType = v
@@ -393,6 +397,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := os.Getenv(prefix + "POSTGRES_SSLMODE"); v != "" {
 		c.Config.PostgresSSLMode = v
+	}
+
+	if v := os.Getenv(prefix + "POSTGRES_SOCKET"); v != "" {
+		c.Config.PostgresSocket = v
 	}
 
 	if v := os.Getenv(prefix + "POSTGRES_EXTRA_PARAMS"); v != "" {

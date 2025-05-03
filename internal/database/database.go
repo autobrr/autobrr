@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -35,13 +36,29 @@ type DB struct {
 
 func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 	db := &DB{
-		// set default placeholder for squirrel to support both sqlite and postgres
+		// set a default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
 		log:      log.With().Str("module", "database").Str("type", cfg.DatabaseType).Logger(),
 		cfg:      cfg,
 	}
 	db.ctx, db.cancel = context.WithCancel(context.Background())
 
+	// Check for directly configured DSN in config
+	if cfg.DatabaseDSN != "" {
+		if strings.HasPrefix(cfg.DatabaseDSN, "postgres://") || strings.HasPrefix(cfg.DatabaseDSN, "postgresql://") {
+			db.Driver = "postgres"
+			db.DSN = cfg.DatabaseDSN
+			return db, nil
+		} else if strings.HasPrefix(cfg.DatabaseDSN, "file:") || cfg.DatabaseDSN == ":memory:" || strings.HasSuffix(cfg.DatabaseDSN, ".db") {
+			db.Driver = "sqlite"
+			db.DSN = cfg.DatabaseDSN
+			return db, nil
+		}
+
+		return nil, errors.New("unsupported database DSN: %s", cfg.DatabaseDSN)
+	}
+
+	// If no direct DSN is provided, build it from individual settings
 	switch cfg.DatabaseType {
 	case "sqlite":
 		db.Driver = "sqlite"
@@ -51,14 +68,45 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 			db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
 		}
 	case "postgres":
-		if cfg.PostgresHost == "" || cfg.PostgresPort == 0 || cfg.PostgresDatabase == "" {
-			return nil, errors.New("postgres: bad variables")
+		db.Driver = "postgres"
+
+		// If no database-specific settings are provided, return an error
+		if cfg.PostgresDatabase == "" && cfg.DatabaseDSN == "" {
+			return nil, errors.New("postgres: database name is required")
 		}
-		db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase, cfg.PostgresSSLMode)
+
+		// Build DSN based on the connection type (TCP vs. Unix socket)
+		if cfg.PostgresSocket != "" {
+			// Unix socket connection
+			db.DSN = fmt.Sprintf("postgresql:///%v?host=%v", cfg.PostgresDatabase, cfg.PostgresSocket)
+
+			// Add credentials if provided
+			if cfg.PostgresUser != "" {
+				if cfg.PostgresPass != "" {
+					db.DSN = fmt.Sprintf("postgresql://%v:%v@/%v?host=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresDatabase, cfg.PostgresSocket)
+				} else {
+					db.DSN = fmt.Sprintf("postgresql://%v@/%v?host=%v", cfg.PostgresUser, cfg.PostgresDatabase, cfg.PostgresSocket)
+				}
+			}
+
+			// Add SSL mode if provided
+			if cfg.PostgresSSLMode != "" {
+				db.DSN = fmt.Sprintf("%s&sslmode=%v", db.DSN, cfg.PostgresSSLMode)
+			}
+		} else {
+			// TCP connection
+			if cfg.PostgresHost == "" || cfg.PostgresPort == 0 {
+				return nil, errors.New("postgres: host and port are required for TCP connection")
+			}
+
+			db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase, cfg.PostgresSSLMode)
+		}
+
+		// Add any extra parameters
 		if cfg.PostgresExtraParams != "" {
 			db.DSN = fmt.Sprintf("%s&%s", db.DSN, cfg.PostgresExtraParams)
 		}
-		db.Driver = "postgres"
+
 	default:
 		return nil, errors.New("unsupported database: %v", cfg.DatabaseType)
 	}
