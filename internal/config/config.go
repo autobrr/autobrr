@@ -374,11 +374,19 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.PostgresDatabase = v
 	}
 
+	if v := GetEnvStr("POSTGRES_DB"); v != "" {
+		c.Config.PostgresDatabase = v
+	}
+
 	if v := GetEnvStr("POSTGRES_USER"); v != "" {
 		c.Config.PostgresUser = v
 	}
 
 	if v := GetEnvStr("POSTGRES_PASS"); v != "" {
+		c.Config.PostgresPass = v
+	}
+
+	if v := GetEnvStr("POSTGRES_PASSWORD"); v != "" {
 		c.Config.PostgresPass = v
 	}
 
