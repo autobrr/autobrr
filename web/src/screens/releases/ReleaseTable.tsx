@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 import {
@@ -25,11 +25,12 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { ReleasesListQueryOptions } from "@api/queries";
-import { RandomLinuxIsos } from "@utils";
+import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
 import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
+import { SettingsContext } from "@utils/Context";
 
 declare module '@tanstack/react-table' {
   //allows us to define custom properties for our columns
@@ -147,34 +148,43 @@ export const ReleaseTable = () => {
   } = useQuery(ReleasesListQueryOptions(pagination.pageIndex * pagination.pageSize, pagination.pageSize, columnFilters));
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
-  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
+  const [settings, setSettings] = SettingsContext.use();
+
+  useEffect(() => {
+    if (settings.incognitoMode && data?.data) {
+      const randomIsoNames = RandomLinuxIsos(data.data.length);
+      const randomTorrentSiteNames = RandomIsoTracker(data.data.length);
+      const newData: Release[] = data.data.map((item, index) => {
+        const siteName = randomTorrentSiteNames[index % randomTorrentSiteNames.length];
+        return {
+          ...item,
+          name: randomIsoNames[index],
+          indexer: {
+            id: 0,
+            name: siteName,
+            identifier: siteName,
+            identifier_external: siteName,
+          },
+          category: "Linux ISOs",
+          size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
+          source: "",
+          container: "",
+          codec: "",
+          resolution: "",
+        };
+      });
+      setModifiedData(newData);
+    } else {
+      setModifiedData([]);
+    }
+  }, [settings.incognitoMode, data?.data]);
 
   const toggleReleaseNames = () => {
-    setShowLinuxIsos(!showLinuxIsos);
-    if (!showLinuxIsos && data && data.data) {
-      const randomNames = RandomLinuxIsos(data.data.length);
-      const newData: Release[] = data.data.map((item, index) => ({
-        ...item,
-        name: `${randomNames[index]}.iso`,
-        indexer: {
-          id: 0,
-          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-          identifier_external: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-        },
-        category: "Linux ISOs",
-        size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
-        source: "",
-        container: "",
-        codec: "",
-        resolution: "",
-      }));
-      setModifiedData(newData);
-    }
+    setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
   };
 
   const defaultData = React.useMemo(() => [], [])
-  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? defaultData);
+  const displayData = settings.incognitoMode ? modifiedData : (data?.data ?? defaultData);
 
   const tableInstance = useReactTable({
     columns,
@@ -392,7 +402,7 @@ export const ReleaseTable = () => {
                   aria-label="Toggle view"
                   title="Go incognito"
                 >
-                  {showLinuxIsos ? (
+                  {settings.incognitoMode ? (
                     <EyeIcon className="h-4 w-4"/>
                   ) : (
                     <EyeSlashIcon className="h-4 w-4"/>
