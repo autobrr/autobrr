@@ -6,7 +6,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -79,37 +78,11 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 			return nil, errors.New("postgres: database name is required")
 		}
 
-		// Build DSN based on the connection type (TCP vs. Unix socket)
-		if cfg.PostgresSocket != "" {
-			// Unix socket connection
-			db.DSN = fmt.Sprintf("postgresql:///%v?host=%v", cfg.PostgresDatabase, cfg.PostgresSocket)
-
-			// Add credentials if provided
-			if cfg.PostgresUser != "" {
-				if cfg.PostgresPass != "" {
-					db.DSN = fmt.Sprintf("postgresql://%v:%v@/%v?host=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresDatabase, cfg.PostgresSocket)
-				} else {
-					db.DSN = fmt.Sprintf("postgresql://%v@/%v?host=%v", cfg.PostgresUser, cfg.PostgresDatabase, cfg.PostgresSocket)
-				}
-			}
-
-			// Add SSL mode if provided
-			if cfg.PostgresSSLMode != "" {
-				db.DSN = fmt.Sprintf("%s&sslmode=%v", db.DSN, cfg.PostgresSSLMode)
-			}
-		} else {
-			// TCP connection
-			if cfg.PostgresHost == "" || cfg.PostgresPort == 0 {
-				return nil, errors.New("postgres: host and port are required for TCP connection")
-			}
-
-			db.DSN = fmt.Sprintf("postgres://%v:%v@%v:%d/%v?sslmode=%v", cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresDatabase, cfg.PostgresSSLMode)
+		pgDsn, err := PostgresDSN(cfg.PostgresHost, cfg.PostgresPort, cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresDatabase, cfg.PostgresSocket, cfg.PostgresSSLMode, cfg.PostgresExtraParams)
+		if err != nil {
+			return nil, errors.Wrap(err, "postgres: failed to build DSN")
 		}
-
-		// Add any extra parameters
-		if cfg.PostgresExtraParams != "" {
-			db.DSN = fmt.Sprintf("%s&%s", db.DSN, cfg.PostgresExtraParams)
-		}
+		db.DSN = pgDsn
 
 	default:
 		return nil, errors.New("unsupported database: %v", cfg.DatabaseType)
