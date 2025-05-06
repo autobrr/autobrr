@@ -12,17 +12,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"reflect"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
-	"github.com/autobrr/autobrr/internal/database/tools"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/autobrr/autobrr/internal/database/tools"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -35,6 +39,7 @@ Actions:
   change-password      <username>                                                        Change the password
   db:seed              --db-path <path-to-database> --seed-db <path-to-sql-seed>         Seed the sqlite database
   db:reset             --db-path <path-to-database> --seed-db <path-to-sql-seed>         Reset the sqlite database
+  export                                                                                 Export all filters to individual JSON files in the current directory
   db:convert           --sqlite-db <path-to-sqlite-db> --postgres-url <postgres-db-url>  Convert SQLite to Postgres
   version                                                                                Display the version of autobrrctl
   help                                                                                   Show this help message
@@ -44,6 +49,7 @@ Examples:
   autobrrctl --config /path/to/config/dir change-password john
   autobrrctl db:reset --db-path /path/to/autobrr.db --seed-db /path/to/seed
   autobrrctl db:seed --db-path /path/to/autobrr.db --seed-db /path/to/seed
+  autobrrctl --config /path/to/config/dir export
   autobrrctl db:convert --sqlite-db /path/to/autobrr.db --postgres-url postgres://username:password@127.0.0.1:5432/autobrr
   autobrrctl version
   autobrrctl help
@@ -292,6 +298,74 @@ func main() {
 
 		fmt.Println(hash)
 
+	case "export":
+		if configPath == "" {
+			log.Fatal("--config required")
+		}
+
+		// read config
+		cfg := config.New(configPath, version)
+
+		// init new logger
+		l := logger.New(cfg.Config)
+
+		// open database connection
+		db, _ := database.NewDB(cfg.Config, l)
+		if err := db.Open(); err != nil {
+			log.Fatalf("could not open db connection: %v", err)
+		}
+		defer db.Close() // Ensure DB connection is closed
+
+		// We need the FilterRepo to get filters
+		filterRepo := database.NewFilterRepo(l, db)
+		// The filter service isn't strictly necessary here as we just need to fetch all
+		// filterSvc := filters.NewService(l, filterRepo, nil, nil, nil, nil) // Dependencies might be complex
+
+		ctx := context.Background()
+
+		filtersList, err := filterRepo.ListFilters(ctx)
+		if err != nil {
+			log.Fatalf("failed to get filters: %v", err)
+		}
+
+		outputDir := "." // Export to current directory
+		log.Printf("Exporting %d filters to %s...\n", len(filtersList), outputDir)
+
+		for _, listedFilter := range filtersList {
+			// Fetch the full filter details using its ID
+			fullFilter, err := filterRepo.FindByID(ctx, listedFilter.ID)
+			if err != nil {
+				log.Printf("Error fetching full details for filter %q (ID: %d): %v\n", listedFilter.Name, listedFilter.ID, err)
+				continue // Skip this filter
+			}
+
+			// Fetch associated external filters
+			externalFilters, err := filterRepo.FindExternalFiltersByID(ctx, fullFilter.ID)
+			if err != nil {
+				// Log the error but continue, maybe the filter just doesn't have external ones
+				log.Printf("Warning: could not fetch external filters for filter %q (ID: %d): %v\n", fullFilter.Name, fullFilter.ID, err)
+				// Assign an empty slice to avoid issues if prepareFilterForExport expects non-nil
+				externalFilters = []domain.FilterExternal{} // Use slice of values
+			}
+
+			jsonData, err := prepareFilterForExport(*fullFilter, externalFilters) // Pass slice of values
+			if err != nil {
+				log.Printf("Error preparing filter %q for export: %v\n", fullFilter.Name, err)
+				continue // Skip this filter
+			}
+
+			safeName := sanitizeFilename(fullFilter.Name)
+			filename := fmt.Sprintf("%s.json", safeName)
+			filePath := filepath.Join(outputDir, filename)
+
+			if err := os.WriteFile(filePath, jsonData, 0644); err != nil {
+				log.Printf("Error writing file %s: %v\n", filePath, err)
+			} else {
+				log.Printf("Successfully exported filter %q to %s\n", fullFilter.Name, filePath)
+			}
+		}
+		log.Println("Filter export finished.")
+
 	default:
 		flag.Usage()
 		if cmd != "help" {
@@ -341,4 +415,108 @@ func CreateHtpasswdHash(password string) (string, error) {
 
 	// Return the formatted bcrypt hash (with the bcrypt marker "$2y$")
 	return string(hash), nil
+}
+
+// prepareFilterForExport takes a filter, cleans it similar to the frontend logic, and returns JSON bytes.
+func prepareFilterForExport(filter domain.Filter, externalFilters []domain.FilterExternal) ([]byte, error) { // Accept slice of values
+	// Marshal the original filter to a map for easier manipulation
+	var filterMap map[string]interface{}
+	tempJSON, err := json.Marshal(filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal filter: %w", err)
+	}
+	if err := json.Unmarshal(tempJSON, &filterMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal filter to map: %w", err)
+	}
+
+	// Fields to remove entirely (internal or unwanted fields matching the WebUI export)
+	fieldsToRemove := []string{
+		"id", "indexers", "actions", // Internal relations/fields
+		"created_at", "updated_at", // Timestamps not in WebUI export data
+		"priority", "smart_episode", // Other fields not in WebUI export data (use JSON names)
+		"actions_count", "actions_enabled_count", // Derived/extra fields if present
+	}
+	for _, key := range fieldsToRemove {
+		delete(filterMap, key)
+	}
+
+	// Fields to remove if they have default values (mirroring frontend logic)
+	// Note: JSON unmarshals numbers as float64 and empty arrays as []interface{}
+	defaults := map[string]interface{}{
+		"enabled":        false,
+		"matchReleases":  []interface{}{},
+		"exceptReleases": []interface{}{},
+		"tags":           []interface{}{},
+		"categories":     []interface{}{},
+		"resolutions":    []interface{}{},
+		"source":         []interface{}{},
+		"type":           []interface{}{},
+		"codecs":         []interface{}{},
+		"container":      []interface{}{},
+		"freeleech":      []interface{}{},
+		"searchType":     []interface{}{},
+		"searchEngine":   []interface{}{},
+		"matchTorrents":  true,
+		"episodeFilter":  float64(0),
+		"seasonFilter":   float64(0),
+		"smartFilter":    false,
+		// Add other fields with defaults if needed
+	}
+
+	for key, defaultValue := range defaults {
+		if value, ok := filterMap[key]; ok {
+			// Use reflect.DeepEqual for robust comparison, especially for slices
+			if reflect.DeepEqual(value, defaultValue) {
+				delete(filterMap, key)
+			} else if reflect.TypeOf(value).Kind() == reflect.Slice && reflect.ValueOf(value).Len() == 0 {
+				// Handle case where default is empty slice literal and value is non-nil empty slice
+				if reflect.DeepEqual(defaultValue, []interface{}{}) {
+					delete(filterMap, key)
+				}
+			}
+		}
+	}
+
+	// Add external filters if any exist
+	if len(externalFilters) > 0 {
+		// Marshal external filters to add them correctly structured
+		externalData, err := json.Marshal(externalFilters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal external filters: %w", err)
+		}
+		var externalMapInterface interface{} // Use interface{} to handle potential array/object variations
+		if err := json.Unmarshal(externalData, &externalMapInterface); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal external filters to map: %w", err)
+		}
+		filterMap["external"] = externalMapInterface
+	} else {
+		// Ensure 'external' key doesn't exist if there are no external filters
+		// This prevents `"external": null` if the field exists on the original struct
+		delete(filterMap, "external")
+	}
+
+	// Remove the name field from the data map as it's already at the root level
+	delete(filterMap, "name")
+
+	// Create the final output structure
+	outputMap := map[string]interface{}{
+		"name":    filter.Name, // Use the original filter name
+		"version": "1.0",       // Match WebUI version format
+		"data":    filterMap,   // Nest the cleaned filter data here
+	}
+
+	// Marshal the cleaned map back to JSON with indentation
+	return json.MarshalIndent(outputMap, "", "  ")
+}
+
+// sanitizeFilename removes characters that are invalid in filenames.
+var invalidFilenameChars = regexp.MustCompile(`[<>:"/\\|?*]`)
+
+func sanitizeFilename(name string) string {
+	sanitized := invalidFilenameChars.ReplaceAllString(name, "_")
+	sanitized = strings.Trim(sanitized, " .") // Remove leading/trailing spaces and dots
+	if sanitized == "" {
+		return "unnamed_filter" // Handle potentially empty names after sanitization
+	}
+	return sanitized
 }
