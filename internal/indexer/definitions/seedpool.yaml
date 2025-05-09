@@ -26,6 +26,7 @@ irc:
   tls: true
   channels:
     - "#announce"
+    - "#music"
   announcers:
     - seedpool
     - uploader
@@ -37,7 +38,7 @@ irc:
       help: Bot nick. Eg. user_bot
 
   parse:
-    type: single
+    type: multi
     lines:
       - tests:
         - line: 【 BoxSet 】 Some - Box Set (2023) S01 (2160p DSNP WEB-DL Hybrid H265 DV HDR DDP 5.1 English - GROUP) ჻ seedpool@https://seedpool.org/torrents/00000 ჻ 39.74 GiB
@@ -80,6 +81,25 @@ irc:
           - torrentSize
           - origin
           - freeleech
+      - tests:
+        - line: 【 Techno Music  ჻  Techno_-_UntUntz_(Extended_Version)-(XXX111Y)-SINGLE-WEB-2025-UnKn0wn ჻ uploader@https://seedpool.org/torrents/000000  ჻ 〔 MPEG @ 44.1 kHz 〕 ჻  10.1 MiB ჻
+          expect:
+            category: Techno
+            torrentName: Techno_-_UntUntz_(Extended_Version)-(XXX111Y)-SINGLE-WEB-2025-UnKn0wn
+            uploader: "uploader"
+            baseUrl: https://seedpool.org/
+            torrentId: "000000"
+            format: MPEG @ 44.1 kHz
+            torrentSize: 10.1 MiB
+        pattern: '^【 (.*?) Music  ჻  (.*?) ჻ (.*?)@(https:\/\/.*?\/)torrents/(\d+)  ჻ 〔 ([^჻]+) 〕 ჻  ([^჻]+) ჻$'
+        vars:
+          - category
+          - torrentName
+          - uploader
+          - baseUrl
+          - torrentId
+          - format
+          - torrentSize
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
