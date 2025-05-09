@@ -145,6 +145,7 @@ export const ReleaseTable = () => {
     isLoading,
     error,
     data,
+    dataUpdatedAt,
   } = useQuery(ReleasesListQueryOptions(pagination.pageIndex * pagination.pageSize, pagination.pageSize, columnFilters));
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
@@ -177,14 +178,14 @@ export const ReleaseTable = () => {
     } else {
       setModifiedData([]);
     }
-  }, [settings.incognitoMode, data?.data]);
+  }, [settings.incognitoMode, data?.data, dataUpdatedAt]);
 
   const toggleReleaseNames = () => {
     setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
   };
 
   const defaultData = React.useMemo(() => [], [])
-  const displayData = settings.incognitoMode ? modifiedData : (data?.data ?? defaultData);
+  const displayData = settings.incognitoMode ? modifiedData : [...(data?.data ?? defaultData)];
 
   const tableInstance = useReactTable({
     columns,
