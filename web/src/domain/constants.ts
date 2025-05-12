@@ -443,10 +443,6 @@ export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
     value: "PLAINTEXT"
   },
   {
-    label: "Plaintext Untouched",
-    value: "PLAINTEXTUNTOUCHED"
-  },
-  {
     label: "Steam",
     value: "STEAM"
   },
@@ -471,7 +467,6 @@ export const ListTypeNameMap: Record<ListType, string> = {
   "METACRITIC": "Metacritic",
   "STEAM": "Steam",
   "PLAINTEXT": "Plaintext",
-  "PLAINTEXTUNTOUCHED": "Plaintext Untouched",
   "ANILIST": "AniList",
 };
 

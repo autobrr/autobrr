@@ -52,5 +52,4 @@ type ListType =
   | "METACRITIC"
   | "STEAM"
   | "PLAINTEXT"
-  | "PLAINTEXTUNTOUCHED"
   | "ANILIST";

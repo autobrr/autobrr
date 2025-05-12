@@ -229,9 +229,6 @@ func (s *service) refreshList(ctx context.Context, listItem *domain.List) error 
 	case domain.ListTypePlaintext:
 		err = s.plaintext(ctx, listItem)
 
-	case domain.ListTypePlaintextUntouched:
-		err = s.plaintextuntouched(ctx, listItem)
-
 	case domain.ListTypeAniList:
 		err = s.anilist(ctx, listItem)
 
