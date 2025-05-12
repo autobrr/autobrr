@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -186,7 +185,7 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 
 	if err != nil {
 		if httpResponse.StatusCode >= 400 {
-			return nil, errors.Wrap(err, fmt.Sprintf("rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode))
+			return nil, errors.Wrap(err, "rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode)
 		}
 		//	if res.StatusCode == http.StatusUnauthorized {
 		//		return nil, errors.New("unauthorized: bad credentials")

@@ -10,9 +10,16 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/ttlcache"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
+)
+
+var templateCache = ttlcache.New(
+	ttlcache.Options[string, *template.Template]{}.
+		SetTimerResolution(5 * time.Minute).
+		SetDefaultTTL(15 * time.Minute),
 )
 
 type Macro struct {
@@ -175,16 +182,19 @@ func (m Macro) Parse(text string) (string, error) {
 		return "", nil
 	}
 
-	// TODO implement template cache
-
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return "", errors.Wrap(err, "could parse macro template")
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return "", errors.Wrap(err, "could not parse macro template")
+		}
+		templateCache.Set(text, tmpl, ttlcache.DefaultTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return "", errors.Wrap(err, "could not parse macro")
 	}
@@ -198,14 +208,19 @@ func (m Macro) MustParse(text string) string {
 		return ""
 	}
 
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return ""
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return ""
+		}
+		templateCache.Set(text, tmpl, ttlcache.NoTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return ""
 	}

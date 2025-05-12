@@ -128,29 +128,61 @@ export function humanFileSize(sizeBytes: number | bigint): string {
 
 export const RandomLinuxIsos = (count: number) => {
   const linuxIsos = [
-    "ubuntu-20.04.4-lts-focal-fossa-desktop-amd64-secure-boot",
-    "debian-11.3.0-bullseye-amd64-DVD-1-with-nonfree-firmware-netinst",
-    "fedora-36-workstation-x86_64-live-iso-with-rpmfusion-free-and-nonfree",
-    "archlinux-2023.04.01-x86_64-advanced-installation-environment",
-    "linuxmint-20.3-uma-cinnamon-64bit-full-multimedia-support-edition",
-    "centos-stream-9-x86_64-dvd1-full-install-iso-with-extended-repositories",
-    "opensuse-tumbleweed-20230415-DVD-x86_64-full-packaged-desktop-environments",
-    "manjaro-kde-21.1.6-210917-linux514-full-hardware-support-edition",
-    "elementaryos-6.1-odin-amd64-20230104-iso-with-pantheon-desktop-environment",
-    "pop_os-21.10-amd64-nvidia-proprietary-drivers-included-live",
-    "kali-linux-2023.2-live-amd64-iso-with-persistent-storage-and-custom-tools",
-    "zorin-os-16-pro-ultimate-edition-64-bit-r1-iso-with-windows-app-support",
-    "endeavouros-2023.04.15-x86_64-iso-with-offline-installer-and-xfce4",
-    "mx-linux-21.2-aarch64-xfce-iso-with-ahs-enabled-kernel-and-snapshot-feature",
-    "solus-4.3-budgie-desktop-environment-full-iso-with-software-center",
-    "slackware-15.0-install-dvd-iso-with-extended-documentation-and-extras",
-    "alpine-standard-3.15.0-x86_64-iso-for-container-and-server-use",
-    "gentoo-livecd-amd64-minimal-20230407-stage3-tarball-included",
-    "peppermint-11-20210903-amd64-iso-with-hybrid-lxde-xfce-desktop",
-    "deepin-20.3-amd64-iso-with-deepin-desktop-environment-and-app-store"
+    "debian-live-12.10.0-amd64-kde.iso",
+    "xubuntu-25.04-desktop-amd64.iso",
+    "ubuntu-25.04-live-server-amd64.iso",
+    "ubuntu-25.04-desktop-amd64.iso",
+    "edubuntu-25.04-desktop-amd64.iso",
+    "deepin-desktop-community-23.1-amd64.iso",
+    "TUXEDO-OS-202504150920.iso",
+    "tails-amd64-6.14.2.iso",
+    "manjaro-kde-25.0.0-250414-linux612.iso",
+    "Fedora-KDE-Desktop-Live-x86_64-42.iso",
+    "manjaro-xfce-25.0.0-250414-linux612.iso",
+    "manjaro-gnome-25.0.0-250414-linux612.iso",
+    "neon-user-20250410-1320.iso",
+    "sparkylinux-7.7-x86_64-xfce.iso",
+    "Gobo-017.01-x86_64.iso",
+    "lite-7.4-64bit.iso",
+    "EndeavourOS_Mercury-Neo-2025.03.19.iso",
+    "elementary-8.0.1-20250314.iso",
+    "debian-12.10.0-amd64-DVD-1.iso",
+    "finnix-250.iso",
+    "kali-linux-2025.1a-installer-amd64.iso",
+    "linuxmint-22.1-cinnamon-64bit.iso",
+    "MX-23.5_x64.iso",
+    "Solus-Plasma-Release-2025-01-26.iso"
   ];
 
-  return Array.from({ length: count }, () => linuxIsos[Math.floor(Math.random() * linuxIsos.length)]);
+  const selectedIsos = [];
+  const availableIsos = [...linuxIsos];
+  const numToSelect = Math.min(count, availableIsos.length);
+
+  for (let i = 0; i < numToSelect; i++) {
+    const randomIndex = Math.floor(Math.random() * availableIsos.length);
+    selectedIsos.push(availableIsos.splice(randomIndex, 1)[0]);
+  }
+
+  return selectedIsos;
+};
+
+export const RandomIsoTracker = (count: number) => {
+  const fossTorrentSites = [
+    "fosstorrents",
+    "linuxtracker",
+    "distrowatch",
+  ];
+
+  const selectedSites = [];
+  const availableSites = [...fossTorrentSites];
+  const numToSelect = Math.min(count, availableSites.length);
+
+  for (let i = 0; i < numToSelect; i++) {
+    const randomIndex = Math.floor(Math.random() * availableSites.length);
+    selectedSites.push(availableSites.splice(randomIndex, 1)[0]);
+  }
+
+  return selectedSites;
 };
 
 export async function CopyTextToClipboard(text: string) {
@@ -187,4 +219,3 @@ export async function CopyTextToClipboard(text: string) {
   }
   document.body.removeChild(textarea);
  }
- 

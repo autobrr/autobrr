@@ -119,7 +119,8 @@ export const formatMusic = [
   "Ogg",
   "AAC",
   "AC3",
-  "DTS"
+  "DTS",
+  "DSD"
 ];
 
 export const FORMATS_OPTIONS: MultiSelectOption[] = formatMusic.map(r => ({ value: r, label: r, key: r }));
@@ -148,7 +149,11 @@ export const qualityMusic = [
   "V1 (VBR)",
   "V0 (VBR)",
   "Lossless",
-  "24bit Lossless"
+  "24bit Lossless",
+  "DSD64",
+  "DSD128",
+  "DSD256",
+  "DSD512"
 ];
 
 export const QUALITY_MUSIC_OPTIONS: MultiSelectOption[] = qualityMusic.map(v => ({ value: v, label: v, key: v }));

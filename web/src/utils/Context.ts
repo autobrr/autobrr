@@ -12,6 +12,7 @@ interface SettingsType {
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
   hideWrappedText: boolean;
+  incognitoMode: boolean;
 }
 
 export type FilterListState = {
@@ -42,7 +43,8 @@ const SettingsContextDefaults: SettingsType = {
   darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
   scrollOnNewLog: false,
   indentLogLines: false,
-  hideWrappedText: false
+  hideWrappedText: false,
+  incognitoMode: false
 };
 
 const FilterListContextDefaults: FilterListState = {
