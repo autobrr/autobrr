@@ -964,6 +964,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.TorrentName = html.UnescapeString(torrentName)
 	}
 
+	if torrentHash, err := getStringMapValue(varMap, "torrentHash"); err == nil {
+		r.TorrentHash = torrentHash
+	}
+
 	if torrentID, err := getStringMapValue(varMap, "torrentId"); err == nil {
 		r.TorrentID = torrentID
 	}

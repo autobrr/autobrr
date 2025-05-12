@@ -6,7 +6,6 @@ package list
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -19,17 +18,14 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "trakt").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
-		errMsg := "no URL provided for steam"
-		l.Error().Msg(errMsg)
-		return fmt.Errorf(errMsg)
+		return errors.Errorf("no URL provided for trakt: %s", list.Name)
 	}
 
 	l.Debug().Msgf("fetching titles from %s", list.URL)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
 	if err != nil {
-		l.Error().Err(err).Msg("could not make new request")
-		return err
+		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
 	}
 
 	req.Header.Set("trakt-api-version", "2")
@@ -44,20 +40,17 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		l.Error().Err(err).Msgf("failed to fetch titles from URL: %s", list.URL)
-		return err
+		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		l.Error().Msgf("failed to fetch titles from URL: %s", list.URL)
-		return fmt.Errorf("failed to fetch titles from URL: %s", list.URL)
+		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "application/json") {
-		errMsg := fmt.Sprintf("invalid content type for URL: %s, content type should be application/json", list.URL)
-		return fmt.Errorf(errMsg)
+		return errors.Errorf("invalid content type for URL: %s, content type should be application/json", list.URL)
 	}
 
 	var data []struct {
@@ -71,8 +64,7 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		l.Error().Err(err).Msgf("failed to decode JSON data from URL: %s", list.URL)
-		return err
+		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
 	}
 
 	var titles []string

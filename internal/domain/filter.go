@@ -133,8 +133,8 @@ type Filter struct {
 	Albums                    string                   `json:"albums,omitempty"`
 	MatchReleaseTypes         []string                 `json:"match_release_types,omitempty"` // Album,Single,EP
 	ExceptReleaseTypes        string                   `json:"except_release_types,omitempty"`
-	Formats                   []string                 `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                   []string                 `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Formats                   []string                 `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   []string                 `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
 	Media                     []string                 `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
 	PerfectFlac               bool                     `json:"perfect_flac,omitempty"`
 	Cue                       bool                     `json:"cue,omitempty"`
@@ -267,8 +267,8 @@ type FilterUpdate struct {
 	Albums                    *string                 `json:"albums,omitempty"`
 	MatchReleaseTypes         *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
 	ExceptReleaseTypes        *string                 `json:"except_release_types,omitempty"`
-	Formats                   *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                   *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Formats                   *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
 	Media                     *[]string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
 	PerfectFlac               *bool                   `json:"perfect_flac,omitempty"`
 	Cue                       *bool                   `json:"cue,omitempty"`
@@ -504,11 +504,11 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	}
 
 	if len(f.MatchHDR) > 0 && !matchHDR(r.HDR, f.MatchHDR) {
-		f.RejectReasons.Add("match hdr", r.HDR, f.MatchHDR)
+		f.RejectReasons.Add("match hdr", strings.Join(r.HDR, " "), f.MatchHDR)
 	}
 
 	if len(f.ExceptHDR) > 0 && matchHDR(r.HDR, f.ExceptHDR) {
-		f.RejectReasons.Add("except hdr", r.HDR, f.ExceptHDR)
+		f.RejectReasons.Add("except hdr", strings.Join(r.HDR, " "), f.ExceptHDR)
 	}
 
 	// Other is parsed into the Other slice from rls
@@ -1168,6 +1168,7 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
 
+		// for filter with dual tag like "DV HDR"
 		parts := strings.Split(filter, " ")
 		if len(parts) == 2 {
 			partsMatched := 0
@@ -1186,13 +1187,30 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 				}
 			}
 		} else {
-			for _, tag := range releaseValues {
-				if tag == "" {
-					continue
+			matches := 0
+			if len(releaseValues) == 2 {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						matches++
+					}
 				}
-				tag = strings.ToLower(tag)
-				if tag == filter {
+
+				if matches == len(releaseValues) {
 					return true
+				}
+			} else {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						return true
+					}
 				}
 			}
 		}
