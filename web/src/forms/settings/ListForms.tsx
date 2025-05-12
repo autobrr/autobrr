@@ -757,6 +757,12 @@ function ListTypePlainText() {
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
         </fieldset>
       </div>
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+        </fieldset>
+      </div>
     </div>
   )
 }
