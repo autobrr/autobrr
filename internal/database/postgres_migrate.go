@@ -1352,4 +1352,7 @@ CREATE INDEX release_hybrid_index
 	SET announce_types = '{"NEW"}'
 	WHERE announce_types = '{}';
 `,
+	`ALTER TABLE filter
+	ADD COLUMN webhook_continue_on_error BOOLEAN NOT NULL DEFAULT false;
+`,
 }
