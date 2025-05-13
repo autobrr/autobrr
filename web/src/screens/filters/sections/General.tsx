@@ -20,7 +20,9 @@ import {
   SwitchGroup,
   TextField
 } from "@components/inputs";
+import { Checkbox } from "@components/Checkbox";
 import * as CONSTS from "@domain/constants.ts";
+import { Field, FieldProps } from "formik";
 
 const MapIndexer = (indexer: Indexer) => (
   { label: indexer.name, value: indexer.id } as MultiSelectOption
@@ -152,6 +154,30 @@ export const General = () => {
             description="Enable or disable this filter."
             className="pb-2 col-span-12 sm:col-span-6"
           />
+        </FilterLayout>
+      </FilterSection>
+
+      <FilterSection
+        title="Webhook Settings"
+        subtitle="Configure webhook behavior"
+      >
+        <FilterLayout>
+          <Field name="webhook_continue_on_error" type="checkbox">
+            {({
+              field,
+              form: { setFieldValue }
+            }: FieldProps) => (
+              <Checkbox
+                {...field}
+                value={!!field.checked}
+                setValue={(value) => {
+                  setFieldValue(field.name, value);
+                }}
+                label="Continue on error"
+                description="Continue processing other webhooks even if one fails"
+              />
+            )}
+          </Field>
         </FilterLayout>
       </FilterSection>
     </FilterPage>
