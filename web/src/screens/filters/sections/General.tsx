@@ -20,9 +20,7 @@ import {
   SwitchGroup,
   TextField
 } from "@components/inputs";
-import { Checkbox } from "@components/Checkbox";
 import * as CONSTS from "@domain/constants.ts";
-import { Field, FieldProps } from "formik";
 
 const MapIndexer = (indexer: Indexer) => (
   { label: indexer.name, value: indexer.id } as MultiSelectOption
