@@ -18,6 +18,7 @@ interface List {
   tags_excluded: string[];
   include_unmonitored: boolean;
   include_alternate_titles: boolean;
+  skip_clean_sanitize: boolean;
 }
 
 interface ListFilter {
@@ -39,6 +40,7 @@ interface ListCreate {
   tags_exclude: string[];
   include_unmonitored: boolean;
   include_alternate_titles: boolean;
+  skip_clean_sanitize: boolean;
 }
 
 type ListType =

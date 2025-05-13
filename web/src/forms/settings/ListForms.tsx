@@ -142,6 +142,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                     tags_excluded: [],
                     include_unmonitored: false,
                     include_alternate_titles: false,
+                    skip_clean_sanitize: false,
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -373,6 +374,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                     tags_excluded: data.tags_excluded,
                     include_unmonitored: data.include_unmonitored,
                     include_alternate_titles: data.include_alternate_titles,
+                    skip_clean_sanitize: data.skip_clean_sanitize,
                   }}
                   onSubmit={onSubmit}
                   // validate={validate}
@@ -597,6 +599,13 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
+    case "PLAINTEXT":
+      return (
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+        </fieldset>
+      );
   }
 }
 
@@ -746,6 +755,12 @@ function ListTypePlainText() {
         <fieldset>
           <legend className="sr-only">Settings</legend>
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+        </fieldset>
+      </div>
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
         </fieldset>
       </div>
     </div>
