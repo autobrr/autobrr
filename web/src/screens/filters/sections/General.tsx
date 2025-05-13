@@ -158,26 +158,16 @@ export const General = () => {
       </FilterSection>
 
       <FilterSection
-        title="Webhook Settings"
-        subtitle="Configure webhook behavior"
+        title="External Filter Settings"
+        subtitle="Configure webhook filter behavior"
       >
         <FilterLayout>
-          <Field name="webhook_continue_on_error" type="checkbox">
-            {({
-              field,
-              form: { setFieldValue }
-            }: FieldProps) => (
-              <Checkbox
-                {...field}
-                value={!!field.checked}
-                setValue={(value) => {
-                  setFieldValue(field.name, value);
-                }}
-                label="Continue on error"
-                description="Continue processing other webhooks even if one fails"
-              />
-            )}
-          </Field>
+          <SwitchGroup
+            name="webhook_continue_on_error"
+            label="Continue webhook processing on error"
+            description="Continue processing other webhooks even if one fails."
+            className="pb-2 col-span-12 sm:col-span-6"
+          />
         </FilterLayout>
       </FilterSection>
     </FilterPage>
