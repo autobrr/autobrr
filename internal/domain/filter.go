@@ -175,6 +175,7 @@ type Filter struct {
 	Downloads                 *FilterDownloads         `json:"downloads,omitempty"`
 	Rejections                []string                 `json:"-"`
 	RejectReasons             *RejectionReasons        `json:"-"`
+	WebhookContinueOnError    bool                     `json:"webhook_continue_on_error"`
 }
 
 type FilterExternal struct {
@@ -296,6 +297,7 @@ type FilterUpdate struct {
 	Actions                   []*Action               `json:"actions,omitempty"`
 	External                  []FilterExternal        `json:"external,omitempty"`
 	Indexers                  []Indexer               `json:"indexers,omitempty"`
+	WebhookContinueOnError    *bool                   `json:"webhook_continue_on_error"`
 }
 
 func (f *Filter) Validate() error {

@@ -818,16 +818,31 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external webhook
 			statusCode, err := s.webhook(ctx, external, release)
 			if err != nil {
-				return false, errors.Wrap(err, "error executing external webhook")
+				s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error executing external webhook: %s", external.Name)
+				f.RejectReasons.Add("external webhook error", err.Error(), "success")
+				// Only continue if the filter is configured to continue on error
+				if !f.WebhookContinueOnError {
+					return false, errors.Wrap(err, "error executing external webhook")
+				}
+				continue
 			}
 
 			if statusCode != external.WebhookExpectStatus {
 				s.log.Trace().Msgf("filter.Service.CheckFilter: external webhook unexpected status code. got: %d want: %d", statusCode, external.WebhookExpectStatus)
 				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
-				return false, nil
+				// Only continue if the filter is configured to continue on error
+				if !f.WebhookContinueOnError {
+					return false, nil
+				}
+				continue
 			}
 		}
 	}
+
+	// If we still want to reject after firing all the webhooks, return false
+	/* if f.RejectReasons.Len() > 0 {
+		return false, nil
+	} */
 
 	return true, nil
 }
