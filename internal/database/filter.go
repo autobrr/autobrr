@@ -254,6 +254,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.min_leechers",
 			"f.max_leechers",
 			"f.release_profile_duplicate_id",
+			"f.webhook_continue_on_error",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -351,6 +352,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&f.MinLeechers,
 		&f.MaxLeechers,
 		&releaseProfileDuplicateId,
+		&f.WebhookContinueOnError,
 		&f.CreatedAt,
 		&f.UpdatedAt,
 	)
@@ -484,6 +486,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.created_at",
 			"f.updated_at",
 			"f.release_profile_duplicate_id",
+			"f.webhook_continue_on_error",
 			"rdp.id",
 			"rdp.name",
 			"rdp.release_name",
@@ -636,6 +639,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&rdpRepack,
 			&rdpEdition,
 			&rdpLanguage,
+			&f.WebhookContinueOnError,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
@@ -876,6 +880,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"min_leechers",
 			"max_leechers",
 			"release_profile_duplicate_id",
+			"webhook_continue_on_error",
 		).
 		Values(
 			filter.Name,
@@ -945,6 +950,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MinLeechers,
 			filter.MaxLeechers,
 			toNullInt64(filter.ReleaseProfileDuplicateID),
+			filter.WebhookContinueOnError,
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -1032,6 +1038,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("min_leechers", filter.MinLeechers).
 		Set("max_leechers", filter.MaxLeechers).
 		Set("release_profile_duplicate_id", toNullInt64(filter.ReleaseProfileDuplicateID)).
+		Set("webhook_continue_on_error", filter.WebhookContinueOnError).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
@@ -1259,6 +1266,9 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.ReleaseProfileDuplicateID != nil {
 		q = q.Set("release_profile_duplicate_id", filter.ReleaseProfileDuplicateID)
+	}
+	if filter.WebhookContinueOnError != nil {
+		q = q.Set("webhook_continue_on_error", filter.WebhookContinueOnError)
 	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})
