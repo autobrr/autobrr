@@ -481,6 +481,7 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 				Containers:  []string{},
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
+				WebhookContinueOnError: false
 			},
 			{
 				Enabled:     true,
@@ -492,6 +493,7 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 				Containers:  []string{},
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
+				WebhookContinueOnError: false
 			},
 			{
 				Enabled:     true,
@@ -503,6 +505,7 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 				Containers:  []string{},
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
+				WebhookContinueOnError: true
 			},
 		}
 
