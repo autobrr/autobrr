@@ -50,7 +50,7 @@ irc:
     type: single
     lines:
       - tests:
-          - line: "[Series] [Encode] [576p] [A Barreira Ainda Não Virou Baile 2024 S02 576p DVDRip FLAC 2.0 x264 MULTI-SleepCOUTO] [https://capybarabr.com/torrents/15123] [25.36 GiB] [tmdb-28136]"
+          - line: "[Series] [Encode] [576p] [A Barreira Ainda Não Virou Baile 2024 S02 576p DVDRip FLAC 2.0 x264 MULTI-SleepCOUTO] [https://capybarabr.com/torrents/15123] [25.36 GiB] [FL: 100%] [INTERNAL: 1] [tmdb-28136]"
             expect:
               category: Series
               releaseTags: Encode
@@ -59,8 +59,10 @@ irc:
               baseUrl: https://capybarabr.com/
               torrentId: "15123"
               torrentSize: 25.36 GiB
+              FreeleechPercent: "100%"
+              internal: "1"
               tags: "28136"
-          - line: "[Cursos] [Saúde] [NOTSMART: Como ficar pobre [2022]] [https://capybarabr.com/torrents/15049] [6.76 GiB]"
+          - line: "[Cursos] [Saúde] [NOTSMART: Como ficar pobre [2022]] [https://capybarabr.com/torrents/15049] [6.76 GiB] [FL: 100%] [INTERNAL: 0]"
             expect:
               category: Cursos
               releaseTags: Saúde
@@ -69,8 +71,10 @@ irc:
               baseUrl: https://capybarabr.com/
               torrentId: "15049"
               torrentSize: 6.76 GiB
+              FreeleechPercent: "100%"
+              internal: "0"
               tags: ""
-          - line: "[Jogos] [PC] [Damas - FREE [MULTI]] [https://capybarabr.com/torrents/15046] [568.96 MiB]"
+          - line: "[Jogos] [PC] [Damas - FREE [MULTI]] [https://capybarabr.com/torrents/15046] [568.96 MiB] [FL: 50%] [INTERNAL: 0]"
             expect:
               category: Jogos
               releaseTags: PC
@@ -79,8 +83,10 @@ irc:
               baseUrl: https://capybarabr.com/
               torrentId: "15046"
               torrentSize: 568.96 MiB
+              FreeleechPercent: "50%"
+              internal: "0"
               tags: ""
-          - line: "[Esportes] [WEB-DL] [Rinha de Patos 1080p COMB WEB-DL AAC2.0 H.264 MULTI-LiberaARINHA] [https://capybarabr.com/torrents/8773] [6.06 GiB]"
+          - line: "[Esportes] [WEB-DL] [Rinha de Patos 1080p COMB WEB-DL AAC2.0 H.264 MULTI-LiberaARINHA] [https://capybarabr.com/torrents/8773] [6.06 GiB] [FL: 100%] [INTERNAL: 0]"
             expect:
               category: Esportes
               releaseTags: WEB-DL
@@ -89,8 +95,10 @@ irc:
               baseUrl: https://capybarabr.com/
               torrentId: "8773"
               torrentSize: 6.06 GiB
+              FreeleechPercent: "100%"
+              internal: "0"
               tags: ""
-          - line: "[Programas] [Arquitetura] [Castelos de areia 3D [PT-BR]] [https://capybarabr.com/torrents/13381] [4.48 GiB]"
+          - line: "[Programas] [Arquitetura] [Castelos de areia 3D [PT-BR]] [https://capybarabr.com/torrents/13381] [4.48 GiB] [FL: 100%] [INTERNAL: 0]"
             expect:
               category: Programas
               releaseTags: Arquitetura
@@ -99,8 +107,10 @@ irc:
               baseUrl: https://capybarabr.com/
               torrentId: "13381"
               torrentSize: 4.48 GiB
+              FreeleechPercent: "100%"
+              internal: "0"
               tags: ""
-          - line: "[HQs] [CBR] [Num seir le - Vol. 02 - FundoDeQuintal [2024]] [https://capybarabr.com/torrents/14021] [186.16 MiB]"
+          - line: "[HQs] [CBR] [Num seir le - Vol. 02 - FundoDeQuintal [2024]] [https://capybarabr.com/torrents/14021] [186.16 MiB] [FL: 0%] [INTERNAL: 0]"
             expect:
               category: HQs
               releaseTags: CBR
@@ -109,8 +119,10 @@ irc:
               baseUrl: https://capybarabr.com/
               torrentId: "14021"
               torrentSize: 186.16 MiB
+              FreeleechPercent: "0%"
+              internal: "0"
               tags: ""
-          - line: "[Revistas] [PDF] [Cavalos Voadores - Editora Quatro Cascos [2024]] [https://capybarabr.com/torrents/15094] [15.81 MiB]"
+          - line: "[Revistas] [PDF] [Cavalos Voadores - Editora Quatro Cascos [2024]] [https://capybarabr.com/torrents/15094] [15.81 MiB] [FL: 0%] [INTERNAL: 0]"
             expect:
               category: Revistas
               releaseTags: PDF
@@ -119,8 +131,10 @@ irc:
               baseUrl: https://capybarabr.com/
               torrentId: "15094"
               torrentSize: 15.81 MiB
+              FreeleechPercent: "0%"
+              internal: "0"
               tags: ""
-        pattern: '\[(.+?)\] \[(.+?)\] (?:\[(.+?)\] )?\[(.+?)\] \[(https?:\/\/[^\/]+\/).+?(\d+)\] \[(.+?)\](?: \[tmdb-(\d+)\])?'
+        pattern: '\[(.+?)\] \[(.+?)\] (?:\[(.+?)\] )?\[(.+?)\] \[(https?:\/\/[^\/]+\/).+?(\d+)\] \[(.+?)\] \[FL: (.+?)\] \[INTERNAL: (.+?)\](?: \[tmdb-(\d+)\])?'
         vars:
           - category
           - releaseTags
@@ -129,6 +143,8 @@ irc:
           - baseUrl
           - torrentId
           - torrentSize
+          - FreeleechPercent
+          - internal
           - tags
 
     match:
