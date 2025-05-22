@@ -120,7 +120,18 @@ irc:
               torrentId: "15094"
               torrentSize: 15.81 MiB
               tags: ""
-        pattern: '\[(.+?)\] \[(.+?)\] (?:\[(.+?)\] )?\[(.+?)\] \[(https?:\/\/[^\/]+\/).+?(\d+)\] \[(.+?)\](?: \[tmdb-(\d+)\])?'
+          - line: "[Filmes] [WEB-DL] [1080p] [Black Book 2006 1080p AMZN WEB-DL DDP2.0 H.264 DUAL-FLY] [https://capybarabr.com/torrents/30671] [9.04 GiB] [tmdb=9075]"
+            expect:
+              category: Filmes
+              releaseTags: WEB-DL
+              resolution: "1080p"
+              torrentName: "Black Book 2006 1080p AMZN WEB-DL DDP2.0 H.264 DUAL-FLY"
+              baseUrl: https://capybarabr.com/
+              torrentId: "30671"
+              torrentSize: 9.04 GiB
+              tags: "9075"
+
+        pattern: '\[(.+?)\] \[(.+?)\] (?:\[(.+?)\] )?\[(.+?)\] \[(https?:\/\/[^\/]+\/).+?(\d+)\] \[(.+?)\](?: \[[a-z]+[-=](\d+)\])?'
         vars:
           - category
           - releaseTags
