@@ -280,11 +280,8 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	}
 
 	//sort.Sort(feed)
-
-	toCache := make([]domain.FeedCacheItem, 0)
-
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	guidItemMap := make(map[string]*gofeed.Item)
+	var guids []string
 
 	for _, item := range feed.Items {
 		key := item.GUID
@@ -295,12 +292,22 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 			}
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, key)
-		if err != nil {
-			j.Log.Error().Err(err).Msg("could not check if item exists")
-			continue
-		}
-		if exists {
+		guidItemMap[key] = item
+		guids = append(guids, key)
+	}
+
+	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
+	if err != nil {
+		j.Log.Error().Err(err).Msgf("error getting existing items from cache")
+		return
+	}
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	for guid, item := range guidItemMap {
+		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
@@ -309,7 +316,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    key,
+			Key:    guid,
 			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})
