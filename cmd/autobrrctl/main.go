@@ -21,12 +21,11 @@ import (
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
+	"github.com/autobrr/autobrr/internal/database/tools"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
-
-	"github.com/autobrr/autobrr/internal/database/tools"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -37,9 +36,9 @@ const usage = `usage: autobrrctl <action> [options]
 Actions:
   create-user          <username>                                                        Create a new user
   change-password      <username>                                                        Change the password
+  export-filters                                                                         Export all filters to individual JSON files in the current directory
   db:seed              --db-path <path-to-database> --seed-db <path-to-sql-seed>         Seed the sqlite database
   db:reset             --db-path <path-to-database> --seed-db <path-to-sql-seed>         Reset the sqlite database
-  export                                                                                 Export all filters to individual JSON files in the current directory
   db:convert           --sqlite-db <path-to-sqlite-db> --postgres-url <postgres-db-url>  Convert SQLite to Postgres
   version                                                                                Display the version of autobrrctl
   help                                                                                   Show this help message
@@ -47,9 +46,9 @@ Actions:
 Examples:
   autobrrctl --config /path/to/config/dir create-user john
   autobrrctl --config /path/to/config/dir change-password john
+	autobrrctl --config /path/to/config/dir export-filters
   autobrrctl db:reset --db-path /path/to/autobrr.db --seed-db /path/to/seed
   autobrrctl db:seed --db-path /path/to/autobrr.db --seed-db /path/to/seed
-  autobrrctl --config /path/to/config/dir export
   autobrrctl db:convert --sqlite-db /path/to/autobrr.db --postgres-url postgres://username:password@127.0.0.1:5432/autobrr
   autobrrctl version
   autobrrctl help
