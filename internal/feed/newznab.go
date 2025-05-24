@@ -164,10 +164,9 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
 	})
 
-	toCache := make([]domain.FeedCacheItem, 0)
-
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	// Collect all valid GUIDs first
+	guidItemMap := make(map[string]*newznab.FeedItem)
+	var guids []string
 
 	for _, item := range feed.Channel.Items {
 		if item.GUID == "" {
@@ -175,13 +174,22 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, item.GUID)
-		if err != nil {
-			j.Log.Error().Err(err).Msg("could not check if item exists")
-			continue
-		}
+		guidItemMap[item.GUID] = item
+		guids = append(guids, item.GUID)
+	}
 
-		if exists {
+	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
+	if err != nil {
+		j.Log.Error().Err(err).Msg("could not get existing items from cache")
+		return nil, errors.Wrap(err, "could not get existing items from cache")
+	}
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	for guid, item := range guidItemMap {
+		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
@@ -190,7 +198,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    item.GUID,
+			Key:    guid,
 			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})
