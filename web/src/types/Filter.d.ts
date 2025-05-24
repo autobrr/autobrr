@@ -84,6 +84,7 @@ interface Filter {
   external: ExternalFilter[];
   downloads?: FilterDownloads;
   release_profile_duplicate_id?: number;
+  webhook_continue_on_error: Boolean
 }
 
 interface Action {

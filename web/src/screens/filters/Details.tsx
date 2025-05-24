@@ -457,6 +457,7 @@ export const FilterDetails = () => {
               actions: filter.actions || [],
               external: filter.external || [],
               release_profile_duplicate_id: filter.release_profile_duplicate_id,
+              webhook_continue_on_error: filter.webhook_continue_on_error
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}

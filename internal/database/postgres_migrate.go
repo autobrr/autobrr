@@ -194,6 +194,7 @@ CREATE TABLE filter
     min_leechers                   INTEGER DEFAULT 0,
     max_leechers                   INTEGER DEFAULT 0,
     release_profile_duplicate_id   INTEGER,
+    webhook_continue_on_error      BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate(id) ON DELETE SET NULL
 );
 
@@ -1351,5 +1352,8 @@ CREATE INDEX release_hybrid_index
 	`UPDATE filter
 	SET announce_types = '{"NEW"}'
 	WHERE announce_types = '{}';
+`,
+	`ALTER TABLE filter
+	ADD COLUMN webhook_continue_on_error BOOLEAN DEFAULT false;
 `,
 }
