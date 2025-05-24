@@ -297,7 +297,7 @@ func main() {
 
 		fmt.Println(hash)
 
-	case "export":
+	case "export-filters":
 		if configPath == "" {
 			log.Fatal("--config required")
 		}
@@ -416,6 +416,28 @@ func CreateHtpasswdHash(password string) (string, error) {
 	return string(hash), nil
 }
 
+// FilterDefaults defines the default values for filter fields.
+// These are used to determine if a field in an exported filter can be omitted.
+type FilterDefaults struct {
+	Enabled        bool          `json:"enabled"`
+	MatchReleases  []interface{} `json:"matchReleases"`
+	ExceptReleases []interface{} `json:"exceptReleases"`
+	Tags           []interface{} `json:"tags"`
+	Categories     []interface{} `json:"categories"`
+	Resolutions    []interface{} `json:"resolutions"`
+	Source         []interface{} `json:"source"`
+	Type           []interface{} `json:"type"`
+	Codecs         []interface{} `json:"codecs"`
+	Container      []interface{} `json:"container"`
+	Freeleech      []interface{} `json:"freeleech"`
+	SearchType     []interface{} `json:"searchType"`
+	SearchEngine   []interface{} `json:"searchEngine"`
+	MatchTorrents  bool          `json:"matchTorrents"`
+	EpisodeFilter  float64       `json:"episodeFilter"`
+	SeasonFilter   float64       `json:"seasonFilter"`
+	SmartFilter    bool          `json:"smartFilter"`
+}
+
 // prepareFilterForExport takes a filter, cleans it similar to the frontend logic, and returns JSON bytes.
 func prepareFilterForExport(filter domain.Filter, externalFilters []domain.FilterExternal) ([]byte, error) { // Accept slice of values
 	// Marshal the original filter to a map for easier manipulation
@@ -439,39 +461,45 @@ func prepareFilterForExport(filter domain.Filter, externalFilters []domain.Filte
 		delete(filterMap, key)
 	}
 
-	// Fields to remove if they have default values (mirroring frontend logic)
-	// Note: JSON unmarshals numbers as float64 and empty arrays as []interface{}
-	defaults := map[string]interface{}{
-		"enabled":        false,
-		"matchReleases":  []interface{}{},
-		"exceptReleases": []interface{}{},
-		"tags":           []interface{}{},
-		"categories":     []interface{}{},
-		"resolutions":    []interface{}{},
-		"source":         []interface{}{},
-		"type":           []interface{}{},
-		"codecs":         []interface{}{},
-		"container":      []interface{}{},
-		"freeleech":      []interface{}{},
-		"searchType":     []interface{}{},
-		"searchEngine":   []interface{}{},
-		"matchTorrents":  true,
-		"episodeFilter":  float64(0),
-		"seasonFilter":   float64(0),
-		"smartFilter":    false,
-		// Add other fields with defaults if needed
+	// Initialize default values struct
+	// Note: JSON unmarshals empty arrays as non-nil empty slices ([]interface{}{}).
+	// We use make([]interface{}, 0) to match this behavior for accurate DeepEqual comparison.
+	defaultVals := FilterDefaults{
+		Enabled:        false,
+		MatchReleases:  make([]interface{}, 0),
+		ExceptReleases: make([]interface{}, 0),
+		Tags:           make([]interface{}, 0),
+		Categories:     make([]interface{}, 0),
+		Resolutions:    make([]interface{}, 0),
+		Source:         make([]interface{}, 0),
+		Type:           make([]interface{}, 0),
+		Codecs:         make([]interface{}, 0),
+		Container:      make([]interface{}, 0),
+		Freeleech:      make([]interface{}, 0),
+		SearchType:     make([]interface{}, 0),
+		SearchEngine:   make([]interface{}, 0),
+		MatchTorrents:  true,
+		EpisodeFilter:  0.0,
+		SeasonFilter:   0.0,
+		SmartFilter:    false,
 	}
 
-	for key, defaultValue := range defaults {
-		if value, ok := filterMap[key]; ok {
+	// Iterate over the fields of the FilterDefaults struct
+	valDefault := reflect.ValueOf(defaultVals)
+	typDefault := valDefault.Type()
+
+	for i := 0; i < valDefault.NumField(); i++ {
+		field := typDefault.Field(i)
+		// Get the json tag name, which corresponds to the key in filterMap
+		jsonTag := field.Tag.Get("json")
+		key := strings.Split(jsonTag, ",")[0] // Get the name part of the tag (e.g., "name" from "name,omitempty")
+
+		defaultValueFromStruct := valDefault.Field(i).Interface()
+
+		if mapValue, ok := filterMap[key]; ok {
 			// Use reflect.DeepEqual for robust comparison, especially for slices
-			if reflect.DeepEqual(value, defaultValue) {
+			if reflect.DeepEqual(mapValue, defaultValueFromStruct) {
 				delete(filterMap, key)
-			} else if reflect.TypeOf(value).Kind() == reflect.Slice && reflect.ValueOf(value).Len() == 0 {
-				// Handle case where default is empty slice literal and value is non-nil empty slice
-				if reflect.DeepEqual(defaultValue, []interface{}{}) {
-					delete(filterMap, key)
-				}
 			}
 		}
 	}
