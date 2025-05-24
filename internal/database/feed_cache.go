@@ -169,8 +169,7 @@ func (r *FeedCacheRepo) ExistingItems(ctx context.Context, feedId int, keys []st
 		Select("key").
 		From("feed_cache").
 		Where(sq.Eq{"feed_id": feedId}).
-		Where(sq.Eq{"key": keys}).
-		Where(sq.Gt{"ttl": time.Now()})
+		Where(sq.Eq{"key": keys})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
