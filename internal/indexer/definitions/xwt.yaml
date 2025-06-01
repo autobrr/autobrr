@@ -12,6 +12,13 @@ supports:
   - irc
   - rss
 #source: custom
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to your profile and copy your RSS key"
+    regex: /([\da-fA-F]{20})
 
 irc:
   network: XWT
@@ -31,13 +38,13 @@ irc:
 
     - name: auth.account
       type: text
-      required: true
+      required: false
       label: NickServ Account
       help: NickServ account. Make sure to group your main user and bot.
 
     - name: auth.password
       type: secret
-      required: true
+      required: false
       label: NickServ Password
       help: NickServ password
 
@@ -68,6 +75,6 @@ irc:
 
     match:
       infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download2.php?id={{ .torrentId }}&name={{ .torrentName }}.torrent"
+      torrenturl: "/download.php?id={{ .torrentId }}&name={{ .torrentName }}.torrent&{{ .rsskey }}"
       encode:
         - torrentName
