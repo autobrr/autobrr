@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -416,124 +415,198 @@ func CreateHtpasswdHash(password string) (string, error) {
 	return string(hash), nil
 }
 
-// FilterDefaults defines the default values for filter fields.
-// These are used to determine if a field in an exported filter can be omitted.
-type FilterDefaults struct {
-	Enabled        bool          `json:"enabled"`
-	MatchReleases  []interface{} `json:"matchReleases"`
-	ExceptReleases []interface{} `json:"exceptReleases"`
-	Tags           []interface{} `json:"tags"`
-	Categories     []interface{} `json:"categories"`
-	Resolutions    []interface{} `json:"resolutions"`
-	Source         []interface{} `json:"source"`
-	Type           []interface{} `json:"type"`
-	Codecs         []interface{} `json:"codecs"`
-	Container      []interface{} `json:"container"`
-	Freeleech      []interface{} `json:"freeleech"`
-	SearchType     []interface{} `json:"searchType"`
-	SearchEngine   []interface{} `json:"searchEngine"`
-	MatchTorrents  bool          `json:"matchTorrents"`
-	EpisodeFilter  float64       `json:"episodeFilter"`
-	SeasonFilter   float64       `json:"seasonFilter"`
-	SmartFilter    bool          `json:"smartFilter"`
+// FilterExport contains all the fields of domain.Filter useful for export
+type FilterExport struct {
+	// Basic fields
+	Name             string `json:"name,omitempty"`
+	Enabled          bool   `json:"enabled,omitempty"`
+	MinSize          string `json:"min_size,omitempty"`
+	MaxSize          string `json:"max_size,omitempty"`
+	Delay            int    `json:"delay,omitempty"`
+	Priority         int32  `json:"priority,omitempty"`
+	MaxDownloads     int    `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit string `json:"max_downloads_unit,omitempty"`
+
+	// Release matching fields
+	MatchReleases       string   `json:"match_releases,omitempty"`
+	ExceptReleases      string   `json:"except_releases,omitempty"`
+	UseRegex            bool     `json:"use_regex,omitempty"`
+	MatchReleaseGroups  string   `json:"match_release_groups,omitempty"`
+	ExceptReleaseGroups string   `json:"except_release_groups,omitempty"`
+	MatchReleaseTags    string   `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags   string   `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags bool     `json:"use_regex_release_tags,omitempty"`
+	MatchDescription    string   `json:"match_description,omitempty"`
+	ExceptDescription   string   `json:"except_description,omitempty"`
+	UseRegexDescription bool     `json:"use_regex_description,omitempty"`
+	Scene               bool     `json:"scene,omitempty"`
+	Origins             []string `json:"origins,omitempty"`
+	ExceptOrigins       []string `json:"except_origins,omitempty"`
+	AnnounceTypes       []string `json:"announce_types,omitempty"`
+
+	// Media-specific fields
+	Freeleech        bool     `json:"freeleech,omitempty"`
+	FreeleechPercent string   `json:"freeleech_percent,omitempty"`
+	Shows            string   `json:"shows,omitempty"`
+	Seasons          string   `json:"seasons,omitempty"`
+	Episodes         string   `json:"episodes,omitempty"`
+	Resolutions      []string `json:"resolutions,omitempty"`
+	Codecs           []string `json:"codecs,omitempty"`
+	Sources          []string `json:"sources,omitempty"`
+	Containers       []string `json:"containers,omitempty"`
+	MatchHDR         []string `json:"match_hdr,omitempty"`
+	ExceptHDR        []string `json:"except_hdr,omitempty"`
+	MatchOther       []string `json:"match_other,omitempty"`
+	ExceptOther      []string `json:"except_other,omitempty"`
+
+	// Date and time filters
+	Years  string `json:"years,omitempty"`
+	Months string `json:"months,omitempty"`
+	Days   string `json:"days,omitempty"`
+
+	// Music-specific fields
+	Artists            string   `json:"artists,omitempty"`
+	Albums             string   `json:"albums,omitempty"`
+	MatchReleaseTypes  []string `json:"match_release_types,omitempty"`
+	ExceptReleaseTypes string   `json:"except_release_types,omitempty"`
+	Formats            []string `json:"formats,omitempty"`
+	Quality            []string `json:"quality,omitempty"`
+	Media              []string `json:"media,omitempty"`
+	PerfectFlac        bool     `json:"perfect_flac,omitempty"`
+	Cue                bool     `json:"cue,omitempty"`
+	Log                bool     `json:"log,omitempty"`
+	LogScore           int      `json:"log_score,omitempty"`
+
+	// Category and metadata fields
+	MatchCategories    string   `json:"match_categories,omitempty"`
+	ExceptCategories   string   `json:"except_categories,omitempty"`
+	MatchUploaders     string   `json:"match_uploaders,omitempty"`
+	ExceptUploaders    string   `json:"except_uploaders,omitempty"`
+	MatchRecordLabels  string   `json:"match_record_labels,omitempty"`
+	ExceptRecordLabels string   `json:"except_record_labels,omitempty"`
+	MatchLanguage      []string `json:"match_language,omitempty"`
+	ExceptLanguage     []string `json:"except_language,omitempty"`
+
+	// Tags
+	Tags                 string `json:"tags,omitempty"`
+	ExceptTags           string `json:"except_tags,omitempty"`
+	TagsAny              string `json:"tags_any,omitempty"`
+	ExceptTagsAny        string `json:"except_tags_any,omitempty"`
+	TagsMatchLogic       string `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic string `json:"except_tags_match_logic,omitempty"`
+
+	// Peer count
+	MinSeeders  int `json:"min_seeders,omitempty"`
+	MaxSeeders  int `json:"max_seeders,omitempty"`
+	MinLeechers int `json:"min_leechers,omitempty"`
+	MaxLeechers int `json:"max_leechers,omitempty"`
+
+	// External elements
+	External []domain.FilterExternal `json:"external,omitempty"`
+
+	// Release profile reference
+	ReleaseProfileDuplicateID *int64 `json:"release_profile_duplicate_id,omitempty"`
+}
+
+type FilterExportObj struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Data    any    `json:"data"`
 }
 
 // prepareFilterForExport takes a filter, cleans it similar to the frontend logic, and returns JSON bytes.
 func prepareFilterForExport(filter domain.Filter, externalFilters []domain.FilterExternal) ([]byte, error) { // Accept slice of values
-	// Marshal the original filter to a map for easier manipulation
-	var filterMap map[string]interface{}
-	tempJSON, err := json.Marshal(filter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal filter: %w", err)
+	filterExport := FilterExport{
+		// Copy all relevant fields from filter to filterExport
+		//Name:                 filter.Name,
+		Enabled:              filter.Enabled,
+		MinSize:              filter.MinSize,
+		MaxSize:              filter.MaxSize,
+		Delay:                filter.Delay,
+		Priority:             filter.Priority,
+		MaxDownloads:         filter.MaxDownloads,
+		MaxDownloadsUnit:     string(filter.MaxDownloadsUnit),
+		MatchReleases:        filter.MatchReleases,
+		ExceptReleases:       filter.ExceptReleases,
+		UseRegex:             filter.UseRegex,
+		MatchReleaseGroups:   filter.MatchReleaseGroups,
+		ExceptReleaseGroups:  filter.ExceptReleaseGroups,
+		MatchReleaseTags:     filter.MatchReleaseTags,
+		ExceptReleaseTags:    filter.ExceptReleaseTags,
+		UseRegexReleaseTags:  filter.UseRegexReleaseTags,
+		MatchDescription:     filter.MatchDescription,
+		ExceptDescription:    filter.ExceptDescription,
+		UseRegexDescription:  filter.UseRegexDescription,
+		Scene:                filter.Scene,
+		Origins:              filter.Origins,
+		ExceptOrigins:        filter.ExceptOrigins,
+		AnnounceTypes:        filter.AnnounceTypes,
+		Freeleech:            filter.Freeleech,
+		FreeleechPercent:     filter.FreeleechPercent,
+		Shows:                filter.Shows,
+		Seasons:              filter.Seasons,
+		Episodes:             filter.Episodes,
+		Resolutions:          filter.Resolutions,
+		Codecs:               filter.Codecs,
+		Sources:              filter.Sources,
+		Containers:           filter.Containers,
+		MatchHDR:             filter.MatchHDR,
+		ExceptHDR:            filter.ExceptHDR,
+		MatchOther:           filter.MatchOther,
+		ExceptOther:          filter.ExceptOther,
+		Years:                filter.Years,
+		Months:               filter.Months,
+		Days:                 filter.Days,
+		Artists:              filter.Artists,
+		Albums:               filter.Albums,
+		MatchReleaseTypes:    filter.MatchReleaseTypes,
+		ExceptReleaseTypes:   filter.ExceptReleaseTypes,
+		Formats:              filter.Formats,
+		Quality:              filter.Quality,
+		Media:                filter.Media,
+		PerfectFlac:          filter.PerfectFlac,
+		Cue:                  filter.Cue,
+		Log:                  filter.Log,
+		LogScore:             filter.LogScore,
+		MatchCategories:      filter.MatchCategories,
+		ExceptCategories:     filter.ExceptCategories,
+		MatchUploaders:       filter.MatchUploaders,
+		ExceptUploaders:      filter.ExceptUploaders,
+		MatchRecordLabels:    filter.MatchRecordLabels,
+		ExceptRecordLabels:   filter.ExceptRecordLabels,
+		MatchLanguage:        filter.MatchLanguage,
+		ExceptLanguage:       filter.ExceptLanguage,
+		Tags:                 filter.Tags,
+		ExceptTags:           filter.ExceptTags,
+		TagsAny:              filter.TagsAny,
+		ExceptTagsAny:        filter.ExceptTagsAny,
+		TagsMatchLogic:       filter.TagsMatchLogic,
+		ExceptTagsMatchLogic: filter.ExceptTagsMatchLogic,
+		MinSeeders:           filter.MinSeeders,
+		MaxSeeders:           filter.MaxSeeders,
+		MinLeechers:          filter.MinLeechers,
+		MaxLeechers:          filter.MaxLeechers,
 	}
-	if err := json.Unmarshal(tempJSON, &filterMap); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal filter to map: %w", err)
-	}
 
-	// Fields to remove entirely (internal or unwanted fields matching the WebUI export)
-	fieldsToRemove := []string{
-		"id", "indexers", "actions", // Internal relations/fields
-		"created_at", "updated_at", // Timestamps not in WebUI export data
-		"priority", "smart_episode", // Other fields not in WebUI export data (use JSON names)
-		"actions_count", "actions_enabled_count", // Derived/extra fields if present
-	}
-	for _, key := range fieldsToRemove {
-		delete(filterMap, key)
-	}
-
-	// Initialize default values struct
-	// Note: JSON unmarshals empty arrays as non-nil empty slices ([]interface{}{}).
-	// We use make([]interface{}, 0) to match this behavior for accurate DeepEqual comparison.
-	defaultVals := FilterDefaults{
-		Enabled:        false,
-		MatchReleases:  make([]interface{}, 0),
-		ExceptReleases: make([]interface{}, 0),
-		Tags:           make([]interface{}, 0),
-		Categories:     make([]interface{}, 0),
-		Resolutions:    make([]interface{}, 0),
-		Source:         make([]interface{}, 0),
-		Type:           make([]interface{}, 0),
-		Codecs:         make([]interface{}, 0),
-		Container:      make([]interface{}, 0),
-		Freeleech:      make([]interface{}, 0),
-		SearchType:     make([]interface{}, 0),
-		SearchEngine:   make([]interface{}, 0),
-		MatchTorrents:  true,
-		EpisodeFilter:  0.0,
-		SeasonFilter:   0.0,
-		SmartFilter:    false,
-	}
-
-	// Iterate over the fields of the FilterDefaults struct
-	valDefault := reflect.ValueOf(defaultVals)
-	typDefault := valDefault.Type()
-
-	for i := 0; i < valDefault.NumField(); i++ {
-		field := typDefault.Field(i)
-		// Get the json tag name, which corresponds to the key in filterMap
-		jsonTag := field.Tag.Get("json")
-		key := strings.Split(jsonTag, ",")[0] // Get the name part of the tag (e.g., "name" from "name,omitempty")
-
-		defaultValueFromStruct := valDefault.Field(i).Interface()
-
-		if mapValue, ok := filterMap[key]; ok {
-			// Use reflect.DeepEqual for robust comparison, especially for slices
-			if reflect.DeepEqual(mapValue, defaultValueFromStruct) {
-				delete(filterMap, key)
-			}
-		}
-	}
-
-	// Add external filters if any exist
+	// Add external filters if they exist
 	if len(externalFilters) > 0 {
-		// Marshal external filters to add them correctly structured
-		externalData, err := json.Marshal(externalFilters)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal external filters: %w", err)
-		}
-		var externalMapInterface interface{} // Use interface{} to handle potential array/object variations
-		if err := json.Unmarshal(externalData, &externalMapInterface); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal external filters to map: %w", err)
-		}
-		filterMap["external"] = externalMapInterface
-	} else {
-		// Ensure 'external' key doesn't exist if there are no external filters
-		// This prevents `"external": null` if the field exists on the original struct
-		delete(filterMap, "external")
+		filterExport.External = externalFilters
 	}
 
-	// Remove the name field from the data map as it's already at the root level
-	delete(filterMap, "name")
+	// Add release profile duplicate ID if it exists
+	if filter.ReleaseProfileDuplicateID != 0 {
+		filterExport.ReleaseProfileDuplicateID = &filter.ReleaseProfileDuplicateID
+	}
 
 	// Create the final output structure
-	outputMap := map[string]interface{}{
-		"name":    filter.Name, // Use the original filter name
-		"version": "1.0",       // Match WebUI version format
-		"data":    filterMap,   // Nest the cleaned filter data here
+	output := FilterExportObj{
+		Name:    filter.Name,
+		Version: "1.0",
+		Data:    filterExport,
 	}
 
 	// Marshal the cleaned map back to JSON with indentation
-	return json.MarshalIndent(outputMap, "", "  ")
+	return json.MarshalIndent(output, "", "  ")
 }
 
 // sanitizeFilename removes characters that are invalid in filenames.
