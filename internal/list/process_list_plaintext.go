@@ -98,7 +98,11 @@ func (s *service) plaintext(ctx context.Context, list *domain.List) error {
 		if title == "" {
 			continue
 		}
-		titles = append(titles, processTitle(title, list.MatchRelease)...)
+		if list.SkipCleanSanitize {
+			titles = append(titles, title) // Add title as-is
+		} else {
+			titles = append(titles, processTitle(title, list.MatchRelease)...) // Existing logic
+		}
 	}
 
 	if len(titles) == 0 {

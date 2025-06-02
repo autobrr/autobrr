@@ -299,7 +299,7 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    announce_type     TEXT      DEFAULT 'NEW', 
+    announce_type     TEXT      DEFAULT 'NEW',
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -549,6 +549,7 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
+    skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
     last_refresh_data        TEXT,
@@ -1052,7 +1053,7 @@ ALTER TABLE filter
 `,
 	`UPDATE  irc_network
     SET server = 'irc.animefriends.moe',
-        name = CASE  
+        name = CASE
 			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
         	ELSE name
         END
@@ -1130,11 +1131,11 @@ CREATE INDEX filter_priority_index
 	`UPDATE irc_network
     SET server = 'irc.scenehd.org'
     WHERE server = 'irc.scenehd.eu';
-	
+
 UPDATE irc_network
     SET server = 'irc.p2p-network.net', name = 'P2P-Network', nick = nick || '_0'
     WHERE server = 'irc.librairc.net';
-	
+
 UPDATE irc_network
     SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
     WHERE server = 'irc.ircnet.com';
@@ -1351,5 +1352,9 @@ CREATE INDEX release_hybrid_index
 	`UPDATE filter
 	SET announce_types = '{"NEW"}'
 	WHERE announce_types = '{}';
+`,
+	`
+	ALTER TABLE list
+		ADD COLUMN skip_clean_sanitize BOOLEAN DEFAULT FALSE;
 `,
 }
