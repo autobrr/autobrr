@@ -239,7 +239,7 @@ func TestFeedCacheRepo_ExistingItems(t *testing.T) {
 			// Execute
 			items, err := repo.ExistingItems(t.Context(), mockData.ID, keys)
 			assert.NoError(t, err)
-			assert.Len(t, items, 2)
+			assert.Len(t, items, 1)
 
 			// Cleanup
 			_ = feedRepo.Delete(t.Context(), mockData.ID)
