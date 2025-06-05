@@ -53,7 +53,6 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-
   parse:
     type: single
     lines:
