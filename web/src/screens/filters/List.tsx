@@ -191,6 +191,8 @@ function filteredData(data: Filter[], status: string) {
 }
 
 // Helper function to find the common prefix of two strings
+const MIN_PREFIX_LENGTH_FOR_GROUPING = 3;
+const MIN_ITEMS_FOR_GROUP = 1;
 function getCommonPrefix(s1: string, s2: string): string {
   let i = 0;
   while (i < s1.length && i < s2.length && s1[i] === s2[i]) {
@@ -206,9 +208,6 @@ interface GroupedItem {
   filters?: Filter[]; // Filters in this group
   filter?: Filter;   // Single filter if not in a group
 }
-
-const MIN_PREFIX_LENGTH_FOR_GROUPING = 3; // Minimum length of a common prefix to be considered for grouping
-const MIN_ITEMS_FOR_GROUP = 2;          // Minimum number of items to form a group
 
 function createGroupedItems(allFilters: Filter[]): GroupedItem[] {
   if (!allFilters || allFilters.length === 0) return [];
@@ -259,7 +258,14 @@ function createGroupedItems(allFilters: Filter[]): GroupedItem[] {
         continue;
       }
     }
-    result.push({ id: `item-${firstFilterInPotentialGroup.id}`, type: 'item', filter: firstFilterInPotentialGroup });
+    // If a multi-item group was not formed, and MIN_ITEMS_FOR_GROUP is 1,
+    // this item becomes a group of its own.
+    result.push({
+      id: `group-single-${firstFilterInPotentialGroup.id}`, // Use filter ID for a unique group ID
+      type: 'group',
+      prefix: firstFilterInPotentialGroup.name, // The prefix for a single-item group is its name
+      filters: [firstFilterInPotentialGroup]
+    });
     i++;
   }
   return result;
