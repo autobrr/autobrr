@@ -28,11 +28,13 @@ import {
   PencilSquareIcon,
   PlusIcon, SparklesIcon,
   TrashIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  RectangleGroupIcon, // Added
+  ChevronRightIcon as ChevronRightIconOutline, // Renamed to avoid conflict
 } from "@heroicons/react/24/outline";
-import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
+import { ArrowDownTrayIcon } from "@heroicons/react/24/solid"; // Added ChevronRightIconSolid
 
-import { FilterListContext, FilterListState } from "@utils/Context";
+import { FilterListContext, FilterListState, SettingsContext } from "@utils/Context";
 import { classNames, CopyTextToClipboard } from "@utils";
 import { FilterAddForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
@@ -188,6 +190,81 @@ function filteredData(data: Filter[], status: string) {
   };
 }
 
+// Helper function to find the common prefix of two strings
+function getCommonPrefix(s1: string, s2: string): string {
+  let i = 0;
+  while (i < s1.length && i < s2.length && s1[i] === s2[i]) {
+    i++;
+  }
+  return s1.substring(0, i);
+}
+
+interface GroupedItem {
+  id: string; // Unique ID for React key (prefix or filter.id)
+  type: 'group' | 'item';
+  prefix?: string;
+  filters?: Filter[]; // Filters in this group
+  filter?: Filter;   // Single filter if not in a group
+}
+
+const MIN_PREFIX_LENGTH_FOR_GROUPING = 3; // Minimum length of a common prefix to be considered for grouping
+const MIN_ITEMS_FOR_GROUP = 2;          // Minimum number of items to form a group
+
+function createGroupedItems(allFilters: Filter[]): GroupedItem[] {
+  if (!allFilters || allFilters.length === 0) return [];
+
+  const sortedFilters = [...allFilters].sort((a, b) => a.name.localeCompare(b.name));
+  const result: GroupedItem[] = [];
+  let i = 0;
+
+  while (i < sortedFilters.length) {
+    const firstFilterInPotentialGroup = sortedFilters[i];
+    let potentialGroupEndIndex = i;
+
+    // Try to extend the group starting from firstFilterInPotentialGroup
+    // The common prefix must be strictly shorter than the first filter's name
+    if (i + MIN_ITEMS_FOR_GROUP -1 < sortedFilters.length) {
+        let currentCommonPrefix = firstFilterInPotentialGroup.name;
+        for (let j = i + 1; j < sortedFilters.length; j++) {
+            const prefixWithNext = getCommonPrefix(currentCommonPrefix, sortedFilters[j].name);
+
+            if (prefixWithNext.length < MIN_PREFIX_LENGTH_FOR_GROUPING || prefixWithNext === sortedFilters[j].name) {
+                // Prefix too short, or it's the full name of the next item (not a "grouping" prefix)
+                // or it's not shorter than the first item in the group (meaning it's not a true common prefix for grouping)
+                break;
+            }
+             // Ensure the prefix is shorter than the first item's name to be a valid group prefix
+            if (prefixWithNext.length >= firstFilterInPotentialGroup.name.length) {
+                break;
+            }
+
+            currentCommonPrefix = prefixWithNext;
+            potentialGroupEndIndex = j;
+        }
+    }
+
+    const groupSize = potentialGroupEndIndex - i + 1;
+
+    if (groupSize >= MIN_ITEMS_FOR_GROUP && potentialGroupEndIndex > i) { // Ensure potentialGroupEndIndex actually moved
+      const groupFilters = sortedFilters.slice(i, potentialGroupEndIndex + 1);
+      // Re-calculate the precise common prefix for the actual group members
+      let finalGroupPrefix = groupFilters[0].name;
+      for(let k = 1; k < groupFilters.length; k++) {
+        finalGroupPrefix = getCommonPrefix(finalGroupPrefix, groupFilters[k].name);
+      }
+
+      if (finalGroupPrefix.length >= MIN_PREFIX_LENGTH_FOR_GROUPING && finalGroupPrefix.length < groupFilters[0].name.length) {
+        result.push({ id: `group-${finalGroupPrefix}-${i}`, type: 'group', prefix: finalGroupPrefix, filters: groupFilters });
+        i = potentialGroupEndIndex + 1;
+        continue;
+      }
+    }
+    result.push({ id: `item-${firstFilterInPotentialGroup.id}`, type: 'item', filter: firstFilterInPotentialGroup });
+    i++;
+  }
+  return result;
+}
+
 function FilterList({ toggleCreateFilter }: any) {
   const filterListState = FilterListContext.useValue();
 
@@ -197,6 +274,15 @@ function FilterList({ toggleCreateFilter }: any) {
   );
 
   const { isLoading: isLoadingFilters, data: filtersData, error: filtersError } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
+  const [settings, setSettings] = SettingsContext.use();
+  const isGroupingEnabled = settings.groupFiltersInListPage ?? false;
+
+  const [openPanels, setOpenPanels] = useState<Record<string, boolean>>({});
+
+  const toggleGroupingSetting = () => {
+    setSettings(prev => ({ ...prev, groupFiltersInListPage: !prev.groupFiltersInListPage }));
+    setOpenPanels({}); // Reset open panels when toggling grouping mode
+  };
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
@@ -208,6 +294,11 @@ function FilterList({ toggleCreateFilter }: any) {
   }
 
   const filtered = filteredData(filtersData ?? [], status);
+  const itemsToRender: GroupedItem[] = isGroupingEnabled
+    ? createGroupedItems(filtered.filtered)
+    : filtered.filtered.map(f => ({ id: `item-${f.id}`, type: 'item', filter: f } as GroupedItem));
+
+  const getEmptyStateText = () => `No ${status || 'visible'} filters`;
 
   return (
     <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
@@ -219,30 +310,70 @@ function FilterList({ toggleCreateFilter }: any) {
             <StatusButton data={filtered.disabled} label="Disabled" value="disabled" currentValue={status} dispatch={dispatchFilter} />
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-1 sm:gap-3">
             <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
+            <button
+              onClick={toggleGroupingSetting}
+              className="p-1.5 sm:p-2 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              title={isGroupingEnabled ? "Ungroup Filters" : "Group Filters by Prefix"}
+              aria-label={isGroupingEnabled ? "Disable filter grouping" : "Enable filter grouping"}
+            >
+              <RectangleGroupIcon className={classNames("h-5 w-5", isGroupingEnabled ? "text-blue-500 dark:text-blue-400" : "")} />
+            </button>
           </div>
         </div>
 
         {isLoadingFilters
           ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
-          : filtersData && filtersData.length > 0 ? (
+          : !filtersData || filtersData.length === 0 ? (
+            <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter}/>
+          ) : itemsToRender.length === 0 ? (
+            <EmptyListState text={getEmptyStateText()}/>
+          ) : (
               <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
-                {filtered.filtered.length > 0
-                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
-                  : <EmptyListState text={`No ${status} filters`}/>
-                }
+                {itemsToRender.map((item, overallIdx) => {
+                  if (item.type === 'group' && item.prefix && item.filters) {
+                    const isOpen = openPanels[item.prefix] ?? true; // Default groups to open
+                    return (
+                      <Fragment key={item.id}>
+                        <li className="bg-gray-100 dark:bg-gray-850 border-y border-gray-200 dark:border-gray-700 sticky top-0 z-[5]">
+                          <button
+                            onClick={() => setOpenPanels(prev => ({ ...prev, [item.prefix!]: !isOpen }))}
+                            className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-left text-gray-700 dark:text-gray-200 hover:bg-opacity-50"
+                            aria-expanded={isOpen}
+                          >
+                            <span className="truncate" title={item.prefix}>{item.prefix} ({item.filters.length})</span>
+                            {isOpen ? <ChevronDownIcon className="w-4 h-4 shrink-0" /> : <ChevronRightIconOutline className="w-4 h-4 shrink-0" />}
+                          </button>
+                        </li>
+                        {isOpen && item.filters.map((filter, filterIdxInGroup) => (
+                          <FilterListItem
+                            filter={filter}
+                            idx={filterIdxInGroup} // For striping within the group
+                            key={filter.id}
+                          />
+                        ))}
+                      </Fragment>
+                    );
+                  } else if (item.type === 'item' && item.filter) {
+                    return (
+                      <FilterListItem
+                        filter={item.filter}
+                        idx={overallIdx} // For striping based on overall position in the rendered list
+                        key={item.filter.id}
+                      />
+                    );
+                  }
+                  return null;
+                })}
               </ul>
-            ) : (
-              <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter}/>
             )
         }
       </div>
     </div>
   );
 }
-
 interface StatusButtonProps {
   data: unknown[];
   label: string;

@@ -13,6 +13,7 @@ interface SettingsType {
   indentLogLines: boolean;
   hideWrappedText: boolean;
   incognitoMode: boolean;
+  groupFiltersInListPage: boolean;
 }
 
 export type FilterListState = {
@@ -44,7 +45,8 @@ const SettingsContextDefaults: SettingsType = {
   scrollOnNewLog: false,
   indentLogLines: false,
   hideWrappedText: false,
-  incognitoMode: false
+  incognitoMode: false,
+  groupFiltersInListPage: false
 };
 
 const FilterListContextDefaults: FilterListState = {
