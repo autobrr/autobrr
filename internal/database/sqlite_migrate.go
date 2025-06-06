@@ -2012,10 +2012,11 @@ CREATE INDEX release_hybrid_index
 `,
 	`UPDATE irc_channel 
 	SET password = NULL
-	WHERE network_id IN (
-    	SELECT id 
-    	FROM irc_network 
-    	WHERE server = 'irc.rocket-hd.cc'
-);
+	WHERE password IS NOT NULL
+    	AND network_id IN (
+        	SELECT id 
+        	FROM irc_network 
+        	WHERE server = 'irc.rocket-hd.cc'
+    	);
 `,
 }
