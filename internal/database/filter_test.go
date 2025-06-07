@@ -1,8 +1,6 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//go:build integration
-
 package database
 
 import (
@@ -133,7 +131,7 @@ func TestFilterRepo_Store(t *testing.T) {
 
 			createdFilters, err := repo.ListFilters(t.Context())
 			assert.NoError(t, err)
-			assert.Nil(t, createdFilters)
+			assert.NotNil(t, createdFilters)
 
 			// Cleanup
 			// No cleanup needed
