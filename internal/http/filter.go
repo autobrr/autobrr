@@ -20,7 +20,7 @@ import (
 type filterService interface {
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
-	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
+	Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error)
 	Store(ctx context.Context, filter *domain.Filter) error
 	Delete(ctx context.Context, filterID int) error
 	Update(ctx context.Context, filter *domain.Filter) error
@@ -93,13 +93,13 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 	vals := u.Query()
 	params.Filters.Indexers = vals["indexer"]
 
-	trackers, err := h.service.Find(r.Context(), params)
+	filters, err := h.service.Find(r.Context(), params)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusOK, trackers)
+	h.encoder.StatusResponse(w, http.StatusOK, filters)
 }
 
 func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
