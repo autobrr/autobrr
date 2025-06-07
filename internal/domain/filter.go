@@ -22,7 +22,7 @@ import (
 
 type FilterRepo interface {
 	ListFilters(ctx context.Context) ([]Filter, error)
-	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
+	Find(ctx context.Context, params FilterQueryParams) ([]*Filter, error)
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*Filter, error)
 	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
@@ -897,6 +897,12 @@ func containsIntStrings(value int, filterList string) bool {
 	}
 
 	return false
+}
+
+type StringValue string
+
+func (v StringValue) Check(arg string) bool {
+	return v != "" && !contains(arg, string(v))
 }
 
 func contains(tag string, filter string) bool {
