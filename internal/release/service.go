@@ -30,6 +30,7 @@ type Service interface {
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Process(release *domain.Release)
 	ProcessMultiple(releases []*domain.Release)
+	ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error
 	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
 
@@ -175,8 +176,6 @@ func (s *service) Process(release *domain.Release) {
 		}
 	}()
 
-	defer release.CleanupTemporaryFiles()
-
 	ctx := context.Background()
 
 	// TODO check in config for "Save all releases"
@@ -195,10 +194,23 @@ func (s *service) Process(release *domain.Release) {
 		return
 	}
 
-	if err := s.processFilters(ctx, filters, release); err != nil {
+	if err := s.processRelease(ctx, release, filters); err != nil {
 		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
 		return
 	}
+
+	return
+}
+
+func (s *service) processRelease(ctx context.Context, release *domain.Release, filters []*domain.Filter) error {
+	defer release.CleanupTemporaryFiles()
+
+	if err := s.processFilters(ctx, filters, release); err != nil {
+		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, release *domain.Release) error {
@@ -340,12 +352,50 @@ func (s *service) ProcessMultiple(releases []*domain.Release) {
 	s.log.Debug().Msgf("process (%d) new releases from feed", len(releases))
 
 	for _, rls := range releases {
-		rls := rls
 		if rls == nil {
 			continue
 		}
 		s.Process(rls)
 	}
+}
+
+func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error {
+	s.log.Debug().Msgf("process (%d) new releases from feed %s", len(releases), indexer.Name)
+
+	defer func() {
+		if r := recover(); r != nil {
+			s.log.Error().Msgf("recovering from panic in release process %s error: %v", "", r)
+			//err := errors.New("panic in release process: %s", release.TorrentName)
+			return
+		}
+	}()
+
+	ctx := context.Background()
+
+	// get filters by priority
+	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, indexer.Identifier)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", indexer.Name)
+		return err
+	}
+
+	if len(filters) == 0 {
+		s.log.Warn().Msgf("no active filters found for indexer: %s skipping rest..", indexer.Name)
+		return domain.ErrNoActiveFiltersFoundForIndexer
+	}
+
+	for _, release := range releases {
+		if release == nil {
+			continue
+		}
+
+		if err := s.processRelease(ctx, release, filters); err != nil {
+			s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error processing filters for indexer: %s", indexer.Name)
+			return nil
+		}
+	}
+
+	return nil
 }
 
 func (s *service) runAction(ctx context.Context, action *domain.Action, release *domain.Release, status *domain.ReleaseActionStatus) (*domain.ReleaseActionStatus, error) {

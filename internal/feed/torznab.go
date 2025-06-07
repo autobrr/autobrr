@@ -158,7 +158,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	}
 
 	// process all new releases
-	go j.ReleaseSvc.ProcessMultiple(releases)
+	go j.ReleaseSvc.ProcessMultipleFromIndexer(releases, j.Feed.Indexer)
 
 	return nil
 }
@@ -259,10 +259,9 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
 	})
 
-	toCache := make([]domain.FeedCacheItem, 0)
-
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	// Collect all valid GUIDs first
+	guidItemMap := make(map[string]*torznab.FeedItem)
+	var guids []string
 
 	for _, item := range feed.Channel.Items {
 		if item.GUID == "" {
@@ -270,12 +269,24 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, item.GUID)
-		if err != nil {
-			j.Log.Error().Err(err).Msg("could not check if item exists")
-			continue
-		}
-		if exists {
+		guidItemMap[item.GUID] = item
+		guids = append(guids, item.GUID)
+	}
+
+	// Batch check which GUIDs already exist in the cache
+	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
+	if err != nil {
+		j.Log.Error().Err(err).Msg("could not check existing items")
+		return nil, errors.Wrap(err, "could not check existing items")
+	}
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	// Process items that don't exist in the cache
+	for guid, item := range guidItemMap {
+		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
@@ -284,12 +295,12 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    item.GUID,
+			Key:    guid,
 			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})
 
-		// only append if we successfully added to cache
+		// Add item to result list
 		items = append(items, *item)
 	}
 
