@@ -14,20 +14,25 @@ import (
 )
 
 var tables = []string{
-	"action",
-	"api_key",
-	"client",
-	"feed",
+	"users",
+	"proxy",
+	"indexer",
+	"irc_network",
+	"irc_channel",
+	"release_profile_duplicate",
 	"filter",
 	"filter_external",
 	"filter_indexer",
-	"indexer",
-	"irc_channel",
-	"irc_network",
-	"notification",
+	"client",
+	"action",
 	"release",
 	"release_action_status",
-	"users",
+	"notification",
+	"feed",
+	"feed_cache",
+	"api_key",
+	"list",
+	"list_filter",
 }
 
 type Converter interface {
