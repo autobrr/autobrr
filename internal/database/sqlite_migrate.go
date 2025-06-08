@@ -2009,8 +2009,8 @@ CREATE INDEX release_hybrid_index
     	auth_password = ''
 	WHERE server = 'irc.rocket-hd.cc' 
     	AND auth_mechanism != 'NONE';
-`,
-	`UPDATE irc_channel 
+
+	UPDATE irc_channel 
 	SET password = NULL
 	WHERE password IS NOT NULL
     	AND network_id IN (
