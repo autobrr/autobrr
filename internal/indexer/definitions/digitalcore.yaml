@@ -84,7 +84,7 @@ irc:
             tags: "Platform, Hack and slash/Beat 'em up, Adventure, Arcade"
             releaseTags: new
             torrentSize: 65.98 MiB
-        pattern: "NEW TORRENT in (.+) :: (.+) :: (https:\\/\\/.+\\/)download\\/([0-9]+) :: Tags: \\[([0-9a-zA-Z ,\\-&']+)\\](?: :: Genre: )?(?:\\[(.+)\\])? :: Size: \\[(.+)\\]"
+        pattern: 'NEW TORRENT in (.+) :: (.+) :: (https:\/\/.+\/)download\/(\d+) :: Tags: \[(.+?)\](?: :: Genre: )?(?:\[(.+?)\])? :: Size: \[(.+)\]'
         vars:
           - category
           - torrentName
