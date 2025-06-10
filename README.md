@@ -144,18 +144,13 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 - Seedit4.me
 - SeedHost.eu
 - Ultra.cc
+- Whatbox.ca - has built-in integration with their apps, have to enable their "Expert" mode for external connections
 
 ##### Installation Scripts
 
 We have support for a couple of other providers out of the box.  
 Please contact us on [Discord](https://discord.gg/WQ2eUycxyT) if your provider is missing.
 The scripts require some input, but do most of the work.
-
-#### WhatBox
-
-```bash
-wget https://gobrr.sh/install_whatbox && bash install_whatbox
-```
 
 #### Feralhosting
 
