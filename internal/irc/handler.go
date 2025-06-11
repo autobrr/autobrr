@@ -163,11 +163,27 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 	}
 }
 
-func (h *Handler) removeIndexer() {
-	// TODO remove validAnnouncers
-	// TODO remove validChannels
-	// TODO remove definition
-	// TODO remove announceProcessor
+func (h *Handler) removeIndexer(definition *domain.IndexerDefinition) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	_, ok := h.definitions[definition.Identifier]
+	if !ok {
+		return
+	}
+
+	for _, channel := range definition.IRC.Channels {
+		channel = strings.ToLower(channel)
+		delete(h.announceProcessors, channel)
+		delete(h.channelHealth, channel)
+		delete(h.validChannels, channel)
+	}
+
+	for _, announcer := range definition.IRC.Announcers {
+		delete(h.validAnnouncers, strings.ToLower(announcer))
+	}
+
+	delete(h.definitions, definition.Identifier)
 }
 
 func (h *Handler) Run() (err error) {
