@@ -35,6 +35,38 @@ var tables = []string{
 	"list_filter",
 }
 
+// lists of changes to make to the SQLite and Postgres DBs just before and after migration, respectively
+var sqliteFixups = []string{
+	// null out references to rows which have been deleted (only necessary for FKs with ON DELETE SET NULL)
+	"UPDATE release SET filter_id = NULL WHERE filter_id NOT IN (SELECT id FROM filter)",
+	"UPDATE release_action_status SET filter_id = NULL WHERE filter_id NOT IN (SELECT id FROM filter)",
+	"UPDATE release_action_status SET action_id = NULL WHERE action_id NOT IN (SELECT id FROM action)",
+	"UPDATE indexer SET proxy_id = NULL WHERE proxy_id NOT IN (SELECT id FROM proxy)",
+	"UPDATE irc_network SET proxy_id = NULL WHERE proxy_id NOT IN (SELECT id FROM proxy)",
+	"UPDATE filter SET release_profile_duplicate_id = NULL WHERE release_profile_duplicate_id NOT IN (SELECT id FROM release_profile_duplicate)",
+	"UPDATE action SET client_id = NULL WHERE client_id NOT IN (SELECT id FROM client)",
+	"UPDATE feed SET indexer_id = NULL WHERE indexer_id NOT IN (SELECT id FROM indexer)",
+	"UPDATE list SET client_id = NULL WHERE client_id NOT IN (SELECT id FROM client)",
+}
+
+var postgresFixups = []string{
+	// Update PK sequences to start after their most recent values instead of 1
+	"SELECT setval('release_id_seq', (SELECT MAX(id) FROM release), true)",
+	"SELECT setval('filter_id_seq', (SELECT MAX(id) FROM filter), true)",
+	"SELECT setval('client_id_seq', (SELECT MAX(id) FROM client), true)",
+	"SELECT setval('feed_id_seq', (SELECT MAX(id) FROM feed), true)",
+	"SELECT setval('filter_external_id_seq', (SELECT MAX(id) FROM filter_external), true)",
+	"SELECT setval('indexer_id_seq', (SELECT MAX(id) FROM indexer), true)",
+	"SELECT setval('irc_channel_id_seq', (SELECT MAX(id) FROM irc_channel), true)",
+	"SELECT setval('irc_network_id_seq', (SELECT MAX(id) FROM irc_network), true)",
+	"SELECT setval('list_id_seq', (SELECT MAX(id) FROM list), true)",
+	"SELECT setval('notification_id_seq', (SELECT MAX(id) FROM notification), true)",
+	"SELECT setval('proxy_id_seq', (SELECT MAX(id) FROM proxy), true)",
+	"SELECT setval('release_action_status_id_seq', (SELECT MAX(id) FROM release_action_status), true)",
+	"SELECT setval('release_profile_duplicate_id_seq', (SELECT MAX(id) FROM release_profile_duplicate), true)",
+	"SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true)",
+}
+
 type Converter interface {
 	Convert() error
 }
@@ -67,12 +99,16 @@ func (c *SqliteToPostgresConverter) Convert() error {
 
 	tables := GetTables()
 
+	applyFixups(sqliteDB, sqliteFixups)
+
 	// Store all foreign key violation messages.
 	var allFKViolations []string
 	for _, table := range tables {
 		fkViolations := c.migrateTable(sqliteDB, postgresDB, table)
 		allFKViolations = append(allFKViolations, fkViolations...)
 	}
+
+	applyFixups(postgresDB, postgresFixups)
 
 	c.printConversionResult(startTime, allFKViolations)
 
@@ -168,4 +204,13 @@ func prepareValues(columns []*sql.ColumnType) ([]interface{}, []interface{}) {
 
 func isForeignKeyViolation(err error) bool {
 	return strings.Contains(err.Error(), "violates foreign key constraint")
+}
+
+func applyFixups(sql *sql.DB, stmts []string) {
+	for _, stmt := range stmts {
+		_, err := sql.Exec(stmt)
+		if err != nil {
+			log.Printf("Failed to apply fixup %s: %v", stmt, err)
+		}
+	}
 }
