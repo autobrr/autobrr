@@ -66,21 +66,21 @@ irc:
     type: single
     lines:
       - tests:
-        - line: Category [Movie] A movie [1988] A.Movie.1988.Extended.720p.BluRay.x264-GROUP.mkv [720p, Encode, Freeleech, Scene, mkv] Size [4.99 GB] Url [https://uhdbits.org/torrents.php?action=download&id=00000]
+        - line: 'New Torrent: Final Destination: Bloodlines [2025] - ###  Type: Movie / 1080p / WEB-DL / Freeleech: 100 Size: 4.28GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000'
           expect:
+            torrentName: 'Final Destination: Bloodlines [2025] - ###'
             category: Movie
-            year: "1988"
-            torrentName: A.Movie.1988.Extended.720p.BluRay.x264-GROUP.mkv
-            releaseTags: 720p, Encode, Freeleech, Scene, mkv
-            torrentSize: 4.99 GB
+            releaseTags: 1080p / WEB-DL
+            freeleechPercent: 100
+            torrentSize: 4.28GB
             baseUrl: https://uhdbits.org/
             torrentId: "00000"
-        pattern: 'Category \[(.+)\] .+ \[(\d+)\] (.+) \[(.+)\] Size \[(.+)\] Url \[(https?\:\/\/.+\/).+id=(\d+)\]'
+        pattern: 'New Torrent: (.+?)\s+Type: (.+?) \/ (.*?)[\s\/]+? Freeleech: (.+) Size: (.+) - https?:\/\/.+ \/ (https?:\/\/.+\/).+id=(\d+)'
         vars:
-          - category
-          - year
           - torrentName
+          - category
           - releaseTags
+          - freeleechPercent
           - torrentSize
           - baseUrl
           - torrentId
