@@ -19,6 +19,7 @@ interface List {
   include_unmonitored: boolean;
   include_alternate_titles: boolean;
   skip_clean_sanitize: boolean;
+  last_refresh_status: string;
 }
 
 interface ListFilter {
