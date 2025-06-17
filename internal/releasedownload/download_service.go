@@ -14,6 +14,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -146,6 +147,16 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 
 	tmpFilePattern := "autobrr-"
 	tmpDir := os.TempDir()
+
+	// Clean up old tmp files
+	files, err := os.ReadDir(tmpDir)
+	if err == nil {
+		for _, file := range files {
+			if strings.HasPrefix(file.Name(), tmpFilePattern) {
+				os.Remove(filepath.Join(tmpDir, file.Name()))
+			}
+		}
+	}
 
 	// Create tmp file
 	// TODO check if tmp file is wanted
