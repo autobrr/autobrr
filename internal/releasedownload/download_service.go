@@ -173,8 +173,6 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 				}
 			}
 		}
-	} else {
-		s.log.Trace().Msgf("cleanup skipped: last cleanup was %v ago (threshold: 60s)", time.Since(s.lastCleanup))
 	}
 
 	// Create tmp file
