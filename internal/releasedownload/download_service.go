@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -52,6 +53,9 @@ type DownloadService struct {
 	indexerRepo domain.IndexerRepo
 
 	proxySvc proxy.Service
+
+	lastCleanup  time.Time
+	cleanupMutex sync.Mutex
 }
 
 func NewDownloadService(log logger.Logger, repo domain.ReleaseRepo, indexerRepo domain.IndexerRepo, proxySvc proxy.Service) *DownloadService {
@@ -149,13 +153,28 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 	tmpDir := os.TempDir()
 
 	// Clean up old tmp files
-	files, err := os.ReadDir(tmpDir)
-	if err == nil {
-		for _, file := range files {
-			if strings.HasPrefix(file.Name(), tmpFilePattern) {
-				os.Remove(filepath.Join(tmpDir, file.Name()))
+	// mutex is added to prevent a race condition
+	// where a tmp file will not be found if 2 announces
+	// are processed in quick succession/simultaneously
+
+	s.cleanupMutex.Lock()
+	cleanup := time.Since(s.lastCleanup) > 60*time.Second
+	if cleanup {
+		s.lastCleanup = time.Now()
+	}
+	s.cleanupMutex.Unlock()
+
+	if cleanup {
+		files, err := os.ReadDir(tmpDir)
+		if err == nil {
+			for _, file := range files {
+				if strings.HasPrefix(file.Name(), tmpFilePattern) {
+					os.Remove(filepath.Join(tmpDir, file.Name()))
+				}
 			}
 		}
+	} else {
+		s.log.Trace().Msgf("cleanup skipped: last cleanup was %v ago (threshold: 60s)", time.Since(s.lastCleanup))
 	}
 
 	// Create tmp file
