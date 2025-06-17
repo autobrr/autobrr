@@ -16,7 +16,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -52,9 +51,6 @@ type DownloadService struct {
 	indexerRepo domain.IndexerRepo
 
 	proxySvc proxy.Service
-
-	lastCleanup  time.Time
-	cleanupMutex sync.Mutex
 }
 
 func NewDownloadService(log logger.Logger, repo domain.ReleaseRepo, indexerRepo domain.IndexerRepo, proxySvc proxy.Service) *DownloadService {
