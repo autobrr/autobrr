@@ -67,7 +67,13 @@ func (j *TempDirCleanupJob) Run() {
 	if err == nil {
 		for _, file := range files {
 			if strings.HasPrefix(file.Name(), tmpFilePattern) {
-				os.Remove(filepath.Join(tmpDir, file.Name()))
+				tempFiles := filepath.Join(tmpDir, file.Name())
+				fileInfo, err := os.Stat(tempFiles)
+				if err == nil {
+					if fileInfo.ModTime().Before(time.Now().Add(-time.Hour)) {
+						os.Remove(tempFiles)
+					}
+				}
 			}
 		}
 	}
