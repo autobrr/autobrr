@@ -14,7 +14,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -151,29 +150,6 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 
 	tmpFilePattern := "autobrr-"
 	tmpDir := os.TempDir()
-
-	// Clean up old tmp files
-	// mutex is added to prevent a race condition
-	// where a tmp file will not be found if 2 announces
-	// are processed in quick succession/simultaneously
-
-	s.cleanupMutex.Lock()
-	cleanup := time.Since(s.lastCleanup) > 60*time.Second
-	if cleanup {
-		s.lastCleanup = time.Now()
-	}
-	s.cleanupMutex.Unlock()
-
-	if cleanup {
-		files, err := os.ReadDir(tmpDir)
-		if err == nil {
-			for _, file := range files {
-				if strings.HasPrefix(file.Name(), tmpFilePattern) {
-					os.Remove(filepath.Join(tmpDir, file.Name()))
-				}
-			}
-		}
-	}
 
 	// Create tmp file
 	// TODO check if tmp file is wanted

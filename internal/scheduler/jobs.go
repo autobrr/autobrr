@@ -5,6 +5,9 @@ package scheduler
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -46,5 +49,26 @@ func (j *CheckUpdatesJob) Run() {
 		}
 
 		j.lastCheckVersion = newRelease.TagName
+	}
+}
+
+type TempDirCleanupJob struct {
+	Name string
+	Log  zerolog.Logger
+}
+
+func (j *TempDirCleanupJob) Run() {
+	j.Log.Debug().Msg("Starting cleanup of temporary directory.")
+
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
+	files, err := os.ReadDir(tmpDir)
+	if err == nil {
+		for _, file := range files {
+			if strings.HasPrefix(file.Name(), tmpFilePattern) {
+				os.Remove(filepath.Join(tmpDir, file.Name()))
+			}
+		}
 	}
 }
