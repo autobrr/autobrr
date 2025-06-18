@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/update"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -58,23 +59,42 @@ type TempDirCleanupJob struct {
 }
 
 func (j *TempDirCleanupJob) Run() {
+
+	var deletedCount uint
+	var totalSize uint64
+
 	j.Log.Debug().Msg("Starting cleanup of temporary directory.")
 
 	tmpFilePattern := "autobrr-"
 	tmpDir := os.TempDir()
 
 	files, err := os.ReadDir(tmpDir)
-	if err == nil {
-		for _, file := range files {
-			if strings.HasPrefix(file.Name(), tmpFilePattern) {
-				tempFiles := filepath.Join(tmpDir, file.Name())
-				fileInfo, err := os.Stat(tempFiles)
-				if err == nil {
-					if fileInfo.ModTime().Before(time.Now().Add(-time.Hour)) {
-						os.Remove(tempFiles)
-					}
+	if err != nil {
+		j.Log.Error().Err(err).Str("tmpDir", tmpDir).Msg("failed to read temporary directory")
+		return
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), tmpFilePattern) {
+			tempFiles := filepath.Join(tmpDir, file.Name())
+
+			fileInfo, err := os.Stat(tempFiles)
+			if err != nil {
+				j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to get file info")
+				return
+			}
+
+			if fileInfo.ModTime().Before(time.Now().Add(-24 * time.Hour)) {
+				fileSize := uint64(fileInfo.Size())
+				if err := os.Remove(tempFiles); err != nil {
+					j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to remove temporary file")
+					return
 				}
+				deletedCount++
+				totalSize += fileSize
 			}
 		}
 	}
+
+	j.Log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
 }
