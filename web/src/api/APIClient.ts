@@ -78,6 +78,19 @@ function encodeRFC3986URIComponent(str: string): string {
 }
 
 /**
+ * Sanitizes URL by stripping any embedded basic auth credentials from the URL
+ * @param url URL to sanitize
+ * @returns The sanitized URL without basic auth credentials
+ */
+
+function sanitizeURL(url: string): string {
+  const urlObj = new URL(url, window.location.origin);
+  urlObj.username = '';
+  urlObj.password = '';
+  return urlObj.toString();
+}
+
+/**
  * Makes a request on the network and returns a promise.
  *
  * This function serves as both a request builder and a response interceptor.
@@ -156,7 +169,7 @@ export async function HttpClient<T = unknown>(
     }
   }
 
-  const response = await window.fetch(`${baseUrl()}${endpoint}`, init);
+  const response = await window.fetch(sanitizeURL(`${baseUrl()}${endpoint}`), init);
 
   const isJson = response.headers.get("Content-Type")?.includes("application/json");
 
