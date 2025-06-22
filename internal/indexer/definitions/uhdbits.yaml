@@ -68,7 +68,9 @@ irc:
       - tests:
         - line: 'New Torrent: Final Destination: Bloodlines [2025] - GROUP Type: Movie / 1080p / WEB-DL / Freeleech: 100 Size: 4.28GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000'
           expect:
-            torrentName: 'Final Destination: Bloodlines [2025] - GROUP'
+            torrentName: 'Final Destination: Bloodlines'
+            year: 2025
+            releaseGroup: GROUP
             category: Movie
             releaseTags: 1080p / WEB-DL
             freeleechPercent: 100
@@ -77,7 +79,9 @@ irc:
             torrentId: "00000"
         - line: 'New Torrent: Dandadan Season 01 [2024] - GROUP Type: TV / 1080p / Blu-ray / Freeleech: 100 Size: 90.68GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000'
           expect:
-            torrentName: 'Dandadan Season 01 [2024] - GROUP'
+            torrentName: 'Dandadan Season 01'
+            year: 2024
+            releaseGroup: GROUP
             category: TV
             releaseTags: 1080p / Blu-ray
             freeleechPercent: 100
@@ -86,16 +90,20 @@ irc:
             torrentId: "00000"
         - line: 'New Torrent: Load (Remastered Deluxe Box Set) [1996]  Type: Music / CD / Freeleech: 100 Size: 14.16GB - https://uhdbits.org/torrents.php?id=00000 / https://uhdbits.org/torrents.php?action=download&id=00000'
           expect:
-            torrentName: 'Load (Remastered Deluxe Box Set) [1996]'
+            torrentName: 'Load (Remastered Deluxe Box Set)'
+            year: 1996
+            releaseGroup: ""
             category: Music
             releaseTags: CD
             freeleechPercent: 100
             torrentSize: 14.16GB
             baseUrl: https://uhdbits.org/
             torrentId: "00000"
-        pattern: 'New Torrent: (.+?)\s+Type: (.+?) \/ (.*?)[\s\/]+? Freeleech: (.+) Size: (.+) - https?:\/\/.+ \/ (https?:\/\/.+\/).+id=(\d+)'
+        pattern: 'New Torrent: (.+?) \[(\d{4})\](?: - (.*) )?\s*Type: (.+?) \/ (.*?)[\s\/]+? Freeleech: (.+) Size: (.+) - https?:\/\/.+ \/ (https?:\/\/.+\/).+id=(\d+)'
         vars:
           - torrentName
+          - year
+          - releaseGroup
           - category
           - releaseTags
           - freeleechPercent
