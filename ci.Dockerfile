@@ -23,7 +23,8 @@ RUN --network=none --mount=target=. \
 export GOOS=$TARGETOS; \
 export GOARCH=$TARGETARCH; \
 [[ "$GOARCH" == "amd64" ]] && export GOAMD64=$TARGETVARIANT; \
-[[ "$GOARCH" == "arm64" ]] && [[ "$TARGETVARIANT" == "v"* ]] && export GOARM64=$TARGETVARIANT; \
+[[ "$GOARCH" == "arm64" ]] && [[ "$TARGETVARIANT" == "v"*.* ]] && export GOARM64=$TARGETVARIANT; \
+[[ "$GOARCH" == "arm64" ]] && [[ "$TARGETVARIANT" == "v"* ]] && [[ "$TARGETVARIANT" != *.* ]] && export GOARM64=$TARGETVARIANT.0; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v6" ]] && export GOARM=6; \
 [[ "$GOARCH" == "arm" ]] && [[ "$TARGETVARIANT" == "v7" ]] && export GOARM=7; \
 echo $GOARCH $GOOS $GOARM$GOAMD64; \
