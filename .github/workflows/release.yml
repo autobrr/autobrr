@@ -334,7 +334,10 @@ jobs:
           - linux/arm/v6
           - linux/arm/v7
           - linux/arm64
-          - linux/arm64/v9
+          - linux/arm64/v8.2 # Neoverse + Raspberry Pi
+          - linux/arm64/v8.4 # AWS Graviton3
+          - linux/arm64/v9.0
+          - linux/arm64/v9.2 # Apple M4
 #          - linux/mips64le
 #          - linux/mips64
           - linux/ppc64le
