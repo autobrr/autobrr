@@ -1,5 +1,5 @@
 # build web
-FROM node:20.17.0-alpine3.20 AS web-builder
+FROM node:22.17.0-alpine3.22 AS web-builder
 # Update and enable Corepack
 RUN npm install -g corepack@latest && \
     corepack enable

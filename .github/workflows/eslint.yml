@@ -10,7 +10,7 @@ on:
     - cron: '20 13 * * 6'
 
 env:
-  NODE_VERSION: '20.17.0'
+  NODE_VERSION: '22.17.0'
 
 jobs:
   codeql:
