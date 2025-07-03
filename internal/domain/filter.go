@@ -880,6 +880,9 @@ func containsIntStrings(value int, filterList string) bool {
 					}
 				}
 			}
+
+			// continue to next filter if there is one, otherwise the parseInt will fail when it's a year range
+			continue
 		}
 
 		filterInt, err := strconv.ParseInt(filter, 10, 32)
