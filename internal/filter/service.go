@@ -19,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -56,20 +57,22 @@ type service struct {
 	releaseRepo   domain.ReleaseRepo
 	indexerSvc    indexer.Service
 	apiService    indexer.APIService
-	downloadSvc   *releasedownload.DownloadService
+	downloadSvc     *releasedownload.DownloadService
+	notificationSvc notification.Service
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService, notificationSvc notification.Service) Service {
 	return &service{
-		log:           log.With().Str("module", "filter").Logger(),
-		repo:          repo,
-		releaseRepo:   releaseRepo,
-		actionService: actionSvc,
-		apiService:    apiService,
-		indexerSvc:    indexerSvc,
-		downloadSvc:   downloadSvc,
+		log:             log.With().Str("module", "filter").Logger(),
+		repo:            repo,
+		releaseRepo:     releaseRepo,
+		actionService:   actionSvc,
+		apiService:      apiService,
+		indexerSvc:      indexerSvc,
+		downloadSvc:     downloadSvc,
+		notificationSvc: notificationSvc,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
@@ -158,6 +161,24 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	}
 	filter.Indexers = indexers
 
+	// Load notifications
+	notifications, err := s.repo.GetFilterNotifications(ctx, filter.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find notifications for filter: %v", filter.Name)
+		// Don't return error here, just log it
+	} else {
+		// Load full notification details for each notification
+		for i := range notifications {
+			if notifications[i].NotificationID > 0 {
+				notification, err := s.notificationSvc.FindByID(ctx, notifications[i].NotificationID)
+				if err == nil && notification != nil {
+					notifications[i].Notification = notification
+				}
+			}
+		}
+		filter.Notifications = notifications
+	}
+
 	return filter, nil
 }
 
@@ -179,6 +200,22 @@ func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 		}
 		filter.External = externalFilters
 
+		// Load filter notifications
+		notifications, err := s.repo.GetFilterNotifications(ctx, filter.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not find notifications for filter id: %v", filter.ID)
+		} else {
+			// Load full notification details for each notification
+			for i := range notifications {
+				if notifications[i].NotificationID > 0 {
+					notification, err := s.notificationSvc.FindByID(ctx, notifications[i].NotificationID)
+					if err == nil && notification != nil {
+						notifications[i].Notification = notification
+					}
+				}
+			}
+			filter.Notifications = notifications
+		}
 	}
 
 	return filters, nil
@@ -249,6 +286,13 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 
 	filter.Actions = actions
 
+	// take care of filter notifications
+	err = s.repo.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not store filter notifications: %s", filter.Name)
+		return err
+	}
+
 	return nil
 }
 
@@ -288,6 +332,14 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		// take care of filter actions
 		if _, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
 			s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.ID)
+			return err
+		}
+	}
+
+	if filter.Notifications != nil {
+		// take care of filter notifications
+		if err := s.repo.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
+			s.log.Error().Err(err).Msgf("could not store filter notifications: %v", filter.ID)
 			return err
 		}
 	}

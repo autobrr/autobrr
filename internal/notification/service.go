@@ -23,6 +23,7 @@ type Service interface {
 	Update(ctx context.Context, notification *domain.Notification) error
 	Delete(ctx context.Context, id int) error
 	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
+	SendFilterNotifications(event domain.NotificationEvent, payload domain.NotificationPayload, filterNotifications []domain.FilterNotification)
 	Test(ctx context.Context, notification *domain.Notification) error
 }
 
@@ -159,6 +160,68 @@ func (s *service) Send(event domain.NotificationEvent, payload domain.Notificati
 				if err := sender.Send(event, payload); err != nil {
 					s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
 				}
+			}
+		}
+	}()
+
+	return
+}
+
+func (s *service) SendFilterNotifications(event domain.NotificationEvent, payload domain.NotificationPayload, filterNotifications []domain.FilterNotification) {
+	// If no filter-specific notifications, fall back to global notifications
+	if len(filterNotifications) == 0 {
+		s.Send(event, payload)
+		return
+	}
+
+	// Check if any filter notifications are configured for this event
+	hasFilterNotificationForEvent := false
+	for _, fn := range filterNotifications {
+		for _, e := range fn.Events {
+			if e == string(event) {
+				hasFilterNotificationForEvent = true
+				break
+			}
+		}
+		if hasFilterNotificationForEvent {
+			break
+		}
+	}
+
+	// If no filter notifications for this event, fall back to global
+	if !hasFilterNotificationForEvent {
+		s.Send(event, payload)
+		return
+	}
+
+	s.log.Debug().Msgf("sending filter-specific notifications for %v", string(event))
+
+	go func() {
+		// Send to filter-specific notifications
+		for _, fn := range filterNotifications {
+			// Check if this notification should handle this event
+			eventEnabled := false
+			for _, e := range fn.Events {
+				if e == string(event) {
+					eventEnabled = true
+					break
+				}
+			}
+
+			if !eventEnabled {
+				continue
+			}
+
+			// Find the sender for this notification
+			sender, exists := s.senders[fn.NotificationID]
+			if !exists {
+				s.log.Warn().Msgf("notification sender %d not found for filter notification", fn.NotificationID)
+				continue
+			}
+
+			// Send the notification
+			if err := sender.Send(event, payload); err != nil {
+				s.log.Error().Err(err).Msgf("could not send %s filter notification for %v", sender.Name(), string(event))
 			}
 		}
 	}()

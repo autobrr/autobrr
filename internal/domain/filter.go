@@ -42,6 +42,9 @@ type FilterRepo interface {
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
 	DeleteFilterExternal(ctx context.Context, filterID int) error
 	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
+	GetFilterNotifications(ctx context.Context, filterID int) ([]FilterNotification, error)
+	StoreFilterNotifications(ctx context.Context, filterID int, notifications []FilterNotification) error
+	DeleteFilterNotifications(ctx context.Context, filterID int) error
 }
 
 type FilterDownloads struct {
@@ -173,6 +176,7 @@ type Filter struct {
 	ReleaseProfileDuplicateID int64                    `json:"release_profile_duplicate_id,omitempty"`
 	DuplicateHandling         *DuplicateReleaseProfile `json:"release_profile_duplicate"`
 	Downloads                 *FilterDownloads         `json:"downloads,omitempty"`
+	Notifications             []FilterNotification     `json:"notifications,omitempty"`
 	Rejections                []string                 `json:"-"`
 	RejectReasons             *RejectionReasons        `json:"-"`
 }
@@ -219,6 +223,12 @@ const (
 	ExternalFilterTypeExec    FilterExternalType = "EXEC"
 	ExternalFilterTypeWebhook FilterExternalType = "WEBHOOK"
 )
+
+type FilterNotification struct {
+	NotificationID int           `json:"notification_id"`
+	Notification   *Notification `json:"notification,omitempty"`
+	Events         []string      `json:"events"`
+}
 
 type FilterUpdate struct {
 	ID                        int                     `json:"id"`
@@ -296,6 +306,7 @@ type FilterUpdate struct {
 	Actions                   []*Action               `json:"actions,omitempty"`
 	External                  []FilterExternal        `json:"external,omitempty"`
 	Indexers                  []Indexer               `json:"indexers,omitempty"`
+	Notifications             []FilterNotification    `json:"notifications,omitempty"`
 }
 
 func (f *Filter) Validate() error {

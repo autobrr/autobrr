@@ -48,23 +48,24 @@ type Notification struct {
 }
 
 type NotificationPayload struct {
-	Subject        string
-	Message        string
-	Event          NotificationEvent
-	ReleaseName    string
-	Filter         string
-	Indexer        string
-	InfoHash       string
-	Size           uint64
-	Status         ReleasePushStatus
-	Action         string
-	ActionType     ActionType
-	ActionClient   string
-	Rejections     []string
-	Protocol       ReleaseProtocol       // torrent, usenet
-	Implementation ReleaseImplementation // irc, rss, api
-	Timestamp      time.Time
-	Sender         string
+	Subject             string
+	Message             string
+	Event               NotificationEvent
+	ReleaseName         string
+	Filter              string
+	Indexer             string
+	InfoHash            string
+	Size                uint64
+	Status              ReleasePushStatus
+	Action              string
+	ActionType          ActionType
+	ActionClient        string
+	Rejections          []string
+	Protocol            ReleaseProtocol       // torrent, usenet
+	Implementation      ReleaseImplementation // irc, rss, api
+	Timestamp           time.Time
+	Sender              string
+	FilterNotifications []FilterNotification  // per-filter notifications
 }
 
 type NotificationType string

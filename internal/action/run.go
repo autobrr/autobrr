@@ -101,6 +101,11 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
 	}
+	
+	// Include filter notifications if available
+	if release.Filter != nil && len(release.Filter.Notifications) > 0 {
+		payload.FilterNotifications = release.Filter.Notifications
+	}
 
 	if action.Client != nil {
 		payload.ActionClient = action.Client.Name

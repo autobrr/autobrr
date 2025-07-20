@@ -480,10 +480,10 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
                             <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Events
+                                Global Events
                               </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Select what events to trigger on
+                                Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
                               </p>
                             </div>
 
@@ -704,10 +704,10 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
             <div className="pb-2">
               <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                  Events
+                  Global Events
                 </DialogTitle>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Select what events to trigger on
+                  Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
                 </p>
               </div>
 

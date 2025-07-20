@@ -37,7 +37,8 @@ const tabs: tabType[] = [
   { name: "Music", href: "/filters/$filterId/music" },
   { name: "Advanced", href: "/filters/$filterId/advanced" },
   { name: "External", href: "/filters/$filterId/external" },
-  { name: "Actions", href: "/filters/$filterId/actions" }
+  { name: "Actions", href: "/filters/$filterId/actions" },
+  { name: "Notifications", href: "/filters/$filterId/notifications" }
 ];
 
 export interface NavLinkProps {
@@ -457,6 +458,7 @@ export const FilterDetails = () => {
               actions: filter.actions || [],
               external: filter.external || [],
               release_profile_duplicate_id: filter.release_profile_duplicate_id,
+              notifications: filter.notifications || [],
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}

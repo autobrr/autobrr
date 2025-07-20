@@ -84,6 +84,7 @@ interface Filter {
   external: ExternalFilter[];
   downloads?: FilterDownloads;
   release_profile_duplicate_id?: number;
+  notifications?: FilterNotification[];
 }
 
 interface Action {
@@ -161,4 +162,10 @@ interface FilterDownloads {
   month_count: number;
   year_count: number;
   total_count: number;
+}
+
+interface FilterNotification {
+  notification_id: number;
+  notification?: ServiceNotification;
+  events: string[];
 }
