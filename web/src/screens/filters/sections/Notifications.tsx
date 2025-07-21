@@ -20,10 +20,6 @@ import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { FilterSection, FilterLayout, FilterPage } from "./_components";
 
-interface FilterNotificationSectionProps {
-  filter: Filter;
-}
-
 const EVENT_OPTIONS = [
   { label: "Push Approved", value: "PUSH_APPROVED" },
   { label: "Push Rejected", value: "PUSH_REJECTED" },
@@ -42,7 +38,7 @@ const NOTIFICATION_TYPE_MAP: Record<string, string> = {
   "WEBHOOK": "Webhook"
 };
 
-export function Notifications({}: FilterNotificationSectionProps) {
+export function Notifications() {
   const { values } = useFormikContext<Filter>();
 
   // Fetch all available notifications
@@ -146,15 +142,15 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
   };
 
   // Update notification object when ID changes
+  const currentNotificationId = values.notifications?.[idx]?.notification_id;
   useEffect(() => {
-    const currentNotifId = values.notifications?.[idx]?.notification_id;
-    if (currentNotifId) {
-      const notif = availableNotifications.find(n => n.id === currentNotifId);
+    if (currentNotificationId) {
+      const notif = availableNotifications.find(n => n.id === currentNotificationId);
       if (notif) {
         setFieldValue(`notifications.${idx}.notification`, notif);
       }
     }
-  }, [values.notifications?.[idx]?.notification_id, availableNotifications, idx, setFieldValue]);
+  }, [currentNotificationId, availableNotifications, idx, setFieldValue, values.notifications]);
 
   const selectedNotification = availableNotifications.find(
     n => n.id === notification.notification_id
