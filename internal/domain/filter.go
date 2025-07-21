@@ -20,14 +20,9 @@ import (
 	"github.com/go-andiamo/splitter"
 )
 
-/*
-Works the same way as for autodl-irssi
-https://autodl-community.github.io/autodl-irssi/configuration/filter/
-*/
-
 type FilterRepo interface {
 	ListFilters(ctx context.Context) ([]Filter, error)
-	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
+	Find(ctx context.Context, params FilterQueryParams) ([]*Filter, error)
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*Filter, error)
 	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
@@ -41,7 +36,7 @@ type FilterRepo interface {
 	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
 	DeleteFilterExternal(ctx context.Context, filterID int) error
-	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
+	GetFilterDownloadCount(ctx context.Context, filter *Filter) error
 	GetFilterNotifications(ctx context.Context, filterID int) ([]FilterNotification, error)
 	StoreFilterNotifications(ctx context.Context, filterID int, notifications []FilterNotification) error
 	DeleteFilterNotifications(ctx context.Context, filterID int) error
@@ -57,6 +52,24 @@ type FilterDownloads struct {
 
 func (f *FilterDownloads) String() string {
 	return fmt.Sprintf("Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
+}
+
+func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int) bool {
+	var count int
+	switch unit {
+	case FilterMaxDownloadsHour:
+		count = f.HourCount
+	case FilterMaxDownloadsDay:
+		count = f.DayCount
+	case FilterMaxDownloadsWeek:
+		count = f.WeekCount
+	case FilterMaxDownloadsMonth:
+		count = f.MonthCount
+	case FilterMaxDownloadsEver:
+		count = f.TotalCount
+	}
+
+	return count < maxDownloads
 }
 
 type FilterMaxDownloadsUnit string
@@ -391,8 +404,8 @@ func (f *Filter) Sanitize() error {
 func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	f.RejectReasons = NewRejectionReasons()
 
-	// max downloads check. If reached return early so other filters can be checked as quick as possible.
-	if f.MaxDownloads > 0 && !f.checkMaxDownloads() {
+	// Max downloads check. If reached return early so other filters can be checked as quick as possible.
+	if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
 		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), f.Downloads.String(), fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
 		return f.RejectReasons, false
 	}
@@ -684,26 +697,17 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	return f.RejectReasons, true
 }
 
+// IsMaxDownloadsLimitEnabled if max downloads is greater than 0 and a unit is set return true
+func (f *Filter) IsMaxDownloadsLimitEnabled() bool {
+	return f.MaxDownloads > 0 && f.MaxDownloadsUnit != ""
+}
+
 func (f *Filter) checkMaxDownloads() bool {
 	if f.Downloads == nil {
 		return false
 	}
 
-	var count int
-	switch f.MaxDownloadsUnit {
-	case FilterMaxDownloadsHour:
-		count = f.Downloads.HourCount
-	case FilterMaxDownloadsDay:
-		count = f.Downloads.DayCount
-	case FilterMaxDownloadsWeek:
-		count = f.Downloads.WeekCount
-	case FilterMaxDownloadsMonth:
-		count = f.Downloads.MonthCount
-	case FilterMaxDownloadsEver:
-		count = f.Downloads.TotalCount
-	}
-
-	return count < f.MaxDownloads
+	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads)
 }
 
 // isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
@@ -891,6 +895,9 @@ func containsIntStrings(value int, filterList string) bool {
 					}
 				}
 			}
+
+			// continue to next filter if there is one, otherwise the parseInt will fail when it's a year range
+			continue
 		}
 
 		filterInt, err := strconv.ParseInt(filter, 10, 32)
@@ -904,6 +911,12 @@ func containsIntStrings(value int, filterList string) bool {
 	}
 
 	return false
+}
+
+type StringValue string
+
+func (v StringValue) Check(arg string) bool {
+	return v != "" && !contains(arg, string(v))
 }
 
 func contains(tag string, filter string) bool {

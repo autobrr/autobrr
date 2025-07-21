@@ -27,7 +27,7 @@ env:
   REGISTRY: ghcr.io
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
   GO_VERSION: '1.24'
-  NODE_VERSION: '20.17.0'
+  NODE_VERSION: '22.17.0'
 
 permissions:
   contents: write
@@ -330,13 +330,18 @@ jobs:
           - linux/amd64
           - linux/amd64/v2
           - linux/amd64/v3
+          # - linux/amd64/v4
           - linux/arm/v6
           - linux/arm/v7
           - linux/arm64
+          - linux/arm64/v8.2 # Neoverse + Raspberry Pi
+          - linux/arm64/v8.4 # AWS Graviton3
+          - linux/arm64/v9
+          - linux/arm64/v9.2 # Apple M4
           # - linux/mips64le
           # - linux/mips64
           - linux/ppc64le
-          # - linux/riscv64
+          - linux/riscv64
           - linux/s390x
           - windows/amd64
     needs: [ web, goprofilecombine ]
