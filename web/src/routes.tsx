@@ -365,8 +365,8 @@ export const RootComponent = () => {
       <Outlet />
       {settings.debug ? (
         <>
-          <TanStackRouterDevtools />
-          <ReactQueryDevtools initialIsOpen={false} />
+          {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools />}
+          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
         </>
       ) : null}
     </div>
