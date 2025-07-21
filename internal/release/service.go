@@ -190,7 +190,7 @@ func (s *service) Process(release *domain.Release) {
 	}
 
 	if len(filters) == 0 {
-		s.log.Warn().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
+		s.log.Debug().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
 		return
 	}
 
