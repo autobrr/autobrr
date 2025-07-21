@@ -174,26 +174,6 @@ func (s *service) SendFilterNotifications(event domain.NotificationEvent, payloa
 		return
 	}
 
-	// Check if any filter notifications are configured for this event
-	hasFilterNotificationForEvent := false
-	for _, fn := range filterNotifications {
-		for _, e := range fn.Events {
-			if e == string(event) {
-				hasFilterNotificationForEvent = true
-				break
-			}
-		}
-		if hasFilterNotificationForEvent {
-			break
-		}
-	}
-
-	// If no filter notifications for this event, fall back to global
-	if !hasFilterNotificationForEvent {
-		s.Send(event, payload)
-		return
-	}
-
 	s.log.Debug().Msgf("sending filter-specific notifications for %v", string(event))
 
 	go func() {

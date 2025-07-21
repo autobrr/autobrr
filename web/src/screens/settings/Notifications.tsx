@@ -56,7 +56,7 @@ function NotificationSettings() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Per-filter overrides:</strong> You can override these global settings for specific filters in each filter's Notifications tab. Global events are optional - you can create notification services without any events and configure them only at the filter level. Note: IRC and update events can only be configured globally.
+              <strong>Per-filter overrides:</strong> You can override these global settings for specific filters in each filter's Notifications tab. Global events are optional - you can create notification services without any events and configure them only at the filter level. System events (IRC disconnected/reconnected, app updates) always use global settings.
             </p>
           </div>
         </div>

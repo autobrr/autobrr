@@ -6,7 +6,7 @@
 import { useEffect, useRef } from "react";
 import { useFormikContext, FieldArray, FieldArrayRenderProps } from "formik";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { ChevronRightIcon } from "@heroicons/react/24/solid";
+import { ChevronRightIcon, InformationCircleIcon } from "@heroicons/react/24/solid";
 import { BellIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
@@ -186,7 +186,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                   {NOTIFICATION_TYPE_MAP[selectedNotification?.type || ""] || selectedNotification?.type}
-                  {notification.events.length > 0 && ` • ${notification.events.length} event${notification.events.length > 1 ? 's' : ''}`}
+                  {notification.events?.length === 0 ? " • Muted" : notification.events?.length > 0 ? ` • ${notification.events.length} event${notification.events.length > 1 ? 's' : ''}` : ""}
                 </span>
               </div>
             </div>
@@ -227,22 +227,57 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
 
                 <div className="col-span-12">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                    Trigger events
+                    Notification Settings
                   </label>
-                  <div className="space-y-3">
-                    {EVENT_OPTIONS.map((event) => (
-                      <Checkbox
-                        key={event.value}
-                        value={notification.events?.includes(event.value) || false}
-                        setValue={(checked) => handleEventToggle(event.value, checked)}
-                        label={event.label}
-                        description={
-                          event.value === "PUSH_APPROVED" ? "Send notification when release is successfully sent to client" :
-                          event.value === "PUSH_REJECTED" ? "Send notification when release is rejected" :
-                          "Send notification when an error occurs while processing"
+                  
+                  {/* Mute Switch */}
+                  <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <Checkbox
+                      value={notification.events?.length === 0}
+                      setValue={(muted) => {
+                        if (muted) {
+                          // Clear all events to mute
+                          setFieldValue(`notifications.${idx}.events`, []);
+                        } else {
+                          // Enable Push Approved by default when unmuting
+                          setFieldValue(`notifications.${idx}.events`, ["PUSH_APPROVED"]);
                         }
-                      />
-                    ))}
+                      }}
+                      label="Mute filter"
+                      description="Disable all notifications for this filter. When muted, no notifications will be sent for releases matched by this filter."
+                    />
+                    
+                    {notification.events?.length === 0 && (
+                      <div className="mt-3 flex items-start">
+                        <InformationCircleIcon className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <p className="ml-2 text-sm text-yellow-700 dark:text-yellow-300">
+                          Filter muted - overrides all global notification settings
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Event Triggers - disabled when muted */}
+                  <div className={notification.events?.length === 0 ? "opacity-50 pointer-events-none" : ""}>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Trigger events
+                    </label>
+                    <div className="space-y-3">
+                      {EVENT_OPTIONS.map((event) => (
+                        <Checkbox
+                          key={event.value}
+                          value={notification.events?.includes(event.value) || false}
+                          setValue={(checked) => handleEventToggle(event.value, checked)}
+                          label={event.label}
+                          description={
+                            event.value === "PUSH_APPROVED" ? "Send notification when release is successfully sent to client" :
+                            event.value === "PUSH_REJECTED" ? "Send notification when release is rejected" :
+                            "Send notification when an error occurs while processing"
+                          }
+                          disabled={notification.events?.length === 0}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </FilterLayout>
