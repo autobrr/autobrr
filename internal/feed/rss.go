@@ -130,28 +130,24 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.MagnetURI = item.Link
 		rls.DownloadURL = ""
 	}
-
-	if len(item.Enclosures) > 0 {
-		// Loop through the enclosures.
-		for _, e := range item.Enclosures {
-			if e.Type == "application/x-bittorrent" {
-				if e.URL != "" {
-					rls.DownloadURL = e.URL
-				}
-				if e.Length != "" && e.Length != "1" && e.Length != "39399" {
-					rls.ParseSizeBytesString(e.Length)
-				}
-
-				if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
-					if !strings.HasPrefix(rls.MagnetURI, domain.MagnetURIPrefix) && strings.HasPrefix(e.URL, domain.MagnetURIPrefix) {
-						rls.MagnetURI = e.URL
-						rls.DownloadURL = ""
-					}
-				}
-
-				// exit the loop to avoid processing any others.
-				break
+	// Loop through the enclosures.
+	for _, e := range item.Enclosures {
+		if e.Type == "application/x-bittorrent" {
+			if e.URL != "" {
+				rls.DownloadURL = e.URL
 			}
+			if e.Length != "" && e.Length != "1" && e.Length != "39399" {
+				rls.ParseSizeBytesString(e.Length)
+			}
+
+			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+				if !strings.HasPrefix(rls.MagnetURI, domain.MagnetURIPrefix) && strings.HasPrefix(e.URL, domain.MagnetURIPrefix) {
+					rls.MagnetURI = e.URL
+					rls.DownloadURL = ""
+				}
+			}
+			// exit the loop to avoid processing any others.
+			break
 		}
 	}
 
