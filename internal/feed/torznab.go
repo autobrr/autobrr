@@ -108,35 +108,19 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-
-		// parse size bytes string
-		rls.ParseSizeBytesString(item.Size)
-
-		rls.ParseString(item.Title)
-
-		rls.Seeders, err = parseIntAttribute(item, "seeders")
-		if err != nil {
-			rls.Seeders = 0
-		}
-
-		var peers, err = parseIntAttribute(item, "peers")
-
-		rls.Leechers = peers - rls.Seeders
-		if err != nil {
-			rls.Leechers = 0
-		}
-
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
 			rls.DownloadURL = ""
 		}
 
-		// Get freeleech percentage between 0 - 100. The value is ignored if
-		// an error occurrs
-		freeleechPercentage, err := parseFreeleechTorznab(item)
-		if err != nil {
-			j.Log.Debug().Err(err).Msgf("error parsing torznab freeleech")
-		} else {
+		rls.ParseString(item.Title)
+		rls.Size = uint64(item.Size)
+		rls.Seeders = item.Seeders
+		rls.Leechers = item.Leechers
+		rls.Uploader = item.Author
+
+		// Get freeleech percentage between 0 - 100
+		if freeleechPercentage := parseFreeleechTorznab(item.DownloadVolumeFactor); freeleechPercentage >= 0 {
 			if freeleechPercentage == 100 {
 				// Release is 100% freeleech
 				rls.Freeleech = true
@@ -180,33 +164,21 @@ func parseIntAttribute(item torznab.FeedItem, attrName string) (int, error) {
 
 // Parse the downloadvolumefactor attribute. The returned value is the percentage
 // of downloaded data that does NOT count towards a user's total download amount.
-func parseFreeleechTorznab(item torznab.FeedItem) (int, error) {
-	for _, attr := range item.Attributes {
-		if attr.Name == "downloadvolumefactor" {
-			// Parse the value as decimal number
-			downloadVolumeFactor, err := strconv.ParseFloat(attr.Value, 64)
-			if err != nil {
-				return 0, err
-			}
-
-			// Values below 0.0 and above 1.0 are rejected
-			if downloadVolumeFactor < 0 || downloadVolumeFactor > 1 {
-				return 0, errors.New("invalid downloadvolumefactor: %s", attr.Value)
-			}
-
-			// Multiply by 100 to convert from ratio to percentage and round it
-			// to the nearest integer value
-			downloadPercentage := math.Round(downloadVolumeFactor * 100)
-
-			// To convert from download percentage to freeleech percentage the
-			// value is inverted
-			freeleechPercentage := 100 - int(downloadPercentage)
-
-			return freeleechPercentage, nil
-		}
+func parseFreeleechTorznab(factor float64) int {
+	// Values below 0.0 and above 1.0 are rejected
+	if factor < 0 || factor > 1 {
+		return 0
 	}
 
-	return 0, nil
+	// Multiply by 100 to convert from float to percentage and round it
+	// to the nearest integer value
+	downloadPercentage := math.Round(factor * 100)
+
+	// To convert from download percentage to freeleech percentage the
+	// value is inverted
+	freeleechPercentage := 100 - int(downloadPercentage)
+
+	return freeleechPercentage
 }
 
 // Maps a freeleech percentage of 25, 50, 75 or 100 to a bonus.
