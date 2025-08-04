@@ -5,7 +5,7 @@ package feed
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strconv"
 	"time"
 
@@ -91,6 +91,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
+					j.Log.Trace().Msgf("item is older than feed max age, skipping: %s", item.Title)
 					continue
 				}
 			}
@@ -160,9 +161,9 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		return items, nil
 	}
 
-	sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
-		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
-	})
+	//sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
+	//	return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
+	//})
 
 	// Collect all valid GUIDs first
 	guidItemMap := make(map[string]*newznab.FeedItem)
@@ -178,6 +179,9 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		guids = append(guids, item.GUID)
 	}
 
+	// reverse order so oldest items are processed first
+	slices.Reverse(guids)
+
 	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
 	if err != nil {
 		j.Log.Error().Err(err).Msg("could not get existing items from cache")
@@ -188,7 +192,8 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	ttl := time.Now().AddDate(0, 1, 0)
 	toCache := make([]domain.FeedCacheItem, 0)
 
-	for guid, item := range guidItemMap {
+	for _, guid := range guids {
+		item := guidItemMap[guid]
 		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue

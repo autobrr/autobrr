@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -116,6 +117,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if j.Feed.MaxAge > 0 {
 		if item.PublishedParsed != nil && item.PublishedParsed.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 			if !isNewerThanMaxAge(j.Feed.MaxAge, *item.PublishedParsed, now) {
+				j.Log.Trace().Msgf("item is older than feed max age, skipping: %s", item.Title)
 				return nil
 			}
 		}
@@ -299,6 +301,9 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 		guids = append(guids, key)
 	}
 
+	// reverse order so oldest items are processed first
+	slices.Reverse(guids)
+
 	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error getting existing items from cache")
@@ -309,7 +314,8 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	ttl := time.Now().AddDate(0, 1, 0)
 	toCache := make([]domain.FeedCacheItem, 0)
 
-	for guid, item := range guidItemMap {
+	for _, guid := range guids {
+		item := guidItemMap[guid]
 		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
@@ -381,7 +387,7 @@ func readSizeFromDescription(str string, r *domain.Release) bool {
 			continue
 		}
 
-		if s > r.Size {
+		if s > 0 && s > r.Size {
 			found = true
 			r.Size = s
 		}

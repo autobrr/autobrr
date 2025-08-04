@@ -6,7 +6,7 @@ package feed
 import (
 	"context"
 	"math"
-	"sort"
+	"slices"
 	"strconv"
 	"time"
 
@@ -97,6 +97,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
+					j.Log.Trace().Msgf("item is older than feed max age, skipping: %s", item.Title)
 					continue
 				}
 			}
@@ -255,9 +256,9 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		return items, nil
 	}
 
-	sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
-		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
-	})
+	//sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
+	//	return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
+	//})
 
 	// Collect all valid GUIDs first
 	guidItemMap := make(map[string]*torznab.FeedItem)
@@ -273,6 +274,9 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		guids = append(guids, item.GUID)
 	}
 
+	// reverse order so oldest items are processed first
+	slices.Reverse(guids)
+
 	// Batch check which GUIDs already exist in the cache
 	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
 	if err != nil {
@@ -285,7 +289,8 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 	toCache := make([]domain.FeedCacheItem, 0)
 
 	// Process items that don't exist in the cache
-	for guid, item := range guidItemMap {
+	for _, guid := range guids {
+		item := guidItemMap[guid]
 		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
