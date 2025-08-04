@@ -171,6 +171,10 @@ func (p IRCParserDefault) Parse(rls *Release, _ map[string]string) error {
 
 type IRCParserGazelleGames struct{}
 
+var ggnIOSRegex = regexp.MustCompile(`(.+) (v?(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?) in (.+)`)
+var ggnSwitchWindowsRegex = regexp.MustCompile(`^(?P<code>.+?)(?:\s*-\s*(?P<update>Update))?(?:\s*-\s*(?P<version>Version\s.+))?\s+in\s+(?P<game>.+)$`)
+var ggnWindowsFallback = regexp.MustCompile(`^(?P<code>.+?)(?:\s*-\s*(?P<version>Version\s.+))?$`)
+
 func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error {
 	torrentName := vars["torrentName"]
 	category := vars["category"]
@@ -182,6 +186,36 @@ func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error
 	case "OST":
 		// OST does not have the Title in Group naming convention
 		releaseName = torrentName
+		break
+	case "Switch", "Windows":
+		matches := ggnSwitchWindowsRegex.FindAllStringSubmatch(torrentName, -1)
+		if len(matches) == 0 {
+			matches = ggnWindowsFallback.FindAllStringSubmatch(torrentName, -1)
+			if len(matches) == 0 {
+				return fmt.Errorf("failed to parse Switch torrentName: %s", torrentName)
+			}
+			match := matches[0]
+			releaseName = match[1]
+			title = match[1]
+			break
+		}
+		if len(matches) == 0 || len(matches[0]) < 5 {
+			return fmt.Errorf("failed to parse Switch torrentName: %s", torrentName)
+		}
+		match := matches[0]
+		releaseName = match[1]
+		title = match[len(match)-1]
+		break
+	case "iOS":
+		matches := ggnIOSRegex.FindAllStringSubmatch(torrentName, -1)
+		if len(matches) == 0 || len(matches[0]) < 8 {
+			return fmt.Errorf("failed to parse iOS torrentName: %s", torrentName)
+		}
+		match := matches[0]
+		releaseName = match[1]
+		title = match[len(match)-1]
+		break
+
 	default:
 		releaseName, title = splitInMiddle(torrentName, " in ")
 

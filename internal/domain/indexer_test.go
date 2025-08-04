@@ -326,6 +326,90 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 				release: "Year 2 Remastered by Insaneintherainmusic",
 			},
 		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Lanota v2.23.1 in Lanota",
+					"category":    "iOS",
+				},
+			},
+			want: want{
+				title:   "Lanota",
+				release: "Lanota",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Korean_Drone_Flying_Tour_Han_River_NSW-SUXXORS in Korean Drone Flying Tour Han River",
+					"category":    "Switch",
+				},
+			},
+			want: want{
+				title:   "Korean Drone Flying Tour Han River",
+				release: "Korean_Drone_Flying_Tour_Han_River_NSW-SUXXORS",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Carmen_Sandiego_Update_v1.4.0_NSW-VENOM - Update - Version 1.4.0 in Carmen Sandiego",
+					"category":    "Switch",
+				},
+			},
+			want: want{
+				title:   "Carmen Sandiego",
+				release: "Carmen_Sandiego_Update_v1.4.0_NSW-VENOM",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Colin McRae Rally 3 - Version 1.1 in Colin McRae Rally 3",
+					"category":    "Windows",
+				},
+			},
+			want: want{
+				title:   "Colin McRae Rally 3",
+				release: "Colin McRae Rally 3",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Soulstone Survivors - Version 1.1.5 (83772) in Soulstone Survivors",
+					"category":    "Windows",
+				},
+			},
+			want: want{
+				title:   "Soulstone Survivors",
+				release: "Soulstone Survivors",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Digger: Galactic Treasures - Version 1.07",
+					"category":    "Windows",
+				},
+			},
+			want: want{
+				title:   "Digger: Galactic Treasures",
+				release: "Digger: Galactic Treasures",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
