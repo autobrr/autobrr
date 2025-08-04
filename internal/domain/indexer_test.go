@@ -410,6 +410,20 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 				release: "Digger: Galactic Treasures",
 			},
 		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Bee.Simulator.The.Hive-RUNE - Version Unknown in Bee Simulator: The Hive",
+					"category":    "Windows",
+				},
+			},
+			want: want{
+				title:   "Bee Simulator: The Hive",
+				release: "Bee.Simulator.The.Hive-RUNE",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

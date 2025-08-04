@@ -171,9 +171,9 @@ func (p IRCParserDefault) Parse(rls *Release, _ map[string]string) error {
 
 type IRCParserGazelleGames struct{}
 
-var ggnIOSRegex = regexp.MustCompile(`(.+) (v?(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?) in (.+)`)
-var ggnSwitchWindowsRegex = regexp.MustCompile(`^(?P<code>.+?)(?:\s*-\s*(?P<update>Update))?(?:\s*-\s*(?P<version>Version\s.+))?\s+in\s+(?P<game>.+)$`)
-var ggnWindowsFallback = regexp.MustCompile(`^(?P<code>.+?)(?:\s*-\s*(?P<version>Version\s.+))?$`)
+var ggnIOSRegex = regexp.MustCompile(`(?P<releaseName>.+) (v?(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?) in (?P<title>.+)`)
+var ggnSwitchWindowsRegex = regexp.MustCompile(`^(?P<releaseName>.+?)(?:\s*-\s*(?P<update>Update))?(?:\s*-\s*(?P<version>Version\s.+))?\s+in\s+(?P<title>.+)$`)
+var ggnWindowsFallback = regexp.MustCompile(`^(?P<releaseName>.+?)(?:\s*-\s*(?P<version>Version\s.+))?$`)
 
 func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error {
 	torrentName := vars["torrentName"]
@@ -188,32 +188,29 @@ func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error
 		releaseName = torrentName
 		break
 	case "Switch", "Windows":
-		matches := ggnSwitchWindowsRegex.FindAllStringSubmatch(torrentName, -1)
-		if len(matches) == 0 {
-			matches = ggnWindowsFallback.FindAllStringSubmatch(torrentName, -1)
-			if len(matches) == 0 {
-				return fmt.Errorf("failed to parse Switch torrentName: %s", torrentName)
-			}
-			match := matches[0]
-			releaseName = match[1]
-			title = match[1]
+		groups := GetNamedGroups(ggnSwitchWindowsRegex, torrentName)
+		if len(groups) > 0 {
+			releaseName = groups["releaseName"]
+			title = groups["title"]
 			break
 		}
-		if len(matches) == 0 || len(matches[0]) < 5 {
-			return fmt.Errorf("failed to parse Switch torrentName: %s", torrentName)
+
+		fallbackGroups := GetNamedGroups(ggnWindowsFallback, torrentName)
+		if fallbackGroups == nil {
+			return fmt.Errorf("failed to parse Switch/Windows torrentName: %s", torrentName)
 		}
-		match := matches[0]
-		releaseName = match[1]
-		title = match[len(match)-1]
+		releaseName = fallbackGroups["releaseName"]
+		if releaseName != "" {
+			title = releaseName
+		}
 		break
 	case "iOS":
-		matches := ggnIOSRegex.FindAllStringSubmatch(torrentName, -1)
-		if len(matches) == 0 || len(matches[0]) < 8 {
+		groups := GetNamedGroups(ggnIOSRegex, torrentName)
+		if groups == nil {
 			return fmt.Errorf("failed to parse iOS torrentName: %s", torrentName)
 		}
-		match := matches[0]
-		releaseName = match[1]
-		title = match[len(match)-1]
+		releaseName = groups["releaseName"]
+		title = groups["title"]
 		break
 
 	default:
@@ -364,4 +361,45 @@ func splitInMiddle(s, sep string) (string, string) {
 	parts := strings.Split(s, sep)
 	l := len(parts)
 	return strings.Join(parts[:l/2], sep), strings.Join(parts[l/2:], sep)
+}
+
+func GetAllNamedGroups(re *regexp.Regexp, text string) []map[string]string {
+	allMatches := re.FindAllStringSubmatch(text, -1)
+	if allMatches == nil {
+		return nil
+	}
+
+	names := re.SubexpNames()
+	var results []map[string]string
+
+	for _, matches := range allMatches {
+		result := make(map[string]string)
+		for i, match := range matches {
+			if i > 0 && names[i] != "" {
+				result[names[i]] = match
+			}
+		}
+		results = append(results, result)
+	}
+
+	return results
+}
+
+// GetNamedGroups extracts named capture groups into a map
+func GetNamedGroups(re *regexp.Regexp, text string) map[string]string {
+	matches := re.FindStringSubmatch(text)
+	if matches == nil {
+		return nil
+	}
+
+	result := make(map[string]string)
+	names := re.SubexpNames()
+
+	for i, match := range matches {
+		if i > 0 && names[i] != "" {
+			result[names[i]] = match
+		}
+	}
+
+	return result
 }
