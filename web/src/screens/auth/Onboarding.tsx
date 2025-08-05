@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Form, Formik } from "formik";
-import { useMutation } from "@tanstack/react-query";
-import {useNavigate} from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { TextField, PasswordField } from "@components/inputs";
@@ -41,10 +41,22 @@ export const Onboarding = () => {
 
   const navigate = useNavigate();
 
+  // Query to check if OIDC is enabled
+  const { data: oidcConfig } = useQuery({
+    queryKey: ["oidc-config"],
+    queryFn: () => APIClient.auth.getOIDCConfig(),
+  });
+
   const mutation = useMutation({
     mutationFn: (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
     onSuccess: () => navigate({ to: "/login" })
   });
+
+  // If OIDC is enabled, redirect to login
+  if (oidcConfig?.enabled) {
+    navigate({ to: "/login" });
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -73,7 +85,7 @@ export const Onboarding = () => {
               </div>
               <button
                 type="submit"
-                className="mt-6 w-full flex items-center justify-center py-2 px-4 border border-transparent transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                className="mt-6 w-full flex items-center justify-center py-2 px-4 border border-transparent transition rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               >
                 <UserPlusIcon className="w-4 h-4 mr-1.5" />
                 Create account

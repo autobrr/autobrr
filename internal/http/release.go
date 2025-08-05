@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -25,6 +25,10 @@ type releaseService interface {
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
 	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
+
+	StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
+	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
+	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
 }
 
 type releaseHandler struct {
@@ -51,6 +55,13 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Route("/{releaseID}", func(r chi.Router) {
 		r.Get("/", h.getReleaseByID)
 		r.Post("/actions/{actionStatusID}/retry", h.retryAction)
+	})
+
+	r.Route("/profiles/duplicate", func(r chi.Router) {
+		r.Get("/", h.findReleaseProfileDuplicate)
+		r.Post("/", h.storeReleaseProfileDuplicate)
+
+		r.Delete("/{profileId}", h.deleteReleaseProfileDuplicate)
 	})
 }
 
@@ -303,6 +314,58 @@ func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h releaseHandler) storeReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
+	var data *domain.DuplicateReleaseProfile
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.StoreReleaseProfileDuplicate(r.Context(), data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusCreatedData(w, data)
+}
+
+func (h releaseHandler) findReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
+	profiles, err := h.service.FindDuplicateReleaseProfiles(r.Context())
+	if err != nil {
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	//ret := struct {
+	//	Data       []*domain.DuplicateReleaseProfile `json:"data"`
+	//}{
+	//	Data:       profiles,
+	//}
+
+	h.encoder.StatusResponse(w, http.StatusOK, profiles)
+}
+
+func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
+	//profileIdParam := chi.URLParam(r, "releaseId")
+
+	profileId, err := strconv.Atoi(chi.URLParam(r, "profileId"))
+	if err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := h.service.DeleteReleaseProfileDuplicate(r.Context(), int64(profileId)); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}

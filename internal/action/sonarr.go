@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/sonarr"
 )
 
 func (s *service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
@@ -27,7 +27,7 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(sonarr.Client)
+	arr := client.Client.(*sonarr.Client)
 
 	r := sonarr.Release{
 		Title:            release.TorrentName,

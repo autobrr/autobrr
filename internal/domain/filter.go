@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -20,14 +20,9 @@ import (
 	"github.com/go-andiamo/splitter"
 )
 
-/*
-Works the same way as for autodl-irssi
-https://autodl-community.github.io/autodl-irssi/configuration/filter/
-*/
-
 type FilterRepo interface {
 	ListFilters(ctx context.Context) ([]Filter, error)
-	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
+	Find(ctx context.Context, params FilterQueryParams) ([]*Filter, error)
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*Filter, error)
 	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
@@ -41,19 +36,37 @@ type FilterRepo interface {
 	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
 	DeleteFilterExternal(ctx context.Context, filterID int) error
-	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
+	GetFilterDownloadCount(ctx context.Context, filter *Filter) error
 }
 
 type FilterDownloads struct {
-	HourCount  int
-	DayCount   int
-	WeekCount  int
-	MonthCount int
-	TotalCount int
+	HourCount  int `json:"hour_count"`
+	DayCount   int `json:"day_count"`
+	WeekCount  int `json:"week_count"`
+	MonthCount int `json:"month_count"`
+	TotalCount int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
 	return fmt.Sprintf("Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
+}
+
+func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int) bool {
+	var count int
+	switch unit {
+	case FilterMaxDownloadsHour:
+		count = f.HourCount
+	case FilterMaxDownloadsDay:
+		count = f.DayCount
+	case FilterMaxDownloadsWeek:
+		count = f.WeekCount
+	case FilterMaxDownloadsMonth:
+		count = f.MonthCount
+	case FilterMaxDownloadsEver:
+		count = f.TotalCount
+	}
+
+	return count < maxDownloads
 }
 
 type FilterMaxDownloadsUnit string
@@ -91,85 +104,90 @@ type FilterQueryParams struct {
 }
 
 type Filter struct {
-	ID                   int                    `json:"id"`
-	Name                 string                 `json:"name"`
-	Enabled              bool                   `json:"enabled"`
-	CreatedAt            time.Time              `json:"created_at"`
-	UpdatedAt            time.Time              `json:"updated_at"`
-	MinSize              string                 `json:"min_size,omitempty"`
-	MaxSize              string                 `json:"max_size,omitempty"`
-	Delay                int                    `json:"delay,omitempty"`
-	Priority             int32                  `json:"priority"`
-	MaxDownloads         int                    `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit     FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
-	MatchReleases        string                 `json:"match_releases,omitempty"`
-	ExceptReleases       string                 `json:"except_releases,omitempty"`
-	UseRegex             bool                   `json:"use_regex,omitempty"`
-	MatchReleaseGroups   string                 `json:"match_release_groups,omitempty"`
-	ExceptReleaseGroups  string                 `json:"except_release_groups,omitempty"`
-	AnnounceTypes        []string               `json:"announce_types,omitempty"`
-	Scene                bool                   `json:"scene,omitempty"`
-	Origins              []string               `json:"origins,omitempty"`
-	ExceptOrigins        []string               `json:"except_origins,omitempty"`
-	Bonus                []string               `json:"bonus,omitempty"`
-	Freeleech            bool                   `json:"freeleech,omitempty"`
-	FreeleechPercent     string                 `json:"freeleech_percent,omitempty"`
-	SmartEpisode         bool                   `json:"smart_episode"`
-	Shows                string                 `json:"shows,omitempty"`
-	Seasons              string                 `json:"seasons,omitempty"`
-	Episodes             string                 `json:"episodes,omitempty"`
-	Resolutions          []string               `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
-	Codecs               []string               `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
-	Sources              []string               `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
-	Containers           []string               `json:"containers,omitempty"`
-	MatchHDR             []string               `json:"match_hdr,omitempty"`
-	ExceptHDR            []string               `json:"except_hdr,omitempty"`
-	MatchOther           []string               `json:"match_other,omitempty"`
-	ExceptOther          []string               `json:"except_other,omitempty"`
-	Years                string                 `json:"years,omitempty"`
-	Months               string                 `json:"months,omitempty"`
-	Days                 string                 `json:"days,omitempty"`
-	Artists              string                 `json:"artists,omitempty"`
-	Albums               string                 `json:"albums,omitempty"`
-	MatchReleaseTypes    []string               `json:"match_release_types,omitempty"` // Album,Single,EP
-	ExceptReleaseTypes   string                 `json:"except_release_types,omitempty"`
-	Formats              []string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality              []string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media                []string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	PerfectFlac          bool                   `json:"perfect_flac,omitempty"`
-	Cue                  bool                   `json:"cue,omitempty"`
-	Log                  bool                   `json:"log,omitempty"`
-	LogScore             int                    `json:"log_score,omitempty"`
-	MatchCategories      string                 `json:"match_categories,omitempty"`
-	ExceptCategories     string                 `json:"except_categories,omitempty"`
-	MatchUploaders       string                 `json:"match_uploaders,omitempty"`
-	ExceptUploaders      string                 `json:"except_uploaders,omitempty"`
-	MatchLanguage        []string               `json:"match_language,omitempty"`
-	ExceptLanguage       []string               `json:"except_language,omitempty"`
-	Tags                 string                 `json:"tags,omitempty"`
-	ExceptTags           string                 `json:"except_tags,omitempty"`
-	TagsAny              string                 `json:"tags_any,omitempty"`
-	ExceptTagsAny        string                 `json:"except_tags_any,omitempty"`
-	TagsMatchLogic       string                 `json:"tags_match_logic,omitempty"`
-	ExceptTagsMatchLogic string                 `json:"except_tags_match_logic,omitempty"`
-	MatchReleaseTags     string                 `json:"match_release_tags,omitempty"`
-	ExceptReleaseTags    string                 `json:"except_release_tags,omitempty"`
-	UseRegexReleaseTags  bool                   `json:"use_regex_release_tags,omitempty"`
-	MatchDescription     string                 `json:"match_description,omitempty"`
-	ExceptDescription    string                 `json:"except_description,omitempty"`
-	UseRegexDescription  bool                   `json:"use_regex_description,omitempty"`
-	MinSeeders           int                    `json:"min_seeders,omitempty"`
-	MaxSeeders           int                    `json:"max_seeders,omitempty"`
-	MinLeechers          int                    `json:"min_leechers,omitempty"`
-	MaxLeechers          int                    `json:"max_leechers,omitempty"`
-	ActionsCount         int                    `json:"actions_count"`
-	ActionsEnabledCount  int                    `json:"actions_enabled_count"`
-	Actions              []*Action              `json:"actions,omitempty"`
-	External             []FilterExternal       `json:"external,omitempty"`
-	Indexers             []Indexer              `json:"indexers"`
-	Downloads            *FilterDownloads       `json:"-"`
-	Rejections           []string               `json:"-"`
-	RejectReasons        *RejectionReasons      `json:"-"`
+	ID                        int                      `json:"id"`
+	Name                      string                   `json:"name"`
+	Enabled                   bool                     `json:"enabled"`
+	CreatedAt                 time.Time                `json:"created_at"`
+	UpdatedAt                 time.Time                `json:"updated_at"`
+	MinSize                   string                   `json:"min_size,omitempty"`
+	MaxSize                   string                   `json:"max_size,omitempty"`
+	Delay                     int                      `json:"delay,omitempty"`
+	Priority                  int32                    `json:"priority"`
+	MaxDownloads              int                      `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit          FilterMaxDownloadsUnit   `json:"max_downloads_unit,omitempty"`
+	MatchReleases             string                   `json:"match_releases,omitempty"`
+	ExceptReleases            string                   `json:"except_releases,omitempty"`
+	UseRegex                  bool                     `json:"use_regex,omitempty"`
+	MatchReleaseGroups        string                   `json:"match_release_groups,omitempty"`
+	ExceptReleaseGroups       string                   `json:"except_release_groups,omitempty"`
+	AnnounceTypes             []string                 `json:"announce_types,omitempty"`
+	Scene                     bool                     `json:"scene,omitempty"`
+	Origins                   []string                 `json:"origins,omitempty"`
+	ExceptOrigins             []string                 `json:"except_origins,omitempty"`
+	Bonus                     []string                 `json:"bonus,omitempty"`
+	Freeleech                 bool                     `json:"freeleech,omitempty"`
+	FreeleechPercent          string                   `json:"freeleech_percent,omitempty"`
+	SmartEpisode              bool                     `json:"smart_episode"`
+	Shows                     string                   `json:"shows,omitempty"`
+	Seasons                   string                   `json:"seasons,omitempty"`
+	Episodes                  string                   `json:"episodes,omitempty"`
+	Resolutions               []string                 `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
+	Codecs                    []string                 `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
+	Sources                   []string                 `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
+	Containers                []string                 `json:"containers,omitempty"`
+	MatchHDR                  []string                 `json:"match_hdr,omitempty"`
+	ExceptHDR                 []string                 `json:"except_hdr,omitempty"`
+	MatchOther                []string                 `json:"match_other,omitempty"`
+	ExceptOther               []string                 `json:"except_other,omitempty"`
+	Years                     string                   `json:"years,omitempty"`
+	Months                    string                   `json:"months,omitempty"`
+	Days                      string                   `json:"days,omitempty"`
+	Artists                   string                   `json:"artists,omitempty"`
+	Albums                    string                   `json:"albums,omitempty"`
+	MatchReleaseTypes         []string                 `json:"match_release_types,omitempty"` // Album,Single,EP
+	ExceptReleaseTypes        string                   `json:"except_release_types,omitempty"`
+	Formats                   []string                 `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   []string                 `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
+	Media                     []string                 `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac               bool                     `json:"perfect_flac,omitempty"`
+	Cue                       bool                     `json:"cue,omitempty"`
+	Log                       bool                     `json:"log,omitempty"`
+	LogScore                  int                      `json:"log_score,omitempty"`
+	MatchCategories           string                   `json:"match_categories,omitempty"`
+	ExceptCategories          string                   `json:"except_categories,omitempty"`
+	MatchUploaders            string                   `json:"match_uploaders,omitempty"`
+	ExceptUploaders           string                   `json:"except_uploaders,omitempty"`
+	MatchRecordLabels         string                   `json:"match_record_labels,omitempty"`
+	ExceptRecordLabels        string                   `json:"except_record_labels,omitempty"`
+	MatchLanguage             []string                 `json:"match_language,omitempty"`
+	ExceptLanguage            []string                 `json:"except_language,omitempty"`
+	Tags                      string                   `json:"tags,omitempty"`
+	ExceptTags                string                   `json:"except_tags,omitempty"`
+	TagsAny                   string                   `json:"tags_any,omitempty"`
+	ExceptTagsAny             string                   `json:"except_tags_any,omitempty"`
+	TagsMatchLogic            string                   `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic      string                   `json:"except_tags_match_logic,omitempty"`
+	MatchReleaseTags          string                   `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags         string                   `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags       bool                     `json:"use_regex_release_tags,omitempty"`
+	MatchDescription          string                   `json:"match_description,omitempty"`
+	ExceptDescription         string                   `json:"except_description,omitempty"`
+	UseRegexDescription       bool                     `json:"use_regex_description,omitempty"`
+	MinSeeders                int                      `json:"min_seeders,omitempty"`
+	MaxSeeders                int                      `json:"max_seeders,omitempty"`
+	MinLeechers               int                      `json:"min_leechers,omitempty"`
+	MaxLeechers               int                      `json:"max_leechers,omitempty"`
+	ActionsCount              int                      `json:"actions_count"`
+	ActionsEnabledCount       int                      `json:"actions_enabled_count"`
+	IsAutoUpdated             bool                     `json:"is_auto_updated"`
+	Actions                   []*Action                `json:"actions,omitempty"`
+	External                  []FilterExternal         `json:"external,omitempty"`
+	Indexers                  []Indexer                `json:"indexers"`
+	ReleaseProfileDuplicateID int64                    `json:"release_profile_duplicate_id,omitempty"`
+	DuplicateHandling         *DuplicateReleaseProfile `json:"release_profile_duplicate"`
+	Downloads                 *FilterDownloads         `json:"downloads,omitempty"`
+	Rejections                []string                 `json:"-"`
+	RejectReasons             *RejectionReasons        `json:"-"`
 }
 
 type FilterExternal struct {
@@ -216,78 +234,81 @@ const (
 )
 
 type FilterUpdate struct {
-	ID                   int                     `json:"id"`
-	Name                 *string                 `json:"name,omitempty"`
-	Enabled              *bool                   `json:"enabled,omitempty"`
-	MinSize              *string                 `json:"min_size,omitempty"`
-	MaxSize              *string                 `json:"max_size,omitempty"`
-	Delay                *int                    `json:"delay,omitempty"`
-	Priority             *int32                  `json:"priority,omitempty"`
-	AnnounceTypes        *[]string               `json:"announce_types,omitempty"`
-	MaxDownloads         *int                    `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit     *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
-	MatchReleases        *string                 `json:"match_releases,omitempty"`
-	ExceptReleases       *string                 `json:"except_releases,omitempty"`
-	UseRegex             *bool                   `json:"use_regex,omitempty"`
-	MatchReleaseGroups   *string                 `json:"match_release_groups,omitempty"`
-	ExceptReleaseGroups  *string                 `json:"except_release_groups,omitempty"`
-	MatchReleaseTags     *string                 `json:"match_release_tags,omitempty"`
-	ExceptReleaseTags    *string                 `json:"except_release_tags,omitempty"`
-	UseRegexReleaseTags  *bool                   `json:"use_regex_release_tags,omitempty"`
-	MatchDescription     *string                 `json:"match_description,omitempty"`
-	ExceptDescription    *string                 `json:"except_description,omitempty"`
-	UseRegexDescription  *bool                   `json:"use_regex_description,omitempty"`
-	Scene                *bool                   `json:"scene,omitempty"`
-	Origins              *[]string               `json:"origins,omitempty"`
-	ExceptOrigins        *[]string               `json:"except_origins,omitempty"`
-	Bonus                *[]string               `json:"bonus,omitempty"`
-	Freeleech            *bool                   `json:"freeleech,omitempty"`
-	FreeleechPercent     *string                 `json:"freeleech_percent,omitempty"`
-	SmartEpisode         *bool                   `json:"smart_episode,omitempty"`
-	Shows                *string                 `json:"shows,omitempty"`
-	Seasons              *string                 `json:"seasons,omitempty"`
-	Episodes             *string                 `json:"episodes,omitempty"`
-	Resolutions          *[]string               `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
-	Codecs               *[]string               `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
-	Sources              *[]string               `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
-	Containers           *[]string               `json:"containers,omitempty"`
-	MatchHDR             *[]string               `json:"match_hdr,omitempty"`
-	ExceptHDR            *[]string               `json:"except_hdr,omitempty"`
-	MatchOther           *[]string               `json:"match_other,omitempty"`
-	ExceptOther          *[]string               `json:"except_other,omitempty"`
-	Years                *string                 `json:"years,omitempty"`
-	Months               *string                 `json:"months,omitempty"`
-	Days                 *string                 `json:"days,omitempty"`
-	Artists              *string                 `json:"artists,omitempty"`
-	Albums               *string                 `json:"albums,omitempty"`
-	MatchReleaseTypes    *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
-	ExceptReleaseTypes   *string                 `json:"except_release_types,omitempty"`
-	Formats              *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality              *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
-	Media                *[]string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
-	PerfectFlac          *bool                   `json:"perfect_flac,omitempty"`
-	Cue                  *bool                   `json:"cue,omitempty"`
-	Log                  *bool                   `json:"log,omitempty"`
-	LogScore             *int                    `json:"log_score,omitempty"`
-	MatchCategories      *string                 `json:"match_categories,omitempty"`
-	ExceptCategories     *string                 `json:"except_categories,omitempty"`
-	MatchUploaders       *string                 `json:"match_uploaders,omitempty"`
-	ExceptUploaders      *string                 `json:"except_uploaders,omitempty"`
-	MatchLanguage        *[]string               `json:"match_language,omitempty"`
-	ExceptLanguage       *[]string               `json:"except_language,omitempty"`
-	Tags                 *string                 `json:"tags,omitempty"`
-	ExceptTags           *string                 `json:"except_tags,omitempty"`
-	TagsAny              *string                 `json:"tags_any,omitempty"`
-	ExceptTagsAny        *string                 `json:"except_tags_any,omitempty"`
-	TagsMatchLogic       *string                 `json:"tags_match_logic,omitempty"`
-	ExceptTagsMatchLogic *string                 `json:"except_tags_match_logic,omitempty"`
-	MinSeeders           *int                    `json:"min_seeders,omitempty"`
-	MaxSeeders           *int                    `json:"max_seeders,omitempty"`
-	MinLeechers          *int                    `json:"min_leechers,omitempty"`
-	MaxLeechers          *int                    `json:"max_leechers,omitempty"`
-	Actions              []*Action               `json:"actions,omitempty"`
-	External             []FilterExternal        `json:"external,omitempty"`
-	Indexers             []Indexer               `json:"indexers,omitempty"`
+	ID                        int                     `json:"id"`
+	Name                      *string                 `json:"name,omitempty"`
+	Enabled                   *bool                   `json:"enabled,omitempty"`
+	MinSize                   *string                 `json:"min_size,omitempty"`
+	MaxSize                   *string                 `json:"max_size,omitempty"`
+	Delay                     *int                    `json:"delay,omitempty"`
+	Priority                  *int32                  `json:"priority,omitempty"`
+	AnnounceTypes             *[]string               `json:"announce_types,omitempty"`
+	MaxDownloads              *int                    `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit          *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
+	MatchReleases             *string                 `json:"match_releases,omitempty"`
+	ExceptReleases            *string                 `json:"except_releases,omitempty"`
+	UseRegex                  *bool                   `json:"use_regex,omitempty"`
+	MatchReleaseGroups        *string                 `json:"match_release_groups,omitempty"`
+	ExceptReleaseGroups       *string                 `json:"except_release_groups,omitempty"`
+	MatchReleaseTags          *string                 `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags         *string                 `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags       *bool                   `json:"use_regex_release_tags,omitempty"`
+	MatchDescription          *string                 `json:"match_description,omitempty"`
+	ExceptDescription         *string                 `json:"except_description,omitempty"`
+	UseRegexDescription       *bool                   `json:"use_regex_description,omitempty"`
+	Scene                     *bool                   `json:"scene,omitempty"`
+	Origins                   *[]string               `json:"origins,omitempty"`
+	ExceptOrigins             *[]string               `json:"except_origins,omitempty"`
+	Bonus                     *[]string               `json:"bonus,omitempty"`
+	Freeleech                 *bool                   `json:"freeleech,omitempty"`
+	FreeleechPercent          *string                 `json:"freeleech_percent,omitempty"`
+	SmartEpisode              *bool                   `json:"smart_episode,omitempty"`
+	Shows                     *string                 `json:"shows,omitempty"`
+	Seasons                   *string                 `json:"seasons,omitempty"`
+	Episodes                  *string                 `json:"episodes,omitempty"`
+	Resolutions               *[]string               `json:"resolutions,omitempty"` // SD, 480i, 480p, 576p, 720p, 810p, 1080i, 1080p.
+	Codecs                    *[]string               `json:"codecs,omitempty"`      // XviD, DivX, x264, h.264 (or h264), mpeg2 (or mpeg-2), VC-1 (or VC1), WMV, Remux, h.264 Remux (or h264 Remux), VC-1 Remux (or VC1 Remux).
+	Sources                   *[]string               `json:"sources,omitempty"`     // DSR, PDTV, HDTV, HR.PDTV, HR.HDTV, DVDRip, DVDScr, BDr, BD5, BD9, BDRip, BRRip, DVDR, MDVDR, HDDVD, HDDVDRip, BluRay, WEB-DL, TVRip, CAM, R5, TELESYNC, TS, TELECINE, TC. TELESYNC and TS are synonyms (you don't need both). Same for TELECINE and TC
+	Containers                *[]string               `json:"containers,omitempty"`
+	MatchHDR                  *[]string               `json:"match_hdr,omitempty"`
+	ExceptHDR                 *[]string               `json:"except_hdr,omitempty"`
+	MatchOther                *[]string               `json:"match_other,omitempty"`
+	ExceptOther               *[]string               `json:"except_other,omitempty"`
+	Years                     *string                 `json:"years,omitempty"`
+	Months                    *string                 `json:"months,omitempty"`
+	Days                      *string                 `json:"days,omitempty"`
+	Artists                   *string                 `json:"artists,omitempty"`
+	Albums                    *string                 `json:"albums,omitempty"`
+	MatchReleaseTypes         *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
+	ExceptReleaseTypes        *string                 `json:"except_release_types,omitempty"`
+	Formats                   *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
+	Media                     *[]string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
+	PerfectFlac               *bool                   `json:"perfect_flac,omitempty"`
+	Cue                       *bool                   `json:"cue,omitempty"`
+	Log                       *bool                   `json:"log,omitempty"`
+	LogScore                  *int                    `json:"log_score,omitempty"`
+	MatchCategories           *string                 `json:"match_categories,omitempty"`
+	ExceptCategories          *string                 `json:"except_categories,omitempty"`
+	MatchUploaders            *string                 `json:"match_uploaders,omitempty"`
+	ExceptUploaders           *string                 `json:"except_uploaders,omitempty"`
+	MatchRecordLabels         *string                 `json:"match_record_labels,omitempty"`
+	ExceptRecordLabels        *string                 `json:"except_record_labels,omitempty"`
+	MatchLanguage             *[]string               `json:"match_language,omitempty"`
+	ExceptLanguage            *[]string               `json:"except_language,omitempty"`
+	Tags                      *string                 `json:"tags,omitempty"`
+	ExceptTags                *string                 `json:"except_tags,omitempty"`
+	TagsAny                   *string                 `json:"tags_any,omitempty"`
+	ExceptTagsAny             *string                 `json:"except_tags_any,omitempty"`
+	TagsMatchLogic            *string                 `json:"tags_match_logic,omitempty"`
+	ExceptTagsMatchLogic      *string                 `json:"except_tags_match_logic,omitempty"`
+	MinSeeders                *int                    `json:"min_seeders,omitempty"`
+	MaxSeeders                *int                    `json:"max_seeders,omitempty"`
+	MinLeechers               *int                    `json:"min_leechers,omitempty"`
+	MaxLeechers               *int                    `json:"max_leechers,omitempty"`
+	ReleaseProfileDuplicateID *int64                  `json:"release_profile_duplicate_id,omitempty"`
+	Actions                   []*Action               `json:"actions,omitempty"`
+	External                  []FilterExternal        `json:"external,omitempty"`
+	Indexers                  []Indexer               `json:"indexers,omitempty"`
 }
 
 func (f *Filter) Validate() error {
@@ -363,14 +384,17 @@ func (f *Filter) Sanitize() error {
 	f.Artists = sanitize.FilterString(f.Artists)
 	f.Albums = sanitize.FilterString(f.Albums)
 
+	f.MatchRecordLabels = sanitize.FilterString(f.MatchRecordLabels)
+	f.ExceptRecordLabels = sanitize.FilterString(f.ExceptRecordLabels)
+
 	return nil
 }
 
 func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	f.RejectReasons = NewRejectionReasons()
 
-	// max downloads check. If reached return early so other filters can be checked as quick as possible.
-	if f.MaxDownloads > 0 && !f.checkMaxDownloads() {
+	// Max downloads check. If reached return early so other filters can be checked as quick as possible.
+	if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
 		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), f.Downloads.String(), fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
 		return f.RejectReasons, false
 	}
@@ -460,12 +484,12 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		}
 	}
 
-	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
-		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
+	if (f.MatchUploaders != "" || f.ExceptUploaders != "") && !f.checkUploader(r) {
+		// f.checkUploader sets the rejections
 	}
 
-	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
-		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
+	if (f.MatchRecordLabels != "" || f.ExceptRecordLabels != "") && !f.checkRecordLabel(r) {
+		// f.checkRecordLabel sets the rejections
 	}
 
 	if len(f.MatchLanguage) > 0 && !sliceContainsSlice(r.Language, f.MatchLanguage) {
@@ -493,11 +517,11 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	}
 
 	if len(f.MatchHDR) > 0 && !matchHDR(r.HDR, f.MatchHDR) {
-		f.RejectReasons.Add("match hdr", r.HDR, f.MatchHDR)
+		f.RejectReasons.Add("match hdr", strings.Join(r.HDR, " "), f.MatchHDR)
 	}
 
 	if len(f.ExceptHDR) > 0 && matchHDR(r.HDR, f.ExceptHDR) {
-		f.RejectReasons.Add("except hdr", r.HDR, f.ExceptHDR)
+		f.RejectReasons.Add("except hdr", strings.Join(r.HDR, " "), f.ExceptHDR)
 	}
 
 	// Other is parsed into the Other slice from rls
@@ -662,26 +686,17 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	return f.RejectReasons, true
 }
 
+// IsMaxDownloadsLimitEnabled if max downloads is greater than 0 and a unit is set return true
+func (f *Filter) IsMaxDownloadsLimitEnabled() bool {
+	return f.MaxDownloads > 0 && f.MaxDownloadsUnit != ""
+}
+
 func (f *Filter) checkMaxDownloads() bool {
 	if f.Downloads == nil {
 		return false
 	}
 
-	var count int
-	switch f.MaxDownloadsUnit {
-	case FilterMaxDownloadsHour:
-		count = f.Downloads.HourCount
-	case FilterMaxDownloadsDay:
-		count = f.Downloads.DayCount
-	case FilterMaxDownloadsWeek:
-		count = f.Downloads.WeekCount
-	case FilterMaxDownloadsMonth:
-		count = f.Downloads.MonthCount
-	case FilterMaxDownloadsEver:
-		count = f.Downloads.TotalCount
-	}
-
-	return count < f.MaxDownloads
+	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads)
 }
 
 // isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
@@ -726,6 +741,47 @@ func (f *Filter) checkSizeFilter(r *Release) bool {
 
 	if !sizeOK {
 		return false
+	}
+
+	return true
+}
+
+// checkUploader checks if the uploader is within the given list.
+// if the haystack is not empty but the uploader is, then a further
+// investigation is needed
+func (f *Filter) checkUploader(r *Release) bool {
+	// only support additional uploader check for RED and OPS
+	if r.Uploader == "" && (r.Indexer.Identifier == "redacted" || r.Indexer.Identifier == "ops") {
+		r.AdditionalUploaderCheckRequired = true
+		return true
+	}
+
+	if f.MatchUploaders != "" && !contains(r.Uploader, f.MatchUploaders) {
+		f.RejectReasons.Add("match uploaders", r.Uploader, f.MatchUploaders)
+	}
+
+	if f.ExceptUploaders != "" && contains(r.Uploader, f.ExceptUploaders) {
+		f.RejectReasons.Add("except uploaders", r.Uploader, f.ExceptUploaders)
+	}
+
+	return true
+}
+
+// checkRecordLabel checks if the record label is within the given list.
+// if the haystack is not empty but the record label is, then a further
+// investigation is needed
+func (f *Filter) checkRecordLabel(r *Release) bool {
+	if r.RecordLabel == "" && (r.Indexer.Identifier == "redacted" || r.Indexer.Identifier == "ops") {
+		r.AdditionalRecordLabelCheckRequired = true
+		return true
+	}
+
+	if f.MatchRecordLabels != "" && !contains(r.RecordLabel, f.MatchRecordLabels) {
+		f.RejectReasons.Add("match record labels", r.RecordLabel, f.MatchRecordLabels)
+	}
+
+	if f.ExceptRecordLabels != "" && contains(r.RecordLabel, f.ExceptRecordLabels) {
+		f.RejectReasons.Add("except record labels", r.RecordLabel, f.ExceptRecordLabels)
 	}
 
 	return true
@@ -828,6 +884,9 @@ func containsIntStrings(value int, filterList string) bool {
 					}
 				}
 			}
+
+			// continue to next filter if there is one, otherwise the parseInt will fail when it's a year range
+			continue
 		}
 
 		filterInt, err := strconv.ParseInt(filter, 10, 32)
@@ -841,6 +900,12 @@ func containsIntStrings(value int, filterList string) bool {
 	}
 
 	return false
+}
+
+type StringValue string
+
+func (v StringValue) Check(arg string) bool {
+	return v != "" && !contains(arg, string(v))
 }
 
 func contains(tag string, filter string) bool {
@@ -1116,6 +1181,7 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
 
+		// for filter with dual tag like "DV HDR"
 		parts := strings.Split(filter, " ")
 		if len(parts) == 2 {
 			partsMatched := 0
@@ -1134,13 +1200,30 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 				}
 			}
 		} else {
-			for _, tag := range releaseValues {
-				if tag == "" {
-					continue
+			matches := 0
+			if len(releaseValues) == 2 {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						matches++
+					}
 				}
-				tag = strings.ToLower(tag)
-				if tag == filter {
+
+				if matches == len(releaseValues) {
 					return true
+				}
+			} else {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						return true
+					}
 				}
 			}
 		}
@@ -1162,6 +1245,34 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 
 	if maxBytes != nil && releaseSize >= *maxBytes {
 		f.RejectReasons.Addf("release size", "release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (f *Filter) CheckUploader(uploader string) (bool, error) {
+	if f.MatchUploaders != "" && !contains(uploader, f.MatchUploaders) {
+		f.RejectReasons.Add("match uploader", uploader, f.MatchUploaders)
+		return false, nil
+	}
+
+	if f.ExceptUploaders != "" && contains(uploader, f.ExceptUploaders) {
+		f.RejectReasons.Add("except uploader", uploader, f.ExceptUploaders)
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (f *Filter) CheckRecordLabel(recordLabel string) (bool, error) {
+	if f.MatchRecordLabels != "" && !contains(recordLabel, f.MatchRecordLabels) {
+		f.RejectReasons.Add("match record label", recordLabel, f.MatchRecordLabels)
+		return false, nil
+	}
+
+	if f.ExceptRecordLabels != "" && contains(recordLabel, f.ExceptRecordLabels) {
+		f.RejectReasons.Add("except record label", recordLabel, f.ExceptRecordLabels)
 		return false, nil
 	}
 

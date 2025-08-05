@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import toast from "react-hot-toast";
 
 import { useToggle } from "@hooks/hooks";
 import { DownloadClientAddForm, DownloadClientUpdateForm } from "@forms";
@@ -15,6 +14,7 @@ import { APIClient } from "@api/APIClient";
 import { DownloadClientKeys } from "@api/query_keys";
 import { DownloadClientsQueryOptions } from "@api/queries";
 import { ActionTypeNameMap } from "@domain/constants";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 
@@ -106,9 +106,9 @@ function ListItem({ client }: DLSettingsItemProps) {
     <li>
       <div className="grid grid-cols-12 items-center py-2">
         <DownloadClientUpdateForm
-          client={client}
           isOpen={updateClientIsOpen}
           toggle={toggleUpdateClient}
+          data={client}
         />
         <div className="col-span-2 sm:col-span-1 pl-1 sm:pl-6 flex items-center">
           <Checkbox
@@ -145,7 +145,7 @@ function DownloadClientSettings() {
       rightSide={
         <button
           type="button"
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           onClick={toggleAddClient}
         >
           <PlusIcon className="h-5 w-5 mr-1" />

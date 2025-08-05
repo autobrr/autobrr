@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { JSX } from "react";
 import { Field as FormikField } from "formik";
 import Select from "react-select";
 import { Field, Label, Description } from "@headlessui/react";
@@ -33,6 +34,7 @@ interface TextFieldWideProps {
   placeholder?: string;
   defaultValue?: string;
   required?: boolean;
+  disabled?: boolean;
   autoComplete?: string;
   hidden?: boolean;
   tooltip?: JSX.Element;
@@ -46,6 +48,7 @@ export const TextFieldWide = ({
   placeholder,
   defaultValue,
   required,
+  disabled,
   autoComplete,
   tooltip,
   hidden,
@@ -68,6 +71,7 @@ export const TextFieldWide = ({
         value={defaultValue}
         required={required}
         validate={validate}
+        disabled={disabled}
       >
         {({ field, meta }: FieldProps) => (
           <input
@@ -76,11 +80,13 @@ export const TextFieldWide = ({
             type="text"
             value={field.value ? field.value : defaultValue ?? ""}
             onChange={field.onChange}
+            disabled={disabled}
             className={classNames(
               meta.touched && meta.error
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+              "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 dark:text-gray-100",
+              disabled ? "bg-gray-200 dark:bg-gray-700" : "bg-gray-100 dark:bg-gray-850 "
             )}
             placeholder={placeholder}
             hidden={hidden}
@@ -155,7 +161,7 @@ export const PasswordFieldWide = ({
                   meta.touched && meta.error
                     ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                     : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                  "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100 overflow-hidden pr-8"
+                  "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100 overflow-hidden pr-8"
                 )}
                 placeholder={placeholder}
                 required={required}
@@ -226,7 +232,7 @@ export const NumberFieldWide = ({
               meta.touched && meta.error
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-              "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+              "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
             )}
             onWheel={(event) => {
               if (event.currentTarget === document.activeElement) {
@@ -273,7 +279,7 @@ export const SwitchGroupWide = ({
           </div>
         </Label>
         {description && (
-          <Description className="text-sm text-gray-500 dark:text-gray-700">
+          <Description className="text-sm text-gray-500 dark:text-gray-500">
             {description}
           </Description>
         )}

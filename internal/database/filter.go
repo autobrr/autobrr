@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -19,28 +19,72 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type EngineQuery struct {
+	engine   string
+	sqlite   string
+	postgres string
+}
+
+func NewEngineQuery(engine string, sqlite, postgres string) *EngineQuery {
+	return &EngineQuery{
+		engine:   engine,
+		sqlite:   sqlite,
+		postgres: postgres,
+	}
+}
+
+func (q *EngineQuery) Get() string {
+	switch q.engine {
+	case "sqlite":
+		return q.sqlite
+	case "postgres":
+		return q.postgres
+	}
+
+	return ""
+}
+
 type FilterRepo struct {
 	log zerolog.Logger
 	db  *DB
+
+	// database specific queries
+	filterDownloadQuery *EngineQuery
 }
 
 func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 	return &FilterRepo{
-		log: log.With().Str("repo", "filter").Logger(),
-		db:  db,
+		log:                 log.With().Str("repo", "filter").Logger(),
+		db:                  db,
+		filterDownloadQuery: NewEngineQuery(db.Driver, filterDownloadsSQLite, filterDownloadsPG),
 	}
 }
 
-func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
-	filters, err := r.find(ctx, params)
-	if err != nil {
-		return nil, err
-	}
+const (
+	filterDownloadsSQLite = `SELECT
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
+	COUNT(DISTINCT release_id) as "total_count"
+FROM release_action_status
+WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = ?;`
 
-	return filters, nil
+	filterDownloadsPG = `SELECT
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
+    COUNT(DISTINCT release_id) as "total_count"
+FROM release_action_status
+WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = $1;`
+)
+
+func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
+	return r.find(ctx, params)
 }
 
-func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
+func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
@@ -52,18 +96,25 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 		Where("a.filter_id = f.id").
 		Where("a.enabled = '1'")
 
+	isAutoUpdated := r.db.squirrel.Select("CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END").
+		From("list_filter lf").
+		Where("lf.filter_id = f.id")
+
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
 			"f.enabled",
 			"f.name",
 			"f.priority",
+			"f.max_downloads",
+			"f.max_downloads_unit",
 			"f.created_at",
 			"f.updated_at",
 		).
 		Distinct().
 		Column(sq.Alias(actionCountQuery, "action_count")).
 		Column(sq.Alias(actionEnabledCountQuery, "actions_enabled_count")).
+		Column(sq.Alias(isAutoUpdated, "is_auto_updated")).
 		LeftJoin("filter_indexer fi ON f.id = fi.filter_id").
 		LeftJoin("indexer i ON i.id = fi.indexer_id").
 		From("filter f")
@@ -99,16 +150,28 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 	}
 	defer rows.Close()
 
-	var filters []domain.Filter
+	filters := make([]*domain.Filter, 0)
 	for rows.Next() {
 		var f domain.Filter
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount); err != nil {
+		var maxDownloadsUnit sql.Null[string]
+		var maxDownloads sql.Null[int32]
+
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &maxDownloads, &maxDownloadsUnit, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
-		filters = append(filters, f)
+		if maxDownloads.Valid {
+			f.MaxDownloads = int(maxDownloads.V)
+		}
+
+		if maxDownloadsUnit.Valid {
+			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.V)
+		}
+
+		filters = append(filters, &f)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "row error")
 	}
@@ -147,7 +210,7 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 
 	defer rows.Close()
 
-	var filters []domain.Filter
+	filters := make([]domain.Filter, 0)
 	for rows.Next() {
 		var f domain.Filter
 
@@ -221,6 +284,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_record_labels",
+			"f.except_record_labels",
 			"f.match_language",
 			"f.except_language",
 			"f.tags",
@@ -233,6 +298,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.max_seeders",
 			"f.min_leechers",
 			"f.max_leechers",
+			"f.release_profile_duplicate_id",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -256,9 +322,10 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var f domain.Filter
 
 	// filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, maxDownloads, logScore sql.NullInt32
+	var releaseProfileDuplicateId sql.NullInt64
 
 	err = row.Scan(
 		&f.ID,
@@ -314,6 +381,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&exceptCategories,
 		&matchUploaders,
 		&exceptUploaders,
+		&matchRecordLabels,
+		&exceptRecordLabels,
 		pq.Array(&f.MatchLanguage),
 		pq.Array(&f.ExceptLanguage),
 		&tags,
@@ -326,6 +395,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&f.MaxSeeders,
 		&f.MinLeechers,
 		&f.MaxLeechers,
+		&releaseProfileDuplicateId,
 		&f.CreatedAt,
 		&f.UpdatedAt,
 	)
@@ -367,6 +437,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.ExceptCategories = exceptCategories.String
 	f.MatchUploaders = matchUploaders.String
 	f.ExceptUploaders = exceptUploaders.String
+	f.MatchRecordLabels = matchRecordLabels.String
+	f.ExceptRecordLabels = exceptRecordLabels.String
 	f.Tags = tags.String
 	f.ExceptTags = exceptTags.String
 	f.TagsMatchLogic = tagsMatchLogic.String
@@ -374,6 +446,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.UseRegex = useRegex.Bool
 	f.Scene = scene.Bool
 	f.Freeleech = freeleech.Bool
+	f.ReleaseProfileDuplicateID = releaseProfileDuplicateId.Int64
 
 	return &f, nil
 }
@@ -439,6 +512,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.except_categories",
 			"f.match_uploaders",
 			"f.except_uploaders",
+			"f.match_record_labels",
+			"f.except_record_labels",
 			"f.match_language",
 			"f.except_language",
 			"f.tags",
@@ -453,10 +528,35 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.max_leechers",
 			"f.created_at",
 			"f.updated_at",
+			"f.release_profile_duplicate_id",
+			"rdp.id",
+			"rdp.name",
+			"rdp.release_name",
+			"rdp.hash",
+			"rdp.title",
+			"rdp.sub_title",
+			"rdp.year",
+			"rdp.month",
+			"rdp.day",
+			"rdp.source",
+			"rdp.resolution",
+			"rdp.codec",
+			"rdp.container",
+			"rdp.dynamic_range",
+			"rdp.audio",
+			"rdp.release_group",
+			"rdp.season",
+			"rdp.episode",
+			"rdp.website",
+			"rdp.proper",
+			"rdp.repack",
+			"rdp.edition",
+			"rdp.language",
 		).
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
 		Join("indexer i ON i.id = fi.indexer_id").
+		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
 		Where(sq.Eq{"f.enabled": true}).
@@ -479,9 +579,13 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, logScore sql.NullInt32
+		var releaseProfileDuplicateID, rdpId sql.NullInt64
+
+		var rdpName sql.NullString
+		var rdpRelName, rdpHash, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage sql.NullBool
 
 		err := rows.Scan(
 			&f.ID,
@@ -537,6 +641,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&exceptCategories,
 			&matchUploaders,
 			&exceptUploaders,
+			&matchRecordLabels,
+			&exceptRecordLabels,
 			pq.Array(&f.MatchLanguage),
 			pq.Array(&f.ExceptLanguage),
 			&tags,
@@ -551,6 +657,30 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&f.MaxLeechers,
 			&f.CreatedAt,
 			&f.UpdatedAt,
+			&releaseProfileDuplicateID,
+			&rdpId,
+			&rdpName,
+			&rdpRelName,
+			&rdpHash,
+			&rdpTitle,
+			&rdpSubTitle,
+			&rdpYear,
+			&rdpMonth,
+			&rdpDay,
+			&rdpSource,
+			&rdpResolution,
+			&rdpCodec,
+			&rdpContainer,
+			&rdpDynRange,
+			&rdpAudio,
+			&rdpGroup,
+			&rdpSeason,
+			&rdpEpisode,
+			&rdpWebsite,
+			&rdpProper,
+			&rdpRepack,
+			&rdpEdition,
+			&rdpLanguage,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
@@ -586,6 +716,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.ExceptCategories = exceptCategories.String
 		f.MatchUploaders = matchUploaders.String
 		f.ExceptUploaders = exceptUploaders.String
+		f.MatchRecordLabels = matchRecordLabels.String
+		f.ExceptRecordLabels = exceptRecordLabels.String
 		f.Tags = tags.String
 		f.ExceptTags = exceptTags.String
 		f.TagsMatchLogic = tagsMatchLogic.String
@@ -593,8 +725,39 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.UseRegex = useRegex.Bool
 		f.Scene = scene.Bool
 		f.Freeleech = freeleech.Bool
+		f.ReleaseProfileDuplicateID = releaseProfileDuplicateID.Int64
 
 		f.Rejections = []string{}
+
+		if releaseProfileDuplicateID.Valid {
+			profile := domain.DuplicateReleaseProfile{
+				ID: rdpId.Int64,
+				//Protocol:    rdpName.String,
+				Name:         rdpName.String,
+				ReleaseName:  rdpRelName.Bool,
+				Hash:         rdpHash.Bool,
+				Title:        rdpTitle.Bool,
+				SubTitle:     rdpSubTitle.Bool,
+				Year:         rdpYear.Bool,
+				Month:        rdpMonth.Bool,
+				Day:          rdpDay.Bool,
+				Source:       rdpSource.Bool,
+				Resolution:   rdpResolution.Bool,
+				Codec:        rdpCodec.Bool,
+				Container:    rdpContainer.Bool,
+				DynamicRange: rdpDynRange.Bool,
+				Audio:        rdpAudio.Bool,
+				Group:        rdpGroup.Bool,
+				Season:       rdpSeason.Bool,
+				Episode:      rdpEpisode.Bool,
+				Website:      rdpWebsite.Bool,
+				Proper:       rdpProper.Bool,
+				Repack:       rdpRepack.Bool,
+				Edition:      rdpEdition.Bool,
+				Language:     rdpLanguage.Bool,
+			}
+			f.DuplicateHandling = &profile
+		}
 
 		filters = append(filters, &f)
 	}
@@ -733,6 +896,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"except_categories",
 			"match_uploaders",
 			"except_uploaders",
+			"match_record_labels",
+			"except_record_labels",
 			"match_language",
 			"except_language",
 			"tags",
@@ -755,6 +920,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"max_seeders",
 			"min_leechers",
 			"max_leechers",
+			"release_profile_duplicate_id",
 		).
 		Values(
 			filter.Name,
@@ -799,6 +965,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.ExceptCategories,
 			filter.MatchUploaders,
 			filter.ExceptUploaders,
+			filter.MatchRecordLabels,
+			filter.ExceptRecordLabels,
 			pq.Array(filter.MatchLanguage),
 			pq.Array(filter.ExceptLanguage),
 			filter.Tags,
@@ -821,6 +989,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MaxSeeders,
 			filter.MinLeechers,
 			filter.MaxLeechers,
+			toNullInt64(filter.ReleaseProfileDuplicateID),
 		).
 		Suffix("RETURNING id").RunWith(r.db.handler)
 
@@ -883,6 +1052,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("except_categories", filter.ExceptCategories).
 		Set("match_uploaders", filter.MatchUploaders).
 		Set("except_uploaders", filter.ExceptUploaders).
+		Set("match_record_labels", filter.MatchRecordLabels).
+		Set("except_record_labels", filter.ExceptRecordLabels).
 		Set("match_language", pq.Array(filter.MatchLanguage)).
 		Set("except_language", pq.Array(filter.ExceptLanguage)).
 		Set("tags", filter.Tags).
@@ -905,6 +1076,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("max_seeders", filter.MaxSeeders).
 		Set("min_leechers", filter.MinLeechers).
 		Set("max_leechers", filter.MaxLeechers).
+		Set("release_profile_duplicate_id", toNullInt64(filter.ReleaseProfileDuplicateID)).
 		Set("updated_at", time.Now().Format(time.RFC3339)).
 		Where(sq.Eq{"id": filter.ID})
 
@@ -1058,6 +1230,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	if filter.ExceptUploaders != nil {
 		q = q.Set("except_uploaders", filter.ExceptUploaders)
 	}
+	if filter.MatchRecordLabels != nil {
+		q = q.Set("match_record_labels", filter.MatchRecordLabels)
+	}
+	if filter.ExceptRecordLabels != nil {
+		q = q.Set("except_record_labels", filter.ExceptRecordLabels)
+	}
 	if filter.MatchLanguage != nil {
 		q = q.Set("match_language", pq.Array(filter.MatchLanguage))
 	}
@@ -1123,6 +1301,9 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.MaxLeechers != nil {
 		q = q.Set("max_leechers", filter.MaxLeechers)
+	}
+	if filter.ReleaseProfileDuplicateID != nil {
+		q = q.Set("release_profile_duplicate_id", filter.ReleaseProfileDuplicateID)
 	}
 
 	q = q.Where(sq.Eq{"id": filter.ID})
@@ -1288,6 +1469,13 @@ func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) err
 }
 
 func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error begin transaction")
+	}
+
+	defer tx.Rollback()
+
 	queryBuilder := r.db.squirrel.
 		Delete("filter").
 		Where(sq.Eq{"id": filterID})
@@ -1297,7 +1485,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1308,82 +1496,56 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return domain.ErrRecordNotFound
 	}
 
+	listFilterQueryBuilder := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"filter_id": filterID})
+
+	deleteListFilterQuery, deleteListFilterArgs, err := listFilterQueryBuilder.ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, deleteListFilterQuery, deleteListFilterArgs...)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error storing list and filters")
+	}
+
 	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
 
 	return nil
 }
 
-// GetDownloadsByFilterId looks up how many `PENDING` or `PUSH_APPROVED`
+// GetFilterDownloadCount looks up how many `PENDING` or `PUSH_APPROVED`
 // releases there have been for the given filter in the current time window
 // starting at the start of the unit (since the beginning of the most recent
 // hour/day/week).
 //
 // See also
 // https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
-func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
-	if r.db.Driver == "sqlite" {
-		return r.downloadsByFilterSqlite(ctx, filterID)
-	}
+func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) (err error) {
+	query := r.filterDownloadQuery.Get()
 
-	return r.downloadsByFilterPostgres(ctx, filterID)
-}
-
-func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
-	query := `SELECT
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
-	COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = ?;`
-
-	row := r.db.handler.QueryRowContext(ctx, query, filterID)
+	row := r.db.handler.QueryRowContext(ctx, query, filter.ID)
 	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
 	var f domain.FilterDownloads
-
 	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
+			return domain.ErrRecordNotFound
 		}
 
-		return nil, errors.Wrap(err, "error scanning stats data sqlite")
+		return errors.Wrap(err, "error scanning stats data sqlite")
 	}
 
-	r.log.Trace().Msgf("filter %v downloads: %+v", filterID, &f)
+	r.log.Trace().Msgf("filter %v downloads: %+v", filter.ID, &f)
 
-	return &f, nil
-}
+	filter.Downloads = &f
 
-func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
-	query := `SELECT
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
-    COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = $1;`
-
-	row := r.db.handler.QueryRowContext(ctx, query, filterID)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
-
-	var f domain.FilterDownloads
-
-	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
-		}
-
-		return nil, errors.Wrap(err, "error scanning stats data postgres")
-	}
-
-	return &f, nil
+	return
 }
 
 func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error {

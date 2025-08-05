@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import * as React from "react";
-import { toast } from "react-hot-toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CellContext } from "@tanstack/react-table";
@@ -21,6 +20,7 @@ import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { classNames, humanFileSize, simplifyDate } from "@utils";
 import { ExternalLink } from "../ExternalLink";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
@@ -179,7 +179,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   };
 
   return (
-    <button className="flex items-center px-1.5 py-1 ml-2 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
+    <button className="flex items-center px-1.5 py-1 ml-2 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
       <span className="mr-1.5">Retry</span>
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
@@ -252,9 +252,9 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
           {": "}
           {status.action}
         </span>
-        {/*<div>*/}
-        {/*  {status.action_id > 0 && <RetryActionButton status={status} />}*/}
-        {/*</div>*/}
+        <div>
+          {status.action_id > 0 && <RetryActionButton status={status} />}
+        </div>
       </>
     )
   },
@@ -299,7 +299,7 @@ export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => (
         key={idx}
         className={classNames(
           StatusCellMap[v.status].colors,
-          "mr-1 inline-flex items-center rounded text-xs cursor-pointer"
+          "mr-1 inline-flex items-center rounded-sm text-xs cursor-pointer"
         )}
       >
         <Tooltip

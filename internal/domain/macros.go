@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -10,9 +10,16 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/ttlcache"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
+)
+
+var templateCache = ttlcache.New(
+	ttlcache.Options[string, *template.Template]{}.
+		SetTimerResolution(5 * time.Minute).
+		SetDefaultTTL(15 * time.Minute),
 )
 
 type Macro struct {
@@ -26,13 +33,15 @@ type Macro struct {
 	Category                  string
 	Codec                     []string
 	Container                 string
+	Cookie                    string
 	CurrentDay                int
 	CurrentHour               int
 	CurrentMinute             int
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
-	Description               string		  
+	CurrenTimeUnixMS          int64
+	Description               string
 	DownloadUrl               string
 	Episode                   int
 	FilterID                  int
@@ -50,10 +59,12 @@ type Macro struct {
 	IndexerIdentifierExternal string
 	IndexerName               string
 	InfoUrl                   string
+	IsDuplicate               bool
 	Language                  []string
 	Leechers                  int
 	LogScore                  int
 	MagnetURI                 string
+	MetaIMDB                  string
 	Origin                    string
 	Other                     []string
 	PreTime                   string
@@ -66,6 +77,8 @@ type Macro struct {
 	Seeders                   int
 	Size                      uint64
 	SizeString                string
+	SkipDuplicateProfileID    int64
+	SkipDuplicateProfileName  string
 	Source                    string
 	Tags                      string
 	Title                     string
@@ -78,6 +91,7 @@ type Macro struct {
 	TorrentTmpFile            string
 	Type                      string
 	Uploader                  string
+	RecordLabel               string
 	Website                   string
 	Year                      int
 	Month                     int
@@ -98,12 +112,14 @@ func NewMacro(release Release) Macro {
 		Category:                  release.Category,
 		Codec:                     release.Codec,
 		Container:                 release.Container,
+		Cookie:                    release.RawCookie,
 		CurrentDay:                currentTime.Day(),
 		CurrentHour:               currentTime.Hour(),
 		CurrentMinute:             currentTime.Minute(),
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
+		CurrenTimeUnixMS:          currentTime.UnixMilli(),
 		Description:               release.Description,
 		DownloadUrl:               release.DownloadURL,
 		Episode:                   release.Episode,
@@ -122,10 +138,12 @@ func NewMacro(release Release) Macro {
 		IndexerIdentifierExternal: release.Indexer.IdentifierExternal,
 		IndexerName:               release.Indexer.Name,
 		InfoUrl:                   release.InfoURL,
+		IsDuplicate:               release.IsDuplicate,
 		Language:                  release.Language,
 		Leechers:                  release.Leechers,
 		LogScore:                  release.LogScore,
 		MagnetURI:                 release.MagnetURI,
+		MetaIMDB:                  release.MetaIMDB,
 		Origin:                    release.Origin,
 		Other:                     release.Other,
 		PreTime:                   release.PreTime,
@@ -139,6 +157,8 @@ func NewMacro(release Release) Macro {
 		Size:                      release.Size,
 		SizeString:                humanize.Bytes(release.Size),
 		Source:                    release.Source,
+		SkipDuplicateProfileID:    release.SkipDuplicateProfileID,
+		SkipDuplicateProfileName:  release.SkipDuplicateProfileName,
 		Tags:                      strings.Join(release.Tags, ", "),
 		Title:                     release.Title,
 		TorrentDataRawBytes:       release.TorrentDataRawBytes,
@@ -148,8 +168,9 @@ func NewMacro(release Release) Macro {
 		TorrentPathName:           release.TorrentTmpFile,
 		TorrentUrl:                release.DownloadURL,
 		TorrentTmpFile:            release.TorrentTmpFile,
-		Type:                      release.Type,
+		Type:                      release.Type.String(),
 		Uploader:                  release.Uploader,
+		RecordLabel:               release.RecordLabel,
 		Website:                   release.Website,
 		Year:                      release.Year,
 		Month:                     release.Month,
@@ -165,16 +186,19 @@ func (m Macro) Parse(text string) (string, error) {
 		return "", nil
 	}
 
-	// TODO implement template cache
-
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return "", errors.Wrap(err, "could parse macro template")
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return "", errors.Wrap(err, "could not parse macro template")
+		}
+		templateCache.Set(text, tmpl, ttlcache.DefaultTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return "", errors.Wrap(err, "could not parse macro")
 	}
@@ -188,14 +212,19 @@ func (m Macro) MustParse(text string) string {
 		return ""
 	}
 
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return ""
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return ""
+		}
+		templateCache.Set(text, tmpl, ttlcache.NoTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return ""
 	}

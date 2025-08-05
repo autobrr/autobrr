@@ -31,7 +31,7 @@ irc:
   port: 7000
   tls: true
   channels:
-    - "#ptp-announce-dev"
+    - "#ptp-announce"
   announcers:
     - Hummingbird
   settings:
@@ -55,7 +55,7 @@ irc:
 
     - name: invite_command
       type: secret
-      default: "Hummingbird ENTER USERNAME IRCKEY #ptp-announce-dev"
+      default: "Hummingbird ENTER USERNAME IRCKEY #ptp-announce"
       required: true
       label: Invite command
       help: Invite auth with Hummingbird. Replace USERNAME and IRCKEY.

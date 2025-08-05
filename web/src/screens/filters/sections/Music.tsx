@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -39,6 +39,30 @@ export const Music = () => {
             tooltip={
               <div>
                 <p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p>
+                <DocsLink href="https://autobrr.com/filters#music" />
+              </div>
+            }
+          />
+          <TextAreaAutoResize
+            name="match_record_labels"
+            label="Match record labels"
+            columns={6}
+            placeholder="eg. Anjunabeats, Armada"
+            tooltip={
+              <div>
+                <p>Comma separated list of record labels to match. Only Orpheus and Redacted support this.</p>
+                <DocsLink href="https://autobrr.com/filters#music" />
+              </div>
+            }
+          />
+          <TextAreaAutoResize
+            name="except_record_labels"
+            label="Except record labels"
+            columns={6}
+            placeholder="eg. Anjunadeep, Armind"
+            tooltip={
+              <div>
+                <p>Comma separated list of record labels to ignore (takes priority over Match record labels). Only Orpheus and Redacted support this.</p>
                 <DocsLink href="https://autobrr.com/filters#music" />
               </div>
             }
@@ -125,7 +149,7 @@ export const Music = () => {
             />
           </FilterLayout>
 
-          <FilterLayout className="items-end sm:!gap-x-6">
+          <FilterLayout className="items-end sm:gap-x-6!">
             <FilterRow className="sm:col-span-4">
               <SwitchGroup
                 name="cue"
@@ -168,12 +192,12 @@ export const Music = () => {
         <div className="col-span-12 flex items-center justify-center">
           <span className="border-b border-gray-150 dark:border-gray-750 w-full" />
           <span className="flex mx-2 shrink-0 text-lg font-bold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-          OR
-        </span>
+            OR
+          </span>
           <span className="border-b border-gray-150 dark:border-gray-750 w-full" />
         </div>
 
-        <FilterLayout className="sm:!gap-x-6">
+        <FilterLayout className="sm:gap-x-6!">
           <SwitchGroup
             name="perfect_flac"
             label="Perfect FLAC"
@@ -188,8 +212,8 @@ export const Music = () => {
           />
 
           <span className="col-span-12 sm:col-span-6 self-center ml-0 text-center sm:text-left text-sm text-gray-500 dark:text-gray-425 underline underline-offset-2">
-          This is what you want in 90% of cases (instead of options above).
-        </span>
+            This is what you want in 90% of cases (instead of options above).
+          </span>
         </FilterLayout>
       </FilterSection>
     </FilterPage>

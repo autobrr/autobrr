@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+  ~ Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
   ~ SPDX-License-Identifier: GPL-2.0-or-later
   -->
 
@@ -18,7 +18,7 @@
   <link rel="apple-touch-icon" sizes="114x114" href="/apple-touch-icon-iphone-retina-120x120.png"/>
   <link rel="apple-touch-icon" sizes="144x144" href="/apple-touch-icon-ipad-retina-152x152.png"/>
   <title>autobrr</title>
-  <base href="{{.BaseUrl}}">
+  <!-- <base href="{{.BaseUrl}}"> -->
   <style>
       @font-face {
           font-family: "Inter Var";
@@ -44,6 +44,11 @@
   <script>
       window.APP = {};
       window.APP.baseUrl = "{{.BaseUrl}}";
+
+      // Update the base tag dynamically
+      const base = document.createElement('base');
+      base.href = window.APP.baseUrl;
+      document.head.appendChild(base);
 
       const browserPrefers = !(window.matchMedia !== undefined && window.matchMedia("(prefers-color-scheme: light)").matches);
       const {darkTheme = browserPrefers} = JSON.parse(localStorage.getItem("settings")) || {};

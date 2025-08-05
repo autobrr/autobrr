@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -33,23 +33,31 @@ func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
 }
 
 func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
-	codecStr := strings.Join(r.Codec, ",")
-	hdrStr := strings.Join(r.HDR, ",")
+	var (
+		codecStr    = strings.Join(r.Codec, ",")
+		hdrStr      = strings.Join(r.HDR, ",")
+		audioStr    = strings.Join(r.Audio, ",")
+		editionStr  = strings.Join(r.Edition, ",")
+		cutStr      = strings.Join(r.Cut, ",")
+		languageStr = strings.Join(r.Language, ",")
+	)
 
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
-		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "size", "title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "release_group", "proper", "repack", "website", "type", "origin", "tags", "uploader", "pre_time", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.Size, r.Title, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, r.Group, r.Proper, r.Repack, r.Website, r.Type, r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, r.FilterID).
+		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.handler)
 
-	// return values
-	var retID int64
-
-	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
-		return errors.Wrap(err, "error executing query")
+	q, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
 	}
 
-	r.ID = retID
+	repo.log.Debug().Msgf("release.store: %s %v", q, args)
+
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&r.ID); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
 
 	repo.log.Debug().Msgf("release.store: %+v", r)
 
@@ -102,17 +110,68 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 			Values(status.Status, status.Action, status.ActionID, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp.Format(time.RFC3339), status.ReleaseID).
 			Suffix("RETURNING id").RunWith(repo.db.handler)
 
-		// return values
-		var retID int64
-
-		if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+		if err := queryBuilder.QueryRowContext(ctx).Scan(&status.ID); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
-
-		status.ID = retID
 	}
 
 	repo.log.Trace().Msgf("release.store_release_action_status: %+v", status)
+
+	return nil
+}
+
+func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *domain.DuplicateReleaseProfile) error {
+	if profile.ID == 0 {
+		queryBuilder := repo.db.squirrel.
+			Insert("release_profile_duplicate").
+			Columns("name", "protocol", "release_name", "hash", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack").
+			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Hash, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
+			Suffix("RETURNING id").
+			RunWith(repo.db.handler)
+
+		// return values
+		var retID int64
+
+		err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		profile.ID = retID
+	} else {
+		queryBuilder := repo.db.squirrel.
+			Update("release_profile_duplicate").
+			Set("name", profile.Name).
+			Set("protocol", profile.Protocol).
+			Set("release_name", profile.ReleaseName).
+			Set("hash", profile.Hash).
+			Set("title", profile.Title).
+			Set("sub_title", profile.SubTitle).
+			Set("season", profile.Season).
+			Set("episode", profile.Episode).
+			Set("year", profile.Year).
+			Set("month", profile.Month).
+			Set("day", profile.Day).
+			Set("resolution", profile.Resolution).
+			Set("source", profile.Source).
+			Set("codec", profile.Codec).
+			Set("container", profile.Container).
+			Set("dynamic_range", profile.DynamicRange).
+			Set("audio", profile.Audio).
+			Set("release_group", profile.Group).
+			Set("website", profile.Website).
+			Set("proper", profile.Proper).
+			Set("repack", profile.Repack).
+			Where(sq.Eq{"id": profile.ID}).
+			RunWith(repo.db.handler)
+
+		_, err := queryBuilder.ExecContext(ctx)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+	}
+
+	repo.log.Debug().Msgf("release.StoreDuplicateProfile: %+v", profile)
 
 	return nil
 }
@@ -192,7 +251,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 
 	whereQuery, _, err := whereQueryBuilder.ToSql()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building wherequery")
+		return nil, errors.Wrap(err, "error building where query")
 	}
 
 	subQueryBuilder := repo.db.squirrel.
@@ -230,8 +289,49 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "i.id", "i.name", "i.identifier_external", "r.filter", "r.protocol", "r.announce_type", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.size", "r.category", "r.season", "r.episode", "r.year", "r.resolution", "r.source", "r.codec", "r.container", "r.release_group", "r.timestamp",
-			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp").
+		Select(
+			"r.id",
+			"r.filter_status",
+			"r.rejections",
+			"r.indexer",
+			"i.id",
+			"i.name",
+			"i.identifier_external",
+			"r.filter",
+			"r.protocol",
+			"r.announce_type",
+			"r.info_url",
+			"r.download_url",
+			"r.title",
+			"r.sub_title",
+			"r.torrent_name",
+			"r.normalized_hash",
+			"r.size",
+			"r.category",
+			"r.season",
+			"r.episode",
+			"r.year",
+			"r.resolution",
+			"r.source",
+			"r.codec",
+			"r.container",
+			"r.hdr",
+			"r.audio",
+			"r.audio_channels",
+			"r.release_group",
+			"r.region",
+			"r.language",
+			"r.edition",
+			"r.cut",
+			"r.hybrid",
+			"r.proper",
+			"r.repack",
+			"r.website",
+			"r.media_processing",
+			"r.type",
+			"r.timestamp",
+			"ras.id", "ras.status", "ras.action", "ras.action_id", "ras.type", "ras.client", "ras.filter", "ras.filter_id", "ras.release_id", "ras.rejections", "ras.timestamp",
+		).
 		Column(sq.Alias(countQuery, "page_total")).
 		From("release r").
 		OrderBy("r.id DESC").
@@ -267,7 +367,8 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, rlsAnnounceType, infoUrl, downloadUrl, codec sql.NullString
+		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, rlsAnnounceType, infoUrl, downloadUrl, subTitle, normalizedHash, codec, hdr, rlsType, audioStr, audioChannels, region, languageStr, editionStr, cutStr, website, mediaProcessing sql.NullString
+		var hybrid sql.NullBool
 
 		var rlsIndexerID sql.NullInt64
 		var rasId, rasFilterId, rasReleaseId, rasActionId sql.NullInt64
@@ -275,7 +376,49 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rasRejections []sql.NullString
 		var rasTimestamp sql.NullTime
 
-		if err := rows.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &rlsIndexer, &rlsIndexerID, &rlsIndexerName, &rlsIndexerExternalName, &rlsFilter, &rls.Protocol, &rlsAnnounceType, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &rls.Size, &rls.Category, &rls.Season, &rls.Episode, &rls.Year, &rls.Resolution, &rls.Source, &codec, &rls.Container, &rls.Group, &rls.Timestamp, &rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &resp.TotalCount); err != nil {
+		if err := rows.Scan(
+			&rls.ID,
+			&rls.FilterStatus,
+			pq.Array(&rls.Rejections),
+			&rlsIndexer,
+			&rlsIndexerID,
+			&rlsIndexerName,
+			&rlsIndexerExternalName,
+			&rlsFilter,
+			&rls.Protocol,
+			&rlsAnnounceType,
+			&infoUrl,
+			&downloadUrl,
+			&rls.Title,
+			&subTitle,
+			&rls.TorrentName,
+			&normalizedHash,
+			&rls.Size,
+			&rls.Category,
+			&rls.Season,
+			&rls.Episode,
+			&rls.Year,
+			&rls.Resolution,
+			&rls.Source,
+			&codec,
+			&rls.Container,
+			&hdr,
+			&audioStr,
+			&audioChannels,
+			&rls.Group,
+			&region,
+			&languageStr,
+			&editionStr,
+			&cutStr,
+			&hybrid,
+			&rls.Proper,
+			&rls.Repack,
+			&website,
+			&mediaProcessing,
+			&rlsType,
+			&rls.Timestamp,
+			&rasId, &rasStatus, &rasAction, &rasActionId, &rasType, &rasClient, &rasFilter, &rasFilterId, &rasReleaseId, pq.Array(&rasRejections), &rasTimestamp, &resp.TotalCount,
+		); err != nil {
 			return resp, errors.Wrap(err, "error scanning row")
 		}
 
@@ -324,7 +467,23 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 		rls.InfoURL = infoUrl.String
 		rls.DownloadURL = downloadUrl.String
+		rls.SubTitle = subTitle.String
+		rls.NormalizedHash = normalizedHash.String
 		rls.Codec = strings.Split(codec.String, ",")
+		rls.HDR = strings.Split(hdr.String, ",")
+		rls.Audio = strings.Split(audioStr.String, ",")
+		rls.AudioChannels = audioChannels.String
+		rls.Language = strings.Split(languageStr.String, ",")
+		rls.Region = region.String
+		rls.Edition = strings.Split(editionStr.String, ",")
+		rls.Cut = strings.Split(cutStr.String, ",")
+		rls.Hybrid = hybrid.Bool
+		rls.Website = website.String
+		rls.MediaProcessing = mediaProcessing.String
+		//rls.Type = rlsType.String
+		if rlsType.Valid {
+			rls.ParseType(rlsType.String)
+		}
 
 		// only add ActionStatus if it's not empty
 		if ras.ID > 0 {
@@ -340,6 +499,66 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	return resp, nil
+}
+
+func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error) {
+	queryBuilder := repo.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"protocol",
+			"release_name",
+			"hash",
+			"title",
+			"sub_title",
+			"year",
+			"month",
+			"day",
+			"source",
+			"resolution",
+			"codec",
+			"container",
+			"dynamic_range",
+			"audio",
+			"release_group",
+			"season",
+			"episode",
+			"website",
+			"proper",
+			"repack",
+		).
+		From("release_profile_duplicate")
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows FindDuplicateReleaseProfiles")
+	}
+
+	res := make([]*domain.DuplicateReleaseProfile, 0)
+
+	for rows.Next() {
+		var p domain.DuplicateReleaseProfile
+
+		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Hash, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
+		if err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		res = append(res, &p)
+	}
+
+	return res, nil
 }
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
@@ -420,7 +639,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.implementation", "r.announce_type", "r.info_url", "r.download_url", "r.title", "r.torrent_name", "r.category", "r.size", "r.group_id", "r.torrent_id", "r.uploader", "r.timestamp").
+		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.implementation", "r.announce_type", "r.info_url", "r.download_url", "r.title", "r.sub_title", "r.torrent_name", "r.category", "r.size", "r.group_id", "r.torrent_id", "r.uploader", "r.timestamp").
 		From("release r").
 		OrderBy("r.id DESC").
 		Where(sq.Eq{"r.id": req.Id})
@@ -439,10 +658,10 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	var rls domain.Release
 
-	var indexerName, filterName, announceType, infoUrl, downloadUrl, groupId, torrentId, category, uploader sql.NullString
+	var indexerName, filterName, announceType, infoUrl, downloadUrl, subTitle, groupId, torrentId, category, uploader sql.NullString
 	var filterId sql.NullInt64
 
-	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &announceType, &infoUrl, &downloadUrl, &rls.Title, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
+	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &announceType, &infoUrl, &downloadUrl, &rls.Title, &subTitle, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -457,6 +676,7 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 	rls.AnnounceType = domain.AnnounceType(announceType.String)
 	rls.InfoURL = infoUrl.String
 	rls.DownloadURL = downloadUrl.String
+	rls.SubTitle = subTitle.String
 	rls.Category = category.String
 	rls.GroupID = groupId.String
 	rls.TorrentID = torrentId.String
@@ -670,6 +890,31 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 	return nil
 }
 
+func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error {
+	qb := repo.db.squirrel.Delete("release_profile_duplicate").Where(sq.Eq{"id": id})
+
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building SQL query")
+	}
+
+	_, err = repo.db.handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing delete query")
+	}
+
+	//deletedRows, err := result.RowsAffected()
+	//if err != nil {
+	//	return errors.Wrap(err, "error fetching rows affected")
+	//}
+	//
+	//repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+
+	repo.log.Debug().Msgf("deleted duplicate release profile: %d", id)
+
+	return nil
+}
+
 func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error) {
 	queryBuilder := repo.db.squirrel.
 		Select("COUNT(*)").
@@ -792,4 +1037,201 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 	repo.log.Trace().Msgf("release updated (%d) base urls from %q to %q", rowsAffected, oldBaseURL, newBaseURL)
 
 	return nil
+}
+
+func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
+	queryBuilder := repo.db.squirrel.
+		Select("r.id, r.torrent_name, r.normalized_hash, r.title, ras.action, ras.status").
+		From("release r").
+		LeftJoin("release_action_status ras ON r.id = ras.release_id").
+		Where("ras.status = 'PUSH_APPROVED'")
+
+	if profile.ReleaseName && profile.Hash {
+		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.normalized_hash": release.NormalizedHash})
+	} else {
+		if profile.Title {
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.title", release.Title))
+		}
+
+		if profile.SubTitle {
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.sub_title", release.SubTitle))
+		}
+
+		if profile.ReleaseName && profile.Hash {
+			//queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.normalized_hash": release.NormalizedHash})
+		}
+
+		if profile.Year {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.year": release.Year})
+		}
+
+		if profile.Month {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.month": release.Month})
+		}
+
+		if profile.Day {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.day": release.Day})
+		}
+
+		if profile.Source {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.source": release.Source})
+		}
+
+		if profile.Container {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.container": release.Container})
+		}
+
+		if profile.Edition {
+			//queryBuilder = queryBuilder.Where(sq.Eq{"r.cut": release.Cut})
+			if len(release.Cut) > 1 {
+				var and sq.And
+				for _, cut := range release.Cut {
+					//and = append(and, sq.Eq{"r.cut": "%" + cut + "%"})
+					and = append(and, repo.db.ILike("r.cut", "%"+cut+"%"))
+				}
+				queryBuilder = queryBuilder.Where(and)
+			} else if len(release.Cut) == 1 {
+				queryBuilder = queryBuilder.Where(repo.db.ILike("r.cut", "%"+release.Cut[0]+"%"))
+			}
+
+			//queryBuilder = queryBuilder.Where(sq.Eq{"r.edition": release.Edition})
+			if len(release.Edition) > 1 {
+				var and sq.And
+				for _, edition := range release.Edition {
+					and = append(and, repo.db.ILike("r.edition", "%"+edition+"%"))
+				}
+				queryBuilder = queryBuilder.Where(and)
+			} else if len(release.Edition) == 1 {
+				queryBuilder = queryBuilder.Where(repo.db.ILike("r.edition", "%"+release.Edition[0]+"%"))
+			}
+		}
+
+		// video features (hybrid, remux)
+		if release.IsTypeVideo() {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.hybrid": release.Hybrid})
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.media_processing": release.MediaProcessing})
+		}
+
+		if profile.Language {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.region": release.Region})
+
+			if len(release.Language) > 0 {
+				var and sq.And
+				for _, lang := range release.Language {
+					and = append(and, repo.db.ILike("r.language", "%"+lang+"%"))
+				}
+
+				queryBuilder = queryBuilder.Where(and)
+			} else {
+				queryBuilder = queryBuilder.Where(sq.Eq{"r.language": ""})
+			}
+		}
+
+		if profile.Codec {
+			if len(release.Codec) > 1 {
+				var and sq.And
+				for _, codec := range release.Codec {
+					and = append(and, repo.db.ILike("r.codec", "%"+codec+"%"))
+				}
+				queryBuilder = queryBuilder.Where(and)
+			} else {
+				// FIXME this does an IN (arg)
+				queryBuilder = queryBuilder.Where(sq.Eq{"r.codec": release.Codec})
+			}
+		}
+
+		if profile.Resolution {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.resolution": release.Resolution})
+		}
+
+		if profile.DynamicRange {
+			//if len(release.HDR) > 1 {
+			//	var and sq.And
+			//	for _, hdr := range release.HDR {
+			//		and = append(and, repo.db.ILike("r.hdr", "%"+hdr+"%"))
+			//	}
+			//	queryBuilder = queryBuilder.Where(and)
+			//} else {
+			//	queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": release.HDR})
+			//}
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.hdr": strings.Join(release.HDR, ",")})
+		}
+
+		if profile.Audio {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.audio": strings.Join(release.Audio, ",")})
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.audio_channels": release.AudioChannels})
+		}
+
+		if profile.Group {
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.release_group", release.Group))
+		}
+
+		if profile.Season {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.season": release.Season})
+		}
+
+		if profile.Episode {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.episode": release.Episode})
+		}
+
+		if profile.Website {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.website": release.Website})
+		}
+
+		if profile.Proper {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": release.Proper})
+		}
+
+		if profile.Repack {
+			queryBuilder = queryBuilder.Where(sq.And{
+				sq.Eq{"r.repack": release.Repack},
+				repo.db.ILike("r.release_group", release.Group),
+			})
+		}
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return false, errors.Wrap(err, "error building query")
+	}
+
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("query: %q, args: %q", query, args)
+
+	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return false, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return false, errors.Wrap(err, "error rows CheckIsDuplicateRelease")
+	}
+
+	type result struct {
+		id      int
+		release string
+		hash    string
+		title   string
+		action  string
+		status  string
+	}
+
+	var res []result
+
+	for rows.Next() {
+		r := result{}
+		if err := rows.Scan(&r.id, &r.release, &r.hash, &r.title, &r.action, &r.status); err != nil {
+			return false, errors.Wrap(err, "error scan CheckIsDuplicateRelease")
+		}
+		res = append(res, r)
+	}
+
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("found duplicate releases: %+v", res)
+
+	if len(res) == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }

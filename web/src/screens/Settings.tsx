@@ -1,9 +1,10 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import {
+  BarsArrowDownIcon,
   BellIcon,
   ChatBubbleLeftRightIcon,
   CogIcon,
@@ -32,6 +33,7 @@ const subNavigation: NavTabType[] = [
   { name: "Indexers", href: "/settings/indexers", icon: KeyIcon },
   { name: "IRC", href: "/settings/irc", icon: ChatBubbleLeftRightIcon },
   { name: "Feeds", href: "/settings/feeds", icon: RssIcon },
+  { name: "Lists", href: "/settings/lists", icon: BarsArrowDownIcon },
   { name: "Clients", href: "/settings/clients", icon: FolderArrowDownIcon },
   { name: "Notifications", href: "/settings/notifications", icon: BellIcon },
   { name: "API keys", href: "/settings/api", icon: KeyIcon },
@@ -71,7 +73,7 @@ function SubNavLink({ item }: NavLinkProps) {
             )
           }>
             <item.icon
-              className="text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 flex-shrink-0 -ml-1 mr-3 h-6 w-6"
+              className="text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 shrink-0 -ml-1 mr-3 h-6 w-6"
               aria-hidden="true"
             />
             <span className="truncate">{item.name}</span>
@@ -101,11 +103,11 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
 export function Settings() {
   return (
     <main>
-      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Settings</h1>
       </div>
 
-      <div className="max-w-screen-xl mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-table border border-gray-250 dark:border-gray-775">
           <div className="lg:grid lg:grid-cols-12">
             <SidebarNav subNavigation={subNavigation}/>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -99,7 +99,7 @@ export const TextInput = <TFormValues extends Record<string, unknown>>({
   isHidden,
   columnWidth,
   ...props
-}: FormInputProps<TFormValues>): JSX.Element => {
+}: FormInputProps<TFormValues>): React.JSX.Element => {
   // If the name is in a FieldArray, it will be 'fields.index.fieldName' and errors[name] won't return anything, so we are using lodash get
   const errorMessages = get(errors, name);
   const hasError = !!(errors && errorMessages);
@@ -121,7 +121,7 @@ export const TextInput = <TFormValues extends Record<string, unknown>>({
           name={name}
           aria-invalid={hasError}
           className={classNames(
-            "block mt-1 w-full shadow-sm sm:text-sm rounded-md py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
+            "block mt-1 w-full shadow-xs sm:text-sm rounded-md py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
             hasError
               ? "border-red-500 focus:ring-red-500 focus:border-red-500"
               : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500"
@@ -149,7 +149,7 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
   isHidden,
   columnWidth,
   ...props
-}: FormInputProps<TFormValues>): JSX.Element => {
+}: FormInputProps<TFormValues>): React.JSX.Element => {
   const [isVisible, toggleVisibility] = useToggle(false);
 
   // If the name is in a FieldArray, it will be 'fields.index.fieldName' and errors[name] won't return anything, so we are using lodash get
@@ -175,7 +175,7 @@ export const PasswordInput = <TFormValues extends Record<string, unknown>>({
             aria-invalid={hasError}
             type={isVisible ? "text" : "password"}
             className={classNames(
-              "block mt-1 w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
+              "block mt-1 w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100",
               hasError
                 ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                 : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500"

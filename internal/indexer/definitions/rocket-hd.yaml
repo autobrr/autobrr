@@ -1,0 +1,78 @@
+---
+#id: rocket-hd
+name: RocketHD
+identifier: rocket-hd
+description: RocketHD (RHD) is a GERMAN private torrent tracker for MOVIES / TV
+language: de-DE
+urls:
+  - https://rocket-hd.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Your profile > Settings > RSS Key"
+
+irc:
+  network: RocketNET
+  server: irc.rocket-hd.cc
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - RocketMan
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user-bot
+
+    - name: pass
+      type: secret
+      required: true
+      label: Network password
+      help: Your profile > Settings > IRC Key
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: "New Upload Category: [TV] Type: [WEB-DL] Name: [Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA] Size: [67.15 GiB] Uploader: [Anonym] Url: [https://rocket-hd.cc/torrents/00]"
+            expect:
+              category: TV
+              releaseTags: WEB-DL
+              torrentName: Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA
+              torrentSize: 67.15 GiB
+              uploader: Anonym
+              baseUrl: https://rocket-hd.cc/
+              torrentId: "00"
+          - line: "New Upload Category: [Movies] Type: [Encode] Name: [Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE] Size: [7.42 GiB] Uploader: [fritz47] Url: [https://rocket-hd.cc/torrents/00]"
+            expect:
+              category: Movies
+              releaseTags: Encode
+              torrentName: Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE
+              torrentSize: 7.42 GiB
+              uploader: fritz47
+              baseUrl: https://rocket-hd.cc/
+              torrentId: "00"
+        pattern: 'New Upload Category: \[(.+)\] Type: \[(.+)\] Name: \[(.+?)\] Size: \[(.+)\] Uploader: \[(.+)\] Url: \[(https?\:\/\/.+\/).+\/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

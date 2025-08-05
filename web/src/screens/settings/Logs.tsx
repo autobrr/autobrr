@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { getRouteApi } from "@tanstack/react-router";
 import Select from "react-select";
 
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
-import { SettingsLogRoute } from "@app/routes";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { LogLevelOptions, SelectOption } from "@domain/constants";
 
@@ -58,8 +58,8 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
 );
 
 function LogSettings() {
-  const ctx = SettingsLogRoute.useRouteContext()
-  const queryClient = ctx.queryClient
+  const settingsLogRoute = getRouteApi("/auth/authenticated-routes/settings/logs");
+  const { queryClient} =  settingsLogRoute.useRouteContext();
 
   const configQuery = useSuspenseQuery(ConfigQueryOptions())
 

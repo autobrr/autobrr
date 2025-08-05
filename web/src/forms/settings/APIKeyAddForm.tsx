@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Fragment } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import type { FieldProps } from "formik";
@@ -14,14 +13,11 @@ import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { APIClient } from "@api/APIClient";
 import { ApiKeys } from "@api/query_keys";
 import { DEBUG } from "@components/debug";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { AddFormProps } from "@forms/_shared";
 
-interface apiKeyAddFormProps {
-  isOpen: boolean;
-  toggle: () => void;
-}
-
-export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
+export function APIKeyAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -58,7 +54,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl border-l dark:border-gray-700">
+              <div className="w-screen max-w-2xl ">
                 <Formik
                   initialValues={{
                     name: "",
@@ -81,7 +77,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="light:bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                                className="light:bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -115,7 +111,7 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                                     type="text"
                                     data-1p-ignore
                                     autoComplete="off"
-                                    className="block w-full shadow-sm sm:text-sm focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
+                                    className="block w-full shadow-xs sm:text-sm focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 rounded-md border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                                   />
                                   {meta.touched && meta.error && <span className="block mt-2 text-red-500">{meta.error}</span>}
                                 </div>
@@ -126,18 +122,18 @@ export function APIKeyAddForm({ isOpen, toggle }: apiKeyAddFormProps) {
                       </div>
 
                       <div
-                        className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+                        className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-800 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-800 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
                             Create
                           </button>

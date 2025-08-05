@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -7,7 +7,6 @@ import { Fragment, MouseEvent, useEffect, useMemo, useRef, useState } from "reac
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
-import { toast } from "react-hot-toast";
 import {
   ArrowsPointingInIcon,
   ArrowsPointingOutIcon,
@@ -26,6 +25,7 @@ import { IrcKeys } from "@api/query_keys";
 import { IrcQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
@@ -104,7 +104,7 @@ const IrcSettings = () => {
         <button
           type="button"
           onClick={toggleAddNetwork}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
           Add new
@@ -114,8 +114,8 @@ const IrcSettings = () => {
       <IrcNetworkAddForm isOpen={addNetworkIsOpen} toggle={toggleAddNetwork} />
 
       <div className="flex justify-between flex-col md:flex-row px-1">
-        <ul className="flex flex-col md:flex-row md:gap-2 pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
-          <li className="flex items-center">
+        <ul className="flex flex-col md:flex-row pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 relative"
               title="Network healthy"
@@ -126,7 +126,7 @@ const IrcSettings = () => {
             <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
           </li>
 
-          <li className="flex items-center md:pl-2">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
               title="Network unhealthy"
@@ -134,7 +134,7 @@ const IrcSettings = () => {
             <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
           </li>
 
-          <li className="flex items-center md:pl-2">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
               title="Network disabled"
@@ -145,7 +145,7 @@ const IrcSettings = () => {
         </ul>
         <div className="flex gap-x-2">
           <button
-            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
             onClick={toggleExpand}
             title={expandNetworks ? "collapse" : "expand"}
           >
@@ -237,7 +237,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
-          network={network}
+          data={network}
         />
         <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
           <Checkbox
@@ -390,7 +390,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
           </span>
         </div>
         <div className="col-span-1 flex items-center justify-end">
-          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded dark:border-gray-900">
+          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded-sm dark:border-gray-900">
             {viewChannel ? "Hide" : "View"}
           </button>
         </div>
@@ -478,7 +478,8 @@ const ListItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>
@@ -608,7 +609,7 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
 
   return (
     <div className="block">
-    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon />
@@ -719,7 +720,7 @@ export const Events = ({ network, channel }: EventsProps) => {
       <div
         className={classNames(
           "overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto",
-          isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-[2/1]"
+          isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-2/1"
         )}
         ref={messagesEndRef}
       >
@@ -729,7 +730,7 @@ export const Events = ({ network, channel }: EventsProps) => {
             className={classNames(
               settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
               settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
-              "flex items-center hover:bg-gray-200 hover:dark:bg-gray-800"
+              "flex items-center hover:bg-gray-200 dark:hover:bg-gray-800"
             )}
           >
             <ReprocessAnnounceButton networkId={network.id} channel={channel} msg={entry.msg} />
@@ -776,7 +777,7 @@ const IRCLogsDropdown = () => {
   //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
     <Menu as="div" className="relative">
-      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
         <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
       </MenuButton>
       <Transition
@@ -790,7 +791,7 @@ const IRCLogsDropdown = () => {
       >
         <MenuItems
           anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-none"
+          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-hidden"
         >
           <MenuItem>
             {() => (

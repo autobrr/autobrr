@@ -64,6 +64,7 @@ irc:
             category: Movie
             releaseTags: H.264, Blu-ray/HD DVD
             origin: ""
+            tags: ""
             uploader: Anonymous
             torrentSize: 37.61 GiB
             baseUrl: https://hdbits.org/
@@ -73,6 +74,7 @@ irc:
             torrentName: 'PilotsEYE tv: QUITO 2014 1080p Blu-ray AVC DD 2.0'
             category: Documentary
             releaseTags: H.264, Blu-ray/HD DVD
+            tags: ""
             origin: ""
             uploader: Anonymous
             torrentSize: 23.14 GiB
@@ -83,6 +85,7 @@ irc:
             torrentName: Xiao Q 2019 720p BluRay DD-EX 5.1 x264-Anonymous
             category: Movie
             releaseTags: H.264, Encode
+            tags: ""
             origin: Internal
             uploader: Anonymous
             torrentSize: 4.54 GiB
@@ -93,16 +96,30 @@ irc:
             torrentName: The Gentlemen 2019 UHD Blu-ray English TrueHD 7.1
             category: Audio Track
             releaseTags: ""
+            tags: ""
             origin: ""
             uploader: Anonymous
             torrentSize: 3.19 GiB
             baseUrl: https://hdbits.org/
             torrentId: "519896"
-        pattern: '^New Torrent: (.+) - Type: (.+?) (?:\((.+)\))?\s?(?:(Internal)!?)?\s?- Uploaded by: (.+) - Size: (.+) - (https://.+?/).+id=(\d+)'
+        - line: 'New Torrent: That Movie 1983 1080p GBR Blu-ray AVC DTS-HD MA 1.0-GROUP - Type: Movie (H.264, Blu-ray/HD DVD) Exclusive! - Uploaded by: anon - Size: 29.55 GiB - https://hdbits.org/details.php?id=000000&hit=1'
+          expect:
+            torrentName: That Movie 1983 1080p GBR Blu-ray AVC DTS-HD MA 1.0-GROUP
+            category: Movie
+            releaseTags: H.264, Blu-ray/HD DVD
+            tags: Exclusive
+            origin: ""
+            uploader: anon
+            torrentSize: 29.55 GiB
+            baseUrl: https://hdbits.org/
+            torrentId: "000000"
+
+        pattern: 'New Torrent: (.+) - Type: (.+?) (?:\((.+)\))?\s?(?:(Exclusive)?(Internal)?!)?\s?- Uploaded by: (.+) - Size: (.+) - (https:\/\/.+?\/).+id=(\d+)'
         vars:
           - torrentName
           - category
           - releaseTags
+          - tags
           - origin
           - uploader
           - torrentSize

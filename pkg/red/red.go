@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package red
@@ -105,34 +105,34 @@ type Group struct {
 }
 
 type Torrent struct {
-	Id                      int    `json:"id"`
-	InfoHash                string `json:"infoHash"`
-	Media                   string `json:"media"`
-	Format                  string `json:"format"`
-	Encoding                string `json:"encoding"`
-	Remastered              bool   `json:"remastered"`
-	RemasterYear            int    `json:"remasterYear"`
-	RemasterTitle           string `json:"remasterTitle"`
-	RemasterRecordLabel     string `json:"remasterRecordLabel"`
-	RemasterCatalogueNumber string `json:"remasterCatalogueNumber"`
-	Scene                   bool   `json:"scene"`
-	HasLog                  bool   `json:"hasLog"`
-	HasCue                  bool   `json:"hasCue"`
-	LogScore                int    `json:"logScore"`
-	FileCount               int    `json:"fileCount"`
-	Size                    int    `json:"size"`
-	Seeders                 int    `json:"seeders"`
-	Leechers                int    `json:"leechers"`
-	Snatched                int    `json:"snatched"`
-	FreeTorrent             bool   `json:"freeTorrent"`
-	IsNeutralleech          bool   `json:"isNeutralleech"`
-	IsFreeload              bool   `json:"isFreeload"`
-	Time                    string `json:"time"`
-	Description             string `json:"description"`
-	FileList                string `json:"fileList"`
-	FilePath                string `json:"filePath"`
-	UserId                  int    `json:"userId"`
-	Username                string `json:"username"`
+	Id              int    `json:"id"`
+	InfoHash        string `json:"infoHash"`
+	Media           string `json:"media"`
+	Format          string `json:"format"`
+	Encoding        string `json:"encoding"`
+	Remastered      bool   `json:"remastered"`
+	RemasterYear    int    `json:"remasterYear"`
+	RemasterTitle   string `json:"remasterTitle"`
+	RecordLabel     string `json:"remasterRecordLabel"`     // remasterRecordLabel is the record label of the release, which should be used instead of the record label of the group
+	CatalogueNumber string `json:"remasterCatalogueNumber"` // remasterCatalogueNumber is the catalogue number of the release, which should be used instead of the catalogue number of the group
+	Scene           bool   `json:"scene"`
+	HasLog          bool   `json:"hasLog"`
+	HasCue          bool   `json:"hasCue"`
+	LogScore        int    `json:"logScore"`
+	FileCount       int    `json:"fileCount"`
+	Size            int    `json:"size"`
+	Seeders         int    `json:"seeders"`
+	Leechers        int    `json:"leechers"`
+	Snatched        int    `json:"snatched"`
+	FreeTorrent     bool   `json:"freeTorrent"`
+	IsNeutralleech  bool   `json:"isNeutralleech"`
+	IsFreeload      bool   `json:"isFreeload"`
+	Time            string `json:"time"`
+	Description     string `json:"description"`
+	FileList        string `json:"fileList"`
+	FilePath        string `json:"filePath"`
+	UserId          int    `json:"userId"`
+	Username        string `json:"username"`
 }
 
 type IndexResponse struct {
@@ -231,9 +231,11 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 	}
 
 	return &domain.TorrentBasic{
-		Id:       strconv.Itoa(response.Response.Torrent.Id),
-		InfoHash: response.Response.Torrent.InfoHash,
-		Size:     strconv.Itoa(response.Response.Torrent.Size),
+		Id:          strconv.Itoa(response.Response.Torrent.Id),
+		InfoHash:    response.Response.Torrent.InfoHash,
+		Size:        strconv.Itoa(response.Response.Torrent.Size),
+		Uploader:    response.Response.Torrent.Username,
+		RecordLabel: response.Response.Torrent.RecordLabel,
 	}, nil
 
 }

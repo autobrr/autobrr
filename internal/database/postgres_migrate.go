@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -88,6 +88,39 @@ CREATE TABLE irc_channel
     UNIQUE (network_id, name)
 );
 
+CREATE TABLE release_profile_duplicate
+(
+    id            SERIAL PRIMARY KEY,
+    name          TEXT NOT NULL,
+    protocol      BOOLEAN DEFAULT FALSE,
+    release_name  BOOLEAN DEFAULT FALSE,
+    hash          BOOLEAN DEFAULT FALSE,
+    title         BOOLEAN DEFAULT FALSE,
+    sub_title     BOOLEAN DEFAULT FALSE,
+    year          BOOLEAN DEFAULT FALSE,
+    month         BOOLEAN DEFAULT FALSE,
+    day           BOOLEAN DEFAULT FALSE,
+    source        BOOLEAN DEFAULT FALSE,
+    resolution    BOOLEAN DEFAULT FALSE,
+    codec         BOOLEAN DEFAULT FALSE,
+    container     BOOLEAN DEFAULT FALSE,
+    dynamic_range BOOLEAN DEFAULT FALSE,
+    audio         BOOLEAN DEFAULT FALSE,
+    release_group BOOLEAN DEFAULT FALSE,
+    season        BOOLEAN DEFAULT FALSE,
+    episode       BOOLEAN DEFAULT FALSE,
+    website       BOOLEAN DEFAULT FALSE,
+    proper        BOOLEAN DEFAULT FALSE,
+    repack        BOOLEAN DEFAULT FALSE,
+    edition       BOOLEAN DEFAULT FALSE,
+    language      BOOLEAN DEFAULT FALSE
+);
+
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, hash, title, sub_title, year, month, day, source, resolution, codec, container, dynamic_range, audio, release_group, season, episode, website, proper, repack, edition, language)
+VALUES (1, 'Exact release', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (2, 'Movie', 'f', 'f', 'f', 't', 'f', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (3, 'TV', 'f', 'f', 'f', 't', 'f', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f');
+
 CREATE TABLE filter
 (
     id                             SERIAL PRIMARY KEY,
@@ -144,6 +177,8 @@ CREATE TABLE filter
     except_categories              TEXT,
     match_uploaders                TEXT,
     except_uploaders               TEXT,
+    match_record_labels            TEXT,
+    except_record_labels           TEXT,
     match_language                 TEXT []   DEFAULT '{}',
     except_language                TEXT []   DEFAULT '{}',
     tags                           TEXT,
@@ -157,7 +192,9 @@ CREATE TABLE filter
     min_seeders                    INTEGER DEFAULT 0,
     max_seeders                    INTEGER DEFAULT 0,
     min_leechers                   INTEGER DEFAULT 0,
-    max_leechers                   INTEGER DEFAULT 0
+    max_leechers                   INTEGER DEFAULT 0,
+    release_profile_duplicate_id   INTEGER,
+    FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate(id) ON DELETE SET NULL
 );
 
 CREATE INDEX filter_enabled_index
@@ -262,15 +299,17 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    announce_type     TEXT      DEFAULT 'NEW', 
+    announce_type     TEXT      DEFAULT 'NEW',
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
     torrent_id        TEXT,
     torrent_name      TEXT,
+    normalized_hash   TEXT,
     size              BIGINT,
     raw               TEXT,
     title             TEXT,
+    sub_title         TEXT,
     category          TEXT,
     season            INTEGER,
     episode           INTEGER,
@@ -283,15 +322,18 @@ CREATE TABLE "release"
     container         TEXT,
     hdr               TEXT,
     audio             TEXT,
+    audio_channels    TEXT,
     release_group     TEXT,
     region            TEXT,
     language          TEXT,
     edition           TEXT,
+    cut               TEXT,
     unrated           BOOLEAN,
     hybrid            BOOLEAN,
     proper            BOOLEAN,
     repack            BOOLEAN,
     website           TEXT,
+    media_processing  TEXT,
     artists           TEXT []   DEFAULT '{}' NOT NULL,
     type              TEXT,
     format            TEXT,
@@ -306,6 +348,7 @@ CREATE TABLE "release"
     freeleech_percent INTEGER,
     uploader          TEXT,
 	pre_time          TEXT,
+    other             TEXT []   DEFAULT '{}' NOT NULL,
     filter_id         INTEGER
         CONSTRAINT release_filter_id_fk
             REFERENCES filter
@@ -323,6 +366,81 @@ CREATE INDEX release_timestamp_index
 
 CREATE INDEX release_torrent_name_index
     ON "release" (torrent_name);
+
+CREATE INDEX release_normalized_hash_index
+    ON "release" (normalized_hash);
+
+CREATE INDEX release_title_index
+    ON "release" (title);
+
+CREATE INDEX release_sub_title_index
+    ON "release" (sub_title);
+
+CREATE INDEX release_season_index
+    ON "release" (season);
+
+CREATE INDEX release_episode_index
+    ON "release" (episode);
+
+CREATE INDEX release_year_index
+    ON "release" (year);
+
+CREATE INDEX release_month_index
+    ON "release" (month);
+
+CREATE INDEX release_day_index
+    ON "release" (day);
+
+CREATE INDEX release_resolution_index
+    ON "release" (resolution);
+
+CREATE INDEX release_source_index
+    ON "release" (source);
+
+CREATE INDEX release_codec_index
+    ON "release" (codec);
+
+CREATE INDEX release_container_index
+    ON "release" (container);
+
+CREATE INDEX release_hdr_index
+    ON "release" (hdr);
+
+CREATE INDEX release_audio_index
+    ON "release" (audio);
+
+CREATE INDEX release_audio_channels_index
+    ON "release" (audio_channels);
+
+CREATE INDEX release_release_group_index
+    ON "release" (release_group);
+
+CREATE INDEX release_language_index
+    ON "release" (language);
+
+CREATE INDEX release_proper_index
+    ON "release" (proper);
+
+CREATE INDEX release_repack_index
+    ON "release" (repack);
+
+CREATE INDEX release_website_index
+    ON "release" (website);
+
+CREATE INDEX release_media_processing_index
+    ON "release" (media_processing);
+
+CREATE INDEX release_region_index
+    ON "release" (region);
+
+CREATE INDEX release_edition_index
+    ON "release" (edition);
+
+CREATE INDEX release_cut_index
+    ON "release" (cut);
+
+CREATE INDEX release_hybrid_index
+    ON "release" (hybrid);
 
 CREATE TABLE release_action_status
 (
@@ -414,6 +532,39 @@ CREATE TABLE api_key
 	key        TEXT PRIMARY KEY,
 	scopes     TEXT []   DEFAULT '{}' NOT NULL,
 	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE list
+(
+    id                       SERIAL PRIMARY KEY,
+    name                     TEXT                 NOT NULL,
+    enabled                  BOOLEAN,
+    type                     TEXT                 NOT NULL,
+    client_id                INTEGER,
+    url                      TEXT,
+    headers                  TEXT [] DEFAULT '{}' NOT NULL,
+    api_key                  TEXT,
+    match_release            BOOLEAN,
+    tags_included            TEXT [] DEFAULT '{}' NOT NULL,
+    tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
+    include_unmonitored      BOOLEAN,
+    include_alternate_titles BOOLEAN,
+    skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
+    last_refresh_time        TIMESTAMP,
+    last_refresh_status      TEXT,
+    last_refresh_data        TEXT,
+    created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
+
+CREATE TABLE list_filter
+(
+    list_id   INTEGER,
+    filter_id INTEGER,
+    FOREIGN KEY (list_id) REFERENCES list(id) ON DELETE CASCADE,
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    PRIMARY KEY (list_id, filter_id)
 );
 `
 
@@ -902,7 +1053,7 @@ ALTER TABLE filter
 `,
 	`UPDATE  irc_network
     SET server = 'irc.animefriends.moe',
-        name = CASE  
+        name = CASE
 			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
         	ELSE name
         END
@@ -980,11 +1131,11 @@ CREATE INDEX filter_priority_index
 	`UPDATE irc_network
     SET server = 'irc.scenehd.org'
     WHERE server = 'irc.scenehd.eu';
-	
+
 UPDATE irc_network
     SET server = 'irc.p2p-network.net', name = 'P2P-Network', nick = nick || '_0'
     WHERE server = 'irc.librairc.net';
-	
+
 UPDATE irc_network
     SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
     WHERE server = 'irc.ircnet.com';
@@ -1002,5 +1153,225 @@ UPDATE irc_network
 
 	ALTER TABLE filter
 	ADD COLUMN announce_types TEXT []   DEFAULT '{}';
+`,
+	`CREATE TABLE list
+(
+    id                       SERIAL PRIMARY KEY,
+    name                     TEXT                 NOT NULL,
+    enabled                  BOOLEAN,
+    type                     TEXT                 NOT NULL,
+    client_id                INTEGER,
+    url                      TEXT,
+    headers                  TEXT [] DEFAULT '{}' NOT NULL,
+    api_key                  TEXT,
+    match_release            BOOLEAN,
+    tags_included            TEXT [] DEFAULT '{}' NOT NULL,
+    tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
+    include_unmonitored      BOOLEAN,
+    include_alternate_titles BOOLEAN,
+    last_refresh_time        TIMESTAMP,
+    last_refresh_status      TEXT,
+    last_refresh_data        TEXT,
+    created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
+);
+
+CREATE TABLE list_filter
+(
+    list_id   INTEGER,
+    filter_id INTEGER,
+    FOREIGN KEY (list_id) REFERENCES list(id) ON DELETE CASCADE,
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    PRIMARY KEY (list_id, filter_id)
+);
+`,
+	`ALTER TABLE filter
+  ADD COLUMN match_record_labels TEXT DEFAULT '';
+
+  ALTER TABLE filter
+  ADD COLUMN except_record_labels TEXT DEFAULT '';
+`,
+	`CREATE TABLE release_profile_duplicate
+(
+    id            SERIAL PRIMARY KEY,
+    name          TEXT NOT NULL,
+    protocol      BOOLEAN DEFAULT FALSE,
+    release_name  BOOLEAN DEFAULT FALSE,
+    hash          BOOLEAN DEFAULT FALSE,
+    title         BOOLEAN DEFAULT FALSE,
+    sub_title     BOOLEAN DEFAULT FALSE,
+    year          BOOLEAN DEFAULT FALSE,
+    month         BOOLEAN DEFAULT FALSE,
+    day           BOOLEAN DEFAULT FALSE,
+    source        BOOLEAN DEFAULT FALSE,
+    resolution    BOOLEAN DEFAULT FALSE,
+    codec         BOOLEAN DEFAULT FALSE,
+    container     BOOLEAN DEFAULT FALSE,
+    dynamic_range BOOLEAN DEFAULT FALSE,
+    audio         BOOLEAN DEFAULT FALSE,
+    release_group BOOLEAN DEFAULT FALSE,
+    season        BOOLEAN DEFAULT FALSE,
+    episode       BOOLEAN DEFAULT FALSE,
+    website       BOOLEAN DEFAULT FALSE,
+    proper        BOOLEAN DEFAULT FALSE,
+    repack        BOOLEAN DEFAULT FALSE,
+    edition       BOOLEAN DEFAULT FALSE,
+    language      BOOLEAN DEFAULT FALSE
+);
+
+INSERT INTO release_profile_duplicate (id, name, protocol, release_name, hash, title, sub_title, year, month, day, source, resolution, codec, container, dynamic_range, audio, release_group, season, episode, website, proper, repack, edition, language)
+VALUES (1, 'Exact release', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (2, 'Movie', 'f', 'f', 'f', 't', 'f', 't', 'f', 'f', 'f', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f'),
+       (3, 'TV', 'f', 'f', 'f', 't', 'f', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f');
+
+ALTER TABLE filter
+    ADD release_profile_duplicate_id INTEGER;
+
+ALTER TABLE filter
+    ADD CONSTRAINT filter_release_profile_duplicate_id_fk
+        FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate (id)
+            ON DELETE SET NULL;
+
+ALTER TABLE "release"
+    ADD normalized_hash TEXT;
+
+ALTER TABLE "release"
+    ADD sub_title TEXT;
+
+ALTER TABLE "release"
+    ADD COLUMN IF NOT EXISTS audio TEXT;
+
+ALTER TABLE "release"
+    ADD audio_channels TEXT;
+
+ALTER TABLE "release"
+    ADD IF NOT EXISTS language TEXT;
+
+ALTER TABLE "release"
+    ADD media_processing TEXT;
+
+ALTER TABLE "release"
+    ADD IF NOT EXISTS edition TEXT;
+
+ALTER TABLE "release"
+    ADD IF NOT EXISTS cut TEXT;
+
+ALTER TABLE "release"
+    ADD IF NOT EXISTS hybrid BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE "release"
+    ADD IF NOT EXISTS region TEXT;
+
+ALTER TABLE "release"
+    ADD IF NOT EXISTS other TEXT []   DEFAULT '{}' NOT NULL;
+
+CREATE INDEX release_normalized_hash_index
+    ON "release" (normalized_hash);
+
+CREATE INDEX release_title_index
+    ON "release" (title);
+
+CREATE INDEX release_sub_title_index
+    ON "release" (sub_title);
+
+CREATE INDEX release_season_index
+    ON "release" (season);
+
+CREATE INDEX release_episode_index
+    ON "release" (episode);
+
+CREATE INDEX release_year_index
+    ON "release" (year);
+
+CREATE INDEX release_month_index
+    ON "release" (month);
+
+CREATE INDEX release_day_index
+    ON "release" (day);
+
+CREATE INDEX release_resolution_index
+    ON "release" (resolution);
+
+CREATE INDEX release_source_index
+    ON "release" (source);
+
+CREATE INDEX release_codec_index
+    ON "release" (codec);
+
+CREATE INDEX release_container_index
+    ON "release" (container);
+
+CREATE INDEX release_hdr_index
+    ON "release" (hdr);
+
+CREATE INDEX release_audio_index
+    ON "release" (audio);
+
+CREATE INDEX release_audio_channels_index
+    ON "release" (audio_channels);
+
+CREATE INDEX release_release_group_index
+    ON "release" (release_group);
+
+CREATE INDEX release_proper_index
+    ON "release" (proper);
+
+CREATE INDEX release_repack_index
+    ON "release" (repack);
+
+CREATE INDEX release_website_index
+    ON "release" (website);
+
+CREATE INDEX release_media_processing_index
+    ON "release" (media_processing);
+
+CREATE INDEX release_language_index
+    ON "release" (language);
+
+CREATE INDEX release_region_index
+    ON "release" (region);
+
+CREATE INDEX release_edition_index
+    ON "release" (edition);
+
+CREATE INDEX release_cut_index
+    ON "release" (cut);
+
+CREATE INDEX release_hybrid_index
+    ON "release" (hybrid);
+`,
+	`UPDATE irc_channel
+	SET name = '#ptp-announce'
+	WHERE name = '#ptp-announce-dev' AND NOT EXISTS (SELECT 1 FROM irc_channel WHERE name = '#ptp-announce');
+
+	UPDATE irc_network
+  SET invite_command = REPLACE(invite_command, '#ptp-announce-dev', '#ptp-announce')
+  WHERE invite_command LIKE '%#ptp-announce-dev%';
+`,
+	`UPDATE filter
+	SET announce_types = '{"NEW"}'
+	WHERE announce_types = '{}';
+`,
+	`
+	ALTER TABLE list
+		ADD COLUMN skip_clean_sanitize BOOLEAN DEFAULT FALSE;
+`,
+	`UPDATE irc_network 
+	SET 
+    	auth_mechanism = 'NONE',
+    	auth_account = '',
+    	auth_password = ''
+	WHERE server = 'irc.rocket-hd.cc' 
+    	AND auth_mechanism != 'NONE';
+
+	UPDATE irc_channel 
+	SET password = NULL
+	WHERE password IS NOT NULL
+    	AND network_id IN (
+        	SELECT id 
+        	FROM irc_network 
+        	WHERE server = 'irc.rocket-hd.cc'
+    	);
 `,
 }

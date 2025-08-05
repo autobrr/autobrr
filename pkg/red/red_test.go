@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -72,9 +72,11 @@ func TestREDClient_GetTorrentByID(t *testing.T) {
 			},
 			args: args{torrentID: "29991962"},
 			want: &domain.TorrentBasic{
-				Id:       "29991962",
-				InfoHash: "B2BABD3A361EAFC6C4E9142C422DF7DDF5D7E163",
-				Size:     "527749302",
+				Id:          "29991962",
+				InfoHash:    "B2BABD3A361EAFC6C4E9142C422DF7DDF5D7E163",
+				Size:        "527749302",
+				Uploader:    "Uploader",
+				RecordLabel: "FAJo Music",
 			},
 			wantErr: "",
 		},

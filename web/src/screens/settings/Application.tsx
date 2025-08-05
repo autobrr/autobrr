@@ -1,17 +1,17 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { toast } from "react-hot-toast";
+import { getRouteApi } from "@tanstack/react-router";
 
-import { SettingsIndexRoute } from "@app/routes";
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { ExternalLink } from "@components/ExternalLink";
 
@@ -20,8 +20,8 @@ import { Section, RowItem } from "./_components";
 function ApplicationSettings() {
   const [settings, setSettings] = SettingsContext.use();
 
-  const ctx = SettingsIndexRoute.useRouteContext()
-  const queryClient = ctx.queryClient
+  const settingsIndexRoute = getRouteApi("/auth/authenticated-routes/settings/");
+  const { queryClient } =  settingsIndexRoute.useRouteContext();
 
   const { isError:isConfigError, error: configError, data } = useQuery(ConfigQueryOptions());
   if (isConfigError) {
@@ -55,7 +55,7 @@ function ApplicationSettings() {
       description="Application settings. Change in config.toml and restart to take effect."
     >
       <div className="-mx-4 divide-y divide-gray-150 dark:divide-gray-750">
-        <form className="mt-6 mb-4" action="#" method="POST">
+        <form className="mt-6 pb-4" action="#" method="POST">
           {data && (
             <div className="grid grid-cols-12 gap-2 sm:gap-6 px-4 sm:px-6">
               <div className="col-span-12 sm:col-span-4">

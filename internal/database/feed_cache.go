@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -155,6 +155,48 @@ func (r *FeedCacheRepo) Exists(feedId int, key string) (bool, error) {
 	}
 
 	return exists, nil
+}
+
+// ExistingItems checks multiple keys in the cache for a given feed ID
+// and returns a map of existing keys to their values
+func (r *FeedCacheRepo) ExistingItems(ctx context.Context, feedId int, keys []string) (map[string]bool, error) {
+	if len(keys) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	// Build a query that returns all keys that exist in the cache
+	queryBuilder := r.db.squirrel.
+		Select("key").
+		From("feed_cache").
+		Where(sq.Eq{"feed_id": feedId}).
+		Where(sq.Eq{"key": keys})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+	defer rows.Close()
+
+	result := make(map[string]bool)
+
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+		result[key] = true
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "row error")
+	}
+
+	return result, nil
 }
 
 func (r *FeedCacheRepo) Put(feedId int, key string, val []byte, ttl time.Time) error {

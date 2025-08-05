@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package regexcache
@@ -7,21 +7,19 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/jellydator/ttlcache/v3"
+	"github.com/autobrr/autobrr/pkg/ttlcache"
 )
 
 var cache = ttlcache.New[string, *regexp.Regexp](
-	ttlcache.WithTTL[string, *regexp.Regexp](5 * time.Minute),
+	ttlcache.Options[string, *regexp.Regexp]{}.
+		SetTimerResolution(5 * time.Minute).
+		SetDefaultTTL(15 * time.Minute),
 )
 
-func init() {
-	go cache.Start()
-}
-
 func MustCompilePOSIX(pattern string) *regexp.Regexp {
-	item := cache.Get(pattern)
-	if item != nil {
-		return item.Value()
+	item, ok := cache.Get(pattern)
+	if ok {
+		return item
 	}
 
 	reg := regexp.MustCompilePOSIX(pattern)
@@ -30,9 +28,9 @@ func MustCompilePOSIX(pattern string) *regexp.Regexp {
 }
 
 func MustCompile(pattern string) *regexp.Regexp {
-	item := cache.Get(pattern)
-	if item != nil {
-		return item.Value()
+	item, ok := cache.Get(pattern)
+	if ok {
+		return item
 	}
 
 	reg := regexp.MustCompile(pattern)
@@ -41,9 +39,9 @@ func MustCompile(pattern string) *regexp.Regexp {
 }
 
 func CompilePOSIX(pattern string) (*regexp.Regexp, error) {
-	item := cache.Get(pattern)
-	if item != nil {
-		return item.Value(), nil
+	item, ok := cache.Get(pattern)
+	if ok {
+		return item, nil
 	}
 
 	reg, err := regexp.CompilePOSIX(pattern)
@@ -56,9 +54,9 @@ func CompilePOSIX(pattern string) (*regexp.Regexp, error) {
 }
 
 func Compile(pattern string) (*regexp.Regexp, error) {
-	item := cache.Get(pattern)
-	if item != nil {
-		return item.Value(), nil
+	item, ok := cache.Get(pattern)
+	if ok {
+		return item, nil
 	}
 
 	reg, err := regexp.Compile(pattern)
@@ -75,9 +73,9 @@ func SubmitOriginal(plain string, reg *regexp.Regexp) {
 }
 
 func FindOriginal(plain string) (*regexp.Regexp, bool) {
-	item := cache.Get(plain)
-	if item != nil {
-		return item.Value(), true
+	item, ok := cache.Get(plain)
+	if ok {
+		return item, true
 	}
 
 	return nil, false

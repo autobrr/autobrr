@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -12,6 +12,7 @@ interface SettingsType {
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
   hideWrappedText: boolean;
+  incognitoMode: boolean;
 }
 
 export type FilterListState = {
@@ -20,15 +21,21 @@ export type FilterListState = {
   status: string;
 };
 
-interface AuthInfo {
+export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
+  authMethod?: 'password' | 'oidc';
+  profilePicture?: string;
+  issuerUrl?: string;
 }
 
 // Default values
 const AuthContextDefaults: AuthInfo = {
   username: "",
-  isLoggedIn: false
+  isLoggedIn: false,
+  authMethod: undefined,
+  profilePicture: undefined,
+  issuerUrl: undefined
 };
 
 const SettingsContextDefaults: SettingsType = {
@@ -36,7 +43,8 @@ const SettingsContextDefaults: SettingsType = {
   darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
   scrollOnNewLog: false,
   indentLogLines: false,
-  hideWrappedText: false
+  hideWrappedText: false,
+  incognitoMode: false
 };
 
 const FilterListContextDefaults: FilterListState = {
