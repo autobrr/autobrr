@@ -8,10 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"runtime"
-	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -120,23 +117,4 @@ func (j *TempDirCleanupJob) Run() {
 	}
 
 	j.log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
-}
-
-// isOwnedByCurrentUser checks if a file is owned by the current user
-func isOwnedByCurrentUser(currentUser *user.User, fileInfo os.FileInfo) bool {
-	if runtime.GOOS == "windows" {
-		// On Windows, if we can read the file, we likely have access to it
-		return true
-	}
-
-	if stat, ok := fileInfo.Sys().(*syscall.Stat_t); ok {
-		fileUID := stat.Uid
-		currentUID := currentUser.Uid
-
-		if uidInt, err := strconv.ParseUint(currentUID, 10, 32); err == nil {
-			return uint32(uidInt) == fileUID
-		}
-	}
-
-	return false
 }
