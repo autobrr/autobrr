@@ -8,6 +8,7 @@ require (
 	github.com/KimMachineGun/automemlimit v0.7.4
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/alphadose/haxmap v1.4.1
 	github.com/anacrolix/torrent v1.58.1
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.3.0
@@ -29,6 +30,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	github.com/icholy/digest v1.1.0
+	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/lib/pq v1.10.9
 	github.com/magiconair/properties v1.8.10
 	github.com/mattn/go-shellwords v1.0.12
@@ -64,7 +66,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
-	github.com/alphadose/haxmap v1.4.0 // indirect
 	github.com/anacrolix/dht/v2 v2.21.1 // indirect
 	github.com/anacrolix/generics v0.0.3-0.20240902042256-7fb2702ef0ca // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
