@@ -6,8 +6,12 @@ package scheduler
 import (
 	"context"
 	"os"
+	"os/user"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -55,46 +59,84 @@ func (j *CheckUpdatesJob) Run() {
 
 type TempDirCleanupJob struct {
 	Name string
-	Log  zerolog.Logger
+	log  zerolog.Logger
+}
+
+func NewTempDirCleanupJob(log zerolog.Logger) *TempDirCleanupJob {
+	return &TempDirCleanupJob{
+		Name: "temp-dir-cleanup",
+		log:  log,
+	}
 }
 
 func (j *TempDirCleanupJob) Run() {
-
 	var deletedCount uint
 	var totalSize uint64
 
-	j.Log.Debug().Msg("Starting cleanup of temporary directory.")
+	j.log.Debug().Msg("Starting cleanup of temporary directory.")
 
 	tmpFilePattern := "autobrr-"
 	tmpDir := os.TempDir()
 
 	files, err := os.ReadDir(tmpDir)
 	if err != nil {
-		j.Log.Error().Err(err).Str("tmpDir", tmpDir).Msg("failed to read temporary directory")
+		j.log.Error().Err(err).Str("tmpDir", tmpDir).Msg("failed to read temporary directory")
+		return
+	}
+
+	currentUser, err := user.Current()
+	if err != nil {
+		j.log.Error().Err(err).Msg("failed to get current user")
 		return
 	}
 
 	for _, file := range files {
-		if strings.HasPrefix(file.Name(), tmpFilePattern) {
-			tempFiles := filepath.Join(tmpDir, file.Name())
+		if !strings.HasPrefix(file.Name(), tmpFilePattern) {
+			continue
+		}
 
-			fileInfo, err := os.Stat(tempFiles)
-			if err != nil {
-				j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to get file info")
-				return
-			}
+		tempFile := filepath.Join(tmpDir, file.Name())
 
-			if fileInfo.ModTime().Before(time.Now().Add(-24 * time.Hour)) {
-				fileSize := uint64(fileInfo.Size())
-				if err := os.Remove(tempFiles); err != nil {
-					j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to remove temporary file")
-					return
-				}
-				deletedCount++
-				totalSize += fileSize
+		fileInfo, err := os.Stat(tempFile)
+		if err != nil {
+			j.log.Error().Err(err).Str("file", tempFile).Msg("failed to get file info")
+			continue
+		}
+
+		if !isOwnedByCurrentUser(currentUser, fileInfo) {
+			continue
+		}
+
+		if fileInfo.ModTime().Before(time.Now().Add(-24 * time.Hour)) {
+			fileSize := uint64(fileInfo.Size())
+			if err := os.Remove(tempFile); err != nil {
+				j.log.Error().Err(err).Str("file", tempFile).Msg("failed to remove temporary file")
+				continue
 			}
+			j.log.Trace().Str("file", tempFile).Msg("removed file")
+			deletedCount++
+			totalSize += fileSize
 		}
 	}
 
-	j.Log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
+	j.log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
+}
+
+// isOwnedByCurrentUser checks if a file is owned by the current user
+func isOwnedByCurrentUser(currentUser *user.User, fileInfo os.FileInfo) bool {
+	if runtime.GOOS == "windows" {
+		// On Windows, if we can read the file, we likely have access to it
+		return true
+	}
+
+	if stat, ok := fileInfo.Sys().(*syscall.Stat_t); ok {
+		fileUID := stat.Uid
+		currentUID := currentUser.Uid
+
+		if uidInt, err := strconv.ParseUint(currentUID, 10, 32); err == nil {
+			return uint32(uidInt) == fileUID
+		}
+	}
+
+	return false
 }
