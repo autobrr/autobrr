@@ -201,7 +201,12 @@ func (s *service) Process(release *domain.Release) {
 }
 
 func (s *service) processRelease(ctx context.Context, release *domain.Release, filters []*domain.Filter) error {
-	defer release.CleanupTemporaryFiles()
+	defer func(release *domain.Release) {
+		err := release.CleanupTemporaryFiles()
+		if err != nil {
+			s.log.Error().Err(err).Msgf("release.Process: error cleaning up temporary files for indexer: %s", release.Indexer.Name)
+		}
+	}(release)
 
 	if err := s.processFilters(ctx, filters, release); err != nil {
 		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)

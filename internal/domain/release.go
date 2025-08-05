@@ -937,13 +937,17 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	return errFunc
 }
 
-func (r *Release) CleanupTemporaryFiles() {
+func (r *Release) CleanupTemporaryFiles() error {
 	if r.TorrentTmpFile == "" {
-		return
+		return nil
 	}
 
-	os.Remove(r.TorrentTmpFile)
+	if err := os.Remove(r.TorrentTmpFile); err != nil {
+		return errors.Wrap(err, "could not remove tmp file: %s", r.TorrentTmpFile)
+	}
 	r.TorrentTmpFile = ""
+
+	return nil
 }
 
 // HasMagnetUri check uf MagnetURI is set and valid or empty
