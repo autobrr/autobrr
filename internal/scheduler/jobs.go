@@ -1,16 +1,20 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package scheduler
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/update"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -47,4 +51,50 @@ func (j *CheckUpdatesJob) Run() {
 
 		j.lastCheckVersion = newRelease.TagName
 	}
+}
+
+type TempDirCleanupJob struct {
+	Name string
+	Log  zerolog.Logger
+}
+
+func (j *TempDirCleanupJob) Run() {
+
+	var deletedCount uint
+	var totalSize uint64
+
+	j.Log.Debug().Msg("Starting cleanup of temporary directory.")
+
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
+	files, err := os.ReadDir(tmpDir)
+	if err != nil {
+		j.Log.Error().Err(err).Str("tmpDir", tmpDir).Msg("failed to read temporary directory")
+		return
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), tmpFilePattern) {
+			tempFiles := filepath.Join(tmpDir, file.Name())
+
+			fileInfo, err := os.Stat(tempFiles)
+			if err != nil {
+				j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to get file info")
+				return
+			}
+
+			if fileInfo.ModTime().Before(time.Now().Add(-24 * time.Hour)) {
+				fileSize := uint64(fileInfo.Size())
+				if err := os.Remove(tempFiles); err != nil {
+					j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to remove temporary file")
+					return
+				}
+				deletedCount++
+				totalSize += fileSize
+			}
+		}
+	}
+
+	j.Log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
 }

@@ -20,6 +20,14 @@ port = 7474
 #
 #baseUrl = "/autobrr/"
 
+# Base url mode legacy
+# This is kept for compatibility with older versions doing url rewrite on the proxy.
+# If you use baseUrl you can set this to false and skip any url rewrite in your proxy.
+#
+# Default: true
+#
+baseUrlModeLegacy = true
+
 # autobrr logs file
 # If not defined, logs to stdout
 #
@@ -60,6 +68,76 @@ checkForUpdates = true
 # Session secret
 #
 sessionSecret = "secret-session-key"
+
+# Database configuration
+#
+#databaseType = "postgres"
+#databaseDSN = "postgresql://autobrr:postgres@localhost:5432/autobrr?sslmode=disable"
+#
+#databaseType = "sqlite"
+#databaseDSN = "file:/config/data/autobrr.db"
+#
+# Use databaseDSN or the individual fields
+#
+#postgresHost = "localhost"
+#
+#postgresPort = 5432
+#
+#postgresUser = "autobrr"
+#
+#postgresPass = "postgres"
+#
+#postgresDatabase = "autobrr"
+#
+#postgresSSLMode = "disable"
+#
+# Optional
+#
+#postgresSocket = "/run/socket.sock"
+#
+# Optional
+#
+#postgresExtraParams = "connect_timeout=10"
+
+# OpenID Connect Configuration
+#
+# Enable OIDC authentication
+#oidcEnabled = false
+#
+# OIDC Issuer URL (e.g. https://auth.example.com)
+#oidcIssuer = ""
+#
+# OIDC Client ID
+#oidcClientId = ""
+#
+# OIDC Client Secret
+#oidcClientSecret = ""
+#
+# OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
+#oidcRedirectUrl = ""
+#
+# Disable Built In Login Form (only works when using external auth)
+#oidcDisableBuiltInLogin = false
+
+# Metrics
+#
+# Enable metrics endpoint
+#metricsEnabled = true
+
+# Metrics server host
+#
+#metricsHost = "127.0.0.1"
+
+# Metrics server port
+#
+#metricsPort = "9074"
+
+# Metrics basic auth
+#
+# Comma separate list of user:password. Password must be htpasswd bcrypt hashed. Use autobrrctl to generate.
+# Only enabled if correctly set with user:pass.
+#
+#metricsBasicAuthUsers = ""
 
 # Custom definitions
 #

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -65,7 +65,7 @@ export const Checkbox = ({
         className={classNames(
           value ? "translate-x-6" : "translate-x-[0.15rem]",
           disabled ? "bg-gray-650 dark:bg-gray-800" : "bg-white",
-          "inline-flex items-center align-center h-4 w-4 transform rounded-full transition ring-0 shadow"
+          "inline-flex items-center align-center h-4 w-4 transform rounded-full transition ring-0 shadow-sm"
         )}
       >
         {value

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -74,4 +74,31 @@ interface DeleteParams {
   olderThan?: number;
   indexers?: string[];
   releaseStatuses?: string[];
+}
+
+interface ReleaseProfileDuplicate {
+  id: number;
+  name: string;
+  protocol: boolean;
+  release_name: boolean;
+  hash: boolean;
+  title: boolean;
+  sub_title: boolean;
+  year: boolean;
+  month: boolean;
+  day: boolean;
+  source: boolean;
+  resolution: boolean;
+  codec: boolean;
+  container: boolean;
+  dynamic_range: boolean;
+  audio: boolean;
+  group: boolean;
+  season: boolean;
+  episode: boolean;
+  website: boolean;
+  proper: boolean;
+  repack: boolean;
+  edition: boolean;
+  language: boolean;
 }

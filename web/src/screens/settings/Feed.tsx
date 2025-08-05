@@ -1,12 +1,11 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Fragment, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
-import { toast } from "react-hot-toast";
 import {
   ArrowsRightLeftIcon,
   DocumentTextIcon,
@@ -21,6 +20,7 @@ import { FeedsQueryOptions } from "@api/queries";
 import { FeedKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { baseUrl, classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { DeleteModal, ForceRunModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";
@@ -167,7 +167,7 @@ function ListItem({ feed }: ListItemProps) {
 
   return (
     <li key={feed.id}>
-      <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} feed={feed} />
+      <FeedUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} data={feed} />
 
       <div className="grid grid-cols-12 items-center text-sm font-medium text-gray-900 dark:text-gray-500">
         <div className="col-span-2 sm:col-span-1 pl-6 flex items-center">
@@ -318,7 +318,8 @@ const FeedItemDropdown = ({
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          className="absolute right-0 w-56 mt-2 origin-top-right bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>

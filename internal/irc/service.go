@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package irc
@@ -88,11 +88,11 @@ func (s *service) StartHandlers() {
 			continue
 		}
 
-		if network.ProxyId != 0 {
+		if network.UseProxy && network.ProxyId != 0 {
 			networkProxy, err := s.proxyService.FindByID(context.Background(), network.ProxyId)
 			if err != nil {
 				s.log.Error().Err(err).Msgf("failed to get proxy for network: %s", network.Server)
-				return
+				continue
 			}
 			network.Proxy = networkProxy
 		}

@@ -1,6 +1,8 @@
 # build web
-FROM node:20.17.0-alpine3.20 AS web-builder
-RUN corepack enable
+FROM node:22.17.0-alpine3.22 AS web-builder
+# Update and enable Corepack
+RUN npm install -g corepack@latest && \
+    corepack enable
 
 WORKDIR /web
 
@@ -11,7 +13,7 @@ COPY web ./
 RUN pnpm run build
 
 # build app
-FROM golang:1.23-alpine3.20 AS app-builder
+FROM golang:1.24-alpine3.21 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev

@@ -56,7 +56,7 @@ irc:
       - tests:
         - line: 'New Torrent: סדרה - עונה 4 פרק 5 | Show S04E05 2160p UHDTV x265-Release-Group Category: סדרות ישראליות HD By: Uploader1 Size: 2.88GB Link: http://fuzer.me/attachment.php?attachmentid=101010 [Show.S04E05.2160p.UHDTV.x265-Release-Group]'
           expect:
-            category: HD
+            category: "סדרות ישראליות HD"
             uploader: Uploader1
             torrentSize: 2.88GB
             baseUrl: http://fuzer.me/
@@ -64,7 +64,7 @@ irc:
             torrentName: Show.S04E05.2160p.UHDTV.x265-Release-Group
         - line: 'New Torrent: סדרה אפילו יותר טובה - עונה 1 פרק 7 - תרגום בצד | Even Better Show S01E07 1080p AMZN WEB-DL DDP5.1 H.264 Category: סדרות HD By: EvenBett3rUploader Size: 2.27GB Link: http://fuzer.me/attachment.php?attachmentid=222222 [Even.Better.Show.S01E07.14.45.1080p.AMZN.WEB-DL.DDP5.1.H.264]'
           expect:
-            category: HD
+            category: "סדרות HD"
             uploader: EvenBett3rUploader
             torrentSize: 2.27GB
             baseUrl: http://fuzer.me/
@@ -72,13 +72,22 @@ irc:
             torrentName: Even.Better.Show.S01E07.14.45.1080p.AMZN.WEB-DL.DDP5.1.H.264
         - line: 'New Torrent: הכי טובה - עונה 1 פרק 5 - תרגום בצד | The Best S01E05 1080p WEB H264-TEST Category: סדרות HD By: Uploader5 Size: 3.25GB Link: http://fuzer.me/attachment.php?attachmentid=616161 [The.Best.S01E05.1080p.WEB.H264-TEST]'
           expect:
-            category: HD
+            category: "סדרות HD"
             uploader: Uploader5
             torrentSize: 3.25GB
             baseUrl: http://fuzer.me/
             torrentId: "616161"
             torrentName: The.Best.S01E05.1080p.WEB.H264-TEST
-        pattern: 'New Torrent:.*\| .* Category:\s?.* (.*) By: (.*) Size: (.*) Link: (https?\:\/\/.*\/).*attachmentid=(\d+) \[(.*)\]'
+        - line: 'New Torrent: Some Simulation Game-GROUP Category: משחקים PC By: SomeUploader Size: 58.58GB Link: http://fuzer.me/attachment.php?attachmentid=000000 [Some.Simulation.Game-GROUP]'
+          expect:
+            category: "משחקים PC"
+            uploader: SomeUploader
+            torrentSize: 58.58GB
+            baseUrl: http://fuzer.me/
+            torrentId: "000000"
+            torrentName: Some.Simulation.Game-GROUP
+
+        pattern: 'New Torrent:.*Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/.*\/).*attachmentid=(\d+) \[(.*)\]'
         vars:
           - category
           - uploader

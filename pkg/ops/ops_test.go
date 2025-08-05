@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -72,10 +72,11 @@ func TestOrpheusClient_GetTorrentByID(t *testing.T) {
 			},
 			args: args{torrentID: "2156788"},
 			want: &domain.TorrentBasic{
-				Id:       "2156788",
-				InfoHash: "",
-				Size:     "255299244",
-				Uploader: "uploader",
+				Id:          "2156788",
+				InfoHash:    "",
+				Size:        "255299244",
+				Uploader:    "uploader",
+				RecordLabel: "FAJo Music",
 			},
 			wantErr: "",
 		},

@@ -1,0 +1,88 @@
+---
+#id: phoenixproject
+name: Phoenix Project
+identifier: phoenixproject
+description: PhoenixProject (PP) is a Private Torrent Tracker for macOS
+language: en-us
+urls:
+  - https://phoenixproject.app/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: gazelle
+settings:
+  - name: torrent_pass
+    type: text
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: PhoenixProject
+  server: irc.phoenixproject.app
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - vulcan
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user-bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "vulcan enter #announce USERNAME IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with vulcan. Replace USERNAME and IRCKEY.
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: "🔥 Snagit 2024 2024.4.1 [U2B/Pre-K'ed] (Applications)  - utilities - https://phoenixproject.app/torrents.php?id=4787 / https://phoenixproject.app/torrents.php?action=download&id=19337"
+            expect:
+              torrentName: Snagit 2024 2024.4.1 [U2B/Pre-K'ed]
+              category: Applications
+              freeleech: ""
+              tags: utilities
+              baseUrl: https://phoenixproject.app/
+              torrentId: "19337"
+          - line: "🔥 Photomator 3 3.4.7 [U2B/Pre-K'ed] (Applications)  - freeleech,graphics - https://phoenixproject.app/torrents.php?id=5751 / https://phoenixproject.app/torrents.php?action=download&id=19351"
+            expect:
+              torrentName: Photomator 3 3.4.7 [U2B/Pre-K'ed]
+              category: Applications
+              freeleech: freeleech
+              tags: graphics
+              baseUrl: https://phoenixproject.app/
+              torrentId: "19351"
+        pattern: '🔥 (.*) \((.*)\)\s+?. (freeleech)?,?(.*) . https:\/\/.*\/.*id=\d+ \/ (https:\/\/.*\/).*action=download&id=(.+)'
+        vars:
+          - torrentName
+          - category
+          - freeleech
+          - tags
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents.php?id={{ .torrentId }}"
+      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"

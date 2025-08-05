@@ -1,15 +1,15 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import toast from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { redirect } from "@tanstack/react-router";
+import { getRouteApi, redirect } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon, MegaphoneIcon } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 import { LeftNav } from "./LeftNav";
@@ -18,9 +18,9 @@ import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { AuthContext } from "@utils/Context";
-import { LoginRoute } from "@app/routes.tsx";
 
 export const Header = () => {
+  const loginRoute = getRouteApi("/login");
 
   const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
   if (isConfigError) {
@@ -40,7 +40,7 @@ export const Header = () => {
       ));
       AuthContext.reset();
       throw redirect({
-        to: LoginRoute.to,
+        to: loginRoute.id,
       })
     },
     onError: (err) => {
@@ -51,11 +51,11 @@ export const Header = () => {
   return (
     <Disclosure
       as="nav"
-      className="bg-gradient-to-b from-gray-100 dark:from-gray-925"
+      className="bg-linear-to-b from-gray-100 dark:from-gray-925"
     >
       {({ open }) => (
         <>
-          <div className="max-w-screen-xl mx-auto sm:px-6 lg:px-8">
+          <div className="max-w-(--breakpoint-xl) mx-auto sm:px-6 lg:px-8">
             <div className="border-b border-gray-300 dark:border-gray-775">
               <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                 <LeftNav />
@@ -82,7 +82,7 @@ export const Header = () => {
 
             {data?.html_url && (
               <ExternalLink href={data.html_url}>
-                <div className="flex mt-4 py-2 bg-blue-500 rounded justify-center">
+                <div className="flex mt-4 py-2 bg-blue-500 rounded-sm justify-center">
                   <MegaphoneIcon className="h-6 w-6 text-blue-100" />
                   <span className="text-blue-100 font-medium mx-3">New update available!</span>
                   <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>

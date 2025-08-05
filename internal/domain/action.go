@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -11,7 +11,7 @@ import (
 )
 
 type ActionRepo interface {
-	Store(ctx context.Context, action Action) (*Action, error)
+	Store(ctx context.Context, action *Action) error
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*Action) ([]*Action, error)
 	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*Action, error)
 	List(ctx context.Context) ([]Action, error)

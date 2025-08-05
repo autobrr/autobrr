@@ -117,7 +117,7 @@ You can optionally build it with [GoReleaser](https://goreleaser.com/) which mak
 Install it with `go install` or check the [docs for alternatives](https://goreleaser.com/install/):
 
 ```shell
-go install github.com/goreleaser/goreleaser@latest
+go install github.com/goreleaser/goreleaser/v2@latest
 ```
 
 Then to build binaries, run:

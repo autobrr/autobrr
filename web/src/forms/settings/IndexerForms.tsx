@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Fragment, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
 import type { FieldProps } from "formik";
@@ -18,6 +17,7 @@ import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
 import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
@@ -25,6 +25,7 @@ import { FeedDownloadTypeOptions } from "@domain/constants";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
 import { SelectField } from "@forms/settings/IrcForms";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
 
@@ -50,7 +51,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
     <>
       {ind && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-          <div className="px-4 space-y-1">
+          <div className="px-4">
             <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">IRC</DialogTitle>
             <p className="text-sm text-gray-500 dark:text-gray-200">
               Networks and channels are configured automatically in the background.
@@ -100,7 +101,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.torznab && ind.torznab.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
+            <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Torznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Torznab feed
@@ -141,7 +142,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.newznab && ind.newznab.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
+            <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Newznab</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 Newznab feed
@@ -174,7 +175,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
       <Fragment>
         {ind && ind.rss && ind.rss.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
+            <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">RSS</DialogTitle>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 RSS feed
@@ -255,12 +256,7 @@ type SelectValue = {
   value: string;
 };
 
-export interface AddProps {
-  isOpen: boolean;
-  toggle: () => void;
-}
-
-export function IndexerAddForm({ isOpen, toggle }: AddProps) {
+export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
   const queryClient = useQueryClient();
@@ -436,7 +432,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -465,7 +461,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -475,8 +471,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                           </div>
                         </div>
 
-                        <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-                          <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                          <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
                             <div>
                               <label
                                 htmlFor="identifier"
@@ -570,18 +566,18 @@ export function IndexerAddForm({ isOpen, toggle }: AddProps) {
                       </div>
 
                       <div
-                        className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+                        className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
                             Save
                           </button>
@@ -674,7 +670,7 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
             ? "text-red-500 border-red-500 bg-red-50"
             : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
         isTesting ? "cursor-not-allowed" : "",
-        "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+        "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
       )}
       disabled={isTesting}
       onClick={testApi}
@@ -729,13 +725,7 @@ interface IndexerUpdateInitialValues {
   }
 }
 
-interface UpdateProps {
-  isOpen: boolean;
-  toggle: () => void;
-  indexer: IndexerDefinition;
-}
-
-export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
+export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormProps<IndexerDefinition>) {
   const queryClient = useQueryClient();
 
   const proxies = useQuery(ProxiesQueryOptions());
@@ -842,7 +832,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     >
       {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+          <div className="p-4 sm:grid sm:grid-cols-3 sm:gap-4">
             <label
               htmlFor="name"
               className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
@@ -855,7 +845,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                   <input
                     type="text"
                     {...field}
-                    className="block w-full shadow-sm sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
+                    className="block w-full shadow-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
                   />
                   {meta.touched && meta.error && <span>{meta.error}</span>}
                 </div>

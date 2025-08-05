@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Link } from "@tanstack/react-router";
-import { FilterGetByIdRoute } from "@app/routes";
+import { getRouteApi, Link } from "@tanstack/react-router";
 import { ExternalLink } from "@components/ExternalLink";
 
 import Logo from "@app/logo.svg?react";
 
 export const FilterNotFound = () => {
-  const { filterId } = FilterGetByIdRoute.useParams()
+  const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
+  const { filterId } = filterGetByIdRoute.useParams()
 
   return (
     <div className="mt-20 flex flex-col justify-center">
@@ -31,14 +31,14 @@ export const FilterNotFound = () => {
         {" "}
         <ExternalLink
           href="https://github.com/autobrr/autobrr"
-          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
         >
           GitHub page
         </ExternalLink>
         {" or to "}
         <ExternalLink
           href="https://discord.gg/WQ2eUycxyT"
-          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+          className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
         >
           our official Discord channel
         </ExternalLink>
@@ -50,7 +50,7 @@ export const FilterNotFound = () => {
       <div className="flex justify-center">
         <Link to="/filters">
           <button
-            className="w-48 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="w-48 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           >
             Back to filters
           </button>

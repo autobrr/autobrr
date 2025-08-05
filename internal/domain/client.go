@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -204,4 +204,9 @@ func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
 
 	// make into new string and return
 	return u.String(), nil
+}
+
+type ArrTag struct {
+	ID    int    `json:"id"`
+	Label string `json:"label"`
 }

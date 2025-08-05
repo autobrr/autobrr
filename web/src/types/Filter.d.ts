@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -62,6 +62,8 @@ interface Filter {
   except_categories: string;
   match_uploaders: string;
   except_uploaders: string;
+  match_record_labels: string;
+  except_record_labels: string;
   match_language: string[];
   except_language: string[];
   tags: string;
@@ -74,11 +76,14 @@ interface Filter {
   max_seeders: number;
   min_leechers: number;
   max_leechers: number;
+  is_auto_updated: boolean;
   actions_count: number;
   actions_enabled_count: number;
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
+  downloads?: FilterDownloads;
+  release_profile_duplicate_id?: number;
 }
 
 interface Action {
@@ -147,4 +152,13 @@ interface ExternalFilter {
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
   filter_id?: number;
+}
+
+interface FilterDownloads {
+  hour_count: number;
+  day_count: number;
+  week_count: number;
+  month_count: number;
+  year_count: number;
+  total_count: number;
 }

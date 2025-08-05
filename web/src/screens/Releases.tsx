@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -19,7 +19,7 @@ export const Releases = () => {
   const [isHintOpen, setIsHintOpen] = useState(false);
   return (
     <main>
-      <div className="mt-6 mb-4 mx-auto flex flex-col max-w-screen-xl px-4 sm:px-6 lg:px-8">
+      <div className="mt-6 mb-4 mx-auto flex flex-col max-w-(--breakpoint-xl) px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Releases</h1>
         <p className="flex-row items-start mt-1 text-sm text-gray-800 dark:text-gray-200">
           The search engine uses a special pattern-matching engine to filter out results.
@@ -79,7 +79,7 @@ export const Releases = () => {
               {"As always, please refer to our "}
               <ExternalLink
                 href="https://autobrr.com/usage/search/"
-                className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 decoration-2 hover:text-black hover:dark:text-gray-100"
+                className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 decoration-2 hover:text-black dark:hover:text-gray-100"
               >
                 Search function usage
               </ExternalLink>
@@ -88,7 +88,7 @@ export const Releases = () => {
           </div>
         ) : null}
       </div>
-      <div className="max-w-screen-xl mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
         <ReleaseTable />
       </div>
     </main>

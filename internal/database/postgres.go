@@ -1,10 +1,13 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
 
 import (
 	"database/sql"
+	"fmt"
+	"net"
+	"net/url"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -86,4 +89,57 @@ func (db *DB) migratePostgres() error {
 	db.log.Info().Msgf("Database schema upgraded to version: %v", len(postgresMigrations))
 
 	return tx.Commit()
+}
+
+// PostgresDSN build postgres dsn connect string
+func PostgresDSN(host string, port int, user, pass, database, socket, sslMode, extraParams string) (string, error) {
+	// If no database is provided, return an error
+	if database == "" {
+		return "", errors.New("postgres: database name is required")
+	}
+
+	pgDsn, err := url.Parse("postgres://")
+	if err != nil {
+		return "", errors.Wrap(err, "could not parse postgres DSN")
+	}
+
+	pgDsn.Path = database
+	if user != "" {
+		pgDsn.User = url.UserPassword(user, pass)
+	}
+	queryParams := pgDsn.Query()
+
+	// Build DSN based on the connection type (TCP vs. Unix socket)
+	if socket != "" {
+		// Unix socket connection via the host param
+		queryParams.Add("host", socket)
+	} else {
+		// TCP connection
+		if host == "" && port == 0 {
+			return "", errors.New("postgres: host and port are required for TCP connection")
+		}
+		if port > 0 {
+			pgDsn.Host = net.JoinHostPort(host, fmt.Sprintf("%d", port))
+		} else {
+			pgDsn.Host = database
+		}
+	}
+
+	// Add SSL mode if provided
+	if sslMode != "" {
+		queryParams.Add("sslmode", sslMode)
+	}
+
+	pgDsn.RawQuery = queryParams.Encode()
+
+	// Add any extra parameters
+	if extraParams != "" {
+		values, err := url.ParseQuery(extraParams)
+		if err != nil {
+			return "", errors.Wrap(err, "could not parse extra params")
+		}
+		pgDsn.RawQuery = fmt.Sprintf("%s&%s", pgDsn.RawQuery, values.Encode())
+	}
+
+	return pgDsn.String(), nil
 }

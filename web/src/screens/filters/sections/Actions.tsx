@@ -1,10 +1,9 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, useFormikContext } from "formik";
 import type { FieldProps, FieldArrayRenderProps } from "formik";
@@ -18,6 +17,7 @@ import { ActionTypeNameMap, ActionTypeOptions, DOWNLOAD_CLIENTS } from "@domain/
 import { Select, TextField } from "@components/inputs";
 import { DeleteModal } from "@components/modals";
 import { EmptyListState } from "@components/emptystates";
+import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
 import { Checkbox } from "@components/Checkbox";
@@ -93,10 +93,10 @@ export function Actions() {
                 title="Actions"
                 subtitle="Add to download clients or run custom commands."
               />
-              <div className="ml-4 mt-4 flex-shrink-0">
+              <div className="ml-4 mt-4 shrink-0">
                 <button
                   type="button"
-                  className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                   onClick={() => push(newAction)}
                 >
                   <BoltIcon
@@ -247,7 +247,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 {action.name}
               </p>
             </div>
-            <div className="flex-shrink-0 sm:mt-0 sm:ml-5">
+            <div className="shrink-0 sm:mt-0 sm:ml-5">
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                   {ActionTypeNameMap[action.type]}
@@ -255,7 +255,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
               </div>
             </div>
           </div>
-          <div className="ml-5 flex-shrink-0">
+          <div className="ml-5 shrink-0">
             <ChevronRightIcon
               className="h-5 w-5 text-gray-400"
               aria-hidden="true"
@@ -303,7 +303,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             <div className="pt-6 pb-4 flex space-x-2 justify-between">
               <button
                 type="button"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
                 onClick={toggleDeleteModal}
               >
                 Remove Action
@@ -311,7 +311,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
 
               <button
                 type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
                 onClick={toggleEdit}
               >
                 Close

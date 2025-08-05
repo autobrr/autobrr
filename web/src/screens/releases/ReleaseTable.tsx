@@ -1,9 +1,9 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
 import {
@@ -25,11 +25,12 @@ import {
 } from "@heroicons/react/24/solid";
 
 import { ReleasesListQueryOptions } from "@api/queries";
-import { RandomLinuxIsos } from "@utils";
+import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
 import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
+import { SettingsContext } from "@utils/Context";
 
 declare module '@tanstack/react-table' {
   //allows us to define custom properties for our columns
@@ -144,37 +145,47 @@ export const ReleaseTable = () => {
     isLoading,
     error,
     data,
+    dataUpdatedAt,
   } = useQuery(ReleasesListQueryOptions(pagination.pageIndex * pagination.pageSize, pagination.pageSize, columnFilters));
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
-  const [showLinuxIsos, setShowLinuxIsos] = useState(false);
+  const [settings, setSettings] = SettingsContext.use();
+
+  useEffect(() => {
+    if (settings.incognitoMode && data?.data) {
+      const randomIsoNames = RandomLinuxIsos(data.data.length);
+      const randomTorrentSiteNames = RandomIsoTracker(data.data.length);
+      const newData: Release[] = data.data.map((item, index) => {
+        const siteName = randomTorrentSiteNames[index % randomTorrentSiteNames.length];
+        return {
+          ...item,
+          name: randomIsoNames[index],
+          indexer: {
+            id: 0,
+            name: siteName,
+            identifier: siteName,
+            identifier_external: siteName,
+          },
+          category: "Linux ISOs",
+          size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
+          source: "",
+          container: "",
+          codec: "",
+          resolution: "",
+        };
+      });
+      setModifiedData(newData);
+    } else {
+      setModifiedData([]);
+    }
+  }, [settings.incognitoMode, data?.data, dataUpdatedAt]);
 
   const toggleReleaseNames = () => {
-    setShowLinuxIsos(!showLinuxIsos);
-    if (!showLinuxIsos && data && data.data) {
-      const randomNames = RandomLinuxIsos(data.data.length);
-      const newData: Release[] = data.data.map((item, index) => ({
-        ...item,
-        name: `${randomNames[index]}.iso`,
-        indexer: {
-          id: 0,
-          name: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-          identifier: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-          identifier_external: index % 2 === 0 ? "distrowatch" : "linuxtracker",
-        },
-        category: "Linux ISOs",
-        size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
-        source: "",
-        container: "",
-        codec: "",
-        resolution: "",
-      }));
-      setModifiedData(newData);
-    }
+    setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
   };
 
   const defaultData = React.useMemo(() => [], [])
-  const displayData = showLinuxIsos ? modifiedData : (data?.data ?? defaultData);
+  const displayData = settings.incognitoMode ? modifiedData : [...(data?.data ?? defaultData)];
 
   const tableInstance = useReactTable({
     columns,
@@ -267,7 +278,7 @@ export const ReleaseTable = () => {
                         key={header.id}
                         scope="col"
                         colSpan={header.colSpan}
-                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400 transition hover:bg-gray-200 dark:hover:bg-gray-775"
+                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400"
                       >
                         <div className="flex items-center justify-between">
                           {header.isPlaceholder
@@ -333,7 +344,7 @@ export const ReleaseTable = () => {
                     <label>
                       <span className="sr-only bg-gray-700">Items Per Page</span>
                       <select
-                        className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                        className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-xs cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50"
                         value={tableInstance.getState().pagination.pageSize}
                         onChange={e => {
                           tableInstance.setPageSize(Number(e.target.value));
@@ -348,7 +359,7 @@ export const ReleaseTable = () => {
                     </label>
                   </div>
                   <div>
-                    <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                    <nav className="inline-flex -space-x-px rounded-md shadow-xs" aria-label="Pagination">
                       <TablePageButton
                         className="rounded-l-md"
                         onClick={() => tableInstance.firstPage()}
@@ -392,7 +403,7 @@ export const ReleaseTable = () => {
                   aria-label="Toggle view"
                   title="Go incognito"
                 >
-                  {showLinuxIsos ? (
+                  {settings.incognitoMode ? (
                     <EyeIcon className="h-4 w-4"/>
                   ) : (
                     <EyeSlashIcon className="h-4 w-4"/>

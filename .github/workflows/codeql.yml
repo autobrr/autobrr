@@ -21,8 +21,8 @@ on:
     - cron: '20 13 * * 6'
 
 env:
-  GO_VERSION: '1.23'
-  NODE_VERSION: '20.17.0'
+  GO_VERSION: '1.24'
+  NODE_VERSION: '22.17.0'
 
 jobs:
   analyze:
@@ -58,7 +58,7 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
 
     - name: Set up corepack
-      run: corepack enable
+      run: npm install -g corepack@latest && corepack enable
 
       # It can not be done before enable corepack
     - name: Set up cache

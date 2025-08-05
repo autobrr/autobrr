@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package proxy
@@ -141,7 +141,7 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.New(resp.Status)
+		return errors.New("got unexpected status code: %d", resp.StatusCode)
 	}
 
 	s.log.Debug().Msgf("proxy %s test OK!", proxy.Addr)

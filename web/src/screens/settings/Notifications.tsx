@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import toast from "react-hot-toast";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
@@ -14,6 +13,7 @@ import { EmptySimple } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
 import { componentMapType } from "@forms/settings/DownloadClientForms";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import {
   DiscordIcon,
@@ -40,7 +40,7 @@ function NotificationSettings() {
         <button
           type="button"
           onClick={toggleAddNotifications}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
           Add new
@@ -67,7 +67,7 @@ function NotificationSettings() {
   );
 }
 
-const iconStyle = "flex items-center px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400";
+const iconStyle = "flex items-center px-2 py-0.5 rounded-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400";
 const iconComponentMap: componentMapType = {
   DISCORD: <span className={iconStyle}><DiscordIcon /> Discord</span>,
   NOTIFIARR: <span className={iconStyle}><NotifiarrIcon /> Notifiarr</span>,
@@ -105,7 +105,7 @@ function ListItem({ notification }: ListItemProps) {
 
   return (
     <li key={notification.id} className="text-gray-500 dark:text-gray-400">
-      <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} notification={notification} />
+      <NotificationUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} data={notification} />
 
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">

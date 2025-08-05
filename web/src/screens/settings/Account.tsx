@@ -1,29 +1,35 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useMutation } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
-import toast from "react-hot-toast";
 import { UserIcon } from "@heroicons/react/24/solid";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
+import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
 
-const AccountSettings = () => (
-  <Section
-    title="Account"
-    description="Manage account settings."
-  >
-    <div className="py-0.5">
-      <Credentials />
-    </div>
-  </Section>
-);
+const AccountSettings = () => {
+  const auth = AuthContext.get();
+
+  return (
+    <Section
+      title="Account"
+      description="Manage account settings."
+    >
+      <div className="py-0.5">
+        {auth.authMethod === 'oidc' ? <OIDCAccount /> : <Credentials />}
+      </div>
+    </Section>
+  );
+};
 
 interface InputValues {
   username: string;
@@ -139,7 +145,7 @@ function Credentials() {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  className="mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                 >
                   <UserIcon className="w-4 h-4 mr-1" />
                   Save
@@ -148,6 +154,84 @@ function Credentials() {
             </Form>
           )}
         </Formik>
+      </div>
+    </Section>
+  );
+}
+
+function OIDCAccount() {
+  const auth = AuthContext.get();
+  
+  // Helper function to format the issuer URL for display
+  const getFormattedIssuerName = () => {
+    if (!auth.issuerUrl) return "your identity provider";
+    
+    try {
+      const url = new URL(auth.issuerUrl);
+      // Return domain name without 'www.'
+      return url.hostname.replace(/^www\./i, '');
+    } catch {
+      return "your identity provider";
+    }
+  };
+  
+  return (
+    <Section
+      titleElement={
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-700 dark:text-gray-300 font-bold">OpenID Connect Account</span>
+          <FontAwesomeIcon icon={faOpenid} className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+        </div>
+      }
+      title="OpenID Connect Account"
+      description="Your account credentials are managed by your OpenID Connect provider. To change your username, please visit your provider's settings page and log in again."
+      noLeftPadding
+    >
+      <div className="px-4 py-5 sm:p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 transition duration-150">
+        <div className="flex flex-col sm:flex-row items-center">
+          <div className="flex-shrink-0 relative">
+            {auth.profilePicture ? (
+              <img
+                src={auth.profilePicture}
+                alt={`${auth.username}'s profile picture`}
+                className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover border-1 border-gray-200 dark:border-gray-700 transition duration-200"
+                onError={() => auth.profilePicture = undefined}
+              />
+            ) : (
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition duration-200">
+                <FontAwesomeIcon 
+                  icon={faOpenid} 
+                  className="h-16 w-16 text-gray-500 dark:text-gray-400" 
+                  aria-hidden="true"
+                />
+              </div>
+            )}
+          </div>
+          <div className="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">
+              {auth.username}
+            </h3>
+            <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
+              <FontAwesomeIcon icon={faOpenid} className="mr-1.5 h-4 w-4 flex-shrink-0" />
+              <p>Authenticated via OpenID Connect</p>
+            </div>
+            {auth.issuerUrl && (
+              <div className="mt-2">
+                <a 
+                  href={auth.issuerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-md text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors duration-150"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  {getFormattedIssuerName()}
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </Section>
   );

@@ -1,17 +1,17 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
 
 import (
 	"context"
-	"github.com/autobrr/autobrr/internal/proxy"
 	"math"
-	"sort"
+	"slices"
 	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -97,6 +97,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
+					j.Log.Trace().Msgf("item is older than feed max age, skipping: %s", item.Title)
 					continue
 				}
 			}
@@ -107,35 +108,19 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-
-		// parse size bytes string
-		rls.ParseSizeBytesString(item.Size)
-
-		rls.ParseString(item.Title)
-
-		rls.Seeders, err = parseIntAttribute(item, "seeders")
-		if err != nil {
-			rls.Seeders = 0
-		}
-
-		var peers, err = parseIntAttribute(item, "peers")
-
-		rls.Leechers = peers - rls.Seeders
-		if err != nil {
-			rls.Leechers = 0
-		}
-
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
 			rls.DownloadURL = ""
 		}
 
-		// Get freeleech percentage between 0 - 100. The value is ignored if
-		// an error occurrs
-		freeleechPercentage, err := parseFreeleechTorznab(item)
-		if err != nil {
-			j.Log.Debug().Err(err).Msgf("error parsing torznab freeleech")
-		} else {
+		rls.ParseString(item.Title)
+		rls.Size = uint64(item.Size)
+		rls.Seeders = item.Seeders
+		rls.Leechers = item.Leechers
+		rls.Uploader = item.Author
+
+		// Get freeleech percentage between 0 - 100
+		if freeleechPercentage := parseFreeleechTorznab(item.DownloadVolumeFactor); freeleechPercentage >= 0 {
 			if freeleechPercentage == 100 {
 				// Release is 100% freeleech
 				rls.Freeleech = true
@@ -158,7 +143,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	}
 
 	// process all new releases
-	go j.ReleaseSvc.ProcessMultiple(releases)
+	go j.ReleaseSvc.ProcessMultipleFromIndexer(releases, j.Feed.Indexer)
 
 	return nil
 }
@@ -179,33 +164,21 @@ func parseIntAttribute(item torznab.FeedItem, attrName string) (int, error) {
 
 // Parse the downloadvolumefactor attribute. The returned value is the percentage
 // of downloaded data that does NOT count towards a user's total download amount.
-func parseFreeleechTorznab(item torznab.FeedItem) (int, error) {
-	for _, attr := range item.Attributes {
-		if attr.Name == "downloadvolumefactor" {
-			// Parse the value as decimal number
-			downloadVolumeFactor, err := strconv.ParseFloat(attr.Value, 64)
-			if err != nil {
-				return 0, err
-			}
-
-			// Values below 0.0 and above 1.0 are rejected
-			if downloadVolumeFactor < 0 || downloadVolumeFactor > 1 {
-				return 0, errors.New("invalid downloadvolumefactor: %s", attr.Value)
-			}
-
-			// Multiply by 100 to convert from ratio to percentage and round it
-			// to the nearest integer value
-			downloadPercentage := math.Round(downloadVolumeFactor * 100)
-
-			// To convert from download percentage to freeleech percentage the
-			// value is inverted
-			freeleechPercentage := 100 - int(downloadPercentage)
-
-			return freeleechPercentage, nil
-		}
+func parseFreeleechTorznab(factor float64) int {
+	// Values below 0.0 and above 1.0 are rejected
+	if factor < 0 || factor > 1 {
+		return 0
 	}
 
-	return 0, nil
+	// Multiply by 100 to convert from float to percentage and round it
+	// to the nearest integer value
+	downloadPercentage := math.Round(factor * 100)
+
+	// To convert from download percentage to freeleech percentage the
+	// value is inverted
+	freeleechPercentage := 100 - int(downloadPercentage)
+
+	return freeleechPercentage
 }
 
 // Maps a freeleech percentage of 25, 50, 75 or 100 to a bonus.
@@ -255,14 +228,13 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		return items, nil
 	}
 
-	sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
-		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
-	})
+	//sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
+	//	return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
+	//})
 
-	toCache := make([]domain.FeedCacheItem, 0)
-
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	// Collect all valid GUIDs first
+	guidItemMap := make(map[string]*torznab.FeedItem)
+	var guids []string
 
 	for _, item := range feed.Channel.Items {
 		if item.GUID == "" {
@@ -270,12 +242,28 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, item.GUID)
-		if err != nil {
-			j.Log.Error().Err(err).Msg("could not check if item exists")
-			continue
-		}
-		if exists {
+		guidItemMap[item.GUID] = item
+		guids = append(guids, item.GUID)
+	}
+
+	// reverse order so oldest items are processed first
+	slices.Reverse(guids)
+
+	// Batch check which GUIDs already exist in the cache
+	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
+	if err != nil {
+		j.Log.Error().Err(err).Msg("could not check existing items")
+		return nil, errors.Wrap(err, "could not check existing items")
+	}
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	// Process items that don't exist in the cache
+	for _, guid := range guids {
+		item := guidItemMap[guid]
+		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
@@ -284,12 +272,12 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    item.GUID,
+			Key:    guid,
 			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})
 
-		// only append if we successfully added to cache
+		// Add item to result list
 		items = append(items, *item)
 	}
 

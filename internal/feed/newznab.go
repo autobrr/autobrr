@@ -1,11 +1,11 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strconv"
 	"time"
 
@@ -91,6 +91,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
+					j.Log.Trace().Msgf("item is older than feed max age, skipping: %s", item.Title)
 					continue
 				}
 			}
@@ -124,7 +125,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 	}
 
 	// process all new releases
-	go j.ReleaseSvc.ProcessMultiple(releases)
+	go j.ReleaseSvc.ProcessMultipleFromIndexer(releases, j.Feed.Indexer)
 
 	return nil
 }
@@ -160,14 +161,13 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		return items, nil
 	}
 
-	sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
-		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
-	})
+	//sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
+	//	return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
+	//})
 
-	toCache := make([]domain.FeedCacheItem, 0)
-
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	// Collect all valid GUIDs first
+	guidItemMap := make(map[string]*newznab.FeedItem)
+	var guids []string
 
 	for _, item := range feed.Channel.Items {
 		if item.GUID == "" {
@@ -175,13 +175,26 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, item.GUID)
-		if err != nil {
-			j.Log.Error().Err(err).Msg("could not check if item exists")
-			continue
-		}
+		guidItemMap[item.GUID] = item
+		guids = append(guids, item.GUID)
+	}
 
-		if exists {
+	// reverse order so oldest items are processed first
+	slices.Reverse(guids)
+
+	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
+	if err != nil {
+		j.Log.Error().Err(err).Msg("could not get existing items from cache")
+		return nil, errors.Wrap(err, "could not get existing items from cache")
+	}
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	for _, guid := range guids {
+		item := guidItemMap[guid]
+		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
@@ -190,7 +203,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    item.GUID,
+			Key:    guid,
 			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})

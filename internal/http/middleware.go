@@ -1,10 +1,11 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"runtime/debug"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (s Server) IsAuthenticated(next http.Handler) http.Handler {
@@ -132,4 +134,46 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 		}
 		return http.HandlerFunc(fn)
 	}
+}
+
+// BasicAuth implements a simple middleware handler for adding basic http auth to a route.
+func BasicAuth(realm string, users string) func(next http.Handler) http.Handler {
+	creds := map[string]string{}
+
+	userCreds := strings.Split(users, ",")
+	for _, cred := range userCreds {
+		credParts := strings.Split(cred, ":")
+		if len(credParts) != 2 {
+			//s.log.Warn().Msgf("Invalid metrics basic auth credentials: %s", cred)
+			continue
+		}
+
+		creds[credParts[0]] = credParts[1]
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			username, password, ok := r.BasicAuth()
+			if !ok {
+				basicAuthFailed(w, realm)
+				return
+			}
+
+			// Validate username and password using htpasswd data
+			if hashedPassword, exists := creds[username]; exists {
+				// Use bcrypt to validate the password
+				if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err == nil {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			basicAuthFailed(w, realm)
+		})
+	}
+}
+
+func basicAuthFailed(w http.ResponseWriter, realm string) {
+	w.Header().Add("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, realm))
+	w.WriteHeader(http.StatusUnauthorized)
 }

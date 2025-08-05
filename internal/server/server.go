@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package server
@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/list"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/update"
@@ -27,19 +28,21 @@ type Server struct {
 	ircService     irc.Service
 	feedService    feed.Service
 	scheduler      scheduler.Service
+	listService    list.Service
 	updateService  *update.Service
 
 	stopWG sync.WaitGroup
 	lock   sync.Mutex
 }
 
-func NewServer(log logger.Logger, config *domain.Config, ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Service, scheduler scheduler.Service, updateSvc *update.Service) *Server {
+func NewServer(log logger.Logger, config *domain.Config, ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Service, listSvc list.Service, scheduler scheduler.Service, updateSvc *update.Service) *Server {
 	return &Server{
 		log:            log.With().Str("module", "server").Logger(),
 		config:         config,
 		indexerService: indexerSvc,
 		ircService:     ircSvc,
 		feedService:    feedSvc,
+		listService:    listSvc,
 		scheduler:      scheduler,
 		updateService:  updateSvc,
 	}
@@ -64,6 +67,9 @@ func (s *Server) Start() error {
 	if err := s.feedService.Start(); err != nil {
 		s.log.Error().Err(err).Msg("Could not start feed service")
 	}
+
+	// start lists background updater
+	go s.listService.Start()
 
 	return nil
 }

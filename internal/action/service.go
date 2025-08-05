@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -21,7 +21,7 @@ import (
 )
 
 type Service interface {
-	Store(ctx context.Context, action domain.Action) (*domain.Action, error)
+	Store(ctx context.Context, action *domain.Action) error
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
@@ -30,7 +30,7 @@ type Service interface {
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
 
-	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error)
+	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error)
 }
 
 type service struct {
@@ -63,7 +63,7 @@ func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_cl
 	return s
 }
 
-func (s *service) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
+func (s *service) Store(ctx context.Context, action *domain.Action) error {
 	return s.repo.Store(ctx, action)
 }
 

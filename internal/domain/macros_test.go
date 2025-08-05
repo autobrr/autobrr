@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/moistari/rls"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -231,7 +232,7 @@ func TestMacros_Parse(t *testing.T) {
 		{
 			name: "test_type",
 			release: Release{
-				Type: "episode",
+				Type: rls.Episode,
 			},
 			args:    args{text: "Type: {{ .Type }}"},
 			want:    "Type: episode",
@@ -288,4 +289,29 @@ func TestMacros_Parse(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestMacros_TemplateCache(t *testing.T) {
+	t.Parallel()
+
+	release := Release{
+		TorrentName: "Test Movie 2024",
+		Year:        2024,
+	}
+
+	m := NewMacro(release)
+	template := "{{.TorrentName}} ({{.Year}})"
+
+	// parse and cache
+	got1, err := m.Parse(template)
+	assert.NoError(t, err)
+	assert.Equal(t, "Test Movie 2024 (2024)", got1)
+
+	// use cached template
+	got2, err := m.Parse(template)
+	assert.NoError(t, err)
+	assert.Equal(t, "Test Movie 2024 (2024)", got2)
+
+	_, ok := templateCache.Get(template)
+	assert.True(t, ok, "template should be in cache")
 }
