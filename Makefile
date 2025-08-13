@@ -37,6 +37,9 @@ build/web:
 build/docker:
 	docker build -t autobrr:dev -f Dockerfile . --build-arg GIT_TAG=$(GIT_TAG) --build-arg GIT_COMMIT=$(GIT_COMMIT)
 
+build/dockerx:
+	docker buildx build -t autobrr:dev -f Dockerfile . --build-arg GIT_TAG=$(GIT_TAG) --build-arg GIT_COMMIT=$(GIT_COMMIT) --platform=linux/amd64,linux/arm64 --pull
+
 clean:
 	$(RM) -rf bin web/dist/*
 
