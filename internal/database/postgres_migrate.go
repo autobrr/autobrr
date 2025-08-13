@@ -262,6 +262,7 @@ CREATE TABLE action
     tags                    TEXT,
     label                   TEXT,
     save_path               TEXT,
+    download_path           TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
     first_last_piece_prio   BOOLEAN DEFAULT false,
@@ -1373,5 +1374,8 @@ CREATE INDEX release_hybrid_index
         	FROM irc_network 
         	WHERE server = 'irc.rocket-hd.cc'
     	);
+`,
+	`ALTER TABLE action
+		ADD COLUMN download_path TEXT;
 `,
 }
