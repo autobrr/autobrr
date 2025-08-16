@@ -310,7 +310,7 @@ func (r *FeedCacheRepo) DeleteStale(ctx context.Context) error {
 		return errors.Wrap(err, "error exec result")
 	}
 
-	r.log.Debug().Msgf("deleted %d rows from stale feed cache", rows)
+	r.log.Debug().Int64("items", rows).Msg("deleted rows from stale feed cache")
 
 	return nil
 }
