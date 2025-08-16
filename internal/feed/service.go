@@ -432,9 +432,9 @@ func newFeedInstance(f *domain.Feed) feedInstance {
 	return fi
 }
 
-func (s *service) initializeFeedJob(fi feedInstance) (FeedJob, error) {
+func (s *service) initializeFeedJob(fi feedInstance) (RefreshFeedJob, error) {
 	var err error
-	var job FeedJob
+	var job RefreshFeedJob
 
 	switch fi.Implementation {
 	case string(domain.FeedTypeTorznab):
@@ -512,7 +512,7 @@ func (s *service) scheduleJob(fi feedInstance, job cron.Job) error {
 	return nil
 }
 
-func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
+func (s *service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
 	s.log.Debug().Msgf("create torznab job: %s", f.Name)
 
 	if f.URL == "" {
@@ -524,7 +524,7 @@ func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// setup torznab Client
 	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
@@ -535,7 +535,7 @@ func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
 	return job, nil
 }
 
-func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
+func (s *service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
 	s.log.Debug().Msgf("create newznab job: %s", f.Name)
 
 	if f.URL == "" {
@@ -543,7 +543,7 @@ func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
 	}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// setup newznab Client
 	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
@@ -554,7 +554,7 @@ func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
 	return job, nil
 }
 
-func (s *service) createRSSJob(f feedInstance) (FeedJob, error) {
+func (s *service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
 	s.log.Debug().Msgf("create rss job: %s", f.Name)
 
 	if f.URL == "" {
@@ -566,7 +566,7 @@ func (s *service) createRSSJob(f feedInstance) (FeedJob, error) {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// create job
 	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)

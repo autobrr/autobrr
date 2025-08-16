@@ -155,8 +155,8 @@ func (f *FeedItem) parseAttributes() {
 				break
 			}
 		case "minimumratio":
-			if parseInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
-				f.MinimumRatio = float64(parseInt)
+			if parseFloat, err := strconv.ParseFloat(attr.Value, 32); err == nil {
+				f.MinimumRatio = parseFloat
 				break
 			}
 		case "minimumseedtime":
@@ -173,13 +173,13 @@ func (f *FeedItem) parseAttributes() {
 			}
 			break
 		case "downloadvolumefactor":
-			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
-				f.DownloadVolumeFactor = float64(parsedInt)
+			if parsedFloat, err := strconv.ParseFloat(attr.Value, 32); err == nil {
+				f.DownloadVolumeFactor = parsedFloat
 				break
 			}
 		case "uploadvolumefactor":
-			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
-				f.UploadVolumeFactor = float64(parsedInt)
+			if parsedFloat, err := strconv.ParseFloat(attr.Value, 32); err == nil {
+				f.UploadVolumeFactor = parsedFloat
 				break
 			}
 		case "imdb":
