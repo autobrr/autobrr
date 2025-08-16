@@ -172,6 +172,14 @@ make build/docker
 
 The image will be tagged as `autobrr:dev`
 
+To build a cross platform Docker image (for instance if you're running on arm64 or Apple ARM):
+
+```shell
+make build/dockerx
+```
+
+[Docker multi-platform docs](https://docs.docker.com/build/building/multi-platform/)
+
 ## Mock indexer
 
 We have a mock indexer you can run locally that features:
