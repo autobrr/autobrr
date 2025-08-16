@@ -51,31 +51,31 @@ irc:
     type: multi
     lines:
       - tests:
-          - line: '[HHD] TheUploader has uploaded Shattered Glass 2003 1080p BluRay REMUX AVC DTS-HD MA 5.1-NOGROUP grab it now!'
+          - line: '📢 [HHD] An anonymous user has uploaded: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA'
             expect:
-              uploader: TheUploader
-              torrentName: Shattered Glass 2003 1080p BluRay REMUX AVC DTS-HD MA 5.1-NOGROUP
-        pattern: '^\[HHD\] (.+) has uploaded (.+) grab it now!'
+              uploader: anonymous
+              torrentName: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA
+        pattern: '\[HHD\] (?:An (anonymous) user|(.+)) has uploaded: (.+)'
         vars:
           - uploader
           - torrentName
       - tests:
-          - line: '[Category: Movies] [Type: Remux] [Size: 18 GiB] [TMDB vote average: 0] [TMDB vote count: 0]'
+          - line: '📋 Category: TV | Type: WEB-DL | Size: 1.35 GiB | Rating: 8.5/10 (4 votes)'
             expect:
-              category: Movies
-              releaseTags: Remux
-              torrentSize: "18 GiB"
-        pattern: '^\[Category: (.+)\] \[Type: (.+)\] \[Size: (.+)\] \[TMDB vote average: \d+\] \[TMDB vote count: \d+\]'
+              category: TV
+              releaseTags: WEB-DL
+              torrentSize: "1.35 GiB"
+        pattern: 'Category: (.+) \| Type: (.+) \| Size: (.+) \| Rating: .+ \(\d+ votes\)'
         vars:
           - category
           - releaseTags
           - torrentSize
       - tests:
-          - line: '[Link: https://homiehelpdesk.net/torrents/2773]'
+          - line: '🔗 Download: https://homiehelpdesk.net/torrents/6803'
             expect:
               baseUrl: https://homiehelpdesk.net/
               torrentId: "2773"
-        pattern: '^\[Link: (https?\:\/\/.+\/)torrents\/(\d+)\]'
+        pattern: 'Download: (https?\:\/\/.+\/)torrents\/(\d+)'
         vars:
           - baseUrl
           - torrentId
