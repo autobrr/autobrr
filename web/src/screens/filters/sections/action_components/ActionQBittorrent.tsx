@@ -65,32 +65,36 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
       </FilterLayout>
 
       <FilterLayout className="pb-6">
-        <TextAreaAutoResize
-          name={`actions.${idx}.save_path`}
-          label="Save path"
-          placeholder="eg. /full/path/to/save_folder"
-          tooltip={
-            <div>
-              <p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
-              <br />
-              <p>The field can use macros to transform/add values from metadata:</p>
-              <DocsLink href="https://autobrr.com/filters/macros" />
-            </div>
-          }
-        />
-        <TextAreaAutoResize
-          name={`actions.${idx}.download_path`}
-          label="Download path"
-          placeholder="eg. /full/path/to/download_folder"
-          tooltip={
-            <div>
-              <p>Set a custom download (incomplete) path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
-              <br />
-              <p>The field can use macros to transform/add values from metadata:</p>
-              <DocsLink href="https://autobrr.com/filters/macros" />
-            </div>
-          }
-        />
+        <FilterHalfRow>
+          <TextAreaAutoResize
+            name={`actions.${idx}.save_path`}
+            label="Save path"
+            placeholder="eg. /full/path/to/save_folder"
+            tooltip={
+              <div>
+                <p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
+                <br />
+                <p>The field can use macros to transform/add values from metadata:</p>
+                <DocsLink href="https://autobrr.com/filters/macros" />
+              </div>
+            }
+          />
+        </FilterHalfRow>
+        <FilterHalfRow>
+          <TextAreaAutoResize
+            name={`actions.${idx}.download_path`}
+            label="Download path"
+            placeholder="eg. /full/path/to/download_folder"
+            tooltip={
+              <div>
+                <p>Set a custom download (incomplete) path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
+                <br />
+                <p>The field can use macros to transform/add values from metadata:</p>
+                <DocsLink href="https://autobrr.com/filters/macros" />
+              </div>
+            }
+          />
+        </FilterHalfRow>
       </FilterLayout>
 
       <CollapsibleSection
