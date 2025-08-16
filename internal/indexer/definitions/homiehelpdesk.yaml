@@ -53,9 +53,9 @@ irc:
       - tests:
           - line: '📢 [HHD] An anonymous user has uploaded: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA'
             expect:
-              uploader: anonymous
+              uploader: An anonymous user
               torrentName: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA
-        pattern: '\[HHD\] (?:An (anonymous) user|(.+)) has uploaded: (.+)'
+        pattern: '\[HHD\] (.+) has uploaded: (.+)'
         vars:
           - uploader
           - torrentName
@@ -74,7 +74,7 @@ irc:
           - line: '🔗 Download: https://homiehelpdesk.net/torrents/6803'
             expect:
               baseUrl: https://homiehelpdesk.net/
-              torrentId: "2773"
+              torrentId: "6803"
         pattern: 'Download: (https?\:\/\/.+\/)torrents\/(\d+)'
         vars:
           - baseUrl
