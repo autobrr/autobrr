@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -94,7 +94,7 @@ jobs:
       CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -142,7 +142,7 @@ jobs:
       CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -193,12 +193,12 @@ jobs:
       CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: web-dist
           path: web/dist
@@ -224,7 +224,7 @@ jobs:
     needs: [ pgo, test, testother ]
     steps:
       - name: Download pprof profiles
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: pprof-*
           merge-multiple: true
@@ -254,18 +254,18 @@ jobs:
     needs: [ web, goprofilecombine ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: web-dist
           path: web/dist
 
       - name: Download pprof profile
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: pprof
 
@@ -347,18 +347,18 @@ jobs:
     needs: [ web, goprofilecombine ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: web-dist
           path: web/dist
 
       - name: Download pprof profile
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: pprof
 
@@ -431,7 +431,7 @@ jobs:
     needs: [ docker ]
     steps:
       - name: Download image digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: /tmp/digests
           pattern: docker-digests-*
