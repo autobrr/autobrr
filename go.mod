@@ -11,7 +11,7 @@ require (
 	github.com/anacrolix/torrent v1.58.1
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.3.0
-	github.com/autobrr/go-qbittorrent v1.14.0
+	github.com/autobrr/go-qbittorrent v1.14.1-0.20250818092830-ae79b28eb0c0
 	github.com/autobrr/go-rtorrent v1.12.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.6.1
@@ -45,12 +45,12 @@ require (
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.40.0
-	golang.org/x/net v0.42.0
+	golang.org/x/crypto v0.41.0
+	golang.org/x/net v0.43.0
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.16.0
-	golang.org/x/term v0.33.0
-	golang.org/x/text v0.27.0
+	golang.org/x/term v0.34.0
+	golang.org/x/text v0.28.0
 	golang.org/x/time v0.12.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -117,7 +117,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
