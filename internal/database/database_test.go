@@ -53,16 +53,16 @@ func setupPostgresForTest() *DB {
 	}
 
 	// Open the database connection
-	if db.handler, err = sql.Open("postgres", db.DSN); err != nil {
+	if db.Handler, err = sql.Open("postgres", db.DSN); err != nil {
 		log.Fatalf("could not open postgres connection: %q", err)
 	}
 
-	if err = db.handler.Ping(); err != nil {
+	if err = db.Handler.Ping(); err != nil {
 		log.Fatalf("could not ping postgres database: %q", err)
 	}
 
 	// drop tables before migrate to always have a clean state
-	if _, err := db.handler.Exec(`
+	if _, err := db.Handler.Exec(`
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 

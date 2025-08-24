@@ -20,7 +20,7 @@ import (
 
 type DB struct {
 	log     zerolog.Logger
-	handler *sql.DB
+	Handler *sql.DB
 	lock    sync.RWMutex
 	ctx     context.Context
 	cfg     *domain.Config
@@ -127,18 +127,30 @@ func (db *DB) Close() error {
 	db.cancel()
 
 	// close database
-	if db.handler != nil {
-		return db.handler.Close()
+	if db.Handler != nil {
+		return db.Handler.Close()
 	}
 	return nil
 }
 
+func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return db.Handler.ExecContext(ctx, query, args...)
+}
+
+func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	return db.Handler.QueryContext(ctx, query, args...)
+}
+
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	return db.Handler.QueryRowContext(ctx, query, args...)
+}
+
 func (db *DB) Ping() error {
-	return db.handler.Ping()
+	return db.Handler.Ping()
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
-	tx, err := db.handler.BeginTx(ctx, opts)
+	tx, err := db.Handler.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}

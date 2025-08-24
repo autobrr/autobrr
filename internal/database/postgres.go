@@ -18,12 +18,12 @@ func (db *DB) openPostgres() error {
 	var err error
 
 	// open database connection
-	if db.handler, err = sql.Open("postgres", db.DSN); err != nil {
+	if db.Handler, err = sql.Open("postgres", db.DSN); err != nil {
 		db.log.Fatal().Err(err).Msg("could not open postgres connection")
 		return errors.Wrap(err, "could not open postgres connection")
 	}
 
-	err = db.handler.Ping()
+	err = db.Handler.Ping()
 	if err != nil {
 		db.log.Fatal().Err(err).Msg("could not ping postgres database")
 		return errors.Wrap(err, "could not ping postgres database")
@@ -39,7 +39,7 @@ func (db *DB) openPostgres() error {
 }
 
 func (db *DB) migratePostgres() error {
-	tx, err := db.handler.Begin()
+	tx, err := db.Handler.Begin()
 	if err != nil {
 		return errors.Wrap(err, "error starting transaction")
 	}

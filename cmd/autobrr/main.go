@@ -36,8 +36,11 @@ import (
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
+	"github.com/autobrr/autobrr/pkg/sqlite3store"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
+	"github.com/alexedwards/scs/postgresstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/asaskevich/EventBus"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
@@ -95,7 +98,12 @@ func main() {
 	bus := EventBus.New()
 
 	// open database connection
-	db, _ := database.NewDB(cfg.Config, log)
+	db, err := database.NewDB(cfg.Config, log)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not initialize database")
+	}
+	defer db.Close()
+
 	if err := db.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
@@ -107,6 +115,13 @@ func main() {
 	log.Info().Msgf("Log-level: %s", cfg.Config.LogLevel)
 	log.Info().Msgf("Using database: %s", db.Driver)
 	log.Debug().Msgf("GOMEMLIMIT: %d bytes", memLimit)
+
+	// session manager
+	sessionManager := scs.New()
+	sessionManager.Store = sqlite3store.New(db)
+	if db.Driver == "postgres" {
+		sessionManager.Store = postgresstore.New(db.Handler)
+	}
 
 	// setup repos
 	var (
@@ -152,27 +167,29 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(
-			log,
-			cfg,
-			serverEvents,
-			db,
-			version,
-			commit,
-			date,
-			actionService,
-			apiService,
-			authService,
-			downloadClientService,
-			filterService,
-			feedService,
-			indexerService,
-			ircService,
-			listService,
-			notificationService,
-			proxyService,
-			releaseService,
-			updateService,
+		httpServer := http.NewServer(http.Deps{
+			Log:                   log,
+			SSE:                   serverEvents,
+			DB:                    db,
+			Config:                cfg,
+			SessionManager:        sessionManager,
+			Version:               version,
+			Commit:                commit,
+			Date:                  date,
+			ActionService:         actionService,
+			ApiService:            apiService,
+			AuthService:           authService,
+			DownloadClientService: downloadClientService,
+			FilterService:         filterService,
+			FeedService:           feedService,
+			IndexerService:        indexerService,
+			IrcService:            ircService,
+			ListService:           listService,
+			NotificationService:   notificationService,
+			ProxyService:          proxyService,
+			ReleaseService:        releaseService,
+			UpdateService:         updateService,
+		},
 		)
 		errorChannel <- httpServer.Open()
 	}()

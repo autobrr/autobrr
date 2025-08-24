@@ -9,16 +9,20 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
+
+var oidcStateKey = "oidc_state"
 
 type OIDCConfig struct {
 	Enabled             bool
@@ -36,7 +40,11 @@ type OIDCHandler struct {
 	verifier    *oidc.IDTokenVerifier
 	oauthConfig *oauth2.Config
 	log         zerolog.Logger
+
 	cookieStore *sessions.CookieStore
+
+	globalSessionManager *scs.SessionManager
+	oidcSessionManager   *scs.SessionManager
 }
 
 // OIDCClaims represents the claims returned from the OIDC provider
@@ -50,7 +58,7 @@ type OIDCClaims struct {
 	Picture   string `json:"picture"`
 }
 
-func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error) {
+func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger, sessionManager *scs.SessionManager) (*OIDCHandler, error) {
 	log.Debug().
 		Bool("oidc_enabled", cfg.OIDCEnabled).
 		Str("oidc_issuer", cfg.OIDCIssuer).
@@ -133,6 +141,16 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 
 	stateSecret := generateRandomState()
 
+	oidcSessionManager := scs.New()
+
+	// TODO handle postgres
+	//sessionManager.Store = sqlite3store.New(db)
+	sessionManager.Lifetime = 24 * time.Hour * 30
+
+	sessionManager.IdleTimeout = 20 * time.Minute
+	sessionManager.Cookie.Name = "autobrr_oidc_state"
+	sessionManager.Cookie.Persist = true
+
 	handler := &OIDCHandler{
 		log: log,
 		config: &OIDCConfig{
@@ -153,7 +171,9 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 			Endpoint:     provider.Endpoint(),
 			Scopes:       scopes,
 		},
-		cookieStore: sessions.NewCookieStore([]byte(stateSecret)),
+		cookieStore:          sessions.NewCookieStore([]byte(stateSecret)),
+		globalSessionManager: sessionManager,
+		oidcSessionManager:   oidcSessionManager,
 	}
 
 	log.Debug().Msg("OIDC handler initialized successfully")

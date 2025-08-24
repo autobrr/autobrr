@@ -2019,4 +2019,12 @@ CREATE INDEX release_hybrid_index
         	WHERE server = 'irc.rocket-hd.cc'
     	);
 `,
+	`CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
+`,
 }
