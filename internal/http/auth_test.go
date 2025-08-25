@@ -74,6 +74,20 @@ func (a authServiceMock) UpdateUser(ctx context.Context, req domain.UpdateUserRe
 	return nil
 }
 
+func newHttpTestClient() *http.Client {
+	c := &http.Client{}
+
+	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
+	jar, err := cookiejar.New(jarOptions)
+	if err != nil {
+		log.Fatalf("error creating cookiejar: %v", err)
+	}
+
+	c.Jar = jar
+
+	return c
+}
+
 func setupServer(srv Server) chi.Router {
 	r := chi.NewRouter()
 	//r.Use(middleware.Logger)
@@ -130,14 +144,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
@@ -192,14 +199,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
@@ -255,14 +255,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 	testServer := runTestServer(s)
 	defer testServer.Close()
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// validate token
 	resp, err := client.Get(testServer.URL + "/auth/validate")
@@ -312,8 +305,10 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	client := newHttpTestClient()
+
 	// make request
-	resp, err := http.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
+	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		log.Fatalf("Error occurred: %v", err)
 	}
@@ -360,14 +355,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
