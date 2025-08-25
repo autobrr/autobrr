@@ -42,25 +42,16 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 				return
 			}
 
-			// Check session expiry and extend if needed
-			//if created := s.sessionManager.GetInt64(r.Context(), "created"); created > 0 {
-			//	// created is a unix timestamp, get session lifetime from manager
-			//	expires := time.Unix(created, 0).Add(s.sessionManager.Lifetime)
-			//
-			//	if time.Until(expires) <= 7*24*time.Hour { // 7 days
-			//		s.log.Trace().Msgf("Session is expiring in less than 7 days on %s - extending session", expires.Format("2006-01-02 15:04:05"))
-			//
-			//		if err := s.sessionManager.RenewToken(r.Context()); err != nil {
-			//			s.log.Error().Err(err).Msgf("Auth: Failed to renew session token for username: [%s] ip: %s", s.sessionManager.GetString(r.Context(), "username"), r.RemoteAddr)
-			//			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			//			return
-			//		}
-			//		s.sessionManager.Put(r.Context(), "created", time.Now().Unix())
-			//	}
-			//}
+			deadline := s.sessionManager.Deadline(r.Context())
+			if time.Until(deadline) <= 7*24*time.Hour {
+				s.log.Trace().Msgf("session is expiring in less than 7 days on %s - extending session", deadline.Format("2006-01-02 15:04:05"))
 
-			//ctx := context.WithValue(r.Context(), "session", "")
-			//r = r.WithContext(ctx)
+				if err := s.sessionManager.RenewToken(r.Context()); err != nil {
+					s.log.Error().Err(err).Msgf("Auth: Failed to renew session token for username: [%s] ip: %s", s.sessionManager.GetString(r.Context(), "username"), r.RemoteAddr)
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					return
+				}
+			}
 		}
 
 		next.ServeHTTP(w, r)
