@@ -236,7 +236,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
 
       - name: Merge Profiles
         run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
