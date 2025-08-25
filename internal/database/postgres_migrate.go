@@ -570,10 +570,10 @@ CREATE TABLE list_filter
 CREATE TABLE sessions (
     token TEXT PRIMARY KEY,
     data BYTEA NOT NULL,
-    expiry TIMESTAMP NOT NULL
+    expiry TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX sessions_expiry_idx ON sessions(expiry);
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 `
 
 var postgresMigrations = []string{
@@ -1385,9 +1385,9 @@ CREATE INDEX release_hybrid_index
 	`CREATE TABLE sessions (
     token TEXT PRIMARY KEY,
     data BYTEA NOT NULL,
-    expiry TIMESTAMP NOT NULL
+    expiry TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX sessions_expiry_idx ON sessions(expiry);
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 `,
 }
