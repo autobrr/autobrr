@@ -16,7 +16,6 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/gorilla/sessions"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
@@ -28,7 +27,6 @@ type Server struct {
 	db  DatabaseHealth
 
 	config         *config.AppConfig
-	cookieStore    *sessions.CookieStore
 	sessionManager *scs.SessionManager
 
 	version string
@@ -96,7 +94,6 @@ func NewServer(deps Deps) Server {
 		commit:  deps.Commit,
 		date:    deps.Date,
 
-		cookieStore:    sessions.NewCookieStore([]byte(deps.Config.Config.SessionSecret)),
 		sessionManager: sessionManager,
 
 		actionService:         deps.ActionService,
