@@ -6,17 +6,14 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 )
 
@@ -34,7 +31,7 @@ type authHandler struct {
 	service        authService
 	server         Server
 	sessionManager *scs.SessionManager
-	oidcHandler    *auth.OIDCHandler
+	oidcHandler    *OIDCHandler
 }
 
 func newAuthHandler(encoder encoder, log zerolog.Logger, server Server, config *domain.Config, sessionManager *scs.SessionManager, service authService) *authHandler {
@@ -48,7 +45,7 @@ func newAuthHandler(encoder encoder, log zerolog.Logger, server Server, config *
 	}
 
 	if config.OIDCEnabled {
-		oidcHandler, err := auth.NewOIDCHandler(config, log, h.sessionManager)
+		oidcHandler, err := NewOIDCHandler(encoder, log, config, sessionManager)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to initialize OIDC handler")
 		}
@@ -63,12 +60,8 @@ func (h *authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
-	if h.config.OIDCEnabled {
-		r.Route("/oidc", func(r chi.Router) {
-			r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
-			r.Get("/config", h.getOIDCConfig)
-			r.Get("/callback", h.handleOIDCCallback)
-		})
+	if h.config.OIDCEnabled && h.oidcHandler != nil {
+		r.Route("/oidc", h.oidcHandler.Routes)
 	}
 
 	// Group for authenticated routes
@@ -223,90 +216,4 @@ func (h *authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 
 	// send response as ok
 	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
-}
-
-func (h *authHandler) getOIDCConfig(w http.ResponseWriter, r *http.Request) {
-	h.log.Debug().Msg("getting OIDC config")
-
-	if h.oidcHandler == nil {
-		h.log.Debug().Msg("OIDC handler is nil, returning disabled config")
-		h.encoder.StatusResponse(w, http.StatusOK, auth.GetConfigResponse{
-			Enabled: false,
-		})
-		return
-	}
-
-	// Get the config first
-	config := h.oidcHandler.GetConfigResponse()
-
-	// Check for existing session
-	authenticated := h.sessionManager.GetBool(r.Context(), "authenticated")
-	if authenticated {
-		h.log.Debug().Msg("user already has valid session, skipping OIDC state cookie")
-		// Still return enabled=true, just don't set the cookie
-		h.encoder.StatusResponse(w, http.StatusOK, config)
-		return
-	}
-
-	h.log.Debug().Bool("enabled", config.Enabled).Str("authorization_url", config.AuthorizationURL).Str("state", config.State).Msg("returning OIDC config")
-
-	// Only set state cookie if user is not already authenticated
-	h.oidcHandler.SetStateCookie(w, r, config.State)
-
-	h.encoder.StatusResponse(w, http.StatusOK, config)
-}
-
-func (h *authHandler) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
-	if h.oidcHandler == nil {
-		h.encoder.StatusError(w, http.StatusServiceUnavailable, errors.New("OIDC not configured"))
-		return
-	}
-
-	claims, err := h.oidcHandler.HandleCallback(w, r)
-	if err != nil {
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.Wrap(err, "OIDC authentication failed"))
-		return
-	}
-
-	// Create new session
-	if err := h.sessionManager.RenewToken(r.Context()); err != nil {
-		h.log.Error().Err(err).Msgf("Auth: Failed to renew session token for username: [%s] ip: %s", claims.Username, r.RemoteAddr)
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not renew session token"))
-		return
-	}
-
-	// Set cookie options
-	h.sessionManager.Cookie.HttpOnly = true
-	h.sessionManager.Cookie.SameSite = http.SameSiteLaxMode
-	h.sessionManager.Cookie.Path = h.config.BaseURL
-
-	// If forwarded protocol is https then set cookie secure
-	if r.Header.Get("X-Forwarded-Proto") == "https" {
-		h.sessionManager.Cookie.Secure = true
-		h.sessionManager.Cookie.SameSite = http.SameSiteStrictMode
-	}
-
-	// Set session values using sessionManager
-	// Set user as authenticated
-	h.sessionManager.Put(r.Context(), "authenticated", true)
-	h.sessionManager.Put(r.Context(), "username", claims.Username)
-	h.sessionManager.Put(r.Context(), "created", time.Now().Unix())
-	h.sessionManager.Put(r.Context(), "auth_method", "oidc")
-	h.sessionManager.Put(r.Context(), "profile_picture", claims.Picture)
-
-	// Redirect to the frontend
-	frontendURL := h.config.BaseURL
-	if frontendURL == "/" {
-		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-			host := r.Header.Get("X-Forwarded-Host")
-			if host == "" {
-				host = r.Host
-			}
-			frontendURL = fmt.Sprintf("%s://%s", proto, host)
-		}
-	}
-
-	h.log.Debug().Str("redirect_url", frontendURL).Str("x_forwarded_proto", r.Header.Get("X-Forwarded-Proto")).Str("x_forwarded_host", r.Header.Get("X-Forwarded-Host")).Str("host", r.Host).Msg("redirecting to frontend after OIDC callback")
-
-	http.Redirect(w, r, frontendURL, http.StatusFound)
 }
