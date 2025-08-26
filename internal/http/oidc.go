@@ -319,6 +319,7 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.sessionManager.Put(r.Context(), "created", time.Now().Unix())
 	h.sessionManager.Put(r.Context(), "auth_method", "oidc")
 	h.sessionManager.Put(r.Context(), "profile_picture", claims.Picture)
+	h.sessionManager.RememberMe(r.Context(), true)
 
 	// Redirect to the frontend
 	frontendURL := h.config.BaseURL
