@@ -33,6 +33,7 @@
     "@tanstack/react-query": "^5.84.1",
     "@tanstack/react-query-devtools": "^5.29.2",
     "@tanstack/react-router": "^1.130.10",
+    "@tanstack/react-router-devtools": "^1.131.28",
     "@tanstack/react-table": "^8.21.3",
     "@types/node": "^22.17.0",
     "@types/react": "^19.1.9",
@@ -64,7 +65,6 @@
   "devDependencies": {
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
     "@rollup/wasm-node": "^4.46.2",
-    "@tanstack/router-devtools": "^1.130.10",
     "@types/node": "^22.17.0",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
