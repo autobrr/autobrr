@@ -38,32 +38,122 @@ type DownloadClient struct {
 }
 
 func (c DownloadClient) MarshalJSON() ([]byte, error) {
-	type Alias DownloadClient
+	// Manually create redacted settings
+	var redactedSettings *DownloadClientSettings
+	if c.Settings != (DownloadClientSettings{}) {
+		redactedSettings = &DownloadClientSettings{
+			APIKey:                   RedactString(c.Settings.APIKey),
+			Rules:                    c.Settings.Rules,
+			ExternalDownloadClientId: c.Settings.ExternalDownloadClientId,
+			ExternalDownloadClient:   c.Settings.ExternalDownloadClient,
+			Auth: DownloadClientAuth{
+				Enabled:  c.Settings.Auth.Enabled,
+				Type:     c.Settings.Auth.Type,
+				Username: c.Settings.Auth.Username,
+				Password: RedactString(c.Settings.Auth.Password),
+			},
+			Basic: BasicAuth{
+				Auth:     c.Settings.Basic.Auth,
+				Username: c.Settings.Basic.Username,
+				Password: RedactString(c.Settings.Basic.Password),
+			},
+		}
+	}
+
+	// Create the JSON structure with redacted fields
 	return json.Marshal(&struct {
-		*Alias
-		Password string `json:"password"`
+		ID            int32                   `json:"id"`
+		Name          string                  `json:"name"`
+		Type          DownloadClientType      `json:"type"`
+		Enabled       bool                    `json:"enabled"`
+		Host          string                  `json:"host"`
+		Port          int                     `json:"port"`
+		TLS           bool                    `json:"tls"`
+		TLSSkipVerify bool                    `json:"tls_skip_verify"`
+		Username      string                  `json:"username"`
+		Password      string                  `json:"password"`
+		Settings      *DownloadClientSettings `json:"settings,omitempty"`
 	}{
-		Password: RedactString(c.Password),
-		Alias:    (*Alias)(&c),
+		ID:            c.ID,
+		Name:          c.Name,
+		Type:          c.Type,
+		Enabled:       c.Enabled,
+		Host:          c.Host,
+		Port:          c.Port,
+		TLS:           c.TLS,
+		TLSSkipVerify: c.TLSSkipVerify,
+		Username:      c.Username,
+		Password:      RedactString(c.Password),
+		Settings:      redactedSettings,
 	})
 }
 
 func (c *DownloadClient) UnmarshalJSON(data []byte) error {
-	type Alias DownloadClient
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(c),
+	// Temporary struct for unmarshaling
+	var temp struct {
+		ID            int32                   `json:"id"`
+		Name          string                  `json:"name"`
+		Type          DownloadClientType      `json:"type"`
+		Enabled       bool                    `json:"enabled"`
+		Host          string                  `json:"host"`
+		Port          int                     `json:"port"`
+		TLS           bool                    `json:"tls"`
+		TLSSkipVerify bool                    `json:"tls_skip_verify"`
+		Username      string                  `json:"username"`
+		Password      string                  `json:"password"`
+		Settings      *DownloadClientSettings `json:"settings,omitempty"`
 	}
 
-	if err := json.Unmarshal(data, aux); err != nil {
+	if err := json.Unmarshal(data, &temp); err != nil {
 		return err
 	}
 
-	// If the password appears to be redacted, don't overwrite the existing value
-	if isRedactedValue(c.Password) {
-		// Keep the original password by not updating it
-		return nil
+	// Copy non-secret fields
+	c.ID = temp.ID
+	c.Name = temp.Name
+	c.Type = temp.Type
+	c.Enabled = temp.Enabled
+	c.Host = temp.Host
+	c.Port = temp.Port
+	c.TLS = temp.TLS
+	c.TLSSkipVerify = temp.TLSSkipVerify
+	c.Username = temp.Username
+
+	// Handle password - don't overwrite if redacted
+	if !isRedactedValue(temp.Password) {
+		c.Password = temp.Password
+	}
+
+	// Handle settings - check for redacted values in nested fields
+	if temp.Settings != nil {
+		if c.Settings == (DownloadClientSettings{}) {
+			c.Settings = DownloadClientSettings{}
+		}
+
+		// Handle APIKey
+		if !isRedactedValue(temp.Settings.APIKey) {
+			c.Settings.APIKey = temp.Settings.APIKey
+		}
+
+		// Copy non-secret fields
+		c.Settings.Rules = temp.Settings.Rules
+		c.Settings.ExternalDownloadClientId = temp.Settings.ExternalDownloadClientId
+		c.Settings.ExternalDownloadClient = temp.Settings.ExternalDownloadClient
+
+		// Handle Auth passwords
+		c.Settings.Auth.Enabled = temp.Settings.Auth.Enabled
+		c.Settings.Auth.Type = temp.Settings.Auth.Type
+		c.Settings.Auth.Username = temp.Settings.Auth.Username
+		if !isRedactedValue(temp.Settings.Auth.Password) {
+			c.Settings.Auth.Password = temp.Settings.Auth.Password
+		}
+
+		// Handle Basic auth passwords
+		c.Settings.Basic.Auth = temp.Settings.Basic.Auth
+		c.Settings.Basic.Username = temp.Settings.Basic.Username
+		if !isRedactedValue(temp.Settings.Basic.Password) {
+			c.Settings.Basic.Password = temp.Settings.Basic.Password
+		}
 	}
 
 	return nil
@@ -86,17 +176,15 @@ func (dcs *DownloadClientSettings) MarshalJSON() ([]byte, error) {
 			Enabled:  dcs.Basic.Auth,
 			Type:     DownloadClientAuthTypeBasic,
 			Username: dcs.Basic.Username,
-			Password: RedactString(dcs.Basic.Password),
+			Password: dcs.Basic.Password,
 		}
 	}
 
 	type Alias DownloadClientSettings
 	return json.Marshal(&struct {
 		*Alias
-		APIKey string `json:"apikey,omitempty"`
 	}{
-		APIKey: RedactString(dcs.APIKey),
-		Alias:  (*Alias)(dcs),
+		Alias: (*Alias)(dcs),
 	})
 }
 
@@ -123,10 +211,6 @@ func (dcs *DownloadClientSettings) UnmarshalJSON(data []byte) error {
 		}
 	}
 
-	if isRedactedValue(aux.APIKey) {
-		return nil
-	}
-
 	return nil
 }
 
@@ -145,37 +229,37 @@ type DownloadClientAuth struct {
 	Password string                 `json:"password,omitempty"`
 }
 
-func (d DownloadClientAuth) MarshalJSON() ([]byte, error) {
-	type Alias DownloadClientAuth
-	return json.Marshal(&struct {
-		*Alias
-		Password string `json:"password,omitempty"`
-	}{
-		Password: RedactString(d.Password),
-		Alias:    (*Alias)(&d),
-	})
-}
-
-func (d *DownloadClientAuth) UnmarshalJSON(data []byte) error {
-	type Alias DownloadClientAuth
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(d),
-	}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-
-	// If the password appears to be redacted, don't overwrite the existing value
-	if isRedactedValue(d.Password) {
-		// Keep the original password by not updating it
-		return nil
-	}
-
-	return nil
-}
+//func (d DownloadClientAuth) MarshalJSON() ([]byte, error) {
+//	type Alias DownloadClientAuth
+//	return json.Marshal(&struct {
+//		*Alias
+//		Password string `json:"password,omitempty"`
+//	}{
+//		Password: RedactString(d.Password),
+//		Alias:    (*Alias)(&d),
+//	})
+//}
+//
+//func (d *DownloadClientAuth) UnmarshalJSON(data []byte) error {
+//	type Alias DownloadClientAuth
+//	aux := &struct {
+//		*Alias
+//	}{
+//		Alias: (*Alias)(d),
+//	}
+//
+//	if err := json.Unmarshal(data, aux); err != nil {
+//		return err
+//	}
+//
+//	// If the password appears to be redacted, don't overwrite the existing value
+//	if isRedactedValue(d.Password) {
+//		// Keep the original password by not updating it
+//		return nil
+//	}
+//
+//	return nil
+//}
 
 type DownloadClientRules struct {
 	Enabled                     bool                        `json:"enabled"`
@@ -192,37 +276,37 @@ type BasicAuth struct {
 	Password string `json:"password,omitempty"`
 }
 
-func (b BasicAuth) MarshalJSON() ([]byte, error) {
-	type Alias BasicAuth
-	return json.Marshal(&struct {
-		*Alias
-		Password string `json:"password,omitempty"`
-	}{
-		Password: RedactString(b.Password),
-		Alias:    (*Alias)(&b),
-	})
-}
-
-func (b *BasicAuth) UnmarshalJSON(data []byte) error {
-	type Alias BasicAuth
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(b),
-	}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-
-	// If the password appears to be redacted, don't overwrite the existing value
-	if isRedactedValue(b.Password) {
-		// Keep the original password by not updating it
-		return nil
-	}
-
-	return nil
-}
+//func (b BasicAuth) MarshalJSON() ([]byte, error) {
+//	type Alias BasicAuth
+//	return json.Marshal(&struct {
+//		*Alias
+//		Password string `json:"password,omitempty"`
+//	}{
+//		Password: RedactString(b.Password),
+//		Alias:    (*Alias)(&b),
+//	})
+//}
+//
+//func (b *BasicAuth) UnmarshalJSON(data []byte) error {
+//	type Alias BasicAuth
+//	aux := &struct {
+//		*Alias
+//	}{
+//		Alias: (*Alias)(b),
+//	}
+//
+//	if err := json.Unmarshal(data, aux); err != nil {
+//		return err
+//	}
+//
+//	// If the password appears to be redacted, don't overwrite the existing value
+//	if isRedactedValue(b.Password) {
+//		// Keep the original password by not updating it
+//		return nil
+//	}
+//
+//	return nil
+//}
 
 type IgnoreSlowTorrentsCondition string
 
