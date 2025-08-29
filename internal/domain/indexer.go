@@ -6,7 +6,9 @@ package domain
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/url"
+	"strings"
 	"text/template"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -38,6 +40,89 @@ type Indexer struct {
 	Proxy              *Proxy            `json:"proxy"`
 	ProxyID            int64             `json:"proxy_id"`
 	Settings           map[string]string `json:"settings,omitempty"`
+}
+
+func (i Indexer) MarshalJSON() ([]byte, error) {
+	// Define secret keys that should be redacted
+	secretKeys := map[string]bool{
+		"rsskey":       true,
+		"rss_key":      true,
+		"passkey":      true,
+		"authkey":      true,
+		"torrentpass":  true,
+		"torrent_pass": true,
+		"api_key":      true,
+		"apikey":       true,
+		"uid":          true,
+		"key":          true,
+		"token":        true,
+		"cookie":       true,
+	}
+
+	// Create a copy of the settings map with redacted secrets
+	redactedSettings := make(map[string]string)
+	for key, value := range i.Settings {
+		if secretKeys[strings.ToLower(key)] {
+			redactedSettings[key] = RedactString(value)
+		} else {
+			redactedSettings[key] = value
+		}
+	}
+
+	// Create alias type to avoid infinite recursion
+	type Alias Indexer
+	return json.Marshal(&struct {
+		*Alias
+		Settings map[string]string `json:"settings,omitempty"`
+	}{
+		Settings: redactedSettings,
+		Alias:    (*Alias)(&i),
+	})
+}
+
+func (i *Indexer) UnmarshalJSON(data []byte) error {
+	// Define secret keys that should be checked
+	secretKeys := map[string]bool{
+		"rsskey":       true,
+		"rss_key":      true,
+		"passkey":      true,
+		"authkey":      true,
+		"torrentpass":  true,
+		"torrent_pass": true,
+		"api_key":      true,
+		"apikey":       true,
+		"uid":          true,
+		"key":          true,
+		"token":        true,
+		"cookie":       true,
+	}
+
+	// Create alias type to avoid infinite recursion
+	type Alias Indexer
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(i),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// Filter out redacted values from settings
+	if i.Settings != nil {
+		for key, value := range i.Settings {
+			if secretKeys[strings.ToLower(key)] {
+				// If the value is all stars, remove it from the map
+				// so it doesn't overwrite the existing value in the database
+				if isRedactedValue(value) {
+					delete(i.Settings, key)
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (i Indexer) ImplementationIsFeed() bool {
@@ -180,6 +265,23 @@ type IndexerSetting struct {
 	Description string `json:"description,omitempty"`
 	Help        string `json:"help,omitempty"`
 	Regex       string `json:"regex,omitempty"`
+}
+
+func (is IndexerSetting) MarshalJSON() ([]byte, error) {
+	type Alias IndexerSetting
+
+	redactedValue := is.Value
+	if strings.ToLower(is.Type) == "secret" {
+		redactedValue = RedactString(is.Value)
+	}
+
+	return json.Marshal(&struct {
+		*Alias
+		Value string `json:"value,omitempty"`
+	}{
+		Value: redactedValue,
+		Alias: (*Alias)(&is),
+	})
 }
 
 type Torznab struct {

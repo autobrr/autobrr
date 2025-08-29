@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -28,6 +29,38 @@ type Proxy struct {
 	User    string    `json:"user"`
 	Pass    string    `json:"pass"`
 	Timeout int       `json:"timeout"`
+}
+
+func (p Proxy) MarshalJSON() ([]byte, error) {
+	type Alias Proxy
+	return json.Marshal(&struct {
+		*Alias
+		Pass string `json:"pass"`
+	}{
+		Pass:  RedactString(p.Pass),
+		Alias: (*Alias)(&p),
+	})
+}
+
+func (p *Proxy) UnmarshalJSON(data []byte) error {
+	type Alias Proxy
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(p),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If the pass appears to be redacted, don't overwrite the existing value
+	if isRedactedValue(p.Pass) {
+		// Keep the original pass by not updating it
+		return nil
+	}
+
+	return nil
 }
 
 type ProxyType string

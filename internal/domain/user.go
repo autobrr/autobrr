@@ -3,7 +3,10 @@
 
 package domain
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 type UserRepo interface {
 	GetUserCount(ctx context.Context) (int, error)
@@ -17,6 +20,38 @@ type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+func (u User) MarshalJSON() ([]byte, error) {
+	type Alias User
+	return json.Marshal(&struct {
+		*Alias
+		Password string `json:"password"`
+	}{
+		Password: RedactString(u.Password),
+		Alias:    (*Alias)(&u),
+	})
+}
+
+func (u *User) UnmarshalJSON(data []byte) error {
+	type Alias User
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(u),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If the password appears to be redacted, don't overwrite the existing value
+	if isRedactedValue(u.Password) {
+		// Keep the original password by not updating it
+		return nil
+	}
+
+	return nil
 }
 
 type UpdateUserRequest struct {

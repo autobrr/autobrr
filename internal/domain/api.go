@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -20,4 +21,27 @@ type APIKey struct {
 	Key       string    `json:"key"`
 	Scopes    []string  `json:"scopes"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+func RedactString(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+
+	return strings.Repeat("*", len(s))
+}
+
+// Helper function to check if a value appears to be redacted
+func isRedactedValue(value string) bool {
+	if value == "" {
+		return false
+	}
+
+	// Check if the value is all asterisks
+	for _, char := range value {
+		if char != '*' {
+			return false
+		}
+	}
+	return true
 }

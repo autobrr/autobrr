@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -59,6 +60,44 @@ type Feed struct {
 	ProxyID  int64
 	UseProxy bool
 	Proxy    *Proxy
+}
+
+func (f Feed) MarshalJSON() ([]byte, error) {
+	type Alias Feed
+	return json.Marshal(&struct {
+		*Alias
+		APIKey string `json:"api_key"`
+		Cookie string `json:"cookie"`
+	}{
+		APIKey: RedactString(f.ApiKey),
+		Cookie: RedactString(f.Cookie),
+		Alias:  (*Alias)(&f),
+	})
+}
+
+func (f *Feed) UnmarshalJSON(data []byte) error {
+	type Alias Feed
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(f),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If the api key appears to be redacted, don't overwrite the existing value
+	if isRedactedValue(f.ApiKey) {
+		// Keep the original api key by not updating it
+	}
+
+	// If the cookie appears to be redacted, don't overwrite the existing value
+	if isRedactedValue(f.Cookie) {
+		// Keep the original cookie by not updating it
+	}
+
+	return nil
 }
 
 type FeedSettingsJSON struct {

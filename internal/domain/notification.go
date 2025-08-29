@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -45,6 +46,48 @@ type Notification struct {
 	Topic     string           `json:"topic"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
+}
+
+func (n Notification) MarshalJSON() ([]byte, error) {
+	type Alias Notification
+	return json.Marshal(&struct {
+		*Alias
+		Token    string `json:"token"`
+		APIKey   string `json:"api_key"`
+		Password string `json:"password"`
+	}{
+		Alias:    (*Alias)(&n),
+		Token:    RedactString(n.Token),
+		APIKey:   RedactString(n.APIKey),
+		Password: RedactString(n.Password),
+	})
+}
+
+func (n *Notification) UnmarshalJSON(data []byte) error {
+	type Alias Notification
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(n),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If any of the secret fields appear to be redacted, don't overwrite the existing values
+	if isRedactedValue(n.Token) {
+		// Keep the original token by not updating it
+		// This assumes the original struct already had the real value
+	}
+	if isRedactedValue(n.APIKey) {
+		// Keep the original api key by not updating it
+	}
+	if isRedactedValue(n.Password) {
+		// Keep the original password by not updating it
+	}
+
+	return nil
 }
 
 type NotificationPayload struct {

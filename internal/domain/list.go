@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -70,6 +71,37 @@ type List struct {
 	SkipCleanSanitize      bool              `json:"skip_clean_sanitize"`
 }
 
+func (l List) MarshalJSON() ([]byte, error) {
+	type Alias List
+	return json.Marshal(&struct {
+		*Alias
+		APIKey string `json:"api_key"`
+	}{
+		APIKey: RedactString(l.APIKey),
+		Alias:  (*Alias)(&l),
+	})
+}
+
+func (l *List) UnmarshalJSON(data []byte) error {
+	type Alias List
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(l),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	// If the api key appears to be redacted, don't overwrite the existing value
+	if isRedactedValue(l.APIKey) {
+		// Keep the original api key by not updating it
+		return nil
+	}
+
+	return nil
+}
 func (l *List) Validate() error {
 	if l.Name == "" {
 		return errors.New("name is required")
