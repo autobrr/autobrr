@@ -19,6 +19,12 @@ type User struct {
 	Password string `json:"password"`
 }
 
+type UserLoginRequest struct {
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	RememberMe bool   `json:"remember_me"`
+}
+
 type UpdateUserRequest struct {
 	UsernameCurrent string `json:"username_username"`
 	UsernameNew     string `json:"username_new"`

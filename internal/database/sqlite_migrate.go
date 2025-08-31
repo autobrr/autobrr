@@ -567,6 +567,14 @@ CREATE TABLE list_filter
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );
+
+CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
 `
 
 var sqliteMigrations = []string{
@@ -2018,5 +2026,13 @@ CREATE INDEX release_hybrid_index
         	FROM irc_network 
         	WHERE server = 'irc.rocket-hd.cc'
     	);
+`,
+	`CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
 `,
 }
