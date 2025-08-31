@@ -981,12 +981,12 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}
 
-			defer res.Body.Close()
+			defer sharedhttp.DrainAndClose(res)
 
 			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
 
 			if s.log.Debug().Enabled() {
-				body, err := io.ReadAll(res.Body)
+				body, err := io.ReadAll(io.LimitReader(res.Body, 4096)) // 4KB limit for debug logging
 				if err != nil {
 					return res.StatusCode, errors.Wrap(err, "could not read request body")
 				}

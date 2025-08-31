@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Client interface {
@@ -175,7 +176,7 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 		return nil, errors.Wrap(err, "error during rpc http request")
 	}
 
-	defer httpResponse.Body.Close()
+	defer sharedhttp.DrainAndClose(httpResponse)
 
 	var rpcResponse *RPCResponse
 	decoder := json.NewDecoder(httpResponse.Body)

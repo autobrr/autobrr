@@ -25,6 +25,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -92,7 +93,7 @@ func main() {
 			}
 			os.Exit(1)
 		}
-		defer resp.Body.Close()
+		defer sharedhttp.DrainAndClose(resp)
 
 		// brr-api returns 500 instead of 404 here
 		if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusInternalServerError {

@@ -161,7 +161,7 @@ func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error
 		return errors.Wrap(err, "ptp client request error : %v", reqUrl)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	if res.StatusCode == http.StatusUnauthorized {
 		return ErrUnauthorized
