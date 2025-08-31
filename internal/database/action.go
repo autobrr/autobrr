@@ -86,7 +86,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -204,7 +204,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -516,7 +516,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -615,7 +615,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -676,7 +676,7 @@ func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -696,7 +696,7 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -777,7 +777,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			toNullInt32(action.ClientID),
 			toNullInt32(int32(action.FilterID)),
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	// return values
 	var retID int64
@@ -835,7 +835,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
@@ -845,7 +845,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 }
 
 func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}
@@ -1009,7 +1009,7 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.Exec(query, args...)
+	result, err := r.db.Handler.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

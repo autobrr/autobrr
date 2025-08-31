@@ -799,9 +799,9 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 		releaseRepo := NewReleaseRepo(log, db)
 
 		// reset
-		//db.handler.Exec("DELETE FROM release")
-		//db.handler.Exec("DELETE FROM action")
-		//db.handler.Exec("DELETE FROM release_action_status")
+		//db.Handler.Exec("DELETE FROM release")
+		//db.Handler.Exec("DELETE FROM action")
+		//db.Handler.Exec("DELETE FROM release_action_status")
 
 		mockIndexer := domain.IndexerMinimal{ID: 0, Name: "Mock", Identifier: "mock", IdentifierExternal: "Mock"}
 		actionMock := &domain.Action{Name: "Test", Type: domain.ActionTypeTest, Enabled: true}

@@ -566,6 +566,14 @@ CREATE TABLE list_filter
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );
+
+CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BYTEA NOT NULL,
+    expiry TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 `
 
 var postgresMigrations = []string{
@@ -1373,5 +1381,13 @@ CREATE INDEX release_hybrid_index
         	FROM irc_network 
         	WHERE server = 'irc.rocket-hd.cc'
     	);
+`,
+	`CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BYTEA NOT NULL,
+    expiry TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 `,
 }

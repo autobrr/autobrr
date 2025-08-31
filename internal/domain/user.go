@@ -54,6 +54,12 @@ func (u *User) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type UserLoginRequest struct {
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	RememberMe bool   `json:"remember_me"`
+}
+
 type UpdateUserRequest struct {
 	UsernameCurrent string `json:"username_username"`
 	UsernameNew     string `json:"username_new"`
