@@ -51,7 +51,7 @@ irc:
     type: single
     lines:
       - tests:
-          - line: '[New-upload]-[Movies]-[WEB-DL]-[Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE]-[Size: 4.79 GiB]-[Link: https://darkpeers.org/torrents/1704]'
+          - line: '[New-upload]-[Movies]-[WEB-DL]-[Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE]-[Size: 4.79 GiB]-[Link: https://darkpeers.org/torrents/1704]-[FL: 100%]-[DU: 0]'
             expect:
               announceTypeEnum: New-upload
               category: Movies
@@ -60,8 +60,9 @@ irc:
               torrentSize: 4.79 GiB
               baseUrl: https://darkpeers.org/
               torrentId: "1704"
+              freeLeechPercent: "100"
 
-        pattern: '\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]'
+        pattern: ' \[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]-\[FL: (\d+)\%\]-\[DU: (\d+)\]'
         vars:
           - announceTypeEnum
           - category
@@ -70,6 +71,7 @@ irc:
           - torrentSize
           - baseUrl
           - torrentId
+          - freeLeechPercent
 
     mappings:
       announceTypeEnum:
