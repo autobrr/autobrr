@@ -1390,4 +1390,16 @@ CREATE INDEX release_hybrid_index
 
 CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 `,
+	`UPDATE irc_network
+    SET name = 'ULCX', server = 'irc.upload.cx'
+    WHERE id IN (
+        SELECT network_id 
+        FROM irc_channel 
+        WHERE name = '#ulcx-announce'
+    );
+
+    UPDATE irc_channel
+    SET name = '#announce'
+    WHERE name = '#ulcx-announce';
+`,
 }
