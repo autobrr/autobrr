@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -68,6 +69,17 @@ type List struct {
 	CreatedAt              time.Time         `json:"created_at"`
 	UpdatedAt              time.Time         `json:"updated_at"`
 	SkipCleanSanitize      bool              `json:"skip_clean_sanitize"`
+}
+
+func (l List) MarshalJSON() ([]byte, error) {
+	type Alias List
+	return json.Marshal(&struct {
+		*Alias
+		APIKey string `json:"api_key"`
+	}{
+		APIKey: RedactString(l.APIKey),
+		Alias:  (*Alias)(&l),
+	})
 }
 
 func (l *List) Validate() error {
