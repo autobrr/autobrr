@@ -60,9 +60,9 @@ irc:
               torrentSize: 4.79 GiB
               baseUrl: https://darkpeers.org/
               torrentId: "1704"
-              freeLeechPercent: "100"
+              freeleechPercent: "100"
 
-        pattern: ' \[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]-\[FL: (\d+)\%\]-\[DU: (\d+)\]'
+        pattern: '\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]-\[FL: (\d+)\%\]-\[DU: (\d+)\]'
         vars:
           - announceTypeEnum
           - category
@@ -71,7 +71,7 @@ irc:
           - torrentSize
           - baseUrl
           - torrentId
-          - freeLeechPercent
+          - freeleechPercent
 
     mappings:
       announceTypeEnum:
