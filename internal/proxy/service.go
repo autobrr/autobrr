@@ -62,8 +62,16 @@ func (s *service) Update(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.Wrap(err, "validation error")
 	}
 
-	err := s.repo.Update(ctx, proxy)
+	existingProxy, err := s.repo.FindByID(ctx, proxy.ID)
 	if err != nil {
+		return err
+	}
+
+	if domain.IsRedactedString(proxy.Pass) {
+		proxy.Pass = existingProxy.Pass
+	}
+
+	if err := s.repo.Update(ctx, proxy); err != nil {
 		return err
 	}
 

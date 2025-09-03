@@ -120,6 +120,16 @@ func (s *service) Update(ctx context.Context, list *domain.List) error {
 		return err
 	}
 
+	existingList, err := s.FindByID(ctx, list.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find list by id: %v", list.ID)
+		return err
+	}
+
+	if domain.IsRedactedString(list.APIKey) {
+		list.APIKey = existingList.APIKey
+	}
+
 	if err := s.repo.Update(ctx, list); err != nil {
 		s.log.Error().Err(err).Msgf("could not update list %s", list.Name)
 		return err
