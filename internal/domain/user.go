@@ -33,27 +33,6 @@ func (u User) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (u *User) UnmarshalJSON(data []byte) error {
-	type Alias User
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(u),
-	}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-
-	// If the password appears to be redacted, don't overwrite the existing value
-	if isRedactedValue(u.Password) {
-		// Keep the original password by not updating it
-		return nil
-	}
-
-	return nil
-}
-
 type UserLoginRequest struct {
 	Username   string `json:"username"`
 	Password   string `json:"password"`

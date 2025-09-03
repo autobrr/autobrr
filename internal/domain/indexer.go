@@ -80,51 +80,6 @@ func (i Indexer) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (i *Indexer) UnmarshalJSON(data []byte) error {
-	// Define secret keys that should be checked
-	secretKeys := map[string]bool{
-		"rsskey":       true,
-		"rss_key":      true,
-		"passkey":      true,
-		"authkey":      true,
-		"torrentpass":  true,
-		"torrent_pass": true,
-		"api_key":      true,
-		"apikey":       true,
-		"uid":          true,
-		"key":          true,
-		"token":        true,
-		"cookie":       true,
-	}
-
-	// Create alias type to avoid infinite recursion
-	type Alias Indexer
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(i),
-	}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-
-	// Filter out redacted values from settings
-	if i.Settings != nil {
-		for key, value := range i.Settings {
-			if secretKeys[strings.ToLower(key)] {
-				// If the value is all stars, remove it from the map
-				// so it doesn't overwrite the existing value in the database
-				if isRedactedValue(value) {
-					delete(i.Settings, key)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 func (i Indexer) ImplementationIsFeed() bool {
 	return i.Implementation == "rss" || i.Implementation == "torznab" || i.Implementation == "newznab"
 }

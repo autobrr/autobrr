@@ -75,31 +75,6 @@ func (f Feed) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (f *Feed) UnmarshalJSON(data []byte) error {
-	type Alias Feed
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(f),
-	}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-
-	// If the api key appears to be redacted, don't overwrite the existing value
-	if isRedactedValue(f.ApiKey) {
-		// Keep the original api key by not updating it
-	}
-
-	// If the cookie appears to be redacted, don't overwrite the existing value
-	if isRedactedValue(f.Cookie) {
-		// Keep the original cookie by not updating it
-	}
-
-	return nil
-}
-
 type FeedSettingsJSON struct {
 	DownloadType FeedDownloadType `json:"download_type"`
 }

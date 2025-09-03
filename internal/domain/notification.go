@@ -63,33 +63,6 @@ func (n Notification) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (n *Notification) UnmarshalJSON(data []byte) error {
-	type Alias Notification
-	aux := &struct {
-		*Alias
-	}{
-		Alias: (*Alias)(n),
-	}
-
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-
-	// If any of the secret fields appear to be redacted, don't overwrite the existing values
-	if isRedactedValue(n.Token) {
-		// Keep the original token by not updating it
-		// This assumes the original struct already had the real value
-	}
-	if isRedactedValue(n.APIKey) {
-		// Keep the original api key by not updating it
-	}
-	if isRedactedValue(n.Password) {
-		// Keep the original password by not updating it
-	}
-
-	return nil
-}
-
 type NotificationPayload struct {
 	Subject        string
 	Message        string

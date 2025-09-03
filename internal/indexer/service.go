@@ -122,16 +122,26 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 }
 
 func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
+	}
+
 	// sanitize user input
 	indexer.Name = sanitize.String(indexer.Name)
 
 	for key, val := range indexer.Settings {
-		indexer.Settings[key] = sanitize.String(val)
-	}
+		if domain.IsRedactedString(val) {
+			currentVal, ok := currentIndexer.Settings[key]
+			if !ok {
+				return nil, errors.New("could not find setting in current indexer")
+			}
+			//indexer.Settings[key] = sanitize.String(currentVal)
+			indexer.Settings[key] = currentVal
+			continue
+		}
 
-	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
-	if err != nil {
-		return nil, errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
+		indexer.Settings[key] = sanitize.String(val)
 	}
 
 	// only IRC indexers have baseURL set

@@ -170,9 +170,30 @@ func (s *service) Update(ctx context.Context, client *domain.DownloadClient) err
 		return err
 	}
 
-	// update
-	err := s.repo.Update(ctx, client)
+	existingClient, err := s.FindByID(ctx, client.ID)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find download client by id: %v", client.ID)
+		return err
+	}
+
+	if domain.IsRedactedString(client.Password) {
+		client.Password = existingClient.Password
+	}
+
+	if domain.IsRedactedString(client.Settings.APIKey) {
+		client.Settings.APIKey = existingClient.Settings.APIKey
+	}
+
+	if domain.IsRedactedString(client.Settings.Auth.Password) {
+		client.Settings.Auth.Password = existingClient.Settings.Auth.Password
+	}
+
+	if domain.IsRedactedString(client.Settings.Basic.Password) {
+		client.Settings.Basic.Password = existingClient.Settings.Basic.Password
+	}
+
+	// update
+	if err := s.repo.Update(ctx, client); err != nil {
 		s.log.Error().Err(err).Msgf("could not update download client: %+v", client)
 		return err
 	}

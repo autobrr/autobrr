@@ -88,77 +88,6 @@ func (c DownloadClient) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (c *DownloadClient) UnmarshalJSON(data []byte) error {
-	// Temporary struct for unmarshaling
-	var temp struct {
-		ID            int32                   `json:"id"`
-		Name          string                  `json:"name"`
-		Type          DownloadClientType      `json:"type"`
-		Enabled       bool                    `json:"enabled"`
-		Host          string                  `json:"host"`
-		Port          int                     `json:"port"`
-		TLS           bool                    `json:"tls"`
-		TLSSkipVerify bool                    `json:"tls_skip_verify"`
-		Username      string                  `json:"username"`
-		Password      string                  `json:"password"`
-		Settings      *DownloadClientSettings `json:"settings,omitempty"`
-	}
-
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-
-	// Copy non-secret fields
-	c.ID = temp.ID
-	c.Name = temp.Name
-	c.Type = temp.Type
-	c.Enabled = temp.Enabled
-	c.Host = temp.Host
-	c.Port = temp.Port
-	c.TLS = temp.TLS
-	c.TLSSkipVerify = temp.TLSSkipVerify
-	c.Username = temp.Username
-
-	// Handle password - don't overwrite if redacted
-	if !isRedactedValue(temp.Password) {
-		c.Password = temp.Password
-	}
-
-	// Handle settings - check for redacted values in nested fields
-	if temp.Settings != nil {
-		if c.Settings == (DownloadClientSettings{}) {
-			c.Settings = DownloadClientSettings{}
-		}
-
-		// Handle APIKey
-		if !isRedactedValue(temp.Settings.APIKey) {
-			c.Settings.APIKey = temp.Settings.APIKey
-		}
-
-		// Copy non-secret fields
-		c.Settings.Rules = temp.Settings.Rules
-		c.Settings.ExternalDownloadClientId = temp.Settings.ExternalDownloadClientId
-		c.Settings.ExternalDownloadClient = temp.Settings.ExternalDownloadClient
-
-		// Handle Auth passwords
-		c.Settings.Auth.Enabled = temp.Settings.Auth.Enabled
-		c.Settings.Auth.Type = temp.Settings.Auth.Type
-		c.Settings.Auth.Username = temp.Settings.Auth.Username
-		if !isRedactedValue(temp.Settings.Auth.Password) {
-			c.Settings.Auth.Password = temp.Settings.Auth.Password
-		}
-
-		// Handle Basic auth passwords
-		c.Settings.Basic.Auth = temp.Settings.Basic.Auth
-		c.Settings.Basic.Username = temp.Settings.Basic.Username
-		if !isRedactedValue(temp.Settings.Basic.Password) {
-			c.Settings.Basic.Password = temp.Settings.Basic.Password
-		}
-	}
-
-	return nil
-}
-
 type DownloadClientSettings struct {
 	APIKey                   string              `json:"apikey,omitempty"`
 	Basic                    BasicAuth           `json:"basic,omitempty"` // Deprecated: Use Auth instead
@@ -239,27 +168,6 @@ type DownloadClientAuth struct {
 //		Alias:    (*Alias)(&d),
 //	})
 //}
-//
-//func (d *DownloadClientAuth) UnmarshalJSON(data []byte) error {
-//	type Alias DownloadClientAuth
-//	aux := &struct {
-//		*Alias
-//	}{
-//		Alias: (*Alias)(d),
-//	}
-//
-//	if err := json.Unmarshal(data, aux); err != nil {
-//		return err
-//	}
-//
-//	// If the password appears to be redacted, don't overwrite the existing value
-//	if isRedactedValue(d.Password) {
-//		// Keep the original password by not updating it
-//		return nil
-//	}
-//
-//	return nil
-//}
 
 type DownloadClientRules struct {
 	Enabled                     bool                        `json:"enabled"`
@@ -285,27 +193,6 @@ type BasicAuth struct {
 //		Password: RedactString(b.Password),
 //		Alias:    (*Alias)(&b),
 //	})
-//}
-//
-//func (b *BasicAuth) UnmarshalJSON(data []byte) error {
-//	type Alias BasicAuth
-//	aux := &struct {
-//		*Alias
-//	}{
-//		Alias: (*Alias)(b),
-//	}
-//
-//	if err := json.Unmarshal(data, aux); err != nil {
-//		return err
-//	}
-//
-//	// If the password appears to be redacted, don't overwrite the existing value
-//	if isRedactedValue(b.Password) {
-//		// Keep the original password by not updating it
-//		return nil
-//	}
-//
-//	return nil
 //}
 
 type IgnoreSlowTorrentsCondition string
