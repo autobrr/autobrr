@@ -19,7 +19,6 @@ settings:
     label: Passkey
     help: To be found in the navigation pane under "Your Profile".
 
-
 irc:
   network: Fappaizuri
   server: irc.fappaizuri.me
