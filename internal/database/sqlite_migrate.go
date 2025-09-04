@@ -550,6 +550,7 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
+    include_year             BOOLEAN DEFAULT FALSE,
     skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
@@ -2036,6 +2037,7 @@ CREATE INDEX release_hybrid_index
 CREATE INDEX sessions_expiry_idx ON sessions(expiry);
 `,
 	`
-	ALTER TABLE list ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
+	ALTER TABLE list
+		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
 `,
 }
