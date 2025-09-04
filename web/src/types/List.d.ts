@@ -19,6 +19,7 @@ interface List {
   include_unmonitored: boolean;
   include_alternate_titles: boolean;
   skip_clean_sanitize: boolean;
+  include_year: boolean;
 }
 
 interface ListFilter {
@@ -41,6 +42,7 @@ interface ListCreate {
   include_unmonitored: boolean;
   include_alternate_titles: boolean;
   skip_clean_sanitize: boolean;
+  include_year: boolean;
 }
 
 type ListType =

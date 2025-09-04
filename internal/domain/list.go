@@ -67,6 +67,7 @@ type List struct {
 	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
 	CreatedAt              time.Time         `json:"created_at"`
 	UpdatedAt              time.Time         `json:"updated_at"`
+	IncludeYear            bool              `json:"include_year"`
 	SkipCleanSanitize      bool              `json:"skip_clean_sanitize"`
 }
 
