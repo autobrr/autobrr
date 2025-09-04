@@ -10,6 +10,7 @@ privacy: private
 protocol: torrent
 supports:
   - irc
+  - rss
 # source: TorrentTrader
 settings:
   - name: passkey
