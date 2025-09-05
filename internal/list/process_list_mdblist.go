@@ -58,7 +58,7 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	var filterTitles []string
 	for _, item := range data {
 		title := item.Title
-		if list.IncludeYear && item.ReleaseYear > 0 {
+		if list.IncludeYear && list.MatchRelease && item.ReleaseYear > 0 {
 			title = title + "*" + strconv.Itoa(item.ReleaseYear) + "*"
 		}
 		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
