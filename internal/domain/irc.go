@@ -33,6 +33,17 @@ type IrcChannel struct {
 	Monitoring bool   `json:"monitoring"`
 }
 
+func (ic IrcChannel) MarshalJSON() ([]byte, error) {
+	type Alias IrcChannel
+	return json.Marshal(&struct {
+		*Alias
+		Password string `json:"password"`
+	}{
+		Alias:    (*Alias)(&ic),
+		Password: RedactString(ic.Password),
+	})
+}
+
 type IRCAuthMechanism string
 
 const (
@@ -45,6 +56,17 @@ type IRCAuth struct {
 	Mechanism IRCAuthMechanism `json:"mechanism,omitempty"`
 	Account   string           `json:"account,omitempty"`
 	Password  string           `json:"password,omitempty"`
+}
+
+func (ia IRCAuth) MarshalJSON() ([]byte, error) {
+	type Alias IRCAuth
+	return json.Marshal(&struct {
+		*Alias
+		Password string `json:"password,omitempty"`
+	}{
+		Password: RedactString(ia.Password),
+		Alias:    (*Alias)(&ia),
+	})
 }
 
 type IrcNetwork struct {
@@ -67,6 +89,17 @@ type IrcNetwork struct {
 	Channels       []IrcChannel `json:"channels"`
 	Connected      bool         `json:"connected"`
 	ConnectedSince *time.Time   `json:"connected_since"`
+}
+
+func (in IrcNetwork) MarshalJSON() ([]byte, error) {
+	type Alias IrcNetwork
+	return json.Marshal(&struct {
+		*Alias
+		Pass string `json:"pass"`
+	}{
+		Pass:  RedactString(in.Pass),
+		Alias: (*Alias)(&in),
+	})
 }
 
 type IrcNetworkWithHealth struct {
@@ -95,6 +128,17 @@ type IrcNetworkWithHealth struct {
 	Healthy          bool                `json:"healthy"`
 }
 
+func (in IrcNetworkWithHealth) MarshalJSON() ([]byte, error) {
+	type Alias IrcNetworkWithHealth
+	return json.Marshal(&struct {
+		*Alias
+		Pass string `json:"pass"`
+	}{
+		Pass:  RedactString(in.Pass),
+		Alias: (*Alias)(&in),
+	})
+}
+
 type ChannelWithHealth struct {
 	ID              int64     `json:"id"`
 	Enabled         bool      `json:"enabled"`
@@ -104,6 +148,17 @@ type ChannelWithHealth struct {
 	Monitoring      bool      `json:"monitoring"`
 	MonitoringSince time.Time `json:"monitoring_since"`
 	LastAnnounce    time.Time `json:"last_announce"`
+}
+
+func (cwh ChannelWithHealth) MarshalJSON() ([]byte, error) {
+	type Alias ChannelWithHealth
+	return json.Marshal(&struct {
+		*Alias
+		Password string `json:"password"`
+	}{
+		Password: RedactString(cwh.Password),
+		Alias:    (*Alias)(&cwh),
+	})
 }
 
 type ChannelHealth struct {
