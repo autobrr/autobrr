@@ -608,13 +608,6 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
         </fieldset>
       );
-    case "MDBLIST":
-      return (
-        <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_year" label="Include release year for each title" description="Release year information can be added for each title." />
-        </fieldset>
-      );
   }
 }
 
@@ -846,6 +839,7 @@ function ListTypeMDBList() {
         <fieldset>
           <legend className="sr-only">Settings</legend>
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter. Example: Movie?Title*2024*" />
         </fieldset>
       </div>
     </div>
