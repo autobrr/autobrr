@@ -773,12 +773,6 @@ function ListTypePlainText() {
           <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
         </fieldset>
       </div>
-      <div className="space-y-1">
-        <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_year" label="Include release year for each title" description="Release year information can be added for each title." />
-        </fieldset>
-      </div>
     </div>
   )
 }
