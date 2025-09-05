@@ -40,7 +40,6 @@ type Macro struct {
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
-	CurrenTimeUnixMS          int64 // typo in this one, leave as is
 	CurrentTimeUnixMS         int64
 	CurrentUnixTimeMS         int64
 	Description               string
@@ -121,7 +120,6 @@ func NewMacro(release Release) Macro {
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
-		CurrenTimeUnixMS:          currentTime.UnixMilli(),
 		CurrentTimeUnixMS:         currentTime.UnixMilli(),
 		CurrentUnixTimeMS:         currentTime.UnixMilli(),
 		Description:               release.Description,
