@@ -9,7 +9,7 @@ import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { Form, Formik, useFormikContext } from "formik";
 import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
-import { toFormikValidationSchema } from "@app/pkg/zod-formik-adapter";
+import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 
 import { APIClient } from "@api/APIClient";
@@ -210,7 +210,7 @@ const actionSchema = z.object({
     if (!value.client_id) {
       ctx.addIssue({
         message: "Must select client",
-        code: "custom",
+        code: z.ZodIssueCode.custom,
         path: ["client_id"]
       });
     }
@@ -237,7 +237,7 @@ const externalFilterSchema = z.object({
   if (!value.name) {
     ctx.addIssue({
       message: "Must have a name",
-      code: "custom",
+      code: z.ZodIssueCode.custom,
       path: ["name"]
     });
   }
@@ -246,21 +246,21 @@ const externalFilterSchema = z.object({
     if (!value.webhook_method) {
       ctx.addIssue({
         message: "Must select method",
-        code: "custom",
+        code: z.ZodIssueCode.custom,
         path: ["webhook_method"]
       });
     }
     if (!value.webhook_host) {
       ctx.addIssue({
         message: "Must have webhook host",
-        code: "custom",
+        code: z.ZodIssueCode.custom,
         path: ["webhook_host"]
       });
     }
     if (!value.webhook_expect_status) {
       ctx.addIssue({
         message: "Must have webhook expect status",
-        code: "custom",
+        code: z.ZodIssueCode.custom,
         path: ["webhook_expect_status"]
       });
     }
@@ -270,7 +270,7 @@ const externalFilterSchema = z.object({
     if (!value.exec_cmd) {
       ctx.addIssue({
         message: "Must have exec cmd",
-        code: "custom",
+        code: z.ZodIssueCode.custom,
         path: ["exec_cmd"]
       });
     }
@@ -295,7 +295,7 @@ const schema = z.object({
     if (!value.max_downloads_unit) {
       ctx.addIssue({
         message: "Must select Max Downloads Per unit when Max Downloads is greater than 0",
-        code: "custom",
+        code: z.ZodIssueCode.custom,
         path: ["max_downloads_unit"]
       });
     }
