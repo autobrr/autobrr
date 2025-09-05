@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -56,18 +55,12 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 
 	var data []struct {
 		Title string `json:"title"`
-		Year  int    `json:"year"`
 		Movie struct {
 			Title string `json:"title"`
-			Year  int    `json:"year"`
 		} `json:"movie"`
 		Show struct {
 			Title string `json:"title"`
-			Year  int    `json:"year"`
 		} `json:"show"`
-		List struct {
-			Name string `json:"name"`
-		} `json:"list"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -75,28 +68,13 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 	}
 
 	var titles []string
-
 	for _, item := range data {
-		if item.Title != "" {
-			title := item.Title
-			if list.IncludeYear && list.MatchRelease && item.Year > 0 {
-				title = title + "*" + strconv.Itoa(item.Year) + "*"
-			}
-			titles = append(titles, title)
-		}
+		titles = append(titles, item.Title)
 		if item.Movie.Title != "" {
-			title := item.Movie.Title
-			if list.IncludeYear && list.MatchRelease && item.Movie.Year > 0 {
-				title = title + "*" + strconv.Itoa(item.Movie.Year) + "*"
-			}
-			titles = append(titles, title)
+			titles = append(titles, item.Movie.Title)
 		}
 		if item.Show.Title != "" {
-			title := item.Show.Title
-			if list.IncludeYear && list.MatchRelease && item.Show.Year > 0 {
-				title = title + "*" + strconv.Itoa(item.Show.Year) + "*"
-			}
-			titles = append(titles, title)
+			titles = append(titles, item.Show.Title)
 		}
 	}
 

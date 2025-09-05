@@ -690,7 +690,6 @@ function ListTypeTrakt() {
         <fieldset>
           <legend className="sr-only">Settings</legend>
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
-          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter. Example: Movie?Title*2024*" />
         </fieldset>
       </div>
     </div>
@@ -839,7 +838,7 @@ function ListTypeMDBList() {
         <fieldset>
           <legend className="sr-only">Settings</legend>
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
-          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter. Example: Movie?Title*2024*" />
+          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter for movies. It requires Match Releases enabled. Example: Movie?Title?2024*" />
         </fieldset>
       </div>
     </div>
