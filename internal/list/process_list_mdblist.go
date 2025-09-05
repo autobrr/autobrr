@@ -49,6 +49,7 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	var data []struct {
 		Title       string `json:"title"`
 		ReleaseYear int    `json:"release_year"`
+		MediaType   string `json:"mediatype"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -58,7 +59,7 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	var filterTitles []string
 	for _, item := range data {
 		title := item.Title
-		if list.IncludeYear && list.MatchRelease && item.ReleaseYear > 0 {
+		if list.IncludeYear && list.MatchRelease && item.ReleaseYear > 0 && item.MediaType == "movie" {
 			title = title + "*" + strconv.Itoa(item.ReleaseYear) + "*"
 		}
 		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
