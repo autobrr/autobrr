@@ -47,6 +47,13 @@ irc:
       label: NickServ Password
       help: NickServ password
 
+    - name: invite_command
+      type: secret
+      default: "Fapster !auth IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with Fapster. Replace IRCKEY. 
+
   parse:
     type: single
     lines:
