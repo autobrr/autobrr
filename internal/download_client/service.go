@@ -220,6 +220,28 @@ func (s *service) Test(ctx context.Context, client domain.DownloadClient) error 
 		return err
 	}
 
+	// check for existing client to get settings from
+	if client.ID > 0 {
+		existingClient, err := s.FindByID(ctx, client.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not find download client by id: %v", client.ID)
+			return err
+		}
+
+		if domain.IsRedactedString(client.Password) {
+			client.Password = existingClient.Password
+		}
+		if domain.IsRedactedString(client.Settings.APIKey) {
+			client.Settings.APIKey = existingClient.Settings.APIKey
+		}
+		if domain.IsRedactedString(client.Settings.Auth.Password) {
+			client.Settings.Auth.Password = existingClient.Settings.Auth.Password
+		}
+		if domain.IsRedactedString(client.Settings.Basic.Password) {
+			client.Settings.Basic.Password = existingClient.Settings.Basic.Password
+		}
+	}
+
 	// test
 	if err := s.testConnection(ctx, client); err != nil {
 		s.log.Error().Err(err).Msg("client connection test error")
