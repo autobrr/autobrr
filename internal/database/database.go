@@ -18,6 +18,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	DriverSQLite   = "sqlite"
+	DriverPostgres = "postgres"
+)
+
 type DB struct {
 	log     zerolog.Logger
 	Handler *sql.DB
@@ -45,11 +50,11 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 	// Check for directly configured DSN in config
 	if cfg.DatabaseDSN != "" {
 		if strings.HasPrefix(cfg.DatabaseDSN, "postgres://") || strings.HasPrefix(cfg.DatabaseDSN, "postgresql://") {
-			db.Driver = "postgres"
+			db.Driver = DriverPostgres
 			db.DSN = cfg.DatabaseDSN
 			return db, nil
 		} else if strings.HasPrefix(cfg.DatabaseDSN, "file:") || cfg.DatabaseDSN == ":memory:" || strings.HasSuffix(cfg.DatabaseDSN, ".db") {
-			db.Driver = "sqlite"
+			db.Driver = DriverSQLite
 			if strings.HasPrefix(cfg.DatabaseDSN, "file:") && strings.HasSuffix(cfg.DatabaseDSN, ".db") {
 				db.DSN = strings.TrimPrefix(cfg.DatabaseDSN, "file:")
 			} else {
@@ -63,15 +68,15 @@ func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
 
 	// If no direct DSN is provided, build it from individual settings
 	switch cfg.DatabaseType {
-	case "sqlite":
-		db.Driver = "sqlite"
+	case DriverSQLite:
+		db.Driver = DriverSQLite
 		if os.Getenv("IS_TEST_ENV") == "true" {
 			db.DSN = ":memory:"
 		} else {
 			db.DSN = dataSourceName(cfg.ConfigPath, "autobrr.db")
 		}
-	case "postgres":
-		db.Driver = "postgres"
+	case DriverPostgres:
+		db.Driver = DriverPostgres
 
 		// If no database-specific settings are provided, return an error
 		if cfg.PostgresDatabase == "" && cfg.DatabaseDSN == "" {
@@ -99,12 +104,12 @@ func (db *DB) Open() error {
 	var err error
 
 	switch db.Driver {
-	case "sqlite":
+	case DriverSQLite:
 		if err = db.openSQLite(); err != nil {
 			db.log.Fatal().Err(err).Msg("could not open sqlite db connection")
 			return err
 		}
-	case "postgres":
+	case DriverPostgres:
 		if err = db.openPostgres(); err != nil {
 			db.log.Fatal().Err(err).Msg("could not open postgres db connection")
 			return err
@@ -116,11 +121,11 @@ func (db *DB) Open() error {
 
 func (db *DB) Close() error {
 	switch db.Driver {
-	case "sqlite":
+	case DriverSQLite:
 		if err := db.closingSQLite(); err != nil {
 			db.log.Fatal().Err(err).Msg("could not run sqlite shutdown tasks")
 		}
-	case "postgres":
+	case DriverPostgres:
 	}
 
 	// cancel background context
@@ -169,8 +174,8 @@ type Tx struct {
 // ILike is a wrapper for sq.Like and sq.ILike
 // SQLite does not support ILike but postgres does so this checks what database is being used
 func (db *DB) ILike(col string, val string) sq.Sqlizer {
-	//if databaseDriver == "sqlite" {
-	if db.Driver == "sqlite" {
+	//if databaseDriver == DriverSQLite {
+	if db.Driver == DriverSQLite {
 		return sq.Like{col: val}
 	}
 
