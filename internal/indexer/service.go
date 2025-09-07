@@ -769,6 +769,15 @@ func (s *service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 		return err
 	}
 
+	if domain.IsRedactedString(req.ApiKey) {
+		apikey, ok := indexer.Settings["api_key"]
+		if !ok {
+			return errors.New("could not find apikey in indexer settings")
+		}
+
+		req.ApiKey = apikey
+	}
+
 	def := s.getMappedDefinitionByName(indexer.Identifier)
 	if def == nil {
 		return errors.New("could not find definition: %s", indexer.Identifier)
