@@ -194,7 +194,6 @@ CREATE TABLE filter
     min_leechers                   INTEGER DEFAULT 0,
     max_leechers                   INTEGER DEFAULT 0,
     release_profile_duplicate_id   INTEGER,
-    webhook_continue_on_error      BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (release_profile_duplicate_id) REFERENCES release_profile_duplicate(id) ON DELETE SET NULL
 );
 
@@ -222,6 +221,7 @@ CREATE TABLE filter_external
     webhook_retry_status                TEXT,
     webhook_retry_attempts              INTEGER,
     webhook_retry_delay_seconds         INTEGER,
+    on_error                            TEXT DEFAULT 'REJECT',
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
@@ -1465,7 +1465,7 @@ WHERE
 	`ALTER TABLE list
 		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
 `,
-  `ALTER TABLE filter
-	ADD COLUMN webhook_continue_on_error BOOLEAN DEFAULT false;
+	`ALTER TABLE filter_external
+  ADD COLUMN on_error TEXT DEFAULT 'REJECT';
 `,
 }

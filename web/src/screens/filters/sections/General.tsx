@@ -154,20 +154,6 @@ export const General = () => {
           />
         </FilterLayout>
       </FilterSection>
-
-      <FilterSection
-        title="External Filter Settings"
-        subtitle="Configure webhook filter behavior"
-      >
-        <FilterLayout>
-          <SwitchGroup
-            name="webhook_continue_on_error"
-            label="Continue webhook processing on error"
-            description="Continue processing other webhooks even if one fails."
-            className="pb-2 col-span-12 sm:col-span-6"
-          />
-        </FilterLayout>
-      </FilterSection>
     </FilterPage>
   );
 };

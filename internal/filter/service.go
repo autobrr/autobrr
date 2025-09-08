@@ -767,8 +767,10 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 	})
 
 	for _, external := range externalFilters {
+		l := s.log.With().Str("method", "RunExternalFilters").Str("filter", f.Name).Str("external_filter", external.Name).Logger()
+
 		if !external.Enabled {
-			s.log.Debug().Msgf("external filter %s not enabled, skipping...", external.Name)
+			l.Debug().Msgf("external filter not enabled, skipping...")
 
 			continue
 		}
@@ -784,11 +786,17 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external script
 			exitCode, err := s.execCmd(ctx, external, release)
 			if err != nil {
+				l.Error().Err(err).Msgf("error executing external script")
+
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					l.Debug().Msgf("external script error, and OnError set to CONTINUE...")
+					continue
+				}
 				return false, errors.Wrap(err, "error executing external command")
 			}
 
 			if exitCode != external.ExecExpectStatus {
-				s.log.Trace().Msgf("filter.Service.CheckFilter: external script unexpected exit code. got: %d want: %d", exitCode, external.ExecExpectStatus)
+				l.Debug().Int("expected_status", external.ExecExpectStatus).Int("actual_status", exitCode).Msgf("external script got unexpected exit code")
 				f.RejectReasons.Add("external script exit code", exitCode, external.ExecExpectStatus)
 				return false, nil
 			}
@@ -797,31 +805,23 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external webhook
 			statusCode, err := s.webhook(ctx, external, release)
 			if err != nil {
-				s.log.Error().Err(err).Msgf("filter.Service.CheckFilter: error executing external webhook: %s", external.Name)
-				f.RejectReasons.Add("external webhook error", err.Error(), "success")
+				l.Error().Err(err).Msgf("error executing external webhook")
+
 				// Only continue if the filter is configured to continue on error
-				if !f.WebhookContinueOnError {
-					return false, errors.Wrap(err, "error executing external webhook")
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					l.Debug().Msgf("external webhook error, and OnError set to CONTINUE...")
+					continue
 				}
-				continue
+				return false, errors.Wrap(err, "error executing external webhook")
 			}
 
 			if statusCode != external.WebhookExpectStatus {
-				s.log.Trace().Msgf("filter.Service.CheckFilter: external webhook unexpected status code. got: %d want: %d", statusCode, external.WebhookExpectStatus)
+				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", statusCode).Msgf("external webhook got unexpected status code")
 				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
-				// Only continue if the filter is configured to continue on error
-				if !f.WebhookContinueOnError {
-					return false, nil
-				}
-				continue
+				return false, nil
 			}
 		}
 	}
-
-	// If we still want to reject after firing all the webhooks, return false
-	/* if f.RejectReasons.Len() > 0 {
-		return false, nil
-	} */
 
 	return true, nil
 }
