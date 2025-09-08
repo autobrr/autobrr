@@ -787,7 +787,8 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			"fe.on_error",
 		).
 		From("filter_external fe").
-		Where(sq.Eq{"fe.filter_id": filterId})
+		Where(sq.Eq{"fe.filter_id": filterId}).
+		OrderBy("fe.idx DESC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

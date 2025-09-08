@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -761,11 +760,6 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 		}
 	}()
 
-	// sort filters by index
-	sort.Slice(externalFilters, func(i, j int) bool {
-		return externalFilters[i].Index < externalFilters[j].Index
-	})
-
 	for _, external := range externalFilters {
 		l := s.log.With().Str("method", "RunExternalFilters").Str("filter", f.Name).Str("external_filter", external.Name).Logger()
 
@@ -915,6 +909,8 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 }
 
 func (s *service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
+	l := s.log.With().Str("method", "webhook").Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
+
 	s.log.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
 
 	if external.WebhookHost == "" {
@@ -966,14 +962,17 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		}
 	}
 
-	var opts []retry.Option
-
-	opts = append(opts, retry.DelayType(retry.FixedDelay))
-	opts = append(opts, retry.LastErrorOnly(true))
-
-	if external.WebhookRetryAttempts > 0 {
-		opts = append(opts, retry.Attempts(uint(external.WebhookRetryAttempts)))
+	retryAttempts := external.WebhookRetryAttempts
+	if retryAttempts == 0 {
+		retryAttempts = 1
 	}
+
+	opts := []retry.Option{
+		retry.DelayType(retry.FixedDelay),
+		retry.LastErrorOnly(true),
+		retry.Attempts(uint(retryAttempts)),
+	}
+
 	if external.WebhookRetryDelaySeconds > 0 {
 		opts = append(opts, retry.Delay(time.Duration(external.WebhookRetryDelaySeconds)*time.Second))
 	}
@@ -991,6 +990,9 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			if external.WebhookData != "" && dataArgs != "" {
 				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
 			}
+
+			l.Trace().Msg("making filter external webhook request..")
+
 			res, err := s.httpClient.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
@@ -998,7 +1000,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 			defer res.Body.Close()
 
-			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
+			l.Debug().Int("status_code", res.StatusCode).Msg("filter external webhook response")
 
 			if s.log.Debug().Enabled() {
 				body, err := io.ReadAll(res.Body)
@@ -1007,7 +1009,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 				}
 
 				if len(body) > 0 {
-					s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+					l.Debug().Int("status_code", res.StatusCode).Str("body", string(body)).Msg("filter external webhook response body")
 				}
 			}
 
@@ -1019,7 +1021,13 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		},
 		opts...)
 
-	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", external.WebhookHost, dataArgs, time.Since(start))
+	if err != nil {
+		l.Error().Err(err).Msg("error sending webhook")
 
-	return statusCode, err
+		return statusCode, errors.Wrap(err, "could not make request for webhook")
+	}
+
+	l.Debug().Str("args", dataArgs).TimeDiff("duration", time.Now(), start).Msg("successfully ran external webhook filter")
+
+	return statusCode, nil
 }
