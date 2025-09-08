@@ -59,7 +59,7 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 		return nil, err
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 		return nil, err
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
@@ -277,7 +277,7 @@ func (r *ListRepo) UpdateLastRefresh(ctx context.Context, list *domain.List) err
 		return err
 	}
 
-	results, err := r.db.handler.ExecContext(ctx, query, args...)
+	results, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -352,7 +352,7 @@ func (r *ListRepo) ToggleEnabled(ctx context.Context, listID int64, enabled bool
 		return err
 	}
 
-	results, err := r.db.handler.ExecContext(ctx, query, args...)
+	results, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -446,7 +446,7 @@ func (r *ListRepo) GetListFilters(ctx context.Context, listID int64) ([]domain.L
 		return nil, err
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

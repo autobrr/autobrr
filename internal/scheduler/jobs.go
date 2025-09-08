@@ -6,7 +6,6 @@ package scheduler
 import (
 	"context"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type CheckUpdatesJob struct {
@@ -81,10 +81,14 @@ func (j *TempDirCleanupJob) Run() {
 		return
 	}
 
-	currentUser, err := user.Current()
-	if err != nil {
-		j.log.Error().Err(err).Msg("failed to get current user")
-		return
+	currentUID := os.Getenv("UID")
+	if currentUID == "" {
+		// Fallback for systems where UID isn't set
+		currentUID = os.Getenv("USER")
+		if currentUID == "" {
+			log.Debug().Msg("could not determine current user, skipping ownership check")
+			// Continue without ownership filtering or implement alternative logic
+		}
 	}
 
 	for _, file := range files {
@@ -100,7 +104,7 @@ func (j *TempDirCleanupJob) Run() {
 			continue
 		}
 
-		if !isOwnedByCurrentUser(currentUser, fileInfo) {
+		if !isOwnedByCurrentUser(currentUID, fileInfo) {
 			continue
 		}
 

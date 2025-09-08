@@ -28,9 +28,6 @@ importers:
       '@heroicons/react':
         specifier: ^2.2.0
         version: 2.2.0(react@19.1.1)
-      '@hookform/error-message':
-        specifier: ^2.0.1
-        version: 2.0.1(react-dom@19.1.1(react@19.1.1))(react-hook-form@7.61.1(react@19.1.1))(react@19.1.1)
       '@popperjs/core':
         specifier: ^2.11.8
         version: 2.11.8
@@ -40,6 +37,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.11
         version: 4.1.11(vite@7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1))
+      '@tanstack/react-form':
+        specifier: ^1.19.2
+        version: 1.19.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@tanstack/react-query':
         specifier: ^5.84.1
         version: 5.84.1(react@19.1.1)
@@ -49,6 +49,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.130.10
         version: 1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@tanstack/react-router-devtools':
+        specifier: ^1.131.28
+        version: 1.131.28(@tanstack/react-router@1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.130.10)(csstype@3.1.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.7)(tiny-invariant@1.3.3)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -97,9 +100,6 @@ importers:
       react-dom:
         specifier: ^19.1.1
         version: 19.1.1(react@19.1.1)
-      react-hook-form:
-        specifier: ^7.61.1
-        version: 7.61.1(react@19.1.1)
       react-multi-select-component:
         specifier: ^4.3.4
         version: 4.3.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -128,11 +128,11 @@ importers:
         specifier: ^7.3.0
         version: 7.3.0
       zod:
-        specifier: ^4.0.14
-        version: 4.0.14
+        specifier: ^4.1.5
+        version: 4.1.5
       zod-formik-adapter:
-        specifier: ^1.3.0
-        version: 1.3.0(formik@2.4.6(react@19.1.1))(zod@4.0.14)
+        specifier: ^2.0.0
+        version: 2.0.0(formik@2.4.6(react@19.1.1))(zod@4.1.5)
     devDependencies:
       '@microsoft/eslint-formatter-sarif':
         specifier: ^3.1.0
@@ -140,9 +140,6 @@ importers:
       '@rollup/wasm-node':
         specifier: ^4.46.2
         version: 4.46.2
-      '@tanstack/router-devtools':
-        specifier: ^1.130.10
-        version: 1.130.10(@tanstack/react-router@1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.130.10)(csstype@3.1.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.7)(tiny-invariant@1.3.3)
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -175,7 +172,7 @@ importers:
         version: 1.0.2(vite@7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1))(workbox-build@7.0.0)(workbox-window@7.3.0)
       vite-plugin-svgr:
         specifier: ^4.3.0
-        version: 4.3.0(@rollup/wasm-node@4.46.2)(typescript@5.9.2)(vite@7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1))
+        version: 4.3.0(@rollup/wasm-node@4.50.0)(typescript@5.9.2)(vite@7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1))
 
 packages:
 
@@ -1031,13 +1028,6 @@ packages:
     peerDependencies:
       react: ^19.1.1
 
-  '@hookform/error-message@2.0.1':
-    resolution: {integrity: sha512-U410sAr92xgxT1idlu9WWOVjndxLdgPUHEB8Schr27C9eh7/xUnITWpCMF93s+lGiG++D4JnbSnrb5A21AdSNg==}
-    peerDependencies:
-      react: ^19.1.1
-      react-dom: '>=16.8.0'
-      react-hook-form: ^7.0.0
-
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
     engines: {node: '>=10.10.0'}
@@ -1191,6 +1181,11 @@ packages:
 
   '@rollup/wasm-node@4.46.2':
     resolution: {integrity: sha512-lZRiZl+B1R3VhqZgORtuUpc2YYbgIv+X6g3LgQHS5sjlf1ENiK1HZ6N5e8pEZ04nAWiwYM0JX7rP0eyxflkJRg==}
+    engines: {node: '>=18.0.0', npm: '>=8.0.0'}
+    hasBin: true
+
+  '@rollup/wasm-node@4.50.0':
+    resolution: {integrity: sha512-mCzoNeR8ynLTHJ5VQ9J/GzSKPJjEC4/nCmGw2y3NSCZoc4sbSVdNe5x4S7+bda6QIEUrk6lR1FE7FEDo+p/u1Q==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
@@ -1441,6 +1436,9 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
+  '@tanstack/form-core@1.19.2':
+    resolution: {integrity: sha512-g2VkZCHEQUxnPOtF+vNHQDGvmrXfMpvN1T27M+G2R/eeH2vImxEdzVzAVIR71DZ5X3QtC9rm+nR64MJrjI+yXQ==}
+
   '@tanstack/history@1.129.7':
     resolution: {integrity: sha512-I3YTkbe4RZQN54Qw4+IUhOjqG2DdbG2+EBWuQfew4MEk0eddLYAQVa50BZVww4/D2eh5I9vEk2Fd1Y0Wty7pug==}
     engines: {node: '>=12'}
@@ -1450,6 +1448,15 @@ packages:
 
   '@tanstack/query-devtools@5.28.10':
     resolution: {integrity: sha512-5UN629fKa5/1K/2Pd26gaU7epxRrYiT1gy+V+pW5K6hnf1DeUKK3pANSb2eHKlecjIKIhTwyF7k9XdyE2gREvQ==}
+
+  '@tanstack/react-form@1.19.2':
+    resolution: {integrity: sha512-pfhyPXxuiq6U/GUaQQf6m8TdKUdmrygJkqY3A6R/0tiQFL/B/HsOeovPGxpwAdDof2V6hJd5+/XbDz0B76iVIQ==}
+    peerDependencies:
+      '@tanstack/react-start': ^1.130.10
+      react: ^19.1.1
+    peerDependenciesMeta:
+      '@tanstack/react-start':
+        optional: true
 
   '@tanstack/react-query-devtools@5.29.2':
     resolution: {integrity: sha512-EmsaLNa8iFtReAW+5ftom0/TW78fIosVor517ak/+JFaoTBw8Yub3ao937JFE6AM3K/HXhteqvObetgt1ndLcw==}
@@ -1462,11 +1469,11 @@ packages:
     peerDependencies:
       react: ^19.1.1
 
-  '@tanstack/react-router-devtools@1.130.10':
-    resolution: {integrity: sha512-D9/OFOgDiBHEHCNM6q/bcCyBDXint9iR+DL25h6ACoJOIztNyGtVhvzrJtrhlImG5HzSo8gARXIFCTVeCBP0xw==}
+  '@tanstack/react-router-devtools@1.131.28':
+    resolution: {integrity: sha512-2EOxuvc2k7vT14XVEGJRuqEZhQkZ7RnHwpw2aGY6m/7xprl2elNwKtLExTntirAxE6HDokg8sRAnqvySHf1OVA==}
     engines: {node: '>=12'}
     peerDependencies:
-      '@tanstack/react-router': ^1.130.10
+      '@tanstack/react-router': ^1.131.28
       react: ^19.1.1
       react-dom: '>=18.0.0 || >=19.0.0'
 
@@ -1500,26 +1507,14 @@ packages:
     resolution: {integrity: sha512-Fj+sGGz2maEBybLSIebocJHxMSd7IhLjb2JBtEyhm306e39Yj4pYQHmnTQA1m494xAAWYw1mxpHt9uOYkot3Eg==}
     engines: {node: '>=12'}
 
-  '@tanstack/router-devtools-core@1.130.10':
-    resolution: {integrity: sha512-DkI1LVsmzX99GESkeH0hEe75+kO5zobLgJ8xFro7Y0iI1DANImpHkaqesSofaovB02uN6BPLxdMjKJ2EmFzknw==}
+  '@tanstack/router-devtools-core@1.131.28':
+    resolution: {integrity: sha512-CPj8wv/00sfHm5tjUCJ44A5tWBYvui5PVstkNfEyNW/Cmo6aknMk4SHiWIa/khCbj5HGjVMWSBRn6XZixEdOxw==}
     engines: {node: '>=12'}
     peerDependencies:
-      '@tanstack/router-core': ^1.130.10
+      '@tanstack/router-core': ^1.131.28
       csstype: 3.1.2
       solid-js: '>=1.9.5'
       tiny-invariant: ^1.3.3
-    peerDependenciesMeta:
-      csstype:
-        optional: true
-
-  '@tanstack/router-devtools@1.130.10':
-    resolution: {integrity: sha512-/b7uy1CiWljVfDVgiKbWMiGnVisLN5yJpvRnX3m0/ZJINn+9QNYqR6aTY8MjbPDfvjzUpekQSyivFNW2MNIkzw==}
-    engines: {node: '>=12'}
-    peerDependencies:
-      '@tanstack/react-router': ^1.130.10
-      csstype: 3.1.2
-      react: ^19.1.1
-      react-dom: '>=18.0.0 || >=19.0.0'
     peerDependenciesMeta:
       csstype:
         optional: true
@@ -2023,6 +2018,9 @@ packages:
       supports-color:
         optional: true
 
+  decode-formdata@0.9.0:
+    resolution: {integrity: sha512-q5uwOjR3Um5YD+ZWPOF/1sGHVW9A5rCrRwITQChRXlmPkxDFBqCm4jNTIVdGHNH9OnR+V9MoZVgRhsFb+ARbUw==}
+
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
 
@@ -2045,6 +2043,9 @@ packages:
   detect-libc@2.0.4:
     resolution: {integrity: sha512-3UDv+G9CsCKO1WKMGw9fwq/SWJYbI0c5Y7LU1AXYoDdbhE2AHQ6N6Nb34sG8Fj7T5APy8qXDCKuuIHd1BR0tVA==}
     engines: {node: '>=8'}
+
+  devalue@5.1.1:
+    resolution: {integrity: sha512-maua5KUiapvEwiEAe+XnlZ3Rh0GD+qI1J/nb9vrJc3muPXvcF/8gXYTWF76+5DAqHyDUtOIImEuo0YKE9mshVw==}
 
   didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
@@ -3177,12 +3178,6 @@ packages:
   react-fast-compare@3.2.2:
     resolution: {integrity: sha512-nsO+KSNgo1SbJqJEYRE9ERzo7YtYbou/OqjSQKxV7jcKox7+usiUVZOAC+XnDOABXggQTno0Y1CpVnuWEc1boQ==}
 
-  react-hook-form@7.61.1:
-    resolution: {integrity: sha512-2vbXUFDYgqEgM2RcXcAT2PwDW/80QARi+PKmHy5q2KhuKvOlG8iIYgf7eIlIANR5trW9fJbP4r5aub3a4egsew==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: ^19.1.1
-
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -3894,14 +3889,14 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod-formik-adapter@1.3.0:
-    resolution: {integrity: sha512-qWsVwRYqpRod5BL35pRXHD6UOugiyaEyLPO04rCN/uKTCFCR+VElPEG26+3wNrxGP7y5XmJM+4/0MrABnRYZrw==}
+  zod-formik-adapter@2.0.0:
+    resolution: {integrity: sha512-cLykLmQgmCmhx8C/mwR+rUNKRw6kEukejGRrByB+56zV1XtHF+xmOiQ2Lp2w5R0BdN3z42QKFekOI0Vy39vR8Q==}
     peerDependencies:
       formik: ^2.2.9
-      zod: ^3.22.4
+      zod: 4.x
 
-  zod@4.0.14:
-    resolution: {integrity: sha512-nGFJTnJN6cM2v9kXL+SOBq3AtjQby3Mv5ySGFof5UGRHrRioSJ5iG680cYNjE/yWk671nROcpPj4hAS8nyLhSw==}
+  zod@4.1.5:
+    resolution: {integrity: sha512-rcUUZqlLJgBC33IT3PNMgsCq6TzLQEG/Ei/KTCU0PedSWRMAXoOUN+4t/0H+Q8bdnLPdqUYnvboJT0bn/229qg==}
 
 snapshots:
 
@@ -4880,12 +4875,6 @@ snapshots:
     dependencies:
       react: 19.1.1
 
-  '@hookform/error-message@2.0.1(react-dom@19.1.1(react@19.1.1))(react-hook-form@7.61.1(react@19.1.1))(react@19.1.1)':
-    dependencies:
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-      react-hook-form: 7.61.1(react@19.1.1)
-
   '@humanwhocodes/config-array@0.13.0':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.3
@@ -5022,47 +5011,53 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
-  '@rollup/plugin-babel@5.3.1(@babel/core@7.26.0)(@rollup/wasm-node@4.46.2)':
+  '@rollup/plugin-babel@5.3.1(@babel/core@7.26.0)(@rollup/wasm-node@4.50.0)':
     dependencies:
       '@babel/core': 7.26.0
       '@babel/helper-module-imports': 7.27.1
-      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.46.2)
-      rollup: '@rollup/wasm-node@4.46.2'
+      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.50.0)
+      rollup: '@rollup/wasm-node@4.50.0'
     transitivePeerDependencies:
       - supports-color
 
-  '@rollup/plugin-node-resolve@11.2.1(@rollup/wasm-node@4.46.2)':
+  '@rollup/plugin-node-resolve@11.2.1(@rollup/wasm-node@4.50.0)':
     dependencies:
-      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.46.2)
+      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.50.0)
       '@types/resolve': 1.17.1
       builtin-modules: 3.3.0
       deepmerge: 4.3.1
       is-module: 1.0.0
       resolve: 1.22.10
-      rollup: '@rollup/wasm-node@4.46.2'
+      rollup: '@rollup/wasm-node@4.50.0'
 
-  '@rollup/plugin-replace@2.4.2(@rollup/wasm-node@4.46.2)':
+  '@rollup/plugin-replace@2.4.2(@rollup/wasm-node@4.50.0)':
     dependencies:
-      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.46.2)
+      '@rollup/pluginutils': 3.1.0(@rollup/wasm-node@4.50.0)
       magic-string: 0.25.9
-      rollup: '@rollup/wasm-node@4.46.2'
+      rollup: '@rollup/wasm-node@4.50.0'
 
-  '@rollup/pluginutils@3.1.0(@rollup/wasm-node@4.46.2)':
+  '@rollup/pluginutils@3.1.0(@rollup/wasm-node@4.50.0)':
     dependencies:
       '@types/estree': 0.0.39
       estree-walker: 1.0.1
       picomatch: 2.3.1
-      rollup: '@rollup/wasm-node@4.46.2'
+      rollup: '@rollup/wasm-node@4.50.0'
 
-  '@rollup/pluginutils@5.1.3(@rollup/wasm-node@4.46.2)':
+  '@rollup/pluginutils@5.1.3(@rollup/wasm-node@4.50.0)':
     dependencies:
       '@types/estree': 1.0.8
       estree-walker: 2.0.2
       picomatch: 4.0.3
     optionalDependencies:
-      rollup: '@rollup/wasm-node@4.46.2'
+      rollup: '@rollup/wasm-node@4.50.0'
 
   '@rollup/wasm-node@4.46.2':
+    dependencies:
+      '@types/estree': 1.0.8
+    optionalDependencies:
+      fsevents: 2.3.3
+
+  '@rollup/wasm-node@4.50.0':
     dependencies:
       '@types/estree': 1.0.8
     optionalDependencies:
@@ -5280,11 +5275,25 @@ snapshots:
       tailwindcss: 4.1.11
       vite: 7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1)
 
+  '@tanstack/form-core@1.19.2':
+    dependencies:
+      '@tanstack/store': 0.7.2
+
   '@tanstack/history@1.129.7': {}
 
   '@tanstack/query-core@5.83.1': {}
 
   '@tanstack/query-devtools@5.28.10': {}
+
+  '@tanstack/react-form@1.19.2(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+    dependencies:
+      '@tanstack/form-core': 1.19.2
+      '@tanstack/react-store': 0.7.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      decode-formdata: 0.9.0
+      devalue: 5.1.1
+      react: 19.1.1
+    transitivePeerDependencies:
+      - react-dom
 
   '@tanstack/react-query-devtools@5.29.2(@tanstack/react-query@5.84.1(react@19.1.1))(react@19.1.1)':
     dependencies:
@@ -5297,10 +5306,10 @@ snapshots:
       '@tanstack/query-core': 5.83.1
       react: 19.1.1
 
-  '@tanstack/react-router-devtools@1.130.10(@tanstack/react-router@1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.130.10)(csstype@3.1.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.7)(tiny-invariant@1.3.3)':
+  '@tanstack/react-router-devtools@1.131.28(@tanstack/react-router@1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.130.10)(csstype@3.1.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.7)(tiny-invariant@1.3.3)':
     dependencies:
       '@tanstack/react-router': 1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@tanstack/router-devtools-core': 1.130.10(@tanstack/router-core@1.130.10)(csstype@3.1.2)(solid-js@1.9.7)(tiny-invariant@1.3.3)
+      '@tanstack/router-devtools-core': 1.131.28(@tanstack/router-core@1.130.10)(csstype@3.1.2)(solid-js@1.9.7)(tiny-invariant@1.3.3)
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:
@@ -5349,7 +5358,7 @@ snapshots:
       tiny-invariant: 1.3.3
       tiny-warning: 1.0.3
 
-  '@tanstack/router-devtools-core@1.130.10(@tanstack/router-core@1.130.10)(csstype@3.1.2)(solid-js@1.9.7)(tiny-invariant@1.3.3)':
+  '@tanstack/router-devtools-core@1.131.28(@tanstack/router-core@1.130.10)(csstype@3.1.2)(solid-js@1.9.7)(tiny-invariant@1.3.3)':
     dependencies:
       '@tanstack/router-core': 1.130.10
       clsx: 2.1.1
@@ -5358,21 +5367,6 @@ snapshots:
       tiny-invariant: 1.3.3
     optionalDependencies:
       csstype: 3.1.2
-
-  '@tanstack/router-devtools@1.130.10(@tanstack/react-router@1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.130.10)(csstype@3.1.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.7)(tiny-invariant@1.3.3)':
-    dependencies:
-      '@tanstack/react-router': 1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      '@tanstack/react-router-devtools': 1.130.10(@tanstack/react-router@1.130.10(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(@tanstack/router-core@1.130.10)(csstype@3.1.2)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(solid-js@1.9.7)(tiny-invariant@1.3.3)
-      clsx: 2.1.1
-      goober: 2.1.16(csstype@3.1.2)
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-    optionalDependencies:
-      csstype: 3.1.2
-    transitivePeerDependencies:
-      - '@tanstack/router-core'
-      - solid-js
-      - tiny-invariant
 
   '@tanstack/store@0.7.2': {}
 
@@ -5920,6 +5914,8 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
+  decode-formdata@0.9.0: {}
+
   deep-is@0.1.4: {}
 
   deepmerge@2.2.1: {}
@@ -5939,6 +5935,8 @@ snapshots:
       object-keys: 1.1.1
 
   detect-libc@2.0.4: {}
+
+  devalue@5.1.1: {}
 
   didyoumean@1.2.2: {}
 
@@ -7226,10 +7224,6 @@ snapshots:
 
   react-fast-compare@3.2.2: {}
 
-  react-hook-form@7.61.1(react@19.1.1):
-    dependencies:
-      react: 19.1.1
-
   react-is@16.13.1: {}
 
   react-multi-select-component@4.3.4(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
@@ -7369,11 +7363,11 @@ snapshots:
     dependencies:
       glob: 7.2.3
 
-  rollup-plugin-terser@7.0.2(@rollup/wasm-node@4.46.2):
+  rollup-plugin-terser@7.0.2(@rollup/wasm-node@4.50.0):
     dependencies:
       '@babel/code-frame': 7.27.1
       jest-worker: 26.6.2
-      rollup: '@rollup/wasm-node@4.46.2'
+      rollup: '@rollup/wasm-node@4.50.0'
       serialize-javascript: 4.0.0
       terser: 5.43.1
 
@@ -7870,9 +7864,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-svgr@4.3.0(@rollup/wasm-node@4.46.2)(typescript@5.9.2)(vite@7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1)):
+  vite-plugin-svgr@4.3.0(@rollup/wasm-node@4.50.0)(typescript@5.9.2)(vite@7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1)):
     dependencies:
-      '@rollup/pluginutils': 5.1.3(@rollup/wasm-node@4.46.2)
+      '@rollup/pluginutils': 5.1.3(@rollup/wasm-node@4.50.0)
       '@svgr/core': 8.1.0(typescript@5.9.2)
       '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@5.9.2))
       vite: 7.0.6(@types/node@22.17.0)(jiti@2.4.2)(lightningcss@1.30.1)(terser@5.43.1)(yaml@2.6.1)
@@ -7887,7 +7881,7 @@ snapshots:
       fdir: 6.4.6(picomatch@4.0.3)
       picomatch: 4.0.3
       postcss: 8.5.6
-      rollup: '@rollup/wasm-node@4.46.2'
+      rollup: '@rollup/wasm-node@4.50.0'
       tinyglobby: 0.2.14
     optionalDependencies:
       '@types/node': 22.17.0
@@ -7971,9 +7965,9 @@ snapshots:
       '@babel/core': 7.26.0
       '@babel/preset-env': 7.28.0(@babel/core@7.26.0)
       '@babel/runtime': 7.28.2
-      '@rollup/plugin-babel': 5.3.1(@babel/core@7.26.0)(@rollup/wasm-node@4.46.2)
-      '@rollup/plugin-node-resolve': 11.2.1(@rollup/wasm-node@4.46.2)
-      '@rollup/plugin-replace': 2.4.2(@rollup/wasm-node@4.46.2)
+      '@rollup/plugin-babel': 5.3.1(@babel/core@7.26.0)(@rollup/wasm-node@4.50.0)
+      '@rollup/plugin-node-resolve': 11.2.1(@rollup/wasm-node@4.50.0)
+      '@rollup/plugin-replace': 2.4.2(@rollup/wasm-node@4.50.0)
       '@surma/rollup-plugin-off-main-thread': 2.2.3
       ajv: 8.17.1
       common-tags: 1.8.2
@@ -7982,8 +7976,8 @@ snapshots:
       glob: 7.2.3
       lodash: 4.17.21
       pretty-bytes: 5.6.0
-      rollup: '@rollup/wasm-node@4.46.2'
-      rollup-plugin-terser: 7.0.2(@rollup/wasm-node@4.46.2)
+      rollup: '@rollup/wasm-node@4.50.0'
+      rollup-plugin-terser: 7.0.2(@rollup/wasm-node@4.50.0)
       source-map: 0.8.0-beta.0
       stringify-object: 3.3.0
       strip-comments: 2.0.1
@@ -8102,9 +8096,9 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod-formik-adapter@1.3.0(formik@2.4.6(react@19.1.1))(zod@4.0.14):
+  zod-formik-adapter@2.0.0(formik@2.4.6(react@19.1.1))(zod@4.1.5):
     dependencies:
       formik: 2.4.6(react@19.1.1)
-      zod: 4.0.14
+      zod: 4.1.5
 
-  zod@4.0.14: {}
+  zod@4.1.5: {}

@@ -39,7 +39,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		return nil, 0, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "error executing query")
 	}
@@ -76,7 +76,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 }
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
-	rows, err := r.db.handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, created_at, updated_at FROM notification ORDER BY name ASC")
+	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -148,7 +148,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -213,7 +213,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			toNullString(notification.Username),
 			toNullString(notification.Password),
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&notification.ID); err != nil {
 		return errors.Wrap(err, "error executing query")
@@ -248,7 +248,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -267,7 +267,7 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 

@@ -568,6 +568,14 @@ CREATE TABLE list_filter
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );
+
+CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
 `
 
 var sqliteMigrations = []string{
@@ -2019,6 +2027,74 @@ CREATE INDEX release_hybrid_index
         	FROM irc_network 
         	WHERE server = 'irc.rocket-hd.cc'
     	);
+`,
+	`CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
+`,
+	`INSERT INTO irc_network (
+    enabled, name, server, port, tls, pass, nick,
+    auth_mechanism, auth_account, auth_password,
+    invite_command, use_bouncer, bouncer_addr, bot_mode,
+    connected, connected_since, use_proxy, proxy_id,
+    created_at, updated_at
+)
+SELECT
+    enabled, 'ULCX', 'irc.upload.cx', port, tls, pass, nick,
+    auth_mechanism, auth_account, auth_password,
+    invite_command, use_bouncer, bouncer_addr, bot_mode,
+    connected, connected_since, use_proxy, proxy_id,
+    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM irc_network
+WHERE id IN (
+    SELECT network_id
+    FROM irc_channel
+    WHERE name = '#ulcx-announce'
+);
+
+INSERT INTO irc_channel (enabled, name, password, detached, network_id)
+SELECT c.enabled, '#announce', c.password, c.detached,
+	  (SELECT MAX(id) FROM irc_network WHERE name = 'ULCX' AND server = 'irc.upload.cx')
+FROM irc_channel c
+WHERE c.name = '#ulcx-announce';
+
+DELETE FROM irc_channel
+WHERE name = '#ulcx-announce';
+`,
+	`-- Update macro with typo
+UPDATE filter_external
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+
+UPDATE action
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    watch_folder = REPLACE(REPLACE(watch_folder, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    category = REPLACE(REPLACE(category, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    tags = REPLACE(REPLACE(tags, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    label = REPLACE(REPLACE(label, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    save_path = REPLACE(REPLACE(save_path, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR watch_folder LIKE '%{{ .CurrenTimeUnixMS }}%' OR watch_folder LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR category LIKE '%{{ .CurrenTimeUnixMS }}%' OR category LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR tags LIKE '%{{ .CurrenTimeUnixMS }}%' OR tags LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR label LIKE '%{{ .CurrenTimeUnixMS }}%' OR label LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR save_path LIKE '%{{ .CurrenTimeUnixMS }}%' OR save_path LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
 `,
 	`ALTER TABLE action
 		ADD COLUMN download_path TEXT;

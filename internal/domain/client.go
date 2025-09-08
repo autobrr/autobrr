@@ -34,7 +34,38 @@ type DownloadClient struct {
 	Settings      DownloadClientSettings `json:"settings,omitempty"`
 
 	// cached http client
-	Client any
+	Client any `json:"-"`
+}
+
+func (c DownloadClient) MarshalJSON() ([]byte, error) {
+	redactedSettings := DownloadClientSettings{
+		APIKey:                   RedactString(c.Settings.APIKey),
+		Rules:                    c.Settings.Rules,
+		ExternalDownloadClientId: c.Settings.ExternalDownloadClientId,
+		ExternalDownloadClient:   c.Settings.ExternalDownloadClient,
+		Auth: DownloadClientAuth{
+			Enabled:  c.Settings.Auth.Enabled,
+			Type:     c.Settings.Auth.Type,
+			Username: c.Settings.Auth.Username,
+			Password: RedactString(c.Settings.Auth.Password),
+		},
+		Basic: BasicAuth{
+			Auth:     c.Settings.Basic.Auth,
+			Username: c.Settings.Basic.Username,
+			Password: RedactString(c.Settings.Basic.Password),
+		},
+	}
+
+	type Alias DownloadClient
+	return json.Marshal(&struct {
+		*Alias
+		Password string                 `json:"password"`
+		Settings DownloadClientSettings `json:"settings"`
+	}{
+		Password: RedactString(c.Password),
+		Settings: redactedSettings,
+		Alias:    (*Alias)(&c),
+	})
 }
 
 type DownloadClientSettings struct {
@@ -107,6 +138,17 @@ type DownloadClientAuth struct {
 	Password string                 `json:"password,omitempty"`
 }
 
+//func (d DownloadClientAuth) MarshalJSON() ([]byte, error) {
+//	type Alias DownloadClientAuth
+//	return json.Marshal(&struct {
+//		*Alias
+//		Password string `json:"password,omitempty"`
+//	}{
+//		Password: RedactString(d.Password),
+//		Alias:    (*Alias)(&d),
+//	})
+//}
+
 type DownloadClientRules struct {
 	Enabled                     bool                        `json:"enabled"`
 	MaxActiveDownloads          int                         `json:"max_active_downloads"`
@@ -121,6 +163,17 @@ type BasicAuth struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
+
+//func (b BasicAuth) MarshalJSON() ([]byte, error) {
+//	type Alias BasicAuth
+//	return json.Marshal(&struct {
+//		*Alias
+//		Password string `json:"password,omitempty"`
+//	}{
+//		Password: RedactString(b.Password),
+//		Alias:    (*Alias)(&b),
+//	})
+//}
 
 type IgnoreSlowTorrentsCondition string
 

@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -28,6 +29,17 @@ type Proxy struct {
 	User    string    `json:"user"`
 	Pass    string    `json:"pass"`
 	Timeout int       `json:"timeout"`
+}
+
+func (p Proxy) MarshalJSON() ([]byte, error) {
+	type Alias Proxy
+	return json.Marshal(&struct {
+		*Alias
+		Pass string `json:"pass"`
+	}{
+		Pass:  RedactString(p.Pass),
+		Alias: (*Alias)(&p),
+	})
 }
 
 type ProxyType string
