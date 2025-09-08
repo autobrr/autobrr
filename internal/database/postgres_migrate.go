@@ -262,6 +262,7 @@ CREATE TABLE action
     tags                    TEXT,
     label                   TEXT,
     save_path               TEXT,
+    download_path           TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
     first_last_piece_prio   BOOLEAN DEFAULT false,
@@ -1455,6 +1456,8 @@ WHERE
     OR label LIKE '%{{ .CurrenTimeUnixMS }}%' OR label LIKE '%{{.CurrenTimeUnixMS}}%'
     OR save_path LIKE '%{{ .CurrenTimeUnixMS }}%' OR save_path LIKE '%{{.CurrenTimeUnixMS}}%'
     OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
-
+`,
+	`ALTER TABLE action
+		ADD COLUMN download_path TEXT;
 `,
 }
