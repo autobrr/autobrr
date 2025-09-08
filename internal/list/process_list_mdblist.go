@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -46,16 +47,22 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	}
 
 	var data []struct {
-		Title string `json:"title"`
+		Title       string `json:"title"`
+		ReleaseYear int    `json:"release_year"`
+		MediaType   string `json:"mediatype"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
 	}
 
-	filterTitles := []string{}
+	var filterTitles []string
 	for _, item := range data {
-		filterTitles = append(filterTitles, processTitle(item.Title, list.MatchRelease)...)
+		title := item.Title
+		if list.IncludeYear && list.MatchRelease && item.ReleaseYear > 0 && item.MediaType == "movie" {
+			title = title + "*" + strconv.Itoa(item.ReleaseYear) + "*"
+		}
+		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
 	}
 
 	if len(filterTitles) == 0 {
