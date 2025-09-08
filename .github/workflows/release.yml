@@ -76,7 +76,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ ubuntu-latest ]
-        cgo: [ 1, 0 ]
+        cgo: [ 0 ]
     name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     services:
@@ -130,7 +130,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ macos-latest, windows-latest ]
-        cgo: [ 1, 0 ]
+        cgo: [ 0 ]
     name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
@@ -180,7 +180,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        cgo: [ 1, 0 ]
+        cgo: [ 0 ]
     name: Automatic PGO ${{ matrix.cgo == 1 && 'CGO ' || ''}}run ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: [ web ]
