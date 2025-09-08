@@ -816,7 +816,16 @@ function ListTypeMetacritic() {
 }
 
 function ListTypeMDBList() {
-  return (
+    const { values, setFieldValue } = useFormikContext<List>();
+
+    useEffect(() => {
+        if (!values.match_release && values.include_year) {
+            setFieldValue("match_release", true);
+        }
+
+    }, [setFieldValue, values.include_year, values.match_release])
+
+    return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
