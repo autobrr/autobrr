@@ -142,6 +142,8 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                     tags_excluded: [],
                     include_unmonitored: false,
                     include_alternate_titles: false,
+                    include_year: false,
+                    skip_clean_sanitize: false,
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -373,6 +375,8 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                     tags_excluded: data.tags_excluded,
                     include_unmonitored: data.include_unmonitored,
                     include_alternate_titles: data.include_alternate_titles,
+                    include_year: data.include_year,
+                    skip_clean_sanitize: data.skip_clean_sanitize,
                   }}
                   onSubmit={onSubmit}
                   // validate={validate}
@@ -597,6 +601,13 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
+    case "PLAINTEXT":
+      return (
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+        </fieldset>
+      );
   }
 }
 
@@ -748,6 +759,12 @@ function ListTypePlainText() {
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
         </fieldset>
       </div>
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+        </fieldset>
+      </div>
     </div>
   )
 }
@@ -799,7 +816,16 @@ function ListTypeMetacritic() {
 }
 
 function ListTypeMDBList() {
-  return (
+    const { values, setFieldValue } = useFormikContext<List>();
+
+    useEffect(() => {
+        if (!values.match_release && values.include_year) {
+            setFieldValue("match_release", true);
+        }
+
+    }, [setFieldValue, values.include_year, values.match_release])
+
+    return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
@@ -821,6 +847,7 @@ function ListTypeMDBList() {
         <fieldset>
           <legend className="sr-only">Settings</legend>
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter for movies. It requires Match Releases enabled. Example: Movie?Title?2024*" />
         </fieldset>
       </div>
     </div>

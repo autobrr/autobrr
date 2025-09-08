@@ -29,19 +29,19 @@ func (db *DB) openSQLite() error {
 	var err error
 
 	// open database connection
-	if db.handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000"); err != nil {
+	if db.Handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000"); err != nil {
 		db.log.Fatal().Err(err).Msg("could not open db connection")
 		return err
 	}
 
 	// Set busy timeout
-	if _, err = db.handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
+	if _, err = db.Handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
 		return errors.Wrap(err, "busy timeout pragma")
 	}
 
 	// Enable WAL. SQLite performs better with the WAL  because it allows
 	// multiple readers to operate while data is being written.
-	if _, err = db.handler.Exec(`PRAGMA journal_mode = wal;`); err != nil {
+	if _, err = db.Handler.Exec(`PRAGMA journal_mode = wal;`); err != nil {
 		return errors.Wrap(err, "enable wal")
 	}
 
@@ -50,7 +50,7 @@ func (db *DB) openSQLite() error {
 	// information has been gathered over the lifecycle of the connection.
 	// The SQLite documentation is inconsistent in this regard,
 	// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
-	if _, err = db.handler.Exec(`PRAGMA analysis_limit = 400;`); err != nil {
+	if _, err = db.Handler.Exec(`PRAGMA analysis_limit = 400;`); err != nil {
 		return errors.Wrap(err, "analysis_limit")
 	}
 
@@ -60,7 +60,7 @@ func (db *DB) openSQLite() error {
 	// to commit from the WAL (and can fail to commit all pending operations).
 	// Forcing a PRAGMA wal_checkpoint(RESTART); in the future on a "quiet period" could be
 	// considered.
-	if _, err = db.handler.Exec(`PRAGMA wal_checkpoint(TRUNCATE);`); err != nil {
+	if _, err = db.Handler.Exec(`PRAGMA wal_checkpoint(TRUNCATE);`); err != nil {
 		return errors.Wrap(err, "commit wal")
 	}
 
@@ -70,12 +70,12 @@ func (db *DB) openSQLite() error {
 
 	// Enable it for testing for consistency with postgres.
 	if os.Getenv("IS_TEST_ENV") == "true" {
-		if _, err = db.handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
+		if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
 			return errors.New("foreign keys pragma")
 		}
 	}
 
-	//if _, err = db.handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
+	//if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
 	//	return errors.New("foreign keys pragma: %w", err)
 	//}
 
@@ -89,14 +89,14 @@ func (db *DB) openSQLite() error {
 }
 
 func (db *DB) closingSQLite() error {
-	if db.handler == nil {
+	if db.Handler == nil {
 		return nil
 	}
 
 	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
 	// Based on the limit defined at connection time, run optimize to
 	// help tweak the performance of the database on the next run.
-	if _, err := db.handler.Exec(`PRAGMA optimize;`); err != nil {
+	if _, err := db.Handler.Exec(`PRAGMA optimize;`); err != nil {
 		return errors.Wrap(err, "query planner optimization")
 	}
 
@@ -108,7 +108,7 @@ func (db *DB) migrateSQLite() error {
 	defer db.lock.Unlock()
 
 	var version int
-	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+	if err := db.Handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return errors.Wrap(err, "failed to query schema version")
 	}
 
@@ -120,7 +120,7 @@ func (db *DB) migrateSQLite() error {
 
 	db.log.Info().Msgf("Beginning database schema upgrade from version %d to version: %d", version, len(sqliteMigrations))
 
-	tx, err := db.handler.Begin()
+	tx, err := db.Handler.Begin()
 	if err != nil {
 		return err
 	}
@@ -271,7 +271,7 @@ func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
 func (db *DB) databaseConsistencyCheckSQLite() error {
 	db.log.Info().Msg("Database integrity check..")
 
-	rows, err := db.handler.Query("PRAGMA integrity_check;")
+	rows, err := db.Handler.Query("PRAGMA integrity_check;")
 	if err != nil {
 		return errors.Wrap(err, "failed to query integrity check")
 	}
@@ -301,7 +301,7 @@ func (db *DB) databaseConsistencyCheckSQLite() error {
 
 	db.log.Info().Msg("Database integrity check post re-indexing..")
 
-	row := db.handler.QueryRow("PRAGMA integrity_check;")
+	row := db.Handler.QueryRow("PRAGMA integrity_check;")
 
 	var status string
 	if err := row.Scan(&status); err != nil {
@@ -347,7 +347,7 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 	for _, index := range badIndexes {
 		db.log.Info().Msgf("Database attempt to re-index: %s", index)
 
-		_, err := db.handler.Exec(fmt.Sprintf("REINDEX %s;", index))
+		_, err := db.Handler.Exec(fmt.Sprintf("REINDEX %s;", index))
 		if err != nil {
 			return errors.Wrap(err, "failed to backup database")
 		}
@@ -360,7 +360,7 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 
 func (db *DB) backupSQLiteDatabase() error {
 	var version int
-	if err := db.handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
+	if err := db.Handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return errors.Wrap(err, "failed to query schema version")
 	}
 
@@ -368,7 +368,7 @@ func (db *DB) backupSQLiteDatabase() error {
 
 	db.log.Info().Msgf("Creating database backup: %s", backupFile)
 
-	_, err := db.handler.Exec("VACUUM INTO ?;", backupFile)
+	_, err := db.Handler.Exec("VACUUM INTO ?;", backupFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to backup database")
 	}

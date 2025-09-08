@@ -266,6 +266,7 @@ CREATE TABLE action
     tags                    TEXT,
     label                   TEXT,
     save_path               TEXT,
+    download_path           TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
     first_last_piece_prio   BOOLEAN DEFAULT false,
@@ -303,7 +304,7 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    announce_type     TEXT      DEFAULT 'NEW', 
+    announce_type     TEXT      DEFAULT 'NEW',
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -551,6 +552,8 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
+    include_year             BOOLEAN DEFAULT FALSE,
+    skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
     last_refresh_data        TEXT,
@@ -567,6 +570,14 @@ CREATE TABLE list_filter
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );
+
+CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
 `
 
 var sqliteMigrations = []string{
@@ -1699,7 +1710,7 @@ ALTER TABLE filter
 `,
 	`UPDATE  irc_network
     SET server = 'irc.animefriends.moe',
-        name = CASE  
+        name = CASE
 			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
         	ELSE name
         END
@@ -1778,11 +1789,11 @@ CREATE INDEX filter_priority_index
 	`UPDATE irc_network
 	SET server = 'irc.scenehd.org'
 	WHERE server = 'irc.scenehd.eu';
-	
+
 UPDATE irc_network
 	SET server = 'irc.p2p-network.net', name = 'P2P-Network', nick = nick || '_0'
 	WHERE server = 'irc.librairc.net';
-	
+
 UPDATE irc_network
 	SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
 	WHERE server = 'irc.ircnet.com';
@@ -1986,7 +1997,7 @@ CREATE INDEX release_cut_index
 CREATE INDEX release_hybrid_index
     ON "release" (hybrid);
 `,
-	`UPDATE irc_channel 
+	`UPDATE irc_channel
     SET name = '#ptp-announce'
     WHERE name = '#ptp-announce-dev' AND NOT EXISTS (SELECT 1 FROM irc_channel WHERE name = '#ptp-announce');
 `,
@@ -1998,7 +2009,102 @@ CREATE INDEX release_hybrid_index
 	SET announce_types = '{"NEW"}'
 	WHERE announce_types = '{}';
 `,
+	`
+	ALTER TABLE list
+		ADD COLUMN skip_clean_sanitize BOOLEAN DEFAULT FALSE;
+`,
+	`UPDATE irc_network
+	SET
+    	auth_mechanism = 'NONE',
+    	auth_account = '',
+    	auth_password = ''
+	WHERE server = 'irc.rocket-hd.cc'
+    	AND auth_mechanism != 'NONE';
+
+	UPDATE irc_channel
+	SET password = NULL
+	WHERE password IS NOT NULL
+    	AND network_id IN (
+        	SELECT id
+        	FROM irc_network
+        	WHERE server = 'irc.rocket-hd.cc'
+    	);
+`,
+	`CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
+`,
+	`INSERT INTO irc_network (
+    enabled, name, server, port, tls, pass, nick,
+    auth_mechanism, auth_account, auth_password,
+    invite_command, use_bouncer, bouncer_addr, bot_mode,
+    connected, connected_since, use_proxy, proxy_id,
+    created_at, updated_at
+)
+SELECT
+    enabled, 'ULCX', 'irc.upload.cx', port, tls, pass, nick,
+    auth_mechanism, auth_account, auth_password,
+    invite_command, use_bouncer, bouncer_addr, bot_mode,
+    connected, connected_since, use_proxy, proxy_id,
+    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM irc_network
+WHERE id IN (
+    SELECT network_id
+    FROM irc_channel
+    WHERE name = '#ulcx-announce'
+);
+
+INSERT INTO irc_channel (enabled, name, password, detached, network_id)
+SELECT c.enabled, '#announce', c.password, c.detached,
+	  (SELECT MAX(id) FROM irc_network WHERE name = 'ULCX' AND server = 'irc.upload.cx')
+FROM irc_channel c
+WHERE c.name = '#ulcx-announce';
+
+DELETE FROM irc_channel
+WHERE name = '#ulcx-announce';
+`,
+	`-- Update macro with typo
+UPDATE filter_external
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+
+UPDATE action
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    watch_folder = REPLACE(REPLACE(watch_folder, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    category = REPLACE(REPLACE(category, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    tags = REPLACE(REPLACE(tags, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    label = REPLACE(REPLACE(label, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    save_path = REPLACE(REPLACE(save_path, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR watch_folder LIKE '%{{ .CurrenTimeUnixMS }}%' OR watch_folder LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR category LIKE '%{{ .CurrenTimeUnixMS }}%' OR category LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR tags LIKE '%{{ .CurrenTimeUnixMS }}%' OR tags LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR label LIKE '%{{ .CurrenTimeUnixMS }}%' OR label LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR save_path LIKE '%{{ .CurrenTimeUnixMS }}%' OR save_path LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+`,
+	`ALTER TABLE action
+		ADD COLUMN download_path TEXT;
+`,
+	`ALTER TABLE list
+		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
+`,
 	`ALTER TABLE filter
-	ADD COLUMN webhook_continue_on_error BOOLEAN DEFAULT false;
+  ADD COLUMN webhook_continue_on_error BOOLEAN DEFAULT false;
 `,
 }

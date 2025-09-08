@@ -17,7 +17,7 @@ settings:
     type: secret
     required: true
     label: RSS key (RID)
-    help: "Go to My Settings > RSS Key, and copy your RSS Key"
+    help: "Your profile > Settings > RSS Key"
 
 irc:
   network: RocketNET
@@ -35,23 +35,11 @@ irc:
       label: Nick
       help: Bot nick. Eg. user-bot
 
-    - name: auth.account
-      type: text
-      required: true
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
-
-    - name: auth.password
+    - name: pass
       type: secret
       required: true
-      label: NickServ Password
-      help: NickServ password
-
-    - name: channels.password
-      type: secret
-      required: true
-      label: Channel Password
-      help: Channel password
+      label: Network password
+      help: Your profile > Settings > IRC Key
 
   parse:
     type: single

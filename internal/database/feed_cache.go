@@ -44,7 +44,7 @@ func (r *FeedCacheRepo) Get(feedId int, key string) ([]byte, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRow(query, args...)
+	row := r.db.Handler.QueryRow(query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -79,7 +79,7 @@ func (r *FeedCacheRepo) GetByFeed(ctx context.Context, feedId int) ([]domain.Fee
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -116,7 +116,7 @@ func (r *FeedCacheRepo) GetCountByFeed(ctx context.Context, feedId int) (int, er
 		return 0, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return 0, errors.Wrap(err, "error executing query")
 	}
@@ -145,7 +145,7 @@ func (r *FeedCacheRepo) Exists(feedId int, key string) (bool, error) {
 	}
 
 	var exists bool
-	err = r.db.handler.QueryRow(query, args...).Scan(&exists)
+	err = r.db.Handler.QueryRow(query, args...).Scan(&exists)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
@@ -155,6 +155,48 @@ func (r *FeedCacheRepo) Exists(feedId int, key string) (bool, error) {
 	}
 
 	return exists, nil
+}
+
+// ExistingItems checks multiple keys in the cache for a given feed ID
+// and returns a map of existing keys to their values
+func (r *FeedCacheRepo) ExistingItems(ctx context.Context, feedId int, keys []string) (map[string]bool, error) {
+	if len(keys) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	// Build a query that returns all keys that exist in the cache
+	queryBuilder := r.db.squirrel.
+		Select("key").
+		From("feed_cache").
+		Where(sq.Eq{"feed_id": feedId}).
+		Where(sq.Eq{"key": keys})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+	defer rows.Close()
+
+	result := make(map[string]bool)
+
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+		result[key] = true
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "row error")
+	}
+
+	return result, nil
 }
 
 func (r *FeedCacheRepo) Put(feedId int, key string, val []byte, ttl time.Time) error {
@@ -168,7 +210,7 @@ func (r *FeedCacheRepo) Put(feedId int, key string, val []byte, ttl time.Time) e
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.handler.Exec(query, args...); err != nil {
+	if _, err = r.db.Handler.Exec(query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -189,7 +231,7 @@ func (r *FeedCacheRepo) PutMany(ctx context.Context, items []domain.FeedCacheIte
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -207,7 +249,7 @@ func (r *FeedCacheRepo) Delete(ctx context.Context, feedId int, key string) erro
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -229,7 +271,7 @@ func (r *FeedCacheRepo) DeleteByFeed(ctx context.Context, feedId int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -258,7 +300,7 @@ func (r *FeedCacheRepo) DeleteStale(ctx context.Context) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -268,7 +310,7 @@ func (r *FeedCacheRepo) DeleteStale(ctx context.Context) error {
 		return errors.Wrap(err, "error exec result")
 	}
 
-	r.log.Debug().Msgf("deleted %d rows from stale feed cache", rows)
+	r.log.Debug().Int64("items", rows).Msg("deleted rows from stale feed cache")
 
 	return nil
 }

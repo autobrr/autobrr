@@ -80,6 +80,12 @@ func (s *service) addAppJobs() {
 			s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
 		}
 	}
+
+	tempDirCleanup := NewTempDirCleanupJob(s.log.With().Str("job", "temp-dir-cleanup").Logger())
+
+	if id, err := s.AddJob(tempDirCleanup, "0 4 * * *", "temp-dir-cleanup"); err != nil {
+		s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding temp dir cleanup job: %v", id)
+	}
 }
 
 func (s *service) Stop() {

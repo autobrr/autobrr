@@ -191,6 +191,7 @@ const actionSchema = z.object({
   tags: z.string().optional(),
   label: z.string().optional(),
   save_path: z.string().optional(),
+  download_path: z.string().optional(),
   paused: z.boolean().optional(),
   ignore_rules: z.boolean().optional(),
   limit_upload_speed: z.number().optional(),

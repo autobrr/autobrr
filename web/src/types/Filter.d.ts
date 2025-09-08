@@ -99,6 +99,7 @@ interface Action {
   tags?: string;
   label?: string;
   save_path?: string;
+  download_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
   first_last_piece_prio?: boolean;
@@ -130,7 +131,7 @@ type ActionPriorityLayout = "MAX" | "MIN" | "";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
 
-type ExternalType = "EXEC" |  "WEBHOOK";
+type ExternalType = "EXEC" | "WEBHOOK";
 
 type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 

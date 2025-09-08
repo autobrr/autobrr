@@ -117,7 +117,7 @@ You can optionally build it with [GoReleaser](https://goreleaser.com/) which mak
 Install it with `go install` or check the [docs for alternatives](https://goreleaser.com/install/):
 
 ```shell
-go install github.com/goreleaser/goreleaser@latest
+go install github.com/goreleaser/goreleaser/v2@latest
 ```
 
 Then to build binaries, run:
@@ -161,6 +161,12 @@ go test ./... -tags=integration
 > ```shell
 > sudo timedatectl set-timezone Etc/UTC
 > ```
+>
+> Or to change the timezone for just the test run, do:
+>
+> ```
+> TZ=UTC go test ./... -tags=integration
+> ```
 
 ## Build Docker image
 
@@ -171,6 +177,14 @@ make build/docker
 ```
 
 The image will be tagged as `autobrr:dev`
+
+To build a cross platform Docker image (for instance if you're running on arm64 or Apple ARM):
+
+```shell
+make build/dockerx
+```
+
+[Docker multi-platform docs](https://docs.docker.com/build/building/multi-platform/)
 
 ## Mock indexer
 

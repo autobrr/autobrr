@@ -252,9 +252,9 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
           {": "}
           {status.action}
         </span>
-        {/*<div>*/}
-        {/*  {status.action_id > 0 && <RetryActionButton status={status} />}*/}
-        {/*</div>*/}
+        <div>
+          {status.action_id > 0 && <RetryActionButton status={status} />}
+        </div>
       </>
     )
   },

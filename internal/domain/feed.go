@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -13,6 +14,7 @@ type FeedCacheRepo interface {
 	GetByFeed(ctx context.Context, feedId int) ([]FeedCacheItem, error)
 	GetCountByFeed(ctx context.Context, feedId int) (int, error)
 	Exists(feedId int, key string) (bool, error)
+	ExistingItems(ctx context.Context, feedId int, keys []string) (map[string]bool, error)
 	Put(feedId int, key string, val []byte, ttl time.Time) error
 	PutMany(ctx context.Context, items []FeedCacheItem) error
 	Delete(ctx context.Context, feedId int, key string) error
@@ -58,6 +60,19 @@ type Feed struct {
 	ProxyID  int64
 	UseProxy bool
 	Proxy    *Proxy
+}
+
+func (f Feed) MarshalJSON() ([]byte, error) {
+	type Alias Feed
+	return json.Marshal(&struct {
+		*Alias
+		APIKey string `json:"api_key"`
+		Cookie string `json:"cookie"`
+	}{
+		APIKey: RedactString(f.ApiKey),
+		Cookie: RedactString(f.Cookie),
+		Alias:  (*Alias)(&f),
+	})
 }
 
 type FeedSettingsJSON struct {

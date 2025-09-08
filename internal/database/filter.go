@@ -19,28 +19,72 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type EngineQuery struct {
+	engine   string
+	sqlite   string
+	postgres string
+}
+
+func NewEngineQuery(engine string, sqlite, postgres string) *EngineQuery {
+	return &EngineQuery{
+		engine:   engine,
+		sqlite:   sqlite,
+		postgres: postgres,
+	}
+}
+
+func (q *EngineQuery) Get() string {
+	switch q.engine {
+	case "sqlite":
+		return q.sqlite
+	case "postgres":
+		return q.postgres
+	}
+
+	return ""
+}
+
 type FilterRepo struct {
 	log zerolog.Logger
 	db  *DB
+
+	// database specific queries
+	filterDownloadQuery *EngineQuery
 }
 
 func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
 	return &FilterRepo{
-		log: log.With().Str("repo", "filter").Logger(),
-		db:  db,
+		log:                 log.With().Str("repo", "filter").Logger(),
+		db:                  db,
+		filterDownloadQuery: NewEngineQuery(db.Driver, filterDownloadsSQLite, filterDownloadsPG),
 	}
 }
 
-func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
-	filters, err := r.find(ctx, params)
-	if err != nil {
-		return nil, err
-	}
+const (
+	filterDownloadsSQLite = `SELECT
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
+	COUNT(DISTINCT release_id) as "total_count"
+FROM release_action_status
+WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = ?;`
 
-	return filters, nil
+	filterDownloadsPG = `SELECT
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
+    COUNT(DISTINCT release_id) as "total_count"
+FROM release_action_status
+WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = $1;`
+)
+
+func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
+	return r.find(ctx, params)
 }
 
-func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
+func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
 	actionCountQuery := r.db.squirrel.
 		Select("COUNT(*)").
 		From("action a").
@@ -100,13 +144,13 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 	defer rows.Close()
 
-	var filters []domain.Filter
+	filters := make([]*domain.Filter, 0)
 	for rows.Next() {
 		var f domain.Filter
 
@@ -125,8 +169,9 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.V)
 		}
 
-		filters = append(filters, f)
+		filters = append(filters, &f)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "row error")
 	}
@@ -158,14 +203,14 @@ func (r *FilterRepo) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	defer rows.Close()
 
-	var filters []domain.Filter
+	filters := make([]domain.Filter, 0)
 	for rows.Next() {
 		var f domain.Filter
 
@@ -266,7 +311,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
@@ -525,7 +570,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -752,7 +797,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
@@ -952,7 +997,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			toNullInt64(filter.ReleaseProfileDuplicateID),
 			filter.WebhookContinueOnError,
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	// return values
 	var retID int
@@ -1047,7 +1092,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1278,7 +1323,7 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1309,7 +1354,7 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1324,7 +1369,7 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 }
 
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -1389,7 +1434,7 @@ func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, i
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1407,7 +1452,7 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1425,7 +1470,7 @@ func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) err
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1482,81 +1527,39 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-// GetDownloadsByFilterId looks up how many `PENDING` or `PUSH_APPROVED`
+// GetFilterDownloadCount looks up how many `PENDING` or `PUSH_APPROVED`
 // releases there have been for the given filter in the current time window
 // starting at the start of the unit (since the beginning of the most recent
 // hour/day/week).
 //
 // See also
 // https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
-func (r *FilterRepo) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
-	if r.db.Driver == "sqlite" {
-		return r.downloadsByFilterSqlite(ctx, filterID)
-	}
+func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) (err error) {
+	query := r.filterDownloadQuery.Get()
 
-	return r.downloadsByFilterPostgres(ctx, filterID)
-}
-
-func (r *FilterRepo) downloadsByFilterSqlite(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
-	query := `SELECT
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
-	COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = ?;`
-
-	row := r.db.handler.QueryRowContext(ctx, query, filterID)
+	row := r.db.Handler.QueryRowContext(ctx, query, filter.ID)
 	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
 	var f domain.FilterDownloads
-
 	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
+			return domain.ErrRecordNotFound
 		}
 
-		return nil, errors.Wrap(err, "error scanning stats data sqlite")
+		return errors.Wrap(err, "error scanning stats data sqlite")
 	}
 
-	r.log.Trace().Msgf("filter %v downloads: %+v", filterID, &f)
+	r.log.Trace().Msgf("filter %v downloads: %+v", filter.ID, &f)
 
-	return &f, nil
-}
+	filter.Downloads = &f
 
-func (r *FilterRepo) downloadsByFilterPostgres(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
-	query := `SELECT
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
-    COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = $1;`
-
-	row := r.db.handler.QueryRowContext(ctx, query, filterID)
-	if err := row.Err(); err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
-
-	var f domain.FilterDownloads
-
-	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
-		}
-
-		return nil, errors.Wrap(err, "error scanning stats data postgres")
-	}
-
-	return &f, nil
+	return
 }
 
 func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

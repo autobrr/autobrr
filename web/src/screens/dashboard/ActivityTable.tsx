@@ -117,7 +117,7 @@ export const ActivityTable = () => {
     }
   ], []);
 
-  const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
+  const { isLoading, data, dataUpdatedAt } = useSuspenseQuery(ReleasesLatestQueryOptions());
 
   const [modifiedData, setModifiedData] = useState<Release[]>([]);
   const [settings, setSettings] = SettingsContext.use();
@@ -143,7 +143,7 @@ export const ActivityTable = () => {
     } else {
       setModifiedData([]);
     }
-  }, [settings.incognitoMode, data?.data]);
+  }, [settings.incognitoMode, data?.data, dataUpdatedAt]);
 
   if (isLoading) {
     return (
@@ -162,7 +162,7 @@ export const ActivityTable = () => {
     setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
   };
 
-  const displayData = settings.incognitoMode ? modifiedData : (data?.data ?? []);
+  const displayData = settings.incognitoMode ? modifiedData : [...(data?.data ?? [])];
 
   return (
     <div className="flex flex-col mt-12 relative">
