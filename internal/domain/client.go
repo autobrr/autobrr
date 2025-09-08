@@ -38,53 +38,33 @@ type DownloadClient struct {
 }
 
 func (c DownloadClient) MarshalJSON() ([]byte, error) {
-	// Manually create redacted settings
-	var redactedSettings *DownloadClientSettings
-	if c.Settings != (DownloadClientSettings{}) {
-		redactedSettings = &DownloadClientSettings{
-			APIKey:                   RedactString(c.Settings.APIKey),
-			Rules:                    c.Settings.Rules,
-			ExternalDownloadClientId: c.Settings.ExternalDownloadClientId,
-			ExternalDownloadClient:   c.Settings.ExternalDownloadClient,
-			Auth: DownloadClientAuth{
-				Enabled:  c.Settings.Auth.Enabled,
-				Type:     c.Settings.Auth.Type,
-				Username: c.Settings.Auth.Username,
-				Password: RedactString(c.Settings.Auth.Password),
-			},
-			Basic: BasicAuth{
-				Auth:     c.Settings.Basic.Auth,
-				Username: c.Settings.Basic.Username,
-				Password: RedactString(c.Settings.Basic.Password),
-			},
-		}
+	redactedSettings := DownloadClientSettings{
+		APIKey:                   RedactString(c.Settings.APIKey),
+		Rules:                    c.Settings.Rules,
+		ExternalDownloadClientId: c.Settings.ExternalDownloadClientId,
+		ExternalDownloadClient:   c.Settings.ExternalDownloadClient,
+		Auth: DownloadClientAuth{
+			Enabled:  c.Settings.Auth.Enabled,
+			Type:     c.Settings.Auth.Type,
+			Username: c.Settings.Auth.Username,
+			Password: RedactString(c.Settings.Auth.Password),
+		},
+		Basic: BasicAuth{
+			Auth:     c.Settings.Basic.Auth,
+			Username: c.Settings.Basic.Username,
+			Password: RedactString(c.Settings.Basic.Password),
+		},
 	}
 
-	// Create the JSON structure with redacted fields
+	type Alias DownloadClient
 	return json.Marshal(&struct {
-		ID            int32                   `json:"id"`
-		Name          string                  `json:"name"`
-		Type          DownloadClientType      `json:"type"`
-		Enabled       bool                    `json:"enabled"`
-		Host          string                  `json:"host"`
-		Port          int                     `json:"port"`
-		TLS           bool                    `json:"tls"`
-		TLSSkipVerify bool                    `json:"tls_skip_verify"`
-		Username      string                  `json:"username"`
-		Password      string                  `json:"password"`
-		Settings      *DownloadClientSettings `json:"settings,omitempty"`
+		*Alias
+		Password string                 `json:"password"`
+		Settings DownloadClientSettings `json:"settings"`
 	}{
-		ID:            c.ID,
-		Name:          c.Name,
-		Type:          c.Type,
-		Enabled:       c.Enabled,
-		Host:          c.Host,
-		Port:          c.Port,
-		TLS:           c.TLS,
-		TLSSkipVerify: c.TLSSkipVerify,
-		Username:      c.Username,
-		Password:      RedactString(c.Password),
-		Settings:      redactedSettings,
+		Password: RedactString(c.Password),
+		Settings: redactedSettings,
+		Alias:    (*Alias)(&c),
 	})
 }
 

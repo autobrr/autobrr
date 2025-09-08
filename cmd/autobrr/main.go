@@ -118,8 +118,10 @@ func main() {
 
 	// session manager
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.New(db)
-	if db.Driver == "postgres" {
+	switch db.Driver {
+	case database.DriverSQLite:
+		sessionManager.Store = sqlite3store.New(db)
+	case database.DriverPostgres:
 		sessionManager.Store = postgresstore.New(db.Handler)
 	}
 
