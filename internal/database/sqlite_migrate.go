@@ -551,8 +551,8 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
-    skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     include_year             BOOLEAN DEFAULT FALSE,
+    skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
     last_refresh_data        TEXT,
@@ -2100,7 +2100,7 @@ WHERE
 	`ALTER TABLE action
 		ADD COLUMN download_path TEXT;
 `,
-  `ALTER TABLE list
+	`ALTER TABLE list
 		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
 `,
 }

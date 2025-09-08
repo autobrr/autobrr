@@ -142,8 +142,8 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                     tags_excluded: [],
                     include_unmonitored: false,
                     include_alternate_titles: false,
-                    skip_clean_sanitize: false,
                     include_year: false,
+                    skip_clean_sanitize: false,
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -375,8 +375,8 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                     tags_excluded: data.tags_excluded,
                     include_unmonitored: data.include_unmonitored,
                     include_alternate_titles: data.include_alternate_titles,
-                    skip_clean_sanitize: data.skip_clean_sanitize,
                     include_year: data.include_year,
+                    skip_clean_sanitize: data.skip_clean_sanitize,
                   }}
                   onSubmit={onSubmit}
                   // validate={validate}
