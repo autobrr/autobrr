@@ -134,6 +134,8 @@ type ExternalType = "EXEC" | "WEBHOOK";
 
 type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+type ExternalFilterOnError = "CONTINUE" | "REJECT";
+
 interface ExternalFilter {
   id: number;
   index: number;
@@ -152,6 +154,7 @@ interface ExternalFilter {
   webhook_retry_status?: string,
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
+  on_error: ExternalFilterOnError;
   filter_id?: number;
 }
 

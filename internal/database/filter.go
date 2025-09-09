@@ -784,9 +784,11 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			"fe.webhook_retry_status",
 			"fe.webhook_retry_attempts",
 			"fe.webhook_retry_delay_seconds",
+			"fe.on_error",
 		).
 		From("filter_external fe").
-		Where(sq.Eq{"fe.filter_id": filterId})
+		Where(sq.Eq{"fe.filter_id": filterId}).
+		OrderBy("fe.idx DESC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -827,6 +829,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			&extWebhookRetryStatus,
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
+			&external.OnError,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -1596,6 +1599,7 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			"webhook_retry_status",
 			"webhook_retry_attempts",
 			"webhook_retry_delay_seconds",
+			"on_error",
 			"filter_id",
 		)
 
@@ -1616,6 +1620,7 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			toNullString(external.WebhookRetryStatus),
 			toNullInt32(int32(external.WebhookRetryAttempts)),
 			toNullInt32(int32(external.WebhookRetryDelaySeconds)),
+			external.OnError,
 			filterID,
 		)
 	}
