@@ -317,7 +317,6 @@ type FilterUpdate struct {
 	Actions                   []*Action               `json:"actions,omitempty"`
 	External                  []FilterExternal        `json:"external,omitempty"`
 	Indexers                  []Indexer               `json:"indexers,omitempty"`
-	WebhookContinueOnError    *bool                   `json:"webhook_continue_on_error"`
 }
 
 func (f *Filter) Validate() error {
