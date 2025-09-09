@@ -659,6 +659,8 @@ export const ExternalFilterTypeNameMap = {
   "WEBHOOK": "Webhook"
 };
 
+export const ExternalFilterOnErrorValues: ExternalFilterOnError[]  = ["REJECT", "CONTINUE"];
+
 export const ExternalFilterOnErrorOptions: SelectGenericOption<ExternalFilterOnError>[] = [
     { label: "Reject", description: "Reject on error, default", value: "REJECT" },
     { label: "Continue to next", description: "Continue on error", value: "CONTINUE" },
