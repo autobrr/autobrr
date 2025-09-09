@@ -1658,7 +1658,7 @@ func (r *FilterRepo) GetFilterNotifications(ctx context.Context, filterID int) (
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -1685,7 +1685,7 @@ func (r *FilterRepo) GetFilterNotifications(ctx context.Context, filterID int) (
 }
 
 func (r *FilterRepo) StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -1755,7 +1755,7 @@ func (r *FilterRepo) DeleteFilterNotifications(ctx context.Context, filterID int
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
