@@ -5,6 +5,8 @@ package torznab
 
 import (
 	"encoding/xml"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -30,27 +32,69 @@ type Response struct {
 	} `xml:"channel"`
 }
 
-type FeedItem struct {
-	Title           string `xml:"title,omitempty"`
-	GUID            string `xml:"guid,omitempty"`
-	PubDate         Time   `xml:"pubDate,omitempty"`
-	Prowlarrindexer struct {
-		Text string `xml:",chardata"`
-		ID   string `xml:"id,attr"`
-	} `xml:"prowlarrindexer"`
-	Comments   string `xml:"comments"`
-	Size       string `xml:"size"`
-	Link       string `xml:"link"`
-	Category   []int  `xml:"category,omitempty"`
-	Categories Categories
+type ProwlarrIndexer struct {
+	Text string `xml:",chardata"`
+	ID   string `xml:"id,attr"`
+}
 
-	// attributes
+type Attributes []ItemAttr
+
+type FeedItem struct {
+	Title           string           `xml:"title,omitempty"`
+	GUID            string           `xml:"guid,omitempty"`
+	PubDate         Time             `xml:"pubDate,omitempty"`
+	Prowlarrindexer *ProwlarrIndexer `xml:"prowlarrindexer,omitempty"` // TODO handle jackett variant
+	Comments        string           `xml:"comments"`
+	Size            int64            `xml:"size"`
+	Link            string           `xml:"link"`
+	Category        []int            `xml:"category,omitempty"`
+	Categories      Categories
+	Files           int
+	Genres          []string `xml:"genre,omitempty"`
+
+	// Attributes
 	TvdbId string `xml:"tvdb,omitempty"`
-	//TvMazeId string
 	ImdbId string `xml:"imdb,omitempty"`
 	TmdbId string `xml:"tmdb,omitempty"`
 
-	Attributes []ItemAttr `xml:"attr"`
+	Grabs    int `xml:"-"`
+	Seeders  int `xml:"-"`
+	Leechers int `xml:"leechers"`
+	Peers    int `xml:"-"`
+
+	MinimumRatio    float64 `xml:"-"`
+	MinimumSeedTime int     `xml:"-"`
+
+	DownloadVolumeFactor float64 `xml:"-"`
+	UploadVolumeFactor   float64 `xml:"-"`
+
+	Author    string `xml:"-"`
+	Freeleech bool   `xml:"-"`
+	Internal  bool   `xml:"-"`
+	// TODO parse extra flags
+
+	Attributes Attributes `xml:"attr"`
+}
+
+func (f *FeedItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	// Create a type alias to avoid infinite recursion
+	type Alias FeedItem
+
+	// Create an auxiliary struct that embeds the alias
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(f),
+	}
+
+	// Decode into the auxiliary struct
+	if err := d.DecodeElement(aux, &start); err != nil {
+		return err
+	}
+
+	f.parseAttributes()
+
+	return nil
 }
 
 type ItemAttr struct {
@@ -75,6 +119,90 @@ func (f *FeedItem) MapCategories(categories []Category) {
 				})
 				break
 			}
+		}
+	}
+}
+
+func (f *FeedItem) parseAttributes() {
+	for _, attr := range f.Attributes {
+		switch attr.Name {
+		case "author":
+			f.Author = attr.Value
+			break
+		case "grabs":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Grabs = int(parsedInt)
+				break
+			}
+		case "seeders":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Seeders = int(parsedInt)
+				break
+			}
+		case "leechers":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Leechers = int(parsedInt)
+				break
+			}
+		case "peers":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Peers = int(parsedInt)
+				break
+			}
+		case "files":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Files = int(parsedInt)
+				break
+			}
+		case "minimumratio":
+			if parseFloat, err := strconv.ParseFloat(attr.Value, 32); err == nil {
+				f.MinimumRatio = parseFloat
+				break
+			}
+		case "minimumseedtime":
+			if parseInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.MinimumSeedTime = int(parseInt)
+				break
+			}
+		case "tag":
+			if attr.Value == "internal" {
+				f.Internal = true
+			}
+			if attr.Value == "freeleech" {
+				f.Freeleech = true
+			}
+			break
+		case "downloadvolumefactor":
+			if parsedFloat, err := strconv.ParseFloat(attr.Value, 32); err == nil {
+				f.DownloadVolumeFactor = parsedFloat
+				break
+			}
+		case "uploadvolumefactor":
+			if parsedFloat, err := strconv.ParseFloat(attr.Value, 32); err == nil {
+				f.UploadVolumeFactor = parsedFloat
+				break
+			}
+		case "imdb":
+			if f.ImdbId == "" {
+				if !strings.HasPrefix(attr.Value, "tt") {
+					f.ImdbId = "tt" + attr.Value
+				} else {
+					f.ImdbId = attr.Value
+				}
+				break
+			}
+		case "tvdb":
+			if f.TvdbId == "" {
+				f.TvdbId = attr.Value
+				break
+			}
+		case "tmdb":
+			if f.TmdbId == "" {
+				f.TmdbId = attr.Value
+				break
+			}
+		case "genre":
+			f.Genres = strings.Split(attr.Value, ",")
 		}
 	}
 }

@@ -247,13 +247,12 @@ const appClient = {
 
 export const APIClient = {
   auth: {
-    login: (username: string, password: string) => appClient.Post("api/auth/login", {
-      body: { username, password }
+    login: (username: string, password: string, remember_me: boolean) => appClient.Post("api/auth/login", {
+      body: { username, password, remember_me }
     }),
     logout: () => appClient.Post("api/auth/logout"),
     validate: async (): Promise<ValidateResponse> => {
-      const response = await appClient.Get<ValidateResponse>("api/auth/validate");
-      return response;
+        return await appClient.Get<ValidateResponse>("api/auth/validate");
     },
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }

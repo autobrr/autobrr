@@ -48,7 +48,7 @@ import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
 import { AuthContext, SettingsContext } from "@utils/Context";
-import { TanStackRouterDevtools } from "@tanstack/router-devtools";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
 import ProxySettings from "@screens/settings/Proxy";

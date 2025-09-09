@@ -194,24 +194,32 @@ type Filter struct {
 	RejectReasons             *RejectionReasons        `json:"-"`
 }
 
+type FilterExternalOnError string
+
+const (
+	FilterExternalOnErrorContinue FilterExternalOnError = "CONTINUE"
+	FilterExternalOnErrorReject   FilterExternalOnError = "REJECT"
+)
+
 type FilterExternal struct {
-	ID                       int                `json:"id"`
-	Name                     string             `json:"name"`
-	Index                    int                `json:"index"`
-	Type                     FilterExternalType `json:"type"`
-	Enabled                  bool               `json:"enabled"`
-	ExecCmd                  string             `json:"exec_cmd,omitempty"`
-	ExecArgs                 string             `json:"exec_args,omitempty"`
-	ExecExpectStatus         int                `json:"exec_expect_status,omitempty"`
-	WebhookHost              string             `json:"webhook_host,omitempty"`
-	WebhookMethod            string             `json:"webhook_method,omitempty"`
-	WebhookData              string             `json:"webhook_data,omitempty"`
-	WebhookHeaders           string             `json:"webhook_headers,omitempty"`
-	WebhookExpectStatus      int                `json:"webhook_expect_status,omitempty"`
-	WebhookRetryStatus       string             `json:"webhook_retry_status,omitempty"`
-	WebhookRetryAttempts     int                `json:"webhook_retry_attempts,omitempty"`
-	WebhookRetryDelaySeconds int                `json:"webhook_retry_delay_seconds,omitempty"`
-	FilterId                 int                `json:"-"`
+	ID                       int                   `json:"id"`
+	Name                     string                `json:"name"`
+	Index                    int                   `json:"index"`
+	Type                     FilterExternalType    `json:"type"`
+	Enabled                  bool                  `json:"enabled"`
+	ExecCmd                  string                `json:"exec_cmd,omitempty"`
+	ExecArgs                 string                `json:"exec_args,omitempty"`
+	ExecExpectStatus         int                   `json:"exec_expect_status,omitempty"`
+	WebhookHost              string                `json:"webhook_host,omitempty"`
+	WebhookMethod            string                `json:"webhook_method,omitempty"`
+	WebhookData              string                `json:"webhook_data,omitempty"`
+	WebhookHeaders           string                `json:"webhook_headers,omitempty"`
+	WebhookExpectStatus      int                   `json:"webhook_expect_status,omitempty"`
+	WebhookRetryStatus       string                `json:"webhook_retry_status,omitempty"`
+	WebhookRetryAttempts     int                   `json:"webhook_retry_attempts,omitempty"`
+	WebhookRetryDelaySeconds int                   `json:"webhook_retry_delay_seconds,omitempty"`
+	OnError                  FilterExternalOnError `json:"on_error"`
+	FilterId                 int                   `json:"-"`
 }
 
 func (f FilterExternal) NeedTorrentDownloaded() bool {

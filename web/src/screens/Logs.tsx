@@ -9,7 +9,8 @@ import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/r
 import { DebounceInput } from "react-debounce-input";
 import {
   Cog6ToothIcon,
-  DocumentArrowDownIcon
+  DocumentArrowDownIcon,
+  TrashIcon
 } from "@heroicons/react/24/outline";
 import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns/format";
@@ -98,6 +99,11 @@ export const Logs = () => {
     }
   }, [logs, searchFilter]);
 
+  const handleClearLogs = () => {
+    setLogs([]);
+    toast.custom((t) => <Toast type="success" body="Logs cleared from view." t={t} />);
+  };
+
   return (
     <main>
       <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
@@ -121,10 +127,18 @@ export const Logs = () => {
               placeholder="Enter a regex pattern to filter logs by..."
             />
             {isInvalidRegex && (
-              <div className="absolute mt-1.5 right-14 items-center text-xs text-red-500">
+              <div className="absolute mt-1.5 right-28 items-center text-xs text-red-500">
                 <ExclamationCircleIcon className="h-6 w-6 inline mr-1" />
               </div>
             )}
+            <button
+              type="button"
+              onClick={handleClearLogs}
+              className="px-4 py-2"
+              title="Clear logs from view"
+            >
+              <TrashIcon className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400" aria-hidden="true" />
+            </button>
             <LogsDropdown />
           </div>
 

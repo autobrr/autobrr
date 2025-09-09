@@ -50,7 +50,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -110,7 +110,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -154,7 +154,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadC
 		Insert("client").
 		Columns("name", "type", "enabled", "host", "port", "tls", "tls_skip_verify", "username", "password", "settings").
 		Values(client.Name, client.Type, client.Enabled, client.Host, client.Port, client.TLS, client.TLSSkipVerify, client.Username, client.Password, settingsJson).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	// return values
 	var retID int
@@ -205,7 +205,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.Download
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

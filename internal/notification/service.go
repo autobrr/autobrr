@@ -79,8 +79,23 @@ func (s *service) Store(ctx context.Context, notification *domain.Notification) 
 }
 
 func (s *service) Update(ctx context.Context, notification *domain.Notification) error {
-	err := s.repo.Update(ctx, notification)
+	existing, err := s.repo.FindByID(ctx, notification.ID)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find notification by id: %v", notification.ID)
+		return err
+	}
+
+	if domain.IsRedactedString(notification.Password) {
+		notification.Password = existing.Password
+	}
+	if domain.IsRedactedString(notification.Token) {
+		notification.Token = existing.Token
+	}
+	if domain.IsRedactedString(notification.APIKey) {
+		notification.APIKey = existing.APIKey
+	}
+
+	if err := s.repo.Update(ctx, notification); err != nil {
 		s.log.Error().Err(err).Msgf("could not update notification: %+v", notification)
 		return err
 	}

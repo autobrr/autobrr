@@ -1,7 +1,7 @@
 // Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-package auth
+package http
 
 import (
 	"context"
@@ -9,13 +9,16 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/argon2id"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/gorilla/sessions"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
@@ -31,12 +34,14 @@ type OIDCConfig struct {
 }
 
 type OIDCHandler struct {
-	config      *OIDCConfig
-	provider    *oidc.Provider
-	verifier    *oidc.IDTokenVerifier
-	oauthConfig *oauth2.Config
-	log         zerolog.Logger
-	cookieStore *sessions.CookieStore
+	log            zerolog.Logger
+	encoder        encoder
+	config         *domain.Config
+	oidcConfig     *OIDCConfig
+	provider       *oidc.Provider
+	verifier       *oidc.IDTokenVerifier
+	oauthConfig    *oauth2.Config
+	sessionManager *scs.SessionManager
 }
 
 // OIDCClaims represents the claims returned from the OIDC provider
@@ -50,19 +55,14 @@ type OIDCClaims struct {
 	Picture   string `json:"picture"`
 }
 
-func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error) {
+func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, sessionManager *scs.SessionManager) (*OIDCHandler, error) {
 	log.Debug().
 		Bool("oidc_enabled", cfg.OIDCEnabled).
 		Str("oidc_issuer", cfg.OIDCIssuer).
 		Str("oidc_client_id", cfg.OIDCClientID).
 		Str("oidc_redirect_url", cfg.OIDCRedirectURL).
 		Str("oidc_scopes", cfg.OIDCScopes).
-		Msg("initializing OIDC handler with config")
-
-	//if !cfg.OIDCEnabled {
-	//	log.Debug().Msg("OIDC is not enabled, returning nil handler")
-	//	return nil, nil
-	//}
+		Msg("initializing OIDC handler with oidcConfig")
 
 	if cfg.OIDCIssuer == "" {
 		log.Error().Msg("OIDC issuer is empty")
@@ -131,11 +131,11 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 		ClientID: cfg.OIDCClientID,
 	}
 
-	stateSecret := generateRandomState()
-
 	handler := &OIDCHandler{
-		log: log,
-		config: &OIDCConfig{
+		encoder: encoder,
+		log:     log,
+		config:  cfg,
+		oidcConfig: &OIDCConfig{
 			Enabled:             cfg.OIDCEnabled,
 			Issuer:              cfg.OIDCIssuer,
 			ClientID:            cfg.OIDCClientID,
@@ -144,8 +144,9 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 			DisableBuiltInLogin: cfg.OIDCDisableBuiltInLogin,
 			Scopes:              scopes,
 		},
-		provider: provider,
-		verifier: provider.Verifier(oidcConfig),
+		provider:       provider,
+		verifier:       provider.Verifier(oidcConfig),
+		sessionManager: sessionManager,
 		oauthConfig: &oauth2.Config{
 			ClientID:     cfg.OIDCClientID,
 			ClientSecret: cfg.OIDCClientSecret,
@@ -153,103 +154,98 @@ func NewOIDCHandler(cfg *domain.Config, log zerolog.Logger) (*OIDCHandler, error
 			Endpoint:     provider.Endpoint(),
 			Scopes:       scopes,
 		},
-		cookieStore: sessions.NewCookieStore([]byte(stateSecret)),
 	}
 
 	log.Debug().Msg("OIDC handler initialized successfully")
 	return handler, nil
 }
 
-func (h *OIDCHandler) GetConfig() *OIDCConfig {
-	if h == nil {
-		return &OIDCConfig{
-			Enabled: false,
-		}
-	}
-	h.log.Debug().Bool("enabled", h.config.Enabled).Str("issuer", h.config.Issuer).Msg("returning OIDC config")
-	return h.config
+func (h *OIDCHandler) Routes(r chi.Router) {
+	r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
+	r.Get("/config", h.getConfig)
+	r.Get("/callback", h.handleCallback)
 }
 
-func (h *OIDCHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.log.Error().Err(err).Msg("failed to get user session")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
+	// Get the config first
+	config := h.GetConfigResponse()
+
+	// Check for existing session
+	authenticated := h.sessionManager.GetBool(r.Context(), "authenticated")
+	if authenticated {
+		h.log.Debug().Msg("user already has valid session, skipping OIDC state cookie")
+		// Still return enabled=true, just don't set the cookie
+		h.encoder.StatusResponse(w, http.StatusOK, config)
 		return
 	}
 
-	if session.Values["authenticated"] == true {
-		h.log.Debug().Msg("user already has valid session, skipping OIDC login")
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	h.log.Debug().Bool("enabled", config.Enabled).Str("authorization_url", config.AuthorizationURL).Str("state", config.State).Msg("returning OIDC config")
 
-	state := generateRandomState()
-	h.SetStateCookie(w, r, state)
+	// Only set state cookie if user is not already authenticated
+	h.SetStateCookie(w, r, config.State)
 
-	authURL := h.oauthConfig.AuthCodeURL(state)
-	http.Redirect(w, r, authURL, http.StatusFound)
+	h.encoder.StatusResponse(w, http.StatusOK, config)
 }
 
-func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*OIDCClaims, error) {
+func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.log.Debug().Msg("handling OIDC callback")
 
-	// get state from session
-	session, err := h.cookieStore.Get(r, "oidc_state")
-	if err != nil {
-		h.log.Error().Err(err).Msg("state session not found")
-		return nil, errors.New("state session not found")
+	// Get and validate state parameter
+	expectedState := h.sessionManager.GetString(r.Context(), "oidc_state")
+	if expectedState == "" {
+		h.log.Error().Msg("no state found in session")
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("invalid state: no state found in session"))
+		return
 	}
 
-	expectedState, ok := session.Values["state"].(string)
-	if !ok {
-		h.log.Error().Msg("state not found in session")
-		return nil, errors.New("state not found in session")
+	actualState := r.URL.Query().Get("state")
+	if actualState != expectedState {
+		h.log.Error().Str("expected", expectedState).Str("got", actualState).Msg("state did not match")
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("invalid state: state mismatch"))
+		return
 	}
 
-	if r.URL.Query().Get("state") != expectedState {
-		h.log.Error().Str("expected", expectedState).Str("got", r.URL.Query().Get("state")).Msg("state did not match")
-		return nil, errors.New("state did not match")
-	}
-
-	// clear the state session after use
-	session.Options.MaxAge = -1
-	if err := session.Save(r, w); err != nil {
-		h.log.Error().Err(err).Msg("failed to clear state session")
-	}
+	// Clear the state from session after successful validation
+	h.sessionManager.Remove(r.Context(), "oidc_state")
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.log.Error().Msg("authorization code is missing from callback request")
-		return nil, errors.New("authorization code is missing from callback request")
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("authorization code is missing from callback request"))
+		return
 	}
 
 	oauth2Token, err := h.oauthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
-		return nil, errors.Wrap(err, "failed to exchange token")
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to exchange token"))
+		return
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		h.log.Error().Msg("no id_token found in oauth2 token")
-		return nil, errors.New("no id_token found in oauth2 token")
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("no id_token found in oauth2 token"))
+		return
 	}
 
 	idToken, err := h.verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to verify ID Token")
-		return nil, errors.Wrap(err, "failed to verify ID Token")
-	}
-
-	userInfo, err := h.provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
-	if err != nil {
-		h.log.Error().Err(err).Msg("failed to get userinfo")
+		h.encoder.StatusError(w, http.StatusUnauthorized, errors.Wrap(err, "failed to verify ID Token"))
+		return
 	}
 
 	var claims OIDCClaims
 	if err := idToken.Claims(&claims); err != nil {
 		h.log.Error().Err(err).Msg("failed to parse claims from ID token")
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to parse claims from ID token"))
+		return
+	}
+
+	userInfo, err := h.provider.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
+	if err != nil {
+		h.log.Error().Err(err).Msg("failed to get userinfo")
 	}
 
 	if userInfo != nil {
@@ -283,8 +279,7 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*O
 		}
 	}
 
-	username := claims.Username
-	if username == "" {
+	if claims.Username == "" {
 		if claims.Nickname != "" {
 			claims.Username = claims.Nickname
 		} else if claims.Name != "" {
@@ -298,24 +293,61 @@ func (h *OIDCHandler) HandleCallback(w http.ResponseWriter, r *http.Request) (*O
 		}
 	}
 
-	h.log.Debug().Str("username", username).Str("email", claims.Email).Str("preferred_username", claims.Username).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
+	h.log.Debug().Str("email", claims.Email).Str("preferred_username", claims.Username).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
 
-	return &claims, nil
+	// Create new session
+	if err := h.sessionManager.RenewToken(r.Context()); err != nil {
+		h.log.Error().Err(err).Msgf("Auth: Failed to renew session token for username: [%s] ip: %s", claims.Username, r.RemoteAddr)
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not renew session token"))
+		return
+	}
+
+	// Set cookie options
+	h.sessionManager.Cookie.HttpOnly = true
+	h.sessionManager.Cookie.SameSite = http.SameSiteLaxMode
+	h.sessionManager.Cookie.Path = h.config.BaseURL
+
+	// If forwarded protocol is https then set cookie secure
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		h.sessionManager.Cookie.Secure = true
+		h.sessionManager.Cookie.SameSite = http.SameSiteStrictMode
+	}
+
+	// Set session values using sessionManager
+	h.sessionManager.Put(r.Context(), "authenticated", true)
+	h.sessionManager.Put(r.Context(), "username", claims.Username)
+	h.sessionManager.Put(r.Context(), "created", time.Now().Unix())
+	h.sessionManager.Put(r.Context(), "auth_method", "oidc")
+	h.sessionManager.Put(r.Context(), "profile_picture", claims.Picture)
+	h.sessionManager.RememberMe(r.Context(), true)
+
+	// Redirect to the frontend
+	frontendURL := h.config.BaseURL
+	if frontendURL == "/" {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			host := r.Header.Get("X-Forwarded-Host")
+			if host == "" {
+				host = r.Host
+			}
+			frontendURL = fmt.Sprintf("%s://%s", proto, host)
+		}
+	}
+
+	h.log.Debug().Str("redirect_url", frontendURL).Str("x_forwarded_proto", r.Header.Get("X-Forwarded-Proto")).Str("x_forwarded_host", r.Header.Get("X-Forwarded-Host")).Str("host", r.Host).Msg("redirecting to frontend after OIDC callback")
+
+	http.Redirect(w, r, frontendURL, http.StatusFound)
 }
 
 func generateRandomState() string {
 	b, err := argon2id.GenerateRandomBytes(32)
 	if err != nil {
 		b = make([]byte, 32)
-		rand.Read(b)
+		_, _ = rand.Read(b)
 	}
 	return fmt.Sprintf("%x", b)
 }
 
 func (h *OIDCHandler) GetAuthorizationURL() string {
-	if h == nil {
-		return ""
-	}
 	state := generateRandomState()
 	return h.oauthConfig.AuthCodeURL(state)
 }
@@ -329,41 +361,26 @@ type GetConfigResponse struct {
 }
 
 func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
-	if h == nil {
-		return GetConfigResponse{
-			Enabled:             false,
-			DisableBuiltInLogin: false,
-			IssuerURL:           "",
-		}
-	}
-
 	state := generateRandomState()
 	authURL := h.oauthConfig.AuthCodeURL(state)
 
-	h.log.Debug().Bool("enabled", h.config.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.config.DisableBuiltInLogin).Str("issuer_url", h.config.Issuer).Msg("returning OIDC config response")
+	h.log.Debug().Bool("enabled", h.oidcConfig.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.oidcConfig.DisableBuiltInLogin).Str("issuer_url", h.oidcConfig.Issuer).Msg("returning OIDC oidcConfig response")
 
 	return GetConfigResponse{
-		Enabled:             h.config.Enabled,
+		Enabled:             h.oidcConfig.Enabled,
 		AuthorizationURL:    authURL,
 		State:               state,
-		DisableBuiltInLogin: h.config.DisableBuiltInLogin,
-		IssuerURL:           h.config.Issuer,
+		DisableBuiltInLogin: h.oidcConfig.DisableBuiltInLogin,
+		IssuerURL:           h.oidcConfig.Issuer,
 	}
 }
 
 // SetStateCookie sets a secure cookie containing the OIDC state parameter.
 // The state parameter is verified when the OAuth provider redirects back to our callback.
 // Short expiration ensures the authentication flow must be completed in a reasonable timeframe.
-func (h *OIDCHandler) SetStateCookie(w http.ResponseWriter, r *http.Request, state string) {
-	session, _ := h.cookieStore.New(r, "oidc_state")
-	session.Values["state"] = state
-	session.Options.MaxAge = 300
-	session.Options.HttpOnly = true
-	session.Options.Secure = r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https"
-	session.Options.SameSite = http.SameSiteLaxMode
-	session.Options.Path = "/"
+func (h *OIDCHandler) SetStateCookie(_ http.ResponseWriter, r *http.Request, state string) {
+	// Store the state in the session for later validation
+	h.sessionManager.Put(r.Context(), "oidc_state", state)
 
-	if err := session.Save(r, w); err != nil {
-		h.log.Error().Err(err).Msg("failed to save state session")
-	}
+	h.log.Debug().Str("state", state).Msg("stored OIDC state in session")
 }

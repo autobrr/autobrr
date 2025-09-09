@@ -70,7 +70,7 @@ func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*d
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -146,7 +146,7 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -214,7 +214,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -270,7 +270,7 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 		return "", errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return "", errors.Wrap(err, "error executing query")
 	}
@@ -318,7 +318,7 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			feed.IndexerID,
 			settings,
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	var retID int
 
@@ -357,7 +357,7 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -382,7 +382,7 @@ func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -408,7 +408,7 @@ func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data s
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -435,7 +435,7 @@ func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) erro
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -459,7 +459,7 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

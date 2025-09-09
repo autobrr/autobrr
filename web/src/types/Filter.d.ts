@@ -99,6 +99,7 @@ interface Action {
   tags?: string;
   label?: string;
   save_path?: string;
+  download_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
   first_last_piece_prio?: boolean;
@@ -130,9 +131,11 @@ type ActionPriorityLayout = "MAX" | "MIN" | "";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
 
-type ExternalType = "EXEC" |  "WEBHOOK";
+type ExternalType = "EXEC" | "WEBHOOK";
 
 type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+type ExternalFilterOnError = "CONTINUE" | "REJECT";
 
 interface ExternalFilter {
   id: number;
@@ -152,6 +155,7 @@ interface ExternalFilter {
   webhook_retry_status?: string,
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
+  on_error: ExternalFilterOnError;
   filter_id?: number;
 }
 

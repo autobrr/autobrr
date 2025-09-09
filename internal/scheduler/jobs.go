@@ -16,6 +16,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type CheckUpdatesJob struct {
@@ -55,46 +56,69 @@ func (j *CheckUpdatesJob) Run() {
 
 type TempDirCleanupJob struct {
 	Name string
-	Log  zerolog.Logger
+	log  zerolog.Logger
+}
+
+func NewTempDirCleanupJob(log zerolog.Logger) *TempDirCleanupJob {
+	return &TempDirCleanupJob{
+		Name: "temp-dir-cleanup",
+		log:  log,
+	}
 }
 
 func (j *TempDirCleanupJob) Run() {
-
 	var deletedCount uint
 	var totalSize uint64
 
-	j.Log.Debug().Msg("Starting cleanup of temporary directory.")
+	j.log.Debug().Msg("Starting cleanup of temporary directory.")
 
 	tmpFilePattern := "autobrr-"
 	tmpDir := os.TempDir()
 
 	files, err := os.ReadDir(tmpDir)
 	if err != nil {
-		j.Log.Error().Err(err).Str("tmpDir", tmpDir).Msg("failed to read temporary directory")
+		j.log.Error().Err(err).Str("tmpDir", tmpDir).Msg("failed to read temporary directory")
 		return
 	}
 
-	for _, file := range files {
-		if strings.HasPrefix(file.Name(), tmpFilePattern) {
-			tempFiles := filepath.Join(tmpDir, file.Name())
-
-			fileInfo, err := os.Stat(tempFiles)
-			if err != nil {
-				j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to get file info")
-				return
-			}
-
-			if fileInfo.ModTime().Before(time.Now().Add(-24 * time.Hour)) {
-				fileSize := uint64(fileInfo.Size())
-				if err := os.Remove(tempFiles); err != nil {
-					j.Log.Error().Err(err).Str("file", tempFiles).Msg("failed to remove temporary file")
-					return
-				}
-				deletedCount++
-				totalSize += fileSize
-			}
+	currentUID := os.Getenv("UID")
+	if currentUID == "" {
+		// Fallback for systems where UID isn't set
+		currentUID = os.Getenv("USER")
+		if currentUID == "" {
+			log.Debug().Msg("could not determine current user, skipping ownership check")
+			// Continue without ownership filtering or implement alternative logic
 		}
 	}
 
-	j.Log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
+	for _, file := range files {
+		if !strings.HasPrefix(file.Name(), tmpFilePattern) {
+			continue
+		}
+
+		tempFile := filepath.Join(tmpDir, file.Name())
+
+		fileInfo, err := os.Stat(tempFile)
+		if err != nil {
+			j.log.Error().Err(err).Str("file", tempFile).Msg("failed to get file info")
+			continue
+		}
+
+		if !isOwnedByCurrentUser(currentUID, fileInfo) {
+			continue
+		}
+
+		if fileInfo.ModTime().Before(time.Now().Add(-24 * time.Hour)) {
+			fileSize := uint64(fileInfo.Size())
+			if err := os.Remove(tempFile); err != nil {
+				j.log.Error().Err(err).Str("file", tempFile).Msg("failed to remove temporary file")
+				continue
+			}
+			j.log.Trace().Str("file", tempFile).Msg("removed file")
+			deletedCount++
+			totalSize += fileSize
+		}
+	}
+
+	j.log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
 }

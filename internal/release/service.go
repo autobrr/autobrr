@@ -190,7 +190,7 @@ func (s *service) Process(release *domain.Release) {
 	}
 
 	if len(filters) == 0 {
-		s.log.Warn().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
+		s.log.Debug().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
 		return
 	}
 
@@ -198,15 +198,17 @@ func (s *service) Process(release *domain.Release) {
 		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
 		return
 	}
-
-	return
 }
 
 func (s *service) processRelease(ctx context.Context, release *domain.Release, filters []*domain.Filter) error {
-	defer release.CleanupTemporaryFiles()
+	defer func(release *domain.Release) {
+		err := release.CleanupTemporaryFiles()
+		if err != nil {
+			s.log.Error().Err(err).Msgf("release.Process: error cleaning up temporary files for indexer: %s", release.Indexer.Name)
+		}
+	}(release)
 
 	if err := s.processFilters(ctx, filters, release); err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
 		return err
 	}
 
@@ -380,7 +382,7 @@ func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 	}
 
 	if len(filters) == 0 {
-		s.log.Warn().Msgf("no active filters found for indexer: %s skipping rest..", indexer.Name)
+		s.log.Debug().Msgf("no active filters found for indexer: %s skipping rest..", indexer.Name)
 		return domain.ErrNoActiveFiltersFoundForIndexer
 	}
 

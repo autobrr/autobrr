@@ -221,6 +221,7 @@ CREATE TABLE filter_external
     webhook_retry_status                TEXT,
     webhook_retry_attempts              INTEGER,
     webhook_retry_delay_seconds         INTEGER,
+    on_error                            TEXT DEFAULT 'REJECT',
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
@@ -265,6 +266,7 @@ CREATE TABLE action
     tags                    TEXT,
     label                   TEXT,
     save_path               TEXT,
+    download_path           TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
     first_last_piece_prio   BOOLEAN DEFAULT false,
@@ -550,6 +552,7 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
+    include_year             BOOLEAN DEFAULT FALSE,
     skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
@@ -567,6 +570,14 @@ CREATE TABLE list_filter
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );
+
+CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
 `
 
 var sqliteMigrations = []string{
@@ -2002,22 +2013,99 @@ CREATE INDEX release_hybrid_index
 	ALTER TABLE list
 		ADD COLUMN skip_clean_sanitize BOOLEAN DEFAULT FALSE;
 `,
-	`UPDATE irc_network 
-	SET 
+	`UPDATE irc_network
+	SET
     	auth_mechanism = 'NONE',
     	auth_account = '',
     	auth_password = ''
-	WHERE server = 'irc.rocket-hd.cc' 
+	WHERE server = 'irc.rocket-hd.cc'
     	AND auth_mechanism != 'NONE';
 
-	UPDATE irc_channel 
+	UPDATE irc_channel
 	SET password = NULL
 	WHERE password IS NOT NULL
     	AND network_id IN (
-        	SELECT id 
-        	FROM irc_network 
+        	SELECT id
+        	FROM irc_network
         	WHERE server = 'irc.rocket-hd.cc'
     	);
+`,
+	`CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BLOB NOT NULL,
+    expiry REAL NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions(expiry);
+`,
+	`INSERT INTO irc_network (
+    enabled, name, server, port, tls, pass, nick,
+    auth_mechanism, auth_account, auth_password,
+    invite_command, use_bouncer, bouncer_addr, bot_mode,
+    connected, connected_since, use_proxy, proxy_id,
+    created_at, updated_at
+)
+SELECT
+    enabled, 'ULCX', 'irc.upload.cx', port, tls, pass, nick,
+    auth_mechanism, auth_account, auth_password,
+    invite_command, use_bouncer, bouncer_addr, bot_mode,
+    connected, connected_since, use_proxy, proxy_id,
+    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM irc_network
+WHERE id IN (
+    SELECT network_id
+    FROM irc_channel
+    WHERE name = '#ulcx-announce'
+);
+
+INSERT INTO irc_channel (enabled, name, password, detached, network_id)
+SELECT c.enabled, '#announce', c.password, c.detached,
+	  (SELECT MAX(id) FROM irc_network WHERE name = 'ULCX' AND server = 'irc.upload.cx')
+FROM irc_channel c
+WHERE c.name = '#ulcx-announce';
+
+DELETE FROM irc_channel
+WHERE name = '#ulcx-announce';
+`,
+	`-- Update macro with typo
+UPDATE filter_external
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+
+UPDATE action
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    watch_folder = REPLACE(REPLACE(watch_folder, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    category = REPLACE(REPLACE(category, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    tags = REPLACE(REPLACE(tags, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    label = REPLACE(REPLACE(label, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    save_path = REPLACE(REPLACE(save_path, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR watch_folder LIKE '%{{ .CurrenTimeUnixMS }}%' OR watch_folder LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR category LIKE '%{{ .CurrenTimeUnixMS }}%' OR category LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR tags LIKE '%{{ .CurrenTimeUnixMS }}%' OR tags LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR label LIKE '%{{ .CurrenTimeUnixMS }}%' OR label LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR save_path LIKE '%{{ .CurrenTimeUnixMS }}%' OR save_path LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+`,
+	`ALTER TABLE action
+		ADD COLUMN download_path TEXT;
+`,
+	`ALTER TABLE list
+		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
+`,
+	`ALTER TABLE filter_external
+  ADD COLUMN on_error TEXT DEFAULT 'REJECT';
 `,
 	`-- Add per-filter notification support
 CREATE TABLE filter_notification (

@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -45,6 +46,21 @@ type Notification struct {
 	Topic     string           `json:"topic"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
+}
+
+func (n Notification) MarshalJSON() ([]byte, error) {
+	type Alias Notification
+	return json.Marshal(&struct {
+		*Alias
+		Token    string `json:"token"`
+		APIKey   string `json:"api_key"`
+		Password string `json:"password"`
+	}{
+		Alias:    (*Alias)(&n),
+		Token:    RedactString(n.Token),
+		APIKey:   RedactString(n.APIKey),
+		Password: RedactString(n.Password),
+	})
 }
 
 type NotificationPayload struct {

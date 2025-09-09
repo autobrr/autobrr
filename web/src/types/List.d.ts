@@ -18,6 +18,7 @@ interface List {
   tags_excluded: string[];
   include_unmonitored: boolean;
   include_alternate_titles: boolean;
+  include_year: boolean;
   skip_clean_sanitize: boolean;
 }
 
@@ -40,6 +41,7 @@ interface ListCreate {
   tags_exclude: string[];
   include_unmonitored: boolean;
   include_alternate_titles: boolean;
+  include_year: boolean;
   skip_clean_sanitize: boolean;
 }
 
