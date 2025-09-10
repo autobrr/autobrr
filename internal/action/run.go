@@ -90,6 +90,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Event:          domain.NotificationEventPushApproved,
 		ReleaseName:    release.TorrentName,
 		Filter:         release.FilterName,
+		FilterID:       release.FilterID,
 		Indexer:        release.Indexer.Name,
 		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
@@ -100,11 +101,6 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Protocol:       release.Protocol,
 		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
-	}
-	
-	// Include filter notifications if available
-	if release.Filter != nil && len(release.Filter.Notifications) > 0 {
-		payload.FilterNotifications = release.Filter.Notifications
 	}
 
 	if action.Client != nil {

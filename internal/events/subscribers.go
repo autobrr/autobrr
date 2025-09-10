@@ -22,11 +22,11 @@ type Subscriber struct {
 	eventbus EventBus.Bus
 
 	feedSvc         feed.Service
-	notificationSvc notification.Service
+	notificationSvc notification.Sender
 	releaseSvc      release.Service
 }
 
-func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feed.Service, notificationSvc notification.Service, releaseSvc release.Service) Subscriber {
+func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feed.Service, notificationSvc notification.Sender, releaseSvc release.Service) Subscriber {
 	s := Subscriber{
 		log:             log.With().Str("module", "events").Logger(),
 		eventbus:        eventbus,
@@ -67,13 +67,7 @@ func (s Subscriber) handleReleasePushStatus(actionStatus *domain.ReleaseActionSt
 func (s Subscriber) handleSendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
 	s.log.Trace().Str("event", domain.EventNotificationSend).Msgf("send notification events: '%v' '%+v'", *event, payload)
 
-	// Check if we have filter-specific notifications
-	if len(payload.FilterNotifications) > 0 {
-		s.notificationSvc.SendFilterNotifications(*event, *payload, payload.FilterNotifications)
-	} else {
-		// Fall back to global notifications
-		s.notificationSvc.Send(*event, *payload)
-	}
+	s.notificationSvc.Send(*event, *payload)
 }
 
 // handleIndexerDelete handle feed cleanup via event because feed service can't be imported in indexer service

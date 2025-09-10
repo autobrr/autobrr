@@ -49,19 +49,19 @@ type Service interface {
 }
 
 type service struct {
-	log           zerolog.Logger
-	repo          domain.FilterRepo
-	actionService action.Service
-	releaseRepo   domain.ReleaseRepo
-	indexerSvc    indexer.Service
-	apiService    indexer.APIService
+	log             zerolog.Logger
+	repo            domain.FilterRepo
+	actionService   action.Service
+	releaseRepo     domain.ReleaseRepo
+	indexerSvc      indexer.Service
+	apiService      indexer.APIService
 	downloadSvc     *releasedownload.DownloadService
-	notificationSvc notification.Service
+	notificationSvc notification.FilterStorer
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService, notificationSvc notification.Service) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService, notificationSvc notification.FilterStorer) Service {
 	return &service{
 		log:             log.With().Str("module", "filter").Logger(),
 		repo:            repo,
@@ -149,22 +149,11 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	filter.Indexers = indexers
 
 	// Load notifications
-	notifications, err := s.repo.GetFilterNotifications(ctx, filter.ID)
+	notifications, err := s.notificationSvc.GetFilterNotifications(ctx, filter.ID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find notifications for filter: %v", filter.Name)
-		// Don't return error here, just log it
-	} else {
-		// Load full notification details for each notification
-		for i := range notifications {
-			if notifications[i].NotificationID > 0 {
-				notification, err := s.notificationSvc.FindByID(ctx, notifications[i].NotificationID)
-				if err == nil && notification != nil {
-					notifications[i].Notification = notification
-				}
-			}
-		}
-		filter.Notifications = notifications
 	}
+	filter.Notifications = notifications
 
 	return filter, nil
 }
@@ -184,23 +173,6 @@ func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 			s.log.Error().Err(err).Msgf("could not find external filters for filter id: %v", filter.ID)
 		}
 		filter.External = externalFilters
-
-		// Load filter notifications
-		notifications, err := s.repo.GetFilterNotifications(ctx, filter.ID)
-		if err != nil {
-			s.log.Error().Err(err).Msgf("could not find notifications for filter id: %v", filter.ID)
-		} else {
-			// Load full notification details for each notification
-			for i := range notifications {
-				if notifications[i].NotificationID > 0 {
-					notification, err := s.notificationSvc.FindByID(ctx, notifications[i].NotificationID)
-					if err == nil && notification != nil {
-						notifications[i].Notification = notification
-					}
-				}
-			}
-			filter.Notifications = notifications
-		}
 	}
 
 	return filters, nil
@@ -268,7 +240,7 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	filter.Actions = actions
 
 	// take care of filter notifications
-	err = s.repo.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
+	err = s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not store filter notifications: %s", filter.Name)
 		return err
@@ -319,7 +291,7 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 
 	if filter.Notifications != nil {
 		// take care of filter notifications
-		if err := s.repo.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
+		if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
 			s.log.Error().Err(err).Msgf("could not store filter notifications: %v", filter.ID)
 			return err
 		}
@@ -412,6 +384,11 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	// delete filter
 	if err := s.repo.Delete(ctx, filterID); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete filter: %v", filterID)
+		return err
+	}
+
+	if err := s.notificationSvc.DeleteFilterNotifications(ctx, filterID); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete filter notifications: %v", filterID)
 		return err
 	}
 

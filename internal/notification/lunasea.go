@@ -48,7 +48,7 @@ func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
 
 func NewLunaSeaSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &lunaSeaSender{
-		log:      log.With().Str("sender", "lunasea").Logger(),
+		log:      log.With().Str("sender", "lunasea").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
@@ -101,17 +101,25 @@ func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.Noti
 }
 
 func (s *lunaSeaSender) CanSend(event domain.NotificationEvent) bool {
-	if s.Settings.Enabled && s.Settings.Webhook != "" && s.isEnabledEvent(event) {
-		return true
+	return s.IsEnabled() && s.isEnabledEvent(event)
+}
+
+func (s *lunaSeaSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() || !s.isEnabledEvent(event) {
+		return false
 	}
-	return false
+
+	if payload.FilterID > 0 {
+		return s.Settings.FilterEventEnabled(payload.FilterID, event)
+	}
+
+	return true
+}
+
+func (s *lunaSeaSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *lunaSeaSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-	return false
+	return s.Settings.EventEnabled(string(event))
 }

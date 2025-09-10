@@ -22,7 +22,7 @@ func (s *shoutrrrSender) Name() string {
 
 func NewShoutrrrSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &shoutrrrSender{
-		log:      log.With().Str("sender", "shoutrrr").Logger(),
+		log:      log.With().Str("sender", "shoutrrr").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		builder:  MessageBuilderPlainText{},
 	}
@@ -41,31 +41,28 @@ func (s *shoutrrrSender) Send(event domain.NotificationEvent, payload domain.Not
 }
 
 func (s *shoutrrrSender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *shoutrrrSender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.Host == "" {
-			s.log.Warn().Msg("shoutrrr missing host")
-			return false
-		}
-
-		return true
+func (s *shoutrrrSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() || !s.isEnabledEvent(event) {
+		return false
 	}
 
-	return false
+	if payload.FilterID > 0 {
+		return s.Settings.FilterEventEnabled(payload.FilterID, event)
+	}
+
+	return true
+}
+
+func (s *shoutrrrSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *shoutrrrSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-
-	return false
+	return s.Settings.EventEnabled(string(event))
 }

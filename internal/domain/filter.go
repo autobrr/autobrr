@@ -246,9 +246,18 @@ const (
 )
 
 type FilterNotification struct {
-	NotificationID int           `json:"notification_id"`
-	Notification   *Notification `json:"notification,omitempty"`
-	Events         []string      `json:"events"`
+	FilterID       int      `json:"filter_id"`
+	NotificationID int      `json:"notification_id"`
+	Events         []string `json:"events"`
+}
+
+func (f FilterNotification) EventEnabled(event string) bool {
+	for _, e := range f.Events {
+		if e == event {
+			return true
+		}
+	}
+	return false
 }
 
 type FilterUpdate struct {

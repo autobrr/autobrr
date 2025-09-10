@@ -55,13 +55,13 @@ type discordSender struct {
 	httpClient *http.Client
 }
 
-func (a *discordSender) Name() string {
+func (s *discordSender) Name() string {
 	return "discord"
 }
 
 func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &discordSender{
-		log:      log.With().Str("sender", "discord").Logger(),
+		log:      log.With().Str("sender", "discord").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
@@ -70,10 +70,10 @@ func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) domain.
 	}
 }
 
-func (a *discordSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+func (s *discordSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := DiscordMessage{
 		Content: nil,
-		Embeds:  []DiscordEmbeds{a.buildEmbed(event, payload)},
+		Embeds:  []DiscordEmbeds{s.buildEmbed(event, payload)},
 	}
 
 	jsonData, err := json.Marshal(m)
@@ -81,7 +81,7 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, a.Settings.Webhook, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, s.Settings.Webhook, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
@@ -89,14 +89,16 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	res, err := a.httpClient.Do(req)
+	// TODO retryable http on status 429
+
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
 	defer res.Body.Close()
 
-	a.log.Trace().Msgf("discord response status: %d", res.StatusCode)
+	s.log.Trace().Msgf("discord response status: %d", res.StatusCode)
 
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
@@ -108,36 +110,39 @@ func (a *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
-	a.log.Debug().Msg("notification successfully sent to discord")
+	s.log.Debug().Str("event", string(event)).Msg("notification successfully sent to discord")
 
 	return nil
 }
 
-func (a *discordSender) CanSend(event domain.NotificationEvent) bool {
-	if a.isEnabled() && a.isEnabledEvent(event) {
+func (s *discordSender) CanSend(event domain.NotificationEvent) bool {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (a *discordSender) isEnabled() bool {
-	if a.Settings.Enabled && a.Settings.Webhook != "" {
-		return true
-	}
-	return false
-}
-
-func (a *discordSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range a.Settings.Events {
-		if e == string(event) {
-			return true
-		}
+func (s *discordSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() || !s.isEnabledEvent(event) {
+		return false
 	}
 
-	return false
+	if payload.FilterID > 0 {
+		return s.Settings.FilterEventEnabled(payload.FilterID, event)
+	}
+
+	return true
 }
 
-func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domain.NotificationPayload) DiscordEmbeds {
+func (s *discordSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
+}
+
+func (s *discordSender) isEnabledEvent(event domain.NotificationEvent) bool {
+	return s.Settings.EventEnabled(string(event))
+}
+
+func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domain.NotificationPayload) DiscordEmbeds {
 
 	color := LIGHT_BLUE
 	switch event {

@@ -16,11 +16,18 @@ type NotificationRepo interface {
 	Store(ctx context.Context, notification *Notification) error
 	Update(ctx context.Context, notification *Notification) error
 	Delete(ctx context.Context, notificationID int) error
+
+	GetNotificationFilters(ctx context.Context, notificationID int) ([]FilterNotification, error)
+	GetFilterNotifications(ctx context.Context, filterID int) ([]FilterNotification, error)
+	StoreFilterNotifications(ctx context.Context, filterID int, notifications []FilterNotification) error
+	DeleteFilterNotifications(ctx context.Context, filterID int) error
 }
 
 type NotificationSender interface {
 	Send(event NotificationEvent, payload NotificationPayload) error
 	CanSend(event NotificationEvent) bool
+	CanSendPayload(event NotificationEvent, payload NotificationPayload) bool
+	IsEnabled() bool
 	Name() string
 }
 
@@ -46,6 +53,90 @@ type Notification struct {
 	Topic     string           `json:"topic"`
 	CreatedAt time.Time        `json:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at"`
+
+	filters map[int]NotificationEvents
+}
+
+func NewNotification() *Notification {
+	return &Notification{
+		filters: make(map[int]NotificationEvents),
+	}
+}
+
+func (n *Notification) IsEnabled() bool {
+	if !n.Enabled {
+		return false
+	}
+
+	switch n.Type {
+	case NotificationTypeDiscord:
+		if n.Webhook != "" {
+			return true
+		}
+	case NotificationTypeGotify:
+		if n.Host != "" && n.Token != "" {
+			return true
+		}
+	case NotificationTypeLunaSea:
+		if n.Webhook != "" {
+			return true
+		}
+	case NotificationTypeNotifiarr:
+		if n.APIKey != "" {
+			return true
+		}
+	case NotificationTypeNtfy:
+		if n.Host != "" {
+			return true
+		}
+	case NotificationTypePushover:
+		if n.APIKey != "" && n.Token != "" {
+			return true
+		}
+	case NotificationTypeShoutrrr:
+		if n.Host != "" {
+			return true
+		}
+	case NotificationTypeTelegram:
+		if n.Token != "" && n.Channel != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func (n *Notification) FilterEventEnabled(filterID int, event NotificationEvent) bool {
+	if n.filters == nil || filterID == 0 {
+		return true
+	}
+	if events, ok := n.filters[filterID]; ok {
+		return events.EventEnabled(string(event))
+	}
+	return false
+}
+
+func (n *Notification) EventEnabled(event string) bool {
+	for _, e := range n.Events {
+		if e == event {
+			return true
+		}
+	}
+	return false
+}
+
+func (n *Notification) SetFilterEvents(filterID int, events NotificationEvents) {
+	if n.filters == nil {
+		n.filters = make(map[int]NotificationEvents)
+	}
+	n.filters[filterID] = events
+}
+
+func (n *Notification) RemoveFilterEvents(filterID int) {
+	delete(n.filters, filterID)
+}
+
+func (n *Notification) ClearFilterEvents() {
+	n.filters = nil
 }
 
 func (n Notification) MarshalJSON() ([]byte, error) {
@@ -69,6 +160,7 @@ type NotificationPayload struct {
 	Event               NotificationEvent
 	ReleaseName         string
 	Filter              string
+	FilterID            int
 	Indexer             string
 	InfoHash            string
 	Size                uint64
@@ -81,7 +173,7 @@ type NotificationPayload struct {
 	Implementation      ReleaseImplementation // irc, rss, api
 	Timestamp           time.Time
 	Sender              string
-	FilterNotifications []FilterNotification  // per-filter notifications
+	FilterNotifications []FilterNotification // per-filter notifications
 }
 
 type NotificationType string
@@ -115,6 +207,29 @@ const (
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
 	NotificationEventTest               NotificationEvent = "TEST"
 )
+
+func (e NotificationEvent) String() string {
+	return string(e)
+}
+
+type NotificationEvents []NotificationEvent
+
+func NewNotificationEventsFromStrings(events []string) NotificationEvents {
+	var result NotificationEvents
+	for _, e := range events {
+		result = append(result, NotificationEvent(e))
+	}
+	return result
+}
+
+func (events NotificationEvents) EventEnabled(event string) bool {
+	for _, e := range events {
+		if string(e) == event {
+			return true
+		}
+	}
+	return false
+}
 
 type NotificationEventArr []NotificationEvent
 
