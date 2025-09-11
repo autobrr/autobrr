@@ -117,15 +117,15 @@ func (s *notifiarrSender) CanSend(event domain.NotificationEvent) bool {
 }
 
 func (s *notifiarrSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
-	if !s.IsEnabled() || !s.isEnabledEvent(event) {
+	if !s.IsEnabled() {
 		return false
 	}
 
-	if payload.FilterID > 0 {
-		return s.Settings.FilterEventEnabled(payload.FilterID, event)
+	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
+		return true
 	}
 
-	return true
+	return false
 }
 
 func (s *notifiarrSender) IsEnabled() bool {
