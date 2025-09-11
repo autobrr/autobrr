@@ -361,36 +361,51 @@ func (r *NotificationRepo) GetFilterNotifications(ctx context.Context, filterID 
 func (r *NotificationRepo) StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error {
 	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to begin transaction")
 	}
 	defer tx.Rollback()
 
-	// Delete existing notifications for this filter
-	deleteQueryBuilder := r.db.squirrel.
-		Delete("filter_notification").
-		Where(sq.Eq{"filter_id": filterID})
-
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building delete query")
-	}
-
-	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
-	if err != nil {
-		return errors.Wrap(err, "error executing delete query")
+	if err := r.deleteFilterNotifications(ctx, tx, filterID); err != nil {
+		return errors.Wrap(err, "failed to delete existing filter notifications")
 	}
 
 	if len(notifications) == 0 {
 		if err := tx.Commit(); err != nil {
-			return errors.Wrap(err, "error deleting filter notifications for filter: %d", filterID)
+			return errors.Wrap(err, "failed to commit transaction after deleting filter notifications for filter %d", filterID)
 		}
+		r.log.Debug().Msgf("filter.StoreFilterNotifications: deleted all notifications for filter: %d", filterID)
 		return nil
 	}
 
-	// Insert new notifications
-	insertBuilder := r.db.squirrel.
-		Insert("filter_notification").
-		Columns("filter_id", "notification_id", "events")
+	if err := r.insertFilterNotifications(ctx, tx, filterID, notifications); err != nil {
+		return errors.Wrap(err, "failed to insert filter notifications")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "failed to commit transaction for storing filter notifications for filter %d", filterID)
+	}
+
+	r.log.Debug().Msgf("filter.StoreFilterNotifications: stored %d notifications for filter %d", len(notifications), filterID)
+	return nil
+}
+
+// deleteFilterNotifications handles the deletion of existing filter notifications within a transaction
+func (r *NotificationRepo) deleteFilterNotifications(ctx context.Context, tx *sql.Tx, filterID int) error {
+	deleteQuery, deleteArgs, err := r.db.squirrel.Delete("filter_notification").Where(sq.Eq{"filter_id": filterID}).ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build delete query")
+	}
+
+	if _, err := tx.ExecContext(ctx, deleteQuery, deleteArgs...); err != nil {
+		return errors.Wrap(err, "failed to execute delete query")
+	}
+
+	return nil
+}
+
+// insertFilterNotifications handles the insertion of new filter notifications within a transaction
+func (r *NotificationRepo) insertFilterNotifications(ctx context.Context, tx *sql.Tx, filterID int, notifications []domain.FilterNotification) error {
+	insertBuilder := r.db.squirrel.Insert("filter_notification").Columns("filter_id", "notification_id", "events")
 
 	for _, notification := range notifications {
 		insertBuilder = insertBuilder.Values(
@@ -402,19 +417,12 @@ func (r *NotificationRepo) StoreFilterNotifications(ctx context.Context, filterI
 
 	query, args, err := insertBuilder.ToSql()
 	if err != nil {
-		return errors.Wrap(err, "error building insert query")
+		return errors.Wrap(err, "failed to build insert query")
 	}
 
-	_, err = tx.ExecContext(ctx, query, args...)
-	if err != nil {
-		return errors.Wrap(err, "error executing insert query")
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "failed to execute insert query")
 	}
-
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error storing filter notifications for filter: %d", filterID)
-	}
-
-	r.log.Debug().Msgf("filter.StoreFilterNotifications: stored %d notifications for filter: %d", len(notifications), filterID)
 
 	return nil
 }
