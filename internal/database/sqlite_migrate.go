@@ -221,6 +221,7 @@ CREATE TABLE filter_external
     webhook_retry_status                TEXT,
     webhook_retry_attempts              INTEGER,
     webhook_retry_delay_seconds         INTEGER,
+    on_error                            TEXT DEFAULT 'REJECT',
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
@@ -265,6 +266,7 @@ CREATE TABLE action
     tags                    TEXT,
     label                   TEXT,
     save_path               TEXT,
+    download_path           TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
     first_last_piece_prio   BOOLEAN DEFAULT false,
@@ -550,6 +552,7 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
+    include_year             BOOLEAN DEFAULT FALSE,
     skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
@@ -2010,20 +2013,20 @@ CREATE INDEX release_hybrid_index
 	ALTER TABLE list
 		ADD COLUMN skip_clean_sanitize BOOLEAN DEFAULT FALSE;
 `,
-	`UPDATE irc_network 
-	SET 
+	`UPDATE irc_network
+	SET
     	auth_mechanism = 'NONE',
     	auth_account = '',
     	auth_password = ''
-	WHERE server = 'irc.rocket-hd.cc' 
+	WHERE server = 'irc.rocket-hd.cc'
     	AND auth_mechanism != 'NONE';
 
-	UPDATE irc_channel 
+	UPDATE irc_channel
 	SET password = NULL
 	WHERE password IS NOT NULL
     	AND network_id IN (
-        	SELECT id 
-        	FROM irc_network 
+        	SELECT id
+        	FROM irc_network
         	WHERE server = 'irc.rocket-hd.cc'
     	);
 `,
@@ -2094,5 +2097,14 @@ WHERE
     OR label LIKE '%{{ .CurrenTimeUnixMS }}%' OR label LIKE '%{{.CurrenTimeUnixMS}}%'
     OR save_path LIKE '%{{ .CurrenTimeUnixMS }}%' OR save_path LIKE '%{{.CurrenTimeUnixMS}}%'
     OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+`,
+	`ALTER TABLE action
+		ADD COLUMN download_path TEXT;
+`,
+	`ALTER TABLE list
+		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
+`,
+	`ALTER TABLE filter_external
+  ADD COLUMN on_error TEXT DEFAULT 'REJECT';
 `,
 }

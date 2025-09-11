@@ -161,6 +161,12 @@ go test ./... -tags=integration
 > ```shell
 > sudo timedatectl set-timezone Etc/UTC
 > ```
+>
+> Or to change the timezone for just the test run, do:
+>
+> ```
+> TZ=UTC go test ./... -tags=integration
+> ```
 
 ## Build Docker image
 

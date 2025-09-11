@@ -17,7 +17,7 @@ import { FilterByIdQueryOptions } from "@api/queries";
 import { FilterKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
-import { DOWNLOAD_CLIENTS } from "@domain/constants";
+import { DOWNLOAD_CLIENTS, ExternalFilterOnErrorValues } from "@domain/constants";
 
 import { DEBUG } from "@components/debug";
 import { toast } from "@components/hot-toast";
@@ -191,6 +191,7 @@ const actionSchema = z.object({
   tags: z.string().optional(),
   label: z.string().optional(),
   save_path: z.string().optional(),
+  download_path: z.string().optional(),
   paused: z.boolean().optional(),
   ignore_rules: z.boolean().optional(),
   limit_upload_speed: z.number().optional(),
@@ -210,7 +211,7 @@ const actionSchema = z.object({
     if (!value.client_id) {
       ctx.addIssue({
         message: "Must select client",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["client_id"]
       });
     }
@@ -222,6 +223,7 @@ const externalFilterSchema = z.object({
   index: z.number(),
   name: z.string(),
   type: z.enum(["EXEC", "WEBHOOK"]),
+  on_error: z.enum([...ExternalFilterOnErrorValues]),
   exec_cmd: z.string().optional(),
   exec_args: z.string().optional(),
   exec_expect_status: z.number().optional(),
@@ -232,12 +234,12 @@ const externalFilterSchema = z.object({
   webhook_expect_status: z.number().optional(),
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
-  webhook_retry_delay_seconds: z.number().optional()
+  webhook_retry_delay_seconds: z.number().optional(),
 }).superRefine((value, ctx) => {
   if (!value.name) {
     ctx.addIssue({
       message: "Must have a name",
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: ["name"]
     });
   }
@@ -246,21 +248,21 @@ const externalFilterSchema = z.object({
     if (!value.webhook_method) {
       ctx.addIssue({
         message: "Must select method",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["webhook_method"]
       });
     }
     if (!value.webhook_host) {
       ctx.addIssue({
         message: "Must have webhook host",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["webhook_host"]
       });
     }
     if (!value.webhook_expect_status) {
       ctx.addIssue({
         message: "Must have webhook expect status",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["webhook_expect_status"]
       });
     }
@@ -270,7 +272,7 @@ const externalFilterSchema = z.object({
     if (!value.exec_cmd) {
       ctx.addIssue({
         message: "Must have exec cmd",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["exec_cmd"]
       });
     }
@@ -295,7 +297,7 @@ const schema = z.object({
     if (!value.max_downloads_unit) {
       ctx.addIssue({
         message: "Must select Max Downloads Per unit when Max Downloads is greater than 0",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["max_downloads_unit"]
       });
     }
