@@ -32,27 +32,28 @@ type NotificationSender interface {
 }
 
 type Notification struct {
-	ID        int              `json:"id"`
-	Name      string           `json:"name"`
-	Type      NotificationType `json:"type"`
-	Enabled   bool             `json:"enabled"`
-	Events    []string         `json:"events"`
-	Token     string           `json:"token"`
-	APIKey    string           `json:"api_key"`
-	Webhook   string           `json:"webhook"`
-	Title     string           `json:"title"`
-	Icon      string           `json:"icon"`
-	Username  string           `json:"username"`
-	Host      string           `json:"host"`
-	Password  string           `json:"password"`
-	Channel   string           `json:"channel"`
-	Rooms     string           `json:"rooms"`
-	Targets   string           `json:"targets"`
-	Devices   string           `json:"devices"`
-	Priority  int32            `json:"priority"`
-	Topic     string           `json:"topic"`
-	CreatedAt time.Time        `json:"created_at"`
-	UpdatedAt time.Time        `json:"updated_at"`
+	ID            int                  `json:"id"`
+	Name          string               `json:"name"`
+	Type          NotificationType     `json:"type"`
+	Enabled       bool                 `json:"enabled"`
+	Events        []string             `json:"events"`
+	Token         string               `json:"token"`
+	APIKey        string               `json:"api_key"`
+	Webhook       string               `json:"webhook"`
+	Title         string               `json:"title"`
+	Icon          string               `json:"icon"`
+	Username      string               `json:"username"`
+	Host          string               `json:"host"`
+	Password      string               `json:"password"`
+	Channel       string               `json:"channel"`
+	Rooms         string               `json:"rooms"`
+	Targets       string               `json:"targets"`
+	Devices       string               `json:"devices"`
+	Priority      int32                `json:"priority"`
+	Topic         string               `json:"topic"`
+	UsedByFilters []FilterNotification `json:"used_by_filters,omitempty"`
+	CreatedAt     time.Time            `json:"created_at"`
+	UpdatedAt     time.Time            `json:"updated_at"`
 
 	filters map[int]NotificationEvents
 }

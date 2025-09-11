@@ -73,6 +73,15 @@ func (s *Service) Find(ctx context.Context, params domain.NotificationQueryParam
 		return nil, 0, err
 	}
 
+	for idx, notification := range notifications {
+		filters, err := s.repo.GetNotificationFilters(ctx, notification.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not find filter notifications for notification: %v", notification.ID)
+			continue
+		}
+		notifications[idx].UsedByFilters = filters
+	}
+
 	return notifications, count, err
 }
 
@@ -140,6 +149,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
+// GetFilterNotifications returns the filter notifications for a given filter
 func (s *Service) GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error) {
 	notifications, err := s.repo.GetFilterNotifications(ctx, filterID)
 	if err != nil {

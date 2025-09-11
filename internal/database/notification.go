@@ -276,14 +276,17 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 	return nil
 }
 
+// GetNotificationFilters returns all filter notifications for a given notification
 func (r *NotificationRepo) GetNotificationFilters(ctx context.Context, notificationID int) ([]domain.FilterNotification, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
+			"f.name",
 			"fn.filter_id",
 			"fn.notification_id",
 			"fn.events",
 		).
 		From("filter_notification fn").
+		Join("filter f ON f.id = fn.filter_id").
 		Where(sq.Eq{"fn.notification_id": notificationID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -302,7 +305,7 @@ func (r *NotificationRepo) GetNotificationFilters(ctx context.Context, notificat
 		var fn domain.FilterNotification
 		var events pq.StringArray
 
-		if err := rows.Scan(&fn.FilterID, &fn.NotificationID, &events); err != nil {
+		if err := rows.Scan(&fn.FilterName, &fn.FilterID, &fn.NotificationID, &events); err != nil {
 			return nil, errors.Wrap(err, "error scanning filter notification")
 		}
 
@@ -317,6 +320,7 @@ func (r *NotificationRepo) GetNotificationFilters(ctx context.Context, notificat
 	return notifications, nil
 }
 
+// GetFilterNotifications returns all filter notifications for a given filter
 func (r *NotificationRepo) GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error) {
 	queryBuilder := r.db.squirrel.
 		Select(

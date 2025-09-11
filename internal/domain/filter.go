@@ -247,6 +247,7 @@ const (
 
 type FilterNotification struct {
 	FilterID       int      `json:"filter_id"`
+	FilterName     string   `json:"filter_name"`
 	NotificationID int      `json:"notification_id"`
 	Events         []string `json:"events"`
 }
