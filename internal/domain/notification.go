@@ -107,12 +107,16 @@ func (n *Notification) IsEnabled() bool {
 }
 
 func (n *Notification) FilterEventEnabled(filterID int, event NotificationEvent) bool {
-	if n.filters == nil || filterID == 0 {
-		return true
+	if filterID > 0 {
+		if n.filters == nil {
+			return true
+		}
+
+		if events, ok := n.filters[filterID]; ok {
+			return events.EventEnabled(string(event))
+		}
 	}
-	if events, ok := n.filters[filterID]; ok {
-		return events.EventEnabled(string(event))
-	}
+
 	return false
 }
 
@@ -216,7 +220,7 @@ func (e NotificationEvent) String() string {
 type NotificationEvents []NotificationEvent
 
 func NewNotificationEventsFromStrings(events []string) NotificationEvents {
-	var result NotificationEvents
+	result := make(NotificationEvents, 0)
 	for _, e := range events {
 		result = append(result, NotificationEvent(e))
 	}
