@@ -29,6 +29,7 @@ interface tabType {
   name: string;
   href: string;
   exact?: boolean;
+  newFeature?: boolean;
 }
 
 const tabs: tabType[] = [
@@ -37,7 +38,8 @@ const tabs: tabType[] = [
   { name: "Music", href: "/filters/$filterId/music" },
   { name: "Advanced", href: "/filters/$filterId/advanced" },
   { name: "External", href: "/filters/$filterId/external" },
-  { name: "Actions", href: "/filters/$filterId/actions" }
+  { name: "Actions", href: "/filters/$filterId/actions" },
+  { name: "Notifications", href: "/filters/$filterId/notifications", newFeature: true }
 ];
 
 export interface NavLinkProps {
@@ -63,13 +65,27 @@ function TabNavLink({ item }: NavLinkProps) {
           <span
             className={
             classNames(
-              "border-b-2 whitespace-nowrap py-4 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
+              "border-b-2 whitespace-nowrap py-4 px-1 first:rounded-tl-lg last:rounded-tr-lg",
               isActive
-                ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
-                : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
+                ? "border-blue-600 dark:border-blue-500"
+                : " border-transparent"
             )
           }>
-            {item.name}
+            <span
+              className={
+                classNames(
+                  "font-medium text-sm",
+                  isActive
+                    ? "text-blue-600 dark:text-white "
+                    : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
+                )
+              }
+            >
+              {item.name}
+            </span>
+            {item.newFeature &&
+              <span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-400/10 dark:text-green-400">NEW</span>
+            }
           </span>
         )
       }}
@@ -459,6 +475,7 @@ export const FilterDetails = () => {
               actions: filter.actions || [],
               external: filter.external || [],
               release_profile_duplicate_id: filter.release_profile_duplicate_id,
+              notifications: filter.notifications || [],
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}

@@ -51,7 +51,7 @@ func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain
 		}
 	}
 	return &telegramSender{
-		log:      log.With().Str("sender", "telegram").Logger(),
+		log:      log.With().Str("sender", "telegram").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		ThreadID: threadID,
 		builder:  MessageBuilderHTML{},
@@ -63,7 +63,6 @@ func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain
 }
 
 func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-
 	payload.Sender = s.Settings.Username
 
 	message := s.builder.BuildBody(payload)
@@ -122,25 +121,28 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 }
 
 func (s *telegramSender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *telegramSender) isEnabled() bool {
-	if s.Settings.Enabled && s.Settings.Token != "" && s.Settings.Channel != "" {
+func (s *telegramSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
+
+	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
 		return true
 	}
+
 	return false
+}
+
+func (s *telegramSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *telegramSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-
-	return false
+	return s.Settings.EventEnabled(string(event))
 }

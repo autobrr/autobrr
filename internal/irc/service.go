@@ -48,7 +48,7 @@ type service struct {
 	repo                domain.IrcRepo
 	releaseService      release.Service
 	indexerService      indexer.Service
-	notificationService notification.Service
+	notificationService notification.Sender
 	proxyService        proxy.Service
 
 	indexerMap map[string]string
@@ -60,7 +60,7 @@ type service struct {
 
 const sseMaxEntries = 1000
 
-func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service, proxySvc proxy.Service) Service {
+func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Sender, proxySvc proxy.Service) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,

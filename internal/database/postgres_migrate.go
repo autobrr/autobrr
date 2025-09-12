@@ -28,6 +28,31 @@ CREATE TABLE proxy
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE notification
+(
+	id         SERIAL PRIMARY KEY,
+	name       TEXT,
+	type       TEXT,
+	enabled    BOOLEAN,
+	events     TEXT []   DEFAULT '{}' NOT NULL,
+	token      TEXT,
+	api_key    TEXT,
+	webhook    TEXT,
+	title      TEXT,
+	icon       TEXT,
+	host       TEXT,
+	username   TEXT,
+	password   TEXT,
+	channel    TEXT,
+	rooms      TEXT,
+	targets    TEXT,
+	devices    TEXT,
+	topic      TEXT,
+	priority   INTEGER DEFAULT 0,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE indexer
 (
     id                  SERIAL PRIMARY KEY,
@@ -234,6 +259,19 @@ CREATE TABLE filter_indexer
     FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE CASCADE,
     PRIMARY KEY (filter_id, indexer_id)
 );
+
+CREATE TABLE filter_notification
+(
+    filter_id       INTEGER NOT NULL,
+    notification_id INTEGER NOT NULL,
+    events          TEXT[] NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (filter_id, notification_id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notification(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_filter_notification_filter_id ON filter_notification(filter_id);
 
 CREATE TABLE client
 (
@@ -466,31 +504,6 @@ CREATE TABLE release_action_status
 
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);
-
-CREATE TABLE notification
-(
-	id         SERIAL PRIMARY KEY,
-	name       TEXT,
-	type       TEXT,
-	enabled    BOOLEAN,
-	events     TEXT []   DEFAULT '{}' NOT NULL,
-	token      TEXT,
-	api_key    TEXT,
-	webhook    TEXT,
-	title      TEXT,
-	icon       TEXT,
-	host       TEXT,
-	username   TEXT,
-	password   TEXT,
-	channel    TEXT,
-	rooms      TEXT,
-	targets    TEXT,
-	devices    TEXT,
-	topic      TEXT,
-	priority   INTEGER DEFAULT 0,
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 CREATE TABLE feed
 (
@@ -1467,5 +1480,18 @@ WHERE
 `,
 	`ALTER TABLE filter_external
   ADD COLUMN on_error TEXT DEFAULT 'REJECT';
+`,
+	`-- Add per-filter notification support
+CREATE TABLE filter_notification (
+    filter_id       INTEGER NOT NULL,
+    notification_id INTEGER NOT NULL,
+    events          TEXT[] NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (filter_id, notification_id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notification(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_filter_notification_filter_id ON filter_notification(filter_id);
 `,
 }

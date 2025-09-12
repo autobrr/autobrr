@@ -23,7 +23,7 @@ type CheckUpdatesJob struct {
 	Name          string
 	Log           zerolog.Logger
 	Version       string
-	NotifSvc      notification.Service
+	NotifSvc      notification.Sender
 	updateService *update.Service
 
 	lastCheckVersion string

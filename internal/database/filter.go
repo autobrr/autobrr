@@ -1643,3 +1643,129 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 
 	return nil
 }
+
+func (r *FilterRepo) GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"fn.notification_id",
+			"fn.events",
+		).
+		From("filter_notification fn").
+		Where(sq.Eq{"fn.filter_id": filterID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+	defer rows.Close()
+
+	var notifications []domain.FilterNotification
+	for rows.Next() {
+		var fn domain.FilterNotification
+		var events pq.StringArray
+
+		if err := rows.Scan(&fn.NotificationID, &events); err != nil {
+			return nil, errors.Wrap(err, "error scanning filter notification")
+		}
+
+		fn.Events = []string(events)
+		notifications = append(notifications, fn)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error iterating over filter notifications")
+	}
+
+	return notifications, nil
+}
+
+func (r *FilterRepo) StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error {
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete existing notifications for this filter
+	deleteQueryBuilder := r.db.squirrel.
+		Delete("filter_notification").
+		Where(sq.Eq{"filter_id": filterID})
+
+	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building delete query")
+	}
+
+	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
+	if err != nil {
+		return errors.Wrap(err, "error executing delete query")
+	}
+
+	if len(notifications) == 0 {
+		if err := tx.Commit(); err != nil {
+			return errors.Wrap(err, "error deleting filter notifications for filter: %d", filterID)
+		}
+		return nil
+	}
+
+	// Insert new notifications
+	insertBuilder := r.db.squirrel.
+		Insert("filter_notification").
+		Columns("filter_id", "notification_id", "events")
+
+	for _, notification := range notifications {
+		insertBuilder = insertBuilder.Values(
+			filterID,
+			notification.NotificationID,
+			pq.Array(notification.Events),
+		)
+	}
+
+	query, args, err := insertBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building insert query")
+	}
+
+	_, err = tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing insert query")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error storing filter notifications for filter: %d", filterID)
+	}
+
+	r.log.Debug().Msgf("filter.StoreFilterNotifications: stored %d notifications for filter: %d", len(notifications), filterID)
+
+	return nil
+}
+
+func (r *FilterRepo) DeleteFilterNotifications(ctx context.Context, filterID int) error {
+	queryBuilder := r.db.squirrel.
+		Delete("filter_notification").
+		Where(sq.Eq{"filter_id": filterID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	}
+
+	r.log.Debug().Msgf("filter.DeleteFilterNotifications: deleted %d notifications for filter: %d", rowsAffected, filterID)
+
+	return nil
+}

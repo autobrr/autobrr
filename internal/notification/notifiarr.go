@@ -56,7 +56,7 @@ func (s *notifiarrSender) Name() string {
 
 func NewNotifiarrSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &notifiarrSender{
-		log:      log.With().Str("sender", "notifiarr").Logger(),
+		log:      log.With().Str("sender", "notifiarr").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		baseUrl:  "https://notifiarr.com/api/v1/notification/autobrr",
 		httpClient: &http.Client{
@@ -110,32 +110,30 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 }
 
 func (s *notifiarrSender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *notifiarrSender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.APIKey == "" {
-			s.log.Warn().Msg("notifiarr missing api key")
-			return false
-		}
+func (s *notifiarrSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
 
+	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
 		return true
 	}
+
 	return false
+}
+
+func (s *notifiarrSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *notifiarrSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-
-	return false
+	return s.Settings.EventEnabled(string(event))
 }
 
 func (s *notifiarrSender) buildMessage(payload domain.NotificationPayload) notifiarrMessageData {

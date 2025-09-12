@@ -38,7 +38,7 @@ func (s *gotifySender) Name() string {
 
 func NewGotifySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &gotifySender{
-		log:      log.With().Str("sender", "gotify").Logger(),
+		log:      log.With().Str("sender", "gotify").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
@@ -90,36 +90,28 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 }
 
 func (s *gotifySender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *gotifySender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.Host == "" {
-			s.log.Warn().Msg("gotify missing host")
-			return false
-		}
+func (s *gotifySender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
 
-		if s.Settings.Token == "" {
-			s.log.Warn().Msg("gotify missing application token")
-			return false
-		}
-
+	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
 		return true
 	}
 
 	return false
+}
+
+func (s *gotifySender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *gotifySender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-
-	return false
+	return s.Settings.EventEnabled(string(event))
 }
