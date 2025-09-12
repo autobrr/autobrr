@@ -20,6 +20,7 @@ interface List {
   include_alternate_titles: boolean;
   include_year: boolean;
   skip_clean_sanitize: boolean;
+  last_refresh_status: string;
 }
 
 interface ListFilter {
