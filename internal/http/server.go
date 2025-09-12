@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
@@ -76,12 +77,8 @@ type Deps struct {
 }
 
 func NewServer(deps Deps) Server {
-	//sessionManager := scs.New()
 	sessionManager := deps.SessionManager
 	sessionManager.Lifetime = 24 * time.Hour * 30
-	//sessionManager.Lifetime = 1 * time.Minute
-
-	//sessionManager.IdleTimeout = 20 * time.Minute
 	sessionManager.Cookie.Name = "autobrr_user_session"
 	sessionManager.Cookie.Persist = false
 
@@ -109,6 +106,11 @@ func NewServer(deps Deps) Server {
 		proxyService:          deps.ProxyService,
 		releaseService:        deps.ReleaseService,
 		updateService:         deps.UpdateService,
+	}
+
+	if deps.Config.Config.CorsAllowedOrigins != "" {
+		extraOrigins := strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
+		allowedOrigins = append(allowedOrigins, extraOrigins...)
 	}
 
 	return srv
@@ -145,6 +147,13 @@ func (s Server) tryToServe(addr, protocol string) error {
 	return server.Serve(listener)
 }
 
+var allowedOrigins = []string{
+	"http://localhost:3000",
+	"http://127.0.0.1:3000",
+	"http://localhost:7474",
+	"http://127.0.0.1:7474",
+}
+
 func (s Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
@@ -155,11 +164,12 @@ func (s Server) Handler() http.Handler {
 
 	c := cors.New(cors.Options{
 		AllowCredentials:   true,
-		AllowedMethods:     []string{"HEAD", "OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowOriginFunc:    func(origin string) bool { return true },
+		AllowedMethods:     []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		AllowedHeaders:     []string{"Authorization"},
+		AllowedOrigins:     allowedOrigins,
 		OptionsPassthrough: true,
 		// Enable Debugging for testing, consider disabling in production
-		Debug: false,
+		Debug: true,
 	})
 
 	r.Use(c.Handler)
