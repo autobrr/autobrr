@@ -51,7 +51,7 @@ func (db *DB) migratePostgres() error {
 );`
 
 	if _, err := tx.Exec(initialSchema); err != nil {
-		return errors.New("failed to create schema_migrations table")
+		return errors.New("failed to create schema_migrations table: %v", err.Error())
 	}
 
 	var version int
