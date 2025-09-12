@@ -92,6 +92,55 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   }
 };
 
+const ToggleAllFiltersCheckbox = ({ filters }: { filters: Filter[] }) => {
+  const queryClient = useQueryClient();
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  const allEnabled = useMemo(() => filters.length > 0 && filters.every(f => f.enabled), [filters]);
+  const someEnabled = useMemo(() => filters.some(f => f.enabled), [filters]);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.checked = allEnabled;
+      checkboxRef.current.indeterminate = someEnabled && !allEnabled;
+    }
+  }, [filters, allEnabled, someEnabled]);
+
+  const mutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      // Using Promise.all to run toggles in parallel
+      await Promise.all(filters.map(filter =>
+        APIClient.filters.toggleEnable(filter.id, enable)
+      ));
+    },
+    onSuccess: (_, enable) => {
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.details() });
+      toast.custom((t) => <Toast type="success" body={`All ${filters.length} filters have been ${enable ? 'enabled' : 'disabled'}.`} t={t} />);
+    },
+    onError: (err) => {
+      console.error("Failed to toggle all filters", err);
+      toast.custom((t) => <Toast type="error" body="An error occurred while toggling filters." t={t} />);
+    }
+  });
+
+  const handleToggleAll = () => {
+    const enable = !allEnabled;
+    mutation.mutate(enable);
+  };
+
+  return (
+    <input
+      type="checkbox"
+      ref={checkboxRef}
+      className="px-1 py-1"
+      onChange={handleToggleAll}
+      disabled={mutation.isPending || filters.length === 0}
+      title="Toggle all visible filters"
+    />
+  );
+};
+
 export function Filters() {
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
   const toggleCreateFilter = () => {
@@ -228,12 +277,27 @@ function FilterList({ toggleCreateFilter }: any) {
         {isLoadingFilters
           ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
           : filtersData && filtersData.length > 0 ? (
+            <>
+              <div className="flex items-center bg-gray-75 dark:bg-gray-825 py-0.5 border-b border-gray-150 dark:border-gray-775">
+                <span className="pl-2 pr-4 sm:px-4">
+                  <ToggleAllFiltersCheckbox filters={filtered.filtered} />
+                </span>
+                <div className="py-2 flex flex-col overflow-hidden w-full justify-center text-sm font-bold text-gray-800 dark:text-gray-100">
+                  Filter
+                </div>
+                <span className="hidden md:flex items-center justify-center py-4" />
+                <span className="hidden md:flex pl-2 pr-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  Indexers
+                </span>
+                <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium" />
+              </div>
               <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
                 {filtered.filtered.length > 0
                   ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
                   : <EmptyListState text={`No ${status} filters`}/>
                 }
               </ul>
+            </>
             ) : (
               <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter}/>
             )
