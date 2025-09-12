@@ -125,7 +125,7 @@ func (c *client) get(ctx context.Context, endpoint string, queryParams map[strin
 		return 0, nil, errors.Wrap(err, "could not make request. %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
@@ -201,7 +201,7 @@ func (c *client) GetFeed(ctx context.Context) (*Feed, error) {
 		return nil, errors.Wrap(err, "could not get feed")
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {
@@ -307,7 +307,7 @@ func (c *client) getCaps(ctx context.Context, endpoint string, opts map[string]s
 		return 0, nil, errors.Wrap(err, "could not make request. %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	dump, err := httputil.DumpResponse(resp, true)
 	if err != nil {

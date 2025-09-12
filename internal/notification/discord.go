@@ -4,7 +4,6 @@
 package notification
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -96,13 +95,15 @@ func (s *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	s.log.Trace().Msgf("discord response status: %d", res.StatusCode)
 
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
-		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		// Limit error body reading to prevent memory issues
+		limitedReader := io.LimitReader(res.Body, 4096) // 4KB limit
+		body, err := io.ReadAll(limitedReader)
 		if err != nil {
 			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
 		}

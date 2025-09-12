@@ -13,6 +13,7 @@ import (
 	"path"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) {
@@ -40,7 +41,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 		return 0, nil, errors.Wrap(err, "readarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")
@@ -81,7 +82,8 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 		return errors.Wrap(err, "readarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
+
 
 	if resp.Body == nil {
 		return errors.New("response body is nil")
@@ -169,7 +171,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 		return 0, nil, errors.Wrap(err, "readarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")

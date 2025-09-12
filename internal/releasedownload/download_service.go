@@ -205,7 +205,7 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 
 			return errors.Wrap(err, "error downloading file")
 		}
-		defer resp.Body.Close()
+		defer sharedhttp.DrainAndClose(resp)
 
 		// Check server response
 		switch resp.StatusCode {
@@ -368,7 +368,7 @@ func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Releas
 		return errors.Wrap(err, "could not make request to resolve magnet uri")
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	if res.StatusCode != http.StatusOK {
 		return errors.New("unexpected status code: %d", res.StatusCode)

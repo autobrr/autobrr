@@ -4,7 +4,6 @@
 package notification
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -84,10 +83,12 @@ func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.Noti
 		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	if res.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		// Limit error body reading to prevent memory issues
+		limitedReader := io.LimitReader(res.Body, 4096) // 4KB limit
+		body, err := io.ReadAll(limitedReader)
 		if err != nil {
 			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
 		}
