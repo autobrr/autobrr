@@ -383,7 +383,7 @@ func (h *Handler) isOurNick(nick string) bool {
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
 	// soju just reports JOIN (366) messages with the wildcard.
-	return h.CurrentNick() == nick || nick == "*"
+	return h.CurrentNick() == nick || (h.network.UseBouncer && nick == "*")
 }
 
 func (h *Handler) setConnectionStatus() {
