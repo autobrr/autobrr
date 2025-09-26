@@ -63,12 +63,13 @@ type List struct {
 	TagsExclude            []string          `json:"tags_excluded"`
 	IncludeUnmonitored     bool              `json:"include_unmonitored"`
 	IncludeAlternateTitles bool              `json:"include_alternate_titles"`
+	IncludeYear            bool              `json:"include_year"`
+	SkipCleanSanitize      bool              `json:"skip_clean_sanitize"`
 	LastRefreshTime        time.Time         `json:"last_refresh_time"`
 	LastRefreshData        string            `json:"last_refresh_error"`
 	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
 	CreatedAt              time.Time         `json:"created_at"`
 	UpdatedAt              time.Time         `json:"updated_at"`
-	SkipCleanSanitize      bool              `json:"skip_clean_sanitize"`
 }
 
 func (l List) MarshalJSON() ([]byte, error) {

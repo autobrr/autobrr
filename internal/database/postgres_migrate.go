@@ -28,6 +28,31 @@ CREATE TABLE proxy
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE notification
+(
+	id         SERIAL PRIMARY KEY,
+	name       TEXT,
+	type       TEXT,
+	enabled    BOOLEAN,
+	events     TEXT []   DEFAULT '{}' NOT NULL,
+	token      TEXT,
+	api_key    TEXT,
+	webhook    TEXT,
+	title      TEXT,
+	icon       TEXT,
+	host       TEXT,
+	username   TEXT,
+	password   TEXT,
+	channel    TEXT,
+	rooms      TEXT,
+	targets    TEXT,
+	devices    TEXT,
+	topic      TEXT,
+	priority   INTEGER DEFAULT 0,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE indexer
 (
     id                  SERIAL PRIMARY KEY,
@@ -221,6 +246,7 @@ CREATE TABLE filter_external
     webhook_retry_status                TEXT,
     webhook_retry_attempts              INTEGER,
     webhook_retry_delay_seconds         INTEGER,
+    on_error                            TEXT DEFAULT 'REJECT',
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
@@ -233,6 +259,19 @@ CREATE TABLE filter_indexer
     FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE CASCADE,
     PRIMARY KEY (filter_id, indexer_id)
 );
+
+CREATE TABLE filter_notification
+(
+    filter_id       INTEGER NOT NULL,
+    notification_id INTEGER NOT NULL,
+    events          TEXT[] NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (filter_id, notification_id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notification(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_filter_notification_filter_id ON filter_notification(filter_id);
 
 CREATE TABLE client
 (
@@ -262,6 +301,7 @@ CREATE TABLE action
     tags                    TEXT,
     label                   TEXT,
     save_path               TEXT,
+    download_path           TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
     first_last_piece_prio   BOOLEAN DEFAULT false,
@@ -465,31 +505,6 @@ CREATE TABLE release_action_status
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);
 
-CREATE TABLE notification
-(
-	id         SERIAL PRIMARY KEY,
-	name       TEXT,
-	type       TEXT,
-	enabled    BOOLEAN,
-	events     TEXT []   DEFAULT '{}' NOT NULL,
-	token      TEXT,
-	api_key    TEXT,
-	webhook    TEXT,
-	title      TEXT,
-	icon       TEXT,
-	host       TEXT,
-	username   TEXT,
-	password   TEXT,
-	channel    TEXT,
-	rooms      TEXT,
-	targets    TEXT,
-	devices    TEXT,
-	topic      TEXT,
-	priority   INTEGER DEFAULT 0,
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE feed
 (
 	id            SERIAL PRIMARY KEY,
@@ -549,6 +564,7 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
+    include_year             BOOLEAN DEFAULT FALSE,
     skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
@@ -1365,20 +1381,20 @@ CREATE INDEX release_hybrid_index
 	ALTER TABLE list
 		ADD COLUMN skip_clean_sanitize BOOLEAN DEFAULT FALSE;
 `,
-	`UPDATE irc_network 
-	SET 
+	`UPDATE irc_network
+	SET
     	auth_mechanism = 'NONE',
     	auth_account = '',
     	auth_password = ''
-	WHERE server = 'irc.rocket-hd.cc' 
+	WHERE server = 'irc.rocket-hd.cc'
     	AND auth_mechanism != 'NONE';
 
-	UPDATE irc_channel 
+	UPDATE irc_channel
 	SET password = NULL
 	WHERE password IS NOT NULL
     	AND network_id IN (
-        	SELECT id 
-        	FROM irc_network 
+        	SELECT id
+        	FROM irc_network
         	WHERE server = 'irc.rocket-hd.cc'
     	);
 `,
@@ -1455,6 +1471,27 @@ WHERE
     OR label LIKE '%{{ .CurrenTimeUnixMS }}%' OR label LIKE '%{{.CurrenTimeUnixMS}}%'
     OR save_path LIKE '%{{ .CurrenTimeUnixMS }}%' OR save_path LIKE '%{{.CurrenTimeUnixMS}}%'
     OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+`,
+	`ALTER TABLE action
+		ADD COLUMN download_path TEXT;
+`,
+	`ALTER TABLE list
+		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
+`,
+	`ALTER TABLE filter_external
+  ADD COLUMN on_error TEXT DEFAULT 'REJECT';
+`,
+	`-- Add per-filter notification support
+CREATE TABLE filter_notification (
+    filter_id       INTEGER NOT NULL,
+    notification_id INTEGER NOT NULL,
+    events          TEXT[] NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (filter_id, notification_id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notification(id) ON DELETE CASCADE
+);
 
+CREATE INDEX idx_filter_notification_filter_id ON filter_notification(filter_id);
 `,
 }

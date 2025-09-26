@@ -186,6 +186,11 @@ func (s *service) refreshAll(ctx context.Context, lists []*domain.List) error {
 		}
 
 		if err := s.refreshList(ctx, listItem); err != nil {
+			if errors.Is(err, domain.ErrRecordNotFound) {
+				s.log.Error().Str("type", string(listItem.Type)).Str("list", listItem.Name).Int("client_id", listItem.ClientID).Msgf("client not found for list %s, skipping", listItem.Name)
+				continue
+			}
+
 			s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while refreshing %s, continuing with other lists", listItem.Type)
 
 			processingErrors = append(processingErrors, errors.Wrapf(err, "error while refreshing %s", listItem.Name))
