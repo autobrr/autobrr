@@ -9,6 +9,6 @@ var (
 	//go:embed sqlite/*.sql
 	SchemaMigrationsSQLite embed.FS
 
-	// go:embed postgres/*.sql
+	//go:embed postgres/*.sql
 	SchemaMigrationsPostgres embed.FS
 )
