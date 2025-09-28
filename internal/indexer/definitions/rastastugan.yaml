@@ -1,0 +1,83 @@
+---
+#id: rastastugan
+name: Rastastugan
+identifier: rastastugan
+description: Rastastugan is a tracker for the Nordic folks
+language: en-us
+urls:
+  - https://rastastugan.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: To be found in the navigation pane under "Your Profile".
+
+irc:
+  network: Rizon
+  server: irc.rizon.net
+  port: 6697
+  tls: true
+  channels:
+    - "#rastastugan"
+  announcers:
+    - "BotAnna"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Username of bot must be set to username|bot.
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: multi
+    lines:
+      - tests:
+        - line: '[RASTASTUGAN] Cptn_Crook_71 has uploaded The Last Kingdom S04 1080p BluRay REMUX AVC DTS-HD MA 5.1-FraMeSToR grab it now!'
+          expect:
+            uploader: 'Cptn_Crook_71'
+            torrentName: 'The Last Kingdom S04 1080p BluRay REMUX AVC DTS-HD MA 5.1-FraMeSToR'
+        pattern: '^\[RASTASTUGAN\]\s+(.*?)\s+has uploaded\s+(.*?)\s+grab it now!$'
+        vars:
+          - uploader
+          - torrentName
+      - tests:
+        - line: '[Category: TV] [Type: Remux] [Size: 105.31 GiB] [TMDB vote average: 8.254] [TMDB vote count: 1856]'
+          expect:
+            category: 'TV'
+            type: 'Remux'
+            size: '105.31 GiB'
+        pattern: '^\[Category:\s*(.*?)\]\s+\[Type:\s*(.*?)\]\s+\[Size:\s*(.*?)\]\s+\[TMDB vote average:\s*(.*?)\]\s+\[TMDB vote count:\s*(.*?)\]$'
+        vars:
+          - category
+          - type
+          - size
+      - tests:
+        - line: '[Link: https://rastastugan.org/torrents/10674]'
+          expect:
+            baseUrl: 'https://rastastugan.org'
+            torrentId: '10674'
+        pattern: '^\[Link:\s*https://rastastugan\.org/torrents/(\d+)\]$'
+        vars:
+          - baseUrl
+          - torrentId
+
+    match:
+      torrenturl: "https://rastastugan.org/torrents/{{ .torrentId }}"
