@@ -110,6 +110,11 @@ func setupSqliteForTest() *DB {
 		log.Fatalf("Could not open db connection: %v", err)
 	}
 
+	// migrate db
+	if err = db.migrateSQLite(); err != nil {
+		log.Fatalf("Could not migrate postgres database: %q", err)
+	}
+
 	testDBs[dbType] = db
 
 	return db
