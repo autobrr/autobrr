@@ -12,7 +12,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 
@@ -26,14 +25,14 @@ func getDbs() []string {
 var testDBs map[string]*DB
 
 func setupPostgresForTest() *DB {
-	dbtype := "postgres"
-	if d, ok := testDBs[dbtype]; ok {
+	dbType := "postgres"
+	if d, ok := testDBs[dbType]; ok {
 		return d
 	}
 
 	cfg := &domain.Config{
 		LogLevel:         "INFO",
-		DatabaseType:     dbtype,
+		DatabaseType:     dbType,
 		PostgresHost:     "localhost",
 		PostgresPort:     5437,
 		PostgresDatabase: "autobrr",
@@ -79,28 +78,29 @@ GRANT ALL ON SCHEMA public TO public;
 		log.Fatalf("Could not migrate postgres database: %q", err)
 	}
 
-	testDBs[dbtype] = db
+	testDBs[dbType] = db
 
 	return db
 }
 
 func setupSqliteForTest() *DB {
-	dbtype := "sqlite"
+	dbType := "sqlite"
 
-	if d, ok := testDBs[dbtype]; ok {
+	if d, ok := testDBs[dbType]; ok {
 		return d
 	}
 
-	cfg := config.New("", "dev")
-	cfg.Config.DatabaseType = dbtype
-	cfg.Config.DatabaseDSN = ":memory:"
-	cfg.Config.LogLevel = "ERROR"
+	cfg := &domain.Config{
+		LogLevel:     "ERROR",
+		DatabaseType: dbType,
+		DatabaseDSN:  ":memory:",
+	}
 
 	// Init a new logger
-	dbLogger := logger.New(cfg.Config)
+	dbLogger := logger.New(cfg)
 
 	// Initialize a new DB connection
-	db, err := NewDB(cfg.Config, dbLogger)
+	db, err := NewDB(cfg, dbLogger)
 	if err != nil {
 		log.Fatalf("Could not create database: %v", err)
 	}
@@ -110,7 +110,7 @@ func setupSqliteForTest() *DB {
 		log.Fatalf("Could not open db connection: %v", err)
 	}
 
-	testDBs[dbtype] = db
+	testDBs[dbType] = db
 
 	return db
 }
