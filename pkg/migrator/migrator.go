@@ -9,7 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -388,7 +388,8 @@ func (m *Migrator) readFile(filename string) ([]byte, error) {
 		//}
 		migrationFile := filename
 		if m.filepathPrefix != "" {
-			migrationFile = filepath.Join(m.filepathPrefix, migrationFile)
+			// use old path package since embed always use forward slash
+			migrationFile = path.Join(m.filepathPrefix, migrationFile)
 		}
 
 		data, err := m.embedFS.ReadFile(migrationFile)
