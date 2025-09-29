@@ -149,7 +149,7 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 ##### Installation Scripts
 
 We have support for a couple of other providers out of the box.  
-Please contact us on [Discord](https://discord.gg/WQ2eUycxyT) if your provider is missing.
+Please contact us on [Discord](https://discord.autobrr.com) if your provider is missing.
 The scripts require some input, but do most of the work.
 
 #### Feralhosting
@@ -167,7 +167,7 @@ wget https://gobrr.sh/install_bytesized && bash install_bytesized
 #### Other providers
 
 For other providers the Seedbox.io installer should work. If not, open an issue or contact us
-on [Discord](https://discord.gg/WQ2eUycxyT)
+on [Discord](https://discord.autobrr.com)
 
 ```bash
 wget https://gobrr.sh/install_sbio && bash install_sbio
@@ -394,7 +394,7 @@ volumes:
 
 ## Community
 
-Join our friendly and welcoming community on [Discord](https://discord.gg/WQ2eUycxyT)! Connect with fellow autobrr users, get advice, and share your experiences. Whether you're seeking help, wanting to contribute, or just looking to discuss your ideas, our community is a hub of discussion and support. We're all here to help each other out, so don't hesitate to jump in!
+Join our friendly and welcoming community on [Discord](https://discord.autobrr.com)! Connect with fellow autobrr users, get advice, and share your experiences. Whether you're seeking help, wanting to contribute, or just looking to discuss your ideas, our community is a hub of discussion and support. We're all here to help each other out, so don't hesitate to jump in!
 
 ## Contributing
 

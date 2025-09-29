@@ -205,6 +205,10 @@ func (f *FeedItem) parseAttributes() {
 			f.Genres = strings.Split(attr.Value, ",")
 		}
 	}
+
+	if f.Leechers == 0 && f.Peers > 0 && f.Seeders > 0 {
+		f.Leechers = f.Peers - f.Seeders
+	}
 }
 
 // Time credits: https://github.com/mrobinsn/go-newznab/blob/cd89d9c56447859fa1298dc9a0053c92c45ac7ef/newznab/structs.go#L150
