@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package download_client
@@ -170,9 +170,30 @@ func (s *service) Update(ctx context.Context, client *domain.DownloadClient) err
 		return err
 	}
 
-	// update
-	err := s.repo.Update(ctx, client)
+	existingClient, err := s.FindByID(ctx, client.ID)
 	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find download client by id: %v", client.ID)
+		return err
+	}
+
+	if domain.IsRedactedString(client.Password) {
+		client.Password = existingClient.Password
+	}
+
+	if domain.IsRedactedString(client.Settings.APIKey) {
+		client.Settings.APIKey = existingClient.Settings.APIKey
+	}
+
+	if domain.IsRedactedString(client.Settings.Auth.Password) {
+		client.Settings.Auth.Password = existingClient.Settings.Auth.Password
+	}
+
+	if domain.IsRedactedString(client.Settings.Basic.Password) {
+		client.Settings.Basic.Password = existingClient.Settings.Basic.Password
+	}
+
+	// update
+	if err := s.repo.Update(ctx, client); err != nil {
 		s.log.Error().Err(err).Msgf("could not update download client: %+v", client)
 		return err
 	}
@@ -197,6 +218,28 @@ func (s *service) Test(ctx context.Context, client domain.DownloadClient) error 
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
+	}
+
+	// check for existing client to get settings from
+	if client.ID > 0 {
+		existingClient, err := s.FindByID(ctx, client.ID)
+		if err != nil {
+			s.log.Error().Err(err).Msgf("could not find download client by id: %v", client.ID)
+			return err
+		}
+
+		if domain.IsRedactedString(client.Password) {
+			client.Password = existingClient.Password
+		}
+		if domain.IsRedactedString(client.Settings.APIKey) {
+			client.Settings.APIKey = existingClient.Settings.APIKey
+		}
+		if domain.IsRedactedString(client.Settings.Auth.Password) {
+			client.Settings.Auth.Password = existingClient.Settings.Auth.Password
+		}
+		if domain.IsRedactedString(client.Settings.Basic.Password) {
+			client.Settings.Basic.Password = existingClient.Settings.Basic.Password
+		}
 	}
 
 	// test

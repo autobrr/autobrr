@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package list
 
 import (
@@ -117,6 +120,16 @@ func (s *service) Update(ctx context.Context, list *domain.List) error {
 		return err
 	}
 
+	existingList, err := s.FindByID(ctx, list.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find list by id: %v", list.ID)
+		return err
+	}
+
+	if domain.IsRedactedString(list.APIKey) {
+		list.APIKey = existingList.APIKey
+	}
+
 	if err := s.repo.Update(ctx, list); err != nil {
 		s.log.Error().Err(err).Msgf("could not update list %s", list.Name)
 		return err
@@ -173,6 +186,11 @@ func (s *service) refreshAll(ctx context.Context, lists []*domain.List) error {
 		}
 
 		if err := s.refreshList(ctx, listItem); err != nil {
+			if errors.Is(err, domain.ErrRecordNotFound) {
+				s.log.Error().Str("type", string(listItem.Type)).Str("list", listItem.Name).Int("client_id", listItem.ClientID).Msgf("client not found for list %s, skipping", listItem.Name)
+				continue
+			}
+
 			s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while refreshing %s, continuing with other lists", listItem.Type)
 
 			processingErrors = append(processingErrors, errors.Wrapf(err, "error while refreshing %s", listItem.Name))
@@ -225,6 +243,9 @@ func (s *service) refreshList(ctx context.Context, listItem *domain.List) error 
 
 	case domain.ListTypePlaintext:
 		err = s.plaintext(ctx, listItem)
+
+	case domain.ListTypeAniList:
+		err = s.anilist(ctx, listItem)
 
 	default:
 		err = errors.Errorf("unsupported list type: %s", listItem.Type)

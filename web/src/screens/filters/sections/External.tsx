@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { useRef } from "react";
-import { ChevronRightIcon } from "@heroicons/react/24/solid";
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import { ArrowDownIcon, ArrowUpIcon, SquaresPlusIcon } from "@heroicons/react/24/outline";
 import { Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext } from "formik";
 
@@ -14,6 +14,7 @@ import { TextAreaAutoResize } from "@components/inputs/input";
 import { EmptyListState } from "@components/emptystates";
 import { NumberField, Select, TextField } from "@components/inputs";
 import {
+  ExternalFilterOnErrorOptions,
   ExternalFilterTypeNameMap,
   ExternalFilterTypeOptions,
   ExternalFilterWebhookMethodOptions
@@ -23,7 +24,7 @@ import { DeleteModal } from "@components/modals";
 import { DocsLink } from "@components/ExternalLink";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
-import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
+import { FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
 
 export function External() {
   const { values } = useFormikContext<Filter>();
@@ -33,7 +34,8 @@ export function External() {
     index: values.external.length,
     name: `External ${values.external.length + 1}`,
     enabled: false,
-    type: "EXEC"
+    type: "EXEC",
+    on_error: "REJECT",
   };
 
   return (
@@ -47,10 +49,10 @@ export function External() {
                 title="External filters"
                 subtitle="Run external scripts or webhooks and check status as part of filtering."
               />
-              <div className="ml-4 mt-4 flex-shrink-0">
+              <div className="ml-4 mt-4 shrink-0">
                 <button
                   type="button"
-                  className="relative inline-flex items-center px-4 py-2 transition border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="relative inline-flex items-center px-4 py-2 transition border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                   onClick={() => push(newItem)}
                 >
                   <SquaresPlusIcon
@@ -125,9 +127,9 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
         )}
       >
         {((idx > 0) || (idx < values.external.length - 1)) ? (
-          <div className="flex flex-col pr-2 justify-between">
+          <div className="flex flex-col pr-3 justify-between">
             {idx > 0 && (
-              <button type="button" onClick={moveUp}>
+              <button type="button" className="cursor-pointer" onClick={moveUp}>
                 <ArrowUpIcon
                   className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"
                   aria-hidden="true"
@@ -136,7 +138,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
             )}
 
             {idx < values.external.length - 1 && (
-              <button type="button" onClick={moveDown}>
+              <button type="button" className="cursor-pointer" onClick={moveDown}>
                 <ArrowDownIcon
                   className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"
                   aria-hidden="true"
@@ -161,7 +163,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
           )}
         </Field>
 
-        <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center" type="button" onClick={toggleEdit}>
+        <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center cursor-pointer" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="truncate">
               <div className="flex text-sm">
@@ -170,7 +172,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 </p>
               </div>
             </div>
-            <div className="flex-shrink-0 sm:mt-0 sm:ml-5">
+            <div className="shrink-0 sm:mt-0 sm:ml-5">
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                   {ExternalFilterTypeNameMap[external.type]}
@@ -178,8 +180,8 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
               </div>
             </div>
           </div>
-          <div className="ml-5 flex-shrink-0">
-            <ChevronRightIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+          <div className="ml-5 shrink-0">
+            {edit ? <ChevronDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" /> : <ChevronRightIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />}
           </div>
         </button>
 
@@ -202,19 +204,28 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
               subtitle="Define the type of your filter and its name"
             >
               <FilterLayout>
-                <FilterHalfRow>
-                  <Select
-                    name={`external.${idx}.type`}
-                    label="Type"
-                    optionDefaultText="Select type"
-                    options={ExternalFilterTypeOptions}
-                    tooltip={<div><p>Select the type for this external filter.</p></div>}
-                  />
-                </FilterHalfRow>
+                <Select
+                  name={`external.${idx}.type`}
+                  label="Type"
+                  optionDefaultText="Select type"
+                  options={ExternalFilterTypeOptions}
+                  tooltip={<div><p>Select the type for this external filter.</p></div>}
+                  columns={4}
+                />
 
-                <FilterHalfRow>
-                  <TextField name={`external.${idx}.name`} label="Name" />
-                </FilterHalfRow>
+                <TextField
+                  name={`external.${idx}.name`}
+                  label="Name" columns={4}
+                />
+
+                <Select
+                  name={`external.${idx}.on_error`}
+                  label="On Error"
+                  optionDefaultText="Select type"
+                  options={ExternalFilterOnErrorOptions}
+                  tooltip={<div><p>Select what to do on error for this external filter.</p></div>}
+                  columns={4}
+                />
               </FilterLayout>
             </FilterSection>
 
@@ -223,7 +234,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
             <div className="pt-6 pb-4 space-x-2 flex justify-between">
               <button
                 type="button"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
                 onClick={toggleDeleteModal}
               >
                 Remove External
@@ -231,7 +242,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
 
               <button
                 type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
                 onClick={toggleEdit}
               >
                 Close

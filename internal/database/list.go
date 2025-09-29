@@ -1,3 +1,6 @@
+// Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -41,6 +44,8 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 		"tags_excluded",
 		"include_unmonitored",
 		"include_alternate_titles",
+		"include_year",
+		"skip_clean_sanitize",
 		"last_refresh_time",
 		"last_refresh_status",
 		"last_refresh_data",
@@ -55,7 +60,7 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 		return nil, err
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +74,7 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 		var url, apiKey, lastRefreshStatus, lastRefreshData sql.Null[string]
 		var lastRefreshTime sql.Null[time.Time]
 		var clientID sql.Null[int]
-
-		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &lastRefreshTime, &lastRefreshStatus, &lastRefreshData, &list.CreatedAt, &list.UpdatedAt)
+		err = rows.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.IncludeYear, &list.SkipCleanSanitize, &lastRefreshTime, &lastRefreshStatus, &lastRefreshData, &list.CreatedAt, &list.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -104,6 +108,8 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 		"tags_excluded",
 		"include_unmonitored",
 		"include_alternate_titles",
+		"include_year",
+		"skip_clean_sanitize",
 		"last_refresh_time",
 		"last_refresh_status",
 		"last_refresh_data",
@@ -118,7 +124,7 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 		return nil, err
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
@@ -132,7 +138,7 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 	var url, apiKey sql.Null[string]
 	var clientID sql.Null[int]
 
-	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshData, &list.CreatedAt, &list.UpdatedAt)
+	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &list.APIKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.IncludeYear, &list.SkipCleanSanitize, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshData, &list.CreatedAt, &list.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +172,8 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			"tags_excluded",
 			"include_unmonitored",
 			"include_alternate_titles",
+			"include_year",
+			"skip_clean_sanitize",
 		).
 		Values(
 			list.Name,
@@ -180,6 +188,8 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			pq.Array(list.TagsExclude),
 			list.IncludeUnmonitored,
 			list.IncludeAlternateTitles,
+			list.IncludeYear,
+			list.SkipCleanSanitize,
 		).Suffix("RETURNING id").RunWith(tx)
 
 	//query, args, err := qb.ToSql()
@@ -223,6 +233,8 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 		Set("tags_excluded", pq.Array(list.TagsExclude)).
 		Set("include_unmonitored", list.IncludeUnmonitored).
 		Set("include_alternate_titles", list.IncludeAlternateTitles).
+		Set("include_year", list.IncludeYear).
+		Set("skip_clean_sanitize", list.SkipCleanSanitize).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": list.ID})
 
@@ -269,7 +281,7 @@ func (r *ListRepo) UpdateLastRefresh(ctx context.Context, list *domain.List) err
 		return err
 	}
 
-	results, err := r.db.handler.ExecContext(ctx, query, args...)
+	results, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -344,7 +356,7 @@ func (r *ListRepo) ToggleEnabled(ctx context.Context, listID int64, enabled bool
 		return err
 	}
 
-	results, err := r.db.handler.ExecContext(ctx, query, args...)
+	results, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -438,7 +450,7 @@ func (r *ListRepo) GetListFilters(ctx context.Context, listID int64) ([]domain.L
 		return nil, err
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

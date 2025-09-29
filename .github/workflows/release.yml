@@ -26,8 +26,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
-  GO_VERSION: '1.23'
-  NODE_VERSION: '20.17.0'
+  NODE_VERSION: '22.17.0'
 
 permissions:
   contents: write
@@ -39,21 +38,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up corepack
-        run: corepack enable
+        run: npm install -g corepack@latest && corepack enable
 
       # It can not be done before enable corepack
       - name: Set up cache
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
@@ -94,14 +93,14 @@ jobs:
       CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: Create Profile environment
@@ -142,14 +141,14 @@ jobs:
       CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: Create Profile environment
@@ -193,20 +192,20 @@ jobs:
       CGO_ENABLED: ${{ matrix.cgo }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: web-dist
           path: web/dist
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: Generate Profile
@@ -224,7 +223,7 @@ jobs:
     needs: [ pgo, test, testother ]
     steps:
       - name: Download pprof profiles
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: pprof-*
           merge-multiple: true
@@ -233,10 +232,13 @@ jobs:
       - name: List contents
         run: ls -la profile
 
+      - name: Checkout
+        uses: actions/checkout@v5
+
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: false
 
       - name: Merge Profiles
@@ -254,46 +256,48 @@ jobs:
     needs: [ web, goprofilecombine ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: web-dist
           path: web/dist
 
       - name: Download pprof profile
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: pprof
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: Run GoReleaser build
         if: github.event_name == 'pull_request'
         uses: goreleaser/goreleaser-action@v6
         with:
-          distribution: goreleaser
+          distribution: goreleaser-pro
           version: "~> v2"
-          args: release --clean --skip=validate,publish --parallelism 5
+          args: release --clean --skip=validate,publish --parallelism 5 --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
       - name: Run GoReleaser build and publish tags
         if: startsWith(github.ref, 'refs/tags/')
         uses: goreleaser/goreleaser-action@v6
         with:
-          distribution: goreleaser
+          distribution: goreleaser-pro
           version: "~> v2"
-          args: release --clean
+          args: release --clean --parallelism 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
       - name: Create web-dist artifact
         if: startsWith(github.ref, 'refs/tags/')
@@ -328,30 +332,35 @@ jobs:
           - linux/amd64
           - linux/amd64/v2
           - linux/amd64/v3
+          # - linux/amd64/v4
           - linux/arm/v6
           - linux/arm/v7
           - linux/arm64
+          - linux/arm64/v8.2 # Neoverse + Raspberry Pi
+          - linux/arm64/v8.4 # AWS Graviton3
+          - linux/arm64/v9
+          - linux/arm64/v9.2 # Apple M4
           # - linux/mips64le
           # - linux/mips64
           - linux/ppc64le
-          # - linux/riscv64
+          - linux/riscv64
           - linux/s390x
           - windows/amd64
     needs: [ web, goprofilecombine ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: web-dist
           path: web/dist
 
       - name: Download pprof profile
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: pprof
 
@@ -424,7 +433,7 @@ jobs:
     needs: [ docker ]
     steps:
       - name: Download image digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: /tmp/digests
           pattern: docker-digests-*

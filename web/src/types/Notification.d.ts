@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -26,4 +26,16 @@ interface ServiceNotification {
   topic?: string;
   host?: string;
   username?: string;
+  password?: string;
+  used_by_filters?: NotificationFilter[];
 }
+
+interface NotificationFilter {
+  filter_name: string;
+  filter_id: number;
+  notification_id: number;
+  notification?: ServiceNotification;
+  events: NotificationFilterEvent[];
+}
+
+type NotificationFilterEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR";

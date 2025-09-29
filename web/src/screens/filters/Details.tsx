@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -17,7 +17,7 @@ import { FilterByIdQueryOptions } from "@api/queries";
 import { FilterKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
-import { DOWNLOAD_CLIENTS } from "@domain/constants";
+import { DOWNLOAD_CLIENTS, ExternalFilterOnErrorValues } from "@domain/constants";
 
 import { DEBUG } from "@components/debug";
 import { toast } from "@components/hot-toast";
@@ -29,6 +29,7 @@ interface tabType {
   name: string;
   href: string;
   exact?: boolean;
+  newFeature?: boolean;
 }
 
 const tabs: tabType[] = [
@@ -37,7 +38,8 @@ const tabs: tabType[] = [
   { name: "Music", href: "/filters/$filterId/music" },
   { name: "Advanced", href: "/filters/$filterId/advanced" },
   { name: "External", href: "/filters/$filterId/external" },
-  { name: "Actions", href: "/filters/$filterId/actions" }
+  { name: "Actions", href: "/filters/$filterId/actions" },
+  { name: "Notifications", href: "/filters/$filterId/notifications", newFeature: true }
 ];
 
 export interface NavLinkProps {
@@ -63,13 +65,27 @@ function TabNavLink({ item }: NavLinkProps) {
           <span
             className={
             classNames(
-              "transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg",
+              "border-b-2 whitespace-nowrap py-4 px-1 first:rounded-tl-lg last:rounded-tr-lg",
               isActive
-                ? "text-blue-600 dark:text-white border-blue-600 dark:border-blue-500"
-                : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
+                ? "border-blue-600 dark:border-blue-500"
+                : " border-transparent"
             )
           }>
-            {item.name}
+            <span
+              className={
+                classNames(
+                  "font-medium text-sm",
+                  isActive
+                    ? "text-blue-600 dark:text-white "
+                    : "text-gray-550 hover:text-blue-500 dark:hover:text-white border-transparent"
+                )
+              }
+            >
+              {item.name}
+            </span>
+            {item.newFeature &&
+              <span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-400/10 dark:text-green-400">NEW</span>
+            }
           </span>
         )
       }}
@@ -105,7 +121,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
       <div className="px-0.5 mt-8 flex flex-col-reverse sm:flex-row flex-wrap-reverse justify-between">
         <button
           type="button"
-          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 hover:dark:bg-red-700 hover:bg-red-800 text-white focus:outline-none"
+          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
           onClick={toggleDeleteModal}
         >
           Delete Filter
@@ -115,7 +131,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
           {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
           <button
             type="button"
-            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             onClick={(e) => {
               e.preventDefault();
               reset();
@@ -127,7 +143,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
           </button>
           <button
             type="submit"
-            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Save
           </button>
@@ -191,6 +207,7 @@ const actionSchema = z.object({
   tags: z.string().optional(),
   label: z.string().optional(),
   save_path: z.string().optional(),
+  download_path: z.string().optional(),
   paused: z.boolean().optional(),
   ignore_rules: z.boolean().optional(),
   limit_upload_speed: z.number().optional(),
@@ -210,7 +227,7 @@ const actionSchema = z.object({
     if (!value.client_id) {
       ctx.addIssue({
         message: "Must select client",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["client_id"]
       });
     }
@@ -222,6 +239,7 @@ const externalFilterSchema = z.object({
   index: z.number(),
   name: z.string(),
   type: z.enum(["EXEC", "WEBHOOK"]),
+  on_error: z.enum([...ExternalFilterOnErrorValues]),
   exec_cmd: z.string().optional(),
   exec_args: z.string().optional(),
   exec_expect_status: z.number().optional(),
@@ -232,12 +250,12 @@ const externalFilterSchema = z.object({
   webhook_expect_status: z.number().optional(),
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
-  webhook_retry_delay_seconds: z.number().optional()
+  webhook_retry_delay_seconds: z.number().optional(),
 }).superRefine((value, ctx) => {
   if (!value.name) {
     ctx.addIssue({
       message: "Must have a name",
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: ["name"]
     });
   }
@@ -246,21 +264,21 @@ const externalFilterSchema = z.object({
     if (!value.webhook_method) {
       ctx.addIssue({
         message: "Must select method",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["webhook_method"]
       });
     }
     if (!value.webhook_host) {
       ctx.addIssue({
         message: "Must have webhook host",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["webhook_host"]
       });
     }
     if (!value.webhook_expect_status) {
       ctx.addIssue({
         message: "Must have webhook expect status",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["webhook_expect_status"]
       });
     }
@@ -270,7 +288,7 @@ const externalFilterSchema = z.object({
     if (!value.exec_cmd) {
       ctx.addIssue({
         message: "Must have exec cmd",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["exec_cmd"]
       });
     }
@@ -295,7 +313,7 @@ const schema = z.object({
     if (!value.max_downloads_unit) {
       ctx.addIssue({
         message: "Must select Max Downloads Per unit when Max Downloads is greater than 0",
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["max_downloads_unit"]
       });
     }
@@ -367,7 +385,7 @@ export const FilterDetails = () => {
 
   return (
     <main>
-      <div className="my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center text-black dark:text-white">
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8 flex items-center text-black dark:text-white">
         <h1 className="text-3xl font-bold">
           <Link to="/filters">
             Filters
@@ -376,7 +394,7 @@ export const FilterDetails = () => {
         <ChevronRightIcon className="h-6 w-4 shrink-0 sm:shrink sm:h-6 sm:w-6 mx-1" aria-hidden="true" />
         <h1 className="text-3xl font-bold truncate" title={filter.name}>{filter.name}</h1>
       </div>
-      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-6 lg:px-8">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775">
           <div className="rounded-t-lg bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
             <nav className="px-4 py-4 -mb-px flex space-x-6 sm:space-x-8 overflow-x-auto">
@@ -457,6 +475,7 @@ export const FilterDetails = () => {
               actions: filter.actions || [],
               external: filter.external || [],
               release_profile_duplicate_id: filter.release_profile_duplicate_id,
+              notifications: filter.notifications || [],
             } as Filter}
             onSubmit={handleSubmit}
             enableReinitialize={true}

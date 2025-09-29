@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -6,7 +6,9 @@ package domain
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/url"
+	"strings"
 	"text/template"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -38,6 +40,44 @@ type Indexer struct {
 	Proxy              *Proxy            `json:"proxy"`
 	ProxyID            int64             `json:"proxy_id"`
 	Settings           map[string]string `json:"settings,omitempty"`
+}
+
+func (i Indexer) MarshalJSON() ([]byte, error) {
+	// Define secret keys that should be redacted
+	secretKeys := map[string]bool{
+		"rsskey":       true,
+		"rss_key":      true,
+		"passkey":      true,
+		"authkey":      true,
+		"torrentpass":  true,
+		"torrent_pass": true,
+		"api_key":      true,
+		"apikey":       true,
+		"uid":          true,
+		"key":          true,
+		"token":        true,
+		"cookie":       true,
+	}
+
+	// Create a copy of the settings map with redacted secrets
+	redactedSettings := make(map[string]string)
+	for key, value := range i.Settings {
+		if secretKeys[strings.ToLower(key)] {
+			redactedSettings[key] = RedactString(value)
+		} else {
+			redactedSettings[key] = value
+		}
+	}
+
+	// Create alias type to avoid infinite recursion
+	type Alias Indexer
+	return json.Marshal(&struct {
+		*Alias
+		Settings map[string]string `json:"settings,omitempty"`
+	}{
+		Settings: redactedSettings,
+		Alias:    (*Alias)(&i),
+	})
 }
 
 func (i Indexer) ImplementationIsFeed() bool {
@@ -182,6 +222,23 @@ type IndexerSetting struct {
 	Regex       string `json:"regex,omitempty"`
 }
 
+func (is IndexerSetting) MarshalJSON() ([]byte, error) {
+	type Alias IndexerSetting
+
+	redactedValue := is.Value
+	if strings.ToLower(is.Type) == "secret" {
+		redactedValue = RedactString(is.Value)
+	}
+
+	return json.Marshal(&struct {
+		*Alias
+		Value string `json:"value,omitempty"`
+	}{
+		Value: redactedValue,
+		Alias: (*Alias)(&is),
+	})
+}
+
 type Torznab struct {
 	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
@@ -250,6 +307,7 @@ type IndexerIRCParseLine struct {
 type IndexerIRCParseMatch struct {
 	TorrentURL  string   `json:"torrenturl"`
 	TorrentName string   `json:"torrentname"`
+	MagnetURI   string   `json:"magneturi"`
 	InfoURL     string   `json:"infourl"`
 	Encode      []string `json:"encode"`
 }
@@ -331,6 +389,15 @@ func (p *IndexerIRCParseMatch) ParseURLs(baseURL string, vars map[string]string,
 		rls.DownloadURL = downloadURL.String()
 	}
 
+	if p.MagnetURI != "" {
+		magnetURI, err := parseTemplateURL("magnet:", p.MagnetURI, vars, "magneturi")
+		if err != nil {
+			return err
+		}
+
+		rls.MagnetURI = magnetURI.String()
+	}
+
 	return nil
 }
 
@@ -399,7 +466,7 @@ func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, 
 		return errors.Wrap(err, "could not parse urls for release")
 	}
 
-	// parse torrent var
+	// parse torrent name
 	if err := def.IRC.Parse.Match.ParseTorrentName(mergedVars, rls); err != nil {
 		return errors.Wrap(err, "could not parse release name")
 	}

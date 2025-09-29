@@ -69,22 +69,75 @@ checkForUpdates = true
 #
 sessionSecret = "secret-session-key"
 
+# Database configuration
+#
+#databaseType = "postgres"
+#databaseDSN = "postgresql://autobrr:postgres@localhost:5432/autobrr?sslmode=disable"
+#
+#databaseType = "sqlite"
+#databaseDSN = "file:/config/data/autobrr.db"
+#
+# Use databaseDSN or the individual fields
+#
+#postgresHost = "localhost"
+#
+#postgresPort = 5432
+#
+#postgresUser = "autobrr"
+#
+#postgresPass = "postgres"
+#
+#postgresDatabase = "autobrr"
+#
+#postgresSSLMode = "disable"
+#
+# Optional
+#
+#postgresSocket = "/run/socket.sock"
+#
+# Optional
+#
+#postgresExtraParams = "connect_timeout=10"
+
 # OpenID Connect Configuration
 #
 # Enable OIDC authentication
-#oidc_enabled = false
-
+#oidcEnabled = false
+#
 # OIDC Issuer URL (e.g. https://auth.example.com)
-#oidc_issuer = ""
-
+#oidcIssuer = ""
+#
 # OIDC Client ID
-#oidc_client_id = ""
-
+#oidcClientId = ""
+#
 # OIDC Client Secret
-#oidc_client_secret = ""
-
+#oidcClientSecret = ""
+#
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
-#oidc_redirect_url = ""
+#oidcRedirectUrl = ""
+#
+# Disable Built In Login Form (only works when using external auth)
+#oidcDisableBuiltInLogin = false
+
+# Metrics
+#
+# Enable metrics endpoint
+#metricsEnabled = true
+
+# Metrics server host
+#
+#metricsHost = "127.0.0.1"
+
+# Metrics server port
+#
+#metricsPort = "9074"
+
+# Metrics basic auth
+#
+# Comma separate list of user:password. Password must be htpasswd bcrypt hashed. Use autobrrctl to generate.
+# Only enabled if correctly set with user:pass.
+#
+#metricsBasicAuthUsers = ""
 
 # Custom definitions
 #

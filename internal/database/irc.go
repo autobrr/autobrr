@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -47,7 +47,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	var tls sql.Null[bool]
 	var proxyId sql.Null[int64]
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &nick, &n.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &n.UseBouncer, &n.BotMode, &n.UseProxy, &proxyId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
@@ -121,7 +121,7 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -171,7 +171,7 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -221,7 +221,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.Query(query, args...)
+	rows, err := r.db.Handler.Query(query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -261,7 +261,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	}
 	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%s', args: '%v'", query, args)
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -331,7 +331,7 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			network.BotMode,
 		).
 		Suffix("RETURNING id").
-		RunWith(r.db.handler)
+		RunWith(r.db.Handler)
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&network.ID); err != nil {
 		return errors.Wrap(err, "error executing query")
@@ -368,17 +368,17 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	}
 
 	// update record
-	if _, err = r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
 	return err
 }
 
-// TODO create new channel handler to only add, not delete
+// TODO create new channel Handler to only add, not delete
 
 func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -431,7 +431,7 @@ func (r *IrcRepo) StoreNetworkChannels(ctx context.Context, networkID int64, cha
 		//	return err
 		//}
 		//
-		//res, err = r.db.handler.ExecContext(ctx, channelQuery, channelArgs...)
+		//res, err = r.db.Handler.ExecContext(ctx, channelQuery, channelArgs...)
 		//if err != nil {
 		//	r.log.Error().Stack().Err(err).Msg("irc.storeNetworkChannels: error executing query")
 		//	return err
@@ -463,7 +463,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 			return errors.Wrap(err, "error building query")
 		}
 
-		if _, err := r.db.handler.ExecContext(ctx, query, args...); err != nil {
+		if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 	} else {
@@ -484,7 +484,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 				networkID,
 			).
 			Suffix("RETURNING id").
-			RunWith(r.db.handler)
+			RunWith(r.db.Handler)
 
 		// returning
 		if err := queryBuilder.QueryRowContext(ctx).Scan(&channel.ID); err != nil {
@@ -497,7 +497,7 @@ func (r *IrcRepo) StoreChannel(ctx context.Context, networkID int64, channel *do
 		//	return err
 		//}
 		//
-		//res, err := r.db.handler.Exec(channelQuery, channelArgs...)
+		//res, err := r.db.Handler.Exec(channelQuery, channelArgs...)
 		//if err != nil {
 		//	r.log.Error().Stack().Err(err).Msg("irc.storeChannel: error executing query")
 		//	return errors.Wrap(err, "error executing query")
@@ -525,7 +525,7 @@ func (r *IrcRepo) UpdateChannel(channel *domain.IrcChannel) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.Exec(query, args...)
+	_, err = r.db.Handler.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -545,7 +545,7 @@ func (r *IrcRepo) UpdateInviteCommand(networkID int64, invite string) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.Exec(query, args...)
+	_, err = r.db.Handler.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

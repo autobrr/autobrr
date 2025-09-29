@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -14,6 +14,7 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 	type fields struct {
 		TorrentURL  string
 		TorrentName string
+		MagnetURI   string
 		InfoURL     string
 		Encode      []string
 	}
@@ -150,16 +151,34 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 				DownloadURL: "https://mock.local/rss/?action=download&key=KEY&token=TOKEN&hash=240860011&title=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
 			},
 		},
+		{
+			name: "magnet_uri",
+			fields: fields{
+				MagnetURI: "magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .torrentName }}",
+			},
+			args: args{
+				vars: map[string]string{
+					"torrentHash": "81c758d0eca5372d59e43879ecf2e2bce33a06c4",
+					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+				},
+				rls: &Release{},
+			},
+			want: &Release{
+				MagnetURI: "magnet:?xt=urn:btih:81c758d0eca5372d59e43879ecf2e2bce33a06c4&dn=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &IndexerIRCParseMatch{
 				TorrentURL:  tt.fields.TorrentURL,
 				TorrentName: tt.fields.TorrentName,
+				MagnetURI:   tt.fields.MagnetURI,
 				InfoURL:     tt.fields.InfoURL,
 				Encode:      tt.fields.Encode,
 			}
-			p.ParseURLs(tt.args.baseURL, tt.args.vars, tt.args.rls)
+			err := p.ParseURLs(tt.args.baseURL, tt.args.vars, tt.args.rls)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.want, tt.args.rls)
 		})
 	}
@@ -235,143 +254,6 @@ func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
 			}
 			p.ParseTorrentName(tt.args.vars, tt.args.rls)
 			assert.Equal(t, tt.want, tt.args.rls)
-		})
-	}
-}
-
-func TestIRCParserGazelleGames_Parse(t *testing.T) {
-	t.Parallel()
-	type args struct {
-		rls  *Release
-		vars map[string]string
-	}
-	type want struct {
-		title   string
-		release string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "",
-			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
-				vars: map[string]string{
-					"torrentName": "Trouble.in.Paradise-GROUP in Trouble in Paradise",
-				},
-			},
-			want: want{
-				title:   "Trouble in Paradise",
-				release: "Trouble.in.Paradise-GROUP",
-			},
-		},
-		{
-			name: "",
-			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
-				vars: map[string]string{
-					"torrentName": "F.I.L.F. Game Walkthrough v.0.18 in F.I.L.F.",
-				},
-			},
-			want: want{
-				title:   "F.I.L.F.",
-				release: "F.I.L.F. Game Walkthrough v.0.18",
-			},
-		},
-		{
-			name: "",
-			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
-				vars: map[string]string{
-					"torrentName": "Ni no Kuni: Dominion of the Dark Djinn in Ni no Kuni: Dominion of the Dark Djinn",
-				},
-			},
-			want: want{
-				title:   "Ni no Kuni: Dominion of the Dark Djinn",
-				release: "Ni no Kuni: Dominion of the Dark Djinn",
-			},
-		},
-		{
-			name: "",
-			args: args{
-				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
-				vars: map[string]string{
-					"torrentName": "Year 2 Remastered by Insaneintherainmusic",
-					"category":    "OST",
-				},
-			},
-			want: want{
-				title:   "Year 2 Remastered by Insaneintherainmusic",
-				release: "Year 2 Remastered by Insaneintherainmusic",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := IRCParserGazelleGames{}
-			p.Parse(tt.args.rls, tt.args.vars)
-			assert.Equal(t, tt.want.release, tt.args.rls.TorrentName)
-			assert.Equal(t, tt.want.title, tt.args.rls.Title)
-		})
-	}
-}
-
-func TestIRCParserOrpheus_Parse(t *testing.T) {
-	t.Parallel()
-	type args struct {
-		rls  *Release
-		vars map[string]string
-	}
-	type want struct {
-		title   string
-		release string
-	}
-	tests := []struct {
-		name string
-		args args
-		want want
-	}{
-		{
-			name: "",
-			args: args{
-				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops", "Orpheus"}),
-				vars: map[string]string{
-					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] WEB/FLAC/24bit Lossless",
-					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",
-					"year":        "2023",
-					"releaseTags": "WEB/FLAC/24bit Lossless",
-				},
-			},
-			want: want{
-				title:   "BEACH BALL",
-				release: "Busta Rhymes - BEACH BALL (feat. BIA) [2023] (WEB FLAC 24BIT Lossless)",
-			},
-		},
-		{
-			name: "",
-			args: args{
-				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops", "Orpheus"}),
-				vars: map[string]string{
-					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] CD/FLAC/Lossless",
-					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",
-					"year":        "2023",
-					"releaseTags": "CD/FLAC/Lossless",
-				},
-			},
-			want: want{
-				title:   "BEACH BALL",
-				release: "Busta Rhymes - BEACH BALL (feat. BIA) [2023] (CD FLAC Lossless)",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := IRCParserOrpheus{}
-			p.Parse(tt.args.rls, tt.args.vars)
-			assert.Equal(t, tt.want.release, tt.args.rls.TorrentName)
-			assert.Equal(t, tt.want.title, tt.args.rls.Title)
 		})
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
@@ -45,7 +45,7 @@ func (s *pushoverSender) Name() string {
 
 func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &pushoverSender{
-		log:      log.With().Str("sender", "pushover").Logger(),
+		log:      log.With().Str("sender", "pushover").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		baseUrl:  "https://api.pushover.net/1/messages.json",
 		builder:  MessageBuilderHTML{},
@@ -116,36 +116,28 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 }
 
 func (s *pushoverSender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *pushoverSender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.APIKey == "" {
-			s.log.Warn().Msg("pushover missing api key")
-			return false
-		}
+func (s *pushoverSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
 
-		if s.Settings.Token == "" {
-			s.log.Warn().Msg("pushover missing user key")
-			return false
-		}
-
+	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
 		return true
 	}
 
 	return false
+}
+
+func (s *pushoverSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *pushoverSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-
-	return false
+	return s.Settings.EventEnabled(string(event))
 }

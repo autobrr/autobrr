@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -20,14 +20,9 @@ import (
 	"github.com/go-andiamo/splitter"
 )
 
-/*
-Works the same way as for autodl-irssi
-https://autodl-community.github.io/autodl-irssi/configuration/filter/
-*/
-
 type FilterRepo interface {
 	ListFilters(ctx context.Context) ([]Filter, error)
-	Find(ctx context.Context, params FilterQueryParams) ([]Filter, error)
+	Find(ctx context.Context, params FilterQueryParams) ([]*Filter, error)
 	FindByID(ctx context.Context, filterID int) (*Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*Filter, error)
 	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
@@ -41,19 +36,40 @@ type FilterRepo interface {
 	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
 	DeleteFilterExternal(ctx context.Context, filterID int) error
-	GetDownloadsByFilterId(ctx context.Context, filterID int) (*FilterDownloads, error)
+	GetFilterDownloadCount(ctx context.Context, filter *Filter) error
+	GetFilterNotifications(ctx context.Context, filterID int) ([]FilterNotification, error)
+	StoreFilterNotifications(ctx context.Context, filterID int, notifications []FilterNotification) error
+	DeleteFilterNotifications(ctx context.Context, filterID int) error
 }
 
 type FilterDownloads struct {
-	HourCount  int
-	DayCount   int
-	WeekCount  int
-	MonthCount int
-	TotalCount int
+	HourCount  int `json:"hour_count"`
+	DayCount   int `json:"day_count"`
+	WeekCount  int `json:"week_count"`
+	MonthCount int `json:"month_count"`
+	TotalCount int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
 	return fmt.Sprintf("Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
+}
+
+func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int) bool {
+	var count int
+	switch unit {
+	case FilterMaxDownloadsHour:
+		count = f.HourCount
+	case FilterMaxDownloadsDay:
+		count = f.DayCount
+	case FilterMaxDownloadsWeek:
+		count = f.WeekCount
+	case FilterMaxDownloadsMonth:
+		count = f.MonthCount
+	case FilterMaxDownloadsEver:
+		count = f.TotalCount
+	}
+
+	return count < maxDownloads
 }
 
 type FilterMaxDownloadsUnit string
@@ -133,8 +149,8 @@ type Filter struct {
 	Albums                    string                   `json:"albums,omitempty"`
 	MatchReleaseTypes         []string                 `json:"match_release_types,omitempty"` // Album,Single,EP
 	ExceptReleaseTypes        string                   `json:"except_release_types,omitempty"`
-	Formats                   []string                 `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                   []string                 `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Formats                   []string                 `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   []string                 `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
 	Media                     []string                 `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
 	PerfectFlac               bool                     `json:"perfect_flac,omitempty"`
 	Cue                       bool                     `json:"cue,omitempty"`
@@ -172,29 +188,38 @@ type Filter struct {
 	Indexers                  []Indexer                `json:"indexers"`
 	ReleaseProfileDuplicateID int64                    `json:"release_profile_duplicate_id,omitempty"`
 	DuplicateHandling         *DuplicateReleaseProfile `json:"release_profile_duplicate"`
-	Downloads                 *FilterDownloads         `json:"-"`
+	Downloads                 *FilterDownloads         `json:"downloads,omitempty"`
+	Notifications             []FilterNotification     `json:"notifications,omitempty"`
 	Rejections                []string                 `json:"-"`
 	RejectReasons             *RejectionReasons        `json:"-"`
 }
 
+type FilterExternalOnError string
+
+const (
+	FilterExternalOnErrorContinue FilterExternalOnError = "CONTINUE"
+	FilterExternalOnErrorReject   FilterExternalOnError = "REJECT"
+)
+
 type FilterExternal struct {
-	ID                       int                `json:"id"`
-	Name                     string             `json:"name"`
-	Index                    int                `json:"index"`
-	Type                     FilterExternalType `json:"type"`
-	Enabled                  bool               `json:"enabled"`
-	ExecCmd                  string             `json:"exec_cmd,omitempty"`
-	ExecArgs                 string             `json:"exec_args,omitempty"`
-	ExecExpectStatus         int                `json:"exec_expect_status,omitempty"`
-	WebhookHost              string             `json:"webhook_host,omitempty"`
-	WebhookMethod            string             `json:"webhook_method,omitempty"`
-	WebhookData              string             `json:"webhook_data,omitempty"`
-	WebhookHeaders           string             `json:"webhook_headers,omitempty"`
-	WebhookExpectStatus      int                `json:"webhook_expect_status,omitempty"`
-	WebhookRetryStatus       string             `json:"webhook_retry_status,omitempty"`
-	WebhookRetryAttempts     int                `json:"webhook_retry_attempts,omitempty"`
-	WebhookRetryDelaySeconds int                `json:"webhook_retry_delay_seconds,omitempty"`
-	FilterId                 int                `json:"-"`
+	ID                       int                   `json:"id"`
+	Name                     string                `json:"name"`
+	Index                    int                   `json:"index"`
+	Type                     FilterExternalType    `json:"type"`
+	Enabled                  bool                  `json:"enabled"`
+	ExecCmd                  string                `json:"exec_cmd,omitempty"`
+	ExecArgs                 string                `json:"exec_args,omitempty"`
+	ExecExpectStatus         int                   `json:"exec_expect_status,omitempty"`
+	WebhookHost              string                `json:"webhook_host,omitempty"`
+	WebhookMethod            string                `json:"webhook_method,omitempty"`
+	WebhookData              string                `json:"webhook_data,omitempty"`
+	WebhookHeaders           string                `json:"webhook_headers,omitempty"`
+	WebhookExpectStatus      int                   `json:"webhook_expect_status,omitempty"`
+	WebhookRetryStatus       string                `json:"webhook_retry_status,omitempty"`
+	WebhookRetryAttempts     int                   `json:"webhook_retry_attempts,omitempty"`
+	WebhookRetryDelaySeconds int                   `json:"webhook_retry_delay_seconds,omitempty"`
+	OnError                  FilterExternalOnError `json:"on_error"`
+	FilterId                 int                   `json:"-"`
 }
 
 func (f FilterExternal) NeedTorrentDownloaded() bool {
@@ -219,6 +244,22 @@ const (
 	ExternalFilterTypeExec    FilterExternalType = "EXEC"
 	ExternalFilterTypeWebhook FilterExternalType = "WEBHOOK"
 )
+
+type FilterNotification struct {
+	FilterID       int      `json:"filter_id"`
+	FilterName     string   `json:"filter_name"`
+	NotificationID int      `json:"notification_id"`
+	Events         []string `json:"events"`
+}
+
+func (f FilterNotification) EventEnabled(event string) bool {
+	for _, e := range f.Events {
+		if e == event {
+			return true
+		}
+	}
+	return false
+}
 
 type FilterUpdate struct {
 	ID                        int                     `json:"id"`
@@ -267,8 +308,8 @@ type FilterUpdate struct {
 	Albums                    *string                 `json:"albums,omitempty"`
 	MatchReleaseTypes         *[]string               `json:"match_release_types,omitempty"` // Album,Single,EP
 	ExceptReleaseTypes        *string                 `json:"except_release_types,omitempty"`
-	Formats                   *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS
-	Quality                   *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, Other
+	Formats                   *[]string               `json:"formats,omitempty"` // MP3, FLAC, Ogg, AAC, AC3, DTS, DSD
+	Quality                   *[]string               `json:"quality,omitempty"` // 192, 320, APS (VBR), V2 (VBR), V1 (VBR), APX (VBR), V0 (VBR), q8.x (VBR), Lossless, 24bit Lossless, DSD64, DSD128, DSD256, DSD512, Other
 	Media                     *[]string               `json:"media,omitempty"`   // CD, DVD, Vinyl, Soundboard, SACD, DAT, Cassette, WEB, Other
 	PerfectFlac               *bool                   `json:"perfect_flac,omitempty"`
 	Cue                       *bool                   `json:"cue,omitempty"`
@@ -296,6 +337,7 @@ type FilterUpdate struct {
 	Actions                   []*Action               `json:"actions,omitempty"`
 	External                  []FilterExternal        `json:"external,omitempty"`
 	Indexers                  []Indexer               `json:"indexers,omitempty"`
+	Notifications             []FilterNotification    `json:"notifications,omitempty"`
 }
 
 func (f *Filter) Validate() error {
@@ -380,8 +422,8 @@ func (f *Filter) Sanitize() error {
 func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	f.RejectReasons = NewRejectionReasons()
 
-	// max downloads check. If reached return early so other filters can be checked as quick as possible.
-	if f.MaxDownloads > 0 && !f.checkMaxDownloads() {
+	// Max downloads check. If reached return early so other filters can be checked as quick as possible.
+	if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
 		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), f.Downloads.String(), fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
 		return f.RejectReasons, false
 	}
@@ -504,11 +546,11 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	}
 
 	if len(f.MatchHDR) > 0 && !matchHDR(r.HDR, f.MatchHDR) {
-		f.RejectReasons.Add("match hdr", r.HDR, f.MatchHDR)
+		f.RejectReasons.Add("match hdr", strings.Join(r.HDR, " "), f.MatchHDR)
 	}
 
 	if len(f.ExceptHDR) > 0 && matchHDR(r.HDR, f.ExceptHDR) {
-		f.RejectReasons.Add("except hdr", r.HDR, f.ExceptHDR)
+		f.RejectReasons.Add("except hdr", strings.Join(r.HDR, " "), f.ExceptHDR)
 	}
 
 	// Other is parsed into the Other slice from rls
@@ -673,26 +715,17 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	return f.RejectReasons, true
 }
 
+// IsMaxDownloadsLimitEnabled if max downloads is greater than 0 and a unit is set return true
+func (f *Filter) IsMaxDownloadsLimitEnabled() bool {
+	return f.MaxDownloads > 0 && f.MaxDownloadsUnit != ""
+}
+
 func (f *Filter) checkMaxDownloads() bool {
 	if f.Downloads == nil {
 		return false
 	}
 
-	var count int
-	switch f.MaxDownloadsUnit {
-	case FilterMaxDownloadsHour:
-		count = f.Downloads.HourCount
-	case FilterMaxDownloadsDay:
-		count = f.Downloads.DayCount
-	case FilterMaxDownloadsWeek:
-		count = f.Downloads.WeekCount
-	case FilterMaxDownloadsMonth:
-		count = f.Downloads.MonthCount
-	case FilterMaxDownloadsEver:
-		count = f.Downloads.TotalCount
-	}
-
-	return count < f.MaxDownloads
+	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads)
 }
 
 // isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
@@ -880,6 +913,9 @@ func containsIntStrings(value int, filterList string) bool {
 					}
 				}
 			}
+
+			// continue to next filter if there is one, otherwise the parseInt will fail when it's a year range
+			continue
 		}
 
 		filterInt, err := strconv.ParseInt(filter, 10, 32)
@@ -893,6 +929,12 @@ func containsIntStrings(value int, filterList string) bool {
 	}
 
 	return false
+}
+
+type StringValue string
+
+func (v StringValue) Check(arg string) bool {
+	return v != "" && !contains(arg, string(v))
 }
 
 func contains(tag string, filter string) bool {
@@ -1168,6 +1210,7 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 		filter = strings.TrimSpace(filter)
 		filter = strings.ToLower(filter)
 
+		// for filter with dual tag like "DV HDR"
 		parts := strings.Split(filter, " ")
 		if len(parts) == 2 {
 			partsMatched := 0
@@ -1186,13 +1229,30 @@ func matchHDR(releaseValues []string, filterValues []string) bool {
 				}
 			}
 		} else {
-			for _, tag := range releaseValues {
-				if tag == "" {
-					continue
+			matches := 0
+			if len(releaseValues) == 2 {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						matches++
+					}
 				}
-				tag = strings.ToLower(tag)
-				if tag == filter {
+
+				if matches == len(releaseValues) {
 					return true
+				}
+			} else {
+				for _, tag := range releaseValues {
+					if tag == "" {
+						continue
+					}
+					tag = strings.ToLower(tag)
+					if tag == filter {
+						return true
+					}
 				}
 			}
 		}

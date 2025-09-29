@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -26,7 +26,7 @@ const ReleaseSettings = () => (
     <ReleaseProfileDuplicates/>
 
     <div className="py-6 px-4 sm:p-6">
-      <div className="border border-red-500 rounded">
+      <div className="border border-red-500 rounded-sm">
         <div className="py-6 px-4 sm:p-6">
           <DeleteReleases/>
         </div>
@@ -54,8 +54,8 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
         <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
           {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title="Release name" />}
           {profile.hash && <EnabledPill value={profile.hash} label="Hash" title="Normalized hash of the release name. Use with Release name for exact match" />}
-          {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed titel" />}
-          {profile.sub_title && <EnabledPill value={profile.sub_title} label="Sub Title" title="Parsed sub titel like Episode name" />}
+          {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed title" />}
+          {profile.sub_title && <EnabledPill value={profile.sub_title} label="Sub Title" title="Parsed sub title like Episode name" />}
           {profile.group && <EnabledPill value={profile.group} label="Group" title="Release group" />}
           {profile.year && <EnabledPill value={profile.year} label="Year" title="Year" />}
           {profile.month && <EnabledPill value={profile.month} label="Month" title="Month" />}
@@ -111,7 +111,7 @@ function ReleaseProfileDuplicates() {
       rightSide={
         <button
           type="button"
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           onClick={toggleAdd}
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
@@ -320,7 +320,7 @@ function DeleteReleases() {
                 toggleDeleteModal();
               }
             }}
-            className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 sm:mt-6 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-red-600"
+            className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 sm:mt-6 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-hidden focus:ring-1 focus:ring-inset focus:ring-red-600"
           >
             Delete
           </button>

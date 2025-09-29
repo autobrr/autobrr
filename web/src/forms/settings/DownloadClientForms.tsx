@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -418,7 +418,7 @@ function FormFieldsRulesBasic() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
 
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Rules</DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage max downloads.
@@ -453,7 +453,7 @@ function FormFieldsRulesArr() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Download Client
         </DialogTitle>
@@ -476,7 +476,7 @@ function FormFieldsRulesQbit() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
         </DialogTitle>
@@ -544,7 +544,7 @@ function FormFieldsRulesTransmission() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Rules
         </DialogTitle>
@@ -616,12 +616,12 @@ function DownloadClientFormButtons({
   };
 
   return (
-    <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+    <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
       <div className={classNames(type === "CREATE" ? "justify-end" : "justify-between", "space-x-3 flex")}>
         {type === "UPDATE" && (
           <button
             type="button"
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
             onClick={toggleDeleteModal}
           >
             Remove
@@ -637,7 +637,7 @@ function DownloadClientFormButtons({
                   ? "text-red-500 border-red-500 bg-red-50"
                   : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
               isTesting ? "cursor-not-allowed" : "",
-              "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             )}
             disabled={isTesting}
             // onClick={() => testClient(values)}
@@ -675,14 +675,14 @@ function DownloadClientFormButtons({
 
           <button
             type="button"
-            className="mr-4 bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="mr-4 bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             onClick={cancelFn}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           >
             {type === "CREATE" ? "Create" : "Save"}
           </button>
@@ -778,7 +778,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl border-l dark:border-gray-700">
+              <div className="w-screen max-w-2xl ">
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
@@ -802,7 +802,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -964,7 +964,7 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: Update
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl border-l dark:border-gray-700">
+              <div className="w-screen max-w-2xl ">
                 <Formik
                   initialValues={initialValues}
                   onSubmit={onSubmit}
@@ -989,7 +989,7 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: Update
                               <div className="h-7 flex items-center">
                                 <button
                                   type="button"
-                                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                   onClick={toggle}
                                 >
                                   <span className="sr-only">Close panel</span>

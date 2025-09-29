@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -26,6 +26,31 @@ CREATE TABLE proxy
     timeout        INTEGER,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE notification
+(
+	id         SERIAL PRIMARY KEY,
+	name       TEXT,
+	type       TEXT,
+	enabled    BOOLEAN,
+	events     TEXT []   DEFAULT '{}' NOT NULL,
+	token      TEXT,
+	api_key    TEXT,
+	webhook    TEXT,
+	title      TEXT,
+	icon       TEXT,
+	host       TEXT,
+	username   TEXT,
+	password   TEXT,
+	channel    TEXT,
+	rooms      TEXT,
+	targets    TEXT,
+	devices    TEXT,
+	topic      TEXT,
+	priority   INTEGER DEFAULT 0,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE indexer
@@ -221,6 +246,7 @@ CREATE TABLE filter_external
     webhook_retry_status                TEXT,
     webhook_retry_attempts              INTEGER,
     webhook_retry_delay_seconds         INTEGER,
+    on_error                            TEXT DEFAULT 'REJECT',
     filter_id                           INTEGER NOT NULL,
     FOREIGN KEY (filter_id)             REFERENCES filter(id) ON DELETE CASCADE
 );
@@ -233,6 +259,19 @@ CREATE TABLE filter_indexer
     FOREIGN KEY (indexer_id) REFERENCES indexer(id) ON DELETE CASCADE,
     PRIMARY KEY (filter_id, indexer_id)
 );
+
+CREATE TABLE filter_notification
+(
+    filter_id       INTEGER NOT NULL,
+    notification_id INTEGER NOT NULL,
+    events          TEXT[] NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (filter_id, notification_id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notification(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_filter_notification_filter_id ON filter_notification(filter_id);
 
 CREATE TABLE client
 (
@@ -262,6 +301,7 @@ CREATE TABLE action
     tags                    TEXT,
     label                   TEXT,
     save_path               TEXT,
+    download_path           TEXT,
     paused                  BOOLEAN,
     ignore_rules            BOOLEAN,
     first_last_piece_prio   BOOLEAN DEFAULT false,
@@ -299,7 +339,7 @@ CREATE TABLE "release"
     protocol          TEXT,
     implementation    TEXT,
     timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    announce_type     TEXT      DEFAULT 'NEW', 
+    announce_type     TEXT      DEFAULT 'NEW',
     info_url          TEXT,
     download_url      TEXT,
     group_id          TEXT,
@@ -465,31 +505,6 @@ CREATE TABLE release_action_status
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);
 
-CREATE TABLE notification
-(
-	id         SERIAL PRIMARY KEY,
-	name       TEXT,
-	type       TEXT,
-	enabled    BOOLEAN,
-	events     TEXT []   DEFAULT '{}' NOT NULL,
-	token      TEXT,
-	api_key    TEXT,
-	webhook    TEXT,
-	title      TEXT,
-	icon       TEXT,
-	host       TEXT,
-	username   TEXT,
-	password   TEXT,
-	channel    TEXT,
-	rooms      TEXT,
-	targets    TEXT,
-	devices    TEXT,
-	topic      TEXT,
-	priority   INTEGER DEFAULT 0,
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 CREATE TABLE feed
 (
 	id            SERIAL PRIMARY KEY,
@@ -549,6 +564,8 @@ CREATE TABLE list
     tags_excluded            TEXT [] DEFAULT '{}' NOT NULL,
     include_unmonitored      BOOLEAN,
     include_alternate_titles BOOLEAN,
+    include_year             BOOLEAN DEFAULT FALSE,
+    skip_clean_sanitize      BOOLEAN DEFAULT FALSE,
     last_refresh_time        TIMESTAMP,
     last_refresh_status      TEXT,
     last_refresh_data        TEXT,
@@ -565,6 +582,14 @@ CREATE TABLE list_filter
     FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
     PRIMARY KEY (list_id, filter_id)
 );
+
+CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BYTEA NOT NULL,
+    expiry TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
 `
 
 var postgresMigrations = []string{
@@ -1052,7 +1077,7 @@ ALTER TABLE filter
 `,
 	`UPDATE  irc_network
     SET server = 'irc.animefriends.moe',
-        name = CASE  
+        name = CASE
 			WHEN name = 'AnimeBytes-IRC' THEN 'AnimeBytes'
         	ELSE name
         END
@@ -1130,11 +1155,11 @@ CREATE INDEX filter_priority_index
 	`UPDATE irc_network
     SET server = 'irc.scenehd.org'
     WHERE server = 'irc.scenehd.eu';
-	
+
 UPDATE irc_network
     SET server = 'irc.p2p-network.net', name = 'P2P-Network', nick = nick || '_0'
     WHERE server = 'irc.librairc.net';
-	
+
 UPDATE irc_network
     SET server = 'irc.atw-inter.net', name = 'ATW-Inter'
     WHERE server = 'irc.ircnet.com';
@@ -1351,5 +1376,122 @@ CREATE INDEX release_hybrid_index
 	`UPDATE filter
 	SET announce_types = '{"NEW"}'
 	WHERE announce_types = '{}';
+`,
+	`
+	ALTER TABLE list
+		ADD COLUMN skip_clean_sanitize BOOLEAN DEFAULT FALSE;
+`,
+	`UPDATE irc_network
+	SET
+    	auth_mechanism = 'NONE',
+    	auth_account = '',
+    	auth_password = ''
+	WHERE server = 'irc.rocket-hd.cc'
+    	AND auth_mechanism != 'NONE';
+
+	UPDATE irc_channel
+	SET password = NULL
+	WHERE password IS NOT NULL
+    	AND network_id IN (
+        	SELECT id
+        	FROM irc_network
+        	WHERE server = 'irc.rocket-hd.cc'
+    	);
+`,
+	`CREATE TABLE sessions (
+    token TEXT PRIMARY KEY,
+    data BYTEA NOT NULL,
+    expiry TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX sessions_expiry_idx ON sessions (expiry);
+`,
+	`WITH original_network AS (
+    SELECT *
+    FROM irc_network
+    WHERE id IN (
+        SELECT network_id
+        FROM irc_channel
+        WHERE name = '#ulcx-announce'
+   )
+),
+new_network AS (
+   INSERT INTO irc_network (
+       enabled, name, server, port, tls, pass, nick,
+       auth_mechanism, auth_account, auth_password,
+       invite_command, use_bouncer, bouncer_addr, bot_mode,
+       connected, connected_since, use_proxy, proxy_id,
+       created_at, updated_at
+   )
+   SELECT
+       enabled, 'ULCX', 'irc.upload.cx', port, tls, pass, nick,
+       auth_mechanism, auth_account, auth_password,
+       invite_command, use_bouncer, bouncer_addr, bot_mode,
+       connected, connected_since, use_proxy, proxy_id,
+       CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+   FROM original_network
+   RETURNING id
+)
+INSERT INTO irc_channel (enabled, name, password, detached, network_id)
+SELECT c.enabled, '#announce', c.password, c.detached, n.id
+FROM irc_channel c
+CROSS JOIN new_network n
+WHERE c.name = '#ulcx-announce';
+
+DELETE FROM irc_channel
+WHERE name = '#ulcx-announce';
+`,
+	`-- Update macro with typo
+UPDATE filter_external
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+
+UPDATE action
+SET
+    exec_cmd = REPLACE(REPLACE(exec_cmd, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    exec_args = REPLACE(REPLACE(exec_args, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    watch_folder = REPLACE(REPLACE(watch_folder, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    category = REPLACE(REPLACE(category, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    tags = REPLACE(REPLACE(tags, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    label = REPLACE(REPLACE(label, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    save_path = REPLACE(REPLACE(save_path, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}'),
+    webhook_data = REPLACE(REPLACE(webhook_data, '{{ .CurrenTimeUnixMS }}', '{{ .CurrentTimeUnixMS }}'), '{{.CurrenTimeUnixMS}}', '{{ .CurrentTimeUnixMS }}')
+WHERE
+    exec_cmd LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_cmd LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR exec_args LIKE '%{{ .CurrenTimeUnixMS }}%' OR exec_args LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR watch_folder LIKE '%{{ .CurrenTimeUnixMS }}%' OR watch_folder LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR category LIKE '%{{ .CurrenTimeUnixMS }}%' OR category LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR tags LIKE '%{{ .CurrenTimeUnixMS }}%' OR tags LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR label LIKE '%{{ .CurrenTimeUnixMS }}%' OR label LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR save_path LIKE '%{{ .CurrenTimeUnixMS }}%' OR save_path LIKE '%{{.CurrenTimeUnixMS}}%'
+    OR webhook_data LIKE '%{{ .CurrenTimeUnixMS }}%' OR webhook_data LIKE '%{{.CurrenTimeUnixMS}}%';
+`,
+	`ALTER TABLE action
+		ADD COLUMN download_path TEXT;
+`,
+	`ALTER TABLE list
+		ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
+`,
+	`ALTER TABLE filter_external
+  ADD COLUMN on_error TEXT DEFAULT 'REJECT';
+`,
+	`-- Add per-filter notification support
+CREATE TABLE filter_notification (
+    filter_id       INTEGER NOT NULL,
+    notification_id INTEGER NOT NULL,
+    events          TEXT[] NOT NULL DEFAULT '{}',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (filter_id, notification_id),
+    FOREIGN KEY (filter_id) REFERENCES filter(id) ON DELETE CASCADE,
+    FOREIGN KEY (notification_id) REFERENCES notification(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_filter_notification_filter_id ON filter_notification(filter_id);
 `,
 }

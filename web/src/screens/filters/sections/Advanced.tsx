@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -79,7 +79,7 @@ const Releases = () => {
                 <DocsLink href="https://autobrr.com/filters#advanced" />
                 <br />
                 <br />
-                <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+                <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
               </div>
             }
           />
@@ -445,7 +445,7 @@ const FeedSpecific = () => {
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
           </div>
         }
       />
@@ -461,7 +461,7 @@ const FeedSpecific = () => {
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> below if using more than <code>*</code> and <code>?</code>.</p>
+            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
           </div>
         }
       />

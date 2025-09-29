@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -46,7 +46,7 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 		Insert("release").
 		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
 		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
-		Suffix("RETURNING id").RunWith(repo.db.handler)
+		Suffix("RETURNING id").RunWith(repo.db.Handler)
 
 	q, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -76,7 +76,7 @@ func (repo *ReleaseRepo) Update(ctx context.Context, r *domain.Release) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = repo.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = repo.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -100,7 +100,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 			return errors.Wrap(err, "error building query")
 		}
 
-		if _, err = repo.db.handler.ExecContext(ctx, query, args...); err != nil {
+		if _, err = repo.db.Handler.ExecContext(ctx, query, args...); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -109,7 +109,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 			Insert("release_action_status").
 			Columns("status", "action", "action_id", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
 			Values(status.Status, status.Action, status.ActionID, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp.Format(time.RFC3339), status.ReleaseID).
-			Suffix("RETURNING id").RunWith(repo.db.handler)
+			Suffix("RETURNING id").RunWith(repo.db.Handler)
 
 		if err := queryBuilder.QueryRowContext(ctx).Scan(&status.ID); err != nil {
 			return errors.Wrap(err, "error executing query")
@@ -128,7 +128,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Columns("name", "protocol", "release_name", "hash", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack").
 			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Hash, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
 			Suffix("RETURNING id").
-			RunWith(repo.db.handler)
+			RunWith(repo.db.Handler)
 
 		// return values
 		var retID int64
@@ -164,7 +164,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Set("proper", profile.Proper).
 			Set("repack", profile.Repack).
 			Where(sq.Eq{"id": profile.ID}).
-			RunWith(repo.db.handler)
+			RunWith(repo.db.Handler)
 
 		_, err := queryBuilder.ExecContext(ctx)
 		if err != nil {
@@ -535,7 +535,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -569,7 +569,7 @@ func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error
 
 	res := make([]string, 0)
 
-	rows, err := repo.db.handler.QueryContext(ctx, query)
+	rows, err := repo.db.Handler.QueryContext(ctx, query)
 	if err != nil {
 		return res, errors.Wrap(err, "error executing query")
 	}
@@ -606,7 +606,7 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 	res := make([]domain.ReleaseActionStatus, 0)
 
-	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return res, errors.Wrap(err, "error executing query")
 	}
@@ -652,7 +652,7 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	repo.log.Trace().Str("database", "release.find").Msgf("query: '%s', args: '%v'", query, args)
 
-	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -697,7 +697,7 @@ func (repo *ReleaseRepo) GetActionStatus(ctx context.Context, req *domain.GetRel
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -785,7 +785,7 @@ CROSS JOIN (
 	FROM release_action_status
 ) AS foo`
 
-	row := repo.db.handler.QueryRowContext(ctx, query)
+	row := repo.db.Handler.QueryRowContext(ctx, query)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -899,7 +899,7 @@ func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id i
 		return errors.Wrap(err, "error building SQL query")
 	}
 
-	_, err = repo.db.handler.ExecContext(ctx, query, args...)
+	_, err = repo.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing delete query")
 	}
@@ -972,7 +972,7 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 
 	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msgf("executing query")
 
-	row := repo.db.handler.QueryRowContext(ctx, query, args...)
+	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return false, err
 	}
@@ -1201,7 +1201,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 
 	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("query: %q, args: %q", query, args)
 
-	rows, err := repo.db.handler.QueryContext(ctx, query, args...)
+	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return false, err
 	}

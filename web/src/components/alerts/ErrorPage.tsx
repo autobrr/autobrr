@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -38,7 +38,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 px-2 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl">
+      <div className="sm:mx-auto sm:w-full sm:max-w-(--breakpoint-md) md:max-w-(--breakpoint-lg) lg:max-w-(--breakpoint-xl)">
         <h1 className="text-3xl font-bold leading-6 text-gray-900 dark:text-gray-200 mt-4 mb-3">
           {pageTitle}
         </h1>
@@ -47,14 +47,14 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
           {" "}
           <ExternalLink
             href="https://github.com/autobrr/autobrr"
-            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
           >
             GitHub page
           </ExternalLink>
           {" or to "}
           <ExternalLink
-            href="https://discord.gg/WQ2eUycxyT"
-            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+            href="https://discord.autobrr.com"
+            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
           >
             our official Discord channel
           </ExternalLink>
@@ -87,7 +87,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
           </span>
           <button
             type="button"
-            className="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 mr-2 text-center inline-flex items-center dark:bg-red-800 dark:hover:bg-red-900"
+            className="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-hidden focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 mr-2 text-center inline-flex items-center dark:bg-red-800 dark:hover:bg-red-900"
             onClick={(event) => {
               event.preventDefault();
               reset();

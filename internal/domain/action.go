@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -33,6 +33,7 @@ type Action struct {
 	Tags                     string              `json:"tags,omitempty"`
 	Label                    string              `json:"label,omitempty"`
 	SavePath                 string              `json:"save_path,omitempty"`
+	DownloadPath             string              `json:"download_path,omitempty"`
 	Paused                   bool                `json:"paused,omitempty"`
 	IgnoreRules              bool                `json:"ignore_rules,omitempty"`
 	FirstLastPiecePrio       bool                `json:"first_last_piece_prio,omitempty"`
@@ -70,6 +71,8 @@ func (a *Action) CheckMacrosNeedTorrentTmpFile(release *Release) bool {
 			strings.Contains(a.WebhookData, "TorrentHash") ||
 			strings.Contains(a.SavePath, "TorrentPathName") ||
 			strings.Contains(a.SavePath, "TorrentHash") ||
+			strings.Contains(a.DownloadPath, "TorrentPathName") ||
+			strings.Contains(a.DownloadPath, "TorrentHash") ||
 			a.Type == ActionTypeWatchFolder) {
 		return true
 	}
@@ -121,6 +124,10 @@ func (a *Action) ParseMacros(release *Release) error {
 	a.SavePath, err = m.Parse(a.SavePath)
 	if err != nil {
 		return errors.Wrap(err, "could not parse save_path")
+	}
+	a.DownloadPath, err = m.Parse(a.DownloadPath)
+	if err != nil {
+		return errors.Wrap(err, "could not parse download_path")
 	}
 	a.WebhookData, err = m.Parse(a.WebhookData)
 	if err != nil {

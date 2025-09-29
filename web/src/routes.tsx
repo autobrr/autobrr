@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -15,7 +15,7 @@ import {
 import { z } from "zod";
 import { QueryClient } from "@tanstack/react-query";
 
-import { Actions, Advanced, External, General, MoviesTv, Music } from "@screens/filters/sections";
+import { Actions, Advanced, External, General, MoviesTv, Music, Notifications } from "@screens/filters/sections";
 import { APIClient } from "@api/APIClient";
 import { Login, Onboarding } from "@screens/auth";
 import ReleaseSettings from "@screens/settings/Releases";
@@ -48,7 +48,7 @@ import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
 import { AuthContext, SettingsContext } from "@utils/Context";
-import { TanStackRouterDevtools } from "@tanstack/router-devtools";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { queryClient } from "@api/QueryClient";
 import ProxySettings from "@screens/settings/Proxy";
@@ -136,6 +136,12 @@ export const FilterActionsRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'actions',
   component: Actions
+});
+
+export const FilterNotificationsRoute = createRoute({
+  getParentRoute: () => FilterGetByIdRoute,
+  path: 'notifications',
+  component: Notifications
 });
 
 export const ReleasesRoute = createRoute({
@@ -304,10 +310,19 @@ export const AuthRoute = createRoute({
     if (!AuthContext.get().isLoggedIn) {
       try {
         const response = await APIClient.auth.validate();
+        // Also get OIDC config if needed
+        let issuerUrl;
+        if (response.auth_method === 'oidc') {
+          const oidcConfig = await APIClient.auth.getOIDCConfig();
+          issuerUrl = oidcConfig.issuerUrl;
+        }
+        
         AuthContext.set({
           isLoggedIn: true,
           username: response.username || 'unknown',
-          authMethod: response.auth_method
+          authMethod: response.auth_method,
+          profilePicture: response.profile_picture,
+          issuerUrl: issuerUrl
         });
       } catch (error) {
         console.debug("Authentication validation failed:", error);
@@ -356,8 +371,8 @@ export const RootComponent = () => {
       <Outlet />
       {settings.debug ? (
         <>
-          <TanStackRouterDevtools />
-          <ReactQueryDevtools initialIsOpen={false} />
+          {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools />}
+          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
         </>
       ) : null}
     </div>
@@ -371,7 +386,7 @@ export const RootRoute = createRootRouteWithContext<{
   notFoundComponent: NotFound,
 });
 
-const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute])])
+const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute, FilterNotificationsRoute])])
 const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsListsRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
 const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute])])
 const routeTree = RootRoute.addChildren([
@@ -383,7 +398,7 @@ const routeTree = RootRoute.addChildren([
 export const Router = createRouter({
   routeTree,
   defaultPendingComponent: () => (
-    <div className="flex flex-grow items-center justify-center col-span-9">
+    <div className="flex grow items-center justify-center col-span-9">
       <RingResizeSpinner className="text-blue-500 size-24" />
     </div>
   ),

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -18,8 +18,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
-	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -74,9 +74,25 @@ func (a authServiceMock) UpdateUser(ctx context.Context, req domain.UpdateUserRe
 	return nil
 }
 
-func setupServer() chi.Router {
+func newHttpTestClient() *http.Client {
+	c := &http.Client{}
+
+	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
+	jar, err := cookiejar.New(jarOptions)
+	if err != nil {
+		log.Fatalf("error creating cookiejar: %v", err)
+	}
+
+	c.Jar = jar
+
+	return c
+}
+
+func setupServer(srv Server) chi.Router {
 	r := chi.NewRouter()
 	//r.Use(middleware.Logger)
+	r.Use(srv.sessionManager.LoadAndSave)
+
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	})
@@ -95,7 +111,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
-	cookieStore := sessions.NewCookieStore([]byte("test"))
+	sessionManager := scs.New()
 
 	service := authServiceMock{
 		users: map[string]*domain.User{
@@ -108,12 +124,12 @@ func TestAuthHandlerLogin(t *testing.T) {
 	}
 
 	server := Server{
-		log:         logger,
-		cookieStore: cookieStore,
+		log:            logger,
+		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, cookieStore, service)
-	s := setupServer()
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
 	testServer := runTestServer(s)
@@ -128,14 +144,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
@@ -157,7 +166,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
-	cookieStore := sessions.NewCookieStore([]byte("test"))
+	sessionManager := scs.New()
 
 	service := authServiceMock{
 		users: map[string]*domain.User{
@@ -170,12 +179,12 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 	}
 
 	server := Server{
-		log:         logger,
-		cookieStore: cookieStore,
+		log:            logger,
+		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, cookieStore, service)
-	s := setupServer()
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
 	testServer := runTestServer(s)
@@ -190,14 +199,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
@@ -222,14 +224,14 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "validate handler: unexpected http status")
+	assert.Equalf(t, http.StatusOK, resp.StatusCode, "validate handler: unexpected http status")
 }
 
 func TestAuthHandlerValidateBad(t *testing.T) {
 	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
-	cookieStore := sessions.NewCookieStore([]byte("test"))
+	sessionManager := scs.New()
 
 	service := authServiceMock{
 		users: map[string]*domain.User{
@@ -242,25 +244,18 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 	}
 
 	server := Server{
-		log:         logger,
-		cookieStore: cookieStore,
+		log:            logger,
+		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, cookieStore, service)
-	s := setupServer()
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
 	testServer := runTestServer(s)
 	defer testServer.Close()
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// validate token
 	resp, err := client.Get(testServer.URL + "/auth/validate")
@@ -277,7 +272,7 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 	t.Parallel()
 	logger := zerolog.Nop()
 	encoder := encoder{}
-	cookieStore := sessions.NewCookieStore([]byte("test"))
+	sessionManager := scs.New()
 
 	service := authServiceMock{
 		users: map[string]*domain.User{
@@ -290,11 +285,12 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 	}
 
 	server := Server{
-		log: logger,
+		log:            logger,
+		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, cookieStore, service)
-	s := setupServer()
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
 	testServer := runTestServer(s)
@@ -309,8 +305,10 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
+	client := newHttpTestClient()
+
 	// make request
-	resp, err := http.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
+	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
 		log.Fatalf("Error occurred: %v", err)
 	}
@@ -324,7 +322,7 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 func TestAuthHandlerLogout(t *testing.T) {
 	logger := zerolog.Nop()
 	encoder := encoder{}
-	cookieStore := sessions.NewCookieStore([]byte("test"))
+	sessionManager := scs.New()
 
 	service := authServiceMock{
 		users: map[string]*domain.User{
@@ -337,12 +335,12 @@ func TestAuthHandlerLogout(t *testing.T) {
 	}
 
 	server := Server{
-		log:         logger,
-		cookieStore: cookieStore,
+		log:            logger,
+		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, cookieStore, service)
-	s := setupServer()
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
 	testServer := runTestServer(s)
@@ -357,14 +355,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 		log.Fatalf("Error occurred: %v", err)
 	}
 
-	jarOptions := &cookiejar.Options{PublicSuffixList: nil}
-	jar, err := cookiejar.New(jarOptions)
-	if err != nil {
-		log.Fatalf("error creating cookiejar: %v", err)
-	}
-
-	client := http.DefaultClient
-	client.Jar = jar
+	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
@@ -393,7 +384,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 
 	defer resp.Body.Close()
 
-	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "validate handler: unexpected http status")
+	assert.Equalf(t, http.StatusOK, resp.StatusCode, "validate handler: unexpected http status")
 
 	// logout
 	resp, err = client.Post(testServer.URL+"/auth/logout", "application/json", nil)

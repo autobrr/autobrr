@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
@@ -146,17 +146,17 @@ func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 	if action.FirstLastPiecePrio {
 		opts.FirstLastPiecePrio = true
 	}
-	if action.ContentLayout != "" {
-		if action.ContentLayout == domain.ActionContentLayoutSubfolderCreate {
-			opts.ContentLayout = qbittorrent.ContentLayoutSubfolderCreate
-		} else if action.ContentLayout == domain.ActionContentLayoutSubfolderNone {
-			opts.ContentLayout = qbittorrent.ContentLayoutSubfolderNone
-		}
-		// if ORIGINAL then leave empty
+	switch action.ContentLayout {
+	case domain.ActionContentLayoutSubfolderCreate:
+		opts.ContentLayout = qbittorrent.ContentLayoutSubfolderCreate
+	case domain.ActionContentLayoutSubfolderNone:
+		opts.ContentLayout = qbittorrent.ContentLayoutSubfolderNone
 	}
 	if action.SavePath != "" {
 		opts.SavePath = strings.TrimSpace(action.SavePath)
-		opts.AutoTMM = false
+	}
+	if action.DownloadPath != "" {
+		opts.DownloadPath = strings.TrimSpace(action.DownloadPath)
 	}
 	if action.Category != "" {
 		opts.Category = strings.TrimSpace(action.Category)

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -1102,6 +1102,41 @@ func TestRelease_Hash(t *testing.T) {
 				TorrentName: "That Other Show 2023 S01E01 2160p WEB-DL DV HDR10+ DTS-HD 5.1 HEVC-GROUP",
 			},
 			want: "63b5d87abe5fb49131785de426708d31",
+		},
+		{
+			name: "29",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "2b4fbd68007c73664cdf9c1abb33fba9",
+		},
+		{
+			name: "30",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p ATVP WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "a1ad6c5ef96a50e5c3df434ec118185a",
+		},
+		{
+			name: "31",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p MA WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "d2976631b738bcd974e02af2c0b680a1",
+		},
+		{
+			name: "32",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p DSNP WEB-DL DTS-HD MA 5.1 HEVC-GROUP",
+			},
+			want: "aff58872541a8050146375ca76ea9fe7",
+		},
+		{
+			name: "33",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p MA WEB-DL DTS-HD MA 5.1 HEVC-GROUP",
+			},
+			want: "6d97a50010e7532478f8f4f9c469b885",
 		},
 	}
 	for _, tt := range tests {

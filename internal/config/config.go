@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package config
@@ -23,6 +23,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
+
+var EnvVarPrefix = "AUTOBRR__"
 
 var configTemplate = `# config.toml
 
@@ -112,21 +114,46 @@ sessionSecret = "{{ .sessionSecret }}"
 # OpenID Connect Configuration
 #
 # Enable OIDC authentication
-#oidc_enabled = false
+#oidcEnabled = false
 #
 # OIDC Issuer URL (e.g. https://auth.example.com)
-#oidc_issuer = ""
+#oidcIssuer = ""
 #
 # OIDC Client ID
-#oidc_client_id = ""
+#oidcClientId = ""
 #
 # OIDC Client Secret
-#oidc_client_secret = ""
+#oidcClientSecret = ""
 #
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
-#oidc_redirect_url = ""
+#oidcRedirectUrl = ""
+#
+# Disable Built In Login Form (only works when using external auth)
+#oidcDisableBuiltInLogin = false
+
+# Metrics
+#
+# Enable metrics endpoint
+#metricsEnabled = true
+#
+# Metrics server host
+#
+#metricsHost = "127.0.0.1"
+#
+# Metrics server port
+#
+#metricsPort = 9074
+#
+# Metrics basic auth
+#
+# Comma separate list of user:password. Password must be htpasswd bcrypt hashed. Use autobrrctl to generate.
+# Only enabled if correctly set with user:pass.
+#
+#metricsBasicAuthUsers = ""
 
 # Custom definitions
+#
+#customDefinitions = "test/definitions"
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -242,169 +269,220 @@ func New(configPath string, version string) *AppConfig {
 
 func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
-		Version:             "dev",
-		Host:                "localhost",
-		Port:                7474,
-		LogLevel:            "TRACE",
-		LogPath:             "",
-		LogMaxSize:          50,
-		LogMaxBackups:       3,
-		DatabaseMaxBackups:  5,
-		BaseURL:             "/",
-		BaseURLModeLegacy:   true,
-		SessionSecret:       api.GenerateSecureToken(16),
-		CustomDefinitions:   "",
-		CheckForUpdates:     true,
-		DatabaseType:        "sqlite",
-		PostgresHost:        "",
-		PostgresPort:        0,
-		PostgresDatabase:    "",
-		PostgresUser:        "",
-		PostgresPass:        "",
-		PostgresSSLMode:     "disable",
-		PostgresExtraParams: "",
-		ProfilingEnabled:    false,
-		ProfilingHost:       "127.0.0.1",
-		ProfilingPort:       6060,
+		Version:               "dev",
+		Host:                  "localhost",
+		Port:                  7474,
+		LogLevel:              "TRACE",
+		LogPath:               "",
+		LogMaxSize:            50,
+		LogMaxBackups:         3,
+		DatabaseMaxBackups:    5,
+		BaseURL:               "/",
+		BaseURLModeLegacy:     true,
+		SessionSecret:         api.GenerateSecureToken(16),
+		CustomDefinitions:     "",
+		CheckForUpdates:       true,
+		DatabaseType:          "sqlite",
+		DatabaseDSN:           "",
+		PostgresHost:          "",
+		PostgresPort:          0,
+		PostgresDatabase:      "",
+		PostgresUser:          "",
+		PostgresPass:          "",
+		PostgresSSLMode:       "disable",
+		PostgresExtraParams:   "",
+		PostgresSocket:        "",
+		ProfilingEnabled:      false,
+		ProfilingHost:         "127.0.0.1",
+		ProfilingPort:         6060,
+		MetricsEnabled:        false,
+		MetricsHost:           "127.0.0.1",
+		MetricsPort:           9074,
+		MetricsBasicAuthUsers: "",
 	}
 
 }
 
 func (c *AppConfig) loadFromEnv() {
-	prefix := "AUTOBRR__"
-
-	if v := os.Getenv(prefix + "HOST"); v != "" {
+	if v := GetEnvStr("HOST"); v != "" {
 		c.Config.Host = v
 	}
 
-	if v := os.Getenv(prefix + "PORT"); v != "" {
-		i, _ := strconv.ParseInt(v, 10, 32)
-		if i > 0 {
-			c.Config.Port = int(i)
-		}
+	if v := GetEnvInt("PORT"); v > 0 {
+		c.Config.Port = v
 	}
 
-	if v := os.Getenv(prefix + "BASE_URL"); v != "" {
+	if v := GetEnvStr("BASE_URL"); v != "" {
 		c.Config.BaseURL = v
 	}
 
-	if v := os.Getenv(prefix + "BASE_URL_MODE_LEGACY"); v != "" {
+	if v := GetEnvStr("BASE_URL_MODE_LEGACY"); v != "" {
 		c.Config.BaseURLModeLegacy = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
-	if v := os.Getenv(prefix + "LOG_LEVEL"); v != "" {
+	if v := GetEnvStr("LOG_LEVEL"); v != "" {
 		c.Config.LogLevel = v
 	}
 
-	if v := os.Getenv(prefix + "LOG_PATH"); v != "" {
+	if v := GetEnvStr("LOG_PATH"); v != "" {
 		c.Config.LogPath = v
 	}
 
-	if v := os.Getenv(prefix + "LOG_MAX_SIZE"); v != "" {
-		i, _ := strconv.ParseInt(v, 10, 32)
-		if i > 0 {
-			c.Config.LogMaxSize = int(i)
-		}
+	if v := GetEnvInt("LOG_MAX_SIZE"); v > 0 {
+		c.Config.LogMaxSize = v
 	}
 
-	if v := os.Getenv(prefix + "LOG_MAX_BACKUPS"); v != "" {
-		i, _ := strconv.ParseInt(v, 10, 32)
-		if i > 0 {
-			c.Config.LogMaxBackups = int(i)
-		}
+	if v := GetEnvInt("LOG_MAX_BACKUPS"); v > 0 {
+		c.Config.LogMaxBackups = v
 	}
 
-	if v := os.Getenv(prefix + "SESSION_SECRET"); v != "" {
+	if v := GetEnvStr("SESSION_SECRET"); v != "" {
 		c.Config.SessionSecret = v
 	}
 
-	if v := os.Getenv(prefix + "CUSTOM_DEFINITIONS"); v != "" {
+	if v := GetEnvStr("CUSTOM_DEFINITIONS"); v != "" {
 		c.Config.CustomDefinitions = v
 	}
 
-	if v := os.Getenv(prefix + "CHECK_FOR_UPDATES"); v != "" {
+	if v := GetEnvStr("CHECK_FOR_UPDATES"); v != "" {
 		c.Config.CheckForUpdates = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
-	if v := os.Getenv(prefix + "DATABASE_TYPE"); v != "" {
+	if v := GetEnvStr("DATABASE_DSN"); v != "" {
+		c.Config.DatabaseDSN = v
+	}
+
+	if v := GetEnvStr("DATABASE_TYPE"); v != "" {
 		if validDatabaseType(v) {
 			c.Config.DatabaseType = v
 		}
 	}
 
-	if v := os.Getenv(prefix + "DATABASE_MAX_BACKUPS"); v != "" {
-		i, _ := strconv.ParseInt(v, 10, 32)
-		if i > 0 {
-			c.Config.DatabaseMaxBackups = int(i)
-		}
+	if v := GetEnvInt("DATABASE_MAX_BACKUPS"); v > 0 {
+		c.Config.DatabaseMaxBackups = v
 	}
 
-	if v := os.Getenv(prefix + "POSTGRES_HOST"); v != "" {
+	if v := GetEnvStr("POSTGRES_HOST"); v != "" {
 		c.Config.PostgresHost = v
 	}
 
-	if v := os.Getenv(prefix + "POSTGRES_PORT"); v != "" {
-		i, _ := strconv.ParseInt(v, 10, 32)
-		if i > 0 {
-			c.Config.PostgresPort = int(i)
-		}
+	if v := GetEnvInt("POSTGRES_PORT"); v > 0 {
+		c.Config.PostgresPort = v
 	}
 
-	if v := os.Getenv(prefix + "POSTGRES_DATABASE"); v != "" {
+	if v := GetEnvStr("POSTGRES_DATABASE"); v != "" {
 		c.Config.PostgresDatabase = v
 	}
 
-	if v := os.Getenv(prefix + "POSTGRES_USER"); v != "" {
+	if v := GetEnvStr("POSTGRES_DB"); v != "" {
+		c.Config.PostgresDatabase = v
+	}
+
+	if v := GetEnvStr("POSTGRES_USER"); v != "" {
 		c.Config.PostgresUser = v
 	}
 
-	if v := os.Getenv(prefix + "POSTGRES_PASS"); v != "" {
+	if v := GetEnvStr("POSTGRES_PASS"); v != "" {
 		c.Config.PostgresPass = v
 	}
 
-	if v := os.Getenv(prefix + "POSTGRES_SSLMODE"); v != "" {
+	if v := GetEnvStr("POSTGRES_PASSWORD"); v != "" {
+		c.Config.PostgresPass = v
+	}
+
+	if v := GetEnvStr("POSTGRES_SSLMODE"); v != "" {
 		c.Config.PostgresSSLMode = v
 	}
 
-	if v := os.Getenv(prefix + "POSTGRES_EXTRA_PARAMS"); v != "" {
+	if v := GetEnvStr("POSTGRES_SOCKET"); v != "" {
+		c.Config.PostgresSocket = v
+	}
+
+	if v := GetEnvStr("POSTGRES_EXTRA_PARAMS"); v != "" {
 		c.Config.PostgresExtraParams = v
 	}
 
-	if v := os.Getenv(prefix + "PROFILING_ENABLED"); v != "" {
+	if v := GetEnvStr("PROFILING_ENABLED"); v != "" {
 		c.Config.ProfilingEnabled = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
-	if v := os.Getenv(prefix + "PROFILING_HOST"); v != "" {
+	if v := GetEnvStr("PROFILING_HOST"); v != "" {
 		c.Config.ProfilingHost = v
 	}
 
-	if v := os.Getenv(prefix + "PROFILING_PORT"); v != "" {
-		i, _ := strconv.ParseInt(v, 10, 32)
-		if i > 0 {
-			c.Config.ProfilingPort = int(i)
-		}
+	if v := GetEnvInt("PROFILING_PORT"); v > 0 {
+		c.Config.ProfilingPort = v
 	}
 
 	// OIDC Configuration
-	if v := os.Getenv(prefix + "OIDC_ENABLED"); v != "" {
+	if v := GetEnvStr("OIDC_ENABLED"); v != "" {
 		c.Config.OIDCEnabled = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
-	if v := os.Getenv(prefix + "OIDC_ISSUER"); v != "" {
+	if v := GetEnvStr("OIDC_ISSUER"); v != "" {
 		c.Config.OIDCIssuer = v
 	}
 
-	if v := os.Getenv(prefix + "OIDC_CLIENT_ID"); v != "" {
+	if v := GetEnvStr("OIDC_CLIENT_ID"); v != "" {
 		c.Config.OIDCClientID = v
 	}
 
-	if v := os.Getenv(prefix + "OIDC_CLIENT_SECRET"); v != "" {
+	if v := GetEnvStr("OIDC_CLIENT_SECRET"); v != "" {
 		c.Config.OIDCClientSecret = v
 	}
 
-	if v := os.Getenv(prefix + "OIDC_REDIRECT_URL"); v != "" {
+	if v := GetEnvStr("OIDC_REDIRECT_URL"); v != "" {
 		c.Config.OIDCRedirectURL = v
 	}
+
+	if v := GetEnvStr("OIDC_DISABLE_BUILT_IN_LOGIN"); v != "" {
+		c.Config.OIDCDisableBuiltInLogin = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := GetEnvStr("METRICS_ENABLED"); v != "" {
+		c.Config.MetricsEnabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := GetEnvStr("METRICS_HOST"); v != "" {
+		c.Config.MetricsHost = v
+	}
+
+	if v := GetEnvInt("METRICS_PORT"); v > 0 {
+		c.Config.MetricsPort = v
+	}
+
+	if v := GetEnvStr("METRICS_BASIC_AUTH_USERS"); v != "" {
+		c.Config.MetricsBasicAuthUsers = v
+	}
+}
+
+func GetEnvStr(key string) string {
+	// first check if we have a variable with a _FILE ending
+	// commonly used for docker secrets and similar
+	if filePath := os.Getenv(EnvVarPrefix + key + "_FILE"); filePath != "" {
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Fatalf("Could not read file: %s err: %q", filePath, err)
+			return ""
+		}
+		return strings.TrimSpace(string(content))
+	}
+
+	if v := os.Getenv(EnvVarPrefix + key); v != "" {
+		return v
+	}
+
+	return ""
+}
+
+func GetEnvInt(key string) int {
+	value := GetEnvStr(key)
+
+	i, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		return 0
+	}
+	return int(i)
 }
 
 func validDatabaseType(v string) bool {

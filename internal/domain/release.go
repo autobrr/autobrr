@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -10,8 +10,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"golang.org/x/text/transform"
-	"golang.org/x/text/unicode/norm"
 	"html"
 	"io"
 	"math"
@@ -33,6 +31,8 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
 	"golang.org/x/net/publicsuffix"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 type ReleaseRepo interface {
@@ -937,13 +937,17 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 	return errFunc
 }
 
-func (r *Release) CleanupTemporaryFiles() {
+func (r *Release) CleanupTemporaryFiles() error {
 	if r.TorrentTmpFile == "" {
-		return
+		return nil
 	}
 
-	os.Remove(r.TorrentTmpFile)
+	if err := os.Remove(r.TorrentTmpFile); err != nil {
+		return errors.Wrap(err, "could not remove tmp file: %s", r.TorrentTmpFile)
+	}
 	r.TorrentTmpFile = ""
+
+	return nil
 }
 
 // HasMagnetUri check uf MagnetURI is set and valid or empty
@@ -962,6 +966,10 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		return errors.Wrap(err, "failed parsing required field")
 	} else {
 		r.TorrentName = html.UnescapeString(torrentName)
+	}
+
+	if torrentHash, err := getStringMapValue(varMap, "torrentHash"); err == nil {
+		r.TorrentHash = torrentHash
 	}
 
 	if torrentID, err := getStringMapValue(varMap, "torrentId"); err == nil {

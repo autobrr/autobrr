@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -799,9 +799,9 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 		releaseRepo := NewReleaseRepo(log, db)
 
 		// reset
-		//db.handler.Exec("DELETE FROM release")
-		//db.handler.Exec("DELETE FROM action")
-		//db.handler.Exec("DELETE FROM release_action_status")
+		//db.Handler.Exec("DELETE FROM release")
+		//db.Handler.Exec("DELETE FROM action")
+		//db.Handler.Exec("DELETE FROM release_action_status")
 
 		mockIndexer := domain.IndexerMinimal{ID: 0, Name: "Mock", Identifier: "mock", IdentifierExternal: "Mock"}
 		actionMock := &domain.Action{Name: "Test", Type: domain.ActionTypeTest, Enabled: true}

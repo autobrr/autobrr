@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -26,7 +26,7 @@ interface MultiSelectProps {
   columns?: COL_WIDTHS;
   creatable?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const MultiSelect = ({
@@ -170,7 +170,7 @@ export function DownloadClientSelect({
                   Client
                 </Label>
                 <div className="mt-1 relative">
-                  <ListboxButton className="block w-full shadow-sm sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
+                  <ListboxButton className="block w-full shadow-xs sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
                       {field.value
                         ? clients.find((c) => c.id === field.value)?.name
@@ -192,7 +192,7 @@ export function DownloadClientSelect({
                   >
                     <ListboxOptions
                       static
-                      className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-none sm:text-sm"
+                      className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-hidden sm:text-sm"
                     >
                       {clients
                         .filter((c) => c.type === action.type)
@@ -260,7 +260,7 @@ export interface SelectFieldProps {
   optionDefaultText: string;
   options: SelectFieldOption[];
   columns?: COL_WIDTHS;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   className?: string;
 }
 
@@ -300,7 +300,7 @@ export const Select = ({
                   ) : label}
                 </Label>
                 <div className="mt-1 relative">
-                  <ListboxButton className="block w-full relative shadow-sm sm:text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
+                  <ListboxButton className="block w-full relative shadow-xs sm:text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
                       {field.value
                         ? options.find((c) => c.value === field.value)?.label
@@ -324,7 +324,7 @@ export const Select = ({
                   >
                     <ListboxOptions
                       static
-                      className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 focus:outline-none sm:text-sm"
+                      className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 focus:outline-hidden sm:text-sm"
                     >
                       {options.map((opt) => (
                         <ListboxOption
@@ -399,7 +399,7 @@ export const SelectWide = ({
                     {label}
                   </Label>
                   <div className="w-full">
-                    <ListboxButton className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
+                    <ListboxButton className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-xs pl-3 pr-10 py-2 text-left cursor-default focus:outline-hidden focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                       <span className="block truncate">
                         {field.value
                           ? options.find((c) => c.value === field.value)?.label
@@ -423,7 +423,7 @@ export const SelectWide = ({
                     >
                       <ListboxOptions
                         static
-                        className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm"
+                        className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-hidden sm:text-sm"
                       >
                         {options.map((opt) => (
                           <ListboxOption
@@ -512,7 +512,7 @@ export const AgeSelect = ({
         {({ open }) => (
           <div>
             <div className="mt-0 relative">
-              <ListboxButton className="block w-full relative shadow-sm text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-400">
+              <ListboxButton className="block w-full relative shadow-xs text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-400">
                 <span className="block truncate text-gray-500 dark:text-white">
                   {duration ? options.find(opt => opt.value === duration)?.label : 'Select...'}
                 </span>
@@ -527,7 +527,7 @@ export const AgeSelect = ({
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <ListboxOptions className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white focus:outline-none text-sm">
+                <ListboxOptions className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white focus:outline-hidden text-sm">
                   {options.map((option) => (
                     <ListboxOption
                       key={option.value}

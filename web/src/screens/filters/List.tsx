@@ -1,14 +1,15 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
 import {
   Listbox,
   ListboxButton,
-  ListboxOption, ListboxOptions,
+  ListboxOption,
+  ListboxOptions,
   Menu,
   MenuButton,
   MenuItem,
@@ -26,7 +27,8 @@ import {
   EllipsisHorizontalIcon,
   PencilSquareIcon,
   PlusIcon, SparklesIcon,
-  TrashIcon
+  TrashIcon,
+  ExclamationTriangleIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
@@ -106,13 +108,13 @@ export function Filters() {
         setIsOpen={setShowImportModal}
       />
 
-      <div className="flex justify-between items-center flex-row flex-wrap my-6 max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-between items-center flex-row flex-wrap my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
         <Menu as="div" className="relative">
           {({ open }) => (
             <>
               <button
-                className="relative inline-flex items-center px-4 py-2 shadow-sm text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                className="relative inline-flex items-center px-4 py-2 shadow-xs text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                 onClick={(e: { stopPropagation: () => void; }) => {
                   if (!open) {
                     e.stopPropagation();
@@ -123,7 +125,7 @@ export function Filters() {
                 <PlusIcon className="h-5 w-5 mr-1" />
                 Create Filter
               </button>
-              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-sm text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-xs text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
                 <ChevronDownIcon className="h-5 w-5" />
               </MenuButton>
               <Transition
@@ -143,7 +145,7 @@ export function Filters() {
                         type="button"
                         className={classNames(
                           active ? "bg-gray-50 dark:bg-gray-600" : "",
-                          "flex items-center w-full text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-none"
+                          "flex items-center w-full text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-hidden"
                         )}
                         onClick={() => setShowImportModal(true)}
                       >
@@ -194,20 +196,21 @@ function FilterList({ toggleCreateFilter }: any) {
     filterListState
   );
 
-  const { isLoading, data, error } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
+  const { isLoading: isLoadingFilters, data: filtersData, error: filtersError } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
 
   useEffect(() => {
     FilterListContext.set({ indexerFilter, sortOrder, status });
   }, [indexerFilter, sortOrder, status]);
 
-  if (error) {
-    return <p>An error has occurred:</p>;
+  if (filtersError) {
+    // TODO: Better error handling
+    return <p>An error has occurred loading filters.</p>;
   }
 
-  const filtered = filteredData(data ?? [], status);
+  const filtered = filteredData(filtersData ?? [], status);
 
   return (
-    <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
+    <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
       <div className="align-middle min-w-full rounded-t-lg rounded-b-lg shadow-table bg-gray-50 dark:bg-gray-800 border border-gray-250 dark:border-gray-775">
         <div className="rounded-t-lg flex justify-between px-4 bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
           <div className="flex gap-4">
@@ -222,12 +225,12 @@ function FilterList({ toggleCreateFilter }: any) {
           </div>
         </div>
 
-        {isLoading
+        {isLoadingFilters
           ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
-          : data && data.length > 0 ? (
+          : filtersData && filtersData.length > 0 ? (
               <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
                 {filtered.filtered.length > 0
-                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx}/>)
+                  ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
                   : <EmptyListState text={`No ${status} filters`}/>
                 }
               </ul>
@@ -406,7 +409,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       >
         <MenuItems
           anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>
@@ -549,6 +552,18 @@ interface FilterListItemProps {
 function FilterListItem({ filter, idx }: FilterListItemProps) {
   const queryClient = useQueryClient();
 
+  // Check if this filter uses any disabled indexers and get their names
+  const disabledIndexersInfo = useMemo(() => {
+    if (!filter.enabled || !filter.indexers || filter.indexers.length === 0) {
+      return { hasDisabled: false, names: [] };
+    }
+    const disabled = filter.indexers.filter(indexer => !indexer.enabled);
+    return {
+      hasDisabled: disabled.length > 0,
+      names: disabled.map(indexer => indexer.name)
+    };
+  }, [filter.enabled, filter.indexers]);
+
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
     onSuccess: () => {
@@ -591,7 +606,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           }}
           className="transition flex items-center w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
-          {filter.name} {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true"/>}
+          {filter.name}
+          {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400 inline" aria-hidden="true"/>}
         </Link>
         <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -611,7 +627,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
-          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                      Actions: {filter.actions_enabled_count}/{filter.actions_count}
                     </span>
                   </Link>
                 }
@@ -635,14 +651,29 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
-          Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                  Actions: {filter.actions_enabled_count}/{filter.actions_count}
                 </span>
               </Link>
             )}
           </span>
+          {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
+            <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
+              Downloads: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} per {filter.max_downloads_unit}
+            </span>
+          )}
         </div>
       </div>
-      <span className="hidden md:flex px-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <span className="hidden md:flex items-center justify-center py-4">
+        {disabledIndexersInfo.hasDisabled && (
+          <span
+            className="inline-flex items-center"
+            title={`Uses disabled indexer(s): ${disabledIndexersInfo.names.join(", ")}`}
+          >
+            <ExclamationTriangleIcon className="w-4 h-4 text-red-500 dark:text-red-400 relative top-px" aria-hidden="true"/>
+          </span>
+        )}
+      </span>
+      <span className="hidden md:flex pl-2 pr-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         <FilterIndexers indexers={filter.indexers} />
       </span>
       <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
@@ -653,6 +684,23 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       </span>
     </li>
   );
+}
+
+function renderMaxDownloads(unit: string, downloads: FilterDownloads): number {
+  switch (unit) {
+    case "HOUR":
+      return downloads.hour_count
+    case "DAY":
+      return downloads.day_count
+    case "WEEK":
+      return downloads.week_count
+    case "MONTH":
+      return downloads.month_count
+    case "EVER":
+      return downloads.total_count
+    default:
+      return 0
+  }
 }
 
 interface IndexerTagProps {
@@ -737,7 +785,7 @@ const ListboxFilter = ({
         leaveTo="opacity-0"
       >
         <ListboxOptions
-          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-opacity-5 border-black dark:border-gray-700 dark:border-opacity-40 focus:outline-none sm:text-sm"
+          className="w-52 absolute z-10 mt-1 right-0 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-black/5 dark:border-gray-700/40 focus:outline-hidden sm:text-sm"
         >
           {children}
         </ListboxOptions>

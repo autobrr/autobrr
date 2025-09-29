@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -6,7 +6,6 @@
 package torznab
 
 import (
-	"context"
 	"encoding/xml"
 	"net/http"
 	"net/http/httptest"
@@ -17,62 +16,61 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//func TestClient_GetFeed(t *testing.T) {
-//	key := "mock-key"
-//
-//	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		apiKey := r.Header.Get("X-API-Key")
-//		if apiKey != "" {
-//			if apiKey != key {
-//				w.WriteHeader(http.StatusUnauthorized)
-//				w.Write(nil)
-//				return
-//			}
-//		}
-//		payload, err := os.ReadFile("testdata/torznab_response.xml")
-//		if err != nil {
-//			http.Error(w, err.Error(), http.StatusInternalServerError)
-//			return
-//		}
-//		w.Header().Set("Content-Type", "application/xml")
-//		w.Write(payload)
-//	}))
-//	defer srv.Close()
-//
-//	type fields struct {
-//		Host      string
-//		ApiKey    string
-//		BasicAuth BasicAuth
-//	}
-//	tests := []struct {
-//		name    string
-//		fields  fields
-//		want    []FeedItem
-//		wantErr bool
-//	}{
-//		{
-//			name: "get feed",
-//			fields: fields{
-//				Host:      srv.url + "/api",
-//				ApiKey:    key,
-//				BasicAuth: BasicAuth{},
-//			},
-//			want:    nil,
-//			wantErr: false,
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			c := NewClient(Config{Host: tt.fields.Host, ApiKey: tt.fields.ApiKey})
-//
-//			_, err := c.GetFeed()
-//			if tt.wantErr && assert.Error(t, err) {
-//				assert.Equal(t, tt.wantErr, err)
-//			}
-//			//assert.Equal(t, tt.want, got)
-//		})
-//	}
-//}
+func TestClient_FetchFeed(t *testing.T) {
+	key := "mock-key"
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		apiKey := r.Header.Get("X-API-Key")
+		if apiKey != "" {
+			if apiKey != key {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write(nil)
+				return
+			}
+		}
+		payload, err := os.ReadFile("testdata/torznab_response.xml")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		w.Write(payload)
+	}))
+	defer srv.Close()
+
+	type fields struct {
+		Host      string
+		ApiKey    string
+		BasicAuth BasicAuth
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []FeedItem
+		wantErr bool
+	}{
+		{
+			name: "get feed",
+			fields: fields{
+				Host:      srv.URL,
+				ApiKey:    key,
+				BasicAuth: BasicAuth{},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewClient(Config{Host: tt.fields.Host, ApiKey: tt.fields.ApiKey})
+			_, err := c.FetchFeed(t.Context())
+			if tt.wantErr && assert.Error(t, err) {
+				assert.Equal(t, tt.wantErr, err)
+			}
+			//assert.Equal(t, tt.want, got)
+		})
+	}
+}
 
 func TestClient_GetCaps(t *testing.T) {
 	key := "mock-key"
@@ -238,7 +236,7 @@ func TestClient_GetCaps(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(Config{Host: tt.fields.Host, ApiKey: tt.fields.ApiKey})
 
-			got, err := c.FetchCaps(context.TODO())
+			got, err := c.FetchCaps(t.Context())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

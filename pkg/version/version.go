@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package version
@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -170,6 +171,10 @@ func (c *Checker) buildUserAgent() string {
 }
 
 func isDevelop(version string) bool {
+	if strings.HasPrefix(version, "pr-") {
+		return true
+	}
+
 	tags := []string{"dev", "develop", "master", "latest", ""}
 
 	for _, tag := range tags {

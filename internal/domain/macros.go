@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -10,9 +10,16 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/ttlcache"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
+)
+
+var templateCache = ttlcache.New(
+	ttlcache.Options[string, *template.Template]{}.
+		SetTimerResolution(5 * time.Minute).
+		SetDefaultTTL(15 * time.Minute),
 )
 
 type Macro struct {
@@ -26,12 +33,15 @@ type Macro struct {
 	Category                  string
 	Codec                     []string
 	Container                 string
+	Cookie                    string
 	CurrentDay                int
 	CurrentHour               int
 	CurrentMinute             int
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
+	CurrentTimeUnixMS         int64
+	CurrentUnixTimeMS         int64
 	Description               string
 	DownloadUrl               string
 	Episode                   int
@@ -103,12 +113,15 @@ func NewMacro(release Release) Macro {
 		Category:                  release.Category,
 		Codec:                     release.Codec,
 		Container:                 release.Container,
+		Cookie:                    release.RawCookie,
 		CurrentDay:                currentTime.Day(),
 		CurrentHour:               currentTime.Hour(),
 		CurrentMinute:             currentTime.Minute(),
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
+		CurrentTimeUnixMS:         currentTime.UnixMilli(),
+		CurrentUnixTimeMS:         currentTime.UnixMilli(),
 		Description:               release.Description,
 		DownloadUrl:               release.DownloadURL,
 		Episode:                   release.Episode,
@@ -175,16 +188,19 @@ func (m Macro) Parse(text string) (string, error) {
 		return "", nil
 	}
 
-	// TODO implement template cache
-
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return "", errors.Wrap(err, "could parse macro template")
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return "", errors.Wrap(err, "could not parse macro template")
+		}
+		templateCache.Set(text, tmpl, ttlcache.DefaultTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return "", errors.Wrap(err, "could not parse macro")
 	}
@@ -198,14 +214,19 @@ func (m Macro) MustParse(text string) string {
 		return ""
 	}
 
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return ""
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return ""
+		}
+		templateCache.Set(text, tmpl, ttlcache.NoTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return ""
 	}

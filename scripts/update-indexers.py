@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
+# SPDX-License-Identifier: GPL-2.0-or-later
+
 import os
 import re
 from typing import Dict
@@ -24,9 +27,17 @@ def parse_yaml_file(file_path: str) -> Dict:
         if supports_match:
             supports = re.findall(r'-\s*(\w+)', supports_match.group(1))
         
-        # Look for freeleech in vars section
+        # Look for freeleech in multiple places:
+        # 1. In vars section
         has_freeleech = bool(re.search(r'vars:.*?-\s*freeleech\s*$', content, re.MULTILINE | re.DOTALL))
         has_freeleech_percent = bool(re.search(r'vars:.*?-\s*freeleechPercent\s*$', content, re.MULTILINE | re.DOTALL))
+        
+        # 2. In mappings section - check what the fields map to
+        mappings_freeleech = bool(re.search(r'mappings:.*?(?:freeleech|freeleechPercent):\s*(?!.*?percent|.*?\d+%)', content, re.MULTILINE | re.DOTALL))
+        mappings_freeleech_percent = bool(re.search(r'mappings:.*?(?:freeleech|freeleechPercent):\s*(?:.*?percent|.*?\d+%)', content, re.MULTILINE | re.DOTALL))
+        
+        has_freeleech = has_freeleech or mappings_freeleech
+        has_freeleech_percent = has_freeleech_percent or mappings_freeleech_percent
         
         result = {
             'name': name_match.group(1).strip() if name_match else '',

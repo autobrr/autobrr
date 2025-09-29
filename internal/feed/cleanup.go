@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
@@ -27,8 +27,11 @@ func NewCleanupJob(log zerolog.Logger, cacheRepo domain.FeedCacheRepo) *CleanupJ
 }
 
 func (j *CleanupJob) Run() {
+	j.log.Info().Msg("running feed-cache-cleanup job..")
+
 	if err := j.cacheRepo.DeleteStale(context.Background()); err != nil {
 		j.log.Error().Err(err).Msg("error when running feed cache cleanup job")
+		return
 	}
 
 	j.log.Info().Msg("successfully ran feed-cache-cleanup job")

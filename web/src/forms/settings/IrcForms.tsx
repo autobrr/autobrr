@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -48,7 +48,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                             meta.touched && meta.error
                               ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                               : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                            "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
                           )}
                         />
                       )}
@@ -66,7 +66,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
                             meta.touched && meta.error
                               ? "border-red-500 focus:ring-red-500 focus:border-red-500"
                               : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-sm sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                            "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
                           )}
                         />
                       )}
@@ -75,7 +75,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
 
                   <button
                     type="button"
-                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                     onClick={() => remove(index)}
                   >
                     <span className="sr-only">Remove</span>
@@ -90,7 +90,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
           )}
           <button
             type="button"
-            className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded self-center text-center"
+            className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center"
             onClick={() => push({ name: "", password: "" })}
           >
             Add Channel

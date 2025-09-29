@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -42,7 +42,7 @@ func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
 			key.Key,
 			pq.Array(key.Scopes),
 		).
-		Suffix("RETURNING created_at").RunWith(r.db.handler)
+		Suffix("RETURNING created_at").RunWith(r.db.Handler)
 
 	var createdAt time.Time
 
@@ -63,7 +63,7 @@ func (r *APIRepo) Delete(ctx context.Context, key string) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -83,7 +83,7 @@ func (r *APIRepo) GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -119,7 +119,7 @@ func (r *APIRepo) GetKey(ctx context.Context, key string) (*domain.APIKey, error
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}

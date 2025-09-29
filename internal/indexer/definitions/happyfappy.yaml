@@ -1,17 +1,17 @@
 ---
-#id: lsh
-name: LustHive
-identifier: lusthive
-description: LustHive (Lsh) is a private torrent tracker for XXX
-language: en-us
+#id: happyfappy
+name: HappyFappy
+identifier: happyfappy
+description: HappyFappy (HF) is a private torrent tracker for XXX
+language: en-US
 urls:
-  - https://lusthive.org/
+  - https://www.happyfappy.org/
 privacy: private
 protocol: torrent
 supports:
   - irc
   - rss
-# source: gazelle
+# source: Gazelle
 settings:
   - name: authkey
     type: secret
@@ -26,14 +26,14 @@ settings:
     help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
-  network: LustHive
-  server: irc.lusthive.org
+  network: Rizon
+  server: irc.rizon.net
   port: 6697
   tls: true
   channels:
-    - "#announce"
+    - "#HF-Announce"
   announcers:
-    - "LustHive"
+    - "WizBoy"
   settings:
     - name: nick
       type: text
@@ -45,7 +45,7 @@ irc:
       type: text
       required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
+      help: NickServ account. Make sure to group your main user and bot.
 
     - name: auth.password
       type: secret
@@ -57,23 +57,26 @@ irc:
     type: single
     lines:
       - tests:
-          - line: 'Some Scene - Size: 13.37 GiB - Uploader: anon - Tags: this, that, this.and.that - https://lusthive.org/torrents.php?torrentid=000000'
+          - line: '[Packs] Actress.com - Actress Episodes (720p) [55.15 GiB - Uploader: uhhh] - https://www.happyfappy.org/torrents.php?id=00000'
             expect:
-              torrentName: 'Some Scene'
-              torrentSize: 13.37 GiB
-              uploader: anon
-              tags: this, that, this.and.that
-              baseUrl: https://lusthive.org/
-              torrentId: "000000"
-        pattern: '(.*) - Size: (.*) - Uploader: (.*) - Tags: (.*) - (https:\/\/.*\/).*id=(.*)'
+              category: Packs
+              torrentName: 'Actress.com - Actress Episodes (720p)'
+              torrentSize: 55.15 GiB
+              uploader: uhhh
+              baseUrl: https://www.happyfappy.org/
+              torrentId: 00000
+
+
+        pattern: '\[(.*?)\] (.*) \[(.*) - Uploader: (.*)\] - (https:\/\/.*\/).*id=(\d+)'
         vars:
+          - category
           - torrentName
           - torrentSize
           - uploader
-          - tags
           - baseUrl
           - torrentId
 
+
     match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
+      infourl: "/torrents.php?torrentid={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

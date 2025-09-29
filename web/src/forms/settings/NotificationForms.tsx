@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -10,6 +10,7 @@ import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
@@ -21,6 +22,8 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { Checkbox } from "@components/Checkbox";
+import { EmptySimple } from "@components/emptystates";
 
 import { componentMapType } from "./DownloadClientForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
@@ -28,7 +31,7 @@ import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 function FormFieldsDiscord() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -57,7 +60,7 @@ function FormFieldsDiscord() {
 function FormFieldsNotifiarr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -78,7 +81,7 @@ function FormFieldsNotifiarr() {
 function FormFieldsLunaSea() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -110,7 +113,7 @@ function FormFieldsLunaSea() {
 function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -160,7 +163,7 @@ function FormFieldsTelegram() {
 function FormFieldsPushover() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -199,7 +202,7 @@ function FormFieldsPushover() {
 function FormFieldsGotify() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -225,7 +228,7 @@ function FormFieldsGotify() {
 function FormFieldsNtfy() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -269,7 +272,7 @@ function FormFieldsNtfy() {
 function FormFieldsShoutrrr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Settings
         </DialogTitle>
@@ -367,7 +370,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -397,7 +400,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -407,7 +410,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                           </div>
                         </div>
 
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                        <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
                           <TextFieldWide
                             name="name"
                             label="Name"
@@ -476,17 +479,17 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
 
                           <SwitchGroupWide name="enabled" label="Enabled" />
 
-                          <div className="border-t mt-2 border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4 space-y-1">
+                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                            <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Events
+                                Global Events
                               </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Select what events to trigger on
+                                Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
                               </p>
                             </div>
 
-                            <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-4">
+                              <div className="p-4 sm:grid sm:gap-4">
                               <EventCheckBoxes />
                             </div>
                           </div>
@@ -494,25 +497,25 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                         {componentMap[values.type]}
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={() => testNotification(values)}
                           >
                             Test
                           </button>
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
                             Save
                           </button>
@@ -532,31 +535,34 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
+const EventCheckBox = ({ event }: { event: typeof EventOptions[number] }) => (
+  <Field name="events">
+    {({ field, form }: FieldProps<string[]>) => (
+      <div className="flex items-center justify-between">
+        <span className="text-sm">
+          <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+          {event.description && <p className="text-gray-500">{event.description}</p>}
+        </span>
+        <Checkbox
+          value={field.value.includes(event.value)}
+          setValue={(checked) => 
+            form.setFieldValue('events', 
+              checked 
+                ? [...field.value, event.value]
+                : field.value.filter(e => e !== event.value)
+            )
+          }
+        />
+      </div>
+    )}
+  </Field>
+);
+
 const EventCheckBoxes = () => (
   <fieldset className="space-y-5">
     <legend className="sr-only">Notifications</legend>
-    {EventOptions.map((e, idx) => (
-      <div key={idx} className="relative flex items-start">
-        <div className="flex items-center h-5">
-          <Field
-            id={`events-${e.value}`}
-            aria-describedby={`events-${e.value}-description`}
-            name="events"
-            type="checkbox"
-            value={e.value}
-            className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-          />
-        </div>
-        <div className="ml-3 text-sm">
-          <label htmlFor={`events-${e.value}`}
-            className="font-medium text-gray-900 dark:text-gray-100">
-            {e.label}
-          </label>
-          {e.description && (
-            <p className="text-gray-500">{e.description}</p>
-          )}
-        </div>
-      </div>
+    {EventOptions.map((event, idx) => (
+      <EventCheckBox key={idx} event={event} />
     ))}
   </fieldset>
 );
@@ -574,7 +580,9 @@ interface InitialValues {
   topic?: string;
   host?: string;
   events: NotificationEvent[];
-  username?: string
+  username?: string;
+  password?: string;
+  used_by_filters?: NotificationFilter[];
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
@@ -625,7 +633,9 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     topic: notification.topic,
     host: notification.host,
     events: notification.events || [],
-    username: notification.username
+    username: notification.username,
+    password: notification.password,
+    used_by_filters: notification.used_by_filters || [],
   };
 
   return (
@@ -643,7 +653,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
         <div>
           <TextFieldWide name="name" label="Name" required={true}/>
 
-          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
               <div>
                 <label
@@ -695,24 +705,66 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
               </div>
             </div>
             <SwitchGroupWide name="enabled" label="Enabled"/>
-            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-              <div className="px-4 space-y-1">
+            <div className="pb-2">
+              <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                  Events
+                  Global Events
                 </DialogTitle>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Select what events to trigger on
+                  Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
                 </p>
               </div>
 
-              <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:gap-4 sm:py-2">
+              <div className="p-4 sm:grid sm:gap-4">
                 <EventCheckBoxes />
               </div>
             </div>
           </div>
+
+          <div className="pb-2">
+            <div className="p-4">
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                Per filter Events
+              </DialogTitle>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                This notification is used in these filters.
+              </p>
+            </div>
+
+            <div className="p-4 sm:grid sm:gap-4">
+              {values.used_by_filters && values.used_by_filters?.length > 0
+                ? values.used_by_filters?.map(f => (
+                  <Link key={f.filter_id} to="/filters/$filterId/notifications" params={{filterId: f.filter_id}}>
+                    <div key={f.filter_id} className="flex justify-between px-2 py-2 bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                      <span className="font-medium text-gray-500 dark:text-gray-300">{f.filter_name}</span>
+                      <div className="flex gap-2">
+                        {f.events.map((e) => (
+                          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-400/10 dark:text-gray-400">{FilterEventOptions[e]}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </Link>
+                ))
+                :
+                <EmptySimple
+                  title="Not used in any filters"
+                  subtitle=""
+                  border={true}
+                />
+
+              }
+            </div>
+          </div>
+
           {componentMap[values.type]}
         </div>
       )}
     </SlideOver>
   );
+}
+
+const FilterEventOptions: Record<NotificationFilterEvent, string> = {
+  "PUSH_APPROVED": "Push Approved",
+  "PUSH_REJECTED": "Push Rejected",
+  "PUSH_ERROR": "Push Error",
 }

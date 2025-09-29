@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
@@ -37,7 +37,7 @@ func (s *ntfySender) Name() string {
 
 func NewNtfySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &ntfySender{
-		log:      log.With().Str("sender", "ntfy").Logger(),
+		log:      log.With().Str("sender", "ntfy").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
@@ -97,31 +97,28 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 }
 
 func (s *ntfySender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *ntfySender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.Host == "" {
-			s.log.Warn().Msg("ntfy missing host")
-			return false
-		}
+func (s *ntfySender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
 
+	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
 		return true
 	}
 
 	return false
+}
+
+func (s *ntfySender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *ntfySender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-
-	return false
+	return s.Settings.EventEnabled(string(event))
 }

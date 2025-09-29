@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -119,7 +119,8 @@ export const formatMusic = [
   "Ogg",
   "AAC",
   "AC3",
-  "DTS"
+  "DTS",
+  "DSD"
 ];
 
 export const FORMATS_OPTIONS: MultiSelectOption[] = formatMusic.map(r => ({ value: r, label: r, key: r }));
@@ -148,7 +149,11 @@ export const qualityMusic = [
   "V1 (VBR)",
   "V0 (VBR)",
   "Lossless",
-  "24bit Lossless"
+  "24bit Lossless",
+  "DSD64",
+  "DSD128",
+  "DSD256",
+  "DSD512"
 ];
 
 export const QUALITY_MUSIC_OPTIONS: MultiSelectOption[] = qualityMusic.map(v => ({ value: v, label: v, key: v }));
@@ -450,6 +455,10 @@ export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
     label: "Metacritic",
     value: "METACRITIC"
   },
+  {
+    label: "AniList",
+    value: "ANILIST"
+  },
 ];
 
 export const ListTypeNameMap: Record<ListType, string> = {
@@ -463,6 +472,7 @@ export const ListTypeNameMap: Record<ListType, string> = {
   "METACRITIC": "Metacritic",
   "STEAM": "Steam",
   "PLAINTEXT": "Plaintext",
+  "ANILIST": "AniList",
 };
 
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
@@ -649,6 +659,13 @@ export const ExternalFilterTypeNameMap = {
   "WEBHOOK": "Webhook"
 };
 
+export const ExternalFilterOnErrorValues: ExternalFilterOnError[]  = ["REJECT", "CONTINUE"];
+
+export const ExternalFilterOnErrorOptions: SelectGenericOption<ExternalFilterOnError>[] = [
+    { label: "Reject", description: "Reject on error, default", value: "REJECT" },
+    { label: "Continue to next", description: "Continue on error", value: "CONTINUE" },
+];
+
 export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>[] = [
   { label: "GET", value: "GET" },
   { label: "POST", value: "POST" },
@@ -706,5 +723,20 @@ export const ListsMDBListOptions: OptionBasic[] = [
   {
     label: "Latest TV Shows",
     value: "https://mdblist.com/lists/garycrawfordgc/latest-tv-shows/json"
+  },
+];
+
+export const ListsAniListOptions: OptionBasic[] = [
+  {
+    label: "Current anime season",
+    value: "https://api.autobrr.com/lists/anilist/seasonal"
+  },
+  {
+    label: "Trending animes",
+    value: "https://api.autobrr.com/lists/anilist/trending"
+  },
+  {
+    label: "Next anime season",
+    value: "https://api.autobrr.com/lists/anilist/upcoming"
   },
 ];

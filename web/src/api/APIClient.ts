@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -13,6 +13,7 @@ type Primitive = string | number | boolean | symbol | undefined;
 type ValidateResponse = {
   username?: AuthInfo['username'];
   auth_method?: AuthInfo['authMethod'];
+  profile_picture?: AuthInfo['profilePicture'];
 }
 
 interface HttpConfig {
@@ -246,13 +247,12 @@ const appClient = {
 
 export const APIClient = {
   auth: {
-    login: (username: string, password: string) => appClient.Post("api/auth/login", {
-      body: { username, password }
+    login: (username: string, password: string, remember_me: boolean) => appClient.Post("api/auth/login", {
+      body: { username, password, remember_me }
     }),
     logout: () => appClient.Post("api/auth/logout"),
     validate: async (): Promise<ValidateResponse> => {
-      const response = await appClient.Get<ValidateResponse>("api/auth/validate");
-      return response;
+        return await appClient.Get<ValidateResponse>("api/auth/validate");
     },
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }
@@ -262,10 +262,10 @@ export const APIClient = {
       { body: req }),
     getOIDCConfig: async () => {
       try {
-        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string }>("api/auth/oidc/config");
+        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string; disableBuiltInLogin: boolean; issuerUrl: string }>("api/auth/oidc/config");
       } catch (error: unknown) {
         if (error instanceof Error && error.message?.includes('404')) {
-          return { enabled: false, authorizationUrl: '', state: '' };
+          return { enabled: false, authorizationUrl: '', state: '', disableBuiltInLogin: false, issuerUrl: '' };
         }
         throw error;
       }
@@ -327,7 +327,14 @@ export const APIClient = {
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),
-    delete: (id: number) => appClient.Delete(`api/filters/${id}`)
+    delete: (id: number) => appClient.Delete(`api/filters/${id}`),
+    notifications: {
+      get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
+      update: (filterId: number, notifications: FilterNotification[]) => 
+        appClient.Put(`api/filters/${filterId}/notifications`, {
+          body: notifications
+        })
+    }
   },
   feeds: {
     find: () => appClient.Get<Feed[]>("api/feeds"),

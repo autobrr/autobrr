@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -20,7 +20,9 @@ import {
   DialogPanel,
   DialogTitle,
   Listbox,
-  ListboxButton, ListboxOption, ListboxOptions,
+  ListboxButton,
+  ListboxOption,
+  ListboxOptions,
   Transition,
   TransitionChild
 } from "@headlessui/react";
@@ -41,8 +43,9 @@ import {
   ListsMDBListOptions,
   ListsMetacriticOptions,
   ListsTraktOptions,
-  ListTypeOptions, OptionBasicTyped,
-  SelectOption
+  ListsAniListOptions,
+  ListTypeOptions,
+  OptionBasicTyped
 } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import {
@@ -53,12 +56,14 @@ import {
 import { classNames, sleep } from "@utils";
 import {
   ListFilterMultiSelectField,
+  SelectFieldBasic,
   SelectFieldCreatable
 } from "@components/inputs/select_wide";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { useToggle } from "@hooks/hooks.ts";
 import { DeleteModal } from "@components/modals";
+import {DocsLink} from "@components/ExternalLink.tsx";
 
 interface ListAddFormValues {
   name: string;
@@ -120,7 +125,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -137,6 +142,8 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                     tags_excluded: [],
                     include_unmonitored: false,
                     include_alternate_titles: false,
+                    include_year: false,
+                    skip_clean_sanitize: false,
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -157,7 +164,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -215,15 +222,9 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                                       }
                                     })}
                                     value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      // resetForm();
-
-                                      const opt = option as SelectOption;
-                                      // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(
-                                        field.name,
-                                        opt.value ?? ""
-                                      );
+                                    onChange={(newValue: unknown) => {
+                                      const option = newValue as { value: string };
+                                      setFieldValue(field.name, option?.value ?? "");
                                     }}
                                     options={ListTypeOptions}
                                   />
@@ -235,11 +236,11 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                           <SwitchGroupWide name="enabled" label="Enabled"/>
                         </div>
 
-                        <ListTypeForm listType={values.type} clients={clients ?? []}/>
+                        <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4 space-y-1">
+                            <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                 Filters
                               </DialogTitle>
@@ -248,17 +249,22 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                            <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []} />
+                            <ListFilterMultiSelectField
+                              name="filters"
+                              label="Filters"
+                              required={true}
+                              options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                            />
 
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
                         <div className="space-x-3 flex justify-end">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
@@ -351,7 +357,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
+              <div className="w-screen max-w-2xl">
                 <Formik
                   enableReinitialize={true}
                   initialValues={{
@@ -369,6 +375,8 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                     tags_excluded: data.tags_excluded,
                     include_unmonitored: data.include_unmonitored,
                     include_alternate_titles: data.include_alternate_titles,
+                    include_year: data.include_year,
+                    skip_clean_sanitize: data.skip_clean_sanitize,
                   }}
                   onSubmit={onSubmit}
                   // validate={validate}
@@ -389,7 +397,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -413,7 +421,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 
                           <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                              <div className="px-4 space-y-1">
+                              <div className="px-4">
                                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
                                   Filters
                                 </DialogTitle>
@@ -422,10 +430,12 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                                 </p>
                               </div>
 
-                              <ListFilterMultiSelectField name="filters" label="Filters" options={filterQuery.data?.map(f => ({
-                                value: f.id,
-                                label: f.name
-                              })) ?? []}/>
+                              <ListFilterMultiSelectField
+                                name="filters"
+                                label="Filters"
+                                required={true}
+                                options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                              />
 
                             </div>
                           </div>
@@ -433,11 +443,11 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                         </div>
                       </div>
 
-                      <div className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
+                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
                         <div className="space-x-3 flex justify-between">
                           <button
                             type="button"
-                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                             onClick={toggleDeleteModal}
                           >
                             Remove
@@ -445,7 +455,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                           <div className="flex space-x-3">
                           <button
                             type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
                             Cancel
@@ -485,7 +495,7 @@ const SubmitButton = (props: SubmitButtonProps) => {
         //     ? "text-red-500 border-red-500 bg-red-50"
         //     : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
         props.isPending ? "cursor-not-allowed" : "",
-        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-blue-700 active:bg-blue-700"
+        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-blue-700 active:bg-blue-700"
       )}
     >
       {props.isPending ? (
@@ -522,27 +532,27 @@ const SubmitButton = (props: SubmitButtonProps) => {
 
 interface ListTypeFormProps {
   listID?: number;
-  listType: string;
+  listType: ListType;
   clients: DownloadClient[];
 }
 
 const ListTypeForm = (props: ListTypeFormProps) => {
   const { setFieldValue } = useFormikContext();
   const [prevActionType, setPrevActionType] = useState<string | null>(null);
-
   const { listType } = props;
 
   useEffect(() => {
-    // if (prevActionType !== null && prevActionType !== list.type && ListTypeOptions.map(l => l.value).includes(list.type)) {
-    if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType as ListType)) {
+    if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType)) {
       // Reset the client_id field value
-      setFieldValue(`client_id`, 0);
+      setFieldValue('client_id', 0);
+      // Reset the  url
+      setFieldValue('url', '');
     }
 
     setPrevActionType(listType);
   }, [listType, prevActionType, setFieldValue]);
 
-  switch (props.listType) {
+  switch (listType) {
     case "RADARR":
       return <ListTypeArr {...props} />;
     case "SONARR":
@@ -563,6 +573,8 @@ const ListTypeForm = (props: ListTypeFormProps) => {
       return <ListTypeMDBList />;
     case "PLAINTEXT":
       return <ListTypePlainText />;
+    case "ANILIST":
+        return <ListTypeAniList />;
     default:
       return null;
   }
@@ -589,6 +601,13 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
         </fieldset>
       );
+    case "PLAINTEXT":
+      return (
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+        </fieldset>
+      );
   }
 }
 
@@ -602,7 +621,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source
         </DialogTitle>
@@ -643,7 +662,7 @@ function ListTypeTrakt() {
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -677,7 +696,7 @@ function ListTypeTrakt() {
   )
 }
 
-function ListTypePlainText() {
+function ListTypeAniList() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
@@ -685,15 +704,14 @@ function ListTypePlainText() {
           Source list
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Use a plain text list with one item per line.
+          Use an AniList list from one of the default autobrr hosted lists.
         </p>
       </div>
 
-      <TextFieldWide 
-        name="url" 
+      <SelectFieldBasic
+        name="url"
         label="List URL"
-        help="URL to a plain text file with one item per line"
-        placeholder="https://example.com/list.txt"
+        options={ListsAniListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
 
       <div className="space-y-1">
@@ -706,10 +724,55 @@ function ListTypePlainText() {
   )
 }
 
+function ListTypePlainText() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Source list
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Use a plain text list with one item per line.
+        </p>
+      </div>
+
+      <TextFieldWide
+        name="url"
+        label="List URL"
+        help="URL to a plain text file with one item per line"
+        placeholder="https://example.com/list.txt"
+        tooltip={
+            <div>
+                <p>Plaintext list can read from both http urls and local files on disk.</p>
+                <br />
+                <p>Remote: https://service.com/file.txt</p>
+                <br />
+                <p>Local: file:///home/username/file.txt</p>
+                <DocsLink href="https://autobrr.com/filters/lists" />
+            </div>
+        }
+      />
+
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+        </fieldset>
+      </div>
+      <div className="space-y-1">
+        <fieldset>
+          <legend className="sr-only">Settings</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+        </fieldset>
+      </div>
+    </div>
+  )
+}
+
 function ListTypeSteam() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -726,7 +789,7 @@ function ListTypeSteam() {
 function ListTypeMetacritic() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -753,9 +816,18 @@ function ListTypeMetacritic() {
 }
 
 function ListTypeMDBList() {
-  return (
+    const { values, setFieldValue } = useFormikContext<List>();
+
+    useEffect(() => {
+        if (!values.match_release && values.include_year) {
+            setFieldValue("match_release", true);
+        }
+
+    }, [setFieldValue, values.include_year, values.match_release])
+
+    return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-      <div className="px-4 space-y-1">
+      <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
           Source list
         </DialogTitle>
@@ -775,6 +847,7 @@ function ListTypeMDBList() {
         <fieldset>
           <legend className="sr-only">Settings</legend>
           <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter for movies. It requires Match Releases enabled. Example: Movie?Title?2024*" />
         </fieldset>
       </div>
     </div>
@@ -818,7 +891,7 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                   {/*</Label>*/}
                   <div className="relative">
                     <ListboxButton
-                      className="block w-full shadow-sm sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
+                      className="block w-full shadow-xs sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
                       {field.value
                         ? clients.find((c) => c.id === field.value)?.name
@@ -840,7 +913,7 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                     >
                       <ListboxOptions
                         static
-                        className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-none sm:text-sm"
+                        className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-hidden sm:text-sm"
                       >
                         {clients
                           .filter((c) => c.type === clientType)

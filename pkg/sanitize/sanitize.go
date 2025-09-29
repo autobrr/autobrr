@@ -1,3 +1,6 @@
+// Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package sanitize
 
 import (
@@ -5,6 +8,30 @@ import (
 )
 
 func String(str string) string {
+	str = strings.TrimSpace(str)
+	return str
+}
+
+func URLEncoding(str string) string {
+	replacements := []struct {
+		old string
+		new string
+	}{
+		{`\u0026`, "&"},
+		{`\u003d`, "="},
+		{`\u003f`, "?"},
+		{`\u002f`, "/"},
+		{`\u003a`, ":"},
+		{`\u0023`, "#"},
+		{`\u0040`, "@"},
+		{`\u0025`, "%"},
+		{`\u002b`, "+"},
+	}
+
+	for _, r := range replacements {
+		str = repeatedReplaceAll(str, r.old, r.new)
+	}
+
 	str = strings.TrimSpace(str)
 	return str
 }

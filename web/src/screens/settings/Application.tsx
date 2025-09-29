@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -55,7 +55,7 @@ function ApplicationSettings() {
       description="Application settings. Change in config.toml and restart to take effect."
     >
       <div className="-mx-4 divide-y divide-gray-150 dark:divide-gray-750">
-        <form className="mt-6 mb-4" action="#" method="POST">
+        <form className="mt-6 pb-4" action="#" method="POST">
           {data && (
             <div className="grid grid-cols-12 gap-2 sm:gap-6 px-4 sm:px-6">
               <div className="col-span-12 sm:col-span-4">
