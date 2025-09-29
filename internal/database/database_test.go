@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 
@@ -42,12 +43,12 @@ func setupPostgresForTest() *DB {
 	}
 
 	// Init a new logger
-	logr := logger.New(cfg)
+	dbLogger := logger.New(cfg)
 
-	logr.With().Str("type", "postgres").Logger()
+	dbLogger.With().Str("type", "postgres").Logger()
 
 	// Initialize a new DB connection
-	db, err := NewDB(cfg, logr)
+	db, err := NewDB(cfg, dbLogger)
 	if err != nil {
 		log.Fatalf("Could not create database: %q", err)
 	}
@@ -90,16 +91,16 @@ func setupSqliteForTest() *DB {
 		return d
 	}
 
-	cfg := &domain.Config{
-		LogLevel:     "INFO",
-		DatabaseType: dbtype,
-	}
+	cfg := config.New("", "dev")
+	cfg.Config.DatabaseType = dbtype
+	cfg.Config.DatabaseDSN = ":memory:"
+	cfg.Config.LogLevel = "ERROR"
 
 	// Init a new logger
-	logr := logger.New(cfg)
+	dbLogger := logger.New(cfg.Config)
 
 	// Initialize a new DB connection
-	db, err := NewDB(cfg, logr)
+	db, err := NewDB(cfg.Config, dbLogger)
 	if err != nil {
 		log.Fatalf("Could not create database: %v", err)
 	}
