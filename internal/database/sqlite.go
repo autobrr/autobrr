@@ -105,43 +105,24 @@ func (db *DB) closingSQLite() error {
 
 func (db *DB) migrateSQLite() error {
 	migrate := migrations.SQLiteMigrations(db.Handler)
+	migrate.PreMigrationHook = func() error {
+		if db.cfg.DatabaseMaxBackups > 0 {
+			if err := db.databaseConsistencyCheckSQLite(); err != nil {
+				return errors.Wrap(err, "database image malformed")
+
+			}
+
+			if err := db.backupSQLiteDatabase(); err != nil {
+				return errors.Wrap(err, "failed to create database backup")
+			}
+		}
+
+		return nil
+	}
 
 	if err := migrate.Migrate(); err != nil {
 		return errors.Wrap(err, "failed to migrate database")
 	}
-
-	//var version int
-	//if err := db.Handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
-	//	return errors.Wrap(err, "failed to query schema version")
-	//}
-	//
-	//db.log.Info().Msgf("Beginning database schema upgrade from version %d to version: %d", version, len(sqliteMigrations))
-
-	//if version == 0 {
-	//	if _, err := tx.Exec(sqliteSchema); err != nil {
-	//		return errors.Wrap(err, "failed to initialize schema")
-	//	}
-	//} else {
-	//	if db.cfg.DatabaseMaxBackups > 0 {
-	//		if err := db.databaseConsistencyCheckSQLite(); err != nil {
-	//			return errors.Wrap(err, "database image malformed")
-	//		}
-	//
-	//		if err := db.backupSQLiteDatabase(); err != nil {
-	//			return errors.Wrap(err, "failed to create database backup")
-	//		}
-	//	}
-	//
-	//	for i := version; i < len(sqliteMigrations); i++ {
-	//		db.log.Info().Msgf("Upgrading Database schema to version: %v", i+1)
-	//
-	//		if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
-	//			return errors.Wrap(err, "failed to execute migration #%v", i)
-	//		}
-	//	}
-	//}
-
-	//db.log.Info().Msgf("Database schema upgraded to version: %d", len(sqliteMigrations))
 
 	if err := db.cleanupSQLiteBackups(); err != nil {
 		return err

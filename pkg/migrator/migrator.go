@@ -43,6 +43,8 @@ type Migrator struct {
 	migrations          []*Migration
 	migrationLookup     map[int]*Migration
 	migrationNameLookup map[string]*Migration
+
+	PreMigrationHook func() error
 }
 
 type Option func(migrate *Migrator)
@@ -85,6 +87,12 @@ func WithFilePathPrefix(prefix string) Option {
 	}
 }
 
+func WithPreMigrationHook(hook func() error) Option {
+	return func(migrate *Migrator) {
+		migrate.PreMigrationHook = hook
+	}
+}
+
 // Logger interface
 type Logger interface {
 	Printf(string, ...interface{})
@@ -114,6 +122,7 @@ func NewMigrate(db *sql.DB, opts ...Option) *Migrator {
 		migrations:          make([]*Migration, 0),
 		migrationLookup:     map[int]*Migration{},
 		migrationNameLookup: map[string]*Migration{},
+		PreMigrationHook:    nil,
 	}
 
 	for _, opt := range opts {
@@ -346,6 +355,12 @@ func (m *Migrator) Migrate() error {
 	if appliedCount == len(m.migrations) {
 		m.logger.Printf("database schema up to date")
 		return nil
+	}
+
+	if m.PreMigrationHook != nil {
+		if err := m.PreMigrationHook(); err != nil {
+			return errors.Wrap(err, "migrator: could not run pre migration hook")
+		}
 	}
 
 	//for idx, migration := range m.migrations[appliedCount-1 : len(m.migrations)] {
