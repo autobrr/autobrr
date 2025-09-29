@@ -30,8 +30,7 @@ func (db *DB) openSQLite() error {
 
 	// open database connection
 	if db.Handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000"); err != nil {
-		db.log.Fatal().Err(err).Msg("could not open db connection")
-		return err
+		return errors.Wrap(err, "could not open db connection")
 	}
 
 	// Set busy timeout
@@ -80,9 +79,10 @@ func (db *DB) openSQLite() error {
 	//}
 
 	// migrate db
-	if err = db.migrateSQLite(); err != nil {
-		db.log.Fatal().Err(err).Msg("could not migrate db")
-		return err
+	if db.cfg.DatabaseAutoMigrate {
+		if err = db.migrateSQLite(); err != nil {
+			return errors.Wrap(err, "could not migrate db")
+		}
 	}
 
 	return nil

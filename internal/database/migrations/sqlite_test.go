@@ -1,3 +1,8 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build integration
+
 package migrations_test
 
 import (
@@ -8,7 +13,7 @@ import (
 	"github.com/autobrr/autobrr/internal/database/migrations"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/pkg/migrator/sqlite"
+	"github.com/autobrr/autobrr/pkg/migrator"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

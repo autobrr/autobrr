@@ -20,20 +20,19 @@ func (db *DB) openPostgres() error {
 
 	// open database connection
 	if db.Handler, err = sql.Open("postgres", db.DSN); err != nil {
-		db.log.Fatal().Err(err).Msg("could not open postgres connection")
 		return errors.Wrap(err, "could not open postgres connection")
 	}
 
 	err = db.Handler.Ping()
 	if err != nil {
-		db.log.Fatal().Err(err).Msg("could not ping postgres database")
 		return errors.Wrap(err, "could not ping postgres database")
 	}
 
 	// migrate db
-	if err = db.migratePostgres(); err != nil {
-		db.log.Fatal().Err(err).Msg("could not migrate postgres database")
-		return errors.Wrap(err, "could not migrate postgres database")
+	if db.cfg.DatabaseAutoMigrate {
+		if err = db.migratePostgres(); err != nil {
+			return errors.Wrap(err, "could not migrate postgres database")
+		}
 	}
 
 	return nil

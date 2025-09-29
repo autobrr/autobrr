@@ -1,9 +1,13 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package migrations
 
 import (
 	"database/sql"
 
-	migrator "github.com/autobrr/autobrr/pkg/migrator/sqlite"
+	"github.com/autobrr/autobrr/pkg/migrator"
+
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

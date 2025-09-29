@@ -1,4 +1,7 @@
-//go:build ignore
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+//go:build generate
 
 package main
 
@@ -13,9 +16,9 @@ import (
 
 func main() {
 	//migrationDir := "internal/database/migrations/sqlite"
-	migrationDir := "sqlite"
+	migrationDir := "../sqlite"
 	//outputFile := "internal/database/migrations/sqlite.go"
-	outputFile := "sqlite.go"
+	outputFile := "../sqlite.go"
 
 	// Read all .sql files from the migration directory
 	files, err := filepath.Glob(filepath.Join(migrationDir, "*.sql"))
