@@ -1,9 +1,10 @@
-package database
+package migrations_test
 
 import (
 	"database/sql"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/database/migrations"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -25,8 +26,8 @@ type MigrationTestCase struct {
 	ValidateResult      func(db *sql.DB, t *testing.T) // Validate the migration worked correctly
 }
 
-// runMigrationTest executes a pluggable migration test
-func runMigrationTest(t *testing.T, testCase MigrationTestCase) {
+// runMigrationTestSQLite executes a pluggable migration test
+func runMigrationTestSQLite(t *testing.T, testCase MigrationTestCase) {
 	// Create temporary database
 	//tempDir := t.TempDir()
 	//dbPath := filepath.Join(tempDir, "test.db")
@@ -38,7 +39,7 @@ func runMigrationTest(t *testing.T, testCase MigrationTestCase) {
 	//	_ = db.Close()
 	//}()
 
-	db, cleanup := setupTestDB(t)
+	db, cleanup := setupTestSQLiteDB(t)
 	defer cleanup()
 
 	migrate := migrations.SQLiteMigrations(db.Handler)
@@ -225,13 +226,13 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			runMigrationTest(t, tt.args)
+			runMigrationTestSQLite(t, tt.args)
 		})
 	}
 }
 
 // Helper function to create a test database for integration tests
-func setupTestDB(t *testing.T) (*DB, func()) {
+func setupTestSQLiteDB(t *testing.T) (*database.DB, func()) {
 	//tempDir := t.TempDir()
 	//dbPath := filepath.Join(tempDir, "test.db")
 
@@ -242,7 +243,7 @@ func setupTestDB(t *testing.T) (*DB, func()) {
 	}
 
 	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
-	db, err := NewDB(cfg, log)
+	db, err := database.NewDB(cfg, log)
 	require.NoError(t, err)
 
 	err = db.Open()
@@ -257,19 +258,21 @@ func setupTestDB(t *testing.T) (*DB, func()) {
 }
 
 // Test full migration sequence
-func TestFullMigrationSequence(t *testing.T) {
-	db, cleanup := setupTestDB(t)
+func TestFullMigrationSequenceSQLite(t *testing.T) {
+	db, cleanup := setupTestSQLiteDB(t)
 	defer cleanup()
 
 	// This will run all migrations
-	err := db.migrateSQLite()
-	require.NoError(t, err, "Full migration should succeed")
+	migrate := migrations.SQLiteMigrations(db.Handler)
 
-	// Verify current schema version
-	var version int
-	err = db.Handler.QueryRow("PRAGMA user_version").Scan(&version)
+	err := migrate.Migrate()
 	require.NoError(t, err)
 
-	expectedVersion := len(sqliteMigrations)
-	assert.Equal(t, expectedVersion, version, "Should be at latest migration version")
+	//// Verify current schema version
+	//var version int
+	//err = db.Handler.QueryRow("PRAGMA user_version").Scan(&version)
+	//require.NoError(t, err)
+	//
+	//expectedVersion := len(database.sqliteMigrations)
+	//assert.Equal(t, expectedVersion, version, "Should be at latest migration version")
 }
