@@ -52,7 +52,16 @@ func (s *shoutrrrSender) CanSendPayload(event domain.NotificationEvent, payload 
 		return false
 	}
 
-	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
+	if s.Settings.FilterMuted(payload.FilterID) {
+		s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
+		return false
+	}
+
+	if s.Settings.FilterEventEnabled(payload.FilterID, event) {
+		return true
+	}
+
+	if s.isEnabledEvent(event) {
 		return true
 	}
 

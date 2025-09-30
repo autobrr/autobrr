@@ -738,9 +738,9 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                     <div key={f.filter_id} className="flex justify-between px-2 py-2 bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
                       <span className="font-medium text-gray-500 dark:text-gray-300">{f.filter_name}</span>
                       <div className="flex gap-2">
-                        {f.events.map((e) => (
-                          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-400/10 dark:text-gray-400">{FilterEventOptions[e]}</span>
-                        ))}
+                        {f.events.length > 0
+                          ? f.events.map((e) => <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-400/10 dark:text-gray-400">{FilterEventOptions[e]}</span>)
+                          : <span className="inline-flex items-center rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-600 dark:bg-yellow-400/10 dark:text-yellow-400">Muted</span>}
                       </div>
                     </div>
                   </Link>
