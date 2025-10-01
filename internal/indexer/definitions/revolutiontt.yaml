@@ -5,7 +5,7 @@ identifier: revolutiontt
 description: RevolutionTT (RTT) is a private torrent tracker for 0DAY / GENERAL.
 language: en-us
 urls:
-  - https://www.revolutiontt.me/
+  - https://www.revott.me/
 privacy: private
 protocol: torrent
 supports:
@@ -21,7 +21,7 @@ settings:
 
 irc:
   network: RevolutionTT
-  server: irc.revolutiontt.me
+  server: irc.revott.me
   port: 7000
   tls: true
   channels:
@@ -58,17 +58,17 @@ irc:
     type: single
     lines:
       - tests:
-        - line: '!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revolutiontt.me/details.php?id=z4WBMrhj&hit=1'
+        - line: '!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=z4WBMrhj&hit=1'
           expect:
             torrentName: Some.TV.Show.S01E02.720p.WEB.h264-KOGi
             category: TV/HDx264
-            baseUrl: https://revolutiontt.me/
+            baseUrl: https://revott.me/
             torrentId: z4WBMrhj
-        - line: '!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revolutiontt.me/details.php?id=eAg24buk&hit=1'
+        - line: '!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=eAg24buk&hit=1'
           expect:
             torrentName: Some.Other.Show.S01E02.1080p.WEB.h264-KOGi
             category: TV/HDx264
-            baseUrl: https://revolutiontt.me/
+            baseUrl: https://revott.me/
             torrentId: eAg24buk
         pattern: '!new (.*) \| (.*) \| (https?:\/\/.*\/).*id=([0-9a-zA-Z]+)'
         vars:
