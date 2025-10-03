@@ -241,6 +241,10 @@ func (m *Migrator) BeginTx() (*sql.Tx, error) {
 	return m.db.BeginTx(context.Background(), nil)
 }
 
+func (m *Migrator) TotalMigrations() int {
+	return len(m.migrations)
+}
+
 func (m *Migrator) CountApplied() (int, error) {
 	var count int
 
