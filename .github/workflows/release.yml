@@ -106,7 +106,7 @@ jobs:
       - name: Create Profile environment
         run:
           |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration linux' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration linux ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
           chmod +x profile.sh;
           mkdir profile;
 
