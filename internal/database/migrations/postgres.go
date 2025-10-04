@@ -16,8 +16,8 @@ import (
 func PostgresMigrations(db *sql.DB) *migrator.Migrator {
 	migrate := migrator.NewMigrate(
 		db,
-		migrator.WithEmbedFS(SchemaMigrationsPostgres),
-		migrator.WithFilePathPrefix("postgres"),
+		migrator.WithEngine(migrator.EnginePostgres),
+		migrator.WithEmbedFS(SchemaMigrationsPostgres, "postgres"),
 		migrator.WithSchemaFile("current_schema_postgres.sql"),
 		migrator.WithLogger(zstdlog.NewStdLoggerWithLevel(log.With().Str("module", "database-migrations").Logger(), zerolog.InfoLevel)),
 	)

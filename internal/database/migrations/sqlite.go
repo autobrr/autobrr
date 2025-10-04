@@ -18,9 +18,8 @@ import (
 func SQLiteMigrations(db *sql.DB) *migrator.Migrator {
 	migrate := migrator.NewMigrate(
 		db,
-		migrator.WithSQLitePragma("user_version"),
-		migrator.WithEmbedFS(SchemaMigrationsSQLite),
-		migrator.WithFilePathPrefix("sqlite"),
+		migrator.WithEngine(migrator.EngineSQLite),
+		migrator.WithEmbedFS(SchemaMigrationsSQLite, "sqlite"),
 		migrator.WithSchemaFile("current_schema_sqlite.sql"),
 		migrator.WithLogger(zstdlog.NewStdLoggerWithLevel(log.With().Str("module", "database-migrations").Logger(), zerolog.InfoLevel)),
 	)

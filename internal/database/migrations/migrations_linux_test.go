@@ -109,6 +109,10 @@ type = "sqlite"
 		require.NoError(t, err, "Failed to open database")
 		defer db.Close()
 
+		var premigrateVer int
+		err = db.Handler.QueryRow("PRAGMA user_version").Scan(&premigrateVer)
+		require.NoError(t, err, "should have a number of applied migrations")
+
 		// Run all migrations
 		migrate := migrations.SQLiteMigrations(db.Handler)
 		err = migrate.Migrate()
@@ -116,11 +120,11 @@ type = "sqlite"
 
 		applied, err := migrate.CountApplied()
 		require.NoError(t, err, "should have a number of applied migrations")
-		// subtract -1 because the first migration is 0 with sqlite
-		assert.Equal(t, migrate.TotalMigrations()-1, applied, "should have all migrations applied")
+		assert.Equal(t, migrate.TotalMigrations(), applied, "should have all migrations applied")
 
 		var ver int
 		err = db.Handler.QueryRow("PRAGMA user_version").Scan(&ver)
+		assert.Equal(t, 0, ver, "should have reset user_version to 0")
 
 		// Verify we can query basic tables
 		var count int
@@ -163,17 +167,19 @@ type = "sqlite"
 		dsn := fmt.Sprintf("postgres://%s:%s@localhost:%d/%s?sslmode=disable", dbUsername, dbPassword, dbPort, dbName)
 
 		// Create a minimal config file
-		// Use a random port to avoid conflicts
-		configContent := `# Minimal config for testing
+		configContent := fmt.Sprintf(`# Minimal config for testing
 logLevel = "ERROR"
 checkForUpdates = false
 host = "127.0.0.1"
 port = 0
 
-[database]
-type = "postgres"
-databaseDSN = "` + dsn + `"
-`
+databaseType = "postgres"
+postgresHost = %q
+postgresPort = %d
+postgresUser = %q
+postgresPass = %q
+postgresDatabase = %q
+`, "localhost", dbPort, dbUsername, dbPassword, dbName)
 		err = writeFile(configPath, configContent)
 		require.NoError(t, err, "Failed to write config file")
 
@@ -201,6 +207,10 @@ databaseDSN = "` + dsn + `"
 		require.NoError(t, err, "Failed to open database")
 		defer db.Close()
 
+		var premigrateVer int
+		err = db.Handler.QueryRow("SELECT version FROM schema_migrations WHERE id = 1").Scan(&premigrateVer)
+		require.NoError(t, err, "should have a number of applied migrations")
+
 		// Run all migrations
 		migrate := migrations.PostgresMigrations(db.Handler)
 		err = migrate.Migrate()
@@ -210,34 +220,14 @@ databaseDSN = "` + dsn + `"
 		require.NoError(t, err, "should have a number of applied migrations")
 		assert.Equal(t, migrate.TotalMigrations(), applied, "should have all migrations applied")
 
-		var ver int
-		err = db.Handler.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&ver)
-		require.NoError(t, err, "should have a number of applied migrations")
-
-		var appliedMigrations []struct{ id, version string }
-		rows, err := db.Handler.Query("SELECT id, version FROM schema_migrations")
-		require.NoError(t, err, "should have a number of applied migrations")
-		defer rows.Close()
-		for rows.Next() {
-			var id, version string
-			err = rows.Scan(&id, &version)
-			require.NoError(t, err, "should have a number of applied migrations")
-			appliedMigrations = append(appliedMigrations, struct{ id, version string }{id, version})
-		}
-		err = rows.Err()
-		require.NoError(t, err, "should have a number of applied migrations")
-
-		assert.Equal(t, migrate.TotalMigrations(), len(appliedMigrations), "should have all migrations applied")
-
-		// Verify we can query basic tables
-		var count int
-		err = db.Handler.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+		var userCount int
+		err = db.Handler.QueryRow("SELECT COUNT(*) FROM users").Scan(&userCount)
 		require.NoError(t, err, "Should be able to query users table")
-		assert.Equal(t, 1, count, "Should be one user in users table")
+		assert.Equal(t, 1, userCount, "Should be one user in users table")
 
 		t.Logf("Successfully migrated from v%s to latest version", version)
 
-		t.Cleanup(func() {
+		defer t.Cleanup(func() {
 			t.Logf("Stopping postgres")
 			postgres.Stop()
 		})
