@@ -28,10 +28,13 @@ func runMigrationTestPostgres(t *testing.T, testCase MigrationTestCase) {
 
 	migrate := migrations.PostgresMigrations(db.Handler)
 
+	err := migrate.InitVersionTable()
+	require.NoError(t, err)
+
 	// Run initial schema setup (all migrations up to the target migration - 1)
 	m := migrate.GetUpTo(testCase.MigrationsUntilName)
 
-	err := migrate.RunMigrations(m)
+	err = migrate.RunMigrations(m)
 	require.NoError(t, err)
 
 	// Insert test data
