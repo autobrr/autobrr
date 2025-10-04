@@ -270,6 +270,10 @@ func (m *Migrator) TotalMigrations() int {
 
 // convertMigrationsTableSingleToMultiPG converts a single-row version table to a multi-row table
 func (m *Migrator) convertMigrationsTableSingleToMultiPG() error {
+	if err := m.initVersionTable(); err != nil {
+		return errors.Wrap(err, "migrator: could not init version table")
+	}
+
 	var count int
 	query, args, err := m.squirrel.Select("COUNT(*)").From(m.tableName).ToSql()
 	if err != nil {
@@ -281,8 +285,7 @@ func (m *Migrator) convertMigrationsTableSingleToMultiPG() error {
 	}
 
 	if count == 0 {
-		// create table
-		return m.initVersionTable()
+		return nil
 	}
 
 	if count > 1 {
