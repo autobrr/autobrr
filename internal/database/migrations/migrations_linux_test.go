@@ -32,7 +32,8 @@ func TestMigrateOldVersionsToLatest(t *testing.T) {
 
 	// Create temp directory for test
 	tempDir := t.TempDir()
-	binaryPath := tempDir + "/autobrr"
+	//binaryPath := tempDir + "/autobrr"
+	ctlBinaryPath := tempDir + "/autobrrctl"
 	archiveName := "autobrr_" + version + "_" + arch + ".tar.gz"
 	archivePath := tempDir + "/" + archiveName
 
@@ -52,14 +53,17 @@ func TestMigrateOldVersionsToLatest(t *testing.T) {
 	require.NoError(t, err, "Failed to extract archive")
 
 	// Make binary executable
-	cmd = "chmod +x " + binaryPath
+	cmd = "chmod +x " + ctlBinaryPath
 	err = executeCommand(t, cmd)
 	require.NoError(t, err, "Failed to make binary executable")
 
 	t.Run("Test with sqlite", func(t *testing.T) {
-		configPath := tempDir + "/config_sqlite.toml"
-		// Old version creates database in config directory as autobrr.db by default
-		dbPath := tempDir + "/autobrr.db"
+		workDir := tempDir + "/sqlite"
+		err = executeCommand(t, fmt.Sprintf("mkdir %s", workDir))
+		require.NoError(t, err, "Failed to create work directory")
+
+		configPath := workDir + "/config.toml"
+		dbPath := workDir + "/autobrr.db"
 
 		// Create minimal config file
 		// Use a random port to avoid conflicts
@@ -75,21 +79,21 @@ type = "sqlite"
 		err = writeFile(configPath, configContent)
 		require.NoError(t, err, "Failed to write config file")
 
-		// Run old version to initialize database (with timeout)
-		// Old version uses the config directory for database by default
+		// Run the old version to initialize the database (with timeout)
+		// Old version uses the config directory for the database by default
 		t.Logf("Running v%s to initialize database", version)
-		cmd = "cd " + tempDir + " && timeout 5 " + binaryPath + " --config=" + tempDir + " 2>&1 || true"
-		err = executeCommand(t, cmd)
-		// Don't check error because we're timing out the process
+		pass := "SuperSecretTestPassword"
+		cmdRun := fmt.Sprintf("echo %q | %s --config=%s create-user testuser", pass, ctlBinaryPath, workDir)
+		err = executeCommand(t, cmdRun)
+		require.NoError(t, err, "Failed to run old version")
 
 		// List files in temp directory for debugging
-		//cmd = "ls -la " + tempDir
-		//_ = executeCommand(t, cmd)
+		//_ = executeCommand(t, "ls -la "+workDir)
 
 		// Verify database was created
 		require.FileExists(t, dbPath, "Database file should have been created by old version")
 
-		// Now open the database with current code and run migrations
+		// Now open the database with the current code and run migrations
 		t.Logf("Running migrations from v%s to latest", version)
 		cfg := &domain.Config{
 			DatabaseType:        "sqlite",
@@ -120,14 +124,19 @@ type = "sqlite"
 
 		// Verify we can query basic tables
 		var count int
-		err = db.Handler.QueryRow("SELECT COUNT(*) FROM filter").Scan(&count)
-		require.NoError(t, err, "Should be able to query filter table")
+		err = db.Handler.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+		require.NoError(t, err, "Should be able to query users table")
+		assert.Equal(t, 1, count, "Should be one user in users table")
 
 		t.Logf("Successfully migrated from v%s to latest version", version)
 	})
 
 	t.Run("Test with postgres", func(t *testing.T) {
-		configPath := tempDir + "/config_pg.toml"
+		workDir := tempDir + "/postgres"
+		err = executeCommand(t, fmt.Sprintf("mkdir %s", workDir))
+		require.NoError(t, err, "Failed to create work directory")
+
+		configPath := workDir + "/config.toml"
 
 		var (
 			dbUsername = "postgres"
@@ -153,7 +162,7 @@ type = "sqlite"
 
 		dsn := fmt.Sprintf("postgres://%s:%s@localhost:%d/%s?sslmode=disable", dbUsername, dbPassword, dbPort, dbName)
 
-		// Create minimal config file
+		// Create a minimal config file
 		// Use a random port to avoid conflicts
 		configContent := `# Minimal config for testing
 logLevel = "ERROR"
@@ -168,18 +177,15 @@ databaseDSN = "` + dsn + `"
 		err = writeFile(configPath, configContent)
 		require.NoError(t, err, "Failed to write config file")
 
-		// Run old version to initialize database (with timeout)
-		// Old version uses the config directory for database by default
+		// Run the old version to initialize the database (with timeout)
+		// Old version uses the config directory for the database by default
 		t.Logf("Running v%s to initialize database", version)
-		cmd = "cd " + tempDir + " && timeout 5 " + binaryPath + " --config=" + tempDir + " 2>&1 || true"
-		err = executeCommand(t, cmd)
-		// Don't check error because we're timing out the process
+		pass := "SuperSecretTestPassword"
+		cmdRun := fmt.Sprintf("echo %q | %s --config=%s create-user testuser", pass, ctlBinaryPath, workDir)
+		err = executeCommand(t, cmdRun)
+		require.NoError(t, err, "Failed to run old version")
 
-		// List files in temp directory for debugging
-		//cmd = "ls -la " + tempDir
-		//_ = executeCommand(t, cmd)
-
-		// Now open the database with current code and run migrations
+		// Now open the database with the current code and run migrations
 		t.Logf("Running migrations from v%s to latest", version)
 		cfg := &domain.Config{
 			DatabaseType:        "postgres",
@@ -225,8 +231,9 @@ databaseDSN = "` + dsn + `"
 
 		// Verify we can query basic tables
 		var count int
-		err = db.Handler.QueryRow("SELECT COUNT(*) FROM filter").Scan(&count)
-		require.NoError(t, err, "Should be able to query filter table")
+		err = db.Handler.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+		require.NoError(t, err, "Should be able to query users table")
+		assert.Equal(t, 1, count, "Should be one user in users table")
 
 		t.Logf("Successfully migrated from v%s to latest version", version)
 
