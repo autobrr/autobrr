@@ -10,16 +10,15 @@ import (
 
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
-func PostgresMigrations(db *sql.DB) *migrator.Migrator {
+func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate := migrator.NewMigrate(
 		db,
 		migrator.WithEngine(migrator.EnginePostgres),
 		migrator.WithEmbedFS(SchemaMigrationsPostgres, "postgres"),
 		migrator.WithSchemaFile("current_schema_postgres.sql"),
-		migrator.WithLogger(zstdlog.NewStdLoggerWithLevel(log.With().Str("module", "database-migrations").Logger(), zerolog.InfoLevel)),
+		migrator.WithLogger(zstdlog.NewStdLoggerWithLevel(logger.With().Str("module", "database-migrations").Logger(), zerolog.InfoLevel)),
 	)
 
 	migrate.AddFileMigration("0_base_schema_postgres.sql")

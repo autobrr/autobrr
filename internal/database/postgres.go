@@ -39,7 +39,7 @@ func (db *DB) openPostgres() error {
 }
 
 func (db *DB) migratePostgres() error {
-	migrate := migrations.PostgresMigrations(db.Handler)
+	migrate := migrations.PostgresMigrations(db.Handler, db.log)
 
 	err := migrate.Migrate()
 	if err != nil {

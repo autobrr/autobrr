@@ -369,6 +369,14 @@ func (m *Migrator) checkPreReqs() error {
 func (m *Migrator) migratePragmaToNewTable(currentVersion int) error {
 	m.logger.Printf("migrating from PRAGMA user_version (%d) to multi-row schema_migrations table", currentVersion)
 
+	if m.PreMigrationHook != nil {
+		m.logger.Printf("running pre migration hook to backup database...")
+
+		if err := m.PreMigrationHook(); err != nil {
+			return errors.Wrap(err, "migrator: could not run pre migration hook")
+		}
+	}
+
 	tx, err := m.db.Begin()
 	if err != nil {
 		return errors.Wrap(err, "could not begin transaction")

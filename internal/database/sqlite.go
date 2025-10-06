@@ -104,7 +104,7 @@ func (db *DB) closingSQLite() error {
 }
 
 func (db *DB) migrateSQLite() error {
-	migrate := migrations.SQLiteMigrations(db.Handler)
+	migrate := migrations.SQLiteMigrations(db.Handler, db.log)
 	migrate.PreMigrationHook = func() error {
 		if db.cfg.DatabaseMaxBackups > 0 {
 			if err := db.databaseConsistencyCheckSQLite(); err != nil {

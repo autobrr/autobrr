@@ -114,7 +114,7 @@ type = "sqlite"
 		require.NoError(t, err, "should have a number of applied migrations")
 
 		// Run all migrations
-		migrate := migrations.SQLiteMigrations(db.Handler)
+		migrate := migrations.SQLiteMigrations(db.Handler, log.With().Logger())
 		err = migrate.Migrate()
 		require.NoError(t, err, "Failed to run migrations from old version to latest")
 
@@ -212,7 +212,7 @@ postgresDatabase = %q
 		require.NoError(t, err, "should have a number of applied migrations")
 
 		// Run all migrations
-		migrate := migrations.PostgresMigrations(db.Handler)
+		migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
 		err = migrate.Migrate()
 		require.NoError(t, err, "Failed to run migrations from old version to latest")
 

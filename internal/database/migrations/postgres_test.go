@@ -26,7 +26,9 @@ func runMigrationTestPostgres(t *testing.T, testCase MigrationTestCase) {
 	db, cleanup := setupTestPostgresDB(t)
 	defer cleanup()
 
-	migrate := migrations.PostgresMigrations(db.Handler)
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+
+	migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
 
 	err := migrate.InitVersionTable()
 	require.NoError(t, err)
@@ -143,8 +145,10 @@ func TestFullMigrationSequencePostgres(t *testing.T) {
 	defer cleanup()
 	require.NoError(t, err)
 
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+
 	// This will run all migrations
-	migrate := migrations.PostgresMigrations(db.Handler)
+	migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
 
 	err = migrate.Migrate()
 	require.NoError(t, err)
