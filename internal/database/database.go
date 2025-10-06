@@ -101,18 +101,31 @@ func (db *DB) Open() error {
 		return errors.New("DSN required")
 	}
 
-	var err error
-
 	switch db.Driver {
 	case DriverSQLite:
-		if err = db.openSQLite(); err != nil {
-			db.log.Fatal().Err(err).Msg("could not open sqlite db connection")
-			return err
+		if err := db.openSQLite(); err != nil {
+			return errors.Wrap(err, "could not open sqlite db connection")
 		}
+
 	case DriverPostgres:
-		if err = db.openPostgres(); err != nil {
-			db.log.Fatal().Err(err).Msg("could not open postgres db connection")
-			return err
+		if err := db.openPostgres(); err != nil {
+			return errors.Wrap(err, "could not open postgres db connection")
+		}
+	}
+
+	return nil
+}
+
+func (db *DB) Migrate() error {
+	switch db.Driver {
+	case DriverSQLite:
+		if err := db.migrateSQLite(); err != nil {
+			return errors.Wrap(err, "could not migrate sqlite db")
+		}
+
+	case DriverPostgres:
+		if err := db.migratePostgres(); err != nil {
+			return errors.Wrap(err, "could not migrate postgres db")
 		}
 	}
 
@@ -123,7 +136,8 @@ func (db *DB) Close() error {
 	switch db.Driver {
 	case DriverSQLite:
 		if err := db.closingSQLite(); err != nil {
-			db.log.Fatal().Err(err).Msg("could not run sqlite shutdown tasks")
+			return errors.Wrap(err, "could not run sqlite shutdown tasks")
+
 		}
 	case DriverPostgres:
 	}
