@@ -12,11 +12,11 @@ supports:
   - irc
   - rss
 settings:
-  - name: passkey
+  - name: rsskey
     type: secret
     required: true
-    label: Passkey
-    help: To be found in the navigation pane under "Your Profile".
+    label: RSS Key
+    help: "Go to My Settings > RSS Key, and copy your RSS Key"
 
 irc:
   network: Rizon

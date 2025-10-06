@@ -1,0 +1,2 @@
+ALTER TABLE list
+    ADD COLUMN include_year BOOLEAN DEFAULT FALSE;
