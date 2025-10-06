@@ -5,7 +5,7 @@ identifier: revolutiontt
 description: RevolutionTT (RTT) is a private torrent tracker for 0DAY / GENERAL.
 language: en-us
 urls:
-  - https://www.revott.me/
+  - https://revott.me/
 privacy: private
 protocol: torrent
 supports:
