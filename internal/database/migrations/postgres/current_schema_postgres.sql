@@ -132,6 +132,7 @@ CREATE TABLE release_profile_duplicate
     proper        BOOLEAN DEFAULT FALSE,
     repack        BOOLEAN DEFAULT FALSE,
     edition       BOOLEAN DEFAULT FALSE,
+    hybrid        BOOLEAN DEFAULT FALSE,
     language      BOOLEAN DEFAULT FALSE
 );
 
