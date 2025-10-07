@@ -124,8 +124,8 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 	if profile.ID == 0 {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_profile_duplicate").
-			Columns("name", "protocol", "release_name", "hash", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack").
-			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Hash, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
+			Columns("name", "protocol", "release_name", "hash", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack", "hybrid").
+			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Hash, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack, profile.Hybrid).
 			Suffix("RETURNING id").
 			RunWith(repo.db.Handler)
 
@@ -162,6 +162,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Set("website", profile.Website).
 			Set("proper", profile.Proper).
 			Set("repack", profile.Repack).
+			Set("hybrid", profile.Hybrid).
 			Where(sq.Eq{"id": profile.ID}).
 			RunWith(repo.db.Handler)
 
@@ -526,6 +527,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 			"website",
 			"proper",
 			"repack",
+			"hybrid",
 		).
 		From("release_profile_duplicate")
 
@@ -550,7 +552,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 	for rows.Next() {
 		var p domain.DuplicateReleaseProfile
 
-		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Hash, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
+		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Hash, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack, &p.Hybrid)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -1108,9 +1110,13 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 			}
 		}
 
+		// video features (hybrid)
+		if profile.Hybrid && release.IsTypeVideo() {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.hybrid": release.Hybrid})
+		}
+
 		// video features (hybrid, remux)
 		if release.IsTypeVideo() {
-			queryBuilder = queryBuilder.Where(sq.Eq{"r.hybrid": release.Hybrid})
 			queryBuilder = queryBuilder.Where(sq.Eq{"r.media_processing": release.MediaProcessing})
 		}
 

@@ -22,7 +22,7 @@ func (p IRCParserDefault) Parse(rls *Release, _ map[string]string) error {
 
 type IRCParserGazelleGames struct{}
 
-var ggnIOSRegex = regexp.MustCompile(`(?P<releaseName>.+) (v?(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?) in (?P<title>.+)`)
+var ggnIOSRegex = regexp.MustCompile(`^(?P<releaseName>.+?)\s*-\s*Version\s+(?P<version>[a-z0-9.-]+)(?:\s+in\s+(?P<title>.+))?$`)
 var ggnSwitchWindowsRegex = regexp.MustCompile(`^(?P<releaseName>.+?)(?:\s*-\s*(?P<update>Update))?(?:\s*-\s*(?P<version>Version\s.+))?\s+in\s+(?P<title>.+)$`)
 var ggnWindowsFallback = regexp.MustCompile(`^(?P<releaseName>.+?)(?:\s*-\s*(?P<version>Version\s.+))?$`)
 

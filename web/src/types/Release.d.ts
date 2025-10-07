@@ -100,5 +100,6 @@ interface ReleaseProfileDuplicate {
   proper: boolean;
   repack: boolean;
   edition: boolean;
+  hybrid: boolean;
   language: boolean;
 }

@@ -54,6 +54,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     proper: false,
     repack: false,
     edition: false,
+    hybrid: false,
     language: false,
   };
 
@@ -90,6 +91,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
           <SwitchGroupWide name="proper" label="Proper" />
           <SwitchGroupWide name="repack" label="Repack" />
           <SwitchGroupWide name="edition" label="Edition" />
+          <SwitchGroupWide name="hybrid" label="Hybrid version" />
           <SwitchGroupWide name="language" label="Language" />
         </div>
       )}
@@ -153,6 +155,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     proper: profile.proper,
     repack: profile.repack,
     edition: profile.edition,
+    hybrid: profile.hybrid,
     language: profile.language,
   };
 
@@ -190,6 +193,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
           <SwitchGroupWide name="repack" label="Repack" />
           <SwitchGroupWide name="proper" label="Proper" />
           <SwitchGroupWide name="edition" label="Edition and Cut" />
+          <SwitchGroupWide name="hybrid" label="Hybrid version" />
           <SwitchGroupWide name="language" label="Language and Region" />
         </div>
       )}

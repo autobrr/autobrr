@@ -1,0 +1,2 @@
+ALTER TABLE irc_network
+    ADD COLUMN bot_mode BOOLEAN DEFAULT FALSE;
