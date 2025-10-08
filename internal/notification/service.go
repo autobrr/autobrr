@@ -179,6 +179,8 @@ func (s *Service) StoreFilterNotifications(ctx context.Context, filterID int, no
 		n, ok := s.notifications[notification.NotificationID]
 		if ok {
 			n.SetFilterEvents(filterID, domain.NewNotificationEventsFromStrings(notification.Events))
+
+			s.registerSender(n)
 		}
 	}
 
@@ -284,6 +286,25 @@ func (s *Service) Send(event domain.NotificationEvent, payload domain.Notificati
 	}
 
 	go func(event domain.NotificationEvent, payload domain.NotificationPayload) {
+		if payload.FilterID > 0 {
+			shouldSendGlobal := true
+			for _, sender := range s.senders {
+				if sender.HasFilterEvents(payload.FilterID) {
+					shouldSendGlobal = false
+					if sender.CanSendPayload(event, payload) {
+						s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+
+						if err := sender.Send(event, payload); err != nil {
+							s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
+						}
+					}
+				}
+			}
+			if !shouldSendGlobal {
+				return
+			}
+		}
+
 		for _, sender := range s.senders {
 			// check if the sender is active and have notification types
 			if sender.CanSendPayload(event, payload) {

@@ -52,10 +52,35 @@ func (s *shoutrrrSender) CanSendPayload(event domain.NotificationEvent, payload 
 		return false
 	}
 
-	if s.isEnabledEvent(event) || s.Settings.FilterEventEnabled(payload.FilterID, event) {
+	if payload.FilterID > 0 {
+		if s.Settings.FilterMuted(payload.FilterID) {
+			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
+			return false
+		}
+
+		// Check if the filter has custom notifications configured
+		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
+			return true
+		}
+
+		// If the filter has custom notifications but the event is not enabled, don't fall back to global
+		if s.Settings.HasFilterNotifications(payload.FilterID) {
+			return false
+		}
+	}
+
+	// Fall back to global events for non-filter events or filters without custom notifications
+	if s.isEnabledEvent(event) {
 		return true
 	}
 
+	return false
+}
+
+func (s *shoutrrrSender) HasFilterEvents(filterID int) bool {
+	if s.Settings.HasFilterNotifications(filterID) {
+		return true
+	}
 	return false
 }
 
