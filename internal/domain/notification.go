@@ -29,6 +29,7 @@ type NotificationSender interface {
 	CanSendPayload(event NotificationEvent, payload NotificationPayload) bool
 	IsEnabled() bool
 	Name() string
+	HasFilterEvents(filterID int) bool
 }
 
 type Notification struct {
@@ -116,10 +117,18 @@ func (n *Notification) FilterMuted(filterID int) bool {
 	return false
 }
 
+func (n *Notification) HasFilterNotifications(filterID int) bool {
+	if n.filters != nil && filterID > 0 {
+		_, ok := n.filters[filterID]
+		return ok
+	}
+	return false
+}
+
 func (n *Notification) FilterEventEnabled(filterID int, event NotificationEvent) bool {
 	if filterID > 0 {
 		if n.filters == nil {
-			return true
+			return false
 		}
 
 		if events, ok := n.filters[filterID]; ok {
