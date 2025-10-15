@@ -61,6 +61,16 @@ irc:
               baseUrl: https://darkpeers.org/
               torrentId: "1704"
               freeleechPercent: "100"
+          - line: '[Featured]-[Movies]-[WEB-DL]-[The Addams Family 1991 1080p AMZN WEB-DL DD+ 5.1 H.264-GPRS]-[Size: 6.81 GiB]-[Link: https://darkpeers.org/torrents/38364]-[FL: 100%]-[DU: 1]'
+            expect:
+              announceTypeEnum: Featured
+              category: Movies
+              releaseTags: WEB-DL
+              torrentName: The Addams Family 1991 1080p AMZN WEB-DL DD+ 5.1 H.264-GPRS
+              torrentSize: 6.81 GiB
+              baseUrl: https://darkpeers.org/
+              torrentId: "38364"
+              freeleechPercent: "100"
 
         pattern: '\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]-\[FL: (\d+)\%\]-\[DU: (\d+)\]'
         vars:
@@ -77,6 +87,8 @@ irc:
       announceTypeEnum:
         "New-upload":
           announceType: NEW
+        "Featured":
+          announceType: PROMO
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
