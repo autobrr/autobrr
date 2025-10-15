@@ -159,6 +159,8 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.Wrap(err, "could not connect to proxy server: %s", proxy.Addr)
 	}
 
+	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("got unexpected status code: %d", resp.StatusCode)
 	}
