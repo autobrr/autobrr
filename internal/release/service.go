@@ -5,9 +5,7 @@ package release
 
 import (
 	"context"
-	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/action"
