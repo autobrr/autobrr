@@ -129,6 +129,17 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.New("invalid proxy type %s", proxy.Type)
 	}
 
+	if proxy.ID > 0 {
+		existingProxy, err := s.repo.FindByID(ctx, proxy.ID)
+		if err != nil {
+			return err
+		}
+
+		if domain.IsRedactedString(proxy.Pass) {
+			proxy.Pass = existingProxy.Pass
+		}
+	}
+
 	if proxy.Addr == "" {
 		return errors.New("proxy addr missing")
 	}
