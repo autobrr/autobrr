@@ -46,6 +46,7 @@ type Service interface {
 	AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error)
 	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
+	GetRateLimiter() *RateLimiter
 }
 
 type service struct {
@@ -57,12 +58,13 @@ type service struct {
 	apiService      indexer.APIService
 	downloadSvc     *releasedownload.DownloadService
 	notificationSvc notification.FilterStorer
+	rateLimiter     *RateLimiter
 
 	httpClient *http.Client
 }
 
 func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService, notificationSvc notification.FilterStorer) Service {
-	return &service{
+	s := &service{
 		log:             log.With().Str("module", "filter").Logger(),
 		repo:            repo,
 		releaseRepo:     releaseRepo,
@@ -71,10 +73,30 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Serv
 		indexerSvc:      indexerSvc,
 		downloadSvc:     downloadSvc,
 		notificationSvc: notificationSvc,
+		rateLimiter:     NewRateLimiter(log, repo),
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
 		},
+	}
+
+	// Initialize rate limiter from database
+	s.initFilterRateLimiter()
+
+	return s
+}
+
+func (s *service) initFilterRateLimiter() {
+	s.log.Debug().Msg("initializing filter rate limiter from database")
+	ctx := context.Background()
+	filters, err := s.repo.Find(ctx, domain.FilterQueryParams{})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to load filters for rate limiter initialization")
+		return
+	}
+
+	if err := s.rateLimiter.InitializeFromDB(ctx, filters); err != nil {
+		s.log.Error().Err(err).Msg("failed to initialize rate limiter")
 	}
 }
 
@@ -246,6 +268,9 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
+	// Update rate limiter bucket if max downloads settings changed
+	s.rateLimiter.UpdateBucket(filter)
+
 	return nil
 }
 
@@ -294,6 +319,15 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
 			s.log.Error().Err(err).Msgf("could not store filter notifications: %v", filter.ID)
 			return err
+		}
+	}
+
+	// Update rate limiter bucket if max downloads settings may have changed
+	if filter.MaxDownloads != nil || filter.MaxDownloadsUnit != nil {
+		// Load the full filter to update the bucket
+		fullFilter, err := s.FindByID(ctx, filter.ID)
+		if err == nil {
+			s.rateLimiter.UpdateBucket(fullFilter)
 		}
 	}
 
@@ -392,6 +426,9 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 		return err
 	}
 
+	// Remove rate limiter bucket for deleted filter
+	s.rateLimiter.buckets.Delete(filterID)
+
 	return nil
 }
 
@@ -403,12 +440,24 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	l.Trace().Msgf("checking filter: %s %+v", f.Name, f)
 	l.Trace().Msgf("checking filter: %s for release: %+v", f.Name, release)
 
-	// do additional fetch to get download counts for filter
-	if f.IsMaxDownloadsLimitEnabled() {
-		if err := s.repo.GetFilterDownloadCount(ctx, f); err != nil {
-			l.Error().Err(err).Msg("error getting download counters for filter")
-			return false, nil
+	releaseIdentifier := fmt.Sprintf("%s-%s", release.Indexer.Identifier, release.TorrentID)
+
+	// Try to acquire rate limit token EARLY before expensive operations
+	receipt := s.rateLimiter.TryAcquire(f, releaseIdentifier)
+	if receipt == nil && f.IsMaxDownloadsLimitEnabled() {
+		// Rate limit reached, reject early
+		l.Debug().Msgf("rate limit reached for filter %s, rejecting release %s", f.Name, release.TorrentName)
+		if f.RejectReasons == nil {
+			f.RejectReasons = domain.NewRejectionReasons()
 		}
+		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), "", fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
+
+		return false, nil
+	}
+
+	// Store receipt in release context so it can be released later if needed
+	if receipt != nil {
+		release.FilterRateLimitReceipt = receipt
 	}
 
 	rejections, matchedFilter := f.CheckFilter(release)
@@ -479,7 +528,7 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	l.Debug().Msgf("found and matched filter: %s", f.Name)
 
 	// If size constraints are set in a filter and the indexer did not
-	// announce the size, we need to do an additional out of band size check.
+	// announce the size, we need to do an additional-out-of-band size check.
 	if release.AdditionalSizeCheckRequired {
 		l.Debug().Msgf("(%s) additional size check required", f.Name)
 
@@ -1060,4 +1109,8 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 	l.Debug().Str("args", dataArgs).TimeDiff("duration", time.Now(), start).Msg("successfully ran external webhook filter")
 
 	return statusCode, nil
+}
+
+func (s *service) GetRateLimiter() *RateLimiter {
+	return s.rateLimiter
 }
