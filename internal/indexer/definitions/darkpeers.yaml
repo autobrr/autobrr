@@ -51,7 +51,7 @@ irc:
     type: single
     lines:
       - tests:
-          - line: '[New-upload]-[Movies]-[WEB-DL]-[Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE]-[Size: 4.79 GiB]-[Link: https://darkpeers.org/torrents/1704]'
+          - line: '[New-upload]-[Movies]-[WEB-DL]-[Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE]-[Size: 4.79 GiB]-[Link: https://darkpeers.org/torrents/1704]-[FL: 100%]-[DU: 0]'
             expect:
               announceTypeEnum: New-upload
               category: Movies
@@ -60,8 +60,19 @@ irc:
               torrentSize: 4.79 GiB
               baseUrl: https://darkpeers.org/
               torrentId: "1704"
+              freeleechPercent: "100"
+          - line: '[Featured]-[Movies]-[WEB-DL]-[The Addams Family 1991 1080p AMZN WEB-DL DD+ 5.1 H.264-GPRS]-[Size: 6.81 GiB]-[Link: https://darkpeers.org/torrents/38364]-[FL: 100%]-[DU: 1]'
+            expect:
+              announceTypeEnum: Featured
+              category: Movies
+              releaseTags: WEB-DL
+              torrentName: The Addams Family 1991 1080p AMZN WEB-DL DD+ 5.1 H.264-GPRS
+              torrentSize: 6.81 GiB
+              baseUrl: https://darkpeers.org/
+              torrentId: "38364"
+              freeleechPercent: "100"
 
-        pattern: '\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]'
+        pattern: '\[(.*)\]-\[(.*)\]-\[(.*)\]-\[(.*)\]-\[Size: (.*)\]-\[Link: (https.*\/).*\/(\d+)\]-\[FL: (\d+)\%\]-\[DU: (\d+)\]'
         vars:
           - announceTypeEnum
           - category
@@ -70,11 +81,14 @@ irc:
           - torrentSize
           - baseUrl
           - torrentId
+          - freeleechPercent
 
     mappings:
       announceTypeEnum:
         "New-upload":
           announceType: NEW
+        "Featured":
+          announceType: PROMO
 
     match:
       infourl: "/torrents/{{ .torrentId }}"

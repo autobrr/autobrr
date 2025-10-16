@@ -20,6 +20,7 @@ type Config struct {
 	DatabaseType            string `toml:"databaseType"`
 	DatabaseDSN             string `toml:"databaseDSN"`
 	DatabaseMaxBackups      int    `toml:"databaseMaxBackups"`
+	DatabaseAutoMigrate     bool   `toml:"databaseAutoMigrate"`
 	PostgresHost            string `toml:"postgresHost"`
 	PostgresPort            int    `toml:"postgresPort"`
 	PostgresDatabase        string `toml:"postgresDatabase"`

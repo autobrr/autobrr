@@ -62,8 +62,16 @@ func (s *service) Update(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.Wrap(err, "validation error")
 	}
 
-	err := s.repo.Update(ctx, proxy)
+	existingProxy, err := s.repo.FindByID(ctx, proxy.ID)
 	if err != nil {
+		return err
+	}
+
+	if domain.IsRedactedString(proxy.Pass) {
+		proxy.Pass = existingProxy.Pass
+	}
+
+	if err := s.repo.Update(ctx, proxy); err != nil {
 		return err
 	}
 
@@ -121,6 +129,17 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.New("invalid proxy type %s", proxy.Type)
 	}
 
+	if proxy.ID > 0 {
+		existingProxy, err := s.repo.FindByID(ctx, proxy.ID)
+		if err != nil {
+			return err
+		}
+
+		if domain.IsRedactedString(proxy.Pass) {
+			proxy.Pass = existingProxy.Pass
+		}
+	}
+
 	if proxy.Addr == "" {
 		return errors.New("proxy addr missing")
 	}
@@ -139,6 +158,8 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 	if err != nil {
 		return errors.Wrap(err, "could not connect to proxy server: %s", proxy.Addr)
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("got unexpected status code: %d", resp.StatusCode)

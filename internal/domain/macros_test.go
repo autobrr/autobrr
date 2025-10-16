@@ -271,7 +271,7 @@ func TestMacros_Parse(t *testing.T) {
 				Indexer: IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "indexer={{.IndexerName}}"},
-			want:    fmt.Sprintf("indexer=Mock Indexer"),
+			want:    "indexer=Mock Indexer",
 			wantErr: false,
 		},
 	}

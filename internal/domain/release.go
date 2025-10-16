@@ -1260,5 +1260,6 @@ type DuplicateReleaseProfile struct {
 	Proper       bool   `json:"proper"`
 	Repack       bool   `json:"repack"`
 	Edition      bool   `json:"edition"`
+	Hybrid       bool   `json:"hybrid"`
 	Language     bool   `json:"language"`
 }

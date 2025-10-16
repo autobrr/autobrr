@@ -148,13 +148,26 @@ func (s *service) Start() error {
 }
 
 func (s *service) update(ctx context.Context, feed *domain.Feed) error {
+	existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not find feed")
+		return err
+	}
+
+	if domain.IsRedactedString(feed.ApiKey) {
+		feed.ApiKey = existingFeed.ApiKey
+	}
+	if domain.IsRedactedString(feed.Cookie) {
+		feed.Cookie = existingFeed.Cookie
+	}
+
 	if err := s.repo.Update(ctx, feed); err != nil {
 		s.log.Error().Err(err).Msg("error updating feed")
 		return err
 	}
 
 	// get Feed again for ProxyID and UseProxy to be correctly populated
-	feed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	feed, err = s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err

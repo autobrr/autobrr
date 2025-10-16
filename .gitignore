@@ -6,6 +6,8 @@
 log/
 logs/
 
+!internal/database/migrations/*/*.sql
+
 # OS generated files
 .DS_Store*
 ._*

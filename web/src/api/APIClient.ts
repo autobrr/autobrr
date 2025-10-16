@@ -247,13 +247,12 @@ const appClient = {
 
 export const APIClient = {
   auth: {
-    login: (username: string, password: string) => appClient.Post("api/auth/login", {
-      body: { username, password }
+    login: (username: string, password: string, remember_me: boolean) => appClient.Post("api/auth/login", {
+      body: { username, password, remember_me }
     }),
     logout: () => appClient.Post("api/auth/logout"),
     validate: async (): Promise<ValidateResponse> => {
-      const response = await appClient.Get<ValidateResponse>("api/auth/validate");
-      return response;
+        return await appClient.Get<ValidateResponse>("api/auth/validate");
     },
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }
@@ -328,7 +327,14 @@ export const APIClient = {
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),
-    delete: (id: number) => appClient.Delete(`api/filters/${id}`)
+    delete: (id: number) => appClient.Delete(`api/filters/${id}`),
+    notifications: {
+      get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
+      update: (filterId: number, notifications: FilterNotification[]) => 
+        appClient.Put(`api/filters/${filterId}/notifications`, {
+          body: notifications
+        })
+    }
   },
   feeds: {
     find: () => appClient.Get<Feed[]>("api/feeds"),

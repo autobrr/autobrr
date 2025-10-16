@@ -79,13 +79,83 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Lanota v2.23.1 in Lanota",
+					"torrentName": "Lanota - Version 2.23.1 in Lanota",
 					"category":    "iOS",
 				},
 			},
 			want: want{
 				title:   "Lanota",
 				release: "Lanota",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "After Inc. - Version 1.7.1",
+					"category":    "iOS",
+				},
+			},
+			want: want{
+				title:   "After Inc",
+				release: "After Inc.",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Through the Ages - Version 2.19.1128",
+					"category":    "iOS",
+				},
+			},
+			want: want{
+				title:   "Through the Ages",
+				release: "Through the Ages",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Through the Ages - Version 2.19.1128 in Through the Ages",
+					"category":    "iOS",
+				},
+			},
+			want: want{
+				title:   "Through the Ages",
+				release: "Through the Ages",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Asphalt 8: Airborne+ - Version 2.6.0b in Asphalt 8: Airborne",
+					"category":    "iOS",
+				},
+			},
+			want: want{
+				title:   "Asphalt 8: Airborne",
+				release: "Asphalt 8: Airborne+",
+			},
+		},
+		{
+			name: "",
+			args: args{
+				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
+				vars: map[string]string{
+					"torrentName": "Through the Ages - Version 2025-10-12 in Group",
+					"category":    "iOS",
+				},
+			},
+			want: want{
+				title:   "Group",
+				release: "Through the Ages",
 			},
 		},
 		{

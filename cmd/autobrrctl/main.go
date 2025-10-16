@@ -132,6 +132,7 @@ func main() {
 		if err := db.Open(); err != nil {
 			log.Fatal("could not open db connection")
 		}
+		defer db.Close()
 
 		userRepo := database.NewUserRepo(l, db)
 
@@ -181,6 +182,7 @@ func main() {
 		if err := db.Open(); err != nil {
 			log.Fatal("could not open db connection")
 		}
+		defer db.Close()
 
 		userRepo := database.NewUserRepo(l, db)
 

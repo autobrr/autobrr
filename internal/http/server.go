@@ -10,13 +10,12 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/web"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/gorilla/sessions"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
@@ -25,10 +24,10 @@ import (
 type Server struct {
 	log zerolog.Logger
 	sse *sse.Server
-	db  *database.DB
+	db  DatabaseHealth
 
-	config      *config.AppConfig
-	cookieStore *sessions.CookieStore
+	config         *config.AppConfig
+	sessionManager *scs.SessionManager
 
 	version string
 	commit  string
@@ -49,32 +48,70 @@ type Server struct {
 	updateService         updateService
 }
 
-func NewServer(log logger.Logger, config *config.AppConfig, sse *sse.Server, db *database.DB, version string, commit string, date string, actionService actionService, apiService apikeyService, authService authService, downloadClientSvc downloadClientService, filterSvc filterService, feedSvc feedService, indexerSvc indexerService, ircSvc ircService, listSvc listService, notificationSvc notificationService, proxySvc proxyService, releaseSvc releaseService, updateSvc updateService) Server {
-	return Server{
-		log:     log.With().Str("module", "http").Logger(),
-		config:  config,
-		sse:     sse,
-		db:      db,
-		version: version,
-		commit:  commit,
-		date:    date,
+type Deps struct {
+	Log logger.Logger
+	SSE *sse.Server
+	DB  DatabaseHealth
 
-		cookieStore: sessions.NewCookieStore([]byte(config.Config.SessionSecret)),
+	Config         *config.AppConfig
+	SessionManager *scs.SessionManager
 
-		actionService:         actionService,
-		apiService:            apiService,
-		authService:           authService,
-		downloadClientService: downloadClientSvc,
-		filterService:         filterSvc,
-		feedService:           feedSvc,
-		indexerService:        indexerSvc,
-		ircService:            ircSvc,
-		listService:           listSvc,
-		notificationService:   notificationSvc,
-		proxyService:          proxySvc,
-		releaseService:        releaseSvc,
-		updateService:         updateSvc,
+	Version string
+	Commit  string
+	Date    string
+
+	ActionService         actionService
+	ApiService            apikeyService
+	AuthService           authService
+	DownloadClientService downloadClientService
+	FilterService         filterService
+	FeedService           feedService
+	IndexerService        indexerService
+	IrcService            ircService
+	ListService           listService
+	NotificationService   notificationService
+	ProxyService          proxyService
+	ReleaseService        releaseService
+	UpdateService         updateService
+}
+
+func NewServer(deps Deps) Server {
+	//sessionManager := scs.New()
+	sessionManager := deps.SessionManager
+	sessionManager.Lifetime = 24 * time.Hour * 30
+	//sessionManager.Lifetime = 1 * time.Minute
+
+	//sessionManager.IdleTimeout = 20 * time.Minute
+	sessionManager.Cookie.Name = "autobrr_user_session"
+	sessionManager.Cookie.Persist = false
+
+	srv := Server{
+		log:     deps.Log.With().Str("module", "http").Logger(),
+		config:  deps.Config,
+		sse:     deps.SSE,
+		db:      deps.DB,
+		version: deps.Version,
+		commit:  deps.Commit,
+		date:    deps.Date,
+
+		sessionManager: sessionManager,
+
+		actionService:         deps.ActionService,
+		apiService:            deps.ApiService,
+		authService:           deps.AuthService,
+		downloadClientService: deps.DownloadClientService,
+		filterService:         deps.FilterService,
+		feedService:           deps.FeedService,
+		indexerService:        deps.IndexerService,
+		ircService:            deps.IrcService,
+		listService:           deps.ListService,
+		notificationService:   deps.NotificationService,
+		proxyService:          deps.ProxyService,
+		releaseService:        deps.ReleaseService,
+		updateService:         deps.UpdateService,
 	}
+
+	return srv
 }
 
 func (s Server) Open() error {
@@ -126,12 +163,13 @@ func (s Server) Handler() http.Handler {
 	})
 
 	r.Use(c.Handler)
+	r.Use(s.sessionManager.LoadAndSave)
 
 	encoder := newEncoder(s.log)
 
 	// Create a separate router for API
 	apiRouter := chi.NewRouter()
-	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.cookieStore, s.authService).Routes)
+	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService).Routes)
 	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 	apiRouter.Group(func(r chi.Router) {
 		r.Group(func(r chi.Router) {
