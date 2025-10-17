@@ -251,77 +251,6 @@ jobs:
           name: pprof
           path: cpu.pprof
 
-  # goreleaserbuild:
-  #   name: Build distribution binaries
-  #   runs-on: ubuntu-latest
-  #   needs: [ web, goprofilecombine ]
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v5
-  #       with:
-  #         fetch-depth: 0
-
-  #     - name: Download web production build
-  #       uses: actions/download-artifact@v5
-  #       with:
-  #         name: web-dist
-  #         path: web/dist
-
-  #     - name: Download pprof profile
-  #       uses: actions/download-artifact@v5
-  #       with:
-  #         name: pprof
-
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v6
-  #       with:
-  #         go-version-file: go.mod
-  #         cache: true
-
-  #     - name: Run GoReleaser build
-  #       if: github.event_name == 'pull_request'
-  #       uses: goreleaser/goreleaser-action@v6
-  #       with:
-  #         distribution: goreleaser-pro
-  #         version: "~> v2"
-  #         args: release --clean --skip=validate,publish --parallelism 5 --snapshot
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-
-  #     - name: Run GoReleaser build and publish tags
-  #       if: startsWith(github.ref, 'refs/tags/')
-  #       uses: goreleaser/goreleaser-action@v6
-  #       with:
-  #         distribution: goreleaser-pro
-  #         version: "~> v2"
-  #         args: release --clean --parallelism 5
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-
-  #     - name: Create web-dist artifact
-  #       if: startsWith(github.ref, 'refs/tags/')
-  #       run: mkdir -p dist && tar czf dist/web-dist.tar.gz web/dist
-
-  #     - name: Upload web-dist to release assets
-  #       uses: softprops/action-gh-release@v2
-  #       if: startsWith(github.ref, 'refs/tags/')
-  #       with:
-  #         files: |
-  #           dist/web-dist.tar.gz
-
-  #     - name: Upload assets
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: autobrr
-  #         path: |
-  #           dist/*.tar.gz
-  #           dist/*.zip
-  #           dist/*.apk
-  #           dist/*.deb
-  #           dist/*.rpm
-
   prepare:
     needs: [ web, goprofilecombine ]
     strategy:
@@ -336,7 +265,7 @@ jobs:
           - runner: windows-latest
             goos: windows
     runs-on: ${{ matrix.runner }}
-    name: Build distribution binaries ${{ matrix.runner }}
+    name: Build distribution binaries ${{ matrix.goos }} ${{ matrix.runner }}
     env:
       flags: ""
       GOOS: ${{ matrix.goos }}
@@ -418,14 +347,14 @@ jobs:
         with:
           name: autobrr
           path: |
-            dist/*.tar.gz
-            dist/*.zip
-            dist/*.apk
-            dist/*.deb
-            dist/*.rpm
-  
+            dist/${{ matrix.goos }}*.tar.gz
+            dist/${{ matrix.goos }}*.zip
+            dist/${{ matrix.goos }}*.apk
+            dist/${{ matrix.goos }}*.deb
+            dist/${{ matrix.goos }}*.rpm
+
   release:
-    name: Build distribution binaries
+    name: Merge and publish distribution binaries
     runs-on: ubuntu-latest
     needs: prepare
     env:
@@ -442,7 +371,7 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      # copy the cashes from prepare
+      # copy the caches from prepare
       - if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
@@ -469,17 +398,18 @@ jobs:
           enableCrossOsArchive: true
 
       # release
-      - uses: goreleaser/goreleaser-action@v6
+      - name: Merge and continue GoReleaser build
+        uses: goreleaser/goreleaser-action@v6
         if: steps.cache.outputs.cache-hit != 'true' # do not run if cache hit
         with:
           distribution: goreleaser-pro
           version: "~> v2"
           args: continue --merge
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
-      - name: Publish tags
+      - name: Publish version to GitHub Releases
         if: startsWith(github.ref, 'refs/tags/')
         uses: goreleaser/goreleaser-action@v6
         with:
