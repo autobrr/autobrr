@@ -316,29 +316,87 @@ jobs:
 
   docker:
     name: Build Docker images
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
-        platform:
-          - linux/386
-          - linux/amd64
-          - linux/amd64/v2
-          - linux/amd64/v3
-          # - linux/amd64/v4
-          - linux/arm/v6
-          - linux/arm/v7
-          - linux/arm64
-          - linux/arm64/v8.2 # Neoverse + Raspberry Pi
-          - linux/arm64/v8.4 # AWS Graviton3
-          - linux/arm64/v9
-          - linux/arm64/v9.2 # Apple M4
-          # - linux/mips64le
-          # - linux/mips64
-          - linux/ppc64le
-          - linux/riscv64
-          - linux/s390x
-          - windows/amd64
+        include:
+          - platform: linux/386
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/amd64/v2
+            runner: ubuntu-latest
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/amd64/v3
+            runner: ubuntu-latest
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm/v6
+            runner: ubuntu-latest-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm/v7
+            runner: ubuntu-latest-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64
+            runner: ubuntu-latest-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v8.2 # Neoverse + Raspberry Pi
+            runner: ubuntu-latest-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v8.4 # AWS Graviton3
+            runner: ubuntu-latest-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v9
+            runner: ubuntu-latest-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v9.2 # Apple M4
+            runner: ubuntu-latest-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/ppc64le
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: linux/riscv64
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: linux/s390x
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: windows/amd64
+            # runner: windows-latest
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ciwindows.Dockerfile
+
+    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
     needs: [ web, goprofilecombine ]
     steps:
       - name: Checkout
@@ -378,6 +436,7 @@ jobs:
             latest=auto
 
       - name: Set up QEMU
+        if: matrix.qemu == true
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -391,7 +450,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ startsWith(matrix.platform, 'windows') && './ciwindows.Dockerfile' || './ci.Dockerfile' }}
+          file: ${{ matrix.file || './ci.Dockerfile' }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}
