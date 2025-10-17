@@ -326,7 +326,7 @@ jobs:
     needs: [ web, goprofilecombine ]
     strategy:
       matrix:
-        includes:
+        include:
           - runner: ubuntu-latest
             goos: linux
           - runner: ubuntu-latest
