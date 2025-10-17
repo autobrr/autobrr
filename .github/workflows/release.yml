@@ -341,37 +341,37 @@ jobs:
             file: ./ci.Dockerfile
 
           - platform: linux/arm/v6
-            runner: ubuntu-latest-arm
+            runner: ubuntu-24.04-arm
             qemu: false
             file: ./ci.Dockerfile
 
           - platform: linux/arm/v7
-            runner: ubuntu-latest-arm
+            runner: ubuntu-24.04-arm
             qemu: false
             file: ./ci.Dockerfile
 
           - platform: linux/arm64
-            runner: ubuntu-latest-arm
+            runner: ubuntu-24.04-arm
             qemu: false
             file: ./ci.Dockerfile
 
           - platform: linux/arm64/v8.2 # Neoverse + Raspberry Pi
-            runner: ubuntu-latest-arm
+            runner: ubuntu-24.04-arm
             qemu: false
             file: ./ci.Dockerfile
 
           - platform: linux/arm64/v8.4 # AWS Graviton3
-            runner: ubuntu-latest-arm
+            runner: ubuntu-24.04-arm
             qemu: false
             file: ./ci.Dockerfile
 
           - platform: linux/arm64/v9
-            runner: ubuntu-latest-arm
+            runner: ubuntu-24.04-arm
             qemu: false
             file: ./ci.Dockerfile
 
           - platform: linux/arm64/v9.2 # Apple M4
-            runner: ubuntu-latest-arm
+            runner: ubuntu-24.04-arm
             qemu: false
             file: ./ci.Dockerfile
 
