@@ -297,28 +297,17 @@ jobs:
         run: |
           echo "flags=--nightly" >> $GITHUB_ENV
 
-      - shell: bash
+      - name: Get short SHA
+        shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
-        if: matrix.runner == 'ubuntu-latest'
+      - name: Cache builds
+        uses: actions/cache@v4
         with:
-          path: dist/linux
-          key: linux-${{ env.sha_short }}${{ env.flags }}
-
-      - uses: actions/cache@v4
-        if: matrix.runner == 'macos-latest'
-        with:
-          path: dist/darwin
-          key: darwin-${{ env.sha_short }}${{ env.flags }}
-
-      - uses: actions/cache@v4
-        if: matrix.runner == 'windows-latest'
-        with:
-          path: dist/windows
-          key: windows-${{ env.sha_short }}${{ env.flags }}
-          enableCrossOsArchive: true
+          path: dist/${{ matrix.goos }}
+          key: ${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
+          enableCrossOsArchive: ${{ matrix.runner == 'windows-latest' && 'true' || 'false'}}
 
       - name: Run GoReleaser snapshot build
         if: github.event_name == 'pull_request'
@@ -377,21 +366,31 @@ jobs:
         run: |
           echo "flags=--nightly" >> $GITHUB_ENV
 
-      - shell: bash
+      - name: Get short SHA
+        shell: bash
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      - uses: actions/cache@v4
+      - name: Get Linux cache
+        uses: actions/cache@v4
         with:
           path: dist/linux
           key: linux-${{ env.sha_short }}${{ env.flags }}
 
-      - uses: actions/cache@v4
+      - name: Get FreeBSD cache
+        uses: actions/cache@v4
+        with:
+          path: dist/freebsd
+          key: freebsd-${{ env.sha_short }}${{ env.flags }}
+
+      - name: Get Darwin cache
+        uses: actions/cache@v4
         with:
           path: dist/darwin
           key: darwin-${{ env.sha_short }}${{ env.flags }}
 
-      - uses: actions/cache@v4
+      - name: Get Windows cache
+        uses: actions/cache@v4
         with:
           path: dist/windows
           key: windows-${{ env.sha_short }}${{ env.flags }}
