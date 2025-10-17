@@ -347,11 +347,11 @@ jobs:
         with:
           name: autobrr
           path: |
-            dist/${{ matrix.goos }}*.tar.gz
-            dist/${{ matrix.goos }}*.zip
-            dist/${{ matrix.goos }}*.apk
-            dist/${{ matrix.goos }}*.deb
-            dist/${{ matrix.goos }}*.rpm
+            dist/${{ matrix.goos }}/*.tar.gz
+            dist/${{ matrix.goos }}/*.zip
+            dist/${{ matrix.goos }}/*.apk
+            dist/${{ matrix.goos }}/*.deb
+            dist/${{ matrix.goos }}/*.rpm
 
   release:
     name: Merge and publish distribution binaries
