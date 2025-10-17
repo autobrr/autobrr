@@ -342,16 +342,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
-      - name: Upload assets
-        uses: actions/upload-artifact@v4
-        with:
-          name: autobrr
-          path: |
-            dist/${{ matrix.goos }}/*.tar.gz
-            dist/${{ matrix.goos }}/*.zip
-            dist/${{ matrix.goos }}/*.apk
-            dist/${{ matrix.goos }}/*.deb
-            dist/${{ matrix.goos }}/*.rpm
+      # - name: Upload assets
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: autobrr
+      #     path: |
+      #       dist/${{ matrix.goos }}/*.tar.gz
+      #       dist/${{ matrix.goos }}/*.zip
+      #       dist/${{ matrix.goos }}/*.apk
+      #       dist/${{ matrix.goos }}/*.deb
+      #       dist/${{ matrix.goos }}/*.rpm
 
   release:
     name: Merge and publish distribution binaries
