@@ -388,7 +388,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "~> v2"
-          args: release --clean --verbose --skip=validate,publish --snapshot --split ${{ env.flags }}
+          args: release --clean --skip=validate,publish --snapshot --split ${{ env.flags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
@@ -466,7 +466,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "~> v2"
-          args: continue --merge --verbose
+          args: continue --merge
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
@@ -477,7 +477,7 @@ jobs:
         with:
           distribution: goreleaser-pro
           version: "~> v2"
-          args: publish --verbose
+          args: publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
