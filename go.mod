@@ -5,6 +5,7 @@ go 1.25
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 
 require (
+	github.com/Hellseher/go-shellquote v0.1.0
 	github.com/KimMachineGun/automemlimit v0.7.4
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/Masterminds/squirrel v1.5.4
@@ -33,7 +34,6 @@ require (
 	github.com/icholy/digest v1.1.0
 	github.com/lib/pq v1.10.9
 	github.com/magiconair/properties v1.8.10
-	github.com/mattn/go-shellwords v1.0.12
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/moistari/rls v0.6.0
 	github.com/pkg/errors v0.9.1
