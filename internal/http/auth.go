@@ -29,12 +29,12 @@ type authHandler struct {
 	encoder        encoder
 	config         *domain.Config
 	service        authService
-	server         Server
+	server         *Server
 	sessionManager *scs.SessionManager
 	oidcHandler    *OIDCHandler
 }
 
-func newAuthHandler(encoder encoder, log zerolog.Logger, server Server, config *domain.Config, sessionManager *scs.SessionManager, service authService) *authHandler {
+func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService) *authHandler {
 	h := &authHandler{
 		log:            log,
 		encoder:        encoder,

@@ -29,6 +29,7 @@ env:
   NODE_VERSION: '22.17.0'
 
 permissions:
+  id-token: write
   contents: write
   packages: write
 
@@ -43,7 +44,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -52,7 +53,7 @@ jobs:
 
       # It can not be done before enable corepack
       - name: Set up cache
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
@@ -71,14 +72,16 @@ jobs:
           name: web-dist
           path: web/dist
 
+      - name: Upload web-dist to release assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            dist/web-dist.tar.gz
+
   test:
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ ubuntu-latest ]
-        cgo: [ 1, 0 ]
-    name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Test ubuntu-latest
+    runs-on: ubuntu-latest
     services:
       test_postgres:
         image: postgres:12.10
@@ -90,7 +93,7 @@ jobs:
           POSTGRES_DB: autobrr
         options: --health-cmd pg_isready --health-interval 1s --health-timeout 5s --health-retries 60
     env:
-      CGO_ENABLED: ${{ matrix.cgo }}
+      CGO_ENABLED: 0
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -106,7 +109,7 @@ jobs:
       - name: Create Profile environment
         run:
           |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" -tags=integration "$pkg"\ndone' | tee -a profile.sh;
           chmod +x profile.sh;
           mkdir profile;
 
@@ -116,7 +119,7 @@ jobs:
       - name: Upload pprof
         uses: actions/upload-artifact@v4
         with:
-          name: pprof-test-${{ matrix.os }}-${{ matrix.cgo }}
+          name: pprof-test-ubuntu-latest
           path: profile
 
       - name: Test Summary
@@ -130,15 +133,14 @@ jobs:
       fail-fast: true
       matrix:
         os: [ macos-latest, windows-latest ]
-        cgo: [ 1, 0 ]
-    name: Test${{ matrix.cgo == 1 && ' CGO'|| '' }} ${{ matrix.os }}
+    name: Test ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
       GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
       GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
       GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
       USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
-      CGO_ENABLED: ${{ matrix.cgo }}
+      CGO_ENABLED: 0
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -155,7 +157,7 @@ jobs:
         shell: bash
         run:
           |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -)-${{ matrix.cgo }}.pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
           chmod +x profile.sh;
           mkdir profile;
 
@@ -166,7 +168,7 @@ jobs:
       - name: Upload pprof
         uses: actions/upload-artifact@v4
         with:
-          name: pprof-test-${{ matrix.os }}-${{ matrix.cgo }}
+          name: pprof-test-${{ matrix.os }}
           path: profile
 
       - name: Test Summary
@@ -180,8 +182,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        cgo: [ 1, 0 ]
-    name: Automatic PGO ${{ matrix.cgo == 1 && 'CGO ' || ''}}run ${{ matrix.os }}
+    name: Automatic PGO run ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: [ web ]
     env:
@@ -189,7 +190,7 @@ jobs:
       GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
       GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
       USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
-      CGO_ENABLED: ${{ matrix.cgo }}
+      CGO_ENABLED: 0
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -209,13 +210,13 @@ jobs:
           cache: true
 
       - name: Generate Profile
-        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}-${{ matrix.cgo }}.pprof
+        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
 
       - name: Upload pprof
         uses: actions/upload-artifact@v4
         with:
-          name: pprof-pgo-${{ matrix.os }}-${{ matrix.cgo }}
-          path: cpu-${{ matrix.os }}-${{ matrix.cgo }}.pprof
+          name: pprof-pgo-${{ matrix.os }}
+          path: cpu-${{ matrix.os }}.pprof
 
   goprofilecombine:
     name: Combine pprof profiles
@@ -250,10 +251,24 @@ jobs:
           name: pprof
           path: cpu.pprof
 
-  goreleaserbuild:
-    name: Build distribution binaries
-    runs-on: ubuntu-latest
+  prepare:
     needs: [ web, goprofilecombine ]
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            goos: linux
+          - runner: ubuntu-latest
+            goos: freebsd
+          - runner: macos-latest
+            goos: darwin
+          - runner: windows-latest
+            goos: windows
+    runs-on: ${{ matrix.runner }}
+    name: Build distribution binaries ${{ matrix.goos }} ${{ matrix.runner }}
+    env:
+      flags: ""
+      GOOS: ${{ matrix.goos }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -277,76 +292,217 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          echo "flags=--nightly" >> $GITHUB_ENV
+
+      - name: Get short SHA
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Cache builds
+        uses: actions/cache@v4
+        with:
+          path: dist/${{ matrix.goos }}
+          key: ${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
+          enableCrossOsArchive: ${{ matrix.runner == 'windows-latest' && 'true' || 'false'}}
+
+      - name: Run GoReleaser snapshot build
+        if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser-pro
+          version: "~> v2"
+          args: release --clean --skip=validate,publish --snapshot --split ${{ env.flags }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
       - name: Run GoReleaser build
-        if: github.event_name == 'pull_request'
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser-pro
-          version: "~> v2"
-          args: release --clean --skip=validate,publish --parallelism 5 --snapshot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-
-      - name: Run GoReleaser build and publish tags
         if: startsWith(github.ref, 'refs/tags/')
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser-pro
           version: "~> v2"
-          args: release --clean --parallelism 5
+          args: release --clean --split ${{ env.flags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-
-      - name: Create web-dist artifact
-        if: startsWith(github.ref, 'refs/tags/')
-        run: mkdir -p dist && tar czf dist/web-dist.tar.gz web/dist
-
-      - name: Upload web-dist to release assets
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            dist/web-dist.tar.gz
 
       - name: Upload assets
         uses: actions/upload-artifact@v4
         with:
-          name: autobrr
+          name: autobrr-${{ matrix.goos }}
           path: |
-            dist/*.tar.gz
-            dist/*.zip
-            dist/*.apk
-            dist/*.deb
-            dist/*.rpm
+            dist/${{ matrix.goos }}/*.tar.gz
+            dist/${{ matrix.goos }}/*.zip
+            dist/${{ matrix.goos }}/*.apk
+            dist/${{ matrix.goos }}/*.deb
+            dist/${{ matrix.goos }}/*.rpm
+
+  release:
+    name: Merge and publish distribution binaries
+    runs-on: ubuntu-latest
+    needs: prepare
+    env:
+      flags: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # copy the caches from prepare
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          echo "flags=--nightly" >> $GITHUB_ENV
+
+      - name: Get short SHA
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Get Linux cache
+        uses: actions/cache@v4
+        with:
+          path: dist/linux
+          key: linux-${{ env.sha_short }}${{ env.flags }}
+
+      - name: Get FreeBSD cache
+        uses: actions/cache@v4
+        with:
+          path: dist/freebsd
+          key: freebsd-${{ env.sha_short }}${{ env.flags }}
+
+      - name: Get Darwin cache
+        uses: actions/cache@v4
+        with:
+          path: dist/darwin
+          key: darwin-${{ env.sha_short }}${{ env.flags }}
+
+      - name: Get Windows cache
+        uses: actions/cache@v4
+        with:
+          path: dist/windows
+          key: windows-${{ env.sha_short }}${{ env.flags }}
+          enableCrossOsArchive: true
+
+      # release
+      - name: Merge and publish GoReleaser build
+        uses: goreleaser/goreleaser-action@v6
+        if: steps.cache.outputs.cache-hit != 'true' # do not run if cache hit
+        with:
+          distribution: goreleaser-pro
+          version: "~> v2"
+          args: continue --merge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
+      # - name: Publish version to GitHub Releases
+      #   if: startsWith(github.ref, 'refs/tags/')
+      #   uses: goreleaser/goreleaser-action@v6
+      #   with:
+      #     distribution: goreleaser-pro
+      #     version: "~> v2"
+      #     args: publish
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
   docker:
     name: Build Docker images
-    runs-on: ubuntu-latest
+    needs: [ web, goprofilecombine ]
     strategy:
       fail-fast: true
       matrix:
-        platform:
-          - linux/386
-          - linux/amd64
-          - linux/amd64/v2
-          - linux/amd64/v3
-          # - linux/amd64/v4
-          - linux/arm/v6
-          - linux/arm/v7
-          - linux/arm64
-          - linux/arm64/v8.2 # Neoverse + Raspberry Pi
-          - linux/arm64/v8.4 # AWS Graviton3
-          - linux/arm64/v9
-          - linux/arm64/v9.2 # Apple M4
-          # - linux/mips64le
-          # - linux/mips64
-          - linux/ppc64le
-          - linux/riscv64
-          - linux/s390x
-          - windows/amd64
-    needs: [ web, goprofilecombine ]
+        include:
+          - platform: linux/386
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/amd64/v2
+            runner: ubuntu-latest
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/amd64/v3
+            runner: ubuntu-latest
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm/v6
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm/v7
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v8.2 # Neoverse + Raspberry Pi
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v8.4 # AWS Graviton3
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v9
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/arm64/v9.2 # Apple M4
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./ci.Dockerfile
+
+          - platform: linux/ppc64le
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: linux/riscv64
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: linux/s390x
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ci.Dockerfile
+
+          - platform: windows/amd64
+            # runner: windows-latest
+            runner: ubuntu-latest
+            qemu: true
+            file: ./ciwindows.Dockerfile
+
+    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -385,6 +541,7 @@ jobs:
             latest=auto
 
       - name: Set up QEMU
+        if: matrix.qemu == true
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
@@ -398,7 +555,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ startsWith(matrix.platform, 'windows') && './ciwindows.Dockerfile' || './ci.Dockerfile' }}
+          file: ${{ matrix.file || './ci.Dockerfile' }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}

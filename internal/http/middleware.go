@@ -15,7 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s Server) IsAuthenticated(next http.Handler) http.Handler {
+func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if token := r.Header.Get("X-API-Token"); token != "" {
 			// check header

@@ -88,7 +88,7 @@ func newHttpTestClient() *http.Client {
 	return c
 }
 
-func setupServer(srv Server) chi.Router {
+func setupServer(srv *Server) chi.Router {
 	r := chi.NewRouter()
 	//r.Use(middleware.Logger)
 	r.Use(srv.sessionManager.LoadAndSave)
@@ -123,7 +123,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 		},
 	}
 
-	server := Server{
+	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
@@ -178,7 +178,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 		},
 	}
 
-	server := Server{
+	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
@@ -243,7 +243,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 		},
 	}
 
-	server := Server{
+	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
@@ -284,7 +284,7 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 		},
 	}
 
-	server := Server{
+	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
@@ -334,7 +334,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 		},
 	}
 
-	server := Server{
+	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
