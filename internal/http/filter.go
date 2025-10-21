@@ -53,6 +53,11 @@ func (h filterHandler) Routes(r chi.Router) {
 
 		r.Get("/duplicate", h.duplicate)
 		r.Put("/enabled", h.toggleEnabled)
+		
+		r.Route("/notifications", func(r chi.Router) {
+			r.Get("/", h.getFilterNotifications)
+			r.Put("/", h.updateFilterNotifications)
+		})
 	})
 }
 
@@ -233,4 +238,48 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+}
+
+func (h filterHandler) getFilterNotifications(w http.ResponseWriter, r *http.Request) {
+	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	filter, err := h.service.FindByID(r.Context(), filterID)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	// Return just the notifications array
+	h.encoder.StatusResponse(w, http.StatusOK, filter.Notifications)
+}
+
+func (h filterHandler) updateFilterNotifications(w http.ResponseWriter, r *http.Request) {
+	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	var notifications []domain.FilterNotification
+	if err := json.NewDecoder(r.Body).Decode(&notifications); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	// Use UpdatePartial to update just the notifications
+	update := domain.FilterUpdate{
+		ID:            filterID,
+		Notifications: notifications,
+	}
+
+	if err := h.service.UpdatePartial(r.Context(), update); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
 }

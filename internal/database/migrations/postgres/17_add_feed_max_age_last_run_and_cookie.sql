@@ -1,0 +1,11 @@
+ALTER TABLE feed
+    ADD COLUMN max_age INTEGER DEFAULT 3600;
+
+ALTER TABLE feed
+    ADD COLUMN last_run TIMESTAMP;
+
+ALTER TABLE feed
+    ADD COLUMN last_run_data TEXT;
+
+ALTER TABLE feed
+    ADD COLUMN cookie TEXT;

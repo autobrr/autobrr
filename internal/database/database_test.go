@@ -25,14 +25,14 @@ func getDbs() []string {
 var testDBs map[string]*DB
 
 func setupPostgresForTest() *DB {
-	dbtype := "postgres"
-	if d, ok := testDBs[dbtype]; ok {
+	dbType := "postgres"
+	if d, ok := testDBs[dbType]; ok {
 		return d
 	}
 
 	cfg := &domain.Config{
 		LogLevel:         "INFO",
-		DatabaseType:     dbtype,
+		DatabaseType:     dbType,
 		PostgresHost:     "localhost",
 		PostgresPort:     5437,
 		PostgresDatabase: "autobrr",
@@ -42,12 +42,12 @@ func setupPostgresForTest() *DB {
 	}
 
 	// Init a new logger
-	logr := logger.New(cfg)
+	dbLogger := logger.New(cfg)
 
-	logr.With().Str("type", "postgres").Logger()
+	dbLogger.With().Str("type", "postgres").Logger()
 
 	// Initialize a new DB connection
-	db, err := NewDB(cfg, logr)
+	db, err := NewDB(cfg, dbLogger)
 	if err != nil {
 		log.Fatalf("Could not create database: %q", err)
 	}
@@ -78,28 +78,29 @@ GRANT ALL ON SCHEMA public TO public;
 		log.Fatalf("Could not migrate postgres database: %q", err)
 	}
 
-	testDBs[dbtype] = db
+	testDBs[dbType] = db
 
 	return db
 }
 
 func setupSqliteForTest() *DB {
-	dbtype := "sqlite"
+	dbType := "sqlite"
 
-	if d, ok := testDBs[dbtype]; ok {
+	if d, ok := testDBs[dbType]; ok {
 		return d
 	}
 
 	cfg := &domain.Config{
-		LogLevel:     "INFO",
-		DatabaseType: dbtype,
+		LogLevel:     "ERROR",
+		DatabaseType: dbType,
+		DatabaseDSN:  ":memory:",
 	}
 
 	// Init a new logger
-	logr := logger.New(cfg)
+	dbLogger := logger.New(cfg)
 
 	// Initialize a new DB connection
-	db, err := NewDB(cfg, logr)
+	db, err := NewDB(cfg, dbLogger)
 	if err != nil {
 		log.Fatalf("Could not create database: %v", err)
 	}
@@ -109,7 +110,12 @@ func setupSqliteForTest() *DB {
 		log.Fatalf("Could not open db connection: %v", err)
 	}
 
-	testDBs[dbtype] = db
+	// migrate db
+	if err = db.migrateSQLite(); err != nil {
+		log.Fatalf("Could not migrate postgres database: %q", err)
+	}
+
+	testDBs[dbType] = db
 
 	return db
 }

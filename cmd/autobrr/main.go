@@ -118,8 +118,10 @@ func main() {
 
 	// session manager
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.New(db)
-	if db.Driver == "postgres" {
+	switch db.Driver {
+	case database.DriverSQLite:
+		sessionManager.Store = sqlite3store.New(db)
+	case database.DriverPostgres:
 		sessionManager.Store = postgresstore.New(db.Handler)
 	}
 
@@ -154,7 +156,7 @@ func main() {
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
-		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
+		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)

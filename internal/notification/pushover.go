@@ -45,7 +45,7 @@ func (s *pushoverSender) Name() string {
 
 func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &pushoverSender{
-		log:      log.With().Str("sender", "pushover").Logger(),
+		log:      log.With().Str("sender", "pushover").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		baseUrl:  "https://api.pushover.net/1/messages.json",
 		builder:  MessageBuilderHTML{},
@@ -116,36 +116,53 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 }
 
 func (s *pushoverSender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *pushoverSender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.APIKey == "" {
-			s.log.Warn().Msg("pushover missing api key")
+func (s *pushoverSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
+
+	if payload.FilterID > 0 {
+		if s.Settings.FilterMuted(payload.FilterID) {
+			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
 			return false
 		}
 
-		if s.Settings.Token == "" {
-			s.log.Warn().Msg("pushover missing user key")
-			return false
+		// Check if the filter has custom notifications configured
+		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
+			return true
 		}
 
+		// If the filter has custom notifications but the event is not enabled, don't fall back to global
+		if s.Settings.HasFilterNotifications(payload.FilterID) {
+			return false
+		}
+	}
+
+	// Fall back to global events for non-filter events or filters without custom notifications
+	if s.isEnabledEvent(event) {
 		return true
 	}
 
 	return false
+}
+
+func (s *pushoverSender) HasFilterEvents(filterID int) bool {
+	if s.Settings.HasFilterNotifications(filterID) {
+		return true
+	}
+	return false
+}
+
+func (s *pushoverSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
 }
 
 func (s *pushoverSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-
-	return false
+	return s.Settings.EventEnabled(string(event))
 }

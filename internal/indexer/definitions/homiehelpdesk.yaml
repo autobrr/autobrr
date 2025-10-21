@@ -27,6 +27,7 @@ irc:
   channels:
     - "#announce"
   announcers:
+    - BBot
     - HHDBot
   settings:
     - name: nick

@@ -30,7 +30,7 @@ type service struct {
 	log             zerolog.Logger
 	config          *domain.Config
 	version         string
-	notificationSvc notification.Service
+	notificationSvc notification.Sender
 	updateSvc       *update.Service
 
 	cron *cron.Cron
@@ -38,7 +38,7 @@ type service struct {
 	m    sync.RWMutex
 }
 
-func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Service, updateSvc *update.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Sender, updateSvc *update.Service) Service {
 	return &service{
 		log:             log.With().Str("module", "scheduler").Logger(),
 		config:          config,

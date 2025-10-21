@@ -27,4 +27,15 @@ interface ServiceNotification {
   host?: string;
   username?: string;
   password?: string;
+  used_by_filters?: NotificationFilter[];
 }
+
+interface NotificationFilter {
+  filter_name: string;
+  filter_id: number;
+  notification_id: number;
+  notification?: ServiceNotification;
+  events: NotificationFilterEvent[];
+}
+
+type NotificationFilterEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR";

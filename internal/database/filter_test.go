@@ -103,6 +103,7 @@ func getMockFilterExternal() domain.FilterExternal {
 		WebhookRetryStatus:       "",
 		WebhookRetryAttempts:     0,
 		WebhookRetryDelaySeconds: 0,
+		OnError:                  domain.FilterExternalOnErrorReject,
 	}
 }
 
