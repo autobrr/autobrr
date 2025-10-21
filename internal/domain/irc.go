@@ -6,6 +6,7 @@ package domain
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -152,8 +153,8 @@ type IrcChannelWithHealth struct {
 	Announcers      []IrcUser `json:"announcers"`
 }
 
-func (cwh ChannelWithHealth) MarshalJSON() ([]byte, error) {
-	type Alias ChannelWithHealth
+func (cwh IrcChannelWithHealth) MarshalJSON() ([]byte, error) {
+	type Alias IrcChannelWithHealth
 	return json.Marshal(&struct {
 		*Alias
 		Password string `json:"password"`
