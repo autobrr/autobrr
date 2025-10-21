@@ -106,7 +106,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error getting releases for %v: %s", c.Repo, resp.Status)

@@ -104,3 +104,11 @@ func (rt *MagnetRoundTripper) RoundTrip(r *http.Request) (*http.Response, error)
 }
 
 var MagnetTransport = &MagnetRoundTripper{}
+
+// DrainAndClose drains the response body and closes it to prevent connection leaks
+func DrainAndClose(resp *http.Response) {
+	if resp != nil && resp.Body != nil {
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}
+}
