@@ -4,16 +4,22 @@
 package tools
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/database/migrations"
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	_ "modernc.org/sqlite"
 )
 
-var tables = []string{
+var defaultTables = []string{
 	"users",
 	"proxy",
 	"indexer",
@@ -28,11 +34,14 @@ var tables = []string{
 	"release",
 	"release_action_status",
 	"notification",
+	"filter_notification",
 	"feed",
 	"feed_cache",
 	"api_key",
 	"list",
 	"list_filter",
+	//"sessions",
+	//"schema_migrations",
 }
 
 // lists of changes to make to the SQLite and Postgres DBs just before and after migration, respectively
@@ -67,48 +76,76 @@ var postgresFixups = []string{
 	"SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true)",
 }
 
-type Converter interface {
-	Convert() error
+type DBConverter interface {
+	Convert(ctx context.Context, opts Opts) error
+}
+
+type Opts struct {
+	ExcludeTables []string
+	DryRun        bool
 }
 
 type SqliteToPostgresConverter struct {
+	logger                      logger.Logger
 	sqliteDBPath, postgresDBURL string
 }
 
-func NewConverter(sqliteDBPath, postgresDBURL string) Converter {
+func NewConverter(logger logger.Logger, sqliteDBPath, postgresDBURL string) DBConverter {
 	return &SqliteToPostgresConverter{
+		logger:        logger,
 		sqliteDBPath:  sqliteDBPath,
 		postgresDBURL: postgresDBURL,
 	}
 }
 
-func (c *SqliteToPostgresConverter) Convert() error {
+func (c *SqliteToPostgresConverter) Convert(ctx context.Context, opts Opts) error {
 	startTime := time.Now()
 
 	sqliteDB, err := sql.Open("sqlite", c.sqliteDBPath)
 	if err != nil {
-		log.Fatalf("Failed to connect to SQLite database: %v", err)
+		c.logger.Error().Err(err).Msg("Failed to connect to SQLite database")
+		return err
 	}
 	defer sqliteDB.Close()
 
 	postgresDB, err := sql.Open("postgres", c.postgresDBURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to PostgreSQL database: %v", err)
+		c.logger.Error().Err(err).Msg("Failed to connect to PostgreSQL database")
+		return err
 	}
 	defer postgresDB.Close()
 
+	if err := postgresDB.PingContext(ctx); err != nil {
+		c.logger.Error().Err(err).Msg("Failed to ping PostgreSQL database")
+		return err
+	}
+
+	pgMigrations := migrations.PostgresMigrations(postgresDB, c.logger.With().Logger())
+	if err = pgMigrations.Migrate(); err != nil {
+		c.logger.Error().Err(err).Msg("Failed to migrate PostgreSQL database")
+		return err
+	}
+
 	tables := GetTables()
 
-	applyFixups(sqliteDB, sqliteFixups)
+	c.applyFixups(ctx, sqliteDB, sqliteFixups)
 
 	// Store all foreign key violation messages.
 	var allFKViolations []string
 	for _, table := range tables {
-		fkViolations := c.migrateTable(sqliteDB, postgresDB, table)
+		if slices.Contains(opts.ExcludeTables, table) {
+			c.logger.Info().Str("table", table).Msg("Skip ignored table")
+			continue
+		}
+		fkViolations, err := c.migrateTable(ctx, sqliteDB, postgresDB, table, opts.DryRun)
+		if err != nil {
+			c.logger.Error().Err(err).Str("table", table).Msg("Failed to migrate table")
+			continue
+		}
 		allFKViolations = append(allFKViolations, fkViolations...)
 	}
 
-	applyFixups(postgresDB, postgresFixups)
+	c.applyFixups(ctx, postgresDB, postgresFixups)
 
 	c.printConversionResult(startTime, allFKViolations)
 
@@ -131,54 +168,151 @@ func (c *SqliteToPostgresConverter) printConversionResult(startTime time.Time, a
 }
 
 func GetTables() []string {
-	return append([]string(nil), tables...)
+	return append([]string(nil), defaultTables...)
 }
 
-func (c *SqliteToPostgresConverter) migrateTable(sqliteDB, postgresDB *sql.DB, table string) []string {
+func (c *SqliteToPostgresConverter) migrateTable(ctx context.Context, sqliteDB, postgresDB *sql.DB, table string, dry bool) ([]string, error) {
 	var fkViolationMessages []string
 
-	rows, err := sqliteDB.Query(fmt.Sprintf("SELECT * FROM %s", table))
+	var rowCount int64
+	if err := sqliteDB.QueryRowContext(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&rowCount); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			c.logger.Error().Err(err).Str("table", table).Msg("Failed to query row count")
+			return nil, errors.Wrap(err, "Failed to query row count for table '%s'", table)
+		}
+	}
+
+	if rowCount == 0 {
+		c.logger.Info().Str("table", table).Msg("Table is empty, skipping")
+		return nil, nil
+	}
+
+	c.logger.Debug().Str("table", table).Int64("rows", rowCount).Msg("Converting table..")
+
+	if dry {
+		c.logger.Info().Str("table", table).Msg("Dry run, skipping table")
+		return nil, nil
+	}
+
+	rows, err := sqliteDB.QueryContext(ctx, fmt.Sprintf("SELECT * FROM %s", table))
 	if err != nil {
-		log.Fatalf("Failed to query SQLite table '%s': %v", table, err)
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.Wrap(err, "Failed to query SQLite table '%s'", table)
+		}
+		return nil, err
 	}
 	defer rows.Close()
 
 	columns, err := rows.ColumnTypes()
 	if err != nil {
-		log.Fatalf("Failed to get column types for table '%s': %v", table, err)
+		c.logger.Error().Err(err).Str("table", table).Msg("Failed to get column types")
+		return nil, errors.Wrap(err, "Failed to get column types for table '%s'", table)
 	}
 
-	// Prepare the INSERT statement for PostgreSQL.
-	colNames, colPlaceholders := prepareColumns(columns)
-	insertStmt, err := postgresDB.Prepare(fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
-	if err != nil {
-		log.Fatalf("Failed to prepare INSERT statement for table '%s': %v", table, err)
-	}
-	defer insertStmt.Close()
+	colNames, _ := prepareColumns(columns)
 
+	const batchSize = 1000
+	c.logger.Debug().Str("table", table).Int("batchSize", batchSize).Int64("rows", rowCount).Int("total_batches", int(rowCount/batchSize)).Msg("total batches")
+	var batch [][]interface{}
 	var rowsAffected int64
 
 	for rows.Next() {
 		values, valuePtrs := prepareValues(columns)
 
 		if err := rows.Scan(valuePtrs...); err != nil {
-			log.Fatalf("Failed to scan row from SQLite table '%s': %v", table, err)
+			c.logger.Error().Err(err).Str("table", table).Msg("Failed to scan row")
+			return nil, errors.Wrap(err, "Failed to scan row from SQLite table '%s'", table)
 		}
 
+		batch = append(batch, values)
+
+		// When batch is full, insert it
+		if len(batch) >= batchSize {
+			inserted, violations := c.insertBatch(ctx, postgresDB, table, colNames, columns, batch)
+			rowsAffected += inserted
+			c.logger.Debug().Str("table", table).Int64("rowsAffected", rowsAffected).Int64("total_rows", rowCount).Msg("rows affected")
+			fkViolationMessages = append(fkViolationMessages, violations...)
+			batch = batch[:0] // Reset batch
+		}
+	}
+
+	// Insert any remaining rows in the final batch
+	if len(batch) > 0 {
+		inserted, violations := c.insertBatch(ctx, postgresDB, table, colNames, columns, batch)
+		rowsAffected += inserted
+		c.logger.Debug().Str("table", table).Int64("rowsAffected", rowsAffected).Int64("total_rows", rowCount).Msg("rows affected")
+		fkViolationMessages = append(fkViolationMessages, violations...)
+	}
+
+	c.logger.Info().Msgf("Converted %d rows to table '%s' from SQLite to PostgreSQL", rowsAffected, table)
+
+	return fkViolationMessages, nil
+}
+
+func (c *SqliteToPostgresConverter) insertBatch(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]interface{}) (int64, []string) {
+	if len(batch) == 0 {
+		return 0, nil
+	}
+
+	var fkViolations []string
+
+	// Build multi-row INSERT statement
+	var placeholders []string
+	var allValues []interface{}
+	paramIndex := 1
+
+	for _, rowValues := range batch {
+		var rowPlaceholders []string
+		for range columns {
+			rowPlaceholders = append(rowPlaceholders, fmt.Sprintf("$%d", paramIndex))
+			paramIndex++
+		}
+		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(rowPlaceholders, ", ")))
+		allValues = append(allValues, rowValues...)
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES %s", table, colNames, strings.Join(placeholders, ", "))
+
+	_, err := db.Exec(query, allValues...)
+	if err != nil {
+		if isForeignKeyViolation(err) {
+			// If batch insert fails due to FK violation, fall back to individual inserts
+			// to identify which specific rows are problematic
+			return c.insertBatchOneByOne(ctx, db, table, colNames, columns, batch)
+		}
+		c.logger.Error().Err(err).Str("table", table).Msg("Failed to insert batch into table")
+	}
+
+	return int64(len(batch)), fkViolations
+}
+
+func (c *SqliteToPostgresConverter) insertBatchOneByOne(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]interface{}) (int64, []string) {
+	var fkViolations []string
+	var rowsAffected int64
+
+	_, colPlaceholders := prepareColumns(columns)
+	insertStmt, err := db.PrepareContext(ctx, fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
+	if err != nil {
+		c.logger.Error().Err(err).Str("table", table).Msg("Failed to prepare INSERT statement")
+		return 0, nil
+	}
+	defer insertStmt.Close()
+
+	for _, values := range batch {
 		_, err := insertStmt.Exec(values...)
 		if err != nil {
 			if isForeignKeyViolation(err) {
-				// Record foreign key violation message.
 				message := fmt.Sprintf("Table '%s': %v", table, err)
-				fkViolationMessages = append(fkViolationMessages, message)
+				fkViolations = append(fkViolations, message)
 				continue
 			}
-		} else {
-			rowsAffected++
+
+			c.logger.Error().Err(err).Str("table", table).Msg("Failed to insert row into table")
 		}
+		rowsAffected++
 	}
-	log.Printf("Converted %d rows to table '%s' from SQLite to PostgreSQL\n", rowsAffected, table)
-	return fkViolationMessages
+
+	return rowsAffected, fkViolations
 }
 
 func prepareColumns(columns []*sql.ColumnType) (colNames, colPlaceholders string) {
@@ -206,9 +340,9 @@ func isForeignKeyViolation(err error) bool {
 	return strings.Contains(err.Error(), "violates foreign key constraint")
 }
 
-func applyFixups(sql *sql.DB, stmts []string) {
+func (c *SqliteToPostgresConverter) applyFixups(ctx context.Context, sql *sql.DB, stmts []string) {
 	for _, stmt := range stmts {
-		_, err := sql.Exec(stmt)
+		_, err := sql.ExecContext(ctx, stmt)
 		if err != nil {
 			log.Printf("Failed to apply fixup %s: %v", stmt, err)
 		}
