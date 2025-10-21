@@ -25,6 +25,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
+
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -224,10 +225,19 @@ func main() {
 		log.Printf("successfully updated password for user %q", username)
 
 	case "db:convert":
-		var sqliteDBPath, postgresDBURL string
+		ctx := context.Background()
+
+		var (
+			sqliteDBPath, postgresDBURL string
+			excludeTables               string
+			dryRun                      bool
+		)
+
 		migrateFlagSet := flag.NewFlagSet("db:convert", flag.ExitOnError)
 		migrateFlagSet.StringVar(&sqliteDBPath, "sqlite-db", "", "path to SQLite database file")
-		migrateFlagSet.StringVar(&postgresDBURL, "postgres-url", "", "URL for PostgreSQL database")
+		migrateFlagSet.StringVar(&postgresDBURL, "postgres-url", "", "DSN for PostgreSQL database: postgres://user:pass@host:port/db?sslmode=disable")
+		migrateFlagSet.StringVar(&excludeTables, "exclude-tables", "", "comma separated list of tables to exclude from conversion")
+		migrateFlagSet.BoolVar(&dryRun, "dry-run", false, "dry run")
 
 		if err := migrateFlagSet.Parse(flag.Args()[1:]); err != nil {
 			fmt.Printf("Error parsing flags for db:convert: %v\n", err)
@@ -241,10 +251,19 @@ func main() {
 			os.Exit(1)
 		}
 
-		c := tools.NewConverter(sqliteDBPath, postgresDBURL)
-		if err := c.Convert(); err != nil {
+		opts := tools.Opts{
+			DryRun:        dryRun,
+			ExcludeTables: strings.Split(excludeTables, ","),
+		}
+
+		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"})
+
+		c := tools.NewConverter(l, sqliteDBPath, postgresDBURL)
+		if err := c.Convert(ctx, opts); err != nil {
 			log.Fatalf("database conversion failed: %v", err)
 		}
+
+		os.Exit(0)
 
 	case "db:seed", "db:reset":
 		var dbPath, seedDBPath string
