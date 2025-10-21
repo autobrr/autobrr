@@ -94,6 +94,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("70_filter_notifications.sql")
 	migrate.AddFileMigration("71_indexers_update_revtt_domain.sql")
 	migrate.AddFileMigration("72_duplicate_profiles_add_hybrid.sql")
+	migrate.AddFileMigration("73_indexers_update_reelflix_domain.sql")
 
 	return migrate
 }
