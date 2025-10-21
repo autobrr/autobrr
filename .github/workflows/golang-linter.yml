@@ -9,8 +9,7 @@ on:
   pull_request:
 
 env:
-  GO_VERSION: '1.24'
-  NODE_VERSION: '20.17.0'
+  NODE_VERSION: '22.17.0'
 
 jobs:
   nilaway:
@@ -18,14 +17,14 @@ jobs:
     runs-on: ubuntu-latest 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: Install Nilaway

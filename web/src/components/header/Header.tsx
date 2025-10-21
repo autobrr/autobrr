@@ -48,7 +48,7 @@ export const Header = () => {
         <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
       ));
       AuthContext.reset();
-      throw redirect({
+      redirect({
         to: loginRoute.id,
       })
     },

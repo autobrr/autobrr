@@ -148,13 +148,26 @@ func (s *service) Start() error {
 }
 
 func (s *service) update(ctx context.Context, feed *domain.Feed) error {
+	existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not find feed")
+		return err
+	}
+
+	if domain.IsRedactedString(feed.ApiKey) {
+		feed.ApiKey = existingFeed.ApiKey
+	}
+	if domain.IsRedactedString(feed.Cookie) {
+		feed.Cookie = existingFeed.Cookie
+	}
+
 	if err := s.repo.Update(ctx, feed); err != nil {
 		s.log.Error().Err(err).Msg("error updating feed")
 		return err
 	}
 
 	// get Feed again for ProxyID and UseProxy to be correctly populated
-	feed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	feed, err = s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
@@ -432,9 +445,9 @@ func newFeedInstance(f *domain.Feed) feedInstance {
 	return fi
 }
 
-func (s *service) initializeFeedJob(fi feedInstance) (FeedJob, error) {
+func (s *service) initializeFeedJob(fi feedInstance) (RefreshFeedJob, error) {
 	var err error
-	var job FeedJob
+	var job RefreshFeedJob
 
 	switch fi.Implementation {
 	case string(domain.FeedTypeTorznab):
@@ -512,7 +525,7 @@ func (s *service) scheduleJob(fi feedInstance, job cron.Job) error {
 	return nil
 }
 
-func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
+func (s *service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
 	s.log.Debug().Msgf("create torznab job: %s", f.Name)
 
 	if f.URL == "" {
@@ -524,7 +537,7 @@ func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// setup torznab Client
 	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
@@ -535,7 +548,7 @@ func (s *service) createTorznabJob(f feedInstance) (FeedJob, error) {
 	return job, nil
 }
 
-func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
+func (s *service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
 	s.log.Debug().Msgf("create newznab job: %s", f.Name)
 
 	if f.URL == "" {
@@ -543,7 +556,7 @@ func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
 	}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// setup newznab Client
 	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
@@ -554,7 +567,7 @@ func (s *service) createNewznabJob(f feedInstance) (FeedJob, error) {
 	return job, nil
 }
 
-func (s *service) createRSSJob(f feedInstance) (FeedJob, error) {
+func (s *service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
 	s.log.Debug().Msgf("create rss job: %s", f.Name)
 
 	if f.URL == "" {
@@ -566,7 +579,7 @@ func (s *service) createRSSJob(f feedInstance) (FeedJob, error) {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// create job
 	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)

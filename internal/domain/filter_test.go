@@ -76,7 +76,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "movie_parse_2",
 			fields: &Release{
-				TorrentName: "That Movie 2020 2160p Blu-Ray DD5.1 x264-GROUP1",
+				TorrentName: "That Movie 2025 2160p Blu-Ray DD5.1 x264-GROUP1",
 				Category:    "Movies",
 				Freeleech:   true,
 				Size:        uint64(30000000001),
@@ -91,7 +91,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Resolutions:        []string{"2160p"},
 					Sources:            []string{"BluRay"},
 					Codecs:             []string{"x264"},
-					Years:              "2020",
+					Years:              "1800-1980,2020-2025",
 					MatchReleaseGroups: "GROUP1",
 				},
 				rejectionReasons: &RejectionReasons{data: []Rejection{}},

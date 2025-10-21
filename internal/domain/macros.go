@@ -33,12 +33,15 @@ type Macro struct {
 	Category                  string
 	Codec                     []string
 	Container                 string
+	Cookie                    string
 	CurrentDay                int
 	CurrentHour               int
 	CurrentMinute             int
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
+	CurrentTimeUnixMS         int64
+	CurrentUnixTimeMS         int64
 	Description               string
 	DownloadUrl               string
 	Episode                   int
@@ -110,12 +113,15 @@ func NewMacro(release Release) Macro {
 		Category:                  release.Category,
 		Codec:                     release.Codec,
 		Container:                 release.Container,
+		Cookie:                    release.RawCookie,
 		CurrentDay:                currentTime.Day(),
 		CurrentHour:               currentTime.Hour(),
 		CurrentMinute:             currentTime.Minute(),
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
+		CurrentTimeUnixMS:         currentTime.UnixMilli(),
+		CurrentUnixTimeMS:         currentTime.UnixMilli(),
 		Description:               release.Description,
 		DownloadUrl:               release.DownloadURL,
 		Episode:                   release.Episode,

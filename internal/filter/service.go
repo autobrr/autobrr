@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +18,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -32,7 +32,7 @@ import (
 type Service interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error)
-	Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error)
+	Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error)
 	CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	ListFilters(ctx context.Context) ([]domain.Filter, error)
 	Store(ctx context.Context, filter *domain.Filter) error
@@ -45,31 +45,32 @@ type Service interface {
 	AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 	CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error)
-	GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error)
 	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
 }
 
 type service struct {
-	log           zerolog.Logger
-	repo          domain.FilterRepo
-	actionService action.Service
-	releaseRepo   domain.ReleaseRepo
-	indexerSvc    indexer.Service
-	apiService    indexer.APIService
-	downloadSvc   *releasedownload.DownloadService
+	log             zerolog.Logger
+	repo            domain.FilterRepo
+	actionService   action.Service
+	releaseRepo     domain.ReleaseRepo
+	indexerSvc      indexer.Service
+	apiService      indexer.APIService
+	downloadSvc     *releasedownload.DownloadService
+	notificationSvc notification.FilterStorer
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService, notificationSvc notification.FilterStorer) Service {
 	return &service{
-		log:           log.With().Str("module", "filter").Logger(),
-		repo:          repo,
-		releaseRepo:   releaseRepo,
-		actionService: actionSvc,
-		apiService:    apiService,
-		indexerSvc:    indexerSvc,
-		downloadSvc:   downloadSvc,
+		log:             log.With().Str("module", "filter").Logger(),
+		repo:            repo,
+		releaseRepo:     releaseRepo,
+		actionService:   actionSvc,
+		apiService:      apiService,
+		indexerSvc:      indexerSvc,
+		downloadSvc:     downloadSvc,
+		notificationSvc: notificationSvc,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
@@ -77,7 +78,7 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Serv
 	}
 }
 
-func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]domain.Filter, error) {
+func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
 	// get filters
 	filters, err := s.repo.Find(ctx, params)
 	if err != nil {
@@ -85,28 +86,21 @@ func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]
 		return nil, err
 	}
 
-	ret := make([]domain.Filter, 0)
-
 	for _, filter := range filters {
 		indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 		if err != nil {
-			return ret, err
+			return filters, err
 		}
 		filter.Indexers = indexers
 
-		if filter.MaxDownloads > 0 && filter.MaxDownloadsUnit != "" {
-			counts, err := s.repo.GetDownloadsByFilterId(ctx, filter.ID)
-			if err != nil {
-				return ret, err
+		if filter.IsMaxDownloadsLimitEnabled() {
+			if err := s.repo.GetFilterDownloadCount(ctx, filter); err != nil {
+				s.log.Error().Err(err).Msgf("could not get filter downloads for filter: %s", filter.Name)
 			}
-
-			filter.Downloads = counts
 		}
-
-		ret = append(ret, filter)
 	}
 
-	return ret, nil
+	return filters, nil
 }
 
 func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
@@ -117,19 +111,15 @@ func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 		return nil, err
 	}
 
-	ret := make([]domain.Filter, 0)
-
-	for _, filter := range filters {
+	for idx, filter := range filters {
 		indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 		if err != nil {
-			return ret, err
+			return filters, err
 		}
-		filter.Indexers = indexers
-
-		ret = append(ret, filter)
+		filters[idx].Indexers = indexers
 	}
 
-	return ret, nil
+	return filters, nil
 }
 
 func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
@@ -158,6 +148,13 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	}
 	filter.Indexers = indexers
 
+	// Load notifications
+	notifications, err := s.notificationSvc.GetFilterNotifications(ctx, filter.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find notifications for filter: %v", filter.Name)
+	}
+	filter.Notifications = notifications
+
 	return filter, nil
 }
 
@@ -169,23 +166,16 @@ func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 	}
 
 	// we do not load actions here since we do not need it at this stage
-	// only load those after filter has matched
+	// only load those after a filter has matched
 	for _, filter := range filters {
-		filter := filter
-
 		externalFilters, err := s.repo.FindExternalFiltersByID(ctx, filter.ID)
 		if err != nil {
 			s.log.Error().Err(err).Msgf("could not find external filters for filter id: %v", filter.ID)
 		}
 		filter.External = externalFilters
-
 	}
 
 	return filters, nil
-}
-
-func (s *service) GetDownloadsByFilterId(ctx context.Context, filterID int) (*domain.FilterDownloads, error) {
-	return s.GetDownloadsByFilterId(ctx, filterID)
 }
 
 func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
@@ -249,6 +239,13 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 
 	filter.Actions = actions
 
+	// take care of filter notifications
+	err = s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not store filter notifications: %s", filter.Name)
+		return err
+	}
+
 	return nil
 }
 
@@ -288,6 +285,14 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		// take care of filter actions
 		if _, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
 			s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.ID)
+			return err
+		}
+	}
+
+	if filter.Notifications != nil {
+		// take care of filter notifications
+		if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
+			s.log.Error().Err(err).Msgf("could not store filter notifications: %v", filter.ID)
 			return err
 		}
 	}
@@ -382,6 +387,11 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 		return err
 	}
 
+	if err := s.notificationSvc.DeleteFilterNotifications(ctx, filterID); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete filter notifications: %v", filterID)
+		return err
+	}
+
 	return nil
 }
 
@@ -394,13 +404,11 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	l.Trace().Msgf("checking filter: %s for release: %+v", f.Name, release)
 
 	// do additional fetch to get download counts for filter
-	if f.MaxDownloads > 0 {
-		downloadCounts, err := s.repo.GetDownloadsByFilterId(ctx, f.ID)
-		if err != nil {
+	if f.IsMaxDownloadsLimitEnabled() {
+		if err := s.repo.GetFilterDownloadCount(ctx, f); err != nil {
 			l.Error().Err(err).Msg("error getting download counters for filter")
 			return false, nil
 		}
-		f.Downloads = downloadCounts
 	}
 
 	rejections, matchedFilter := f.CheckFilter(release)
@@ -782,14 +790,11 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 		}
 	}()
 
-	// sort filters by index
-	sort.Slice(externalFilters, func(i, j int) bool {
-		return externalFilters[i].Index < externalFilters[j].Index
-	})
-
 	for _, external := range externalFilters {
+		l := s.log.With().Str("method", "RunExternalFilters").Str("filter", f.Name).Str("external_filter", external.Name).Logger()
+
 		if !external.Enabled {
-			s.log.Debug().Msgf("external filter %s not enabled, skipping...", external.Name)
+			l.Debug().Msgf("external filter not enabled, skipping...")
 
 			continue
 		}
@@ -805,11 +810,17 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external script
 			exitCode, err := s.execCmd(ctx, external, release)
 			if err != nil {
+				l.Error().Err(err).Msgf("error executing external script")
+
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					l.Debug().Msgf("external script error, and OnError set to CONTINUE...")
+					continue
+				}
 				return false, errors.Wrap(err, "error executing external command")
 			}
 
 			if exitCode != external.ExecExpectStatus {
-				s.log.Trace().Msgf("filter.Service.CheckFilter: external script unexpected exit code. got: %d want: %d", exitCode, external.ExecExpectStatus)
+				l.Debug().Int("expected_status", external.ExecExpectStatus).Int("actual_status", exitCode).Msgf("external script got unexpected exit code")
 				f.RejectReasons.Add("external script exit code", exitCode, external.ExecExpectStatus)
 				return false, nil
 			}
@@ -818,11 +829,18 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external webhook
 			statusCode, err := s.webhook(ctx, external, release)
 			if err != nil {
+				l.Error().Err(err).Msgf("error executing external webhook")
+
+				// Only continue if the filter is configured to continue on error
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					l.Debug().Msgf("external webhook error, and OnError set to CONTINUE...")
+					continue
+				}
 				return false, errors.Wrap(err, "error executing external webhook")
 			}
 
 			if statusCode != external.WebhookExpectStatus {
-				s.log.Trace().Msgf("filter.Service.CheckFilter: external webhook unexpected status code. got: %d want: %d", statusCode, external.WebhookExpectStatus)
+				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", statusCode).Msgf("external webhook got unexpected status code")
 				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
 				return false, nil
 			}
@@ -921,6 +939,8 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 }
 
 func (s *service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
+	l := s.log.With().Str("method", "webhook").Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
+
 	s.log.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
 
 	if external.WebhookHost == "" {
@@ -972,14 +992,17 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		}
 	}
 
-	var opts []retry.Option
-
-	opts = append(opts, retry.DelayType(retry.FixedDelay))
-	opts = append(opts, retry.LastErrorOnly(true))
-
-	if external.WebhookRetryAttempts > 0 {
-		opts = append(opts, retry.Attempts(uint(external.WebhookRetryAttempts)))
+	retryAttempts := external.WebhookRetryAttempts
+	if retryAttempts == 0 {
+		retryAttempts = 1
 	}
+
+	opts := []retry.Option{
+		retry.DelayType(retry.FixedDelay),
+		retry.LastErrorOnly(true),
+		retry.Attempts(uint(retryAttempts)),
+	}
+
 	if external.WebhookRetryDelaySeconds > 0 {
 		opts = append(opts, retry.Delay(time.Duration(external.WebhookRetryDelaySeconds)*time.Second))
 	}
@@ -997,6 +1020,9 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			if external.WebhookData != "" && dataArgs != "" {
 				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
 			}
+
+			l.Trace().Msg("making filter external webhook request..")
+
 			res, err := s.httpClient.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
@@ -1004,7 +1030,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 			defer res.Body.Close()
 
-			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
+			l.Debug().Int("status_code", res.StatusCode).Msg("filter external webhook response")
 
 			if s.log.Debug().Enabled() {
 				body, err := io.ReadAll(res.Body)
@@ -1013,7 +1039,7 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 				}
 
 				if len(body) > 0 {
-					s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+					l.Debug().Int("status_code", res.StatusCode).Str("body", string(body)).Msg("filter external webhook response body")
 				}
 			}
 
@@ -1025,7 +1051,13 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		},
 		opts...)
 
-	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", external.WebhookHost, dataArgs, time.Since(start))
+	if err != nil {
+		l.Error().Err(err).Msg("error sending webhook")
 
-	return statusCode, err
+		return statusCode, errors.Wrap(err, "could not make request for webhook")
+	}
+
+	l.Debug().Str("args", dataArgs).TimeDiff("duration", time.Now(), start).Msg("successfully ran external webhook filter")
+
+	return statusCode, nil
 }
