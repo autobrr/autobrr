@@ -19,12 +19,12 @@ settings:
     help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
 
 irc:
-  network: P2P-Network
-  server: irc.p2p-network.net
+  network: ULCX
+  server: irc.upload.cx
   port: 6697
   tls: true
   channels:
-    - "#ulcx-announce"
+    - "#announce"
   announcers:
     - ULCX
   settings:

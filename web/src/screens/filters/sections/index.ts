@@ -9,3 +9,4 @@ export * from "./MoviesAndTV";
 export * from "./Music";
 export * from "./External";
 export * from "./Actions";
+export * from "./Notifications";

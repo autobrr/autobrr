@@ -10,6 +10,7 @@ import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
@@ -22,6 +23,7 @@ import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { Checkbox } from "@components/Checkbox";
+import { EmptySimple } from "@components/emptystates";
 
 import { componentMapType } from "./DownloadClientForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
@@ -480,10 +482,10 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
                             <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Events
+                                Global Events
                               </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Select what events to trigger on
+                                Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
                               </p>
                             </div>
 
@@ -578,8 +580,9 @@ interface InitialValues {
   topic?: string;
   host?: string;
   events: NotificationEvent[];
-  username?: string
-  password?: string
+  username?: string;
+  password?: string;
+  used_by_filters?: NotificationFilter[];
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
@@ -631,7 +634,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     host: notification.host,
     events: notification.events || [],
     username: notification.username,
-    password: notification.password
+    password: notification.password,
+    used_by_filters: notification.used_by_filters || [],
   };
 
   return (
@@ -704,10 +708,10 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
             <div className="pb-2">
               <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                  Events
+                  Global Events
                 </DialogTitle>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Select what events to trigger on
+                  Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
                 </p>
               </div>
 
@@ -716,9 +720,51 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
               </div>
             </div>
           </div>
+
+          <div className="pb-2">
+            <div className="p-4">
+              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                Per filter Events
+              </DialogTitle>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                This notification is used in these filters.
+              </p>
+            </div>
+
+            <div className="p-4 sm:grid sm:gap-4">
+              {values.used_by_filters && values.used_by_filters?.length > 0
+                ? values.used_by_filters?.map(f => (
+                  <Link key={f.filter_id} to="/filters/$filterId/notifications" params={{filterId: f.filter_id}}>
+                    <div key={f.filter_id} className="flex justify-between px-2 py-2 bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                      <span className="font-medium text-gray-500 dark:text-gray-300">{f.filter_name}</span>
+                      <div className="flex gap-2">
+                        {f.events.length > 0
+                          ? f.events.map((e) => <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-400/10 dark:text-gray-400">{FilterEventOptions[e]}</span>)
+                          : <span className="inline-flex items-center rounded-md bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-600 dark:bg-yellow-400/10 dark:text-yellow-400">Muted</span>}
+                      </div>
+                    </div>
+                  </Link>
+                ))
+                :
+                <EmptySimple
+                  title="Not used in any filters"
+                  subtitle=""
+                  border={true}
+                />
+
+              }
+            </div>
+          </div>
+
           {componentMap[values.type]}
         </div>
       )}
     </SlideOver>
   );
+}
+
+const FilterEventOptions: Record<NotificationFilterEvent, string> = {
+  "PUSH_APPROVED": "Push Approved",
+  "PUSH_REJECTED": "Push Rejected",
+  "PUSH_ERROR": "Push Error",
 }

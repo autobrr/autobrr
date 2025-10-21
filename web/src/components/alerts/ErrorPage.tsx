@@ -53,7 +53,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
           </ExternalLink>
           {" or to "}
           <ExternalLink
-            href="https://discord.gg/WQ2eUycxyT"
+            href="https://discord.autobrr.com"
             className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
           >
             our official Discord channel

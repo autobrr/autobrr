@@ -48,7 +48,7 @@ func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
 
 func NewLunaSeaSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &lunaSeaSender{
-		log:      log.With().Str("sender", "lunasea").Logger(),
+		log:      log.With().Str("sender", "lunasea").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
@@ -101,17 +101,50 @@ func (s *lunaSeaSender) Send(event domain.NotificationEvent, payload domain.Noti
 }
 
 func (s *lunaSeaSender) CanSend(event domain.NotificationEvent) bool {
-	if s.Settings.Enabled && s.Settings.Webhook != "" && s.isEnabledEvent(event) {
+	return s.IsEnabled() && s.isEnabledEvent(event)
+}
+
+func (s *lunaSeaSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
+
+	if payload.FilterID > 0 {
+		if s.Settings.FilterMuted(payload.FilterID) {
+			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
+			return false
+		}
+
+		// Check if the filter has custom notifications configured
+		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
+			return true
+		}
+
+		// If the filter has custom notifications but the event is not enabled, don't fall back to global
+		if s.Settings.HasFilterNotifications(payload.FilterID) {
+			return false
+		}
+	}
+
+	// Fall back to global events for non-filter events or filters without custom notifications
+	if s.isEnabledEvent(event) {
+		return true
+	}
+
+	return false
+}
+
+func (s *lunaSeaSender) HasFilterEvents(filterID int) bool {
+	if s.Settings.HasFilterNotifications(filterID) {
 		return true
 	}
 	return false
 }
 
+func (s *lunaSeaSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
+}
+
 func (s *lunaSeaSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
-	return false
+	return s.Settings.EventEnabled(string(event))
 }
