@@ -272,7 +272,7 @@ func (c *AppConfig) defaults() {
 		Version:               "dev",
 		Host:                  "localhost",
 		Port:                  7474,
-		CorsAllowedOrigins:    "",
+		CorsAllowedOrigins:    "*",
 		LogLevel:              "TRACE",
 		LogPath:               "",
 		LogMaxSize:            50,

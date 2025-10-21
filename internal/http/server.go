@@ -27,12 +27,10 @@ type Server struct {
 	sse *sse.Server
 	db  DatabaseHealth
 
+	buildInfo      buildInfo
 	config         *config.AppConfig
+	allowedOrigins []string
 	sessionManager *scs.SessionManager
-
-	version string
-	commit  string
-	date    string
 
 	actionService         actionService
 	apiService            apikeyService
@@ -76,20 +74,29 @@ type Deps struct {
 	UpdateService         updateService
 }
 
-func NewServer(deps Deps) Server {
+func NewServer(deps Deps) *Server {
 	sessionManager := deps.SessionManager
 	sessionManager.Lifetime = 24 * time.Hour * 30
 	sessionManager.Cookie.Name = "autobrr_user_session"
 	sessionManager.Cookie.Persist = false
 
-	srv := Server{
-		log:     deps.Log.With().Str("module", "http").Logger(),
-		config:  deps.Config,
-		sse:     deps.SSE,
-		db:      deps.DB,
-		version: deps.Version,
-		commit:  deps.Commit,
-		date:    deps.Date,
+	srv := &Server{
+		log:    deps.Log.With().Str("module", "http").Logger(),
+		config: deps.Config,
+		allowedOrigins: []string{
+			"*",
+			//"http://localhost:3000",
+			//"http://localhost:7474",
+			//"http://127.0.0.1:3000",
+			//"http://127.0.0.1:7474",
+		},
+		sse: deps.SSE,
+		db:  deps.DB,
+		buildInfo: buildInfo{
+			version: deps.Version,
+			commit:  deps.Commit,
+			date:    deps.Date,
+		},
 
 		sessionManager: sessionManager,
 
@@ -108,15 +115,14 @@ func NewServer(deps Deps) Server {
 		updateService:         deps.UpdateService,
 	}
 
-	if deps.Config.Config.CorsAllowedOrigins != "" {
-		extraOrigins := strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
-		allowedOrigins = append(allowedOrigins, extraOrigins...)
+	if deps.Config.Config.CorsAllowedOrigins != "*" {
+		srv.allowedOrigins = strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
 	}
 
 	return srv
 }
 
-func (s Server) Open() error {
+func (s *Server) Open() error {
 	addr := fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port)
 
 	var err error
@@ -131,7 +137,7 @@ func (s Server) Open() error {
 	return err
 }
 
-func (s Server) tryToServe(addr, protocol string) error {
+func (s *Server) tryToServe(addr, protocol string) error {
 	listener, err := net.Listen(protocol, addr)
 	if err != nil {
 		return err
@@ -147,14 +153,7 @@ func (s Server) tryToServe(addr, protocol string) error {
 	return server.Serve(listener)
 }
 
-var allowedOrigins = []string{
-	"http://localhost:3000",
-	"http://127.0.0.1:3000",
-	"http://localhost:7474",
-	"http://127.0.0.1:7474",
-}
-
-func (s Server) Handler() http.Handler {
+func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -166,10 +165,10 @@ func (s Server) Handler() http.Handler {
 		AllowCredentials:   true,
 		AllowedMethods:     []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
 		AllowedHeaders:     []string{"Authorization"},
-		AllowedOrigins:     allowedOrigins,
+		AllowedOrigins:     s.allowedOrigins,
 		OptionsPassthrough: true,
 		// Enable Debugging for testing, consider disabling in production
-		Debug: true,
+		Debug: false,
 	})
 
 	r.Use(c.Handler)
@@ -186,7 +185,7 @@ func (s Server) Handler() http.Handler {
 			r.Use(s.IsAuthenticated)
 
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/config", newConfigHandler(encoder, s, s.config).Routes)
+			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
 			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
@@ -225,13 +224,13 @@ func (s Server) Handler() http.Handler {
 		// this is required to keep assets "url rewritable" via a reverse-proxy
 		routeAssetBaseURL := "./"
 		// serve the web
-		webHandlers := newWebLegacyHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL, routeAssetBaseURL)
+		webHandlers := newWebLegacyHandler(s.log, web.DistDirFS, s.buildInfo.version, s.config.Config.BaseURL, routeAssetBaseURL)
 		webHandlers.RegisterRoutes(webRouter)
 	} else {
 		routeBaseURL = s.config.Config.BaseURL
 
 		// serve the web
-		webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, routeBaseURL, routeBaseURL)
+		webHandlers := newWebHandler(s.log, web.DistDirFS, s.buildInfo.version, routeBaseURL, routeBaseURL)
 		webHandlers.RegisterRoutes(webRouter)
 
 		// add fallback routes when base url is set to inform user to redirect and use /baseurl/
