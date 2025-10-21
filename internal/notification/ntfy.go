@@ -4,7 +4,6 @@
 package notification
 
 import (
-	"bufio"
 	"io"
 	"net/http"
 	"strconv"
@@ -37,7 +36,7 @@ func (s *ntfySender) Name() string {
 
 func NewNtfySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
 	return &ntfySender{
-		log:      log.With().Str("sender", "ntfy").Logger(),
+		log:      log.With().Str("sender", "ntfy").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		builder:  MessageBuilderPlainText{},
 		httpClient: &http.Client{
@@ -78,12 +77,14 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	s.log.Trace().Msgf("ntfy response status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		// Limit error body reading to prevent memory issues
+		limitedReader := io.LimitReader(res.Body, 4096) // 4KB limit
+		body, err := io.ReadAll(limitedReader)
 		if err != nil {
 			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
 		}
@@ -97,31 +98,53 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 }
 
 func (s *ntfySender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *ntfySender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.Host == "" {
-			s.log.Warn().Msg("ntfy missing host")
+func (s *ntfySender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
+
+	if payload.FilterID > 0 {
+		if s.Settings.FilterMuted(payload.FilterID) {
+			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
 			return false
 		}
 
+		// Check if the filter has custom notifications configured
+		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
+			return true
+		}
+
+		// If the filter has custom notifications but the event is not enabled, don't fall back to global
+		if s.Settings.HasFilterNotifications(payload.FilterID) {
+			return false
+		}
+	}
+
+	// Fall back to global events for non-filter events or filters without custom notifications
+	if s.isEnabledEvent(event) {
 		return true
 	}
 
 	return false
 }
 
-func (s *ntfySender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
+func (s *ntfySender) HasFilterEvents(filterID int) bool {
+	if s.Settings.HasFilterNotifications(filterID) {
+		return true
 	}
-
 	return false
+}
+
+func (s *ntfySender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
+}
+
+func (s *ntfySender) isEnabledEvent(event domain.NotificationEvent) bool {
+	return s.Settings.EventEnabled(string(event))
 }

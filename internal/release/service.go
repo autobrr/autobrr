@@ -209,7 +209,6 @@ func (s *service) processRelease(ctx context.Context, release *domain.Release, f
 	}(release)
 
 	if err := s.processFilters(ctx, filters, release); err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
 		return err
 	}
 

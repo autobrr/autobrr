@@ -35,9 +35,9 @@ type RSSJob struct {
 	Name       string
 	Log        zerolog.Logger
 	URL        string
-	Repo       domain.FeedRepo
-	CacheRepo  domain.FeedCacheRepo
-	ReleaseSvc release.Service
+	Repo       jobFeedRepo
+	CacheRepo  jobFeedCacheRepo
+	ReleaseSvc jobReleaseSvc
 	Timeout    time.Duration
 
 	attempts int
@@ -46,7 +46,7 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) FeedJob {
+func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) RefreshFeedJob {
 	return &RSSJob{
 		Feed:       feed,
 		Name:       name,
@@ -97,7 +97,7 @@ func (j *RSSJob) process(ctx context.Context) error {
 	releases := make([]*domain.Release, 0)
 
 	for _, item := range items {
-		j.Log.Debug().Msgf("item: %v", item.Title)
+		j.Log.Trace().Str("item", item.Title).Msg("processing item..")
 
 		rls := j.processItem(item)
 		if rls != nil {
@@ -123,7 +123,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		}
 	}
 
-	rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
+	rls := domain.NewRelease(j.Feed.Indexer)
 	rls.Implementation = domain.ReleaseImplementationRSS
 
 	rls.ParseString(item.Title)

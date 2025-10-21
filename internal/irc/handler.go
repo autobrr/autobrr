@@ -52,7 +52,8 @@ type Handler struct {
 	sse                 *sse.Server
 	network             *domain.IrcNetwork
 	releaseSvc          release.Service
-	notificationService notification.Service
+	notificationService notification.Sender
+	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
 	client           *ircevent.Connection
@@ -73,7 +74,7 @@ type Handler struct {
 	botModeChar string
 }
 
-func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
+func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Sender) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,
@@ -385,7 +386,8 @@ func (h *Handler) isOurNick(nick string) bool {
 }
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
-	return h.CurrentNick() == nick
+	// soju just reports JOIN (366) messages with the wildcard.
+	return h.CurrentNick() == nick || (h.network.UseBouncer && nick == "*")
 }
 
 func (h *Handler) setConnectionStatus() {

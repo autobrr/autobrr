@@ -16,6 +16,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
@@ -90,6 +91,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Event:          domain.NotificationEventPushApproved,
 		ReleaseName:    release.TorrentName,
 		Filter:         release.FilterName,
+		FilterID:       release.FilterID,
 		Indexer:        release.Indexer.Name,
 		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
@@ -223,7 +225,8 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 		return errors.Wrap(err, "could not make request for webhook")
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
+
 
 	if len(action.WebhookData) > 256 {
 		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))

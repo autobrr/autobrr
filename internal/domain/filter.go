@@ -37,6 +37,9 @@ type FilterRepo interface {
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
 	DeleteFilterExternal(ctx context.Context, filterID int) error
 	GetFilterDownloadCount(ctx context.Context, filter *Filter) error
+	GetFilterNotifications(ctx context.Context, filterID int) ([]FilterNotification, error)
+	StoreFilterNotifications(ctx context.Context, filterID int, notifications []FilterNotification) error
+	DeleteFilterNotifications(ctx context.Context, filterID int) error
 }
 
 type FilterDownloads struct {
@@ -186,28 +189,37 @@ type Filter struct {
 	ReleaseProfileDuplicateID int64                    `json:"release_profile_duplicate_id,omitempty"`
 	DuplicateHandling         *DuplicateReleaseProfile `json:"release_profile_duplicate"`
 	Downloads                 *FilterDownloads         `json:"downloads,omitempty"`
+	Notifications             []FilterNotification     `json:"notifications,omitempty"`
 	Rejections                []string                 `json:"-"`
 	RejectReasons             *RejectionReasons        `json:"-"`
 }
 
+type FilterExternalOnError string
+
+const (
+	FilterExternalOnErrorContinue FilterExternalOnError = "CONTINUE"
+	FilterExternalOnErrorReject   FilterExternalOnError = "REJECT"
+)
+
 type FilterExternal struct {
-	ID                       int                `json:"id"`
-	Name                     string             `json:"name"`
-	Index                    int                `json:"index"`
-	Type                     FilterExternalType `json:"type"`
-	Enabled                  bool               `json:"enabled"`
-	ExecCmd                  string             `json:"exec_cmd,omitempty"`
-	ExecArgs                 string             `json:"exec_args,omitempty"`
-	ExecExpectStatus         int                `json:"exec_expect_status,omitempty"`
-	WebhookHost              string             `json:"webhook_host,omitempty"`
-	WebhookMethod            string             `json:"webhook_method,omitempty"`
-	WebhookData              string             `json:"webhook_data,omitempty"`
-	WebhookHeaders           string             `json:"webhook_headers,omitempty"`
-	WebhookExpectStatus      int                `json:"webhook_expect_status,omitempty"`
-	WebhookRetryStatus       string             `json:"webhook_retry_status,omitempty"`
-	WebhookRetryAttempts     int                `json:"webhook_retry_attempts,omitempty"`
-	WebhookRetryDelaySeconds int                `json:"webhook_retry_delay_seconds,omitempty"`
-	FilterId                 int                `json:"-"`
+	ID                       int                   `json:"id"`
+	Name                     string                `json:"name"`
+	Index                    int                   `json:"index"`
+	Type                     FilterExternalType    `json:"type"`
+	Enabled                  bool                  `json:"enabled"`
+	ExecCmd                  string                `json:"exec_cmd,omitempty"`
+	ExecArgs                 string                `json:"exec_args,omitempty"`
+	ExecExpectStatus         int                   `json:"exec_expect_status,omitempty"`
+	WebhookHost              string                `json:"webhook_host,omitempty"`
+	WebhookMethod            string                `json:"webhook_method,omitempty"`
+	WebhookData              string                `json:"webhook_data,omitempty"`
+	WebhookHeaders           string                `json:"webhook_headers,omitempty"`
+	WebhookExpectStatus      int                   `json:"webhook_expect_status,omitempty"`
+	WebhookRetryStatus       string                `json:"webhook_retry_status,omitempty"`
+	WebhookRetryAttempts     int                   `json:"webhook_retry_attempts,omitempty"`
+	WebhookRetryDelaySeconds int                   `json:"webhook_retry_delay_seconds,omitempty"`
+	OnError                  FilterExternalOnError `json:"on_error"`
+	FilterId                 int                   `json:"-"`
 }
 
 func (f FilterExternal) NeedTorrentDownloaded() bool {
@@ -232,6 +244,22 @@ const (
 	ExternalFilterTypeExec    FilterExternalType = "EXEC"
 	ExternalFilterTypeWebhook FilterExternalType = "WEBHOOK"
 )
+
+type FilterNotification struct {
+	FilterID       int      `json:"filter_id"`
+	FilterName     string   `json:"filter_name"`
+	NotificationID int      `json:"notification_id"`
+	Events         []string `json:"events"`
+}
+
+func (f FilterNotification) EventEnabled(event string) bool {
+	for _, e := range f.Events {
+		if e == event {
+			return true
+		}
+	}
+	return false
+}
 
 type FilterUpdate struct {
 	ID                        int                     `json:"id"`
@@ -309,6 +337,7 @@ type FilterUpdate struct {
 	Actions                   []*Action               `json:"actions,omitempty"`
 	External                  []FilterExternal        `json:"external,omitempty"`
 	Indexers                  []Indexer               `json:"indexers,omitempty"`
+	Notifications             []FilterNotification    `json:"notifications,omitempty"`
 }
 
 func (f *Filter) Validate() error {

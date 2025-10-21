@@ -50,7 +50,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -110,7 +110,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -154,7 +154,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadC
 		Insert("client").
 		Columns("name", "type", "enabled", "host", "port", "tls", "tls_skip_verify", "username", "password", "settings").
 		Values(client.Name, client.Type, client.Enabled, client.Host, client.Port, client.TLS, client.TLSSkipVerify, client.Username, client.Password, settingsJson).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	// return values
 	var retID int
@@ -205,7 +205,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.Download
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -258,6 +258,10 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 
 	if err = r.deleteClientFromAction(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
+	}
+
+	if err = r.clearClientFromLists(ctx, tx, clientID); err != nil {
+		return errors.Wrap(err, "error clearing client from lists: %d", clientID)
 	}
 
 	r.log.Debug().Msgf("delete download client: %d", clientID)
@@ -313,6 +317,38 @@ func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx,
 	}
 
 	r.log.Debug().Msgf("deleting download client %d from action for filter %d", clientID, filterID)
+
+	return nil
+}
+
+func (r *DownloadClientRepo) clearClientFromLists(ctx context.Context, tx *Tx, clientID int32) error {
+	queryBuilder := r.db.squirrel.
+		Update("list").
+		Set("enabled", false).
+		Set("client_id", 0).
+		Where(sq.Eq{"client_id": clientID}).
+		RunWith(tx)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	}
+
+	if rowsAffected > 0 {
+		r.log.Debug().Msgf("disabled %d lists that referenced client %d", rowsAffected, clientID)
+	} else {
+		r.log.Debug().Msgf("no lists found referencing client %d", clientID)
+	}
 
 	return nil
 }

@@ -4,7 +4,6 @@
 package notification
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -51,7 +50,7 @@ func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain
 		}
 	}
 	return &telegramSender{
-		log:      log.With().Str("sender", "telegram").Logger(),
+		log:      log.With().Str("sender", "telegram").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		ThreadID: threadID,
 		builder:  MessageBuilderHTML{},
@@ -63,7 +62,6 @@ func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain
 }
 
 func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-
 	payload.Sender = s.Settings.Username
 
 	message := s.builder.BuildBody(payload)
@@ -103,12 +101,14 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	s.log.Trace().Msgf("telegram status: %d", res.StatusCode)
 
 	if res.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(bufio.NewReader(res.Body))
+		// Limit error body reading to prevent memory issues
+		limitedReader := io.LimitReader(res.Body, 4096) // 4KB limit
+		body, err := io.ReadAll(limitedReader)
 		if err != nil {
 			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
 		}
@@ -122,25 +122,53 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 }
 
 func (s *telegramSender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *telegramSender) isEnabled() bool {
-	if s.Settings.Enabled && s.Settings.Token != "" && s.Settings.Channel != "" {
-		return true
+func (s *telegramSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
 	}
-	return false
-}
 
-func (s *telegramSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
+	if payload.FilterID > 0 {
+		if s.Settings.FilterMuted(payload.FilterID) {
+			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
+			return false
+		}
+
+		// Check if the filter has custom notifications configured
+		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
 			return true
+		}
+
+		// If the filter has custom notifications but the event is not enabled, don't fall back to global
+		if s.Settings.HasFilterNotifications(payload.FilterID) {
+			return false
 		}
 	}
 
+	// Fall back to global events for non-filter events or filters without custom notifications
+	if s.isEnabledEvent(event) {
+		return true
+	}
+
 	return false
+}
+
+func (s *telegramSender) HasFilterEvents(filterID int) bool {
+	if s.Settings.HasFilterNotifications(filterID) {
+		return true
+	}
+	return false
+}
+
+func (s *telegramSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
+}
+
+func (s *telegramSender) isEnabledEvent(event domain.NotificationEvent) bool {
+	return s.Settings.EventEnabled(string(event))
 }

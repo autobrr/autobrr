@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,13 +18,14 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/Hellseher/go-shellquote"
 	"github.com/avast/retry-go/v4"
-	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
 )
 
@@ -49,26 +49,28 @@ type Service interface {
 }
 
 type service struct {
-	log           zerolog.Logger
-	repo          domain.FilterRepo
-	actionService action.Service
-	releaseRepo   domain.ReleaseRepo
-	indexerSvc    indexer.Service
-	apiService    indexer.APIService
-	downloadSvc   *releasedownload.DownloadService
+	log             zerolog.Logger
+	repo            domain.FilterRepo
+	actionService   action.Service
+	releaseRepo     domain.ReleaseRepo
+	indexerSvc      indexer.Service
+	apiService      indexer.APIService
+	downloadSvc     *releasedownload.DownloadService
+	notificationSvc notification.FilterStorer
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService) Service {
+func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService, notificationSvc notification.FilterStorer) Service {
 	return &service{
-		log:           log.With().Str("module", "filter").Logger(),
-		repo:          repo,
-		releaseRepo:   releaseRepo,
-		actionService: actionSvc,
-		apiService:    apiService,
-		indexerSvc:    indexerSvc,
-		downloadSvc:   downloadSvc,
+		log:             log.With().Str("module", "filter").Logger(),
+		repo:            repo,
+		releaseRepo:     releaseRepo,
+		actionService:   actionSvc,
+		apiService:      apiService,
+		indexerSvc:      indexerSvc,
+		downloadSvc:     downloadSvc,
+		notificationSvc: notificationSvc,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
@@ -145,6 +147,13 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 		return nil, err
 	}
 	filter.Indexers = indexers
+
+	// Load notifications
+	notifications, err := s.notificationSvc.GetFilterNotifications(ctx, filter.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find notifications for filter: %v", filter.Name)
+	}
+	filter.Notifications = notifications
 
 	return filter, nil
 }
@@ -230,6 +239,13 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 
 	filter.Actions = actions
 
+	// take care of filter notifications
+	err = s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not store filter notifications: %s", filter.Name)
+		return err
+	}
+
 	return nil
 }
 
@@ -269,6 +285,14 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		// take care of filter actions
 		if _, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
 			s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.ID)
+			return err
+		}
+	}
+
+	if filter.Notifications != nil {
+		// take care of filter notifications
+		if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
+			s.log.Error().Err(err).Msgf("could not store filter notifications: %v", filter.ID)
 			return err
 		}
 	}
@@ -360,6 +384,11 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	// delete filter
 	if err := s.repo.Delete(ctx, filterID); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete filter: %v", filterID)
+		return err
+	}
+
+	if err := s.notificationSvc.DeleteFilterNotifications(ctx, filterID); err != nil {
+		s.log.Error().Err(err).Msgf("could not delete filter notifications: %v", filterID)
 		return err
 	}
 
@@ -761,14 +790,11 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 		}
 	}()
 
-	// sort filters by index
-	sort.Slice(externalFilters, func(i, j int) bool {
-		return externalFilters[i].Index < externalFilters[j].Index
-	})
-
 	for _, external := range externalFilters {
+		l := s.log.With().Str("method", "RunExternalFilters").Str("filter", f.Name).Str("external_filter", external.Name).Logger()
+
 		if !external.Enabled {
-			s.log.Debug().Msgf("external filter %s not enabled, skipping...", external.Name)
+			l.Debug().Msgf("external filter not enabled, skipping...")
 
 			continue
 		}
@@ -784,11 +810,17 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external script
 			exitCode, err := s.execCmd(ctx, external, release)
 			if err != nil {
+				l.Error().Err(err).Msgf("error executing external script")
+
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					l.Debug().Msgf("external script error, and OnError set to CONTINUE...")
+					continue
+				}
 				return false, errors.Wrap(err, "error executing external command")
 			}
 
 			if exitCode != external.ExecExpectStatus {
-				s.log.Trace().Msgf("filter.Service.CheckFilter: external script unexpected exit code. got: %d want: %d", exitCode, external.ExecExpectStatus)
+				l.Debug().Int("expected_status", external.ExecExpectStatus).Int("actual_status", exitCode).Msgf("external script got unexpected exit code")
 				f.RejectReasons.Add("external script exit code", exitCode, external.ExecExpectStatus)
 				return false, nil
 			}
@@ -797,11 +829,18 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external webhook
 			statusCode, err := s.webhook(ctx, external, release)
 			if err != nil {
+				l.Error().Err(err).Msgf("error executing external webhook")
+
+				// Only continue if the filter is configured to continue on error
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					l.Debug().Msgf("external webhook error, and OnError set to CONTINUE...")
+					continue
+				}
 				return false, errors.Wrap(err, "error executing external webhook")
 			}
 
 			if statusCode != external.WebhookExpectStatus {
-				s.log.Trace().Msgf("filter.Service.CheckFilter: external webhook unexpected status code. got: %d want: %d", statusCode, external.WebhookExpectStatus)
+				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", statusCode).Msgf("external webhook got unexpected status code")
 				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
 				return false, nil
 			}
@@ -837,9 +876,7 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	}
 
 	// we need to split on space into a string slice, so we can spread the args into exec
-	p := shellwords.NewParser()
-	p.ParseBacktick = true
-	commandArgs, err := p.Parse(parsedArgs)
+	commandArgs, err := shellquote.Split(parsedArgs)
 	if err != nil {
 		return 0, errors.Wrap(err, "could not parse into shell-words")
 	}
@@ -900,6 +937,8 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 }
 
 func (s *service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
+	l := s.log.With().Str("method", "webhook").Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
+
 	s.log.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
 
 	if external.WebhookHost == "" {
@@ -951,14 +990,17 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		}
 	}
 
-	var opts []retry.Option
-
-	opts = append(opts, retry.DelayType(retry.FixedDelay))
-	opts = append(opts, retry.LastErrorOnly(true))
-
-	if external.WebhookRetryAttempts > 0 {
-		opts = append(opts, retry.Attempts(uint(external.WebhookRetryAttempts)))
+	retryAttempts := external.WebhookRetryAttempts
+	if retryAttempts == 0 {
+		retryAttempts = 1
 	}
+
+	opts := []retry.Option{
+		retry.DelayType(retry.FixedDelay),
+		retry.LastErrorOnly(true),
+		retry.Attempts(uint(retryAttempts)),
+	}
+
 	if external.WebhookRetryDelaySeconds > 0 {
 		opts = append(opts, retry.Delay(time.Duration(external.WebhookRetryDelaySeconds)*time.Second))
 	}
@@ -976,23 +1018,26 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 			if external.WebhookData != "" && dataArgs != "" {
 				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
 			}
+
+			l.Trace().Msg("making filter external webhook request..")
+
 			res, err := s.httpClient.Do(clonereq)
 			if err != nil {
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}
 
-			defer res.Body.Close()
+			defer sharedhttp.DrainAndClose(res)
 
-			s.log.Debug().Msgf("filter external webhook response status: %d", res.StatusCode)
+			l.Debug().Int("status_code", res.StatusCode).Msg("filter external webhook response")
 
 			if s.log.Debug().Enabled() {
-				body, err := io.ReadAll(res.Body)
+				body, err := io.ReadAll(io.LimitReader(res.Body, 4096)) // 4KB limit for debug logging
 				if err != nil {
 					return res.StatusCode, errors.Wrap(err, "could not read request body")
 				}
 
 				if len(body) > 0 {
-					s.log.Debug().Msgf("filter external webhook response status: %d body: %s", res.StatusCode, body)
+					l.Debug().Int("status_code", res.StatusCode).Str("body", string(body)).Msg("filter external webhook response body")
 				}
 			}
 
@@ -1004,7 +1049,13 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 		},
 		opts...)
 
-	s.log.Debug().Msgf("successfully ran external webhook filter to: (%s) payload: (%s) finished in %s", external.WebhookHost, dataArgs, time.Since(start))
+	if err != nil {
+		l.Error().Err(err).Msg("error sending webhook")
 
-	return statusCode, err
+		return statusCode, errors.Wrap(err, "could not make request for webhook")
+	}
+
+	l.Debug().Str("args", dataArgs).TimeDiff("duration", time.Now(), start).Msg("successfully ran external webhook filter")
+
+	return statusCode, nil
 }

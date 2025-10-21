@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -51,7 +52,7 @@ type service struct {
 	repo                domain.IrcRepo
 	releaseService      release.Service
 	indexerService      indexer.Service
-	notificationService notification.Service
+	notificationService notification.Sender
 	proxyService        proxy.Service
 
 	networkCache    *ttlcache.Cache[int64, *domain.IrcNetwork]
@@ -63,7 +64,7 @@ type service struct {
 
 const sseMaxEntries = 1000
 
-func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Service, proxySvc proxy.Service) Service {
+func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Sender, proxySvc proxy.Service) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,
@@ -590,16 +591,45 @@ func (s *service) DeleteNetwork(ctx context.Context, id int64) error {
 }
 
 func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
-	if network.Channels != nil {
-		if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
-			return err
-		}
+	existingNetwork, err := s.GetNetworkByID(ctx, network.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not find existing network")
+		return err
 	}
+
+	if domain.IsRedactedString(network.Pass) {
+		network.Pass = existingNetwork.Pass
+	}
+
+	if domain.IsRedactedString(network.Auth.Password) {
+		network.Auth.Password = existingNetwork.Auth.Password
+	}
+
+	s.log.Debug().Msgf("irc.service: update network: %s", network.Name)
 
 	if err := s.repo.UpdateNetwork(ctx, network); err != nil {
 		return err
 	}
-	s.log.Debug().Msgf("irc.service: update network: %s", network.Name)
+
+	if network.Channels != nil {
+		for idx, channel := range network.Channels {
+			if domain.IsRedactedString(channel.Password) {
+				index := slices.IndexFunc(existingNetwork.Channels, func(existingChannel domain.IrcChannel) bool {
+					return existingChannel.ID == channel.ID
+				})
+				if index == -1 {
+					s.log.Error().Msgf("could not find channel %s in existing network", channel.Name)
+					return errors.New("could not find channel in existing network")
+				}
+
+				network.Channels[idx].Password = existingNetwork.Channels[index].Password
+			}
+		}
+
+		if err := s.repo.StoreNetworkChannels(ctx, network.ID, network.Channels); err != nil {
+			return err
+		}
+	}
 
 	network.Proxy = nil
 
@@ -621,16 +651,14 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		// if server, tls, invite command, port : changed - restart
 		// if nickserv account, nickserv password : changed - stay connected, and change those
 		// if channels len : changes - join or leave
-		err := s.checkIfNetworkRestartNeeded(network)
-		if err != nil {
+		if err := s.checkIfNetworkRestartNeeded(network); err != nil {
 			s.log.Error().Err(err).Msgf("could not restart network: %s", network.Name)
 			return errors.New("could not restart network: %s", network.Name)
 		}
 
 	} else {
 		// take into account multiple channels per network
-		err := s.StopAndRemoveNetwork(network.ID)
-		if err != nil {
+		if err := s.StopAndRemoveNetwork(network.ID); err != nil {
 			s.log.Error().Err(err).Msgf("could not stop network: %s", network.Name)
 			return errors.New("could not stop network: %s", network.Name)
 		}

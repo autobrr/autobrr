@@ -13,7 +13,7 @@ COPY web ./
 RUN pnpm run build
 
 # build app
-FROM golang:1.24-alpine3.21 AS app-builder
+FROM golang:1.25-alpine3.22 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev
@@ -33,7 +33,7 @@ COPY --from=web-builder /web/dist ./web/dist
 COPY --from=web-builder /web/build.go ./web
 
 #ENV GOOS=linux
-#ENV CGO_ENABLED=0
+ENV CGO_ENABLED=0
 
 RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrr cmd/autobrr/main.go && \
     go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrrctl cmd/autobrrctl/main.go

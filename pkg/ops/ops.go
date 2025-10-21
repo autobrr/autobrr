@@ -204,7 +204,7 @@ func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	body := bufio.NewReader(res.Body)
 

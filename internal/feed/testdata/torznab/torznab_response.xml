@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="1.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+    <channel>
+        <atom:link rel="self" type="application/rss+xml"/>
+        <title>Prowlarr</title>
+        <item>
+            <title>TRON Legacy Extras 720p BluRay x264-CtrlHD</title>
+            <description/>
+            <guid>Mock-74709</guid>
+            <prowlarrindexer id="2" type="private">Mock</prowlarrindexer>
+            <comments>https://mock.local/torrents.php?id=33981&amp;torrentid=74709</comments>
+            <pubDate>Wed, 30 Mar 2011 23:11:08 +0000</pubDate>
+            <size>2139365375</size>
+            <link>http://localhost:9696/2/download?apikey=redacted&amp;link=xxx&amp;file=TRON+Legacy+Extras+720p+BluRay+x264-CtrlHD</link>
+            <category>2000</category>
+            <enclosure
+                    url="http://localhost:9696/2/download?apikey=redacted&amp;link=xxx&amp;file=TRON+Legacy+Extras+720p+BluRay+x264-CtrlHD"
+                    length="2139365375" type="application/x-bittorrent"/>
+            <torznab:attr name="category" value="2000"/>
+            <torznab:attr name="tag" value="approved"/>
+            <torznab:attr name="imdb" value="1104001"/>
+            <torznab:attr name="seeders" value="7"/>
+            <torznab:attr name="grabs" value="106"/>
+            <torznab:attr name="peers" value="7"/>
+            <torznab:attr name="minimumratio" value="1"/>
+            <torznab:attr name="minimumseedtime" value="345600"/>
+            <torznab:attr name="downloadvolumefactor" value="0.5"/>
+            <torznab:attr name="uploadvolumefactor" value="1"/>
+        </item>
+        <item>
+            <title>Tron.Legacy.RETAIL.BDRip.XviD-DEFACED</title>
+            <description/>
+            <guid>Mock-71862</guid>
+            <prowlarrindexer id="2" type="private">Mock</prowlarrindexer>
+            <comments>https://mock.local/torrents.php?id=33981&amp;torrentid=71862</comments>
+            <pubDate>Fri, 18 Mar 2011 11:12:10 +0000</pubDate>
+            <size>1465321472</size>
+            <link>http://localhost:9696/2/download?apikey=redacted&amp;link=xxx&amp;file=Tron.Legacy.RETAIL.BDRip.XviD-DEFACED</link>
+            <category>2000</category>
+            <enclosure
+                    url="http://localhost:9696/2/download?apikey=redacted&amp;link=xxx&amp;file=Tron.Legacy.RETAIL.BDRip.XviD-DEFACED"
+                    length="1465321472" type="application/x-bittorrent"/>
+            <torznab:attr name="category" value="2000"/>
+            <torznab:attr name="tag" value="approved"/>
+            <torznab:attr name="tag" value="scene"/>
+            <torznab:attr name="imdb" value="1104001"/>
+            <torznab:attr name="seeders" value="6"/>
+            <torznab:attr name="grabs" value="438"/>
+            <torznab:attr name="peers" value="6"/>
+            <torznab:attr name="minimumratio" value="1"/>
+            <torznab:attr name="minimumseedtime" value="345600"/>
+            <torznab:attr name="downloadvolumefactor" value="1"/>
+            <torznab:attr name="uploadvolumefactor" value="1"/>
+        </item>
+        <item>
+            <title>Tron.Legacy.RETAIL.BDRip.XviD-DEFACED</title>
+            <description/>
+            <guid>Mock-71862</guid>
+            <prowlarrindexer id="2" type="private">Mock</prowlarrindexer>
+            <comments>https://mock.local/torrents.php?id=33981&amp;torrentid=71862</comments>
+            <pubDate>Fri, 18 Mar 2011 11:12:10 +0000</pubDate>
+            <size>1465321472</size>
+            <link>http://localhost:9696/2/download?apikey=redacted&amp;link=xxx&amp;file=Tron.Legacy.RETAIL.BDRip.XviD-DEFACED</link>
+            <category>2000</category>
+            <enclosure
+                    url="http://localhost:9696/2/download?apikey=redacted&amp;link=xxx&amp;file=Tron.Legacy.RETAIL.BDRip.XviD-DEFACED"
+                    length="1465321472" type="application/x-bittorrent"/>
+            <torznab:attr name="category" value="2000"/>
+            <torznab:attr name="tag" value="approved"/>
+            <torznab:attr name="tag" value="scene"/>
+            <torznab:attr name="imdb" value="1104001"/>
+            <torznab:attr name="seeders" value="6"/>
+            <torznab:attr name="grabs" value="438"/>
+            <torznab:attr name="peers" value="6"/>
+            <torznab:attr name="minimumratio" value="1"/>
+            <torznab:attr name="minimumseedtime" value="345600"/>
+            <torznab:attr name="downloadvolumefactor" value="0"/>
+            <torznab:attr name="uploadvolumefactor" value="1"/>
+        </item>
+    </channel>
+</rss>
