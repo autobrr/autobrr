@@ -24,8 +24,8 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/Hellseher/go-shellquote"
 	"github.com/avast/retry-go/v4"
-	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
 )
 
@@ -876,9 +876,7 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	}
 
 	// we need to split on space into a string slice, so we can spread the args into exec
-	p := shellwords.NewParser()
-	p.ParseBacktick = true
-	commandArgs, err := p.Parse(parsedArgs)
+	commandArgs, err := shellquote.Split(parsedArgs)
 	if err != nil {
 		return 0, errors.Wrap(err, "could not parse into shell-words")
 	}
