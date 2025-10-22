@@ -13,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
@@ -37,6 +38,8 @@ type Service interface {
 	StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+
+	Start() error
 }
 
 type actionClientTypeKey struct {
@@ -51,15 +54,19 @@ type service struct {
 	actionSvc  action.Service
 	filterSvc  filter.Service
 	indexerSvc indexer.Service
+	scheduler  scheduler.Service
+	config     *domain.Config
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service, config *domain.Config) Service {
 	return &service{
 		log:        log.With().Str("module", "release").Logger(),
 		repo:       repo,
 		actionSvc:  actionSvc,
 		filterSvc:  filterSvc,
 		indexerSvc: indexerSvc,
+		scheduler:  scheduler,
+		config:     config,
 	}
 }
 
@@ -497,5 +504,34 @@ func (s *service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 
 	s.log.Info().Msgf("successfully replayed action %s for release %s", filterAction.Name, release.TorrentName)
 
+	return nil
+}
+
+func (s *service) Start() error {
+	return s.start()
+}
+
+func (s *service) start() error {
+	// If disabled, don't schedule job
+	if !s.config.ReleaseCleanupEnabled {
+		s.log.Debug().Msg("release cleanup disabled, job not scheduled")
+		return nil
+	}
+
+	// Create and schedule job
+	job := NewCleanupJob(
+		s.log.With().Str("job", "release-cleanup").Logger(),
+		s.repo,
+		s.config,
+	)
+
+	identifierKey := "release-cleanup"
+
+	id, err := s.scheduler.AddJob(job, s.config.ReleaseCleanupSchedule, identifierKey)
+	if err != nil {
+		return errors.Wrap(err, "add job %s failed", identifierKey)
+	}
+
+	s.log.Debug().Msgf("scheduled release cleanup job with id %d, schedule: %s", id, s.config.ReleaseCleanupSchedule)
 	return nil
 }

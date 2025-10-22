@@ -832,7 +832,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 
 	if req.OlderThan > 0 {
 		if repo.db.Driver == "sqlite" {
-			qb = qb.Where(fmt.Sprintf("timestamp < strftime('%%Y-%%m-%%dT%%H:00:00', datetime('now','-%d hours'))", req.OlderThan))
+			qb = qb.Where(fmt.Sprintf("datetime(timestamp) < datetime('now','-%d hours')", req.OlderThan))
 		} else {
 			// postgres compatible
 			thresholdTime := time.Now().Add(time.Duration(-req.OlderThan) * time.Hour)

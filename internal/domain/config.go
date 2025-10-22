@@ -44,6 +44,11 @@ type Config struct {
 	MetricsHost             string `toml:"metricsHost"`
 	MetricsPort             int    `toml:"metricsPort"`
 	MetricsBasicAuthUsers   string `toml:"metricsBasicAuthUsers"`
+	ReleaseCleanupEnabled   bool   `toml:"releaseCleanupEnabled"`
+	ReleaseCleanupSchedule  string `toml:"releaseCleanupSchedule"`
+	ReleaseCleanupOlderThan int    `toml:"releaseCleanupOlderThan"`
+	ReleaseCleanupIndexers  string `toml:"releaseCleanupIndexers"`
+	ReleaseCleanupStatuses  string `toml:"releaseCleanupStatuses"`
 }
 
 type ConfigUpdate struct {

@@ -448,6 +448,21 @@ func ValidReleasePushStatus(s string) bool {
 	}
 }
 
+// ValidDeletableReleasePushStatus checks if a status is valid for deletion operations.
+// Excludes PENDING status as it's not applicable for completed release deletions.
+func ValidDeletableReleasePushStatus(s string) bool {
+	switch s {
+	case string(ReleasePushStatusApproved):
+		return true
+	case string(ReleasePushStatusRejected):
+		return true
+	case string(ReleasePushStatusErr):
+		return true
+	default:
+		return false
+	}
+}
+
 type ReleaseFilterStatus string
 
 const (

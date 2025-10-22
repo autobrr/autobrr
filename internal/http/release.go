@@ -232,14 +232,9 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	releaseStatuses := r.URL.Query()["releaseStatus"]
-	validStatuses := map[string]bool{
-		"PUSH_APPROVED": true,
-		"PUSH_REJECTED": true,
-		"PUSH_ERROR":    true,
-	}
 	var filteredStatuses []string
 	for _, status := range releaseStatuses {
-		if _, valid := validStatuses[status]; valid {
+		if domain.ValidDeletableReleasePushStatus(status) {
 			filteredStatuses = append(filteredStatuses, status)
 		} else {
 			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
