@@ -5,6 +5,7 @@ package irc
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"slices"
@@ -37,6 +38,14 @@ var (
 	clientManuallyDisconnected = retry.Unrecoverable(errors.New("IRC client was manually disconnected"))
 )
 
+type State string
+
+const (
+	StateStopped    State = "stopped"
+	StateConnecting State = "connecting"
+	StateRunning    State = "running"
+)
+
 type ircState uint
 
 const (
@@ -51,13 +60,13 @@ type Handler struct {
 	log                 zerolog.Logger
 	sse                 *sse.Server
 	network             *domain.IrcNetwork
-	releaseSvc          release.Service
+	releaseSvc          release.Processor
 	notificationService notification.Sender
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
 	client           *ircevent.Connection
-	clientState      ircState
+	clientState      State
 	connectedSince   time.Time
 	haveDisconnected bool
 	authenticated    bool
@@ -74,11 +83,12 @@ type Handler struct {
 	botModeChar string
 }
 
-func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Sender) *Handler {
+func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Processor, notificationSvc notification.Sender) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,
 		client:              nil,
+		clientState:         StateStopped,
 		network:             &network,
 		releaseSvc:          releaseSvc,
 		notificationService: notificationSvc,
@@ -113,7 +123,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			// some channels are defined in mixed case
 			channelName = strings.ToLower(channelName)
 
-			ircChannel := NewChannel(h.log, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
+			ircChannel := NewChannel(h.log, h.network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 
 			ircChannel.RegisterAnnouncers(definition.IRC.Announcers)
 
@@ -134,7 +144,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 				continue
 			}
 
-			ircChannel := NewChannel(h.log, channelName, false, nil)
+			ircChannel := NewChannel(h.log, h.network.ID, channelName, false, nil)
 
 			h.channels.Set(channelName, ircChannel)
 		}
@@ -185,9 +195,9 @@ func (h *Handler) Run() (err error) {
 
 	shouldConnect := false
 	h.m.Lock()
-	if h.clientState == ircStopped {
+	if h.clientState == StateStopped {
 		shouldConnect = true
-		h.clientState = ircConnecting
+		h.clientState = StateConnecting
 	}
 	h.m.Unlock()
 
@@ -195,12 +205,12 @@ func (h *Handler) Run() (err error) {
 		return connectionInProgress
 	}
 
-	// either we will successfully transition to `ircLive`, or else
+	// either we will successfully transition to `StateRunning`, or else
 	// we need to reset the state to `ircStopped`
 	defer func() {
 		h.m.Lock()
-		if h.clientState == ircConnecting {
-			h.clientState = ircStopped
+		if h.clientState == StateConnecting {
+			h.clientState = StateStopped
 		}
 		h.m.Unlock()
 	}()
@@ -317,7 +327,7 @@ func (h *Handler) Run() (err error) {
 
 				// #1239: don't retry if the user manually disconnected with Stop()
 				h.m.RLock()
-				manuallyDisconnected := h.clientState == ircStopped
+				manuallyDisconnected := h.clientState == StateStopped
 				h.m.RUnlock()
 
 				if manuallyDisconnected {
@@ -355,14 +365,14 @@ func (h *Handler) Run() (err error) {
 	shouldDisconnect := false
 	h.m.Lock()
 	switch h.clientState {
-	case ircStopped:
+	case StateStopped:
 		// concurrent Stop(), bail
 		shouldDisconnect = true
-	case ircConnecting:
+	case StateConnecting:
 		// success!
 		//h.client = client
-		h.clientState = ircLive
-	case ircLive:
+		h.clientState = StateRunning
+	case StateRunning:
 		// impossible
 		h.log.Error().Stack().Msgf("two concurrent connection attempts detected")
 		shouldDisconnect = true
@@ -431,7 +441,7 @@ func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
 	client := h.client
-	h.clientState = ircStopped
+	h.clientState = StateStopped
 	h.client = nil
 	h.m.Unlock()
 
@@ -445,7 +455,7 @@ func (h *Handler) Stop() {
 func (h *Handler) Stopped() bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
-	return h.clientState == ircStopped
+	return h.clientState == StateStopped
 }
 
 // Restart stops the network and then runs it
@@ -469,7 +479,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	func() {
 		h.m.Lock()
-		if h.haveDisconnected && h.clientState == ircLive {
+		if h.haveDisconnected && h.clientState == StateRunning {
 			h.log.Info().Msgf("network re-connected after unexpected disconnect: %s", h.network.Name)
 
 			h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
@@ -510,7 +520,7 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 
 	h.haveDisconnected = true
 
-	manuallyDisconnected := h.clientState == ircStopped
+	manuallyDisconnected := h.clientState == StateStopped
 
 	h.m.Unlock()
 
@@ -734,11 +744,28 @@ func (h *Handler) onKick(msg ircmsg.Message) {
 	h.channels.Swap(channelName, channel)
 }
 
-func (h *Handler) publishSSEMsg(msg domain.IrcMessage) {
-	key := genSSEKey(h.network.ID, msg.Channel)
+func (h *Handler) publishSSEMessage(event string, data any) {
+	key := "irc"
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		h.log.Error().Stack().Err(err).Msg("error marshalling data")
+		return
+	}
 
 	h.sse.Publish(key, &sse.Event{
-		Data: msg.Bytes(),
+		Event: []byte(event),
+		Data:  bytes,
+	})
+}
+
+func (h *Handler) publishSSEMsg(msg domain.IrcMessage) {
+	//key := genSSEKey(h.network.ID, msg.Channel)
+	key := "irc"
+
+	h.sse.Publish(key, &sse.Event{
+		Event: []byte("PRIVMSG"),
+		Data:  msg.Bytes(),
 	})
 }
 
@@ -761,7 +788,7 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 
 	if channel == h.CurrentNick() {
 		// this is a DM from another user
-		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Msg(cleanedMsg)
+		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanedMsg).Msg("got direct-message")
 
 		//h.SendMsg(nick, fmt.Sprintf("pingpong: %s", cleanedMsg))
 
@@ -778,7 +805,7 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	ircChannel.OnMsg(msg)
 
 	// publish to SSE stream
-	h.publishSSEMsg(domain.IrcMessage{Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
+	h.publishSSEMsg(domain.IrcMessage{Network: h.network.ID, Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
 
 	//h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
 
@@ -901,17 +928,20 @@ func (h *Handler) PartChannel(channel string) error {
 	// TODO remove announceProcessor
 }
 
-// handleTopic listens for 332
+// handleTopic listens for 332 ircevent.RPL_TOPIC
 func (h *Handler) handleTopic(msg ircmsg.Message) {
+	if len(msg.Params) < 2 {
+		return
+	}
 	channel := strings.ToLower(msg.Params[1])
 	topic := msg.Params[2]
 
-	h.log.Trace().Msgf("TOPIC: %s %s", channel, topic)
+	h.log.Trace().Str("topic", topic).Str("channel", channel).Msg("TOPIC")
 
 	// set topic for channel
 	ircChannel, found := h.channels.Get(channel)
 	if found {
-		h.log.Trace().Msgf("set channel %s topic: %s", ircChannel.Name, topic)
+		h.log.Trace().Str("topic", topic).Str("channel", ircChannel.Name).Msg("set new channel topic")
 
 		ircChannel.SetTopic(topic)
 
@@ -923,6 +953,9 @@ func (h *Handler) handleTopic(msg ircmsg.Message) {
 
 // handleNames listens for ircevent.RPL_NAMREPLY
 func (h *Handler) handleNames(msg ircmsg.Message) {
+	if len(msg.Params) < 3 {
+		return
+	}
 	channel := strings.ToLower(msg.Params[2])
 
 	if len(msg.Params) >= 3 {
@@ -1184,6 +1217,18 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
 }
 
+func (h *Handler) ReportHealth() {
+	//h.m.RLock()
+	//defer h.m.RUnlock()
+
+	healthData := map[string]any{
+		"network":           h.network.ID,
+		"healthy":           false,
+		"connection_errors": []string{"Connection timeout"},
+	}
+	h.publishSSEMessage("HEALTH", healthData)
+}
+
 // DetermineNetworkRestartRequired diff currentState and desiredState to determine if restart is required to reach desired state
 func DetermineNetworkRestartRequired(currentState, desiredState domain.IrcNetwork) ([]string, bool) {
 	restartNeeded := false
@@ -1243,4 +1288,15 @@ func DetermineNetworkRestartRequired(currentState, desiredState domain.IrcNetwor
 	}
 
 	return fieldsChanged, restartNeeded
+}
+
+type SSEMsg map[string]any
+
+func (m SSEMsg) MustBytes() []byte {
+	b, _ := json.Marshal(m)
+	return b
+}
+
+func (m SSEMsg) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m)
 }

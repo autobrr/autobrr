@@ -9,6 +9,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/featureflags"
 
 	"github.com/alphadose/haxmap"
 	"github.com/ergochat/irc-go/ircmsg"
@@ -16,11 +17,65 @@ import (
 	"github.com/sasha-s/go-deadlock"
 )
 
+type Msg struct {
+	ID   int64
+	Msg  string
+	Time time.Time
+	Type string
+	From struct {
+		Nick string
+		Mode string
+	}
+}
+
+const MaxChannelMessages = 1000
+
+type MessageBuffer struct {
+	maxMessages int
+	messages    []domain.IrcMessage
+}
+
+func NewMessageBuffer(maxMessages int) *MessageBuffer {
+	b := &MessageBuffer{
+		maxMessages: MaxChannelMessages,
+		messages:    make([]domain.IrcMessage, 0),
+	}
+
+	if maxMessages > 0 {
+		b.maxMessages = maxMessages
+	}
+
+	return b
+}
+
+func (b *MessageBuffer) GetMessages() []domain.IrcMessage {
+	return b.messages
+}
+
+func (b *MessageBuffer) ClearMessages() {
+	b.messages = make([]domain.IrcMessage, 0)
+}
+
+func (b *MessageBuffer) Len() int {
+	return len(b.messages)
+}
+
+func (b *MessageBuffer) AddMessage(msg domain.IrcMessage) {
+	// If we're at capacity, remove the oldest message (shift left)
+	if len(b.messages) >= b.maxMessages {
+		b.messages = append(b.messages[1:], msg)
+		return
+	}
+
+	b.messages = append(b.messages, msg)
+}
+
 type Channel struct {
 	m   deadlock.RWMutex
 	log zerolog.Logger
 
 	ID              int64 `json:"id"`
+	NetworkID       int64 `json:"network_id"`
 	Name            string
 	Enabled         bool `json:"enabled"`
 	Password        string
@@ -34,14 +89,17 @@ type Channel struct {
 	DefaultChannel     bool
 	AnnouncerInChannel bool
 
+	Messages *MessageBuffer
+
 	announceProcessor announce.Processor
 }
 
-func NewChannel(log zerolog.Logger, name string, defaultChannel bool, announceProcessor announce.Processor) *Channel {
+func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel bool, announceProcessor announce.Processor) *Channel {
 	return &Channel{
 		m:                  deadlock.RWMutex{},
 		log:                log.With().Str("channel", name).Logger(),
 		ID:                 0,
+		NetworkID:          networkID,
 		Name:               name,
 		Enabled:            true,
 		Password:           "",
@@ -54,6 +112,7 @@ func NewChannel(log zerolog.Logger, name string, defaultChannel bool, announcePr
 		DefaultChannel:     defaultChannel,
 		AnnouncerInChannel: false,
 		announceProcessor:  announceProcessor,
+		Messages:           NewMessageBuffer(1000), // make opt-in?
 	}
 }
 
@@ -70,7 +129,18 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	// clean message
 	cleanedMsg := cleanMessage(message)
 
-	// check if message is from announce bot, if not return
+	// Add message to history, maintaining maximum size
+	newMsg := domain.IrcMessage{
+		Network: c.NetworkID,
+		Channel: c.Name,
+		Nick:    nick,
+		Message: cleanedMsg,
+		Time:    time.Now(),
+	}
+
+	c.Messages.AddMessage(newMsg)
+
+	// check if the message is from announce bot, if not return
 	if !c.IsValidAnnouncer(nick) {
 		c.log.Trace().Str("nick", nick).Str("msg", cleanedMsg).Msg("not a valid announcer, ignoring")
 
@@ -82,7 +152,7 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	}
 	c.UpdateLastAnnounce()
 
-	c.log.Debug().Str("nick", nick).Msg(cleanedMsg)
+	c.log.Debug().Str("nick", nick).Str("msg", cleanedMsg).Msg("got message")
 }
 
 // IsValidAnnouncer check if announcer is one from the list in the definition
@@ -91,6 +161,11 @@ func (c *Channel) IsValidAnnouncer(nick string) bool {
 
 	announcer, ok := c.announcers.Get(nick)
 	if ok {
+		if announcer.Present && announcer.State == domain.IrcUserStatePresent {
+			// announcer found and is present
+			return true
+		}
+
 		if !announcer.Present && announcer.State == domain.IrcUserStateUninitialized {
 			c.log.Trace().Str("nick", nick).Msg("announcer not present and uninitialized, setting to present")
 			announcer.Present = true
@@ -99,41 +174,42 @@ func (c *Channel) IsValidAnnouncer(nick string) bool {
 			return true
 		}
 
-		if !announcer.Present {
-			c.log.Warn().Str("nick", nick).Msg("announcer not present")
-			return false
-		}
+		//if !announcer.Present {
+		//	c.log.Warn().Str("nick", nick).Msg("announcer not present")
+		//	return false
+		//}
 
-		// announcer found and is present
 		return true
-
 	}
 
 	found := false
 
-	foundFunc := func(s string, user *domain.IrcUser) bool {
-		// if nick is not an expected announcer lets check for variants
-		if strings.HasPrefix(nick, user.Nick) && len(nick) == len(user.Nick)+1 {
-			found = true
+	// experimental feature to allow for fuzzy announcer matching. This is not enabled by default because it will allow similar nicks to announce
+	if featureflags.IsEnabled(domain.IRCFuzzyAnnouncer) {
+		foundFunc := func(s string, user *domain.IrcUser) bool {
+			// if nick is not an expected announcer lets check for variants
+			if strings.HasPrefix(nick, user.Nick) && len(nick) == len(user.Nick)+1 {
+				found = true
 
-			c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
+				c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
 
-			return false // exit foreach on match
+				return false // exit foreach on match
+			}
+
+			// check if nick is a variant of announcer with * in front
+			if strings.HasSuffix(nick, "*") && strings.HasPrefix(nick, user.Nick) {
+				found = true
+
+				c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
+
+				return false // exit foreach on match
+			}
+
+			return true
 		}
 
-		// check if nick is a variant of announcer with * in front
-		if strings.HasSuffix(nick, "*") && strings.HasPrefix(nick, user.Nick) {
-			found = true
-
-			c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
-
-			return false // exit foreach on match
-		}
-
-		return true
+		c.announcers.ForEach(foundFunc)
 	}
-
-	c.announcers.ForEach(foundFunc)
 
 	return found
 }
@@ -146,6 +222,7 @@ func (c *Channel) SetMonitoring() {
 func (c *Channel) ResetMonitoring() {
 	c.Monitoring = false
 	c.MonitoringSince = time.Time{}
+	c.Messages.ClearMessages()
 
 	//c.announceProcessor = nil
 }

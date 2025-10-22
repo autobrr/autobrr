@@ -215,6 +215,7 @@ type SendIrcCmdRequest struct {
 }
 
 type IrcMessage struct {
+	Network int64     `json:"network"`
 	Channel string    `json:"channel"`
 	Nick    string    `json:"nick"`
 	Message string    `json:"msg"`

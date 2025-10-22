@@ -14,10 +14,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -37,6 +35,8 @@ type Service interface {
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
 
+	GetMessageHistory(ctx context.Context, networkID int64, channel string) ([]domain.IrcMessage, error)
+
 	StartHandlers()
 	StopHandlers()
 	StopAndRemoveNetwork(id int64) error
@@ -45,15 +45,23 @@ type Service interface {
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
 }
 
+type indexerSvc interface {
+	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
+}
+
+type proxySvc interface {
+	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
+}
+
 type service struct {
 	log zerolog.Logger
 	sse *sse.Server
 
 	repo                domain.IrcRepo
-	releaseService      release.Service
-	indexerService      indexer.Service
+	releaseService      release.Processor
+	indexerService      indexerSvc
 	notificationService notification.Sender
-	proxyService        proxy.Service
+	proxyService        proxySvc
 
 	networkCache    *ttlcache.Cache[int64, *domain.IrcNetwork]
 	networkHandlers *haxmap.Map[int64, *Handler]
@@ -64,7 +72,7 @@ type service struct {
 
 const sseMaxEntries = 1000
 
-func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Sender, proxySvc proxy.Service) Service {
+func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Processor, indexerSvc indexerSvc, notificationSvc notification.Sender, proxySvc proxySvc) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,
@@ -103,10 +111,10 @@ func (s *service) StartHandlers() {
 			s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
 		}
 
-		for _, channel := range channels {
-			// setup SSE stream per channel
-			s.createSSEStream(network.ID, channel.Name)
-		}
+		//for _, channel := range channels {
+		//	// setup SSE stream per channel
+		//	//s.createSSEStream(network.ID, channel.Name)
+		//}
 
 		// find indexer definitions for network and add
 		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
@@ -164,10 +172,10 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 		s.log.Error().Err(err).Msgf("failed to list channels for network: %s", network.Server)
 	}
 
-	for _, channel := range channels {
-		// setup SSE stream per channel
-		s.createSSEStream(network.ID, channel.Name)
-	}
+	//for _, channel := range channels {
+	//	// setup SSE stream per channel
+	//	s.createSSEStream(network.ID, channel.Name)
+	//}
 
 	// find indexer definitions for network and add
 	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
@@ -287,7 +295,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		}
 
 		// remove SSE stream for channel
-		s.removeSSEStream(network.ID, leaveChannel)
+		//s.removeSSEStream(network.ID, leaveChannel)
 	}
 
 	// join channels
@@ -299,7 +307,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		}
 
 		// create SSE stream for new channel
-		s.createSSEStream(network.ID, joinChannel.Name)
+		//s.createSSEStream(network.ID, joinChannel.Name)
 	}
 
 	// update network for currentNetwork
@@ -339,10 +347,10 @@ func (s *service) restartNetwork(network domain.IrcNetwork) error {
 func (s *service) StopAndRemoveNetwork(id int64) error {
 	if handler, found := s.networkHandlers.Get(id); found {
 		// remove SSE streams
-		handler.channels.ForEach(func(_ string, channel *Channel) bool {
-			s.removeSSEStream(handler.network.ID, channel.Name)
-			return true
-		})
+		//handler.channels.ForEach(func(_ string, channel *Channel) bool {
+		//	s.removeSSEStream(handler.network.ID, channel.Name)
+		//	return true
+		//})
 
 		handler.Stop()
 
@@ -563,6 +571,22 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 	}
 
 	return ret, nil
+}
+
+func (s *service) GetMessageHistory(_ context.Context, networkID int64, channel string) ([]domain.IrcMessage, error) {
+	handler, found := s.networkHandlers.Get(networkID)
+	if !found {
+		return nil, errors.New("could not find network handler")
+	}
+
+	channelInstance, ok := handler.channels.Get(channel)
+	if !ok {
+		return nil, errors.New("could not find channel")
+	}
+
+	messages := channelInstance.Messages.GetMessages()
+
+	return messages, nil
 }
 
 func (s *service) DeleteNetwork(ctx context.Context, id int64) error {

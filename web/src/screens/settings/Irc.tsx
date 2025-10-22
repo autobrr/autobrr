@@ -29,6 +29,7 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
+import { useIrcChannelWithHistory, useIrcNetworkHealthSync, type IrcHealthEvent } from "@hooks/useIrcEvents";
 
 import { Section } from "./_components";
 import { RingResizeSpinner } from "@components/Icons.tsx";
@@ -92,7 +93,33 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const ircQuery = useSuspenseQuery(IrcQueryOptions())
+  const queryClient = useQueryClient();
+  const ircQuery = useSuspenseQuery(IrcQueryOptions());
+
+  // Subscribe to health events for all networks and update cache
+  useIrcNetworkHealthSync(
+    ircQuery.data?.map(n => n.id) || [],
+    (healthEvent: IrcHealthEvent) => {
+      // Update the query cache with new health data
+      queryClient.setQueryData<IrcNetworkWithHealth[]>(
+        IrcKeys.lists(),
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          return oldData.map(network =>
+            network.id === healthEvent.network
+              ? {
+                  ...network,
+                  healthy: healthEvent.healthy,
+                  connected_since: healthEvent.connected_since || network.connected_since,
+                  connection_errors: healthEvent.connection_errors || network.connection_errors
+                }
+              : network
+          );
+        }
+      );
+    }
+  );
 
   const sortedNetworks = useSort(ircQuery.data || []);
 
@@ -620,41 +647,14 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
 
 }
 
-type IrcEvent = {
-  channel: string;
-  nick: string;
-  msg: string;
-  time: string;
-};
-
-// type IrcMsg = {
-//   msg: string;
-// };
-
 interface EventsProps {
   network: IrcNetwork;
   channel: string;
 }
 
 export const Events = ({ network, channel }: EventsProps) => {
-  const [logs, setLogs] = useState<IrcEvent[]>([]);
   const [settings] = SettingsContext.use();
-
-  useEffect(() => {
-    // Following RFC4648
-    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
-      .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replaceAll("=", "");
-    const es = APIClient.irc.events(key);
-
-    es.onmessage = (event) => {
-      const newData = JSON.parse(event.data) as IrcEvent;
-      setLogs((prevState) => [...prevState, newData]);
-    };
-
-    return () => es.close();
-  }, [channel, network.id, settings]);
+  const { events: logs } = useIrcChannelWithHistory(network.id, channel, 100, true);
 
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
@@ -683,11 +683,6 @@ export const Events = ({ network, channel }: EventsProps) => {
     if (settings.scrollOnNewLog)
       scrollToBottom();
   }, [logs, settings.scrollOnNewLog]);
-
-  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
-  useEffect(() => {
-    setLogs([]);
-  }, [settings.scrollOnNewLog]);
 
   useEffect(() => {
     document.body.classList.toggle("overflow-hidden", isFullscreen);
