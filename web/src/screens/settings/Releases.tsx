@@ -19,11 +19,16 @@ import { ReleaseProfileDuplicateList } from "@api/queries.ts";
 import { EmptySimple } from "@components/emptystates";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { ReleaseProfileDuplicateAddForm, ReleaseProfileDuplicateUpdateForm } from "@forms/settings/ReleaseForms.tsx";
+import { CleanupJobAddForm, CleanupJobUpdateForm } from "@forms/settings/CleanupJobForms.tsx";
+import { Checkbox } from "@components/Checkbox";
+import { format } from "date-fns";
 import { classNames } from "@utils";
 
 const ReleaseSettings = () => (
   <div className="lg:col-span-9">
     <ReleaseProfileDuplicates/>
+
+    <ReleaseCleanupJobs/>
 
     <div className="py-6 px-4 sm:p-6">
       <div className="border border-red-500 rounded-sm">
@@ -158,6 +163,170 @@ function ReleaseProfileDuplicates() {
       </div>
     </Section>
   )
+}
+
+function ReleaseCleanupJobs() {
+  const [addPanelIsOpen, toggleAdd] = useToggle(false);
+
+  const cleanupJobsQuery = useSuspenseQuery({
+    queryKey: ReleaseKeys.cleanupJobs.lists(),
+    queryFn: () => APIClient.release.cleanupJobs.list()
+  });
+
+  return (
+    <Section
+      title="Release Cleanup Jobs"
+      description="Schedule automatic cleanup of old releases with custom filters."
+      rightSide={
+        <button
+          type="button"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          onClick={toggleAdd}
+        >
+          <PlusIcon className="h-5 w-5 mr-1"/>
+          Add new
+        </button>
+      }
+    >
+      <CleanupJobAddForm isOpen={addPanelIsOpen} toggle={toggleAdd}/>
+
+      <div className="flex flex-col">
+        {cleanupJobsQuery.data.length > 0 ? (
+          <ul className="min-w-full relative">
+            <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+              <div className="col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Enabled
+              </div>
+              <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Name
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Schedule
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Retention
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Last Run
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Next Run
+              </div>
+            </li>
+            {cleanupJobsQuery.data.map((job) => (
+              <CleanupJobListItem key={job.id} job={job}/>
+            ))}
+          </ul>
+        ) : (
+          <EmptySimple
+            title="No cleanup jobs"
+            subtitle="Create automated cleanup schedules"
+            buttonText="Add new job"
+            buttonAction={toggleAdd}
+          />
+        )}
+      </div>
+    </Section>
+  );
+}
+
+interface CleanupJobListItemProps {
+  job: ReleaseCleanupJob;
+}
+
+function CleanupJobListItem({ job }: CleanupJobListItemProps) {
+  const [updatePanelIsOpen, toggleUpdatePanel] = useToggle(false);
+  const queryClient = useQueryClient();
+
+  const toggleMutation = useMutation({
+    mutationFn: (enabled: boolean) => APIClient.release.cleanupJobs.toggleEnabled(job.id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
+      toast.custom(t => <Toast type="success" body={`${job.name} ${job.enabled ? "disabled" : "enabled"}`} t={t} />);
+    }
+  });
+
+  const forceRunMutation = useMutation({
+    mutationFn: () => APIClient.release.cleanupJobs.forceRun(job.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
+      toast.custom(t => <Toast type="success" body={`${job.name} triggered`} t={t} />);
+    }
+  });
+
+  // Format next_run timestamp (or "Not scheduled" if disabled)
+  const nextRunDisplay = job.enabled && job.next_run !== "0001-01-01T00:00:00Z"
+    ? format(new Date(job.next_run), "MMM d, HH:mm")
+    : "—";
+
+  // Format last_run status
+  const lastRunDisplay = job.last_run !== "0001-01-01T00:00:00Z"
+    ? job.last_run_status
+    : "Never";
+
+  return (
+    <li>
+      <div className="grid grid-cols-12 items-center py-2">
+        <CleanupJobUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={job}/>
+
+        {/* Enabled Toggle - LEFT side to match pattern */}
+        <div className="col-span-1 flex pl-1 sm:pl-4 items-center">
+          <Checkbox
+            value={job.enabled}
+            setValue={(newValue) => toggleMutation.mutate(newValue)}
+          />
+        </div>
+
+        {/* Name */}
+        <div className="col-span-3 pl-12 pr-6 py-3 text-sm font-medium text-gray-900 dark:text-white truncate" title={job.name}>
+          {job.name}
+        </div>
+
+        {/* Schedule */}
+        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
+          <span className="font-mono text-xs">{job.schedule}</span>
+        </div>
+
+        {/* Retention (older_than) */}
+        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
+          {job.older_than} hours
+        </div>
+
+        {/* Last Run Status */}
+        <div className="col-span-2 py-3 text-sm">
+          <span className={classNames(
+            "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
+            job.last_run_status === "SUCCESS"
+              ? "bg-green-100 dark:bg-green-400/10 text-green-700 dark:text-green-400 ring-green-700/10 dark:ring-green-400/30"
+              : job.last_run_status === "ERROR"
+              ? "bg-red-100 dark:bg-red-400/10 text-red-700 dark:text-red-400 ring-red-700/10 dark:ring-red-400/30"
+              : "bg-gray-100 dark:bg-gray-400/10 text-gray-600 dark:text-gray-400 ring-gray-500/10 dark:ring-gray-400/30"
+          )}>
+            {lastRunDisplay}
+          </span>
+        </div>
+
+        {/* Next Run */}
+        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
+          {nextRunDisplay}
+        </div>
+
+        {/* Edit/Run Actions */}
+        <div className="col-span-12 mt-2 flex gap-2 pl-12">
+          <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer text-sm" onClick={toggleUpdatePanel}>
+            Edit
+          </span>
+          <span className="text-gray-400">|</span>
+          <span
+            className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer text-sm"
+            onClick={() => forceRunMutation.mutate()}
+          >
+            Run Now
+          </span>
+        </div>
+      </div>
+    </li>
+  );
 }
 
 const getDurationLabel = (durationValue: number): string => {

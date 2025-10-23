@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { JSX } from "react";
+import { JSX, useState, Fragment } from "react";
 import { Field as FormikField } from "formik";
 import Select from "react-select";
-import { Field, Label, Description } from "@headlessui/react";
+import { Field, Label, Description, Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
 import type { FieldProps, FieldValidator } from "formik";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
+import { EyeIcon, EyeSlashIcon, CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
 
 import { SelectFieldProps } from "./select";
 
@@ -377,3 +377,178 @@ export const SelectFieldWide = ({
     </div>
   </div>
 );
+
+interface DurationFieldWideProps {
+  // Standard props (matches NumberFieldWide, TextFieldWide pattern)
+  name: string;                    // Required - Formik field name
+  label?: string;                  // Optional - Display label
+  help?: string;                   // Optional - Help text below field
+  placeholder?: string;            // Optional - Placeholder for number input
+  defaultValue?: number;           // Optional - Initial numeric value
+  required?: boolean;              // Optional - Show required asterisk
+  tooltip?: JSX.Element;           // Optional - Info tooltip
+
+  // Duration-specific props
+  units?: string[];                // Optional - Available units (default: ["hours", "days", "weeks", "months", "years"])
+  defaultUnit?: string;            // Optional - Initial unit (default: "hours")
+  storeAsHours?: boolean;          // Optional - Convert to hours before storing (default: true)
+}
+
+export const DurationFieldWide = ({
+  name,
+  label,
+  placeholder = "0",
+  help,
+  defaultValue = 0,
+  tooltip,
+  required,
+  units = ["hours", "days", "weeks", "months", "years"],
+  defaultUnit = "hours",
+  storeAsHours = true
+}: DurationFieldWideProps) => {
+  const UNIT_TO_HOURS: Record<string, number> = {
+    "hours": 1,
+    "days": 24,
+    "weeks": 168,
+    "months": 720,
+    "years": 8760
+  };
+
+  const UNIT_LABELS: Record<string, string> = {
+    "hours": "Hours",
+    "days": "Days",
+    "weeks": "Weeks",
+    "months": "Months",
+    "years": "Years",
+    "minutes": "Minutes"
+  };
+
+  return (
+    <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+      <div>
+        <label
+          htmlFor={name}
+          className="block ml-px text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
+        >
+          <div className="flex">
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
+            <RequiredField required={required} />
+          </div>
+        </label>
+      </div>
+      <div className="sm:col-span-2">
+        <FormikField
+          name={name}
+          defaultValue={defaultValue ?? 0}
+        >
+          {({ meta, form }: FieldProps) => {
+            // State for unit selection (separate from stored value)
+            const [selectedUnit, setSelectedUnit] = useState(defaultUnit);
+            const [displayValue, setDisplayValue] = useState(defaultValue);
+
+            // Calculate hours value for storage
+            const calculateHours = (value: number, unit: string) => {
+              return storeAsHours ? value * UNIT_TO_HOURS[unit] : value;
+            };
+
+            const handleValueChange = (newValue: number) => {
+              setDisplayValue(newValue);
+              const hoursValue = calculateHours(newValue, selectedUnit);
+              form.setFieldValue(name, hoursValue);
+            };
+
+            const handleUnitChange = (newUnit: string) => {
+              setSelectedUnit(newUnit);
+              const hoursValue = calculateHours(displayValue, newUnit);
+              form.setFieldValue(name, hoursValue);
+            };
+
+            return (
+              <div className="grid grid-cols-12 gap-2">
+                {/* Number Input - 9 columns (75%) */}
+                <div className="col-span-9">
+                  <input
+                    type="number"
+                    id={name}
+                    placeholder={placeholder}
+                    value={displayValue}
+                    onChange={(e) => handleValueChange(parseInt(e.target.value) || 0)}
+                    className={classNames(
+                      meta.touched && meta.error
+                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                        : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                      "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                    )}
+                    min={0}
+                  />
+                </div>
+
+                {/* Unit Dropdown - 3 columns (25%) */}
+                <div className="col-span-3">
+                  <Listbox value={selectedUnit} onChange={handleUnitChange}>
+                    {({ open }) => (
+                      <div className="relative">
+                        <ListboxButton className="block w-full shadow-xs text-sm rounded-md border pl-3 pr-8 py-2.5 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white">
+                          <span className="block truncate">
+                            {UNIT_LABELS[selectedUnit]}
+                          </span>
+                          <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                            <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                          </span>
+                        </ListboxButton>
+                        <Transition
+                          show={open}
+                          as={Fragment}
+                          leave="transition ease-in duration-100"
+                          leaveFrom="opacity-100"
+                          leaveTo="opacity-0"
+                        >
+                          <ListboxOptions className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white focus:outline-hidden text-sm">
+                            {units.map((unit) => (
+                              <ListboxOption
+                                key={unit}
+                                className={({ active, selected }) =>
+                                  `relative cursor-default select-none py-2 pl-3 pr-9 ${
+                                    selected
+                                      ? "font-bold text-black dark:text-white bg-gray-300 dark:bg-gray-950"
+                                      : active
+                                      ? "text-black dark:text-gray-100 font-normal bg-gray-200 dark:bg-gray-800"
+                                      : "text-gray-700 dark:text-gray-300 font-normal"
+                                  }`
+                                }
+                                value={unit}
+                              >
+                                {({ selected }) => (
+                                  <>
+                                    <span className={classNames(selected ? "font-semibold" : "font-normal", "block truncate")}>
+                                      {UNIT_LABELS[unit]}
+                                    </span>
+                                    {selected && (
+                                      <span className="absolute inset-y-0 right-0 flex items-center pr-4">
+                                        <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                              </ListboxOption>
+                            ))}
+                          </ListboxOptions>
+                        </Transition>
+                      </div>
+                    )}
+                  </Listbox>
+                </div>
+              </div>
+            );
+          }}
+        </FormikField>
+        {help && (
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
+        )}
+        <ErrorField name={name} classNames="block text-red-500 mt-2" />
+      </div>
+    </div>
+  );
+};
