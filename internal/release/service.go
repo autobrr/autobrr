@@ -46,6 +46,7 @@ type Service interface {
 	UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
 	DeleteCleanupJob(ctx context.Context, id int) error
 	ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error
+	ForceRunCleanupJob(ctx context.Context, id int) error
 
 	Start() error
 }
@@ -267,6 +268,27 @@ func (s *service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled b
 		return err
 	}
 	s.log.Debug().Msgf("cleanup job stopped: %s", job.Name)
+	return nil
+}
+
+func (s *service) ForceRunCleanupJob(ctx context.Context, id int) error {
+	job, err := s.cleanupJobRepo.FindByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	s.log.Info().Msgf("manually triggering cleanup job: %s", job.Name)
+
+	cleanupJob := NewCleanupJob(
+		s.log.With().Str("job", job.Name).Logger(),
+		s.repo,
+		s.cleanupJobRepo,
+		job,
+	)
+
+	cleanupJob.Run()
+
 	return nil
 }
 

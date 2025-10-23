@@ -164,13 +164,14 @@ go clean -testcache
 - Type: `cleanupJobKey{id int}`
 - Format: `"release-cleanup-{id}"` (e.g., "release-cleanup-42")
 
-**CRUD Methods (6 methods):**
+**CRUD Methods (7 methods):**
 1. `ListCleanupJobs(ctx)` - Returns all jobs with NextRun enriched from scheduler
 2. `GetCleanupJob(ctx, id)` - Returns single job by ID
 3. `StoreCleanupJob(ctx, job)` - Creates job, starts if enabled
 4. `UpdateCleanupJob(ctx, job)` - Updates job, restarts to pick up changes
 5. `DeleteCleanupJob(ctx, id)` - Stops job, deletes from database
 6. `ToggleCleanupJobEnabled(ctx, id, enabled)` - Starts or stops based on enabled flag
+7. `ForceRunCleanupJob(ctx, id)` - Manually triggers cleanup job (bypasses schedule)
 
 **Lifecycle Methods (3 private methods):**
 1. `startCleanupJob(job)` - Creates CleanupJob instance, schedules with cron, adds to jobs map
@@ -180,7 +181,7 @@ go clean -testcache
 **Start() Implementation:**
 - Loads all cleanup jobs from database via `cleanupJobRepo.List()`
 - Starts enabled jobs in background goroutine
-- Staggered start with 2-second sleep between jobs
+- No sleep between jobs (only registers with scheduler, no DB writes)
 - Logs job count and any failures
 
 ### CRUD → Lifecycle Wiring
@@ -212,25 +213,168 @@ Followed `internal/feed/service.go` exactly:
 
 ---
 
-## 📋 STAGE 3: API Layer (NEXT)
+## ✅ STAGE 3: API Layer (COMPLETE)
 
-### Goals
-- Add REST endpoints to `internal/http/release.go`
-- Add releaseService interface methods
-- Add HTTP handlers for all CRUD operations
+### What Was Built
 
-### Routes
+**Files Modified:**
+1. `internal/http/release.go` - Added cleanup job routes and handlers (139 new lines)
+2. `internal/release/service.go` - Added ForceRunCleanupJob implementation (20 new lines)
+
+**Files Created:**
+1. `internal/http/release_test.go` - Integration tests for cleanup job endpoints (525 lines)
+
+### Interface Methods Added
+
+**releaseService interface** (lines 33-39 in release.go):
+```go
+// Cleanup jobs
+ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error)
+GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error)
+StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+DeleteCleanupJob(ctx context.Context, id int) error
+ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error
+ForceRunCleanupJob(ctx context.Context, id int) error
 ```
-GET    /api/releases/cleanup-jobs      - List all jobs
-POST   /api/releases/cleanup-jobs      - Create job
-GET    /api/releases/cleanup-jobs/:id  - Get job
-PUT    /api/releases/cleanup-jobs/:id  - Update job
-DELETE /api/releases/cleanup-jobs/:id  - Delete job
+
+### Routes Implemented
+
+**Nested route: `/api/releases/cleanup-jobs`** (lines 75-86 in release.go):
+```
+GET    /api/releases/cleanup-jobs           - List all jobs
+POST   /api/releases/cleanup-jobs           - Create job
+GET    /api/releases/cleanup-jobs/:id       - Get job by ID
+PUT    /api/releases/cleanup-jobs/:id       - Update job
+DELETE /api/releases/cleanup-jobs/:id       - Delete job
 PATCH  /api/releases/cleanup-jobs/:id/enabled - Toggle enabled
+POST   /api/releases/cleanup-jobs/:id/run   - Force run (manual trigger)
 ```
 
-### Pattern Reference
-Follow `internal/http/feed.go` exactly
+### Handler Methods Implemented
+
+**7 handlers following feed.go pattern** (lines 393-522):
+
+1. **listCleanupJobs** - GET `/`
+   - Returns all cleanup jobs with 200 OK
+   - Uses service.ListCleanupJobs()
+
+2. **getCleanupJob** - GET `/:id`
+   - URL param: jobID (parsed with strconv.Atoi)
+   - Returns single job with 200 OK
+   - Returns 404 if domain.ErrRecordNotFound
+   - Uses service.GetCleanupJob()
+
+3. **storeCleanupJob** - POST `/`
+   - JSON body: ReleaseCleanupJob
+   - Returns created job with 201 Created
+   - Uses service.StoreCleanupJob()
+
+4. **updateCleanupJob** - PUT `/:id`
+   - JSON body: ReleaseCleanupJob
+   - Returns updated job with 201 Created (matches feed pattern)
+   - Uses service.UpdateCleanupJob()
+
+5. **deleteCleanupJob** - DELETE `/:id`
+   - URL param: jobID
+   - Returns 204 No Content
+   - Returns 404 if domain.ErrRecordNotFound
+   - Uses service.DeleteCleanupJob()
+
+6. **toggleCleanupJobEnabled** - PATCH `/:id/enabled`
+   - URL param: jobID
+   - JSON body: `{"enabled": true/false}`
+   - Returns 204 No Content
+   - Returns 404 if domain.ErrRecordNotFound
+   - Uses service.ToggleCleanupJobEnabled()
+
+7. **forceRunCleanupJob** - POST `/:id/run`
+   - URL param: jobID
+   - Manually triggers cleanup job execution (bypasses schedule)
+   - Returns 204 No Content
+   - Returns 404 if domain.ErrRecordNotFound
+   - Uses service.ForceRunCleanupJob()
+
+### Error Handling
+
+**Consistent error handling across all handlers:**
+- URL parameter parsing errors → h.encoder.Error(w, err)
+- JSON decoding errors → h.encoder.Error(w, err)
+- domain.ErrRecordNotFound → h.encoder.NotFoundErr(w, errors.New(...))
+- Other service errors → h.encoder.Error(w, err)
+
+### HTTP Status Codes
+
+**Following established patterns:**
+- GET operations → 200 OK
+- POST (create) → 201 Created
+- PUT (update) → 201 Created (matches feed.go pattern)
+- DELETE → 204 No Content
+- PATCH (toggle) → 204 No Content
+- Not found → 404 with custom error message
+- Bad request → handled by encoder
+
+### Test Coverage
+
+**HTTP Integration Tests** (release_test.go - 523 lines):
+- **12 comprehensive test cases** covering all 7 endpoints with success and failure scenarios
+- Mock releaseService with in-memory job storage
+- Uses httptest.NewServer following auth_test.go pattern
+- All tests passing (0.053s runtime)
+- Tests validated with intentional failures to ensure they catch real issues
+
+**Test Cases:**
+1. ✅ ListCleanupJobs - Returns all jobs with 200 OK, validates all 7 fields
+2. ✅ GetCleanupJob - Returns job with 200 OK, validates all 7 fields
+3. ✅ GetCleanupJob_NotFound - Returns 404 when job doesn't exist
+4. ✅ StoreCleanupJob - Creates job (201), validates response + storage with all 7 fields
+5. ✅ UpdateCleanupJob - Updates job (201), validates response + storage with all 7 fields
+6. ✅ UpdateCleanupJob_NotFound - Returns 404 when job doesn't exist
+7. ✅ DeleteCleanupJob - Deletes job (204), verifies storage is empty
+8. ✅ DeleteCleanupJob_NotFound - Returns 404 when job doesn't exist
+9. ✅ ToggleCleanupJobEnabled - Toggles enabled (204), verifies storage updated
+10. ✅ ToggleCleanupJobEnabled_NotFound - Returns 404 when job doesn't exist
+11. ✅ ForceRunCleanupJob - Triggers run (204), validates LastRun/Status/Data updated
+12. ✅ ForceRunCleanupJob_NotFound - Returns 404 when job doesn't exist
+
+**Test Quality Standards:**
+- ✅ Complete HTTP status code validation
+- ✅ Complete field validation (all 7 core fields: ID, Name, Enabled, Schedule, OlderThan, Indexers, Statuses)
+- ✅ Storage verification for mutating operations (Store, Update, Delete, Toggle, ForceRun)
+- ✅ Consistent field ordering across all tests
+- ✅ Both success and failure paths tested
+- ✅ Tests validated with intentional failures (3 tests) to ensure assertions catch issues
+
+**Bugs Fixed During Testing:**
+1. updateCleanupJob handler was missing ErrRecordNotFound check
+   - Now properly returns 404 instead of 500 for non-existent jobs
+2. Incomplete field validation in tests
+   - All tests now validate every field in responses AND storage
+
+### Build Status
+
+✅ Full project builds successfully with `go build ./...`
+✅ No compiler diagnostics
+✅ All 12 HTTP integration tests passing
+
+### Service Implementation
+
+**ForceRunCleanupJob** (service.go:274-293):
+- Finds cleanup job by ID from database
+- Creates CleanupJob instance with NewCleanupJob
+- Calls Run() synchronously (immediate execution, bypasses scheduler)
+- Logs manual trigger event
+- Updates job status via CleanupJob.Run() (LastRun, LastRunStatus, LastRunData)
+
+### Pattern Compliance
+
+**Followed `internal/http/feed.go` exactly:**
+- Interface definition in http package (not domain)
+- URL parameter extraction with chi.URLParam and strconv.Atoi
+- JSON decoding for POST/PUT bodies
+- Consistent error handling with ErrRecordNotFound checks
+- Nested route structure for resource operations
+- Encoder methods for response formatting
 
 ---
 
