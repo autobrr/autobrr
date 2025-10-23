@@ -378,18 +378,88 @@ POST   /api/releases/cleanup-jobs/:id/run   - Force run (manual trigger)
 
 ---
 
-## 🧹 STAGE 4: Cleanup & Integration
+## ✅ STAGE 4: Cleanup & Integration (COMPLETE)
 
-### Remove Config Approach
-**Files to modify:**
-1. `internal/domain/config.go` - Remove 5 cleanup fields
-2. `internal/config/config.go` - Remove defaults, env loading, template
-3. `README.md` - Remove 5 environment variable rows
+### What Was Removed
 
-### Wire Up Dependencies
-**File:** `cmd/autobrr/main.go`
-- Initialize: `releaseCleanupJobRepo := database.NewReleaseCleanupJobRepo(log, db)`
-- Update: `release.NewService()` constructor to include cleanupJobRepo
+**Complete elimination of config-based cleanup approach** - replaced by database-backed multi-job system built in Stages 1-3.
+
+**Files Modified:**
+1. `internal/domain/config.go` - Removed 5 cleanup fields from Config struct
+2. `internal/config/config.go` - Removed cleanup template, defaults, and env loading
+3. `README.md` - Removed 5 environment variable documentation rows
+4. `internal/release/service.go` - Removed config field and parameter
+5. `cmd/autobrr/main.go` - Updated release.NewService call
+
+### Config Cleanup Details
+
+**internal/domain/config.go (lines 47-51 removed):**
+- `ReleaseCleanupEnabled bool`
+- `ReleaseCleanupSchedule string`
+- `ReleaseCleanupOlderThan int`
+- `ReleaseCleanupIndexers string`
+- `ReleaseCleanupStatuses string`
+
+**internal/config/config.go (3 sections removed):**
+
+1. **Template (lines 158-181):** Removed entire "Release History Cleanup" config template section (24 lines of commented configuration)
+
+2. **Defaults (lines 329-333):** Removed 5 default value assignments from defaults() method
+
+3. **Environment Loading (lines 494-512):** Removed 5 environment variable loaders from loadFromEnv() method
+   - `AUTOBRR__RELEASE_CLEANUP_ENABLED`
+   - `AUTOBRR__RELEASE_CLEANUP_SCHEDULE`
+   - `AUTOBRR__RELEASE_CLEANUP_OLDER_THAN`
+   - `AUTOBRR__RELEASE_CLEANUP_INDEXERS`
+   - `AUTOBRR__RELEASE_CLEANUP_STATUSES`
+
+**README.md (lines 348-352 removed):**
+- Removed 5 environment variable documentation rows from configuration table
+
+**internal/release/service.go:**
+- Removed `config *domain.Config` field from service struct
+- Removed config parameter from NewService() signature
+- Removed config assignment in NewService() body
+
+**cmd/autobrr/main.go:**
+- Updated release.NewService() call to remove `cfg.Config` argument
+
+### Dependency Wiring Status
+
+✅ **Already complete from Stage 2:**
+- `releaseCleanupJobRepo` initialized in main.go (line ~157)
+- `release.NewService()` receives cleanupJobRepo parameter (line ~161)
+- `releaseService.Start()` called by server.Start() (internal/server/server.go:75)
+
+### Verification Results
+
+✅ **Build successful:** `go build ./...` completes with no errors
+✅ **No config references:** Verified zero "ReleaseCleanup" matches in config files
+✅ **No README references:** Verified zero "RELEASE_CLEANUP" matches in README
+✅ **No compiler diagnostics:** All modified files clean
+
+### Migration Complete
+
+**BEFORE (Config Approach - PR #1):**
+- Single cleanup job configured via config.toml or environment variables
+- 5 config fields with template, defaults, and env loading
+- ~85 lines of config-related code
+- Limited to one cleanup configuration
+- Required restart to change settings
+
+**AFTER (Database Approach - This Implementation):**
+- Multiple independent cleanup jobs stored in database
+- Full CRUD API for dynamic job management
+- Zero config code (fully removed)
+- Per-job configuration (schedule, filters, retention)
+- Live updates via API without restart
+- Job execution history tracking
+
+### Total Removals
+- **~85 lines removed** across 5 files
+- **5 config fields** eliminated
+- **5 environment variables** deprecated
+- **1 config parameter** removed from service
 
 ---
 

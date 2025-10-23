@@ -154,31 +154,6 @@ sessionSecret = "{{ .sessionSecret }}"
 # Custom definitions
 #
 #customDefinitions = "test/definitions"
-
-# Release History Cleanup
-#
-# Enable scheduled cleanup of old release history.
-# DISABLED by default for safety. Enable explicitly to auto-delete old releases.
-#
-#releaseCleanupEnabled = false
-#
-# Cron schedule (default: Sundays at 3:00 AM)
-# Examples: "0 3 * * 0" (weekly), "0 2 * * *" (daily), "0 4 * * 1-5" (weekdays)
-#releaseCleanupSchedule = "0 3 * * 0"
-#
-# Delete releases older than N hours (0 = delete all matching other criteria)
-# Examples: 168 = 1 week, 720 = 30 days, 2160 = 90 days
-#releaseCleanupOlderThan = 720
-#
-# Optional: Filter by specific indexers (comma-separated identifiers)
-# Leave empty to match all indexers
-# Example: "beyondhd,passthepopcorn"
-#releaseCleanupIndexers = ""
-#
-# Optional: Filter by release push statuses (comma-separated)
-# Leave empty to match all statuses
-# Valid values: PUSH_APPROVED, PUSH_REJECTED, PUSH_ERROR
-#releaseCleanupStatuses = ""
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
@@ -326,11 +301,6 @@ func (c *AppConfig) defaults() {
 		MetricsHost:             "127.0.0.1",
 		MetricsPort:             9074,
 		MetricsBasicAuthUsers:   "",
-		ReleaseCleanupEnabled:   false,
-		ReleaseCleanupSchedule:  "0 3 * * 0",
-		ReleaseCleanupOlderThan: 720,
-		ReleaseCleanupIndexers:  "",
-		ReleaseCleanupStatuses:  "",
 	}
 
 }
@@ -489,26 +459,6 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvStr("METRICS_BASIC_AUTH_USERS"); v != "" {
 		c.Config.MetricsBasicAuthUsers = v
-	}
-
-	if v := GetEnvStr("RELEASE_CLEANUP_ENABLED"); v != "" {
-		c.Config.ReleaseCleanupEnabled = strings.EqualFold(strings.ToLower(v), "true")
-	}
-
-	if v := GetEnvStr("RELEASE_CLEANUP_SCHEDULE"); v != "" {
-		c.Config.ReleaseCleanupSchedule = v
-	}
-
-	if v := GetEnvInt("RELEASE_CLEANUP_OLDER_THAN"); v > 0 {
-		c.Config.ReleaseCleanupOlderThan = v
-	}
-
-	if v := GetEnvStr("RELEASE_CLEANUP_INDEXERS"); v != "" {
-		c.Config.ReleaseCleanupIndexers = v
-	}
-
-	if v := GetEnvStr("RELEASE_CLEANUP_STATUSES"); v != "" {
-		c.Config.ReleaseCleanupStatuses = v
 	}
 }
 

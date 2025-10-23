@@ -158,7 +158,7 @@ func main() {
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
-		releaseService        = release.NewService(log, releaseRepo, releaseCleanupJobRepo, actionService, filterService, indexerService, schedulingService, cfg.Config)
+		releaseService        = release.NewService(log, releaseRepo, releaseCleanupJobRepo, actionService, filterService, indexerService, schedulingService)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)

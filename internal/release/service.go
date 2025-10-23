@@ -75,10 +75,9 @@ type service struct {
 	filterSvc      filter.Service
 	indexerSvc     indexer.Service
 	scheduler      scheduler.Service
-	config         *domain.Config
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, cleanupJobRepo domain.ReleaseCleanupJobRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service, config *domain.Config) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, cleanupJobRepo domain.ReleaseCleanupJobRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service) Service {
 	return &service{
 		log:            log.With().Str("module", "release").Logger(),
 		repo:           repo,
@@ -88,7 +87,6 @@ func NewService(log logger.Logger, repo domain.ReleaseRepo, cleanupJobRepo domai
 		filterSvc:      filterSvc,
 		indexerSvc:     indexerSvc,
 		scheduler:      scheduler,
-		config:         config,
 	}
 }
 

@@ -345,11 +345,6 @@ The following environment variables can be used:
 | `AUTOBRR__METRICS_HOST`                | Metrics listen address                                   | `127.0.0.1`                              |
 | `AUTOBRR__METRICS_PORT`                | Metrics listen port                                      | `9074`                                   |
 | `AUTOBRR__METRICS_BASIC_AUTH_USERS`    | Metrics basic auth users                                 | -                                        |
-| `AUTOBRR__RELEASE_CLEANUP_ENABLED`     | Enable scheduled release cleanup                         | `false`                                  |
-| `AUTOBRR__RELEASE_CLEANUP_SCHEDULE`    | Cron schedule for cleanup                                | `0 3 * * 0`                              |
-| `AUTOBRR__RELEASE_CLEANUP_OLDER_THAN`  | Delete releases older than N hours                       | `720`                                    |
-| `AUTOBRR__RELEASE_CLEANUP_INDEXERS`    | Comma-separated indexer identifiers to filter            | -                                        |
-| `AUTOBRR__RELEASE_CLEANUP_STATUSES`    | Comma-separated statuses to filter                       | -                                        |
 
 #### Docker secrets
 
