@@ -483,6 +483,7 @@ type ReleaseCleanupJob struct {
 	LastRun       time.Time            `json:"last_run"`
 	LastRunStatus ReleaseCleanupStatus `json:"last_run_status"`
 	LastRunData   string               `json:"last_run_data"` // JSON stats or error message
+	NextRun       time.Time            `json:"next_run"`      // enriched from scheduler
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
 }

@@ -5,7 +5,9 @@ package release
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -13,32 +15,33 @@ import (
 )
 
 type CleanupJob struct {
-	log    zerolog.Logger
-	repo   domain.ReleaseRepo
-	config *domain.Config
+	log            zerolog.Logger
+	releaseRepo    domain.ReleaseRepo
+	cleanupJobRepo domain.ReleaseCleanupJobRepo
+	job            *domain.ReleaseCleanupJob
 }
 
-func NewCleanupJob(log zerolog.Logger, repo domain.ReleaseRepo, config *domain.Config) *CleanupJob {
+func NewCleanupJob(log zerolog.Logger, releaseRepo domain.ReleaseRepo, cleanupJobRepo domain.ReleaseCleanupJobRepo, job *domain.ReleaseCleanupJob) *CleanupJob {
 	return &CleanupJob{
-		log:    log,
-		repo:   repo,
-		config: config,
+		log:            log,
+		releaseRepo:    releaseRepo,
+		cleanupJobRepo: cleanupJobRepo,
+		job:            job,
 	}
 }
 
 func (j *CleanupJob) Run() {
-	j.log.Debug().Msg("running release-cleanup job")
+	ctx := context.Background()
+	j.log.Debug().Str("job", j.job.Name).Msg("running release cleanup job")
 
-	if !j.config.ReleaseCleanupEnabled {
-		j.log.Debug().Msg("release cleanup is disabled")
-		return
-	}
+	// Track execution time and status
+	startTime := time.Now()
+	j.job.LastRun = startTime
 
 	// Parse comma-separated indexers
 	var indexers []string
-	if j.config.ReleaseCleanupIndexers != "" {
-		rawIndexers := strings.Split(j.config.ReleaseCleanupIndexers, ",")
-		for _, idx := range rawIndexers {
+	if j.job.Indexers != "" {
+		for idx := range strings.SplitSeq(j.job.Indexers, ",") {
 			trimmed := strings.TrimSpace(idx)
 			if trimmed != "" {
 				indexers = append(indexers, trimmed)
@@ -48,9 +51,8 @@ func (j *CleanupJob) Run() {
 
 	// Parse and validate comma-separated statuses
 	var statuses []string
-	if j.config.ReleaseCleanupStatuses != "" {
-		rawStatuses := strings.Split(j.config.ReleaseCleanupStatuses, ",")
-		for _, s := range rawStatuses {
+	if j.job.Statuses != "" {
+		for s := range strings.SplitSeq(j.job.Statuses, ",") {
 			trimmed := strings.TrimSpace(s)
 			if trimmed != "" {
 				if domain.ValidDeletableReleasePushStatus(trimmed) {
@@ -64,18 +66,47 @@ func (j *CleanupJob) Run() {
 
 	// Build delete request
 	req := &domain.DeleteReleaseRequest{
-		OlderThan:       j.config.ReleaseCleanupOlderThan,
+		OlderThan:       j.job.OlderThan,
 		Indexers:        indexers,
 		ReleaseStatuses: statuses,
 	}
 
 	// Perform deletions
-	if err := j.repo.Delete(context.Background(), req); err != nil {
+	if err := j.releaseRepo.Delete(ctx, req); err != nil {
 		j.log.Error().Err(err).Msg("error deleting releases")
+
+		// Update job with error status
+		j.job.LastRunStatus = domain.ReleaseCleanupStatusError
+		j.job.LastRunData = err.Error()
+		if err := j.cleanupJobRepo.UpdateLastRun(ctx, j.job); err != nil {
+			j.log.Error().Err(err).Msg("error updating cleanup job status")
+		}
 		return
 	}
 
+	// Build success data
+	successData := map[string]any{
+		"older_than_hours": req.OlderThan,
+		"indexers":         indexers,
+		"statuses":         statuses,
+		"duration_ms":      time.Since(startTime).Milliseconds(),
+	}
+
+	dataJSON, err := json.Marshal(successData)
+	if err != nil {
+		j.log.Error().Err(err).Msg("error marshaling success data")
+		dataJSON = []byte("{}")
+	}
+
+	// Update job with success status
+	j.job.LastRunStatus = domain.ReleaseCleanupStatusSuccess
+	j.job.LastRunData = string(dataJSON)
+	if err := j.cleanupJobRepo.UpdateLastRun(ctx, j.job); err != nil {
+		j.log.Error().Err(err).Msg("error updating cleanup job status")
+	}
+
 	j.log.Info().
+		Str("job", j.job.Name).
 		Int("older_than_hours", req.OlderThan).
 		Strs("indexers", indexers).
 		Strs("statuses", statuses).
