@@ -38,13 +38,13 @@ var (
 	clientManuallyDisconnected = retry.Unrecoverable(errors.New("IRC client was manually disconnected"))
 )
 
-type State string
-
-const (
-	StateStopped    State = "stopped"
-	StateConnecting State = "connecting"
-	StateRunning    State = "running"
-)
+//type State string
+//
+//const (
+//	StateStopped State = "stopped"
+//	//StateConnecting State = "connecting"
+//	StateRunning State = "running"
+//)
 
 type ircState uint
 
@@ -66,7 +66,7 @@ type Handler struct {
 	definitions         map[string]*domain.IndexerDefinition
 
 	client           *ircevent.Connection
-	clientState      State
+	clientState      ircState
 	connectedSince   time.Time
 	haveDisconnected bool
 	authenticated    bool
@@ -81,6 +81,8 @@ type Handler struct {
 	capabilities map[string]struct{}
 
 	botModeChar string
+
+	stateMachine *ConnectionStateMachine
 }
 
 func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Processor, notificationSvc notification.Sender) *Handler {
@@ -88,7 +90,7 @@ func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, 
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,
 		client:              nil,
-		clientState:         StateStopped,
+		clientState:         ircStopped,
 		network:             &network,
 		releaseSvc:          releaseSvc,
 		notificationService: notificationSvc,
@@ -99,6 +101,9 @@ func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, 
 		channels:            haxmap.New[string, *Channel](),
 		bots:                haxmap.New[string, *domain.IrcUser](),
 	}
+
+	// init state machine
+	h.stateMachine = NewConnectionStateMachine(h)
 
 	// init indexer, announceProcessor
 	h.InitIndexers(definitions)
@@ -195,9 +200,9 @@ func (h *Handler) Run() (err error) {
 
 	shouldConnect := false
 	h.m.Lock()
-	if h.clientState == StateStopped {
+	if h.clientState == ircStopped {
 		shouldConnect = true
-		h.clientState = StateConnecting
+		h.clientState = ircConnecting
 	}
 	h.m.Unlock()
 
@@ -209,8 +214,8 @@ func (h *Handler) Run() (err error) {
 	// we need to reset the state to `ircStopped`
 	defer func() {
 		h.m.Lock()
-		if h.clientState == StateConnecting {
-			h.clientState = StateStopped
+		if h.clientState == ircConnecting {
+			h.clientState = ircStopped
 		}
 		h.m.Unlock()
 	}()
@@ -303,11 +308,15 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback("KICK", h.onKick)
 	client.AddCallback("JOIN", h.handleJoin)
 
+	client.AddCallback("TOPIC", h.handleTopicChange)
 	client.AddCallback(ircevent.RPL_TOPIC, h.handleTopic)
 	client.AddCallback(ircevent.RPL_NAMREPLY, h.handleNames)
 	client.AddCallback(ircevent.RPL_ENDOFNAMES, h.handleJoined) // end of names
 	client.AddCallback(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
 	//client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
+
+	client.AddCallback(ircevent.ERR_INVITEONLYCHAN, h.handleErrInviteOnly)
+	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrInviteOnly)
 
 	//h.setConnectionStatus()
 	h.saslauthed = false
@@ -327,7 +336,7 @@ func (h *Handler) Run() (err error) {
 
 				// #1239: don't retry if the user manually disconnected with Stop()
 				h.m.RLock()
-				manuallyDisconnected := h.clientState == StateStopped
+				manuallyDisconnected := h.clientState == ircStopped
 				h.m.RUnlock()
 
 				if manuallyDisconnected {
@@ -365,14 +374,14 @@ func (h *Handler) Run() (err error) {
 	shouldDisconnect := false
 	h.m.Lock()
 	switch h.clientState {
-	case StateStopped:
+	case ircStopped:
 		// concurrent Stop(), bail
 		shouldDisconnect = true
-	case StateConnecting:
+	case ircConnecting:
 		// success!
 		//h.client = client
-		h.clientState = StateRunning
-	case StateRunning:
+		h.clientState = ircLive
+	case ircLive:
 		// impossible
 		h.log.Error().Stack().Msgf("two concurrent connection attempts detected")
 		shouldDisconnect = true
@@ -441,7 +450,7 @@ func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
 	client := h.client
-	h.clientState = StateStopped
+	h.clientState = ircStopped
 	h.client = nil
 	h.m.Unlock()
 
@@ -455,7 +464,7 @@ func (h *Handler) Stop() {
 func (h *Handler) Stopped() bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
-	return h.clientState == StateStopped
+	return h.clientState == ircStopped
 }
 
 // Restart stops the network and then runs it
@@ -469,17 +478,11 @@ func (h *Handler) Restart() error {
 
 // onConnect is the connect callback
 func (h *Handler) onConnect(m ircmsg.Message) {
-	// 0. Authenticated via SASL - join
-	// 1. No nickserv, no invite command - join
-	// 2. Nickserv password - join after auth
-	// 3. nickserv and invite command - send nickserv pass, wait for mode to send invite cmd, then join
-	// 4. invite command - join
-
 	h.setConnectionStatus()
 
 	func() {
 		h.m.Lock()
-		if h.haveDisconnected && h.clientState == StateRunning {
+		if h.haveDisconnected && h.clientState == ircLive {
 			h.log.Info().Msgf("network re-connected after unexpected disconnect: %s", h.network.Name)
 
 			h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
@@ -497,13 +500,8 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	time.Sleep(1 * time.Second)
 
-	if h.network.BotMode && h.botModeSupported() {
-		// if we set Bot Mode, we'll try to authenticate after the MODE response
-		h.setBotMode()
-		return
-	}
-
-	h.authenticate()
+	// Notify state machine of connection - it will handle auth and channel joining
+	h.stateMachine.OnConnected()
 }
 
 // onDisconnect is the disconnect callback
@@ -520,7 +518,7 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 
 	h.haveDisconnected = true
 
-	manuallyDisconnected := h.clientState == StateStopped
+	manuallyDisconnected := h.clientState == ircStopped
 
 	h.m.Unlock()
 
@@ -542,6 +540,7 @@ func (h *Handler) onDisconnect(m ircmsg.Message) {
 		})
 	}
 
+	h.stateMachine.OnDisconnected()
 }
 
 // onNotice handles NOTICE events
@@ -665,7 +664,7 @@ func (h *Handler) handleSASLSuccess(msg ircmsg.Message) {
 }
 
 // setAuthenticated sets the states for authenticated, connectionErrors, failedNickServAttempts
-// and then sends inviteCommand and after that JoinChannels
+// and then notifies the state machine which handles invite commands and joining channels
 func (h *Handler) setAuthenticated() {
 	h.m.Lock()
 	alreadyAuthenticated := h.authenticated
@@ -680,8 +679,8 @@ func (h *Handler) setAuthenticated() {
 		return
 	}
 
-	h.inviteCommand()
-	h.JoinChannels()
+	// Notify state machine - it will handle joining channels and invite commands
+	h.stateMachine.OnAuthenticated()
 }
 
 // send invite commands if not empty
@@ -867,6 +866,8 @@ func (h *Handler) handleJoin(msg ircmsg.Message) {
 			botUser.Present = true
 			botUser.State = domain.IrcUserStatePresent
 			h.bots.Swap(msg.Nick(), botUser)
+
+			h.stateMachine.OnBotJoined(strings.ToLower(msg.Nick()))
 		}
 
 		return
@@ -928,13 +929,36 @@ func (h *Handler) PartChannel(channel string) error {
 	// TODO remove announceProcessor
 }
 
-// handleTopic listens for 332 ircevent.RPL_TOPIC
+// handleTopic listens for 332 ircevent.
 func (h *Handler) handleTopic(msg ircmsg.Message) {
 	if len(msg.Params) < 2 {
 		return
 	}
 	channel := strings.ToLower(msg.Params[1])
 	topic := msg.Params[2]
+
+	h.log.Trace().Str("topic", topic).Str("channel", channel).Msg("TOPIC")
+
+	// set topic for channel
+	ircChannel, found := h.channels.Get(channel)
+	if found {
+		h.log.Trace().Str("topic", topic).Str("channel", ircChannel.Name).Msg("set new channel topic")
+
+		ircChannel.SetTopic(topic)
+
+		h.channels.Swap(channel, ircChannel)
+
+		return
+	}
+}
+
+// handleTopicChange listens for TOPIC events
+func (h *Handler) handleTopicChange(msg ircmsg.Message) {
+	if len(msg.Params) < 2 {
+		return
+	}
+	channel := strings.ToLower(msg.Params[0])
+	topic := msg.Params[1]
 
 	h.log.Trace().Str("topic", topic).Str("channel", channel).Msg("TOPIC")
 
@@ -1001,6 +1025,9 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 			h.log.Info().Msgf("Joined extra channel %s", channel)
 		}
 
+		// Notify state machine that we've joined a channel
+		h.stateMachine.OnChannelJoined(channel)
+
 		return
 	}
 }
@@ -1054,6 +1081,8 @@ func (h *Handler) sendConnectCommands(msg string) error {
 			return err
 		}
 
+		// TODO RETRY if error or not successful
+
 		time.Sleep(1 * time.Second)
 	}
 
@@ -1083,6 +1112,71 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 		h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
 		return
 	}
+
+	return
+}
+
+// handleErrInviteOnly listens for ircevent.ERR_INVITEONLYCHAN events
+func (h *Handler) handleErrInviteOnly(msg ircmsg.Message) {
+	if len(msg.Params) < 2 {
+		return
+	}
+
+	// get channel
+	channel := strings.ToLower(msg.Params[1])
+
+	h.log.Debug().Str("channel", channel).Msgf("INVITE ONLY channel: +i")
+
+	// TODO track if we have sent invite command, and check if channel is part of that and if we have not sent or joined yet
+
+	//_, found := h.channels.Get(channel)
+	//if !found {
+	//	h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", msg.Nick(), channel)
+	//	return
+	//}
+	//
+	//h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
+	//
+	//if err := h.Send("JOIN", channel); err != nil {
+	//	h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
+	//	return
+	//}
+
+	return
+}
+
+// handleErrInviteOnly listens for ircevent.ERR_INVITEONLYCHAN events
+func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
+	if len(msg.Params) < 2 {
+		return
+	}
+
+	// get channel
+	nick := strings.ToLower(msg.Params[1])
+
+	h.log.Debug().Str("nick", nick).Msgf("No such nick")
+
+	// TODO track if we have sent invite command, and check if channel is part of that and if we have not sent or joined yet
+
+	bot, ok := h.bots.Get(nick)
+	if !ok {
+		h.log.Debug().Str("nick", nick).Msgf("No such nick")
+		return
+	}
+	bot.Present = false
+
+	//_, found := h.channels.Get(channel)
+	//if !found {
+	//	h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", msg.Nick(), channel)
+	//	return
+	//}
+	//
+	//h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
+	//
+	//if err := h.Send("JOIN", channel); err != nil {
+	//	h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
+	//	return
+	//}
 
 	return
 }
@@ -1215,6 +1309,9 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	netw.Healthy = channelsHealthy
 
 	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
+
+	// Add state machine information for better visibility
+	netw.Healthy = h.stateMachine.IsHealthy() && channelsHealthy
 }
 
 func (h *Handler) ReportHealth() {
