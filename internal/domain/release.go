@@ -463,6 +463,41 @@ func ValidDeletableReleasePushStatus(s string) bool {
 	}
 }
 
+// ReleaseCleanupStatus represents the status of a cleanup job execution
+type ReleaseCleanupStatus string
+
+const (
+	ReleaseCleanupStatusSuccess ReleaseCleanupStatus = "SUCCESS"
+	ReleaseCleanupStatusError   ReleaseCleanupStatus = "ERROR"
+)
+
+// ReleaseCleanupJob represents a scheduled cleanup job for release history
+type ReleaseCleanupJob struct {
+	ID            int                  `json:"id"`
+	Name          string               `json:"name"`
+	Enabled       bool                 `json:"enabled"`
+	Schedule      string               `json:"schedule"`        // cron format
+	OlderThan     int                  `json:"older_than"`      // hours
+	Indexers      string               `json:"indexers"`        // comma-separated
+	Statuses      string               `json:"statuses"`        // comma-separated
+	LastRun       time.Time            `json:"last_run"`
+	LastRunStatus ReleaseCleanupStatus `json:"last_run_status"`
+	LastRunData   string               `json:"last_run_data"` // JSON stats or error message
+	CreatedAt     time.Time            `json:"created_at"`
+	UpdatedAt     time.Time            `json:"updated_at"`
+}
+
+// ReleaseCleanupJobRepo interface for managing cleanup jobs
+type ReleaseCleanupJobRepo interface {
+	List(ctx context.Context) ([]*ReleaseCleanupJob, error)
+	FindByID(ctx context.Context, id int) (*ReleaseCleanupJob, error)
+	Store(ctx context.Context, job *ReleaseCleanupJob) error
+	Update(ctx context.Context, job *ReleaseCleanupJob) error
+	UpdateLastRun(ctx context.Context, job *ReleaseCleanupJob) error
+	ToggleEnabled(ctx context.Context, id int, enabled bool) error
+	Delete(ctx context.Context, id int) error
+}
+
 type ReleaseFilterStatus string
 
 const (
