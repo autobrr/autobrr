@@ -789,25 +789,30 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 }
 
 func (h *Handler) onKick(msg ircmsg.Message) {
-	h.log.Trace().Msgf("KICK event: %s params: %v", msg.Nick(), msg.Params)
+	nick := msg.Nick()
+	h.log.Trace().Msgf("KICK event: %s params: %v", nick, msg.Params)
+	channelName := strings.ToLower(msg.Params[0])
+	affectedNick := msg.Params[1]
+	reason := strings.Join(msg.Params[2:], " ")
+	h.log.Trace().Str("event", "KICK").Str("nick", affectedNick).Str("kicked_by", nick).Str("channel", channelName).Str("reason", reason).Msg("kicked from channel")
 	if len(msg.Params) < 1 {
 		return
 	}
 
-	if !h.isOurNick(msg.Params[1]) {
+	if !h.isOurNick(affectedNick) {
 		return
 	}
 
-	channelName := strings.ToLower(msg.Params[0])
-
-	channel, found := h.channels.Get(channelName)
+	ircChannel, found := h.channels.Get(channelName)
 	if !found {
 		return
 	}
-	channel.ResetMonitoring()
 
+	if sm := ircChannel.StateMachine(); sm != nil {
+		sm.OnKicked(affectedNick, nick, reason)
+	}
 	// TODO set again or swap?
-	h.channels.Swap(channelName, channel)
+	//h.channels.Swap(channelName, ircChannel)
 }
 
 func (h *Handler) publishSSEMessage(event string, data any) {

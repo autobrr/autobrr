@@ -221,6 +221,7 @@ type IrcMessage struct {
 	Channel string    `json:"channel"`
 	Nick    string    `json:"nick"`
 	Message string    `json:"msg"`
+	Type    string    `json:"type"`
 	Time    time.Time `json:"time"`
 }
 

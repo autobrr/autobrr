@@ -1,9 +1,11 @@
 package irc
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
@@ -17,6 +19,7 @@ const (
 	ChannelStateAwaitingInvite
 	ChannelStateJoining
 	ChannelStateMonitoring
+	ChannelStateKicked
 	ChannelStateError
 )
 
@@ -30,6 +33,8 @@ func (s ChannelState) String() string {
 		return "Joining"
 	case ChannelStateMonitoring:
 		return "Monitoring"
+	case ChannelStateKicked:
+		return "Kicked"
 	case ChannelStateError:
 		return "Error"
 	default:
@@ -123,6 +128,27 @@ func (sm *ChannelStateMachine) OnParted() {
 	if sm.state == ChannelStateMonitoring {
 		sm.state = ChannelStateIdle
 	}
+}
+
+func (sm *ChannelStateMachine) OnKicked(nick, kickedBy, reason string) {
+	sm.m.Lock()
+	defer sm.m.Unlock()
+
+	sm.state = ChannelStateKicked
+	sm.channel.ResetMonitoring()
+
+	msg := domain.IrcMessage{
+		Network: sm.channel.NetworkID,
+		Channel: sm.channel.Name,
+		Type:    "KICK",
+		//Nick:    kickedBy,
+		Nick:    "<-*",
+		Message: fmt.Sprintf("%s was kicked from %s by %s (%s)", nick, sm.channel.Name, kickedBy, reason),
+		Time:    time.Now(),
+	}
+	sm.channel.Messages.AddMessage(msg)
+
+	sm.handler.publishSSEMsg(msg)
 }
 
 func (sm *ChannelStateMachine) OnError(reason string) {

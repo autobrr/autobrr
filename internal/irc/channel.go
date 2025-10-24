@@ -242,10 +242,19 @@ func (c *Channel) SetMonitoring() {
 	c.ClearConnectionErrors()
 }
 
-func (c *Channel) ResetMonitoring() {
+func (c *Channel) Reset() {
 	c.Monitoring = false
 	c.MonitoringSince = time.Time{}
 	c.Messages.ClearMessages()
+	c.ClearConnectionErrors()
+
+	//c.announceProcessor = nil
+}
+
+func (c *Channel) ResetMonitoring() {
+	c.Monitoring = false
+	c.MonitoringSince = time.Time{}
+	//c.Messages.ClearMessages()
 	c.ClearConnectionErrors()
 
 	//c.announceProcessor = nil
