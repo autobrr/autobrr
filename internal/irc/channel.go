@@ -74,15 +74,17 @@ type Channel struct {
 	m   deadlock.RWMutex
 	log zerolog.Logger
 
-	ID              int64 `json:"id"`
-	NetworkID       int64 `json:"network_id"`
-	Name            string
-	Enabled         bool `json:"enabled"`
-	Password        string
-	Topic           string
-	Monitoring      bool
-	MonitoringSince time.Time
-	LastAnnounce    time.Time
+	ID               int64 `json:"id"`
+	NetworkID        int64 `json:"network_id"`
+	Name             string
+	Enabled          bool `json:"enabled"`
+	Password         string
+	Topic            string
+	ConnectionErrors []string
+	Monitoring       bool
+	MonitoringSince  time.Time
+	LastAnnounce     time.Time
+	inviteCommand    string
 
 	users              *haxmap.Map[string, *domain.IrcUser]
 	announcers         *haxmap.Map[string, *domain.IrcUser]
@@ -92,6 +94,7 @@ type Channel struct {
 	Messages *MessageBuffer
 
 	announceProcessor announce.Processor
+	stateMachine      *ChannelStateMachine
 }
 
 func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel bool, announceProcessor announce.Processor) *Channel {
@@ -104,9 +107,11 @@ func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel
 		Enabled:            true,
 		Password:           "",
 		Topic:              "",
+		ConnectionErrors:   make([]string, 0),
 		Monitoring:         false,
 		MonitoringSince:    time.Time{},
 		LastAnnounce:       time.Time{},
+		inviteCommand:      "",
 		users:              haxmap.New[string, *domain.IrcUser](),
 		announcers:         haxmap.New[string, *domain.IrcUser](),
 		DefaultChannel:     defaultChannel,
@@ -214,15 +219,34 @@ func (c *Channel) IsValidAnnouncer(nick string) bool {
 	return found
 }
 
+func (c *Channel) SetConnectionError(err string) {
+	for _, existing := range c.ConnectionErrors {
+		if existing == err {
+			return
+		}
+	}
+	c.ConnectionErrors = append(c.ConnectionErrors, err)
+}
+
+func (c *Channel) ClearConnectionErrors() {
+	c.ConnectionErrors = make([]string, 0)
+}
+
+func (c *Channel) HasConnectionErrors() bool {
+	return len(c.ConnectionErrors) > 0
+}
+
 func (c *Channel) SetMonitoring() {
 	c.Monitoring = true
 	c.MonitoringSince = time.Now()
+	c.ClearConnectionErrors()
 }
 
 func (c *Channel) ResetMonitoring() {
 	c.Monitoring = false
 	c.MonitoringSince = time.Time{}
 	c.Messages.ClearMessages()
+	c.ClearConnectionErrors()
 
 	//c.announceProcessor = nil
 }
@@ -241,6 +265,25 @@ func (c *Channel) RegisterAnnouncers(announcers []string) {
 			State:   domain.IrcUserStateUninitialized,
 		})
 	}
+}
+
+func (c *Channel) SetInviteCommand(cmd string) {
+	c.inviteCommand = cmd
+	if c.stateMachine != nil {
+		c.stateMachine.SetInviteCommand(cmd)
+	}
+}
+
+func (c *Channel) InviteCommand() string {
+	return c.inviteCommand
+}
+
+func (c *Channel) SetStateMachine(sm *ChannelStateMachine) {
+	c.stateMachine = sm
+}
+
+func (c *Channel) StateMachine() *ChannelStateMachine {
+	return c.stateMachine
 }
 
 func (c *Channel) SetTopic(topic string) {

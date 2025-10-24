@@ -112,6 +112,24 @@ func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, 
 }
 
 func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
+	connectCommands := make([]string, 0)
+	if h.network.InviteCommand != "" {
+		cmds := strings.Split(strings.ReplaceAll(h.network.InviteCommand, "/msg", ""), ",")
+		for _, cmd := range cmds {
+			cmd = strings.TrimSpace(cmd)
+
+			connectCommands = append(connectCommands, cmd)
+
+			parts := strings.Split(cmd, " ")
+			if len(parts) > 2 {
+				nick := strings.ToLower(parts[0])
+				h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
+
+				h.bots.Set(nick, &domain.IrcUser{Nick: nick, State: domain.IrcUserStateUninitialized})
+			}
+		}
+	}
+
 	// Networks can be shared by multiple indexers but channels are unique
 	// so let's add a new AnnounceProcessor per channel
 	for _, definition := range definitions {
@@ -121,7 +139,29 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 		h.definitions[definition.Identifier] = definition
 
-		// TODO reverse range and do over h.network.channels instead?
+		// handle invite command
+		inviteCommand := ""
+		defaultInvCmd := ""
+		for _, setting := range definition.IRC.Settings {
+			if setting.Name == "invite_command" {
+				defaultInvCmd = strings.ToLower(setting.Default)
+				break
+			}
+		}
+
+		if defaultInvCmd != "" {
+			for _, cmd := range connectCommands {
+				cmd = strings.TrimSpace(strings.ReplaceAll(cmd, "/msg", ""))
+				parts := strings.Split(cmd, " ")
+				if len(parts) < 2 {
+					continue
+				}
+				if strings.HasPrefix(defaultInvCmd, strings.ToLower(parts[0])) {
+					inviteCommand = cmd
+					break
+				}
+			}
+		}
 
 		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
 		for _, channelName := range definition.IRC.Channels {
@@ -129,6 +169,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			channelName = strings.ToLower(channelName)
 
 			ircChannel := NewChannel(h.log, h.network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
+			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 
 			ircChannel.RegisterAnnouncers(definition.IRC.Announcers)
 
@@ -144,12 +185,17 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 				ch.ID = channel.ID
 				ch.Enabled = channel.Enabled
 
+				if ch.StateMachine() == nil {
+					ch.SetStateMachine(NewChannelStateMachine(ch, h, inviteCommand))
+				}
+
 				h.channels.Swap(channelName, ch)
 
 				continue
 			}
 
 			ircChannel := NewChannel(h.log, h.network.ID, channelName, false, nil)
+			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 
 			h.channels.Set(channelName, ircChannel)
 		}
@@ -159,20 +205,20 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
 		}
 
-		if h.network.InviteCommand != "" {
-			connectCommands := strings.Split(strings.ReplaceAll(h.network.InviteCommand, "/msg", ""), ",")
-			for _, cmd := range connectCommands {
-				cmd = strings.TrimSpace(cmd)
-
-				parts := strings.Split(cmd, " ")
-				if len(parts) > 2 {
-					nick := strings.ToLower(parts[0])
-					h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
-
-					h.bots.Set(nick, &domain.IrcUser{Nick: nick, State: domain.IrcUserStateUninitialized})
-				}
-			}
-		}
+		//if h.network.InviteCommand != "" {
+		//	connectCommands := strings.Split(strings.ReplaceAll(h.network.InviteCommand, "/msg", ""), ",")
+		//	for _, cmd := range connectCommands {
+		//		cmd = strings.TrimSpace(cmd)
+		//
+		//		parts := strings.Split(cmd, " ")
+		//		if len(parts) > 2 {
+		//			nick := strings.ToLower(parts[0])
+		//			h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
+		//
+		//			h.bots.Set(nick, &domain.IrcUser{Nick: nick, State: domain.IrcUserStateUninitialized})
+		//		}
+		//	}
+		//}
 	}
 }
 
@@ -209,6 +255,8 @@ func (h *Handler) Run() (err error) {
 	if !shouldConnect {
 		return connectionInProgress
 	}
+
+	h.stateMachine.OnConnecting()
 
 	// either we will successfully transition to `StateRunning`, or else
 	// we need to reset the state to `ircStopped`
@@ -307,16 +355,17 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback("NICK", h.onNick)
 	client.AddCallback("KICK", h.onKick)
 	client.AddCallback("JOIN", h.handleJoin)
+	client.AddCallback("QUIT", h.handleQuit)
 
 	client.AddCallback("TOPIC", h.handleTopicChange)
 	client.AddCallback(ircevent.RPL_TOPIC, h.handleTopic)
 	client.AddCallback(ircevent.RPL_NAMREPLY, h.handleNames)
 	client.AddCallback(ircevent.RPL_ENDOFNAMES, h.handleJoined) // end of names
 	client.AddCallback(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
-	//client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
+	client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
 
 	client.AddCallback(ircevent.ERR_INVITEONLYCHAN, h.handleErrInviteOnly)
-	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrInviteOnly)
+	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
 
 	//h.setConnectionStatus()
 	h.saslauthed = false
@@ -563,6 +612,8 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		h.addConnectError("authentication failed: Bad account credentials")
 		h.log.Error().Msg("NickServ: authentication failed - bad account credentials")
 
+		h.stateMachine.OnError("nickserv authentication failed: bad credentials")
+
 		// stop network and notify user
 		h.Stop()
 		return
@@ -575,6 +626,8 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	) {
 		if h.CurrentNick() == h.PreferredNick() {
 			h.addConnectError("authentication failed: account does not exist")
+
+			h.stateMachine.OnError("nickserv authentication failed: account does not exist")
 
 			// stop network and notify user
 			h.Stop()
@@ -593,6 +646,8 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 			h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
 			h.addConnectError("authentication failed: nick in use and not authenticated")
 
+			h.stateMachine.OnError("nickserv authentication failed: nick in use")
+
 			// stop network and notify user
 			h.Stop()
 		}
@@ -602,6 +657,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	// Password accepted - you are now recognized.
 	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized") {
 		h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
+		h.setAuthenticated()
 	}
 
 	// fallback for networks that require both password and nick to NickServ IDENTIFY
@@ -661,6 +717,17 @@ func (h *Handler) handleSASLSuccess(msg ircmsg.Message) {
 	h.m.Lock()
 	h.saslauthed = true
 	h.m.Unlock()
+}
+
+func (h *Handler) handleSASLFail(msg ircmsg.Message) {
+	h.addConnectError("authentication failed: SASL negotiation failed")
+	h.stateMachine.OnError("sasl authentication failed")
+
+	h.m.Lock()
+	h.saslauthed = false
+	h.m.Unlock()
+
+	h.Stop()
 }
 
 // setAuthenticated sets the states for authenticated, connectionErrors, failedNickServAttempts
@@ -814,11 +881,18 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 // JoinChannels sends multiple join commands
 func (h *Handler) JoinChannels() {
 	h.channels.ForEach(func(s string, channel *Channel) bool {
-		// TODO check if enabled
-		if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error joining channel %s", channel.Name)
+		if !channel.Enabled {
+			return true
 		}
-		time.Sleep(1 * time.Second)
+
+		if sm := channel.StateMachine(); sm != nil {
+			sm.Start()
+		} else {
+			if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
+				h.log.Error().Stack().Err(err).Msgf("error joining channel %s", channel.Name)
+			}
+		}
+
 		return true
 	})
 }
@@ -876,6 +950,52 @@ func (h *Handler) handleJoin(msg ircmsg.Message) {
 	h.log.Info().Msgf("Join channel %s", channel)
 }
 
+func (h *Handler) handleQuit(msg ircmsg.Message) {
+	h.log.Trace().Msgf("QUIT event: %s params: %v", msg.Nick(), msg.Params)
+
+	if !h.isOurCurrentNick(msg.Nick()) {
+		botUser, foundBot := h.bots.Get(msg.Nick())
+		if foundBot {
+			botUser.Present = false
+			botUser.State = domain.IrcUserStateNotPresent
+			h.bots.Swap(msg.Nick(), botUser)
+
+			//h.stateMachine.OnBotJoined(strings.ToLower(msg.Nick()))
+		}
+
+		return
+	}
+}
+
+func (h *Handler) setChannelError(channelName, errMsg string) {
+	channelName = strings.ToLower(channelName)
+
+	if ch, found := h.channels.Get(channelName); found {
+		ch.SetConnectionError(errMsg)
+		if sm := ch.StateMachine(); sm != nil {
+			sm.OnError(errMsg)
+		}
+		h.channels.Swap(channelName, ch)
+	}
+}
+
+func (h *Handler) markPendingChannelErrors(errMsg string) {
+	h.channels.ForEach(func(name string, channel *Channel) bool {
+		if !channel.Enabled {
+			return true
+		}
+
+		if channel.Monitoring {
+			return true
+		}
+
+		channel.SetConnectionError(errMsg)
+		h.channels.Swap(name, channel)
+
+		return true
+	})
+}
+
 // handlePart listens for PART events
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
@@ -905,6 +1025,10 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 	ircChannel, found := h.channels.Get(channel)
 	if !found {
 		return
+	}
+
+	if sm := ircChannel.StateMachine(); sm != nil {
+		sm.OnParted()
 	}
 
 	ircChannel.ResetMonitoring()
@@ -1013,6 +1137,10 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	// check if channel is valid and if not lets part
 	ircChannel, found := h.channels.Get(channel)
 	if found {
+		if sm := ircChannel.StateMachine(); sm != nil {
+			sm.OnJoinSuccess()
+		}
+
 		ircChannel.SetMonitoring()
 
 		h.channels.Swap(channel, ircChannel)
@@ -1097,23 +1225,25 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 
 	// get channel
 	channel := strings.ToLower(msg.Params[1])
+	nick := msg.Nick()
 
-	h.log.Trace().Msgf("INVITE from %s to join: %s", msg.Nick(), channel)
+	h.log.Trace().Msgf("INVITE from %s to join: %s", nick, channel)
+	h.log.Debug().Msgf("INVITE from %s, joining %s", nick, channel)
 
-	_, found := h.channels.Get(channel)
+	ircChannel, found := h.channels.Get(channel)
 	if !found {
-		h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", msg.Nick(), channel)
+		h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", nick, channel)
 		return
 	}
 
-	h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
+	if sm := ircChannel.StateMachine(); sm != nil {
+		sm.OnInvite(nick)
+		return
+	}
 
 	if err := h.Send("JOIN", channel); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
-		return
 	}
-
-	return
 }
 
 // handleErrInviteOnly listens for ircevent.ERR_INVITEONLYCHAN events
@@ -1125,7 +1255,11 @@ func (h *Handler) handleErrInviteOnly(msg ircmsg.Message) {
 	// get channel
 	channel := strings.ToLower(msg.Params[1])
 
-	h.log.Debug().Str("channel", channel).Msgf("INVITE ONLY channel: +i")
+	inviteOnlyErr := fmt.Sprintf("channel %s is invite-only", channel)
+	h.log.Warn().Str("channel", channel).Msg("channel is invite-only, awaiting invite")
+	h.addConnectError(inviteOnlyErr)
+	h.setChannelError(channel, inviteOnlyErr)
+	h.stateMachine.OnChannelError(channel, inviteOnlyErr)
 
 	// TODO track if we have sent invite command, and check if channel is part of that and if we have not sent or joined yet
 
@@ -1158,25 +1292,29 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 
 	// TODO track if we have sent invite command, and check if channel is part of that and if we have not sent or joined yet
 
+	h.channels.ForEach(func(s string, channel *Channel) bool {
+		if !channel.Enabled {
+			return true
+		}
+		if channel.inviteCommand != "" {
+			if strings.HasPrefix(channel.inviteCommand, nick) {
+				h.log.Debug().Str("nick", nick).Msgf("No such nick, sending invite command")
+
+				// TODO start retry loop of invite command here
+				return false
+			}
+		}
+
+		return true
+	})
+
 	bot, ok := h.bots.Get(nick)
 	if !ok {
 		h.log.Debug().Str("nick", nick).Msgf("No such nick")
 		return
 	}
 	bot.Present = false
-
-	//_, found := h.channels.Get(channel)
-	//if !found {
-	//	h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", msg.Nick(), channel)
-	//	return
-	//}
-	//
-	//h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
-	//
-	//if err := h.Send("JOIN", channel); err != nil {
-	//	h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
-	//	return
-	//}
+	h.bots.Swap(nick, bot)
 
 	return
 }
@@ -1292,9 +1430,12 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	channelsHealthy := true
 
 	h.channels.ForEach(func(s string, channel *Channel) bool {
-		channelsHealthy = channel.Monitoring
+		if !channel.Enabled {
+			return true
+		}
 
-		if !channelsHealthy {
+		if !channel.Monitoring || channel.HasConnectionErrors() {
+			channelsHealthy = false
 			return false
 		}
 

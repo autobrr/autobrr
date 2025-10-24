@@ -22,6 +22,7 @@ interface IrcNetwork {
   connected_since: string;
   use_proxy: boolean;
   proxy_id: number;
+  connection_errors: string[];
 }
 
 interface IrcNetworkCreate {
@@ -53,6 +54,7 @@ interface IrcChannel {
 interface IrcChannelWithHealth extends IrcChannel {
   monitoring_since: string;
   last_announce: string;
+  connection_errors: string[];
 }
 
 interface IrcNetworkWithHealth extends IrcNetwork {

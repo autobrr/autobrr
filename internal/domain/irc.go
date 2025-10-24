@@ -71,25 +71,26 @@ func (ia IRCAuth) MarshalJSON() ([]byte, error) {
 }
 
 type IrcNetwork struct {
-	ID             int64        `json:"id"`
-	Name           string       `json:"name"`
-	Enabled        bool         `json:"enabled"`
-	Server         string       `json:"server"`
-	Port           int          `json:"port"`
-	TLS            bool         `json:"tls"`
-	Pass           string       `json:"pass"`
-	Nick           string       `json:"nick"`
-	Auth           IRCAuth      `json:"auth,omitempty"`
-	InviteCommand  string       `json:"invite_command"`
-	UseBouncer     bool         `json:"use_bouncer"`
-	BouncerAddr    string       `json:"bouncer_addr"`
-	UseProxy       bool         `json:"use_proxy"`
-	ProxyId        int64        `json:"proxy_id"`
-	Proxy          *Proxy       `json:"proxy"`
-	BotMode        bool         `json:"bot_mode"`
-	Channels       []IrcChannel `json:"channels"`
-	Connected      bool         `json:"connected"`
-	ConnectedSince *time.Time   `json:"connected_since"`
+	ID               int64        `json:"id"`
+	Name             string       `json:"name"`
+	Enabled          bool         `json:"enabled"`
+	Server           string       `json:"server"`
+	Port             int          `json:"port"`
+	TLS              bool         `json:"tls"`
+	Pass             string       `json:"pass"`
+	Nick             string       `json:"nick"`
+	Auth             IRCAuth      `json:"auth,omitempty"`
+	InviteCommand    string       `json:"invite_command"`
+	UseBouncer       bool         `json:"use_bouncer"`
+	BouncerAddr      string       `json:"bouncer_addr"`
+	UseProxy         bool         `json:"use_proxy"`
+	ProxyId          int64        `json:"proxy_id"`
+	Proxy            *Proxy       `json:"proxy"`
+	BotMode          bool         `json:"bot_mode"`
+	Channels         []IrcChannel `json:"channels"`
+	Connected        bool         `json:"connected"`
+	ConnectedSince   *time.Time   `json:"connected_since"`
+	ConnectionErrors []string     `json:"connection_errors"`
 }
 
 func (in IrcNetwork) MarshalJSON() ([]byte, error) {
@@ -142,15 +143,16 @@ func (in IrcNetworkWithHealth) MarshalJSON() ([]byte, error) {
 }
 
 type IrcChannelWithHealth struct {
-	ID              int64     `json:"id"`
-	Enabled         bool      `json:"enabled"`
-	Name            string    `json:"name"`
-	Password        string    `json:"password"`
-	Detached        bool      `json:"detached"`
-	Monitoring      bool      `json:"monitoring"`
-	MonitoringSince time.Time `json:"monitoring_since"`
-	LastAnnounce    time.Time `json:"last_announce"`
-	Announcers      []IrcUser `json:"announcers"`
+	ID               int64     `json:"id"`
+	Enabled          bool      `json:"enabled"`
+	Name             string    `json:"name"`
+	Password         string    `json:"password"`
+	Detached         bool      `json:"detached"`
+	Monitoring       bool      `json:"monitoring"`
+	MonitoringSince  time.Time `json:"monitoring_since"`
+	LastAnnounce     time.Time `json:"last_announce"`
+	ConnectionErrors []string  `json:"connection_errors"`
+	Announcers       []IrcUser `json:"announcers"`
 }
 
 func (cwh IrcChannelWithHealth) MarshalJSON() ([]byte, error) {

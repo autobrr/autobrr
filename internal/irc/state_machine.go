@@ -6,10 +6,6 @@ package irc
 import (
 	"fmt"
 	"slices"
-	"strings"
-	"time"
-
-	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
@@ -25,9 +21,8 @@ const (
 	StateAuthenticating
 	StateAuthenticated
 	StateJoiningChannels
-	StateAwaitingBots     // Waiting for invite bots to appear
-	StateSendingInvites   // Sending invite commands
 	StateFullyOperational // All channels joined, all invites sent
+	StatePartiallyOperational
 	StateError
 )
 
@@ -39,9 +34,8 @@ func (s ConnectionState) String() string {
 		"Authenticating",
 		"Authenticated",
 		"JoiningChannels",
-		"AwaitingBots",
-		"SendingInvites",
 		"FullyOperational",
+		"PartiallyOperational",
 		"Error",
 	}[s]
 }
@@ -53,29 +47,14 @@ type ConnectionStateMachine struct {
 	log          zerolog.Logger
 
 	// State tracking
-	authAttempts   int
-	inviteAttempts int
-	maxRetries     int
-
-	// Bot tracking for invite commands
-	requiredBots   map[string]bool // bots we need before sending invites
-	botsPresent    map[string]bool // which bots are currently present
-	pendingInvites []string        // commands to send
-
-	// Timers and cancellation
-	watcherDone chan struct{}
+	authAttempts int
 }
 
 func NewConnectionStateMachine(handler *Handler) *ConnectionStateMachine {
 	return &ConnectionStateMachine{
-		currentState:   StateDisconnected,
-		handler:        handler,
-		log:            handler.log.With().Str("component", "state-machine").Logger(),
-		maxRetries:     5,
-		requiredBots:   make(map[string]bool),
-		botsPresent:    make(map[string]bool),
-		pendingInvites: make([]string, 0),
-		watcherDone:    make(chan struct{}),
+		currentState: StateDisconnected,
+		handler:      handler,
+		log:          handler.log.With().Str("component", "state-machine").Logger(),
 	}
 }
 
@@ -107,16 +86,15 @@ func (sm *ConnectionStateMachine) transition(to ConnectionState) error {
 
 func (sm *ConnectionStateMachine) isValidTransition(from, to ConnectionState) bool {
 	validTransitions := map[ConnectionState][]ConnectionState{
-		StateDisconnected:     {StateConnecting, StateConnected},
-		StateConnecting:       {StateConnected, StateError, StateDisconnected},
-		StateConnected:        {StateAuthenticating, StateAuthenticated, StateDisconnected},
-		StateAuthenticating:   {StateAuthenticated, StateError, StateDisconnected},
-		StateAuthenticated:    {StateJoiningChannels, StateFullyOperational, StateDisconnected},
-		StateJoiningChannels:  {StateAwaitingBots, StateFullyOperational, StateDisconnected},
-		StateAwaitingBots:     {StateSendingInvites, StateFullyOperational, StateError, StateDisconnected},
-		StateSendingInvites:   {StateFullyOperational, StateAwaitingBots, StateError, StateDisconnected},
-		StateFullyOperational: {StateDisconnected},
-		StateError:            {StateDisconnected, StateConnecting},
+		StateDisconnected:         {StateConnecting, StateConnected},
+		StateConnecting:           {StateConnected, StateError, StateDisconnected},
+		StateConnected:            {StateAuthenticating, StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
+		StateAuthenticating:       {StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
+		StateAuthenticated:        {StateJoiningChannels, StateFullyOperational, StatePartiallyOperational, StateError, StateDisconnected},
+		StateJoiningChannels:      {StateFullyOperational, StatePartiallyOperational, StateError, StateDisconnected},
+		StateFullyOperational:     {StatePartiallyOperational, StateError, StateDisconnected},
+		StatePartiallyOperational: {StateFullyOperational, StateError, StateDisconnected},
+		StateError:                {StateDisconnected, StateConnecting},
 	}
 
 	allowed, ok := validTransitions[from]
@@ -125,6 +103,87 @@ func (sm *ConnectionStateMachine) isValidTransition(from, to ConnectionState) bo
 	}
 
 	return slices.Contains(allowed, to)
+}
+
+func (sm *ConnectionStateMachine) transitionIfNeeded(to ConnectionState) {
+	sm.m.RLock()
+	current := sm.currentState
+	sm.m.RUnlock()
+
+	if current == to {
+		return
+	}
+
+	sm.transition(to)
+}
+
+func (sm *ConnectionStateMachine) updateOperationalState() {
+	enabled := 0
+	monitoring := 0
+	errored := 0
+
+	sm.handler.channels.ForEach(func(name string, ch *Channel) bool {
+		if !ch.Enabled {
+			return true
+		}
+
+		enabled++
+
+		if ch.Monitoring && !ch.HasConnectionErrors() {
+			monitoring++
+			return true
+		}
+
+		if ch.HasConnectionErrors() {
+			errored++
+		}
+
+		return true
+	})
+
+	if enabled == 0 {
+		sm.transitionIfNeeded(StateFullyOperational)
+		return
+	}
+
+	pending := enabled - monitoring - errored
+
+	if pending > 0 {
+		// Still waiting for additional channels to join
+		return
+	}
+
+	if monitoring == enabled {
+		sm.transitionIfNeeded(StateFullyOperational)
+		return
+	}
+
+	if monitoring > 0 {
+		sm.transitionIfNeeded(StatePartiallyOperational)
+		return
+	}
+
+	// All enabled channels failed
+	sm.transitionIfNeeded(StateError)
+}
+
+func (sm *ConnectionStateMachine) allEnabledChannelsMonitoring() bool {
+	allJoined := true
+
+	sm.handler.channels.ForEach(func(name string, ch *Channel) bool {
+		if !ch.Enabled {
+			return true
+		}
+
+		if !ch.Monitoring || ch.HasConnectionErrors() {
+			allJoined = false
+			return false
+		}
+
+		return true
+	})
+
+	return allJoined
 }
 
 func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
@@ -139,22 +198,21 @@ func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 		sm.handleAuthentication()
 
 	case StateAuthenticated:
-		sm.m.Lock()
-		sm.inviteAttempts = 0
-		sm.m.Unlock()
-		sm.handleJoinChannels()
+		if err := sm.transition(StateJoiningChannels); err != nil {
+			sm.log.Error().Err(err).Msg("failed to transition to joining channels")
+		}
+		return
 
 	case StateJoiningChannels:
+		sm.handleJoinChannels()
 		// Channels are joining, wait for NAMES replies
-
-	case StateAwaitingBots:
-		sm.prepareInviteCommands()
-
-	case StateSendingInvites:
-		sm.sendInviteCommands()
 
 	case StateFullyOperational:
 		sm.log.Info().Msg("IRC connection fully operational")
+		sm.cleanup()
+
+	case StatePartiallyOperational:
+		sm.log.Warn().Msg("IRC connection partially operational")
 		sm.cleanup()
 
 	case StateError:
@@ -189,166 +247,12 @@ func (sm *ConnectionStateMachine) handleJoinChannels() {
 	// Wait for handleJoined callbacks to call OnChannelJoined()
 }
 
-func (sm *ConnectionStateMachine) prepareInviteCommands() {
-	if sm.handler.network.InviteCommand == "" {
-		// No invites needed, go straight to operational
-		sm.log.Debug().Msg("no invite commands, going operational")
-		sm.transition(StateFullyOperational)
-		return
-	}
-
-	commands, err := parseInviteCommands(sm.handler.network.InviteCommand)
-	if err != nil {
-		sm.log.Error().Err(err).Msg("failed to parse invite commands")
-		sm.transition(StateFullyOperational) // Continue without invites
-		return
-	}
-
-	sm.m.Lock()
-	sm.pendingInvites = commands
-	sm.requiredBots = make(map[string]bool)
-	sm.botsPresent = make(map[string]bool)
-
-	// Extract bot names from commands
-	for _, cmd := range commands {
-		parts := strings.SplitN(strings.TrimSpace(cmd), " ", 2)
-		if len(parts) > 0 {
-			botName := strings.ToLower(parts[0])
-			sm.requiredBots[botName] = true
-			sm.botsPresent[botName] = false
-		}
-	}
-	sm.m.Unlock()
-
-	sm.log.Debug().Int("bot_count", len(sm.requiredBots)).Msg("waiting for invite bots")
-
-	// Check if bots are already present
-	if sm.checkBotPresence() {
-		sm.log.Debug().Msg("all bots already present")
-		sm.transition(StateSendingInvites)
-	} else {
-		// Start watching for bots
-		go sm.watchForBots()
-	}
-}
-
-func (sm *ConnectionStateMachine) checkBotPresence() bool {
-	sm.m.Lock()
-	defer sm.m.Unlock()
-
-	for botName := range sm.requiredBots {
-		if bot, ok := sm.handler.bots.Get(botName); ok {
-			sm.botsPresent[botName] = bot.Present && bot.State == domain.IrcUserStatePresent
-		}
-	}
-
-	// Check if all required bots are present
-	allPresent := true
-	for botName, required := range sm.requiredBots {
-		if required && !sm.botsPresent[botName] {
-			allPresent = false
-			sm.log.Debug().Str("bot", botName).Msg("waiting for bot to appear")
-		}
-	}
-
-	return allPresent
-}
-
-func (sm *ConnectionStateMachine) watchForBots() {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	timeout := time.After(60 * time.Second) // Give up after 60 seconds
-
-	for {
-		select {
-		case <-ticker.C:
-			sm.m.RLock()
-			if sm.currentState != StateAwaitingBots {
-				sm.m.RUnlock()
-				return
-			}
-			sm.m.RUnlock()
-
-			if sm.checkBotPresence() {
-				sm.log.Info().Msg("all required bots present, sending invites")
-				sm.transition(StateSendingInvites)
-				return
-			}
-
-		case <-timeout:
-			sm.log.Warn().Msg("timeout waiting for invite bots, continuing anyway")
-			sm.handler.addConnectError("invite bots did not appear within timeout")
-			sm.transition(StateFullyOperational)
-			return
-
-		case <-sm.watcherDone:
-			return
-		}
-	}
-}
-
-func (sm *ConnectionStateMachine) sendInviteCommands() {
-	sm.m.Lock()
-	commands := sm.pendingInvites
-	sm.m.Unlock()
-
-	success := true
-
-	for _, cmd := range commands {
-		cmd = strings.TrimSpace(cmd)
-		if cmd == "" {
-			continue
-		}
-
-		sm.log.Debug().Msgf("sending invite command: %s", cmd)
-		params := strings.SplitN(cmd, " ", 2)
-
-		if err := sm.handler.Send("PRIVMSG", params...); err != nil {
-			sm.log.Error().Err(err).Msgf("error sending invite command: %s", cmd)
-			success = false
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	if success {
-		sm.transition(StateFullyOperational)
-	} else {
-		sm.m.Lock()
-		sm.inviteAttempts++
-		attempts := sm.inviteAttempts
-		sm.m.Unlock()
-
-		if attempts < sm.maxRetries {
-			sm.log.Warn().Msgf("invite commands failed, retry %d/%d", attempts, sm.maxRetries)
-			time.Sleep(10 * time.Second)
-			sm.transition(StateAwaitingBots) // Go back and check bots again
-		} else {
-			sm.log.Error().Msg("max invite retries reached")
-			sm.handler.addConnectError("failed to send invite commands after max retries")
-			sm.transition(StateFullyOperational) // Give up but stay connected
-		}
-	}
-}
-
 func (sm *ConnectionStateMachine) cleanup() {
-	// Signal watcher to stop if running
-	select {
-	case sm.watcherDone <- struct{}{}:
-	default:
-	}
-
-	sm.m.Lock()
-	sm.requiredBots = make(map[string]bool)
-	sm.botsPresent = make(map[string]bool)
-	sm.pendingInvites = nil
-	sm.m.Unlock()
 }
 
 func (sm *ConnectionStateMachine) handleError() {
 	sm.log.Error().Str("state", sm.currentState.String()).Msg("error state reached")
-	// Could implement retry logic here
+	sm.cleanup()
 }
 
 // Event handlers called by IRC callbacks
@@ -387,45 +291,39 @@ func (sm *ConnectionStateMachine) OnAuthenticated() {
 }
 
 func (sm *ConnectionStateMachine) OnChannelJoined(channel string) {
-	//sm.m.RLock()
-	//currentState := sm.currentState
-	//sm.m.RUnlock()
+	sm.updateOperationalState()
 
-	//if currentState != StateJoiningChannels {
-	//	return
-	//}
-
-	// Check if all channels are joined
-	allJoined := true
-	sm.handler.channels.ForEach(func(s string, ch *Channel) bool {
-		if ch.Enabled && !ch.Monitoring {
-			allJoined = false
-			return false // stop iteration
-		}
-		return true
-	})
-
-	if allJoined {
-		// Decide next state based on whether we need invites
-		if sm.handler.network.InviteCommand != "" {
-			sm.transition(StateAwaitingBots)
-		} else {
-			sm.transition(StateFullyOperational)
-		}
+	if sm.allEnabledChannelsMonitoring() {
+		sm.transitionIfNeeded(StateFullyOperational)
 	}
 }
 
 func (sm *ConnectionStateMachine) OnBotJoined(botName string) {
+	// Channel state machines handle invite workflows now.
+}
+
+func (sm *ConnectionStateMachine) OnChannelError(channel, reason string) {
+	sm.log.Error().
+		Str("channel", channel).
+		Str("reason", reason).
+		Msg("channel reported connection issue")
+
+	sm.updateOperationalState()
+}
+
+func (sm *ConnectionStateMachine) OnError(reason string) {
 	sm.m.Lock()
-	if sm.currentState == StateAwaitingBots {
-		if _, required := sm.requiredBots[botName]; required {
-			sm.botsPresent[botName] = true
-			sm.log.Debug().Str("bot", botName).Msg("required bot appeared")
-		}
+	if sm.currentState == StateError {
+		sm.m.Unlock()
+		return
 	}
+	current := sm.currentState
 	sm.m.Unlock()
 
-	// checkBotPresence will be called by watchForBots ticker
+	sm.log.Error().Str("from", current.String()).Str("reason", reason).Msg("transitioning to error state")
+	if err := sm.transition(StateError); err != nil {
+		sm.log.Error().Err(err).Str("reason", reason).Msg("failed to transition to error state")
+	}
 }
 
 func (sm *ConnectionStateMachine) OnDisconnected() {

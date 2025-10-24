@@ -518,14 +518,15 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 
 				handler.channels.ForEach(func(name string, channel *Channel) bool {
 					ch := domain.IrcChannelWithHealth{
-						ID:              channel.ID,
-						Enabled:         channel.Enabled,
-						Name:            channel.Name,
-						Password:        channel.Password,
-						Detached:        false,
-						Monitoring:      channel.Monitoring,
-						MonitoringSince: channel.MonitoringSince,
-						LastAnnounce:    channel.LastAnnounce,
+						ID:               channel.ID,
+						Enabled:          channel.Enabled,
+						Name:             channel.Name,
+						Password:         channel.Password,
+						Detached:         false,
+						Monitoring:       channel.Monitoring,
+						MonitoringSince:  channel.MonitoringSince,
+						LastAnnounce:     channel.LastAnnounce,
+						ConnectionErrors: slices.Clone(channel.ConnectionErrors),
 					}
 
 					channel.announcers.ForEach(func(nick string, announcer *domain.IrcUser) bool {
@@ -552,15 +553,16 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			// combine from repo and handler
 			for _, channel := range n.Channels {
 				ch := domain.IrcChannelWithHealth{
-					ID:              channel.ID,
-					Enabled:         channel.Enabled,
-					Name:            channel.Name,
-					Password:        channel.Password,
-					Detached:        channel.Detached,
-					Monitoring:      false,
-					MonitoringSince: time.Time{},
-					LastAnnounce:    time.Time{},
-					Announcers:      []domain.IrcUser{},
+					ID:               channel.ID,
+					Enabled:          channel.Enabled,
+					Name:             channel.Name,
+					Password:         channel.Password,
+					Detached:         channel.Detached,
+					Monitoring:       false,
+					MonitoringSince:  time.Time{},
+					LastAnnounce:     time.Time{},
+					ConnectionErrors: []string{},
+					Announcers:       []domain.IrcUser{},
 				}
 
 				netw.Channels = append(netw.Channels, ch)
