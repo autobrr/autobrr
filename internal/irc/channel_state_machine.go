@@ -287,9 +287,15 @@ func (sm *ChannelStateMachine) handleInviteFailed() {
 }
 
 func (sm *ChannelStateMachine) handleWaitForInviteBot() {
-	sm.log.Debug().Msg("waiting for invite bot, sleeping for 15 seconds...")
+	delay, ok := retryBackoff(sm.authAttempts)
+	if !ok {
+		sm.log.Warn().Int("attempt", sm.authAttempts).Msg("invite retries exhausted, marking channel as errored")
+		sm.transition(ChannelStateError)
+		return
+	}
 
-	time.Sleep(time.Second * 10)
+	sm.log.Debug().Dur("sleep", delay).Int("attempt", sm.authAttempts).Msg("waiting for invite bot before retrying")
+	time.Sleep(delay)
 
 	sm.transition(ChannelStateAwaitingInvite)
 }
@@ -415,5 +421,37 @@ func (sm *ChannelStateMachine) SetInviteCommand(inviteCommand string) {
 	if sm.inviteCommand != inviteCommand {
 		sm.inviteCommand = strings.TrimSpace(inviteCommand)
 		sm.transition(ChannelStateJoining)
+	}
+}
+
+// retryBackoff returns the duration to wait before retrying a failed invite attempt.
+// The duration is calculated based on the attempt number and duration intervals.
+//   - the first 2 minutes are 15 seconds
+//   - the next 30 minutes are 30 seconds
+//   - the next 60 minutes are 60 seconds,
+//   - and the next 5 days are 1 hour.
+func retryBackoff(attempt int) (time.Duration, bool) {
+	if attempt <= 0 {
+		attempt = 1
+	}
+
+	const (
+		firstPhaseAttempts  = 8   // 2 minutes @ 15s intervals
+		secondPhaseAttempts = 60  // next 30 minutes @ 30s intervals
+		thirdPhaseAttempts  = 60  // next 60 minutes @ 60s intervals
+		fourthPhaseAttempts = 120 // next 5 days @ 1h intervals
+	)
+
+	switch {
+	case attempt <= firstPhaseAttempts:
+		return 15 * time.Second, true
+	case attempt <= firstPhaseAttempts+secondPhaseAttempts:
+		return 15 * time.Second, true
+	case attempt <= firstPhaseAttempts+secondPhaseAttempts+thirdPhaseAttempts:
+		return time.Minute, true
+	case attempt <= firstPhaseAttempts+secondPhaseAttempts+thirdPhaseAttempts+fourthPhaseAttempts:
+		return time.Hour, true
+	default:
+		return 0, false
 	}
 }
