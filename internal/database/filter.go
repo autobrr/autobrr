@@ -802,6 +802,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		}
 		return nil, errors.Wrap(err, "error executing query")
 	}
+	defer rows.Close()
 
 	var externalFilters []domain.FilterExternal
 
