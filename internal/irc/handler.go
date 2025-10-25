@@ -170,6 +170,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 			ircChannel := NewChannel(h.log, h.network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
+			ircChannel.SetInviteCommand(inviteCommand)
 
 			ircChannel.RegisterAnnouncers(definition.IRC.Announcers)
 
@@ -204,21 +205,6 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			announcer = strings.ToLower(announcer)
 			h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
 		}
-
-		//if h.network.InviteCommand != "" {
-		//	connectCommands := strings.Split(strings.ReplaceAll(h.network.InviteCommand, "/msg", ""), ",")
-		//	for _, cmd := range connectCommands {
-		//		cmd = strings.TrimSpace(cmd)
-		//
-		//		parts := strings.Split(cmd, " ")
-		//		if len(parts) > 2 {
-		//			nick := strings.ToLower(parts[0])
-		//			h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
-		//
-		//			h.bots.Set(nick, &domain.IrcUser{Nick: nick, State: domain.IrcUserStateUninitialized})
-		//		}
-		//	}
-		//}
 	}
 }
 
@@ -412,6 +398,7 @@ func (h *Handler) Run() (err error) {
 			}),
 			retry.Delay(time.Second*15),
 			retry.Attempts(25),
+			retry.MaxJitter(time.Second*10),
 			retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
 				return retry.BackOffDelay(n, err, config)
 			}),
@@ -1146,7 +1133,7 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 			sm.OnJoinSuccess()
 		}
 
-		ircChannel.SetMonitoring()
+		//ircChannel.SetMonitoring()
 
 		h.channels.Swap(channel, ircChannel)
 
@@ -1295,17 +1282,17 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 
 	h.log.Debug().Str("nick", nick).Msgf("No such nick")
 
-	// TODO track if we have sent invite command, and check if channel is part of that and if we have not sent or joined yet
-
 	h.channels.ForEach(func(s string, channel *Channel) bool {
 		if !channel.Enabled {
 			return true
 		}
 		if channel.inviteCommand != "" {
-			if strings.HasPrefix(channel.inviteCommand, nick) {
+			if strings.HasPrefix(strings.ToLower(channel.inviteCommand), nick) {
 				h.log.Debug().Str("nick", nick).Msgf("No such nick, sending invite command")
 
-				// TODO start retry loop of invite command here
+				// start retry loop of invite command here
+				channel.stateMachine.OnNoSuchNick(nick)
+
 				return false
 			}
 		}

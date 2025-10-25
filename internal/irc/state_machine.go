@@ -40,6 +40,18 @@ func (s ConnectionState) String() string {
 	}[s]
 }
 
+var validTransitions = map[ConnectionState][]ConnectionState{
+	StateDisconnected:         {StateConnecting, StateConnected},
+	StateConnecting:           {StateConnected, StateError, StateDisconnected},
+	StateConnected:            {StateAuthenticating, StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
+	StateAuthenticating:       {StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
+	StateAuthenticated:        {StateJoiningChannels, StateFullyOperational, StatePartiallyOperational, StateError, StateDisconnected},
+	StateJoiningChannels:      {StateFullyOperational, StatePartiallyOperational, StateError, StateDisconnected},
+	StateFullyOperational:     {StatePartiallyOperational, StateError, StateDisconnected},
+	StatePartiallyOperational: {StateFullyOperational, StateError, StateDisconnected},
+	StateError:                {StateDisconnected, StateConnecting},
+}
+
 type ConnectionStateMachine struct {
 	m            deadlock.RWMutex
 	currentState ConnectionState
@@ -54,7 +66,7 @@ func NewConnectionStateMachine(handler *Handler) *ConnectionStateMachine {
 	return &ConnectionStateMachine{
 		currentState: StateDisconnected,
 		handler:      handler,
-		log:          handler.log.With().Str("component", "state-machine").Logger(),
+		log:          handler.log.With().Str("component", "handler-state").Logger(),
 	}
 }
 
@@ -85,18 +97,6 @@ func (sm *ConnectionStateMachine) transition(to ConnectionState) error {
 }
 
 func (sm *ConnectionStateMachine) isValidTransition(from, to ConnectionState) bool {
-	validTransitions := map[ConnectionState][]ConnectionState{
-		StateDisconnected:         {StateConnecting, StateConnected},
-		StateConnecting:           {StateConnected, StateError, StateDisconnected},
-		StateConnected:            {StateAuthenticating, StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
-		StateAuthenticating:       {StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
-		StateAuthenticated:        {StateJoiningChannels, StateFullyOperational, StatePartiallyOperational, StateError, StateDisconnected},
-		StateJoiningChannels:      {StateFullyOperational, StatePartiallyOperational, StateError, StateDisconnected},
-		StateFullyOperational:     {StatePartiallyOperational, StateError, StateDisconnected},
-		StatePartiallyOperational: {StateFullyOperational, StateError, StateDisconnected},
-		StateError:                {StateDisconnected, StateConnecting},
-	}
-
 	allowed, ok := validTransitions[from]
 	if !ok {
 		return false

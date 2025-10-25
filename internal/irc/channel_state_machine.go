@@ -2,6 +2,7 @@ package irc
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -17,9 +18,14 @@ type ChannelState int
 const (
 	ChannelStateIdle ChannelState = iota
 	ChannelStateAwaitingInvite
+	ChannelStateAwaitingInviteBot
+	ChannelStateInviteFailed
+	ChannelStateInviteFailedNoSuchNick
 	ChannelStateJoining
 	ChannelStateMonitoring
 	ChannelStateKicked
+	ChannelStateParted
+	ChannelStateDisabled
 	ChannelStateError
 )
 
@@ -29,17 +35,87 @@ func (s ChannelState) String() string {
 		return "Idle"
 	case ChannelStateAwaitingInvite:
 		return "AwaitingInvite"
+	case ChannelStateAwaitingInviteBot:
+		return "AwaitingInviteBot"
+	case ChannelStateInviteFailed:
+		return "InviteFailed"
+	case ChannelStateInviteFailedNoSuchNick:
+		return "InviteFailedNoSuchNick"
 	case ChannelStateJoining:
 		return "Joining"
 	case ChannelStateMonitoring:
 		return "Monitoring"
 	case ChannelStateKicked:
 		return "Kicked"
+	case ChannelStateParted:
+		return "Parted"
+	case ChannelStateDisabled:
+		return "Disabled"
 	case ChannelStateError:
 		return "Error"
 	default:
 		return "Unknown"
 	}
+}
+
+var validChannelTransitions = map[ChannelState][]ChannelState{
+	ChannelStateIdle: {
+		ChannelStateJoining,
+		ChannelStateAwaitingInvite,
+		ChannelStateError,
+		ChannelStateKicked,
+		ChannelStateParted,
+	},
+	ChannelStateJoining: {
+		ChannelStateMonitoring,
+		ChannelStateAwaitingInvite,
+		ChannelStateError,
+		ChannelStateKicked,
+		ChannelStateParted,
+	},
+	ChannelStateAwaitingInvite: {
+		ChannelStateMonitoring,
+		ChannelStateAwaitingInviteBot,
+		ChannelStateInviteFailed,
+		ChannelStateInviteFailedNoSuchNick,
+		ChannelStateJoining,
+		ChannelStateError,
+		ChannelStateKicked,
+		ChannelStateParted,
+	},
+	ChannelStateAwaitingInviteBot: {
+		ChannelStateAwaitingInvite,
+		ChannelStateInviteFailedNoSuchNick,
+		ChannelStateMonitoring,
+		ChannelStateJoining,
+		ChannelStateError,
+		ChannelStateKicked,
+	},
+	ChannelStateInviteFailed: {
+		ChannelStateAwaitingInviteBot,
+		ChannelStateJoining,
+		ChannelStateError,
+	},
+	ChannelStateInviteFailedNoSuchNick: {
+		ChannelStateAwaitingInviteBot,
+		ChannelStateJoining,
+		ChannelStateError,
+	},
+	ChannelStateKicked: {
+		ChannelStateIdle,
+		ChannelStateJoining,
+		ChannelStateAwaitingInvite,
+	},
+	ChannelStateParted: {
+		ChannelStateIdle,
+		ChannelStateJoining,
+	},
+	ChannelStateDisabled: {
+		ChannelStateIdle,
+	},
+	ChannelStateError: {
+		ChannelStateIdle,
+	},
 }
 
 type ChannelStateMachine struct {
@@ -49,8 +125,10 @@ type ChannelStateMachine struct {
 	handler *Handler
 	log     zerolog.Logger
 
-	inviteCommand string
-	lastAttempt   time.Time
+	inviteCommand   string
+	lastAttempt     time.Time
+	authAttempts    int
+	joinAfterInvite bool
 }
 
 func NewChannelStateMachine(channel *Channel, handler *Handler, inviteCommand string) *ChannelStateMachine {
@@ -58,20 +136,84 @@ func NewChannelStateMachine(channel *Channel, handler *Handler, inviteCommand st
 		state:         ChannelStateIdle,
 		channel:       channel,
 		handler:       handler,
-		log:           handler.log.With().Str("channel", channel.Name).Str("component", "channel-state-machine").Logger(),
+		log:           handler.log.With().Str("channel", channel.Name).Str("component", "channel-state").Logger(),
 		inviteCommand: strings.TrimSpace(inviteCommand),
+		authAttempts:  0,
+	}
+}
+
+func (sm *ChannelStateMachine) transition(to ChannelState) error {
+	sm.m.Lock()
+	defer sm.m.Unlock()
+
+	from := sm.state
+
+	if !sm.isValidTransition(from, to) {
+		sm.log.Error().Str("from", from.String()).Str("to", to.String()).Msg("invalid state transition")
+		return fmt.Errorf("invalid state transition from %s to %s", from, to)
+	}
+
+	sm.log.Debug().Str("from", from.String()).Str("to", to.String()).Msg("transitioning channel state")
+
+	sm.state = to
+
+	go sm.onStateEntry(to)
+
+	return nil
+}
+
+func (sm *ChannelStateMachine) isValidTransition(from, to ChannelState) bool {
+	allowed, ok := validChannelTransitions[from]
+	if !ok {
+		return false
+	}
+	return slices.Contains(allowed, to)
+}
+
+func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
+	switch state {
+	case ChannelStateIdle:
+	case ChannelStateJoining:
+		sm.runJoin()
+	case ChannelStateAwaitingInvite:
+		sm.runJoinFlowLocked()
+	case ChannelStateAwaitingInviteBot:
+		sm.handleWaitForInviteBot()
+	case ChannelStateInviteFailed:
+		sm.handleInviteFailed()
+	case ChannelStateInviteFailedNoSuchNick:
+		sm.handleNoSuchNick()
+	case ChannelStateMonitoring:
+		sm.handleMonitoring()
+	case ChannelStateKicked:
+		sm.handleKicked()
+	case ChannelStateParted:
+
+	default:
+		sm.log.Error().Str("state", state.String()).Msgf("invalid state")
 	}
 }
 
 func (sm *ChannelStateMachine) Start() {
-	sm.m.Lock()
-	defer sm.m.Unlock()
+	//sm.m.RLock()
+	//defer sm.m.RUnlock()
 
-	if sm.state == ChannelStateMonitoring || sm.state == ChannelStateJoining || sm.state == ChannelStateAwaitingInvite {
+	//if sm.state == ChannelStateMonitoring || sm.state == ChannelStateJoining || sm.state == ChannelStateAwaitingInvite {
+	//	return
+	//}
+
+	if !sm.channel.Enabled {
+		sm.log.Debug().Msg("channel disabled, skipping join workflow")
+		sm.transition(ChannelStateDisabled)
 		return
 	}
 
-	sm.runJoinFlowLocked()
+	if sm.inviteCommand != "" {
+		sm.transition(ChannelStateAwaitingInvite)
+		return
+	}
+
+	sm.transition(ChannelStateJoining)
 }
 
 func (sm *ChannelStateMachine) runJoinFlowLocked() {
@@ -82,16 +224,40 @@ func (sm *ChannelStateMachine) runJoinFlowLocked() {
 
 	sm.lastAttempt = time.Now()
 
-	if sm.inviteCommand != "" {
-		sm.state = ChannelStateAwaitingInvite
-		sm.log.Debug().Str("invite_command", sm.inviteCommand).Msg("sending invite command for channel")
-		if err := sm.sendInviteCommandLocked(); err != nil {
-			sm.transitionErrorLocked(err)
-		}
+	if sm.inviteCommand == "" {
+		sm.transition(ChannelStateJoining)
 		return
 	}
 
-	sm.state = ChannelStateJoining
+	sm.m.Lock()
+	sm.authAttempts++
+	sm.state = ChannelStateAwaitingInvite
+	sm.m.Unlock()
+
+	sm.log.Debug().Str("invite_command", sm.inviteCommand).Int("attempt", sm.authAttempts).Msg("sending invite command for channel")
+	if err := sm.sendInviteCommandLocked(); err != nil {
+		sm.transitionErrorLocked(err)
+	}
+}
+
+func (sm *ChannelStateMachine) runJoin() {
+	if !sm.channel.Enabled {
+		sm.log.Debug().Msg("channel disabled, skipping join workflow")
+		return
+	}
+
+	sm.lastAttempt = time.Now()
+
+	sm.m.Lock()
+	joinAfterInvite := sm.joinAfterInvite
+	sm.joinAfterInvite = false
+	sm.m.Unlock()
+
+	if sm.inviteCommand != "" && !joinAfterInvite {
+		sm.transition(ChannelStateAwaitingInvite)
+		return
+	}
+
 	sm.log.Debug().Msg("joining channel")
 	if err := sm.handler.JoinChannel(sm.channel.Name, sm.channel.Password); err != nil {
 		sm.transitionErrorLocked(err)
@@ -100,25 +266,56 @@ func (sm *ChannelStateMachine) runJoinFlowLocked() {
 
 func (sm *ChannelStateMachine) OnInvite(nick string) {
 	sm.m.Lock()
-	defer sm.m.Unlock()
-
-	if sm.state != ChannelStateAwaitingInvite {
+	if sm.state != ChannelStateAwaitingInvite && sm.state != ChannelStateKicked {
+		sm.m.Unlock()
 		return
 	}
+	sm.joinAfterInvite = true
+	sm.m.Unlock()
 
 	sm.log.Debug().Str("from", nick).Msg("received invite, joining channel")
-	sm.state = ChannelStateJoining
-	if err := sm.handler.JoinChannel(sm.channel.Name, sm.channel.Password); err != nil {
-		sm.transitionErrorLocked(err)
-	}
+	sm.transition(ChannelStateJoining)
+}
+
+func (sm *ChannelStateMachine) OnInviteFailed(msg string) {
+	sm.transition(ChannelStateInviteFailed)
+}
+
+func (sm *ChannelStateMachine) handleInviteFailed() {
+	sm.log.Debug().Msg("invite failed")
+	//sm.transition(ChannelStateInviteFailedNoSuchNick)
+}
+
+func (sm *ChannelStateMachine) handleWaitForInviteBot() {
+	sm.log.Debug().Msg("waiting for invite bot, sleeping for 15 seconds...")
+
+	time.Sleep(time.Second * 10)
+
+	sm.transition(ChannelStateAwaitingInvite)
+}
+
+func (sm *ChannelStateMachine) OnNoSuchNick(nick string) {
+	sm.transition(ChannelStateInviteFailedNoSuchNick)
+}
+
+func (sm *ChannelStateMachine) handleNoSuchNick() {
+	sm.log.Debug().Msg("no such nick")
+	// start timer to retry
+	sm.transition(ChannelStateAwaitingInviteBot)
 }
 
 func (sm *ChannelStateMachine) OnJoinSuccess() {
-	sm.m.Lock()
-	defer sm.m.Unlock()
+	sm.transition(ChannelStateMonitoring)
+}
 
-	sm.state = ChannelStateMonitoring
-	sm.channel.ClearConnectionErrors()
+func (sm *ChannelStateMachine) handleMonitoring() {
+	sm.m.RLock()
+	defer sm.m.RUnlock()
+	if sm.state != ChannelStateMonitoring {
+		return
+	}
+	sm.channel.SetMonitoring()
+	sm.log.Debug().Msg("monitoring channel")
 }
 
 func (sm *ChannelStateMachine) OnParted() {
@@ -149,6 +346,27 @@ func (sm *ChannelStateMachine) OnKicked(nick, kickedBy, reason string) {
 	sm.channel.Messages.AddMessage(msg)
 
 	sm.handler.publishSSEMsg(msg)
+}
+
+func (sm *ChannelStateMachine) handleKicked() {
+	//sm.m.Lock()
+	//defer sm.m.Unlock()
+	//
+	//sm.state = ChannelStateKicked
+	//sm.channel.ResetMonitoring()
+	//
+	//msg := domain.IrcMessage{
+	//	Network: sm.channel.NetworkID,
+	//	Channel: sm.channel.Name,
+	//	Type:    "KICK",
+	//	//Nick:    kickedBy,
+	//	Nick:    "<-*",
+	//	Message: fmt.Sprintf("%s was kicked from %s by %s (%s)", nick, sm.channel.Name, kickedBy, reason),
+	//	Time:    time.Now(),
+	//}
+	//sm.channel.Messages.AddMessage(msg)
+	//
+	//sm.handler.publishSSEMsg(msg)
 }
 
 func (sm *ChannelStateMachine) OnError(reason string) {
@@ -194,5 +412,8 @@ func (sm *ChannelStateMachine) CurrentState() ChannelState {
 func (sm *ChannelStateMachine) SetInviteCommand(inviteCommand string) {
 	sm.m.Lock()
 	defer sm.m.Unlock()
-	sm.inviteCommand = strings.TrimSpace(inviteCommand)
+	if sm.inviteCommand != inviteCommand {
+		sm.inviteCommand = strings.TrimSpace(inviteCommand)
+		sm.transition(ChannelStateJoining)
+	}
 }
