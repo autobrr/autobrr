@@ -51,7 +51,10 @@ interface IrcChannel {
   monitoring: boolean;
 }
 
+type IrcChannelState = "Idle" | "AwaitingInvite" | "AwaitingInviteBot" | "InviteFailed" | "InviteFailedNoSuchNick" | "Joining" | "Monitoring" | "Kicked" | "Parted" | "Disabled" | "Error" | "Unknown";
+
 interface IrcChannelWithHealth extends IrcChannel {
+  state: IrcChannelState;
   monitoring_since: string;
   last_announce: string;
   connection_errors: string[];

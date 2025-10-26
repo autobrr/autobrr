@@ -148,6 +148,7 @@ type IrcChannelWithHealth struct {
 	Name             string    `json:"name"`
 	Password         string    `json:"password"`
 	Detached         bool      `json:"detached"`
+	State            string    `json:"state"`
 	Monitoring       bool      `json:"monitoring"`
 	MonitoringSince  time.Time `json:"monitoring_since"`
 	LastAnnounce     time.Time `json:"last_announce"`

@@ -21,14 +21,27 @@ type IrcHealthEvent = {
   connection_errors?: string[];
 };
 
+type IrcStateEvent = {
+  type: string;
+  network: number;
+  channel: string;
+  state: IrcChannelState;
+  time: string;
+  healthy: boolean;
+  connected_since?: string;
+  connection_errors?: string[];
+};
+
 type ChannelKey = `${number}:${string}`;
 type EventHandler = (event: IrcEvent) => void;
 type HealthEventHandler = (event: IrcHealthEvent) => void;
+type StateEventHandler = (event: IrcStateEvent) => void;
 
 class IrcEventManager {
   private eventSource: EventSource | null = null;
   private subscribers: Map<ChannelKey, Set<EventHandler>> = new Map();
   private healthSubscribers: Map<number, Set<HealthEventHandler>> = new Map();
+  private stateSubscribers: Map<number, Set<StateEventHandler>> = new Map();
   private refCount = 0;
 
   private getChannelKey(networkId: number, channel: string): ChannelKey {
@@ -101,6 +114,38 @@ class IrcEventManager {
     };
   }
 
+  public subscribeToState(networkId: number, handler: StateEventHandler): () => void {
+    if (!this.stateSubscribers.has(networkId)) {
+      this.stateSubscribers.set(networkId, new Set());
+    }
+
+    this.stateSubscribers.get(networkId)!.add(handler);
+    this.refCount++;
+
+    // Initialize the SSE connection if this is the first subscriber
+    if (this.refCount === 1) {
+      this.connect();
+    }
+
+    // Return unsubscribe function
+    return () => {
+      const handlers = this.stateSubscribers.get(networkId);
+      if (handlers) {
+        handlers.delete(handler);
+        if (handlers.size === 0) {
+          this.stateSubscribers.delete(networkId);
+        }
+      }
+
+      this.refCount--;
+
+      // Close the connection if there are no more subscribers
+      if (this.refCount === 0) {
+        this.disconnect();
+      }
+    };
+  }
+
   private connect() {
     if (this.eventSource) {
       return;
@@ -134,6 +179,20 @@ class IrcEventManager {
         }
       } catch (error) {
         console.error("Failed to parse IRC HEALTH event:", error);
+      }
+    });
+
+    // Listen for STATE events (state changes)
+    this.eventSource.addEventListener("STATE", (event) => {
+      try {
+        const stateEvent = JSON.parse(event.data) as IrcStateEvent;
+        const handlers = this.stateSubscribers.get(stateEvent.network);
+
+        if (handlers) {
+          handlers.forEach(handler => handler(stateEvent));
+        }
+      } catch (error) {
+        console.error("Failed to parse IRC STATE event:", error);
       }
     });
 
@@ -225,43 +284,67 @@ export function useIrcChannelWithHistory(
   const [events, setEvents] = useState<IrcEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const historyLoadedRef = useRef(false);
+  const [hasHistory, setHasHistory] = useState(false);
+  const isFetchingRef = useRef(false);
 
   // Load historical events
   useEffect(() => {
-    if (!enabled || !networkId || !channel || historyLoadedRef.current) {
+    if (!enabled || !networkId || !channel || hasHistory || isFetchingRef.current) {
       return;
     }
 
+    let cancelled = false;
+
     const loadHistory = async () => {
+      isFetchingRef.current = true;
       setIsLoading(true);
       setError(null);
 
       try {
-        // Strip # from channel if present for API call
         const cleanChannel = channel.startsWith("#") ? channel.substring(1) : channel;
         const history = await APIClient.irc.getChannelHistory(networkId, cleanChannel);
-        setEvents(history);
-        historyLoadedRef.current = true;
+        if (cancelled) {
+          return;
+        }
+
+        const trimmed = limit > 0 ? history.slice(-limit) : history;
+        setEvents(trimmed);
+        setHasHistory(true);
       } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to load channel history"));
-        console.error("Failed to load IRC channel history:", err);
+        if (!cancelled) {
+          setError(err instanceof Error ? err : new Error("Failed to load channel history"));
+          setHasHistory(false);
+          console.error("Failed to load IRC channel history:", err);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+        isFetchingRef.current = false;
       }
     };
 
     loadHistory();
-  }, [networkId, channel, limit, enabled]);
 
-  // Subscribe to new events
+    return () => {
+      cancelled = true;
+    };
+  }, [networkId, channel, limit, enabled, hasHistory]);
+
+  // Subscribe to new events once history is available
   useEffect(() => {
-    if (!enabled || !networkId || !channel || !historyLoadedRef.current) {
+    if (!enabled || !networkId || !channel || !hasHistory) {
       return;
     }
 
     const handleEvent = (event: IrcEvent) => {
-      setEvents(prev => [...prev, event]);
+      setEvents(prev => {
+        const next = [...prev, event];
+        if (limit > 0 && next.length > limit) {
+          return next.slice(-limit);
+        }
+        return next;
+      });
     };
 
     const unsubscribe = ircEventManager.subscribe(networkId, channel, handleEvent);
@@ -269,17 +352,19 @@ export function useIrcChannelWithHistory(
     return () => {
       unsubscribe();
     };
-  }, [networkId, channel, enabled, historyLoadedRef.current]);
+  }, [networkId, channel, enabled, hasHistory, limit]);
 
   // Reset when network or channel changes
   useEffect(() => {
-    historyLoadedRef.current = false;
+    setHasHistory(false);
+    isFetchingRef.current = false;
     setEvents([]);
     setError(null);
   }, [networkId, channel]);
 
   const clearEvents = useCallback(() => {
     setEvents([]);
+    setHasHistory(false);
   }, []);
 
   return { events, isLoading, error, clearEvents };
@@ -329,23 +414,90 @@ export function useIrcNetworkHealthSync(
   networkIds: number[],
   onHealthChange?: (event: IrcHealthEvent) => void
 ): void {
-  useEffect(() => {
-    if (!networkIds || networkIds.length === 0) {
-      return;
-    }
+  const handlerRef = useRef(onHealthChange);
 
-    const unsubscribers = networkIds.map(networkId => {
-      return ircEventManager.subscribeToHealth(networkId, (healthEvent) => {
-        if (onHealthChange) {
-          onHealthChange(healthEvent);
-        }
-      });
+  useEffect(() => {
+    handlerRef.current = onHealthChange;
+  }, [onHealthChange]);
+
+  const subscriptionsRef = useRef<Map<number, () => void>>(new Map());
+
+  useEffect(() => {
+    const targetIds = new Set(networkIds ?? []);
+    const subscriptions = subscriptionsRef.current;
+
+    // Unsubscribe networks no longer tracked
+    subscriptions.forEach((unsubscribe, networkId) => {
+      if (!targetIds.has(networkId)) {
+        unsubscribe();
+        subscriptions.delete(networkId);
+      }
     });
 
-    return () => {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
-    };
-  }, [networkIds, onHealthChange]);
+    // Subscribe to new networks
+    targetIds.forEach(networkId => {
+      if (!subscriptions.has(networkId)) {
+        const unsubscribe = ircEventManager.subscribeToHealth(networkId, (healthEvent) => {
+          handlerRef.current?.(healthEvent);
+        });
+        subscriptions.set(networkId, unsubscribe);
+      }
+    });
+  }, [networkIds]);
+
+  // Unsubscribe everything when unmounting
+  useEffect(() => () => {
+    const subscriptions = subscriptionsRef.current;
+    subscriptions.forEach(unsubscribe => unsubscribe());
+    subscriptions.clear();
+  }, []);
+}
+
+/**
+ * Hook to subscribe to all IRC network state events and update React Query cache.
+ * This keeps the network list data in sync with real-time state changes.
+ *
+ * @param networkIds Array of network IDs to monitor
+ * @param onStateChange Optional callback when state changes
+ */
+export function useIrcNetworkStateSync(
+  networkIds: number[],
+  onStateChange?: (event: IrcStateEvent) => void
+): void {
+  const handlerRef = useRef(onStateChange);
+
+  useEffect(() => {
+    handlerRef.current = onStateChange;
+  }, [onStateChange]);
+
+  const subscriptionsRef = useRef<Map<number, () => void>>(new Map());
+
+  useEffect(() => {
+    const targetIds = new Set(networkIds ?? []);
+    const subscriptions = subscriptionsRef.current;
+
+    subscriptions.forEach((unsubscribe, networkId) => {
+      if (!targetIds.has(networkId)) {
+        unsubscribe();
+        subscriptions.delete(networkId);
+      }
+    });
+
+    targetIds.forEach(networkId => {
+      if (!subscriptions.has(networkId)) {
+        const unsubscribe = ircEventManager.subscribeToState(networkId, (stateEvent) => {
+          handlerRef.current?.(stateEvent);
+        });
+        subscriptions.set(networkId, unsubscribe);
+      }
+    });
+  }, [networkIds]);
+
+  useEffect(() => () => {
+    const subscriptions = subscriptionsRef.current;
+    subscriptions.forEach(unsubscribe => unsubscribe());
+    subscriptions.clear();
+  }, []);
 }
 
 /**
@@ -357,4 +509,4 @@ export function reconnectIrcEvents() {
 }
 
 // Export types for use in other files
-export type { IrcEvent, IrcHealthEvent };
+export type { IrcEvent, IrcHealthEvent, IrcStateEvent };

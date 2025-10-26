@@ -153,7 +153,7 @@ func (sm *ChannelStateMachine) transition(to ChannelState) error {
 		return fmt.Errorf("invalid state transition from %s to %s", from, to)
 	}
 
-	sm.log.Debug().Str("from", from.String()).Str("to", to.String()).Msg("transitioning channel state")
+	sm.log.Trace().Str("from", from.String()).Str("to", to.String()).Msg("transitioning channel state")
 
 	sm.state = to
 
@@ -171,6 +171,7 @@ func (sm *ChannelStateMachine) isValidTransition(from, to ChannelState) bool {
 }
 
 func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
+	sm.broadcastStateChange(state)
 	switch state {
 	case ChannelStateIdle:
 	case ChannelStateJoining:
@@ -289,7 +290,7 @@ func (sm *ChannelStateMachine) handleInviteFailed() {
 func (sm *ChannelStateMachine) handleWaitForInviteBot() {
 	delay, ok := retryBackoff(sm.authAttempts)
 	if !ok {
-		sm.log.Warn().Int("attempt", sm.authAttempts).Msg("invite retries exhausted, marking channel as errored")
+		sm.log.Debug().Int("attempt", sm.authAttempts).Msg("invite retries exhausted, marking channel as errored")
 		sm.transition(ChannelStateError)
 		return
 	}
@@ -322,6 +323,7 @@ func (sm *ChannelStateMachine) handleMonitoring() {
 	}
 	sm.channel.SetMonitoring()
 	sm.log.Debug().Msg("monitoring channel")
+	sm.broadcastStateChange(ChannelStateMonitoring)
 }
 
 func (sm *ChannelStateMachine) OnParted() {
@@ -352,6 +354,7 @@ func (sm *ChannelStateMachine) OnKicked(nick, kickedBy, reason string) {
 	sm.channel.Messages.AddMessage(msg)
 
 	sm.handler.publishSSEMsg(msg)
+	sm.broadcastStateChange(ChannelStateKicked)
 }
 
 func (sm *ChannelStateMachine) handleKicked() {
@@ -422,6 +425,35 @@ func (sm *ChannelStateMachine) SetInviteCommand(inviteCommand string) {
 		sm.inviteCommand = strings.TrimSpace(inviteCommand)
 		sm.transition(ChannelStateJoining)
 	}
+}
+
+// broadcastStateChange sends a STATE event via SSE
+func (sm *ChannelStateMachine) broadcastStateChange(newState ChannelState) {
+	//sm.m.RLock()
+	//currentState := sm.state
+	//sm.m.RUnlock()
+
+	//sm.channel.ResetMonitoring()
+
+	//msg := domain.IrcMessage{
+	//	Network: sm.channel.NetworkID,
+	//	Channel: sm.channel.Name,
+	//	Type:    "STATE",
+	//	//Nick:    kickedBy,
+	//	//Nick:    "<-*",
+	//	//Message: currentState.String(),
+	//	Message: newState,
+	//	Time:    time.Now(),
+	//}
+	msg := map[string]any{
+		"network": sm.channel.NetworkID,
+		"channel": sm.channel.Name,
+		"type":    "STATE",
+		"state":   newState.String(),
+		"time":    time.Now(),
+	}
+
+	sm.handler.broadcastEvent("STATE", msg)
 }
 
 // retryBackoff returns the duration to wait before retrying a failed invite attempt.

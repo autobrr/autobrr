@@ -523,6 +523,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 						Name:             channel.Name,
 						Password:         channel.Password,
 						Detached:         false,
+						State:            channel.stateMachine.state.String(),
 						Monitoring:       channel.Monitoring,
 						MonitoringSince:  channel.MonitoringSince,
 						LastAnnounce:     channel.LastAnnounce,

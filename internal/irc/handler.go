@@ -802,6 +802,21 @@ func (h *Handler) onKick(msg ircmsg.Message) {
 	//h.channels.Swap(channelName, ircChannel)
 }
 
+func (h *Handler) broadcastEvent(event string, data any) {
+	key := "irc"
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		h.log.Error().Stack().Err(err).Msg("error marshalling data")
+		return
+	}
+
+	h.sse.Publish(key, &sse.Event{
+		Event: []byte(event),
+		Data:  bytes,
+	})
+}
+
 func (h *Handler) publishSSEMessage(event string, data any) {
 	key := "irc"
 
@@ -1456,7 +1471,7 @@ func (h *Handler) ReportHealth() {
 		"healthy":           false,
 		"connection_errors": []string{"Connection timeout"},
 	}
-	h.publishSSEMessage("HEALTH", healthData)
+	h.broadcastEvent("HEALTH", healthData)
 }
 
 // DetermineNetworkRestartRequired diff currentState and desiredState to determine if restart is required to reach desired state
