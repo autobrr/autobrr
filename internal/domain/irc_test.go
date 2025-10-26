@@ -117,7 +117,7 @@ func TestIrcUser_ParseMode(t *testing.T) {
 				nick: "@a",
 			},
 			want: want{
-				ok:   false,
+				ok:   true,
 				mode: "@",
 				nick: "a",
 			},
@@ -132,9 +132,9 @@ func TestIrcUser_ParseMode(t *testing.T) {
 				nick: "@a@",
 			},
 			want: want{
-				ok:   false,
-				mode: "",
-				nick: "a",
+				ok:   true,
+				mode: "@",
+				nick: "a@",
 			},
 		},
 	}
