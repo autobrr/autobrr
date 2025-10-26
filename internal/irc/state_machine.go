@@ -6,9 +6,9 @@ package irc
 import (
 	"fmt"
 	"slices"
+	"sync"
 
 	"github.com/rs/zerolog"
-	"github.com/sasha-s/go-deadlock"
 )
 
 // ConnectionState represents the current state of an IRC connection
@@ -53,7 +53,7 @@ var validTransitions = map[ConnectionState][]ConnectionState{
 }
 
 type ConnectionStateMachine struct {
-	m            deadlock.RWMutex
+	m            sync.RWMutex
 	currentState ConnectionState
 	handler      *Handler
 	log          zerolog.Logger

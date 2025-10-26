@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
-	"github.com/sasha-s/go-deadlock"
 )
 
 type ChannelState int
@@ -119,7 +119,7 @@ var validChannelTransitions = map[ChannelState][]ChannelState{
 }
 
 type ChannelStateMachine struct {
-	m       deadlock.RWMutex
+	m       sync.RWMutex
 	state   ChannelState
 	channel *Channel
 	handler *Handler
@@ -353,7 +353,7 @@ func (sm *ChannelStateMachine) OnKicked(nick, kickedBy, reason string) {
 	}
 	sm.channel.Messages.AddMessage(msg)
 
-	sm.handler.publishSSEMsg(msg)
+	sm.handler.broadcastMessage(msg)
 	sm.broadcastStateChange(ChannelStateKicked)
 }
 
@@ -375,7 +375,7 @@ func (sm *ChannelStateMachine) handleKicked() {
 	//}
 	//sm.channel.Messages.AddMessage(msg)
 	//
-	//sm.handler.publishSSEMsg(msg)
+	//sm.handler.broadcastMessage(msg)
 }
 
 func (sm *ChannelStateMachine) OnError(reason string) {
@@ -429,22 +429,6 @@ func (sm *ChannelStateMachine) SetInviteCommand(inviteCommand string) {
 
 // broadcastStateChange sends a STATE event via SSE
 func (sm *ChannelStateMachine) broadcastStateChange(newState ChannelState) {
-	//sm.m.RLock()
-	//currentState := sm.state
-	//sm.m.RUnlock()
-
-	//sm.channel.ResetMonitoring()
-
-	//msg := domain.IrcMessage{
-	//	Network: sm.channel.NetworkID,
-	//	Channel: sm.channel.Name,
-	//	Type:    "STATE",
-	//	//Nick:    kickedBy,
-	//	//Nick:    "<-*",
-	//	//Message: currentState.String(),
-	//	Message: newState,
-	//	Time:    time.Now(),
-	//}
 	msg := map[string]any{
 		"network": sm.channel.NetworkID,
 		"channel": sm.channel.Name,

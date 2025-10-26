@@ -104,6 +104,53 @@ func (in IrcNetwork) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// DetermineIfRestartIsRequired diff currentState and desiredState to determine if restart is required to reach the desired state
+func (in IrcNetwork) DetermineIfRestartIsRequired(desiredState *IrcNetwork) ([]string, bool) {
+	var fieldsChanged []string
+
+	if in.Server != desiredState.Server {
+		fieldsChanged = append(fieldsChanged, "server")
+	}
+	if in.Port != desiredState.Port {
+		fieldsChanged = append(fieldsChanged, "port")
+	}
+	if in.TLS != desiredState.TLS {
+		fieldsChanged = append(fieldsChanged, "tls")
+	}
+	if in.Pass != desiredState.Pass {
+		fieldsChanged = append(fieldsChanged, "pass")
+	}
+	if in.InviteCommand != desiredState.InviteCommand {
+		fieldsChanged = append(fieldsChanged, "invite command")
+	}
+	if in.UseBouncer != desiredState.UseBouncer {
+		fieldsChanged = append(fieldsChanged, "use bouncer")
+	}
+	if in.BouncerAddr != desiredState.BouncerAddr {
+		fieldsChanged = append(fieldsChanged, "bouncer addr")
+	}
+	if in.BotMode != desiredState.BotMode {
+		fieldsChanged = append(fieldsChanged, "bot mode")
+	}
+	if in.UseProxy != desiredState.UseProxy {
+		fieldsChanged = append(fieldsChanged, "use proxy")
+	}
+	if in.ProxyId != desiredState.ProxyId {
+		fieldsChanged = append(fieldsChanged, "proxy id")
+	}
+	if in.Auth.Mechanism != desiredState.Auth.Mechanism {
+		fieldsChanged = append(fieldsChanged, "auth mechanism")
+	}
+	if in.Auth.Account != desiredState.Auth.Account {
+		fieldsChanged = append(fieldsChanged, "auth account")
+	}
+	if in.Auth.Password != desiredState.Auth.Password {
+		fieldsChanged = append(fieldsChanged, "auth password")
+	}
+
+	return fieldsChanged, len(fieldsChanged) > 0
+}
+
 type IrcNetworkWithHealth struct {
 	ID               int64                  `json:"id"`
 	Name             string                 `json:"name"`
@@ -183,13 +230,28 @@ const (
 )
 
 func (u *IrcUser) ParseMode(nick string) bool {
-	index := strings.IndexAny(nick, "~!@+&")
-	if index == -1 {
+	if len(nick) == 0 {
 		return false
 	}
 
-	u.Mode = nick[:index+1]
-	u.Nick = nick[index+1:]
+	index := strings.IndexAny(nick, "~!@+&")
+	if index != 0 {
+		return false
+	}
+
+	// Find where the mode prefix ends (could be multiple characters like "@@user")
+	modeEnd := 1
+	for modeEnd < len(nick) && strings.ContainsRune("~!@+&", rune(nick[modeEnd])) {
+		modeEnd++
+	}
+
+	// Ensure there's actually a nickname after the mode
+	if modeEnd >= len(nick) {
+		return false
+	}
+
+	u.Mode = nick[:modeEnd]
+	u.Nick = nick[modeEnd:]
 
 	return true
 }
