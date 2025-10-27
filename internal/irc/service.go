@@ -323,28 +323,25 @@ func (s *service) restartNetwork(network domain.IrcNetwork) error {
 
 func (s *service) StopAndRemoveNetwork(networkID int64) error {
 	handler, found := s.networkHandlers.Get(networkID)
-	if !found {
-		return errors.New("could not find irc handler with id: %d", networkID)
+	if found {
+		handler.Stop()
+
+		// remove from handlers
+		s.networkHandlers.Del(networkID)
+
+		s.log.Debug().Msgf("stopped network: %d", networkID)
 	}
-
-	handler.Stop()
-
-	// remove from handlers
-	s.networkHandlers.Del(networkID)
-
-	s.log.Debug().Msgf("stopped network: %d", networkID)
 
 	return nil
 }
 
 func (s *service) StopNetwork(networkID int64) error {
 	handler, found := s.networkHandlers.Get(networkID)
-	if !found {
-		return errors.New("could not find irc handler with id: %d", networkID)
-	}
+	if found {
+		handler.Stop()
+		s.log.Debug().Msgf("stopped network: %s", handler.network.Server)
 
-	handler.Stop()
-	s.log.Debug().Msgf("stopped network: %s", handler.network.Server)
+	}
 
 	return nil
 }
