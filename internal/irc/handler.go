@@ -351,6 +351,8 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback(ircevent.RPL_TOPIC, h.handleTopic)
 	client.AddCallback(ircevent.RPL_NAMREPLY, h.handleNames)
 	client.AddCallback(ircevent.RPL_ENDOFNAMES, h.handleJoined) // end of names
+
+	client.AddCallback(ircevent.RPL_LOGGEDIN, h.handleLoggedIn)
 	client.AddCallback(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
 	client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
 
@@ -593,7 +595,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 
 	// You're now logged in as test-bot
 	// Password accepted - you are now recognized.
-	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized") {
+	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized", "you are now identified", "you are already logged in") {
 		h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
 		h.setAuthenticated()
 		return
@@ -699,6 +701,14 @@ func (h *Handler) authenticate() {
 	}
 }
 
+func (h *Handler) handleLoggedIn(m ircmsg.Message) {
+	h.log.Trace().Str("event", "900").Msg("logged in")
+	nick := m.Nick()
+	if h.isOurCurrentNick(nick) {
+		h.setAuthenticated()
+	}
+}
+
 // handleSASLSuccess we get here early so set saslauthed before we hit onConnect
 func (h *Handler) handleSASLSuccess(_ ircmsg.Message) {
 	h.m.Lock()
@@ -769,7 +779,7 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 		return
 	}
 
-	if !h.isOurNick(nick) {
+	if !h.isOurCurrentNick(nick) {
 		return
 	}
 
@@ -786,7 +796,7 @@ func (h *Handler) onKick(msg ircmsg.Message) {
 		return
 	}
 
-	if !h.isOurNick(affectedNick) {
+	if !h.isOurCurrentNick(affectedNick) {
 		return
 	}
 
