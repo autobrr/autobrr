@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/action"
@@ -70,6 +71,7 @@ type service struct {
 	log            zerolog.Logger
 	repo           domain.ReleaseRepo
 	cleanupJobs    map[string]int
+	m              sync.RWMutex
 	cleanupJobRepo domain.ReleaseCleanupJobRepo
 	actionSvc      action.Service
 	filterSvc      filter.Service
@@ -163,6 +165,12 @@ func (s *service) GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCle
 }
 
 func (s *service) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	// Validate before storing
+	if err := job.Validate(); err != nil {
+		s.log.Error().Err(err).Msg("cleanup job validation failed")
+		return err
+	}
+
 	if err := s.cleanupJobRepo.Store(ctx, job); err != nil {
 		s.log.Error().Err(err).Msg("error storing cleanup job")
 		return err
@@ -180,6 +188,12 @@ func (s *service) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanu
 }
 
 func (s *service) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	// Validate before updating
+	if err := job.Validate(); err != nil {
+		s.log.Error().Err(err).Msg("cleanup job validation failed")
+		return err
+	}
+
 	// Get current state before updating
 	currentJob, err := s.cleanupJobRepo.FindByID(ctx, job.ID)
 	if err != nil {
@@ -702,7 +716,9 @@ func (s *service) startCleanupJob(job *domain.ReleaseCleanupJob) error {
 	}
 
 	// Add to job map
+	s.m.Lock()
 	s.cleanupJobs[identifierKey] = id
+	s.m.Unlock()
 
 	s.log.Debug().Msgf("successfully started cleanup job: %s (schedule: %s)", job.Name, job.Schedule)
 
@@ -718,7 +734,9 @@ func (s *service) stopCleanupJob(id int) error {
 	}
 
 	// Remove from job map
+	s.m.Lock()
 	delete(s.cleanupJobs, identifierKey)
+	s.m.Unlock()
 
 	s.log.Debug().Msgf("stopped cleanup job: %d", id)
 

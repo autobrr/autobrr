@@ -30,6 +30,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
+	"github.com/robfig/cron/v3"
 	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -486,6 +487,40 @@ type ReleaseCleanupJob struct {
 	NextRun       time.Time            `json:"next_run"`      // enriched from scheduler
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
+}
+
+func (j *ReleaseCleanupJob) Validate() error {
+	if j.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if j.Schedule == "" {
+		return errors.New("schedule is required")
+	}
+
+	if j.OlderThan <= 0 {
+		return errors.New("older_than must be greater than 0")
+	}
+
+	// Validate cron schedule format
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	_, err := parser.Parse(j.Schedule)
+	if err != nil {
+		return errors.Wrap(err, "invalid cron schedule")
+	}
+
+	// Validate statuses if provided
+	if j.Statuses != "" {
+		statuses := strings.Split(j.Statuses, ",")
+		for _, status := range statuses {
+			status = strings.TrimSpace(status)
+			if status != "" && !ValidDeletableReleasePushStatus(status) {
+				return errors.New("invalid status: %s", status)
+			}
+		}
+	}
+
+	return nil
 }
 
 // ReleaseCleanupJobRepo interface for managing cleanup jobs
