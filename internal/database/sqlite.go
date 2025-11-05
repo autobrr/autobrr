@@ -138,6 +138,7 @@ func (db *DB) databaseConsistencyCheckSQLite() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to query integrity check")
 	}
+	defer rows.Close()
 
 	var results []string
 	for rows.Next() {

@@ -63,7 +63,7 @@ irc:
           torrentId: "749581"
           torrentName: "SeriesName.S01E04.1080p.WEB-DL.DDP2.0.H.264.DUAL-ReLeASe.mkv"
           year: "2023"
-          size: "2.72 GiB"
+          torrentSize: "2.72 GiB"
           freeleech: "no"
           internal: "no"
           uploader: "UploaderOne"
@@ -74,7 +74,7 @@ irc:
           torrentId: "749623"
           torrentName: "MovieName.2025.2160p.WEB-DL.DD5.1.DV.HDR.H.265-ReLeASe.mkv"
           year: "2025"
-          size: "24.84 GiB"
+          torrentSize: "24.84 GiB"
           freeleech: "YES"
           internal: "YES"
           uploader: "UploaderTwo"
@@ -85,7 +85,7 @@ irc:
           torrentId: "749689"
           torrentName: "SeriesName.S01.1080p.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe"
           year: "2024"
-          size: "32.53 GiB"
+          torrentSize: "32.53 GiB"
           freeleech: "YES"
           internal: "YES"
           uploader: "UploaderThree"
@@ -96,7 +96,7 @@ irc:
           torrentId: "749691"
           torrentName: "Porn Megapack"
           year: "2025"
-          size: "112.73 GiB"
+          torrentSize: "112.73 GiB"
           freeleech: "YES"
           internal: "no"
           uploader: "UploaderOne"
@@ -107,7 +107,7 @@ irc:
           torrentId: "749692"
           torrentName: "SeriesName.S01.720p.MAZN.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe"
           year: "2024"
-          size: "21.54 GiB"
+          torrentSize: "21.54 GiB"
           freeleech: "YES"
           internal: "YES"
           uploader: "UploaderTwo"
@@ -118,7 +118,7 @@ irc:
         - torrentId
         - torrentName
         - year
-        - size
+        - torrentSize
         - freeleech
         - internal
         - uploader

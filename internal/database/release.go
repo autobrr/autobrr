@@ -1209,6 +1209,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
 		return false, errors.Wrap(err, "error rows CheckIsDuplicateRelease")
