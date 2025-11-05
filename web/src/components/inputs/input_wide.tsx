@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { JSX, useState, Fragment } from "react";
+import { JSX, useState, useEffect, Fragment } from "react";
 import { Field as FormikField } from "formik";
 import Select from "react-select";
 import { Field, Label, Description, Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
@@ -423,6 +423,18 @@ export const DurationFieldWide = ({
     "minutes": "Minutes"
   };
 
+  // Helper to convert hours to best-fit unit
+  const convertHoursToBestUnit = (hours: number): { value: number; unit: string } => {
+    if (hours === 0) return { value: 0, unit: defaultUnit };
+
+    // Try to find the largest unit that divides evenly
+    if (hours % 8760 === 0 && units.includes("years")) return { value: hours / 8760, unit: "years" };
+    if (hours % 720 === 0 && units.includes("months")) return { value: hours / 720, unit: "months" };
+    if (hours % 168 === 0 && units.includes("weeks")) return { value: hours / 168, unit: "weeks" };
+    if (hours % 24 === 0 && units.includes("days")) return { value: hours / 24, unit: "days" };
+    return { value: hours, unit: "hours" };
+  };
+
   return (
     <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
       <div>
@@ -447,6 +459,20 @@ export const DurationFieldWide = ({
             // State for unit selection (separate from stored value)
             const [selectedUnit, setSelectedUnit] = useState(defaultUnit);
             const [displayValue, setDisplayValue] = useState(defaultValue);
+            const [initialized, setInitialized] = useState(false);
+
+            // Initialize from Formik field value on mount (for edit forms)
+            useEffect(() => {
+              if (!initialized) {
+                const fieldValue = form.values[name];
+                if (fieldValue !== undefined && fieldValue !== null && fieldValue !== 0) {
+                  const { value, unit } = convertHoursToBestUnit(fieldValue);
+                  setDisplayValue(value);
+                  setSelectedUnit(unit);
+                }
+                setInitialized(true);
+              }
+            }, [initialized, form.values, name]);
 
             // Calculate hours value for storage
             const calculateHours = (value: number, unit: string) => {

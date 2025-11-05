@@ -22,16 +22,31 @@ import { ReleaseProfileDuplicateAddForm, ReleaseProfileDuplicateUpdateForm } fro
 import { CleanupJobAddForm, CleanupJobUpdateForm } from "@forms/settings/CleanupJobForms.tsx";
 import { Checkbox } from "@components/Checkbox";
 import { format } from "date-fns";
-import { classNames } from "@utils";
+import { classNames, formatHoursAsDuration } from "@utils";
+import { PushStatusOptions } from "@domain/constants";
 
 const ReleaseSettings = () => (
   <div className="lg:col-span-9">
     <ReleaseProfileDuplicates/>
 
-    <ReleaseCleanupJobs/>
-
     <div className="py-6 px-4 sm:p-6">
       <div className="border border-red-500 rounded-sm">
+        {/* Warning about dangerous operations */}
+        <div className="px-6 pt-6 pb-4">
+          <span className="text-red-600 dark:text-red-500">
+            <strong>Warning:</strong> This section manages release history deletion. Automated cleanup jobs run on schedules, while manual deletion allows immediate one-time cleanup. Both operations permanently delete data and cannot be undone.
+          </span>
+          <ul className="list-disc pl-5 mt-4 text-sm text-gray-500 dark:text-gray-400">
+            <li>
+              <strong className="text-gray-600 dark:text-gray-300">Older than</strong> - How old releases must be before deletion (Required for both automated and manual deletion)
+            </li>
+            <li><strong className="text-gray-600 dark:text-gray-300">Indexers</strong> - Optional filter (if none selected, applies to all indexers)</li>
+            <li><strong className="text-gray-600 dark:text-gray-300">Release statuses</strong> - Optional filter (if none selected, applies to all release statuses)</li>
+          </ul>
+        </div>
+
+        <ReleaseCleanupJobs/>
+
         <div className="py-6 px-4 sm:p-6">
           <DeleteReleases/>
         </div>
@@ -197,7 +212,7 @@ function ReleaseCleanupJobs() {
               <div className="col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Enabled
               </div>
-              <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <div className="col-span-3 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Name
               </div>
               <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -238,6 +253,16 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
   const [updatePanelIsOpen, toggleUpdatePanel] = useToggle(false);
   const queryClient = useQueryClient();
 
+  // Get indexer options to check if all are selected
+  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
+    queryKey: ['indexers'],
+    queryFn: () => APIClient.indexers.getAll(),
+    select: data => data.map(indexer => ({
+      identifier: indexer.identifier,
+      name: indexer.name
+    })),
+  });
+
   const toggleMutation = useMutation({
     mutationFn: (enabled: boolean) => APIClient.release.cleanupJobs.toggleEnabled(job.id, enabled),
     onSuccess: () => {
@@ -266,10 +291,11 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
 
   return (
     <li>
-      <div className="grid grid-cols-12 items-center py-2">
-        <CleanupJobUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={job}/>
+      <CleanupJobUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={job}/>
 
-        {/* Enabled Toggle - LEFT side to match pattern */}
+      {/* Row 1: Main job info */}
+      <div className="grid grid-cols-12 items-center py-1">
+        {/* Enabled Toggle */}
         <div className="col-span-1 flex pl-1 sm:pl-4 items-center">
           <Checkbox
             value={job.enabled}
@@ -277,7 +303,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
           />
         </div>
 
-        {/* Name */}
+        {/* Name (without badges) */}
         <div className="col-span-3 pl-12 pr-6 py-3 text-sm font-medium text-gray-900 dark:text-white truncate" title={job.name}>
           {job.name}
         </div>
@@ -289,7 +315,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
 
         {/* Retention (older_than) */}
         <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
-          {job.older_than} hours
+          {formatHoursAsDuration(job.older_than)}
         </div>
 
         {/* Last Run Status */}
@@ -310,9 +336,60 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
         <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
           {nextRunDisplay}
         </div>
+      </div>
 
-        {/* Edit/Run Actions */}
-        <div className="col-span-12 mt-2 flex gap-2 pl-12">
+      {/* Row 2: Filter badges (left) + Actions (right) */}
+      <div className="grid grid-cols-12 items-center py-0.5">
+        <div className="col-span-1" />
+        <div className="col-span-8 pl-12 flex gap-x-0.5 flex-row flex-wrap">
+          {/* Indexer badges */}
+          {(() => {
+            if (!job.indexers) {
+              // No indexers selected = all indexers
+              return <EnabledPill value={false} label="All Indexers" title="Applies to all indexers" />;
+            }
+            const selectedIndexers = job.indexers.split(',').filter(Boolean);
+            const totalIndexers = indexerOptions?.length || 0;
+            if (totalIndexers > 0 && selectedIndexers.length === totalIndexers) {
+              // All indexers explicitly selected = show as "All Indexers"
+              return <EnabledPill value={false} label="All Indexers" title="Applies to all indexers" />;
+            }
+            // Some indexers selected = show blue badges with full names
+            return selectedIndexers.map((idx) => {
+              const indexerDef = indexerOptions?.find(opt => opt.identifier === idx);
+              const displayName = indexerDef?.name || idx.toUpperCase();
+              return (
+                <EnabledPill
+                  key={`idx-${idx}`}
+                  value={true}
+                  label={displayName}
+                  title={`Indexer: ${displayName}`}
+                />
+              );
+            });
+          })()}
+          {/* Status badges */}
+          {(() => {
+            if (!job.statuses) {
+              // No statuses selected = all statuses
+              return <EnabledPill value={false} label="All Statuses" title="Applies to all release statuses" />;
+            }
+            const selectedStatuses = job.statuses.split(',').filter(Boolean);
+            if (selectedStatuses.length === PushStatusOptions.length) {
+              // All statuses explicitly selected = show as "All Statuses"
+              return <EnabledPill value={false} label="All Statuses" title="Applies to all release statuses" />;
+            }
+            // Some statuses selected = show blue badges
+            return selectedStatuses.map((status) => {
+              const statusOption = PushStatusOptions.find(opt => opt.value === status);
+              const label = statusOption?.label || status;
+              return <EnabledPill key={`status-${status}`} value={true} label={label} title={`Status: ${label}`} />;
+            });
+          })()}
+        </div>
+
+        {/* Actions - right aligned */}
+        <div className="col-span-3 flex gap-2 justify-end pr-6">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer text-sm" onClick={toggleUpdatePanel}>
             Edit
           </span>
@@ -373,12 +450,6 @@ function DeleteReleases() {
     })),
   });
 
-  const releaseStatusOptions = [
-    { label: "Approved", value: "PUSH_APPROVED" },
-    { label: "Rejected", value: "PUSH_REJECTED" },
-    { label: "Errored", value: "PUSH_ERROR" }
-  ];
-
   const deleteOlderMutation = useMutation({
     mutationFn: (params: { olderThan: number, indexers: string[], releaseStatuses: string[] }) =>
       APIClient.release.delete(params),
@@ -429,18 +500,6 @@ function DeleteReleases() {
             Select the criteria below to permanently delete release history records that are older than the chosen age
             and optionally match the selected indexers and release statuses:
           </p>
-            <ul className="list-disc pl-5 my-4 text-sm text-gray-500 dark:text-gray-400">
-              <li>
-                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong
-                className="text-gray-600 dark:text-gray-300">Required</strong>
-              </li>
-              <li>Indexers - Optional (if none selected, applies to all indexers)</li>
-              <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
-            </ul>
-            <span className="pt-2 text-red-600 dark:text-red-500">
-              <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records
-              older than the selected age will be permanently deleted, regardless of indexer or status.
-            </span>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center text-sm">
@@ -462,7 +521,7 @@ function DeleteReleases() {
             },
             {
               label: 'Release statuses:',
-              content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
+              content: <RMSC options={PushStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
                              labelledBy="Select release statuses"/>
             }
           ].map((item, index) => (

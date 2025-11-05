@@ -16,6 +16,7 @@ import { SwitchGroupWide, TextFieldWide, DurationFieldWide } from "@components/i
 import { SlideOver } from "@components/panels";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 import { classNames } from "@utils";
+import { PushStatusOptions } from "@domain/constants";
 
 export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
@@ -52,12 +53,6 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
       name: indexer.name
     })),
   });
-
-  const releaseStatusOptions = [
-    { label: "Approved", value: "PUSH_APPROVED" },
-    { label: "Rejected", value: "PUSH_REJECTED" },
-    { label: "Errored", value: "PUSH_ERROR" }
-  ];
 
   return (
     <SlideOver
@@ -106,15 +101,33 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
             <div className="col-span-2">
               <FormikField name="indexers">
                 {({ field, form }: FieldProps) => (
-                  <RMSC
-                    options={indexerOptions?.map(opt => ({ value: opt.identifier, label: opt.name })) || []}
-                    value={field.value?.split(',').filter(Boolean).map((v: string) => ({ value: v, label: v })) || []}
-                    onChange={(selected: { value: string; label: string }[]) => {
-                      const indexerString = selected.map(s => s.value).join(',');
-                      form.setFieldValue("indexers", indexerString);
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.nativeEvent.stopImmediatePropagation();
                     }}
-                    labelledBy="Select indexers"
-                  />
+                  >
+                    <RMSC
+                      options={indexerOptions?.map(opt => ({ value: opt.identifier, label: opt.name })) || []}
+                      value={
+                        !field.value || field.value === '' || !indexerOptions
+                          ? []
+                          : field.value
+                              .split(',')
+                              .filter(Boolean)
+                              .map((v: string) => {
+                                const option = indexerOptions.find(opt => opt.identifier === v);
+                                return option ? { value: option.identifier, label: option.name } : null;
+                              })
+                              .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
+                      }
+                      onChange={(selected: { value: string; label: string }[]) => {
+                        const indexerString = selected.map(s => s.value).join(',');
+                        form.setFieldValue("indexers", indexerString);
+                      }}
+                      labelledBy="cleanup-job-add-indexers"
+                    />
+                  </div>
                 )}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -131,15 +144,33 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
             <div className="col-span-2">
               <FormikField name="statuses">
                 {({ field, form }: FieldProps) => (
-                  <RMSC
-                    options={releaseStatusOptions}
-                    value={field.value?.split(',').filter(Boolean).map((v: string) => ({ value: v, label: v })) || []}
-                    onChange={(selected: { value: string; label: string }[]) => {
-                      const statusString = selected.map(s => s.value).join(',');
-                      form.setFieldValue("statuses", statusString);
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.nativeEvent.stopImmediatePropagation();
                     }}
-                    labelledBy="Select statuses"
-                  />
+                  >
+                    <RMSC
+                      options={PushStatusOptions}
+                      value={
+                        !field.value || field.value === ''
+                          ? []
+                          : field.value
+                              .split(',')
+                              .filter(Boolean)
+                              .map((v: string) => {
+                                const option = PushStatusOptions.find(opt => opt.value === v);
+                                return option ? { value: option.value, label: option.label } : null;
+                              })
+                              .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
+                      }
+                      onChange={(selected: { value: string; label: string }[]) => {
+                        const statusString = selected.map(s => s.value).join(',');
+                        form.setFieldValue("statuses", statusString);
+                      }}
+                      labelledBy="cleanup-job-add-statuses"
+                    />
+                  </div>
                 )}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -209,12 +240,6 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
     })),
   });
 
-  const releaseStatusOptions = [
-    { label: "Approved", value: "PUSH_APPROVED" },
-    { label: "Rejected", value: "PUSH_REJECTED" },
-    { label: "Errored", value: "PUSH_ERROR" }
-  ];
-
   return (
     <SlideOver
       type="UPDATE"
@@ -258,17 +283,37 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
             </label>
             <div className="col-span-2">
               <FormikField name="indexers">
-                {({ field, form }: FieldProps) => (
-                  <RMSC
-                    options={indexerOptions?.map(opt => ({ value: opt.identifier, label: opt.name })) || []}
-                    value={field.value?.split(',').filter(Boolean).map((v: string) => ({ value: v, label: v })) || []}
-                    onChange={(selected: { value: string; label: string }[]) => {
-                      const indexerString = selected.map(s => s.value).join(',');
-                      form.setFieldValue("indexers", indexerString);
-                    }}
-                    labelledBy="Select indexers"
-                  />
-                )}
+                {({ field, form }: FieldProps) => {
+                  const computedValue = !field.value || field.value === '' || !indexerOptions
+                    ? []
+                    : field.value
+                        .split(',')
+                        .filter(Boolean)
+                        .map((v: string) => {
+                          const option = indexerOptions.find(opt => opt.identifier === v);
+                          return option ? { value: option.identifier, label: option.name } : null;
+                        })
+                        .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
+
+                  return (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                      }}
+                    >
+                      <RMSC
+                        options={indexerOptions?.map(opt => ({ value: opt.identifier, label: opt.name })) || []}
+                        value={computedValue}
+                        onChange={(selected: { value: string; label: string }[]) => {
+                          const indexerString = selected.map(s => s.value).join(',');
+                          form.setFieldValue("indexers", indexerString);
+                        }}
+                        labelledBy="cleanup-job-edit-indexers"
+                      />
+                    </div>
+                  );
+                }}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Leave empty to apply to all indexers
@@ -282,17 +327,37 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
             </label>
             <div className="col-span-2">
               <FormikField name="statuses">
-                {({ field, form }: FieldProps) => (
-                  <RMSC
-                    options={releaseStatusOptions}
-                    value={field.value?.split(',').filter(Boolean).map((v: string) => ({ value: v, label: v })) || []}
-                    onChange={(selected: { value: string; label: string }[]) => {
-                      const statusString = selected.map(s => s.value).join(',');
-                      form.setFieldValue("statuses", statusString);
-                    }}
-                    labelledBy="Select statuses"
-                  />
-                )}
+                {({ field, form }: FieldProps) => {
+                  const computedValue = !field.value || field.value === ''
+                    ? []
+                    : field.value
+                        .split(',')
+                        .filter(Boolean)
+                        .map((v: string) => {
+                          const option = PushStatusOptions.find(opt => opt.value === v);
+                          return option ? { value: option.value, label: option.label } : null;
+                        })
+                        .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
+
+                  return (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                      }}
+                    >
+                      <RMSC
+                        options={PushStatusOptions}
+                        value={computedValue}
+                        onChange={(selected: { value: string; label: string }[]) => {
+                          const statusString = selected.map(s => s.value).join(',');
+                          form.setFieldValue("statuses", statusString);
+                        }}
+                        labelledBy="cleanup-job-edit-statuses"
+                      />
+                    </div>
+                  );
+                }}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Leave empty to apply to all statuses
@@ -326,14 +391,6 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
                     </span>
                   </dd>
                 </div>
-                {job.last_run_data && (
-                  <div className="flex justify-between">
-                    <dt className="text-sm text-gray-500 dark:text-gray-400">Details:</dt>
-                    <dd className="text-sm text-gray-900 dark:text-white font-mono text-xs">
-                      {job.last_run_data}
-                    </dd>
-                  </div>
-                )}
               </dl>
             </div>
           )}
