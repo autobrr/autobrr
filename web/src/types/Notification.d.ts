@@ -25,6 +25,7 @@ interface ServiceNotification {
   priority?: number;
   topic?: string;
   sound?: string;
+  event_sounds?: Record<string, string>;
   host?: string;
   username?: string;
   password?: string;
