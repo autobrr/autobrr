@@ -88,7 +88,8 @@ export const NotificationKeys = {
   all: ["notifications"] as const,
   lists: () => [...NotificationKeys.all, "list"] as const,
   details: () => [...NotificationKeys.all, "detail"] as const,
-  detail: (id: number) => [...NotificationKeys.details(), id] as const
+  detail: (id: number) => [...NotificationKeys.details(), id] as const,
+  pushoverSounds: (apiToken: string) => [...NotificationKeys.all, "pushover-sounds", apiToken] as const
 };
 
 export const ProxyKeys = {

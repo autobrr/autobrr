@@ -113,6 +113,16 @@ export const NotificationsQueryOptions = () =>
     queryFn: () => APIClient.notifications.getAll()
   });
 
+export const PushoverSoundsQueryOptions = (apiToken: string) =>
+  queryOptions({
+    queryKey: NotificationKeys.pushoverSounds(apiToken),
+    queryFn: () => APIClient.notifications.getPushoverSounds(apiToken),
+    enabled: apiToken !== undefined && apiToken !== "",
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  });
+
 export const ApikeysQueryOptions = () =>
   queryOptions({
     queryKey: ApiKeys.lists(),

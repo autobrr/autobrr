@@ -24,6 +24,7 @@ interface ServiceNotification {
   channel?: string;
   priority?: number;
   topic?: string;
+  sound?: string;
   host?: string;
   username?: string;
   password?: string;

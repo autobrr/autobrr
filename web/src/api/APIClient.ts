@@ -415,7 +415,8 @@ export const APIClient = {
     delete: (id: number) => appClient.Delete(`api/notification/${id}`),
     test: (notification: ServiceNotification) => appClient.Post("api/notification/test", {
       body: notification
-    })
+    }),
+    getPushoverSounds: (apiToken: string) => appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`)
   },
   lists: {
     list: () => appClient.Get<List[]>("api/lists"),

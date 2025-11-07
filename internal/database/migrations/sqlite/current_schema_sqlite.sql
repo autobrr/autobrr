@@ -42,6 +42,7 @@ CREATE TABLE notification
     targets    TEXT,
     devices    TEXT,
     topic      TEXT,
+    sound      TEXT,
     priority   INTEGER   DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

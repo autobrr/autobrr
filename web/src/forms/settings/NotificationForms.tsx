@@ -6,14 +6,15 @@
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { Fragment } from "react";
 import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
+import { Field, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
+import { PushoverSoundsQueryOptions } from "@api/queries";
 import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
@@ -161,6 +162,18 @@ function FormFieldsTelegram() {
 }
 
 function FormFieldsPushover() {
+  const { values } = useFormikContext<ServiceNotification>();
+  const soundsQuery = useQuery(PushoverSoundsQueryOptions(values.api_key || ""));
+
+  const soundOptions: SelectOption[] = [
+    { label: "Default (use user's default tone)", value: "" },
+    ...(soundsQuery.data
+      ? Object.entries(soundsQuery.data)
+          .sort(([, a], [, b]) => a.localeCompare(b))
+          .map(([key, value]) => ({ label: value, value: key }))
+      : [])
+  ];
+
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
@@ -195,6 +208,58 @@ function FormFieldsPushover() {
         help="-2, -1, 0 (default), 1, or 2"
         required={true}
       />
+      <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+        <div>
+          <label
+            htmlFor="sound"
+            className="block text-sm font-medium text-gray-900 dark:text-white"
+          >
+            Sound
+          </label>
+        </div>
+        <div className="sm:col-span-2">
+          <Field name="sound" type="select">
+            {({ field, form: { setFieldValue } }: FieldProps) => (
+              <Select
+                {...field}
+                isClearable={true}
+                isSearchable={true}
+                components={{
+                  Input: common.SelectInput,
+                  Control: common.SelectControl,
+                  Menu: common.SelectMenu,
+                  Option: common.SelectOption,
+                  IndicatorSeparator: common.IndicatorSeparator,
+                  DropdownIndicator: common.DropdownIndicator
+                }}
+                placeholder="Choose a sound (default: user's default tone)"
+                styles={{
+                  singleValue: (base) => ({
+                    ...base,
+                    color: "unset"
+                  })
+                }}
+                theme={(theme) => ({
+                  ...theme,
+                  spacing: {
+                    ...theme.spacing,
+                    controlHeight: 30,
+                    baseUnit: 2
+                  }
+                })}
+                value={soundOptions.find(o => o.value === field?.value) || null}
+                onChange={(option: unknown) => {
+                  const opt = option as SelectOption | null;
+                  setFieldValue(field.name, opt?.value ?? "");
+                }}
+                options={soundOptions}
+                isLoading={soundsQuery.isLoading}
+                isDisabled={!values.api_key || soundsQuery.isLoading}
+              />
+            )}
+          </Field>
+        </div>
+      </div>
     </div>
   );
 }
@@ -379,7 +444,8 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                     name: "",
                     webhook: "",
                     events: [],
-                    username: ""
+                    username: "",
+                    sound: ""
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -578,6 +644,7 @@ interface InitialValues {
   priority?: number;
   channel?: string;
   topic?: string;
+  sound?: string;
   host?: string;
   events: NotificationEvent[];
   username?: string;
@@ -631,6 +698,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     priority: notification.priority,
     channel: notification.channel,
     topic: notification.topic,
+    sound: notification.sound,
     host: notification.host,
     events: notification.events || [],
     username: notification.username,
