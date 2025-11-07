@@ -53,6 +53,7 @@ type Notification struct {
 	Priority      int32                `json:"priority"`
 	Topic         string               `json:"topic"`
 	Sound         string               `json:"sound"`
+	EventSounds   map[string]string    `json:"event_sounds,omitempty"` // event -> sound mapping
 	UsedByFilters []FilterNotification `json:"used_by_filters,omitempty"`
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`

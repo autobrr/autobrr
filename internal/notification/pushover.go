@@ -79,8 +79,20 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 	data.Set("timestamp", fmt.Sprintf("%v", m.Timestamp.Unix()))
 	data.Set("html", fmt.Sprintf("%v", m.Html))
 
-	if s.Settings.Sound != "" {
-		data.Set("sound", s.Settings.Sound)
+	// Use event-specific sound if available, otherwise fall back to global sound
+	sound := ""
+	if s.Settings.EventSounds != nil {
+		if eventSound, ok := s.Settings.EventSounds[string(event)]; ok && eventSound != "" {
+			sound = eventSound
+		}
+	}
+	// Fall back to global sound if no event-specific sound
+	if sound == "" && s.Settings.Sound != "" {
+		sound = s.Settings.Sound
+	}
+	// Only send sound parameter if a sound is specified (empty means use user's default)
+	if sound != "" {
+		data.Set("sound", sound)
 	}
 
 	if m.Priority == 2 {

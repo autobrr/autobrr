@@ -416,7 +416,13 @@ export const APIClient = {
     test: (notification: ServiceNotification) => appClient.Post("api/notification/test", {
       body: notification
     }),
-    getPushoverSounds: (apiToken: string) => appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`)
+    getPushoverSounds: (apiToken: string) => {
+      // Don't make request if token is redacted or empty
+      if (!apiToken || apiToken === "<redacted>" || apiToken === "") {
+        return Promise.reject(new Error("API token is required"));
+      }
+      return appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`);
+    }
   },
   lists: {
     list: () => appClient.Get<List[]>("api/lists"),

@@ -43,6 +43,7 @@ CREATE TABLE notification
     devices    TEXT,
     topic      TEXT,
     sound      TEXT,
+    event_sounds TEXT,
     priority   INTEGER   DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

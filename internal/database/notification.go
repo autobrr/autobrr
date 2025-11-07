@@ -6,6 +6,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -30,7 +31,7 @@ func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 
 func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "sound", "host", "username", "password", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
+		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "sound", "event_sounds", "host", "username", "password", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
 		OrderBy("name")
 
@@ -51,9 +52,9 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 	for rows.Next() {
 		n := domain.NewNotification()
 
-		var webhook, token, apiKey, channel, host, topic, sound, username, password sql.Null[string]
+		var webhook, token, apiKey, channel, host, topic, sound, eventSounds, username, password sql.Null[string]
 
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &sound, &host, &username, &password, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &sound, &eventSounds, &host, &username, &password, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
 			return nil, 0, errors.Wrap(err, "error scanning row")
 		}
 
@@ -67,6 +68,12 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		n.Username = username.V
 		n.Password = password.V
 
+		if eventSounds.Valid && eventSounds.V != "" {
+			if err := json.Unmarshal([]byte(eventSounds.V), &n.EventSounds); err != nil {
+				r.log.Warn().Err(err).Msg("error unmarshaling event_sounds")
+			}
+		}
+
 		notifications = append(notifications, *n)
 	}
 	if err := rows.Err(); err != nil {
@@ -77,7 +84,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 }
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
-	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, sound, created_at, updated_at FROM notification ORDER BY name ASC")
+	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, sound, event_sounds, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -89,8 +96,8 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		n := domain.NewNotification()
 		//var eventsSlice []string
 
-		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound sql.Null[string]
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &n.CreatedAt, &n.UpdatedAt); err != nil {
+		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds sql.Null[string]
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -108,6 +115,12 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		n.Devices = devices.V
 		n.Topic = topic.V
 		n.Sound = sound.V
+
+		if eventSounds.Valid && eventSounds.V != "" {
+			if err := json.Unmarshal([]byte(eventSounds.V), &n.EventSounds); err != nil {
+				r.log.Warn().Err(err).Msg("error unmarshaling event_sounds")
+			}
+		}
 
 		notifications = append(notifications, *n)
 	}
@@ -140,6 +153,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 			"priority",
 			"topic",
 			"sound",
+			"event_sounds",
 			"created_at",
 			"updated_at",
 		).
@@ -158,8 +172,8 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 
 	n := domain.NewNotification()
 
-	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound sql.Null[string]
-	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &n.CreatedAt, &n.UpdatedAt); err != nil {
+	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds sql.Null[string]
+	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -181,10 +195,25 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 	n.Topic = topic.V
 	n.Sound = sound.V
 
+	if eventSounds.Valid && eventSounds.V != "" {
+		if err := json.Unmarshal([]byte(eventSounds.V), &n.EventSounds); err != nil {
+			r.log.Warn().Err(err).Msg("error unmarshaling event_sounds")
+		}
+	}
+
 	return n, nil
 }
 
 func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notification) error {
+	var eventSoundsJSON sql.Null[string]
+	if notification.EventSounds != nil && len(notification.EventSounds) > 0 {
+		eventSoundsBytes, err := json.Marshal(notification.EventSounds)
+		if err != nil {
+			return errors.Wrap(err, "error marshaling event_sounds")
+		}
+		eventSoundsJSON = sql.Null[string]{V: string(eventSoundsBytes), Valid: true}
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("notification").
 		Columns(
@@ -199,6 +228,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			"priority",
 			"topic",
 			"sound",
+			"event_sounds",
 			"host",
 			"username",
 			"password",
@@ -215,6 +245,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			notification.Priority,
 			toNullString(notification.Topic),
 			toNullString(notification.Sound),
+			eventSoundsJSON,
 			toNullString(notification.Host),
 			toNullString(notification.Username),
 			toNullString(notification.Password),
@@ -231,6 +262,17 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 }
 
 func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Notification) error {
+	var eventSoundsJSON sql.Null[string]
+	if notification.EventSounds != nil && len(notification.EventSounds) > 0 {
+		eventSoundsBytes, err := json.Marshal(notification.EventSounds)
+		if err != nil {
+			return errors.Wrap(err, "error marshaling event_sounds")
+		}
+		eventSoundsJSON = sql.Null[string]{V: string(eventSoundsBytes), Valid: true}
+	} else {
+		eventSoundsJSON = sql.Null[string]{Valid: false}
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("notification").
 		Set("name", notification.Name).
@@ -244,6 +286,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		Set("priority", notification.Priority).
 		Set("topic", toNullString(notification.Topic)).
 		Set("sound", toNullString(notification.Sound)).
+		Set("event_sounds", eventSoundsJSON).
 		Set("host", toNullString(notification.Host)).
 		Set("username", toNullString(notification.Username)).
 		Set("password", toNullString(notification.Password)).

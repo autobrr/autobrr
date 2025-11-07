@@ -116,8 +116,14 @@ export const NotificationsQueryOptions = () =>
 export const PushoverSoundsQueryOptions = (apiToken: string) =>
   queryOptions({
     queryKey: NotificationKeys.pushoverSounds(apiToken),
-    queryFn: () => APIClient.notifications.getPushoverSounds(apiToken),
-    enabled: apiToken !== undefined && apiToken !== "",
+    queryFn: () => {
+      // Double-check before making the request
+      if (!apiToken || apiToken === "<redacted>" || apiToken === "") {
+        throw new Error("API token is required");
+      }
+      return APIClient.notifications.getPushoverSounds(apiToken);
+    },
+    enabled: apiToken !== undefined && apiToken !== "" && apiToken !== "<redacted>",
     retry: false,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000 // 5 minutes
