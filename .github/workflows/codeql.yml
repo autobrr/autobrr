@@ -52,7 +52,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Set up Node
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ env.NODE_VERSION }}
 
@@ -61,7 +61,7 @@ jobs:
 
       # It can not be done before enable corepack
     - name: Set up cache
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         cache: pnpm
         cache-dependency-path: web/pnpm-lock.yaml
