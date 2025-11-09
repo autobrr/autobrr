@@ -153,7 +153,7 @@ export const ReleasesRoute = createRoute({
     limit: z.number().optional(),
     filter: z.string().optional(),
     q: z.string().optional(),
-    action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PUSH_ERROR', '']).optional(),
+    action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PENDING', 'PUSH_ERROR', '']).optional(),
     // filters: z.array().catch(''),
     // sort: z.enum(['newest', 'oldest', 'price']).catch('newest'),
   }).parse(search),

@@ -409,6 +409,10 @@ export const PushStatusOptions: OptionBasic[] = [
     value: "PUSH_APPROVED"
   },
   {
+    label: "Pending",
+    value: "PENDING"
+  },
+  {
     label: "Error",
     value: "PUSH_ERROR"
   }
