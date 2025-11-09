@@ -232,6 +232,48 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "Aither IRC Network Migration",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Aither IRC Network Migration",
+				MigrationIndex:      83,
+				MigrationsUntilName: "83_indexers_update_reelflix_domain",
+				MigrationToRun:      "84_indexers_update_aither_irc_auth",
+
+				SetupData: func(db *sql.DB) error {
+					// Insert test IRC network that should be affected by the migration
+					_, err := db.Exec(`
+					INSERT INTO irc_network (
+						id, enabled, name, server, port, tls, pass, nick,
+						auth_mechanism, auth_account, auth_password, invite_command,
+						use_bouncer, bouncer_addr, bot_mode, connected, connected_since,
+						use_proxy, proxy_id, created_at, updated_at
+					) VALUES (
+						1, 1, 'Aither.cc', 'irc.aither.cc', 6697, 1, 'mypass', 'test',
+						'NONE', '', '', '',
+						0, '', 0, 0, NULL,
+						0, NULL, '2025-11-01 00:00:00', '2025-11-01 00:00:00'
+					)`)
+					if err != nil {
+						return err
+					}
+
+					return nil
+				},
+				ValidateResult: func(db *sql.DB, t *testing.T) {
+					var pass sql.Null[string]
+					var authMech, nickServAccount, nickServPass string
+					err := db.QueryRow(`SELECT pass, auth_mechanism, auth_account, auth_password FROM irc_network WHERE server = 'irc.aither.cc'`).Scan(&pass, &authMech, &nickServAccount, &nickServPass)
+					require.NoError(t, err)
+					assert.Equal(t, "", pass.V, "pass should be empty")
+					assert.Equal(t, "SASL_PLAIN", authMech, "auth mechanism should be SASL_PLAIN")
+					assert.Equal(t, "test", nickServAccount, "auth_account not matching")
+					assert.Equal(t, "mypass", nickServPass, "auth_password not matching")
+				},
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
