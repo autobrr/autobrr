@@ -295,11 +295,20 @@ jobs:
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - name: Set cache prefix
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "cache_prefix=release" >> $GITHUB_ENV
+          else
+            echo "cache_prefix=push" >> $GITHUB_ENV
+          fi
+
       - name: Cache builds
         uses: actions/cache@v4
         with:
           path: dist/${{ matrix.goos }}
-          key: ${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
           enableCrossOsArchive: ${{ matrix.runner == 'windows-latest' && 'true' || 'false'}}
 
       - name: Run GoReleaser snapshot build
@@ -364,35 +373,52 @@ jobs:
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - name: Set cache prefix
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "cache_prefix=release" >> $GITHUB_ENV
+          else
+            echo "cache_prefix=push" >> $GITHUB_ENV
+          fi
+
       - name: Get Linux cache
         uses: actions/cache@v4
         with:
           path: dist/linux
-          key: linux-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-linux-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get FreeBSD cache
         uses: actions/cache@v4
         with:
           path: dist/freebsd
-          key: freebsd-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-freebsd-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Darwin cache
         uses: actions/cache@v4
         with:
           path: dist/darwin
-          key: darwin-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-darwin-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Windows cache
         uses: actions/cache@v4
         with:
           path: dist/windows
-          key: windows-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-windows-${{ env.sha_short }}${{ env.flags }}
           enableCrossOsArchive: true
+
+      - name: Download web production build
+        uses: actions/download-artifact@v6
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Create web dist tarball
+        run: tar -czf web-dist.tar.gz -C . web/dist
 
       # release
       - name: Merge and publish GoReleaser build
         uses: goreleaser/goreleaser-action@v6
-        if: steps.cache.outputs.cache-hit != 'true' # do not run if cache hit
         with:
           distribution: goreleaser-pro
           version: "~> v2"
@@ -400,17 +426,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-
-      # - name: Publish version to GitHub Releases
-      #   if: startsWith(github.ref, 'refs/tags/')
-      #   uses: goreleaser/goreleaser-action@v6
-      #   with:
-      #     distribution: goreleaser-pro
-      #     version: "~> v2"
-      #     args: publish
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
   docker:
     name: Build Docker images
