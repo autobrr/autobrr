@@ -106,6 +106,12 @@ type FilterQueryParams struct {
 	Search string
 }
 
+// FilterRateLimitTokenReceipt represents a token that was acquired and can be released.
+type FilterRateLimitTokenReceipt struct {
+	FilterID  int
+	ReleaseID string
+}
+
 type Filter struct {
 	ID                        int                      `json:"id"`
 	Name                      string                   `json:"name"`
@@ -423,10 +429,10 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	f.RejectReasons = NewRejectionReasons()
 
 	// Max downloads check. If reached return early so other filters can be checked as quick as possible.
-	if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
-		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), f.Downloads.String(), fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
-		return f.RejectReasons, false
-	}
+	//if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
+	//	f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), f.Downloads.String(), fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
+	//	return f.RejectReasons, false
+	//}
 
 	if len(f.Bonus) > 0 && !sliceContainsSlice(r.Bonus, f.Bonus) {
 		f.RejectReasons.Add("bonus", r.Bonus, f.Bonus)
