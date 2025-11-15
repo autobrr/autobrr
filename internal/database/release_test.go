@@ -545,51 +545,192 @@ func TestReleaseRepo_Delete(t *testing.T) {
 		actionRepo := NewActionRepo(log, db, downloadClientRepo)
 		repo := NewReleaseRepo(log, db)
 
-		mockData := getMockRelease()
-		releaseActionMockData := getMockReleaseActionStatus()
-		actionMockData := getMockAction()
+		// Setup shared dependencies
+		mock := getMockDownloadClient()
+		err := downloadClientRepo.Store(context.Background(), &mock)
+		assert.NoError(t, err)
 
-		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
-			// Setup
-			mock := getMockDownloadClient()
-			err := downloadClientRepo.Store(context.Background(), &mock)
-			assert.NoError(t, err)
-			assert.NotNil(t, mock)
+		err = filterRepo.Store(context.Background(), getMockFilter())
+		assert.NoError(t, err)
 
-			err = filterRepo.Store(context.Background(), getMockFilter())
-			assert.NoError(t, err)
+		createdFilters, err := filterRepo.ListFilters(context.Background())
+		assert.NoError(t, err)
+		assert.NotNil(t, createdFilters)
 
-			createdFilters, err := filterRepo.ListFilters(context.Background())
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+		actionMock := getMockAction()
+		actionMock.FilterID = createdFilters[0].ID
+		actionMock.ClientID = mock.ID
+		err = actionRepo.Store(context.Background(), actionMock)
+		assert.NoError(t, err)
 
-			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = mock.ID
-			mockData.FilterID = createdFilters[0].ID
+		tests := []struct {
+			name              string
+			deleteReq         *domain.DeleteReleaseRequest
+			expectedRemaining int
+		}{
+			{
+				name:              "OlderThan_Precision_24Hours",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 24},
+				expectedRemaining: 2,
+			},
+			{
+				name:              "Indexer_Filter",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 0, Indexers: []string{"btn", "ptp"}},
+				expectedRemaining: 1,
+			},
+			{
+				name:              "Status_Filter",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 0, ReleaseStatuses: []string{"PUSH_REJECTED", "PUSH_ERROR"}},
+				expectedRemaining: 2,
+			},
+			{
+				name:              "Combined_Filters",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 24, Indexers: []string{"btn"}, ReleaseStatuses: []string{"PUSH_REJECTED"}},
+				expectedRemaining: 3,
+			},
+			{
+				name:              "Delete_All",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 0},
+				expectedRemaining: 0,
+			},
+		}
 
-			err = repo.Store(context.Background(), mockData)
-			assert.NoError(t, err)
-			err = actionRepo.Store(context.Background(), actionMockData)
-			assert.NoError(t, err)
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("Delete_%s [%s]", tt.name, dbType), func(t *testing.T) {
+				ctx := context.Background()
 
-			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(actionMockData.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+				// Setup - create test-specific releases
+				switch tt.name {
+				case "OlderThan_Precision_24Hours":
+					// Test datetime precision: create releases avoiding exact boundary
+					for i, age := range []time.Duration{
+						22*time.Hour + 30*time.Minute, // Should be kept (clearly younger than 24h)
+						23*time.Hour + 45*time.Minute, // Should be kept (younger than 24h)
+						24*time.Hour + 30*time.Minute, // Should be deleted (clearly older than 24h)
+						25*time.Hour + 30*time.Minute, // Should be deleted (much older than 24h)
+					} {
+						mockRel := getMockRelease()
+						mockRel.Timestamp = time.Now().Add(-age)
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
 
-			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
-			assert.NoError(t, err)
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						ras.Status = domain.ReleasePushStatusApproved
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+						_ = i
+					}
 
-			// Execute
-			err = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
+				case "Indexer_Filter":
+					// Test indexer filtering: create releases from different indexers
+					for _, indexer := range []string{"btn", "ptp", "hdt"} {
+						mockRel := getMockRelease()
+						mockRel.Indexer.Identifier = indexer
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
 
-			// Verify
-			assert.NoError(t, err)
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
 
-			// Cleanup
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
-			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
-		})
+				case "Status_Filter":
+					// Test status filtering: create releases with all statuses including PENDING.
+					// Validates that PENDING is excluded from deletion per domain.ValidDeletableReleasePushStatus.
+					// Expected: PUSH_APPROVED and PUSH_PENDING remain, PUSH_REJECTED and PUSH_ERROR deleted.
+					for _, status := range []domain.ReleasePushStatus{
+						domain.ReleasePushStatusApproved,
+						domain.ReleasePushStatusRejected,
+						domain.ReleasePushStatusErr,
+						domain.ReleasePushStatusPending,
+					} {
+						mockRel := getMockRelease()
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
+
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						ras.Status = status
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
+
+				case "Combined_Filters":
+					// Test combined filters: age + indexer + status
+					testData := []struct {
+						age     time.Duration
+						indexer string
+						status  domain.ReleasePushStatus
+					}{
+						{20 * time.Hour, "btn", domain.ReleasePushStatusApproved},  // Keep (age)
+						{25 * time.Hour, "ptp", domain.ReleasePushStatusRejected},  // Keep (indexer)
+						{25 * time.Hour, "btn", domain.ReleasePushStatusApproved},  // Keep (status)
+						{25 * time.Hour, "btn", domain.ReleasePushStatusRejected},  // Delete (matches all filters)
+					}
+
+					for _, td := range testData {
+						mockRel := getMockRelease()
+						mockRel.Timestamp = time.Now().Add(-td.age)
+						mockRel.Indexer.Identifier = td.indexer
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
+
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						ras.Status = td.status
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
+
+				case "Delete_All":
+					// Test delete all: create 3 releases with any variation
+					for i := 0; i < 3; i++ {
+						mockRel := getMockRelease()
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
+
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
+				}
+
+				// Execute
+				err := repo.Delete(ctx, tt.deleteReq)
+				assert.NoError(t, err)
+
+				// Verify
+				releases, err := repo.Find(ctx, domain.ReleaseQueryParams{})
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedRemaining, len(releases.Data), "Expected %d releases to remain, got %d", tt.expectedRemaining, len(releases.Data))
+
+				// Cleanup
+				_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
+			})
+		}
+
+		// Cleanup shared resources
+		_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMock.ID})
+		_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
+		_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 	}
 }
 
