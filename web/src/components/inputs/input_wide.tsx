@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { JSX, useState, useEffect, Fragment } from "react";
+import { JSX, useState, useEffect, useRef, Fragment } from "react";
 import { Field as FormikField } from "formik";
 import Select from "react-select";
 import { Field, Label, Description, Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
@@ -394,6 +394,170 @@ interface DurationFieldWideProps {
   storeAsHours?: boolean;          // Optional - Convert to hours before storing (default: true)
 }
 
+// Props for the inner duration field component
+interface DurationFieldInnerProps extends Pick<FieldProps, 'meta' | 'form'> {
+  name: string;
+  placeholder: string;
+  defaultValue: number;
+  defaultUnit: string;
+  units: string[];
+  storeAsHours: boolean;
+}
+
+const UNIT_TO_HOURS: Record<string, number> = {
+  "hours": 1,
+  "days": 24,
+  "weeks": 168,
+  "months": 720,
+  "years": 8760
+};
+
+const UNIT_LABELS: Record<string, string> = {
+  "hours": "Hours",
+  "days": "Days",
+  "weeks": "Weeks",
+  "months": "Months",
+  "years": "Years",
+  "minutes": "Minutes"
+};
+
+// Converts stored hours to the largest evenly-divisible time unit for display
+const convertHoursToBestUnit = (hours: number, units: string[], defaultUnit: string): { value: number; unit: string } => {
+  if (hours === 0) return { value: 0, unit: defaultUnit };
+
+  // Try to find the largest unit that divides evenly
+  if (hours % 8760 === 0 && units.includes("years")) return { value: hours / 8760, unit: "years" };
+  if (hours % 720 === 0 && units.includes("months")) return { value: hours / 720, unit: "months" };
+  if (hours % 168 === 0 && units.includes("weeks")) return { value: hours / 168, unit: "weeks" };
+  if (hours % 24 === 0 && units.includes("days")) return { value: hours / 24, unit: "days" };
+  return { value: hours, unit: "hours" };
+};
+
+// Inner component to allow React Hooks usage within FormikField render prop
+const DurationFieldInner = ({
+  name,
+  placeholder,
+  defaultValue,
+  defaultUnit,
+  units,
+  storeAsHours,
+  meta,
+  form
+}: DurationFieldInnerProps) => {
+  // State for unit selection (separate from stored value)
+  const [selectedUnit, setSelectedUnit] = useState(defaultUnit);
+  const [displayValue, setDisplayValue] = useState(defaultValue);
+  const initializedRef = useRef(false);
+
+  // Initialize from Formik field value on mount (for edit forms)
+  useEffect(() => {
+    if (!initializedRef.current) {
+      const fieldValue = form.values[name];
+      if (fieldValue !== undefined && fieldValue !== null && fieldValue !== 0) {
+        const { value, unit } = convertHoursToBestUnit(fieldValue, units, defaultUnit);
+        setDisplayValue(value);
+        setSelectedUnit(unit);
+      }
+      initializedRef.current = true;
+    }
+  }, [form.values, name, units, defaultUnit]);
+
+  // Calculate hours value for storage
+  const calculateHours = (value: number, unit: string) => {
+    return storeAsHours ? value * UNIT_TO_HOURS[unit] : value;
+  };
+
+  const handleValueChange = (newValue: number) => {
+    setDisplayValue(newValue);
+    const hoursValue = calculateHours(newValue, selectedUnit);
+    form.setFieldValue(name, hoursValue);
+  };
+
+  const handleUnitChange = (newUnit: string) => {
+    setSelectedUnit(newUnit);
+    const hoursValue = calculateHours(displayValue, newUnit);
+    form.setFieldValue(name, hoursValue);
+  };
+
+  return (
+    <div className="grid grid-cols-12 gap-2">
+      {/* Number Input - 9 columns (75%) */}
+      <div className="col-span-9">
+        <input
+          type="number"
+          id={name}
+          placeholder={placeholder}
+          value={displayValue}
+          onChange={(e) => handleValueChange(parseInt(e.target.value) || 0)}
+          className={classNames(
+            meta.touched && meta.error
+              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+            "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+          )}
+          min={0}
+        />
+      </div>
+
+      {/* Unit Dropdown - 3 columns (25%) */}
+      <div className="col-span-3">
+        <Listbox value={selectedUnit} onChange={handleUnitChange}>
+          {({ open }) => (
+            <div className="relative">
+              <ListboxButton className="block w-full shadow-xs text-sm rounded-md border pl-3 pr-8 py-2.5 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white">
+                <span className="block truncate">
+                  {UNIT_LABELS[selectedUnit]}
+                </span>
+                <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                </span>
+              </ListboxButton>
+              <Transition
+                show={open}
+                as={Fragment}
+                leave="transition ease-in duration-100"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <ListboxOptions className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white focus:outline-hidden text-sm">
+                  {units.map((unit) => (
+                    <ListboxOption
+                      key={unit}
+                      className={({ focus, selected }) =>
+                        `relative cursor-default select-none py-2 pl-3 pr-9 ${
+                          selected
+                            ? "font-bold text-black dark:text-white bg-gray-300 dark:bg-gray-950"
+                            : focus
+                            ? "text-black dark:text-gray-100 font-normal bg-gray-200 dark:bg-gray-800"
+                            : "text-gray-700 dark:text-gray-300 font-normal"
+                        }`
+                      }
+                      value={unit}
+                    >
+                      {({ selected }) => (
+                        <>
+                          <span className={classNames(selected ? "font-semibold" : "font-normal", "block truncate")}>
+                            {UNIT_LABELS[unit]}
+                          </span>
+                          {selected && (
+                            <span className="absolute inset-y-0 right-0 flex items-center pr-4">
+                              <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </ListboxOption>
+                  ))}
+                </ListboxOptions>
+              </Transition>
+            </div>
+          )}
+        </Listbox>
+      </div>
+    </div>
+  );
+};
+
 export const DurationFieldWide = ({
   name,
   label,
@@ -406,35 +570,6 @@ export const DurationFieldWide = ({
   defaultUnit = "hours",
   storeAsHours = true
 }: DurationFieldWideProps) => {
-  const UNIT_TO_HOURS: Record<string, number> = {
-    "hours": 1,
-    "days": 24,
-    "weeks": 168,
-    "months": 720,
-    "years": 8760
-  };
-
-  const UNIT_LABELS: Record<string, string> = {
-    "hours": "Hours",
-    "days": "Days",
-    "weeks": "Weeks",
-    "months": "Months",
-    "years": "Years",
-    "minutes": "Minutes"
-  };
-
-  // Helper to convert hours to best-fit unit
-  const convertHoursToBestUnit = (hours: number): { value: number; unit: string } => {
-    if (hours === 0) return { value: 0, unit: defaultUnit };
-
-    // Try to find the largest unit that divides evenly
-    if (hours % 8760 === 0 && units.includes("years")) return { value: hours / 8760, unit: "years" };
-    if (hours % 720 === 0 && units.includes("months")) return { value: hours / 720, unit: "months" };
-    if (hours % 168 === 0 && units.includes("weeks")) return { value: hours / 168, unit: "weeks" };
-    if (hours % 24 === 0 && units.includes("days")) return { value: hours / 24, unit: "days" };
-    return { value: hours, unit: "hours" };
-  };
-
   return (
     <div className="px-4 space-y-1 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
       <div>
@@ -455,120 +590,18 @@ export const DurationFieldWide = ({
           name={name}
           defaultValue={defaultValue ?? 0}
         >
-          {({ meta, form }: FieldProps) => {
-            // State for unit selection (separate from stored value)
-            const [selectedUnit, setSelectedUnit] = useState(defaultUnit);
-            const [displayValue, setDisplayValue] = useState(defaultValue);
-            const [initialized, setInitialized] = useState(false);
-
-            // Initialize from Formik field value on mount (for edit forms)
-            useEffect(() => {
-              if (!initialized) {
-                const fieldValue = form.values[name];
-                if (fieldValue !== undefined && fieldValue !== null && fieldValue !== 0) {
-                  const { value, unit } = convertHoursToBestUnit(fieldValue);
-                  setDisplayValue(value);
-                  setSelectedUnit(unit);
-                }
-                setInitialized(true);
-              }
-            }, [initialized, form.values, name]);
-
-            // Calculate hours value for storage
-            const calculateHours = (value: number, unit: string) => {
-              return storeAsHours ? value * UNIT_TO_HOURS[unit] : value;
-            };
-
-            const handleValueChange = (newValue: number) => {
-              setDisplayValue(newValue);
-              const hoursValue = calculateHours(newValue, selectedUnit);
-              form.setFieldValue(name, hoursValue);
-            };
-
-            const handleUnitChange = (newUnit: string) => {
-              setSelectedUnit(newUnit);
-              const hoursValue = calculateHours(displayValue, newUnit);
-              form.setFieldValue(name, hoursValue);
-            };
-
-            return (
-              <div className="grid grid-cols-12 gap-2">
-                {/* Number Input - 9 columns (75%) */}
-                <div className="col-span-9">
-                  <input
-                    type="number"
-                    id={name}
-                    placeholder={placeholder}
-                    value={displayValue}
-                    onChange={(e) => handleValueChange(parseInt(e.target.value) || 0)}
-                    className={classNames(
-                      meta.touched && meta.error
-                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                        : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                      "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
-                    )}
-                    min={0}
-                  />
-                </div>
-
-                {/* Unit Dropdown - 3 columns (25%) */}
-                <div className="col-span-3">
-                  <Listbox value={selectedUnit} onChange={handleUnitChange}>
-                    {({ open }) => (
-                      <div className="relative">
-                        <ListboxButton className="block w-full shadow-xs text-sm rounded-md border pl-3 pr-8 py-2.5 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white">
-                          <span className="block truncate">
-                            {UNIT_LABELS[selectedUnit]}
-                          </span>
-                          <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                            <ChevronUpDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                          </span>
-                        </ListboxButton>
-                        <Transition
-                          show={open}
-                          as={Fragment}
-                          leave="transition ease-in duration-100"
-                          leaveFrom="opacity-100"
-                          leaveTo="opacity-0"
-                        >
-                          <ListboxOptions className="absolute z-10 mt-1 w-full shadow-lg max-h-60 rounded-md py-1 overflow-auto border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-white focus:outline-hidden text-sm">
-                            {units.map((unit) => (
-                              <ListboxOption
-                                key={unit}
-                                className={({ active, selected }) =>
-                                  `relative cursor-default select-none py-2 pl-3 pr-9 ${
-                                    selected
-                                      ? "font-bold text-black dark:text-white bg-gray-300 dark:bg-gray-950"
-                                      : active
-                                      ? "text-black dark:text-gray-100 font-normal bg-gray-200 dark:bg-gray-800"
-                                      : "text-gray-700 dark:text-gray-300 font-normal"
-                                  }`
-                                }
-                                value={unit}
-                              >
-                                {({ selected }) => (
-                                  <>
-                                    <span className={classNames(selected ? "font-semibold" : "font-normal", "block truncate")}>
-                                      {UNIT_LABELS[unit]}
-                                    </span>
-                                    {selected && (
-                                      <span className="absolute inset-y-0 right-0 flex items-center pr-4">
-                                        <CheckIcon className="h-5 w-5" aria-hidden="true" />
-                                      </span>
-                                    )}
-                                  </>
-                                )}
-                              </ListboxOption>
-                            ))}
-                          </ListboxOptions>
-                        </Transition>
-                      </div>
-                    )}
-                  </Listbox>
-                </div>
-              </div>
-            );
-          }}
+          {({ meta, form }: FieldProps) => (
+            <DurationFieldInner
+              name={name}
+              placeholder={placeholder}
+              defaultValue={defaultValue}
+              defaultUnit={defaultUnit}
+              units={units}
+              storeAsHours={storeAsHours}
+              meta={meta}
+              form={form}
+            />
+          )}
         </FormikField>
         {help && (
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
