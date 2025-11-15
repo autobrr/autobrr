@@ -66,7 +66,7 @@ irc:
               category: TV
               releaseTags: WEB-DL
               torrentSize: "1.35 GiB"
-        pattern: 'Category: (.+) \| Type: (.+) \| Size: (.+) \| Rating: .+ \(\d+ votes\)'
+        pattern: 'Category: (.+) \| Type: (.+) \| Size: (.+) \| Rating: .+ \(.+ votes\)'
         vars:
           - category
           - releaseTags

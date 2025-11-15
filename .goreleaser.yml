@@ -64,12 +64,12 @@ builds:
 
 archives:
   - id: autobrr
-    builds:
+    ids:
       - autobrr
       - autobrrctl
     format_overrides:
       - goos: windows
-        format: zip
+        formats: zip
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -79,6 +79,8 @@ archives:
 
 release:
   prerelease: auto
+  extra_files:
+    - glob: web-dist.tar.gz
   footer: |
     **Full Changelog**: https://github.com/autobrr/autobrr/compare/{{ .PreviousTag }}...{{ .Tag }}
 
