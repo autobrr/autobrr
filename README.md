@@ -297,7 +297,7 @@ WantedBy=multi-user.target
 Start the service. Enable will make it startup on reboot.
 
 ```bash
-systemctl enable -q --now --user autobrr@$USER
+systemctl enable --now autobrr@USERNAME.service
 ```
 
 By default, the configuration is set to listen on `127.0.0.1`. While autobrr works fine as is exposed to the internet,
