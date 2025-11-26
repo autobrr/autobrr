@@ -28,8 +28,23 @@ func (db *DB) openSQLite() error {
 
 	var err error
 
+	pragmas := "?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=analysis_limit(400)&_pragma=synchronous(NORMAL)&_pragma=mmap_size(268435456)&_pragma=page_size(4096)&_pragma=cache_size(-64000)"
+
+	if os.Getenv("IS_TEST_ENV") == "true" {
+		// Enable foreign key checks. For historical reasons, SQLite does not check
+		// foreign key constraints by default. There's some overhead on inserts to
+		// verify foreign key integrity, but it's definitely worth it.
+
+		// Enable it for testing for consistency with postgres.
+
+		pragmas += "&_pragma=foreign_keys(ON)"
+		//if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
+		//	return errors.New("foreign keys pragma")
+		//}
+	}
+
 	// open database connection
-	if db.Handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=analysis_limit(400)&_pragma=synchronous(NORMAL)&_pragma=mmap_size(268435456)&_pragma=page_size(4096)&_pragma=cache_size(-64000)"); err != nil {
+	if db.Handler, err = sql.Open("sqlite", db.DSN+pragmas); err != nil {
 		return errors.Wrap(err, "could not open db connection")
 	}
 	db.Handler.SetMaxOpenConns(1)
@@ -66,16 +81,6 @@ func (db *DB) openSQLite() error {
 			return errors.Wrap(err, "commit wal")
 		}
 
-		// Enable foreign key checks. For historical reasons, SQLite does not check
-		// foreign key constraints by default. There's some overhead on inserts to
-		// verify foreign key integrity, but it's definitely worth it.
-
-		// Enable it for testing for consistency with postgres.
-		if os.Getenv("IS_TEST_ENV") == "true" {
-			if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-				return errors.New("foreign keys pragma")
-			}
-		}
 
 		//if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
 		//	return errors.New("foreign keys pragma: %w", err)
