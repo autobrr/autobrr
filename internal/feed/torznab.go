@@ -41,6 +41,7 @@ type TorznabJob struct {
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
+	Slots      chan struct{}
 
 	attempts int
 	errors   []error
@@ -53,7 +54,7 @@ type RefreshFeedJob interface {
 	RunE(ctx context.Context) error
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc, slots chan struct{}) RefreshFeedJob {
 	return &TorznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -63,6 +64,7 @@ func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url strin
 		Repo:       repo,
 		CacheRepo:  cacheRepo,
 		ReleaseSvc: releaseSvc,
+		Slots:      slots,
 	}
 }
 
@@ -80,6 +82,15 @@ func (j *TorznabJob) Run() {
 }
 
 func (j *TorznabJob) RunE(ctx context.Context) error {
+	if j.Slots != nil {
+		select {
+		case j.Slots <- struct{}{}:
+			defer func() { <-j.Slots }()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
 	if err := j.process(ctx); err != nil {
 		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
 		return err
@@ -305,12 +316,9 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 	}
 
 	if len(toCache) > 0 {
-		go func(items []domain.FeedCacheItem) {
-			ctx := context.Background()
-			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
-				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
-			}
-		}(toCache)
+		if err := j.CacheRepo.PutMany(ctx, toCache); err != nil {
+			j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+		}
 	}
 
 	// send to filters
