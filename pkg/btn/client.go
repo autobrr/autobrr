@@ -32,7 +32,16 @@ func WithUrl(url string) OptFunc {
 	}
 }
 
+func WithHTTPClient(httpClient *http.Client) OptFunc {
+	return func(c *Client) {
+		if httpClient != nil {
+			c.httpClient = httpClient
+		}
+	}
+}
+
 type Client struct {
+	httpClient  *http.Client
 	rpcClient   jsonrpc.Client
 	rateLimiter *rate.Limiter
 	APIKey      string
@@ -41,11 +50,15 @@ type Client struct {
 	Log *log.Logger
 }
 
-func NewClient(apiKey string, opts ...OptFunc) ApiClient {
+func NewClient(apiKey string, opts ...OptFunc) *Client {
 	c := &Client{
 		url:         DefaultURL,
 		rateLimiter: rate.NewLimiter(rate.Every(150*time.Hour), 1), // 150 rpcRequest every 1 hour
 		APIKey:      apiKey,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 60,
+			Transport: sharedhttp.Transport,
+		},
 	}
 
 	for _, opt := range opts {
@@ -56,10 +69,7 @@ func NewClient(apiKey string, opts ...OptFunc) ApiClient {
 		Headers: map[string]string{
 			"User-Agent": "autobrr",
 		},
-		HTTPClient: &http.Client{
-			Timeout:   time.Second * 60,
-			Transport: sharedhttp.Transport,
-		},
+		HTTPClient: c.httpClient,
 	})
 
 	if c.Log == nil {
