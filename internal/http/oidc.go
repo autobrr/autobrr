@@ -307,10 +307,10 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.sessionManager.Cookie.SameSite = http.SameSiteLaxMode
 	h.sessionManager.Cookie.Path = h.config.BaseURL
 
-	// If forwarded protocol is https then set cookie secure
+	// If forwarded protocol is https then set cookie secure. We keep SameSite=Lax to allow the
+	// session cookie to accompany OIDC callbacks originating from another domain.
 	if r.Header.Get("X-Forwarded-Proto") == "https" {
 		h.sessionManager.Cookie.Secure = true
-		h.sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 	}
 
 	// Set session values using sessionManager

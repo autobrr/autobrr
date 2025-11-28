@@ -181,12 +181,7 @@ func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
 		proxyUrl.User = url.UserPassword(p.User, p.Pass)
 	}
 
-	transport := sharedhttp.ProxyTransport
-
-	// set user and pass if not empty
-	if p.User != "" && p.Pass != "" {
-		proxyUrl.User = url.UserPassword(p.User, p.Pass)
-	}
+	transport := sharedhttp.ProxyTransport.Clone()
 
 	switch p.Type {
 	case domain.ProxyTypeSocks5:
@@ -200,7 +195,10 @@ func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
 			return nil, errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
 		}
 
+		transport.Proxy = nil
 		transport.DialContext = proxyContextDialer.DialContext
+	case domain.ProxyTypeHTTP:
+		transport.Proxy = http.ProxyURL(proxyUrl)
 
 	default:
 		return nil, errors.New("invalid proxy type: %s", p.Type)
