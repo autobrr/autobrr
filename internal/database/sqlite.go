@@ -28,7 +28,42 @@ func (db *DB) openSQLite() error {
 
 	var err error
 
-	pragmas := "?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=analysis_limit(400)&_pragma=synchronous(NORMAL)&_pragma=mmap_size(268435456)&_pragma=page_size(4096)&_pragma=cache_size(-64000)"
+	pragmaSlice := []string{
+		// Set busy timeout to 10 seconds. It forces the driver to keep retrying a locked operation before giving up.
+		"?_pragma=busy_timeout(10000)",
+
+		// Enable Write-Ahead Logging (WAL). SQLite performs better with the WAL because it allows
+		// multiple readers to operate while data is being written.
+		"_pragma=journal_mode(WAL)",
+
+		// Default is FULL. Reducing this to NORMAL saves a significant amount of disk I/O (fsyncs).
+		"_pragma=synchronous(NORMAL)",
+
+		// When Autobrr does not cleanly shut down, the WAL will still be present and not committed.
+		// This is a no-op if the WAL is empty, and a commit when the WAL is not to start fresh.
+		// When commits hit 1000, PRAGMA wal_checkpoint(PASSIVE); is invoked which tries its best
+		// to commit from the WAL (and can fail to commit all pending operations).
+		// Forcing a PRAGMA wal_checkpoint(RESTART); in the future on a "quiet period" could be
+		// considered.
+		//"_pragma=wal_checkpoint(TRUNCATE)",
+
+		// SQLite has a query planner that uses lifecycle stats to fund optimizations.
+		// This restricts the SQLite query planner optimizer to only run if sufficient
+		// information has been gathered over the lifecycle of the connection.
+		// The SQLite documentation is inconsistent in this regard,
+		// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
+		"_pragma=analysis_limit(400)",
+
+		// Memory-mapping the first 256MB of the database
+		// allows SQLite to read the file directly from memory, bypassing system call overhead.
+		"_pragma=mmap_size(268435456)",
+
+		// The default cache size is usually small (~2MB).
+		// Bumping this to 64MB reduces disk reads significantly
+		"_pragma=cache_size(-64000)",
+
+		"_pragma=page_size(4096)",
+	}
 
 	if os.Getenv("IS_TEST_ENV") == "true" {
 		// Enable foreign key checks. For historical reasons, SQLite does not check
@@ -36,56 +71,20 @@ func (db *DB) openSQLite() error {
 		// verify foreign key integrity, but it's definitely worth it.
 
 		// Enable it for testing for consistency with postgres.
-
-		pragmas += "&_pragma=foreign_keys(ON)"
-		//if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-		//	return errors.New("foreign keys pragma")
-		//}
+		pragmaSlice = append(pragmaSlice, "_pragma=foreign_keys(ON)")
 	}
+
+	pragmas := strings.Join(pragmaSlice, "&")
 
 	// open database connection
 	if db.Handler, err = sql.Open("sqlite", db.DSN+pragmas); err != nil {
 		return errors.Wrap(err, "could not open db connection")
 	}
+
 	db.Handler.SetMaxOpenConns(1)
 	db.Handler.SetMaxIdleConns(5)
 	db.Handler.SetConnMaxLifetime(0)
 
-	/*	// Set busy timeout
-		if _, err = db.Handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
-			return errors.Wrap(err, "busy timeout pragma")
-		}
-
-		// Enable WAL. SQLite performs better with the WAL  because it allows
-		// multiple readers to operate while data is being written.
-		if _, err = db.Handler.Exec(`PRAGMA journal_mode = wal;`); err != nil {
-			return errors.Wrap(err, "enable wal")
-		}
-
-		// SQLite has a query planner that uses lifecycle stats to fund optimizations.
-		// This restricts the SQLite query planner optimizer to only run if sufficient
-		// information has been gathered over the lifecycle of the connection.
-		// The SQLite documentation is inconsistent in this regard,
-		// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
-		if _, err = db.Handler.Exec(`PRAGMA analysis_limit = 400;`); err != nil {
-			return errors.Wrap(err, "analysis_limit")
-		}
-
-		// When Autobrr does not cleanly shutdown, the WAL will still be present and not committed.
-		// This is a no-op if the WAL is empty, and a commit when the WAL is not to start fresh.
-		// When commits hit 1000, PRAGMA wal_checkpoint(PASSIVE); is invoked which tries its best
-		// to commit from the WAL (and can fail to commit all pending operations).
-		// Forcing a PRAGMA wal_checkpoint(RESTART); in the future on a "quiet period" could be
-		// considered.
-		if _, err = db.Handler.Exec(`PRAGMA wal_checkpoint(TRUNCATE);`); err != nil {
-			return errors.Wrap(err, "commit wal")
-		}
-
-
-		//if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-		//	return errors.New("foreign keys pragma: %w", err)
-		//}
-	*/
 	// migrate db
 	if db.cfg.DatabaseAutoMigrate {
 		if err = db.migrateSQLite(); err != nil {

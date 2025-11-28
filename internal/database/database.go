@@ -167,18 +167,6 @@ func (db *DB) Close() error {
 	return nil
 }
 
-//func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-//	return db.Handler.ExecContext(ctx, query, args...)
-//}
-//
-//func (db *DB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-//	return db.Handler.QueryContext(ctx, query, args...)
-//}
-//
-//func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-//	return db.Handler.QueryRowContext(ctx, query, args...)
-//}
-
 func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (rows *sql.Rows, err error) {
 	start := time.Now()
 
@@ -194,17 +182,6 @@ func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (rows
 		}
 
 		logEvent.Str("query", query).Interface("args", args).Dur("duration", duration).Msg("database query")
-
-		//if duration > slowQueryThreshold {
-		//	logEvent = db.log.Warn().Bool("slow_query", true)
-		//}
-		//logEvent.Str("query", query).Interface("args", args).Dur("duration", duration)
-		//
-		//if err != nil {
-		//	logEvent.Err(err).Msg("database query error")
-		//} else {
-		//	logEvent.Msg("database query")
-		//}
 	}()
 
 	rows, err = db.Handler.QueryContext(ctx, query, args...)
