@@ -28,7 +28,7 @@ func WithUrl(url string) OptFunc {
 	}
 }
 
-func NewMockClient(apiKey string, opts ...OptFunc) IndexerApiClient {
+func NewMockClient(apiKey string, opts ...OptFunc) *IndexerClient {
 	c := &IndexerClient{
 		url:    "",
 		APIKey: apiKey,
@@ -41,7 +41,7 @@ func NewMockClient(apiKey string, opts ...OptFunc) IndexerApiClient {
 	return c
 }
 
-func (c *IndexerClient) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
+func (c *IndexerClient) GetTorrentByID(_ context.Context, torrentID string) (*domain.TorrentBasic, error) {
 	if torrentID == "" {
 		return nil, errors.New("mock client: must have torrentID")
 	}
@@ -57,6 +57,6 @@ func (c *IndexerClient) GetTorrentByID(ctx context.Context, torrentID string) (*
 }
 
 // TestAPI try api access against torrents page
-func (c *IndexerClient) TestAPI(ctx context.Context) (bool, error) {
+func (c *IndexerClient) TestAPI(_ context.Context) (bool, error) {
 	return true, nil
 }

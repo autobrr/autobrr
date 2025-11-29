@@ -207,6 +207,7 @@ function DeleteReleases() {
   const releaseStatusOptions = [
     { label: "Approved", value: "PUSH_APPROVED" },
     { label: "Rejected", value: "PUSH_REJECTED" },
+    { label: "Pending", value: "PENDING" },
     { label: "Errored", value: "PUSH_ERROR" }
   ];
 
