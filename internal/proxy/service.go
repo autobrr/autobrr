@@ -205,7 +205,7 @@ func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
 	}
 
 	client := &http.Client{
-		Timeout:   30 * time.Second,
+		Timeout:   60 * time.Second,
 		Transport: transport,
 	}
 
