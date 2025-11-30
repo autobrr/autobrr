@@ -19,7 +19,11 @@ import { ReleaseProfileDuplicateList } from "@api/queries.ts";
 import { EmptySimple } from "@components/emptystates";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { ReleaseProfileDuplicateAddForm, ReleaseProfileDuplicateUpdateForm } from "@forms/settings/ReleaseForms.tsx";
-import { classNames } from "@utils";
+import { CleanupJobAddForm, CleanupJobUpdateForm } from "@forms/settings/CleanupJobForms.tsx";
+import { Checkbox } from "@components/Checkbox";
+import { format } from "date-fns";
+import { classNames, formatHoursAsDuration } from "@utils";
+import { PushStatusOptions } from "@domain/constants";
 
 const ReleaseSettings = () => (
   <div className="lg:col-span-9">
@@ -27,6 +31,22 @@ const ReleaseSettings = () => (
 
     <div className="py-6 px-4 sm:p-6">
       <div className="border border-red-500 rounded-sm">
+        {/* Warning about dangerous operations */}
+        <div className="px-6 pt-6 pb-4">
+          <span className="text-red-600 dark:text-red-500">
+            <strong>Warning:</strong> This section manages release history deletion. Automated cleanup jobs run on schedules, while manual deletion allows immediate one-time cleanup. Both operations permanently delete data and cannot be undone.
+          </span>
+          <ul className="list-disc pl-5 mt-4 text-sm text-gray-500 dark:text-gray-400">
+            <li>
+              <strong className="text-gray-600 dark:text-gray-300">Older than</strong> - How old releases must be before deletion (Required for both automated and manual deletion)
+            </li>
+            <li><strong className="text-gray-600 dark:text-gray-300">Indexers</strong> - Optional filter (if none selected, applies to all indexers)</li>
+            <li><strong className="text-gray-600 dark:text-gray-300">Release statuses</strong> - Optional filter (if none selected, applies to all release statuses)</li>
+          </ul>
+        </div>
+
+        <ReleaseCleanupJobs/>
+
         <div className="py-6 px-4 sm:p-6">
           <DeleteReleases/>
         </div>
@@ -160,6 +180,232 @@ function ReleaseProfileDuplicates() {
   )
 }
 
+function ReleaseCleanupJobs() {
+  const [addPanelIsOpen, toggleAdd] = useToggle(false);
+
+  const cleanupJobsQuery = useSuspenseQuery({
+    queryKey: ReleaseKeys.cleanupJobs.lists(),
+    queryFn: () => APIClient.release.cleanupJobs.list()
+  });
+
+  return (
+    <Section
+      title="Release Cleanup Jobs"
+      description="Schedule automatic cleanup of old releases with custom filters."
+      rightSide={
+        <button
+          type="button"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          onClick={toggleAdd}
+        >
+          <PlusIcon className="h-5 w-5 mr-1"/>
+          Add new
+        </button>
+      }
+    >
+      <CleanupJobAddForm isOpen={addPanelIsOpen} toggle={toggleAdd}/>
+
+      <div className="flex flex-col">
+        {cleanupJobsQuery.data.length > 0 ? (
+          <ul className="min-w-full relative">
+            <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
+              <div className="col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Enabled
+              </div>
+              <div className="col-span-3 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Name
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Schedule
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Retention
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Last Run
+              </div>
+              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Next Run
+              </div>
+            </li>
+            {cleanupJobsQuery.data.map((job) => (
+              <CleanupJobListItem key={job.id} job={job}/>
+            ))}
+          </ul>
+        ) : (
+          <EmptySimple
+            title="No cleanup jobs"
+            subtitle="Create automated cleanup schedules"
+            buttonText="Add new job"
+            buttonAction={toggleAdd}
+          />
+        )}
+      </div>
+    </Section>
+  );
+}
+
+interface CleanupJobListItemProps {
+  job: ReleaseCleanupJob;
+}
+
+function CleanupJobListItem({ job }: CleanupJobListItemProps) {
+  const [updatePanelIsOpen, toggleUpdatePanel] = useToggle(false);
+  const queryClient = useQueryClient();
+
+  // Get indexer options to check if all are selected
+  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
+    queryKey: ['indexers'],
+    queryFn: () => APIClient.indexers.getAll(),
+    select: data => data.map(indexer => ({
+      identifier: indexer.identifier,
+      name: indexer.name
+    })),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: (enabled: boolean) => APIClient.release.cleanupJobs.toggleEnabled(job.id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
+      toast.custom(t => <Toast type="success" body={`${job.name} ${job.enabled ? "disabled" : "enabled"}`} t={t} />);
+    }
+  });
+
+  const forceRunMutation = useMutation({
+    mutationFn: () => APIClient.release.cleanupJobs.forceRun(job.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
+      toast.custom(t => <Toast type="success" body={`${job.name} triggered`} t={t} />);
+    }
+  });
+
+  // Format next_run timestamp (or "Not scheduled" if disabled)
+  const nextRunDisplay = job.enabled && job.next_run !== "0001-01-01T00:00:00Z"
+    ? format(new Date(job.next_run), "MMM d, HH:mm")
+    : "—";
+
+  // Format last_run status
+  const lastRunDisplay = job.last_run !== "0001-01-01T00:00:00Z"
+    ? job.last_run_status
+    : "Never";
+
+  return (
+    <li>
+      <CleanupJobUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={job}/>
+
+      {/* Row 1: Main job info */}
+      <div className="grid grid-cols-12 items-center py-1">
+        {/* Enabled Toggle */}
+        <div className="col-span-1 flex pl-1 sm:pl-4 items-center">
+          <Checkbox
+            value={job.enabled}
+            setValue={(newValue) => toggleMutation.mutate(newValue)}
+          />
+        </div>
+
+        {/* Name (without badges) */}
+        <div className="col-span-3 pl-12 pr-6 py-3 text-sm font-medium text-gray-900 dark:text-white truncate" title={job.name}>
+          {job.name}
+        </div>
+
+        {/* Schedule */}
+        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
+          <span className="font-mono text-xs">{job.schedule}</span>
+        </div>
+
+        {/* Retention (older_than) */}
+        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
+          {formatHoursAsDuration(job.older_than)}
+        </div>
+
+        {/* Last Run Status */}
+        <div className="col-span-2 py-3 text-sm">
+          <span className={classNames(
+            "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
+            job.last_run_status === "SUCCESS"
+              ? "bg-green-100 dark:bg-green-400/10 text-green-700 dark:text-green-400 ring-green-700/10 dark:ring-green-400/30"
+              : job.last_run_status === "ERROR"
+              ? "bg-red-100 dark:bg-red-400/10 text-red-700 dark:text-red-400 ring-red-700/10 dark:ring-red-400/30"
+              : "bg-gray-100 dark:bg-gray-400/10 text-gray-600 dark:text-gray-400 ring-gray-500/10 dark:ring-gray-400/30"
+          )}>
+            {lastRunDisplay}
+          </span>
+        </div>
+
+        {/* Next Run */}
+        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
+          {nextRunDisplay}
+        </div>
+      </div>
+
+      {/* Row 2: Filter badges (left) + Actions (right) */}
+      <div className="grid grid-cols-12 items-center py-0.5">
+        <div className="col-span-1" />
+        <div className="col-span-8 pl-12 flex gap-x-0.5 flex-row flex-wrap">
+          {/* Indexer badges */}
+          {(() => {
+            if (!job.indexers) {
+              // No indexers selected = all indexers
+              return <EnabledPill value={false} label="All Indexers" title="Applies to all indexers" />;
+            }
+            const selectedIndexers = job.indexers.split(',').filter(Boolean);
+            const totalIndexers = indexerOptions?.length || 0;
+            if (totalIndexers > 0 && selectedIndexers.length === totalIndexers) {
+              // All indexers explicitly selected = show as "All Indexers"
+              return <EnabledPill value={false} label="All Indexers" title="Applies to all indexers" />;
+            }
+            // Some indexers selected = show blue badges with full names
+            return selectedIndexers.map((idx) => {
+              const indexerDef = indexerOptions?.find(opt => opt.identifier === idx);
+              const displayName = indexerDef?.name || idx.toUpperCase();
+              return (
+                <EnabledPill
+                  key={`idx-${idx}`}
+                  value={true}
+                  label={displayName}
+                  title={`Indexer: ${displayName}`}
+                />
+              );
+            });
+          })()}
+          {/* Status badges */}
+          {(() => {
+            if (!job.statuses) {
+              // No statuses selected = all statuses
+              return <EnabledPill value={false} label="All Statuses" title="Applies to all release statuses" />;
+            }
+            const selectedStatuses = job.statuses.split(',').filter(Boolean);
+            if (selectedStatuses.length === PushStatusOptions.length) {
+              // All statuses explicitly selected = show as "All Statuses"
+              return <EnabledPill value={false} label="All Statuses" title="Applies to all release statuses" />;
+            }
+            // Some statuses selected = show blue badges
+            return selectedStatuses.map((status) => {
+              const statusOption = PushStatusOptions.find(opt => opt.value === status);
+              const label = statusOption?.label || status;
+              return <EnabledPill key={`status-${status}`} value={true} label={label} title={`Status: ${label}`} />;
+            });
+          })()}
+        </div>
+
+        {/* Actions - right aligned */}
+        <div className="col-span-3 flex gap-2 justify-end pr-6">
+          <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer text-sm" onClick={toggleUpdatePanel}>
+            Edit
+          </span>
+          <span className="text-gray-400">|</span>
+          <span
+            className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer text-sm"
+            onClick={() => forceRunMutation.mutate()}
+          >
+            Run Now
+          </span>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 const getDurationLabel = (durationValue: number): string => {
   const durationOptions: Record<number, string> = {
     0: "all time",
@@ -203,13 +449,6 @@ function DeleteReleases() {
       name: indexer.name
     })),
   });
-
-  const releaseStatusOptions = [
-    { label: "Approved", value: "PUSH_APPROVED" },
-    { label: "Rejected", value: "PUSH_REJECTED" },
-    { label: "Pending", value: "PENDING" },
-    { label: "Errored", value: "PUSH_ERROR" }
-  ];
 
   const deleteOlderMutation = useMutation({
     mutationFn: (params: { olderThan: number, indexers: string[], releaseStatuses: string[] }) =>
@@ -261,18 +500,6 @@ function DeleteReleases() {
             Select the criteria below to permanently delete release history records that are older than the chosen age
             and optionally match the selected indexers and release statuses:
           </p>
-            <ul className="list-disc pl-5 my-4 text-sm text-gray-500 dark:text-gray-400">
-              <li>
-                Older than (e.g., 6 months - all records older than 6 months will be deleted) - <strong
-                className="text-gray-600 dark:text-gray-300">Required</strong>
-              </li>
-              <li>Indexers - Optional (if none selected, applies to all indexers)</li>
-              <li>Release statuses - Optional (if none selected, applies to all release statuses)</li>
-            </ul>
-            <span className="pt-2 text-red-600 dark:text-red-500">
-              <strong>Warning:</strong> If no indexers or release statuses are selected, all release history records
-              older than the selected age will be permanently deleted, regardless of indexer or status.
-            </span>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 pt-4 items-center text-sm">
@@ -294,7 +521,7 @@ function DeleteReleases() {
             },
             {
               label: 'Release statuses:',
-              content: <RMSC options={releaseStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
+              content: <RMSC options={PushStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
                              labelledBy="Select release statuses"/>
             }
           ].map((item, index) => (
