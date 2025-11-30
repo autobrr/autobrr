@@ -40,6 +40,12 @@ func WithHTTPClient(httpClient *http.Client) OptFunc {
 	}
 }
 
+func WithLog(log *log.Logger) OptFunc {
+	return func(c *Client) {
+		c.Log = log
+	}
+}
+
 type Client struct {
 	httpClient  *http.Client
 	rpcClient   jsonrpc.Client
@@ -59,6 +65,7 @@ func NewClient(apiKey string, opts ...OptFunc) *Client {
 			Timeout:   time.Second * 60,
 			Transport: sharedhttp.Transport,
 		},
+		Log: log.New(io.Discard, "", log.LstdFlags),
 	}
 
 	for _, opt := range opts {
@@ -71,10 +78,6 @@ func NewClient(apiKey string, opts ...OptFunc) *Client {
 		},
 		HTTPClient: c.httpClient,
 	})
-
-	if c.Log == nil {
-		c.Log = log.New(io.Discard, "", log.LstdFlags)
-	}
 
 	return c
 }
