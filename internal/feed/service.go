@@ -71,6 +71,7 @@ type service struct {
 	releaseSvc release.Service
 	proxySvc   proxy.Service
 	scheduler  scheduler.Service
+	feedSlots  chan struct{}
 }
 
 func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, proxySvc proxy.Service, scheduler scheduler.Service) Service {
@@ -82,6 +83,7 @@ func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCa
 		releaseSvc: releaseSvc,
 		proxySvc:   proxySvc,
 		scheduler:  scheduler,
+		feedSlots:  make(chan struct{}, 1),
 	}
 }
 
@@ -543,7 +545,7 @@ func (s *service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
 	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
-	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc, s.feedSlots)
 
 	return job, nil
 }
@@ -562,7 +564,7 @@ func (s *service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
 	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
 
 	// create job
-	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc, s.feedSlots)
 
 	return job, nil
 }
@@ -582,7 +584,7 @@ func (s *service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
 	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// create job
-	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
+	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout, s.feedSlots)
 
 	return job, nil
 }

@@ -26,6 +26,7 @@ type NewznabJob struct {
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
+	Slots      chan struct{}
 
 	attempts int
 	errors   []error
@@ -33,7 +34,7 @@ type NewznabJob struct {
 	JobID int
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
+func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc, slots chan struct{}) RefreshFeedJob {
 	return &NewznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -43,6 +44,7 @@ func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url strin
 		Repo:       repo,
 		CacheRepo:  cacheRepo,
 		ReleaseSvc: releaseSvc,
+		Slots:      slots,
 	}
 }
 
@@ -60,6 +62,15 @@ func (j *NewznabJob) Run() {
 }
 
 func (j *NewznabJob) RunE(ctx context.Context) error {
+	if j.Slots != nil {
+		select {
+		case j.Slots <- struct{}{}:
+			defer func() { <-j.Slots }()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
 	if err := j.process(ctx); err != nil {
 		j.Log.Err(err).Msg("newznab process error")
 		return err
@@ -222,12 +233,9 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	}
 
 	if len(toCache) > 0 {
-		go func(items []domain.FeedCacheItem) {
-			ctx := context.Background()
-			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
-				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
-			}
-		}(toCache)
+		if err := j.CacheRepo.PutMany(ctx, toCache); err != nil {
+			j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+		}
 	}
 
 	// send to filters
