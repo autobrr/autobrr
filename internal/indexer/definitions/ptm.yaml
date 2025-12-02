@@ -48,6 +48,13 @@ irc:
       label: NickServ Password
       help: NickServ password
 
+    - name: invite_command
+      type: secret
+      default: "GateKeeper enter IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with GateKeeper. Replace IRCKEY. Select channels to join on your user Profile.
+
   parse:
     type: single
     lines:
