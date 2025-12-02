@@ -4,6 +4,7 @@
 package notification
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -77,6 +78,22 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 	data.Set("title", m.Title)
 	data.Set("timestamp", fmt.Sprintf("%v", m.Timestamp.Unix()))
 	data.Set("html", fmt.Sprintf("%v", m.Html))
+
+	// Use event-specific sound if available, otherwise fall back to global sound
+	sound := ""
+	if s.Settings.EventSounds != nil {
+		if eventSound, ok := s.Settings.EventSounds[string(event)]; ok && eventSound != "" {
+			sound = eventSound
+		}
+	}
+	// Fall back to global sound if no event-specific sound
+	if sound == "" && s.Settings.Sound != "" {
+		sound = s.Settings.Sound
+	}
+	// Only send sound parameter if a sound is specified (empty means use user's default)
+	if sound != "" {
+		data.Set("sound", sound)
+	}
 
 	if m.Priority == 2 {
 		data.Set("expire", "3600")
@@ -166,4 +183,56 @@ func (s *pushoverSender) IsEnabled() bool {
 
 func (s *pushoverSender) isEnabledEvent(event domain.NotificationEvent) bool {
 	return s.Settings.EventEnabled(string(event))
+}
+
+// GetSounds fetches available sounds from Pushover API
+func GetPushoverSounds(apiToken string) (map[string]string, error) {
+	if apiToken == "" {
+		return nil, errors.New("api token is required")
+	}
+
+	url := fmt.Sprintf("https://api.pushover.net/1/sounds.json?token=%s", apiToken)
+
+	client := &http.Client{
+		Timeout:   time.Second * 30,
+		Transport: sharedhttp.Transport,
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create request")
+	}
+
+	req.Header.Set("User-Agent", "autobrr")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "client request error")
+	}
+
+	defer sharedhttp.DrainAndClose(res)
+
+	if res.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(res.Body, 4096)
+		body, err := io.ReadAll(limitedReader)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not read body")
+		}
+		return nil, errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
+	}
+
+	var response struct {
+		Status int               `json:"status"`
+		Sounds map[string]string `json:"sounds"`
+	}
+
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		return nil, errors.Wrap(err, "could not decode response")
+	}
+
+	if response.Status != 1 {
+		return nil, errors.New("pushover API returned error status: %d", response.Status)
+	}
+
+	return response.Sounds, nil
 }
