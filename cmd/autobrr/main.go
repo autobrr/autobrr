@@ -57,7 +57,7 @@ var (
 
 func main() {
 	var configPath, profilePath string
-	pflag.StringVar(&configPath, "config", "", "path to configuration file")
+	pflag.StringVar(&configPath, "config", "", "path to configuration directory")
 	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
 	pflag.Parse()
 
