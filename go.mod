@@ -11,6 +11,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/alexedwards/scs/postgresstore v0.0.0-20250417082927-ab20b3feb5e9
 	github.com/alexedwards/scs/v2 v2.9.0
+	github.com/alphadose/haxmap v1.4.1
 	github.com/anacrolix/torrent v1.59.1
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.3.0
@@ -32,6 +33,7 @@ require (
 	github.com/hashicorp/go-version v1.8.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	github.com/icholy/digest v1.1.0
+	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/lib/pq v1.10.9
 	github.com/magiconair/properties v1.8.10
 	github.com/mmcdole/gofeed v1.3.0

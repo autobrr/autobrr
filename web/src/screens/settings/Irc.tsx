@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
@@ -29,6 +29,13 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SettingsContext } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
+import {
+  useIrcChannelWithHistory,
+  useIrcNetworkHealthSync,
+  useIrcNetworkStateSync,
+  type IrcHealthEvent,
+  type IrcStateEvent
+} from "@hooks/useIrcEvents";
 
 import { Section } from "./_components";
 import { RingResizeSpinner } from "@components/Icons.tsx";
@@ -92,7 +99,74 @@ const IrcSettings = () => {
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const ircQuery = useSuspenseQuery(IrcQueryOptions())
+  const queryClient = useQueryClient();
+  const ircQuery = useSuspenseQuery(IrcQueryOptions());
+  const networkIds = useMemo(
+    () => ircQuery.data?.map(n => n.id) ?? [],
+    [ircQuery.data]
+  );
+
+  const handleHealthEvent = useCallback((healthEvent: IrcHealthEvent) => {
+    queryClient.setQueryData<IrcNetworkWithHealth[]>(
+      IrcKeys.lists(),
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        return oldData.map(network =>
+          network.id === healthEvent.network
+            ? {
+                ...network,
+                healthy: healthEvent.healthy,
+                connected_since: healthEvent.connected_since || network.connected_since,
+                connection_errors: healthEvent.connection_errors || network.connection_errors
+              }
+            : network
+        );
+      }
+    );
+  }, [queryClient]);
+
+  // Subscribe to health events for all networks and update cache
+  useIrcNetworkHealthSync(
+    networkIds,
+    handleHealthEvent
+  );
+
+  const handleStateEvent = useCallback((stateEvent: IrcStateEvent) => {
+    queryClient.setQueryData<IrcNetworkWithHealth[]>(
+      IrcKeys.lists(),
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        return oldData.map(network => {
+          if (network.id !== stateEvent.network) return network;
+
+          const updatedNetwork = {
+            ...network,
+            channels: network.channels.map(channel => {
+              if (channel.name !== stateEvent.channel) return channel;
+
+              return {
+                ...channel,
+                state: stateEvent.state,
+                monitoring: stateEvent.state === "Monitoring",
+              };
+            })
+          };
+
+          updatedNetwork.healthy = updatedNetwork.channels.every(channel => channel.state === "Monitoring");
+          updatedNetwork.connected_since = stateEvent.time;
+
+          return updatedNetwork;
+        });
+      }
+    );
+  }, [queryClient]);
+
+  useIrcNetworkStateSync(
+    networkIds,
+    handleStateEvent
+  );
 
   const sortedNetworks = useSort(ircQuery.data || []);
 
@@ -362,17 +436,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
         <div className="col-span-5 sm:col-span-4 flex items-center md:px-6 pl-2 sm:pl-0">
           <span className="relative inline-flex items-center">
             {network.enabled ? (
-              channel.monitoring ? (
-                <span
-                  className="mr-3 flex h-3 w-3 relative"
-                  title="monitoring"
-                >
-                  <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
-                </span>
-              ) : (
-                <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
-              )
+              <IrcChannelStatePill state={channel.state} />
             ) : (
               <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
             )}
@@ -401,6 +465,59 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
     </li>
   );
 };
+
+function IrcChannelStatePill({ state }: { state: IrcChannelState }) {
+  const stateMap: Record<IrcChannelState, string> = {
+    Idle: "Idle",
+    AwaitingInvite: "Awaiting invite",
+    AwaitingInviteBot: "Awaiting invite bot, might not be present yet",
+    InviteFailed: "Invite failed",
+    InviteFailedNoSuchNick: "Invite failed, invite bot not present",
+    Joining: "Joining",
+    Monitoring: "Monitoring",
+    Kicked: "Kicked",
+    Parted: "Parting",
+    Disabled: "Disabled",
+    Error: "Error",
+    Unknown: "Unknown"
+  }
+    switch (state) {
+     case "Idle":
+       return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+      case "AwaitingInvite":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-teal-500" title={stateMap[state]} />
+      case "AwaitingInviteBot":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-300" title={stateMap[state]} />
+      case "InviteFailed":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={stateMap[state]} />
+      case "InviteFailedNoSuchNick":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-500" title={stateMap[state]} />
+      case "Joining":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-blue-500" title={stateMap[state]} />
+      case "Monitoring":
+        return (
+          <span
+            className="mr-3 flex h-3 w-3 relative"
+            title={stateMap[state]}
+          >
+            <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
+          </span>
+        )
+      case "Kicked":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-orange-500" title={stateMap[state]} />
+      case "Parted":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+      case "Disabled":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+      case "Error":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={stateMap[state]} />
+      case "Unknown":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+      default:
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+    }
+}
 
 interface ListItemDropdownProps {
   network: IrcNetwork;
@@ -620,41 +737,14 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
 
 }
 
-type IrcEvent = {
-  channel: string;
-  nick: string;
-  msg: string;
-  time: string;
-};
-
-// type IrcMsg = {
-//   msg: string;
-// };
-
 interface EventsProps {
   network: IrcNetwork;
   channel: string;
 }
 
 export const Events = ({ network, channel }: EventsProps) => {
-  const [logs, setLogs] = useState<IrcEvent[]>([]);
   const [settings] = SettingsContext.use();
-
-  useEffect(() => {
-    // Following RFC4648
-    const key = window.btoa(`${network.id}${channel.toLowerCase()}`)
-      .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replaceAll("=", "");
-    const es = APIClient.irc.events(key);
-
-    es.onmessage = (event) => {
-      const newData = JSON.parse(event.data) as IrcEvent;
-      setLogs((prevState) => [...prevState, newData]);
-    };
-
-    return () => es.close();
-  }, [channel, network.id, settings]);
+  const { events: logs } = useIrcChannelWithHistory(network.id, channel, 100, true);
 
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
@@ -683,11 +773,6 @@ export const Events = ({ network, channel }: EventsProps) => {
     if (settings.scrollOnNewLog)
       scrollToBottom();
   }, [logs, settings.scrollOnNewLog]);
-
-  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
-  useEffect(() => {
-    setLogs([]);
-  }, [settings.scrollOnNewLog]);
 
   useEffect(() => {
     document.body.classList.toggle("overflow-hidden", isFullscreen);
