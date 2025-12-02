@@ -96,6 +96,17 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 
+		for _, response := range badRequestResponses {
+			if strings.EqualFold(response.PropertyName, "DownloadClient") || strings.EqualFold(response.PropertyName, "DownloadClientId") {
+				rejections := make([]string, 0, len(badRequestResponses))
+				for _, r := range badRequestResponses {
+					rejections = append(rejections, r.String())
+				}
+
+				return nil, errors.New("radarr push failed due to invalid configuration: %s", strings.Join(rejections, "; "))
+			}
+		}
+
 		rejections := []string{}
 		for _, response := range badRequestResponses {
 			rejections = append(rejections, response.String())
