@@ -18,6 +18,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type Processor interface {
+	Process(release *domain.Release)
+}
+
 type Service interface {
 	Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error)
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)

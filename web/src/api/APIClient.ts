@@ -7,6 +7,7 @@ import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
 import { AuthContext, AuthInfo } from "@utils/Context";
 import { ColumnFilter } from "@tanstack/react-table";
+import { IrcEvent } from "@hooks/useIrcEvents";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
@@ -391,6 +392,14 @@ export const APIClient = {
     reprocessAnnounce: (networkId: number, channel: string, msg: string) => appClient.Post(`api/irc/network/${networkId}/channel/${channel}/announce/process`, {
       body: { msg: msg }
     }),
+    getChannelHistory: (networkId: number, channel: string, limit?: number) =>
+      appClient.Get<IrcEvent[]>(`api/irc/network/${networkId}/channel/${channel}/history`, {
+        queryString: { limit }
+      }),
+    allEvents: () => new EventSource(
+      `${sseBaseUrl()}api/irc/events?stream=irc`,
+      { withCredentials: true }
+    ),
     events: (network: string) => new EventSource(
       `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
       { withCredentials: true }
