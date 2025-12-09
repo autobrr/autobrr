@@ -6,6 +6,7 @@ package irc
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/url"
 	"slices"
 	"strings"
@@ -85,6 +86,7 @@ type Handler struct {
 	notificationService notification.Sender
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
+	bindAddress         string
 
 	client      *ircevent.Connection
 	clientState ircState
@@ -106,7 +108,7 @@ type Handler struct {
 	saslauthed    bool
 }
 
-func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Sender) *Handler {
+func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Sender, bindAddress string) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,
@@ -122,6 +124,7 @@ func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, 
 		authenticated:       false,
 		saslauthed:          false,
 		connectionErrors:    []string{},
+		bindAddress:         bindAddress,
 	}
 
 	// init indexer, announceProcessor
@@ -251,6 +254,18 @@ func (h *Handler) Run() (err error) {
 
 			client.DialContext = proxyContextDialer.DialContext
 		}
+	} else if h.bindAddress != "" {
+		// If no proxy is used, but bindAddress is configured, set a custom dialer
+		// to bind outgoing IRC connections to the specified address
+		dialer := &net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			LocalAddr: &net.TCPAddr{
+				IP: net.ParseIP(h.bindAddress),
+			},
+		}
+		client.DialContext = dialer.DialContext
+		h.log.Debug().Msgf("using bind address %s for IRC connection", h.bindAddress)
 	}
 
 	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {

@@ -162,7 +162,7 @@ func main() {
 		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
 		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
-		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
+		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService, cfg.Config.BindAddress)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
 	)

@@ -50,6 +50,7 @@ type service struct {
 	indexerService      indexer.Service
 	notificationService notification.Sender
 	proxyService        proxy.Service
+	bindAddress         string
 
 	indexerMap map[string]string
 	handlers   map[int64]*Handler
@@ -60,7 +61,7 @@ type service struct {
 
 const sseMaxEntries = 1000
 
-func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Sender, proxySvc proxy.Service) Service {
+func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Service, indexerSvc indexer.Service, notificationSvc notification.Sender, proxySvc proxy.Service, bindAddress string) Service {
 	return &service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,
@@ -69,6 +70,7 @@ func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, release
 		indexerService:      indexerSvc,
 		notificationService: notificationSvc,
 		proxyService:        proxySvc,
+		bindAddress:         bindAddress,
 		handlers:            make(map[int64]*Handler),
 	}
 }
@@ -110,7 +112,7 @@ func (s *service) StartHandlers() {
 		network.Channels = channels
 
 		// init new irc handler
-		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
+		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService, s.bindAddress)
 
 		// use network.Server + nick to use multiple indexers with different nick per network
 		// this allows for multiple handlers to one network
@@ -170,7 +172,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 	network.Channels = channels
 
 	// init new irc handler
-	handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
+	handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService, s.bindAddress)
 
 	s.handlers[network.ID] = handler
 	s.lock.Unlock()
