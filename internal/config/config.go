@@ -40,6 +40,14 @@ host = "{{ .host }}"
 #
 port = 7474
 
+# Bind Address
+# IP address or interface to bind outgoing connections to.
+# Useful for systems with multiple network interfaces.
+#
+# Optional
+#
+#bindAddress = ""
+
 # Base url
 # Set custom baseUrl eg /autobrr/ to serve in subdirectory.
 # Not needed for subdomain, or by accessing with the :port directly.
@@ -272,6 +280,7 @@ func (c *AppConfig) defaults() {
 		Version:               "dev",
 		Host:                  "localhost",
 		Port:                  7474,
+		BindAddress:           "",
 		CorsAllowedOrigins:    "*",
 		LogLevel:              "TRACE",
 		LogPath:               "",
@@ -312,6 +321,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvInt("PORT"); v > 0 {
 		c.Config.Port = v
+	}
+
+	if v := GetEnvStr("BIND_ADDRESS"); v != "" {
+		c.Config.BindAddress = v
 	}
 
 	if v := GetEnvStr("CORS_ALLOWED_ORIGINS"); v != "" {

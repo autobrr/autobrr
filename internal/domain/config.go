@@ -8,6 +8,7 @@ type Config struct {
 	ConfigPath              string
 	Host                    string `toml:"host"`
 	Port                    int    `toml:"port"`
+	BindAddress             string `toml:"bindAddress"`
 	CorsAllowedOrigins      string `toml:"corsAllowedOrigins"`
 	LogLevel                string `toml:"logLevel"`
 	LogPath                 string `toml:"logPath"`

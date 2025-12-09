@@ -36,6 +36,7 @@ import (
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 	"github.com/autobrr/autobrr/pkg/sqlite3store"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
@@ -65,6 +66,9 @@ func main() {
 
 	// read config
 	cfg := config.New(configPath, version)
+
+	// init shared HTTP transports with optional bind address
+	sharedhttp.Init(cfg.Config.BindAddress)
 
 	// init new logger
 	log := logger.New(cfg.Config)
