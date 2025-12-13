@@ -37,7 +37,7 @@ irc:
     
     - name: pass
       type: secret
-      required: true
+      required: false
       label: Network password (passkey)
       help: Your profile > Settings > Passkey
 
