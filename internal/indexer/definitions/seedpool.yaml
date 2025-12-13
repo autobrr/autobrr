@@ -34,6 +34,12 @@ irc:
       required: true
       label: Nick
       help: Bot nick. Eg. user_bot
+    
+    - name: pass
+      type: secret
+      required: true
+      label: Network password (passkey)
+      help: Your profile > Settings > Passkey
 
   parse:
     type: single
