@@ -27,8 +27,7 @@ irc:
   channels:
     - "#announce"
   announcers:
-    - seedpool
-    - uploader
+    - SeedServ
   settings:
     - name: nick
       type: text
