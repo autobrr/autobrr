@@ -84,7 +84,7 @@ export const IrcQueryOptions = () =>
     queryKey: IrcKeys.lists(),
     queryFn: () => APIClient.irc.getNetworks(),
     refetchOnWindowFocus: false,
-    refetchInterval: 3000 // Refetch every 3 seconds
+    // refetchInterval: 3000 // Refetch every 3 seconds
   });
 
 export const FeedsQueryOptions = () =>

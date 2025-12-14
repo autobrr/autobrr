@@ -18,6 +18,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type Processor interface {
+	Process(release *domain.Release)
+}
+
 type Service interface {
 	Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error)
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
@@ -234,10 +238,15 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		release.SkipDuplicateProfileID = 0
 		release.SkipDuplicateProfileName = ""
 
+		// clear any previous rate limit receipt
+		release.FilterRateLimitReceipt = nil
+
 		// test filter
 		match, err := s.filterSvc.CheckFilter(ctx, f, release)
 		if err != nil {
 			l.Error().Err(err).Msg("release.Process: error checking filter")
+			// Release rate limit token if we got one but had an error
+			s.releaseRateLimitToken(release)
 			return err
 		}
 
@@ -245,6 +254,9 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectReasons.String())
 
 			l.Debug().Msgf("filter %s rejected release: %s with reasons: %s", f.Name, release.TorrentName, f.RejectReasons.StringTruncated())
+
+			// Release rate limit token since filter didn't match
+			s.releaseRateLimitToken(release)
 			continue
 		}
 
@@ -340,14 +352,38 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		// if we have rejections from arr, continue to next filter
 		if len(rejections) > 0 {
+			// Release rate limit token since actions were rejected
+			s.releaseRateLimitToken(release)
 			continue
 		}
+
+		// all actions run successfully, token is consumed (don't release it)
+		// clear the receipt so it won't be released later
+		release.FilterRateLimitReceipt = nil
 
 		// all actions run, decide to stop or continue here
 		break
 	}
 
 	return nil
+}
+
+// releaseRateLimitToken releases a rate limit token back to the filter's bucket
+// if the release has a receipt stored. This should be called when a filter
+// rejects a release or when actions fail, so the token isn't wasted.
+func (s *service) releaseRateLimitToken(release *domain.Release) {
+	if release.FilterRateLimitReceipt == nil {
+		return
+	}
+
+	// Get the rate limiter from the filter service
+	rateLimiter := s.filterSvc.GetRateLimiter()
+	if rateLimiter == nil {
+		return
+	}
+
+	rateLimiter.Release(release.FilterRateLimitReceipt)
+	release.FilterRateLimitReceipt = nil
 }
 
 func (s *service) ProcessMultiple(releases []*domain.Release) {

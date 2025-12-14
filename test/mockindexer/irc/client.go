@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 type Client struct {
@@ -18,6 +19,8 @@ type Client struct {
 	channelName string
 	nick        string
 	user        string
+
+	users map[string]struct{}
 
 	handler func(c *Client, cmd []string)
 }
@@ -32,12 +35,14 @@ func NewClient(conn net.Conn, botName, channelName string) *Client {
 		channelName: channelName,
 		conn:        conn,
 		writer:      make(chan string),
+		users:       make(map[string]struct{}),
 	}
 
 	client.handler = RegistrationHandler
 
 	go client.readerLoop()
 	go client.writerLoop()
+	go client.pingLoop()
 
 	return client
 }
@@ -59,5 +64,14 @@ func (c *Client) writerLoop() {
 	for cmd := range c.writer {
 		log.Printf("<-- %s", []byte(cmd+"\r\n"))
 		c.conn.Write([]byte(cmd + "\r\n"))
+	}
+}
+
+func (c *Client) pingLoop() {
+	for {
+		for user, _ := range c.users {
+			c.conn.Write([]byte("PING " + user + "\r\n"))
+		}
+		time.Sleep(60 * time.Second)
 	}
 }
