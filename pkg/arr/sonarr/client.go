@@ -13,6 +13,7 @@ import (
 	"path"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) {
@@ -24,7 +25,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 	u.Path = path.Join(u.Path, "/api/v3/", endpoint)
 	reqUrl := u.String()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not build request")
 	}
@@ -40,7 +41,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")
@@ -81,7 +82,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 		return errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return errors.New("response body is nil")
@@ -167,7 +168,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")

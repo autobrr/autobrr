@@ -68,7 +68,7 @@ const (
 	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
 	COUNT(DISTINCT release_id) as "total_count"
 FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = ?;`
+WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = ?;`
 
 	filterDownloadsPG = `SELECT
     COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
@@ -77,7 +77,7 @@ WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = ?;`
     COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
     COUNT(DISTINCT release_id) as "total_count"
 FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PUSH_PENDING') AND filter_id = $1;`
+WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = $1;`
 )
 
 func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
@@ -802,6 +802,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		}
 		return nil, errors.Wrap(err, "error executing query")
 	}
+	defer rows.Close()
 
 	var externalFilters []domain.FilterExternal
 

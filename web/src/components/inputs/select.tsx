@@ -11,6 +11,7 @@ import { MultiSelect as RMSC } from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "@utils";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
+import { SMColSpanClasses } from "./constants";
 
 export interface MultiSelectOption {
   value: string | number;
@@ -44,11 +45,13 @@ export const MultiSelect = ({
     key: value
   });
 
+  const smColClass = columns ? SMColSpanClasses[columns] : "";
+
   return (
     <div
       className={classNames(
         "col-span-12",
-        columns ? `sm:col-span-${columns}` : ""
+        smColClass
       )}
     >
       <label
@@ -99,47 +102,50 @@ export const IndexerMultiSelect = ({
   label,
   options,
   columns
-}: MultiSelectProps) => (
-  <div
-    className={classNames(
-      "col-span-12",
-      columns ? `sm:col-span-${columns}` : ""
-    )}
-  >
-    <label
-      className="block ml-px mb-1 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-      htmlFor={label}
-    >
-      {label}
-    </label>
-
-    <Field name={name} type="select" multiple={true}>
-      {({
-        field,
-        meta,
-        form: { setFieldValue }
-      }: FieldProps) => (
-        <>
-          <RMSC
-            {...field}
-            options={options}
-            labelledBy={name}
-            value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
-              value: item.id, label: item.name
-            }))}
-            onChange={(values: MultiSelectOption[]) => {
-              const item = values && values.map((i) => ({ id: i.value, name: i.label }));
-              setFieldValue(field.name, item);
-            }}
-          />
-          {meta.touched && meta.error && (
-            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-          )}
-        </>
+}: MultiSelectProps) => {
+  const smColClass = columns ? SMColSpanClasses[columns] : "";
+  return (
+    <div
+      className={classNames(
+        "col-span-12",
+        smColClass
       )}
-    </Field>
-  </div>
-);
+    >
+      <label
+        className="block ml-px mb-1 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
+        htmlFor={label}
+      >
+        {label}
+      </label>
+
+      <Field name={name} type="select" multiple={true}>
+        {({
+            field,
+            meta,
+            form: { setFieldValue }
+          }: FieldProps) => (
+          <>
+            <RMSC
+              {...field}
+              options={options}
+              labelledBy={name}
+              value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
+                value: item.id, label: item.name
+              }))}
+              onChange={(values: MultiSelectOption[]) => {
+                const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+                setFieldValue(field.name, item);
+              }}
+            />
+            {meta.touched && meta.error && (
+              <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
+            )}
+          </>
+        )}
+      </Field>
+    </div>
+  );
+}
 
 interface DownloadClientSelectProps {
   name: string;
@@ -273,11 +279,12 @@ export const Select = ({
   columns = 6,
   className
 }: SelectFieldProps) => {
+  const smColClass = SMColSpanClasses[columns] || "sm:col-span-6";
   return (
     <div
       className={classNames(
         className ?? "col-span-12",
-        columns ? `sm:col-span-${columns}` : ""
+        smColClass,
       )}
     >
       <Field name={name} type="select">
@@ -502,8 +509,10 @@ export const AgeSelect = ({
     { value: '0', label: 'Delete everything' }
   ];
 
+  const smColClass = SMColSpanClasses[columns] || 'sm:col-span-6';
+
   return (
-    <div className={`col-span-12 ${columns ? `sm:col-span-${columns}` : ""}`}>
+    <div className={`col-span-12 ${smColClass}`}>
       <Listbox value={duration} onChange={(value) => {
         const parsedValue = parseInt(value, 10);
         setParsedDuration(parsedValue);

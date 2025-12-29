@@ -848,7 +848,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		if err != nil {
 			return errors.Wrap(err, "error downloading file")
 		}
-		defer resp.Body.Close()
+		defer sharedhttp.DrainAndClose(resp)
 
 		// Check server response
 		switch resp.StatusCode {

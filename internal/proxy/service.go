@@ -129,6 +129,17 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.New("invalid proxy type %s", proxy.Type)
 	}
 
+	if proxy.ID > 0 {
+		existingProxy, err := s.repo.FindByID(ctx, proxy.ID)
+		if err != nil {
+			return err
+		}
+
+		if domain.IsRedactedString(proxy.Pass) {
+			proxy.Pass = existingProxy.Pass
+		}
+	}
+
 	if proxy.Addr == "" {
 		return errors.New("proxy addr missing")
 	}
@@ -147,6 +158,8 @@ func (s *service) Test(ctx context.Context, proxy *domain.Proxy) error {
 	if err != nil {
 		return errors.Wrap(err, "could not connect to proxy server: %s", proxy.Addr)
 	}
+
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("got unexpected status code: %d", resp.StatusCode)
@@ -168,12 +181,7 @@ func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
 		proxyUrl.User = url.UserPassword(p.User, p.Pass)
 	}
 
-	transport := sharedhttp.ProxyTransport
-
-	// set user and pass if not empty
-	if p.User != "" && p.Pass != "" {
-		proxyUrl.User = url.UserPassword(p.User, p.Pass)
-	}
+	transport := sharedhttp.ProxyTransport.Clone()
 
 	switch p.Type {
 	case domain.ProxyTypeSocks5:
@@ -187,14 +195,17 @@ func GetProxiedHTTPClient(p *domain.Proxy) (*http.Client, error) {
 			return nil, errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
 		}
 
+		transport.Proxy = nil
 		transport.DialContext = proxyContextDialer.DialContext
+	case domain.ProxyTypeHTTP:
+		transport.Proxy = http.ProxyURL(proxyUrl)
 
 	default:
 		return nil, errors.New("invalid proxy type: %s", p.Type)
 	}
 
 	client := &http.Client{
-		Timeout:   30 * time.Second,
+		Timeout:   60 * time.Second,
 		Transport: transport,
 	}
 

@@ -24,8 +24,8 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/Hellseher/go-shellquote"
 	"github.com/avast/retry-go/v4"
-	"github.com/mattn/go-shellwords"
 	"github.com/rs/zerolog"
 )
 
@@ -876,9 +876,7 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	}
 
 	// we need to split on space into a string slice, so we can spread the args into exec
-	p := shellwords.NewParser()
-	p.ParseBacktick = true
-	commandArgs, err := p.Parse(parsedArgs)
+	commandArgs, err := shellquote.Split(parsedArgs)
 	if err != nil {
 		return 0, errors.Wrap(err, "could not parse into shell-words")
 	}
@@ -1028,12 +1026,12 @@ func (s *service) webhook(ctx context.Context, external domain.FilterExternal, r
 				return 0, errors.Wrap(err, "could not make request for webhook")
 			}
 
-			defer res.Body.Close()
+			defer sharedhttp.DrainAndClose(res)
 
 			l.Debug().Int("status_code", res.StatusCode).Msg("filter external webhook response")
 
 			if s.log.Debug().Enabled() {
-				body, err := io.ReadAll(res.Body)
+				body, err := io.ReadAll(io.LimitReader(res.Body, 4096)) // 4KB limit for debug logging
 				if err != nil {
 					return res.StatusCode, errors.Wrap(err, "could not read request body")
 				}

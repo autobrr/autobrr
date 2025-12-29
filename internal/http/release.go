@@ -236,6 +236,7 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		"PUSH_APPROVED": true,
 		"PUSH_REJECTED": true,
 		"PUSH_ERROR":    true,
+		"PENDING":       true,
 	}
 	var filteredStatuses []string
 	for _, status := range releaseStatuses {

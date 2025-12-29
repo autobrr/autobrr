@@ -409,6 +409,10 @@ export const PushStatusOptions: OptionBasic[] = [
     value: "PUSH_APPROVED"
   },
   {
+    label: "Pending",
+    value: "PENDING"
+  },
+  {
     label: "Error",
     value: "PUSH_ERROR"
   }
@@ -678,6 +682,10 @@ export const ProxyTypeOptions: OptionBasicTyped<ProxyType>[] = [
   {
     label: "SOCKS5",
     value: "SOCKS5"
+  },
+  {
+    label: "HTTP",
+    value: "HTTP"
   },
 ];
 

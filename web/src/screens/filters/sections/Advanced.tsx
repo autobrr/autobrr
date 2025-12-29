@@ -61,6 +61,8 @@ const Releases = () => {
                 <br />
                 <br />
                 <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+                <br />
+                <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
               </div>
             }
           />
@@ -80,6 +82,8 @@ const Releases = () => {
                 <br />
                 <br />
                 <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+                <br />
+                <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
               </div>
             }
           />
@@ -446,6 +450,8 @@ const FeedSpecific = () => {
             <br />
             <br />
             <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <br />
+            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
           </div>
         }
       />
@@ -462,6 +468,8 @@ const FeedSpecific = () => {
             <br />
             <br />
             <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <br />
+            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
           </div>
         }
       />
@@ -547,6 +555,17 @@ const RawReleaseTags = () => {
         useRegex={values.use_regex_release_tags}
         columns={6}
         placeholder="eg. *mkv*,*foreign*"
+        tooltip={
+          <div>
+            <p>This field has full regex support (Golang flavour).</p>
+            <DocsLink href="https://autobrr.com/filters#advanced" />
+            <br />
+            <br />
+            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <br />
+            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+          </div>
+        }
       />
       <RegexField
         name="except_release_tags"
@@ -554,6 +573,17 @@ const RawReleaseTags = () => {
         useRegex={values.use_regex_release_tags}
         columns={6}
         placeholder="eg. *mkv*,*foreign*"
+        tooltip={
+          <div>
+            <p>This field has full regex support (Golang flavour).</p>
+            <DocsLink href="https://autobrr.com/filters#advanced" />
+            <br />
+            <br />
+            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <br />
+            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+          </div>
+        }
       />
     </CollapsibleSection>
   );

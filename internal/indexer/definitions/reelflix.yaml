@@ -5,7 +5,7 @@ identifier: rfx
 description: ReelFliX (RFX) is an English private tracker for MOVIES
 language: en-us
 urls:
-  - https://reelflix.xyz/
+  - https://reelflix.cc/
 privacy: private
 protocol: torrent
 supports:
@@ -21,7 +21,7 @@ settings:
 
 irc:
   network: ReelFliX
-  server: irc.reelflix.xyz
+  server: irc.reelflix.cc
   port: 6697
   tls: true
   channels:
@@ -51,7 +51,7 @@ irc:
     type: single
     lines:
       - tests:
-        - line: Category [Movie] Type [Remux] Name [HomeMade Movie 1998 1080p BluRay REMUX AVC DD 2.0-Group] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [16.8 GiB] Uploader [uploaderName] Url [https://reelflix.xyz/torrents/download/169]
+        - line: Category [Movie] Type [Remux] Name [HomeMade Movie 1998 1080p BluRay REMUX AVC DD 2.0-Group] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [16.8 GiB] Uploader [uploaderName] Url [https://reelflix.cc/torrents/download/169]
           expect:
             category: Movie
             releaseTags: Remux
@@ -62,7 +62,7 @@ irc:
             tags: "No"
             torrentSize: 16.8 GiB
             uploader: uploaderName
-            baseUrl: https://reelflix.xyz/torrents/
+            baseUrl: https://reelflix.cc/torrents/
             torrentId: "169"
         pattern: 'Category \[(.*)\] Type \[(.*)\] Name \[(.*?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.*)\] Internal \[(.*)\] Double Upload \[(.*)\] Size \[(.*)\] Uploader \[(.*)\] Url \[(https?://.+/).+/(\d+)\]'
         vars:

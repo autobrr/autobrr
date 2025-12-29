@@ -272,6 +272,7 @@ func (c *AppConfig) defaults() {
 		Version:               "dev",
 		Host:                  "localhost",
 		Port:                  7474,
+		CorsAllowedOrigins:    "*",
 		LogLevel:              "TRACE",
 		LogPath:               "",
 		LogMaxSize:            50,
@@ -311,6 +312,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvInt("PORT"); v > 0 {
 		c.Config.Port = v
+	}
+
+	if v := GetEnvStr("CORS_ALLOWED_ORIGINS"); v != "" {
+		c.Config.CorsAllowedOrigins = v
 	}
 
 	if v := GetEnvStr("BASE_URL"); v != "" {

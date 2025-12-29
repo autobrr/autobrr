@@ -29,12 +29,12 @@ type authHandler struct {
 	encoder        encoder
 	config         *domain.Config
 	service        authService
-	server         Server
+	server         *Server
 	sessionManager *scs.SessionManager
 	oidcHandler    *OIDCHandler
 }
 
-func newAuthHandler(encoder encoder, log zerolog.Logger, server Server, config *domain.Config, sessionManager *scs.SessionManager, service authService) *authHandler {
+func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService) *authHandler {
 	h := &authHandler{
 		log:            log,
 		encoder:        encoder,
@@ -93,13 +93,11 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	h.sessionManager.Cookie.SameSite = http.SameSiteLaxMode
 	h.sessionManager.Cookie.Path = h.config.BaseURL
 
-	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy
-	// if forwarded protocol is https then set cookie secure
-	// SameSite Strict can only be set with a secure cookie. So we overwrite it here if possible.
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
+	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy.
+	// When forwarded protocol is https we mark the cookie as Secure, but keep SameSite=Lax so OIDC
+	// callbacks returning from a different domain still include the session cookie.
 	if r.Header.Get("X-Forwarded-Proto") == "https" {
 		h.sessionManager.Cookie.Secure = true
-		h.sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 	}
 
 	if err := h.sessionManager.RenewToken(ctx); err != nil {

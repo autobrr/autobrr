@@ -57,7 +57,7 @@ var (
 
 func main() {
 	var configPath, profilePath string
-	pflag.StringVar(&configPath, "config", "", "path to configuration file")
+	pflag.StringVar(&configPath, "config", "", "path to configuration directory")
 	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
 	pflag.Parse()
 
@@ -148,10 +148,10 @@ func main() {
 		updateService         = update.NewUpdate(log, cfg.Config)
 		notificationService   = notification.NewService(log, notificationRepo)
 		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
-		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
+		indexerAPIService     = indexer.NewAPIService(log, proxyService)
 		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
