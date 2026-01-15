@@ -103,6 +103,10 @@ func (n *Notification) IsEnabled() bool {
 		if n.Token != "" && n.Channel != "" {
 			return true
 		}
+	case NotificationTypeGenericWebhook:
+		if n.Webhook != "" {
+			return true
+		}
 	}
 	return false
 }
@@ -215,9 +219,10 @@ const (
 	NotificationTypeSlack      NotificationType = "SLACK"
 	NotificationTypeTelegram   NotificationType = "TELEGRAM"
 	NotificationTypeGotify     NotificationType = "GOTIFY"
-	NotificationTypeNtfy       NotificationType = "NTFY"
-	NotificationTypeLunaSea    NotificationType = "LUNASEA"
-	NotificationTypeShoutrrr   NotificationType = "SHOUTRRR"
+	NotificationTypeNtfy           NotificationType = "NTFY"
+	NotificationTypeLunaSea        NotificationType = "LUNASEA"
+	NotificationTypeShoutrrr       NotificationType = "SHOUTRRR"
+	NotificationTypeGenericWebhook NotificationType = "GENERIC_WEBHOOK"
 )
 
 type NotificationEvent string
@@ -229,6 +234,7 @@ const (
 	NotificationEventPushError          NotificationEvent = "PUSH_ERROR"
 	NotificationEventIRCDisconnected    NotificationEvent = "IRC_DISCONNECTED"
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
+	NotificationEventReleaseNew         NotificationEvent = "RELEASE_NEW"
 	NotificationEventTest               NotificationEvent = "TEST"
 )
 
