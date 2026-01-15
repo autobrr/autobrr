@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/rs/zerolog"
 )
 
@@ -47,16 +48,18 @@ type actionClientTypeKey struct {
 type service struct {
 	log  zerolog.Logger
 	repo domain.ReleaseRepo
+	bus  EventBus.Bus
 
 	actionSvc  action.Service
 	filterSvc  filter.Service
 	indexerSvc indexer.Service
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, bus EventBus.Bus) Service {
 	return &service{
 		log:        log.With().Str("module", "release").Logger(),
 		repo:       repo,
+		bus:        bus,
 		actionSvc:  actionSvc,
 		filterSvc:  filterSvc,
 		indexerSvc: indexerSvc,
@@ -177,6 +180,20 @@ func (s *service) Process(release *domain.Release) {
 	}()
 
 	ctx := context.Background()
+
+	// Send RELEASE_NEW notification for ALL incoming releases (before filter checking)
+	payload := &domain.NotificationPayload{
+		Event:          domain.NotificationEventReleaseNew,
+		ReleaseName:    release.TorrentName,
+		Indexer:        release.Indexer.Name,
+		InfoHash:       release.TorrentHash,
+		Size:           release.Size,
+		Protocol:       release.Protocol,
+		Implementation: release.Implementation,
+		Timestamp:      time.Now(),
+		Release:        release,
+	}
+	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
 
 	// TODO check in config for "Save all releases"
 	// TODO cross-seed check
