@@ -30,7 +30,7 @@ func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 
 func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "host", "username", "password", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
+		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "host", "username", "password", "method", "headers", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
 		OrderBy("name")
 
@@ -51,9 +51,9 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 	for rows.Next() {
 		n := domain.NewNotification()
 
-		var webhook, token, apiKey, channel, host, topic, username, password sql.Null[string]
+		var webhook, token, apiKey, channel, host, topic, username, password, method, headers sql.Null[string]
 
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &host, &username, &password, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &host, &username, &password, &method, &headers, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
 			return nil, 0, errors.Wrap(err, "error scanning row")
 		}
 
@@ -65,6 +65,8 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		n.Host = host.V
 		n.Username = username.V
 		n.Password = password.V
+		n.Method = method.V
+		n.Headers = headers.V
 
 		notifications = append(notifications, *n)
 	}
@@ -76,7 +78,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 }
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
-	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, created_at, updated_at FROM notification ORDER BY name ASC")
+	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, method, headers, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -88,8 +90,8 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		n := domain.NewNotification()
 		//var eventsSlice []string
 
-		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic sql.Null[string]
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &n.CreatedAt, &n.UpdatedAt); err != nil {
+		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, method, headers sql.Null[string]
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -106,6 +108,8 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		n.Targets = targets.V
 		n.Devices = devices.V
 		n.Topic = topic.V
+		n.Method = method.V
+		n.Headers = headers.V
 
 		notifications = append(notifications, *n)
 	}
@@ -137,6 +141,8 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 			"devices",
 			"priority",
 			"topic",
+			"method",
+			"headers",
 			"created_at",
 			"updated_at",
 		).
@@ -155,8 +161,8 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 
 	n := domain.NewNotification()
 
-	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic sql.Null[string]
-	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &n.CreatedAt, &n.UpdatedAt); err != nil {
+	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, method, headers sql.Null[string]
+	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -176,6 +182,8 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 	n.Targets = targets.V
 	n.Devices = devices.V
 	n.Topic = topic.V
+	n.Method = method.V
+	n.Headers = headers.V
 
 	return n, nil
 }
@@ -197,6 +205,8 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			"host",
 			"username",
 			"password",
+			"method",
+			"headers",
 		).
 		Values(
 			notification.Name,
@@ -212,6 +222,8 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			toNullString(notification.Host),
 			toNullString(notification.Username),
 			toNullString(notification.Password),
+			toNullString(notification.Method),
+			toNullString(notification.Headers),
 		).
 		Suffix("RETURNING id").RunWith(r.db.Handler)
 
@@ -240,6 +252,8 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		Set("host", toNullString(notification.Host)).
 		Set("username", toNullString(notification.Username)).
 		Set("password", toNullString(notification.Password)).
+		Set("method", toNullString(notification.Method)).
+		Set("headers", toNullString(notification.Headers)).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": notification.ID})
 

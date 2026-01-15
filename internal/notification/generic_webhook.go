@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -48,13 +49,29 @@ func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload doma
 		return errors.Wrap(err, "could not marshal json request for event: %v", event)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, s.Settings.Webhook, bytes.NewBuffer(jsonData))
+	// Use configured method or default to POST
+	method := s.Settings.Method
+	if method == "" {
+		method = http.MethodPost
+	}
+
+	req, err := http.NewRequest(method, s.Settings.Webhook, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return errors.Wrap(err, "could not create request for event: %v", event)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
+
+	// Parse and apply custom headers (format: "KEY=value,KEY2=value2")
+	if s.Settings.Headers != "" {
+		for _, header := range strings.Split(s.Settings.Headers, ",") {
+			parts := strings.SplitN(strings.TrimSpace(header), "=", 2)
+			if len(parts) == 2 {
+				req.Header.Set(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+			}
+		}
+	}
 
 	res, err := s.httpClient.Do(req)
 	if err != nil {

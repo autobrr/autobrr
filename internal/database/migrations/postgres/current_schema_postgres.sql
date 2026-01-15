@@ -43,6 +43,8 @@ CREATE TABLE notification
     devices    TEXT,
     topic      TEXT,
     priority   INTEGER   DEFAULT 0,
+    method     TEXT,
+    headers    TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
