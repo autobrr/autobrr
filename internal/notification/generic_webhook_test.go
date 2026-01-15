@@ -108,3 +108,55 @@ func TestGenericWebhookSender_CanSend(t *testing.T) {
 	settings.Enabled = false
 	assert.False(t, sender.CanSend(domain.NotificationEventReleaseNew))
 }
+
+func TestGenericWebhookSender_Send_CustomMethod(t *testing.T) {
+	// Test that a custom HTTP method is used when specified
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPut, r.Method)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	settings := &domain.Notification{
+		Name:    "Test Webhook with PUT",
+		Type:    domain.NotificationTypeGenericWebhook,
+		Webhook: server.URL,
+		Enabled: true,
+		Events:  []string{"TEST"},
+		Method:  "PUT",
+	}
+
+	log := logger.Mock().With().Logger()
+	sender := NewGenericWebhookSender(log, settings)
+
+	err := sender.Send(domain.NotificationEventTest, domain.NotificationPayload{Event: domain.NotificationEventTest})
+	assert.NoError(t, err)
+}
+
+func TestGenericWebhookSender_Send_CustomHeaders(t *testing.T) {
+	// Test that custom headers are applied when specified
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		assert.Equal(t, "custom-value", r.Header.Get("X-Custom-Header"))
+		// Default headers should still be set
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	settings := &domain.Notification{
+		Name:    "Test Webhook with Headers",
+		Type:    domain.NotificationTypeGenericWebhook,
+		Webhook: server.URL,
+		Enabled: true,
+		Events:  []string{"TEST"},
+		Headers: "Authorization=Bearer test-token, X-Custom-Header=custom-value",
+	}
+
+	log := logger.Mock().With().Logger()
+	sender := NewGenericWebhookSender(log, settings)
+
+	err := sender.Send(domain.NotificationEventTest, domain.NotificationPayload{Event: domain.NotificationEventTest})
+	assert.NoError(t, err)
+}
