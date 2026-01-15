@@ -28,6 +28,8 @@ interface ServiceNotification {
   host?: string;
   username?: string;
   password?: string;
+  method?: string;
+  headers?: string;
   used_by_filters?: NotificationFilter[];
 }
 

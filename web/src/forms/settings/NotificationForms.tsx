@@ -14,14 +14,14 @@ import { Link } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
-import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
+import { EventOptions, ExternalFilterWebhookMethodOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
 
@@ -317,6 +317,19 @@ function FormFieldsGenericWebhook() {
         help="Generic Webhook URL"
         placeholder="https://example.com/webhook"
         required={true}
+      />
+      <SelectFieldWide
+        name="method"
+        label="HTTP Method"
+        optionDefaultText="POST (default)"
+        options={ExternalFilterWebhookMethodOptions}
+        tooltip={<p>HTTP method for the webhook request. Defaults to POST.</p>}
+      />
+      <TextFieldWide
+        name="headers"
+        label="Custom Headers"
+        help="Comma-separated KEY=value pairs (e.g., Authorization=Bearer token,X-Custom=value)"
+        placeholder="Authorization=Bearer token,X-Custom-Header=value"
       />
     </div>
   );
