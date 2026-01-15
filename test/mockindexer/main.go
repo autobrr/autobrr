@@ -90,7 +90,7 @@ func NewAPI(ircServer *irc.Server) *Api {
 	r.Get("/file/{fileId}/{fileName}", a.fileDownloadHandler)
 	r.Get("/torrent/download/{torrentId}", a.torrentDownloadHandler)
 	r.Get("/feeds/{name}", a.feedHandler)
-	r.Post("/webhook", a.webhookHandler)
+	r.HandleFunc("/webhook", a.webhookHandler)
 
 	a.router = r
 
