@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR";
+type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR" | "GENERIC_WEBHOOK";
 type NotificationEvent =
   "PUSH_APPROVED"
   | "PUSH_REJECTED"
   | "PUSH_ERROR"
   | "IRC_DISCONNECTED"
   | "IRC_RECONNECTED"
-  | "APP_UPDATE_AVAILABLE";
+  | "APP_UPDATE_AVAILABLE"
+  | "RELEASE_NEW";
 
 interface ServiceNotification {
   id: number;
