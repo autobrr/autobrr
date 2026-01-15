@@ -270,6 +270,9 @@ func (s *Service) registerSender(notification *domain.Notification) {
 	case domain.NotificationTypeTelegram:
 		s.senders[notification.ID] = NewTelegramSender(s.log, notification)
 		break
+	case domain.NotificationTypeGenericWebhook:
+		s.senders[notification.ID] = NewGenericWebhookSender(s.log, notification)
+		break
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return
@@ -434,6 +437,8 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		agent = NewShoutrrrSender(s.log, notification)
 	case domain.NotificationTypeTelegram:
 		agent = NewTelegramSender(s.log, notification)
+	case domain.NotificationTypeGenericWebhook:
+		agent = NewGenericWebhookSender(s.log, notification)
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")
