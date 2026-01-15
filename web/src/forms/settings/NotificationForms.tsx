@@ -86,7 +86,7 @@ function FormFieldsLunaSea() {
           Settings
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-        LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
+          LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Read the "}
@@ -299,6 +299,29 @@ function FormFieldsShoutrrr() {
   );
 }
 
+function FormFieldsGenericWebhook() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Send a generic autobrr JSON payload to a user-defined webhook URL.
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="webhook"
+        label="Webhook URL"
+        help="Generic Webhook URL"
+        placeholder="https://example.com/webhook"
+        required={true}
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
@@ -307,12 +330,13 @@ const componentMap: componentMapType = {
   GOTIFY: <FormFieldsGotify />,
   NTFY: <FormFieldsNtfy />,
   SHOUTRRR: <FormFieldsShoutrrr />,
-  LUNASEA: <FormFieldsLunaSea />
+  LUNASEA: <FormFieldsLunaSea />,
+  GENERIC_WEBHOOK: <FormFieldsGenericWebhook />
 };
 
 interface NotificationAddFormValues {
-    name: string;
-    enabled: boolean;
+  name: string;
+  enabled: boolean;
 }
 
 export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
@@ -489,7 +513,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                              <div className="p-4 sm:grid sm:gap-4">
+                            <div className="p-4 sm:grid sm:gap-4">
                               <EventCheckBoxes />
                             </div>
                           </div>
@@ -545,9 +569,9 @@ const EventCheckBox = ({ event }: { event: typeof EventOptions[number] }) => (
         </span>
         <Checkbox
           value={field.value.includes(event.value)}
-          setValue={(checked) => 
-            form.setFieldValue('events', 
-              checked 
+          setValue={(checked) =>
+            form.setFieldValue('events',
+              checked
                 ? [...field.value, event.value]
                 : field.value.filter(e => e !== event.value)
             )
@@ -593,7 +617,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t} />);
       toggle();
     }
   });
@@ -605,7 +629,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t} />);
     }
   });
 
@@ -651,7 +675,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     >
       {(values) => (
         <div>
-          <TextFieldWide name="name" label="Name" required={true}/>
+          <TextFieldWide name="name" label="Name" required={true} />
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
@@ -704,7 +728,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                 </Field>
               </div>
             </div>
-            <SwitchGroupWide name="enabled" label="Enabled"/>
+            <SwitchGroupWide name="enabled" label="Enabled" />
             <div className="pb-2">
               <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
@@ -734,7 +758,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
             <div className="p-4 sm:grid sm:gap-4">
               {values.used_by_filters && values.used_by_filters?.length > 0
                 ? values.used_by_filters?.map(f => (
-                  <Link key={f.filter_id} to="/filters/$filterId/notifications" params={{filterId: f.filter_id}}>
+                  <Link key={f.filter_id} to="/filters/$filterId/notifications" params={{ filterId: f.filter_id }}>
                     <div key={f.filter_id} className="flex justify-between px-2 py-2 bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
                       <span className="font-medium text-gray-500 dark:text-gray-300">{f.filter_name}</span>
                       <div className="flex gap-2">
@@ -767,4 +791,5 @@ const FilterEventOptions: Record<NotificationFilterEvent, string> = {
   "PUSH_APPROVED": "Push Approved",
   "PUSH_REJECTED": "Push Rejected",
   "PUSH_ERROR": "Push Error",
+  "RELEASE_NEW": "New Release",
 }

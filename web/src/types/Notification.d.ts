@@ -39,4 +39,4 @@ interface NotificationFilter {
   events: NotificationFilterEvent[];
 }
 
-type NotificationFilterEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR";
+type NotificationFilterEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR" | "RELEASE_NEW";
