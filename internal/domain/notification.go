@@ -309,6 +309,7 @@ func NewGenericWebhookPayload(payload NotificationPayload, release *Release) *Ge
 
 	if release != nil {
 		p.TorrentName = release.TorrentName
+		p.Size = release.Size
 		p.Title = release.Title
 		p.SubTitle = release.SubTitle
 		p.InfoURL = release.InfoURL
