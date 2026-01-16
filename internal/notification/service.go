@@ -418,6 +418,31 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Event:     domain.NotificationEventAppUpdateAvailable,
 			Timestamp: time.Now(),
 		},
+		{
+			Subject:        "New release matched!",
+			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+			Event:          domain.NotificationEventReleaseNew,
+			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+			Filter:         "TV",
+			Indexer:        "MockIndexer",
+			Protocol:       domain.ReleaseProtocolTorrent,
+			Implementation: domain.ReleaseImplementationIRC,
+			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
+		},
 	}
 
 	switch notification.Type {
