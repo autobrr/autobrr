@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/moistari/rls"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +25,7 @@ func TestNewGenericWebhookPayload(t *testing.T) {
 	}
 
 	release := &Release{
+		Type:            rls.Movie,
 		TorrentName:     "Test.Release-Group",
 		Title:           "Test Release",
 		Resolution:      "1080p",
@@ -43,6 +45,7 @@ func TestNewGenericWebhookPayload(t *testing.T) {
 	assert.Equal(t, "Test.Release-Group", result.ReleaseName)
 	assert.Equal(t, "Test.Release-Group", result.TorrentName)
 	assert.Equal(t, "Test Release", result.Title)
+	assert.Equal(t, "movie", result.Type)
 	assert.Equal(t, "1080p", result.Resolution)
 	assert.Equal(t, "WEB-DL", result.Source)
 	assert.Equal(t, []string{"H.264"}, result.Codec)

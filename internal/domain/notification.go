@@ -220,6 +220,7 @@ type GenericWebhookPayload struct {
 	Size        uint64 `json:"size"`
 	Title       string `json:"title"`
 	SubTitle    string `json:"sub_title,omitempty"`
+	Type        string `json:"type"`
 
 	// Source information
 	Indexer        string                `json:"indexer"`
@@ -314,6 +315,7 @@ func NewGenericWebhookPayload(payload NotificationPayload, release *Release) *Ge
 		p.Size = release.Size
 		p.Title = release.Title
 		p.SubTitle = release.SubTitle
+		p.Type = release.Type.String()
 		p.InfoURL = release.InfoURL
 		p.DownloadURL = release.DownloadURL
 		p.Category = release.Category
