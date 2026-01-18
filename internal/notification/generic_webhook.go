@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -41,8 +42,11 @@ func (s *genericWebhookSender) Name() string {
 }
 
 func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-	// Build the full payload with all release data
-	webhookPayload := domain.NewGenericWebhookPayload(payload, payload.Release)
+	// Generate unique event ID
+	eventID := uuid.New().String()
+
+	// Build the full payload with new structured schema
+	webhookPayload := domain.NewWebhookEvent(event, payload, payload.Release, eventID)
 
 	jsonData, err := json.Marshal(webhookPayload)
 	if err != nil {
@@ -62,7 +66,7 @@ func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload doma
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
-	req.Header.Set("X-Autobrr-Event", string(event))
+	req.Header.Set("X-Autobrr-Event", string(webhookPayload.Event))
 
 	// Parse and apply custom headers (format: "KEY=value,KEY2=value2")
 	if s.Settings.Headers != "" {

@@ -435,3 +435,240 @@ type NotificationQueryParams struct {
 	}
 	Search string
 }
+
+// WebhookEventType represents namespaced event types
+type WebhookEventType string
+
+const (
+	WebhookEventReleaseNew      WebhookEventType = "release.new"
+	WebhookEventActionApproved  WebhookEventType = "action.approved"
+	WebhookEventActionRejected  WebhookEventType = "action.rejected"
+	WebhookEventActionError     WebhookEventType = "action.error"
+	WebhookEventIRCDisconnected WebhookEventType = "irc.disconnected"
+	WebhookEventIRCReconnected  WebhookEventType = "irc.reconnected"
+	WebhookEventAppUpdate       WebhookEventType = "app.update_available"
+	WebhookEventTest            WebhookEventType = "test"
+)
+
+// WebhookEvent is the top-level webhook payload structure
+type WebhookEvent struct {
+	Event     WebhookEventType `json:"event"`
+	ID        string           `json:"id"`
+	Timestamp time.Time        `json:"timestamp"`
+	Version   string           `json:"version"`
+	Data      *WebhookData     `json:"data"`
+}
+
+// WebhookData contains all nested event data
+type WebhookData struct {
+	Release *WebhookRelease `json:"release,omitempty"`
+	Indexer *WebhookIndexer `json:"indexer,omitempty"`
+	Filter  *WebhookFilter  `json:"filter,omitempty"`
+	Action  *WebhookAction  `json:"action,omitempty"`
+	Result  *WebhookResult  `json:"result,omitempty"`
+}
+
+// WebhookRelease contains release-specific data
+type WebhookRelease struct {
+	Name            string    `json:"name"`
+	Title           string    `json:"title,omitempty"`
+	SubTitle        string    `json:"sub_title,omitempty"`
+	Multiplier      string    `json:"multiplier,omitempty"` // Added to handle release metadata
+	Category        string    `json:"category,omitempty"`
+	Categories      []string  `json:"categories,omitempty"`
+	Season          int       `json:"season,omitempty"`
+	Episode         int       `json:"episode,omitempty"`
+	Year            int       `json:"year,omitempty"`
+	Month           int       `json:"month,omitempty"`
+	Day             int       `json:"day,omitempty"`
+	Resolution      string    `json:"resolution,omitempty"`
+	Source          string    `json:"source,omitempty"`
+	Codec           []string  `json:"codec,omitempty"`
+	Container       string    `json:"container,omitempty"`
+	HDR             []string  `json:"hdr,omitempty"`
+	Audio           []string  `json:"audio,omitempty"`
+	AudioChannels   string    `json:"audio_channels,omitempty"`
+	AudioFormat     string    `json:"audio_format,omitempty"`
+	MediaProcessing string    `json:"media_processing,omitempty"`
+	Group           string    `json:"group,omitempty"`
+	Website         string    `json:"website,omitempty"`
+	Origin          string    `json:"origin,omitempty"`
+	Uploader        string    `json:"uploader,omitempty"`
+	PreTime         string    `json:"pre_time,omitempty"`
+	Edition         []string  `json:"edition,omitempty"`
+	Cut             []string  `json:"cut,omitempty"`
+	Language        []string  `json:"language,omitempty"`
+	Region          string    `json:"region,omitempty"`
+	Tags            []string  `json:"tags,omitempty"`
+	Proper          bool      `json:"proper,omitempty"`
+	Repack          bool      `json:"repack,omitempty"`
+	Hybrid          bool      `json:"hybrid,omitempty"`
+	Freeleech       bool      `json:"freeleech,omitempty"`
+	Link            string    `json:"link,omitempty"`
+	DownloadURL     string    `json:"download_url,omitempty"`
+	InfoURL         string    `json:"info_url,omitempty"`
+	Size            uint64    `json:"size,omitempty"`
+	Seeders         int       `json:"seeders,omitempty"`
+	Leechers        int       `json:"leechers,omitempty"`
+	Protocol        string    `json:"protocol,omitempty"`
+	Implementation  string    `json:"implementation,omitempty"`
+	Timestamp       time.Time `json:"timestamp,omitempty"`
+}
+
+// WebhookIndexer contains indexer information
+type WebhookIndexer struct {
+	Name           string `json:"name"`
+	Identifier     string `json:"identifier,omitempty"`
+	Protocol       string `json:"protocol,omitempty"`
+	Implementation string `json:"implementation,omitempty"`
+}
+
+// WebhookFilter contains filter information
+type WebhookFilter struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// WebhookAction contains action information
+type WebhookAction struct {
+	Name   string `json:"name,omitempty"`
+	Type   string `json:"type,omitempty"`
+	Client string `json:"client,omitempty"`
+}
+
+// WebhookResult contains push result information
+type WebhookResult struct {
+	Status     string   `json:"status,omitempty"`
+	Rejections []string `json:"rejections,omitempty"`
+}
+
+func mapToWebhookEvent(event NotificationEvent) WebhookEventType {
+	switch event {
+	case NotificationEventReleaseNew:
+		return WebhookEventReleaseNew
+	case NotificationEventPushApproved:
+		return WebhookEventActionApproved
+	case NotificationEventPushRejected:
+		return WebhookEventActionRejected
+	case NotificationEventPushError:
+		return WebhookEventActionError
+	case NotificationEventIRCDisconnected:
+		return WebhookEventIRCDisconnected
+	case NotificationEventIRCReconnected:
+		return WebhookEventIRCReconnected
+	case NotificationEventAppUpdateAvailable:
+		return WebhookEventAppUpdate
+	case NotificationEventTest:
+		return WebhookEventTest
+	default:
+		return WebhookEventTest
+	}
+}
+
+// NewWebhookEvent creates a structured webhook payload
+func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, release *Release, id string) *WebhookEvent {
+	// If release is nil but available in payload, use that
+	if release == nil && payload.Release != nil {
+		release = payload.Release
+	}
+
+	data := &WebhookData{}
+
+	// Populate Release data if available
+	if release != nil {
+		data.Release = &WebhookRelease{
+			Name:            release.TorrentName,
+			Title:           release.Title,
+			SubTitle:        release.SubTitle,
+			Category:        release.Category,
+			Categories:      release.Categories,
+			Season:          release.Season,
+			Episode:         release.Episode,
+			Year:            release.Year,
+			Month:           release.Month,
+			Day:             release.Day,
+			Resolution:      release.Resolution,
+			Source:          release.Source,
+			Codec:           release.Codec,
+			Container:       release.Container,
+			HDR:             release.HDR,
+			Audio:           release.Audio,
+			AudioChannels:   release.AudioChannels,
+			AudioFormat:     release.AudioFormat,
+			MediaProcessing: release.MediaProcessing,
+			Group:           release.Group,
+			Website:         release.Website,
+			Origin:          release.Origin,
+			Uploader:        release.Uploader,
+			PreTime:         release.PreTime,
+			Edition:         release.Edition,
+			Cut:             release.Cut,
+			Language:        release.Language,
+			Region:          release.Region,
+			Tags:            release.Tags,
+			Proper:          release.Proper,
+			Repack:          release.Repack,
+			Hybrid:          release.Hybrid,
+			Freeleech:       release.Freeleech,
+			DownloadURL:     release.DownloadURL,
+			InfoURL:         release.InfoURL,
+			Size:            release.Size,
+			Seeders:         release.Seeders,
+			Leechers:        release.Leechers,
+			Protocol:        string(release.Protocol),
+			Implementation:  string(release.Implementation),
+			Timestamp:       release.Timestamp,
+		}
+	} else if payload.ReleaseName != "" {
+		// Fallback if full release object is missing but we have basic info in payload
+		data.Release = &WebhookRelease{
+			Name: payload.ReleaseName,
+			Size: payload.Size,
+		}
+	}
+
+	// Populate Indexer data
+	if payload.Indexer != "" {
+		data.Indexer = &WebhookIndexer{
+			Name:     payload.Indexer,
+			Protocol: string(payload.Protocol),
+		}
+		// If we have full release object, we might have more indexer info
+		if release != nil {
+			data.Indexer.Identifier = release.Indexer.Identifier
+		}
+	}
+
+	// Populate Filter data
+	if payload.Filter != "" || payload.FilterID > 0 {
+		data.Filter = &WebhookFilter{
+			ID:   payload.FilterID,
+			Name: payload.Filter,
+		}
+	}
+
+	// Populate Action data
+	if payload.Action != "" || payload.ActionType != "" {
+		data.Action = &WebhookAction{
+			Name:   payload.Action,
+			Type:   string(payload.ActionType),
+			Client: payload.ActionClient,
+		}
+	}
+
+	// Populate Result data for action events
+	if event == NotificationEventPushApproved || event == NotificationEventPushRejected || event == NotificationEventPushError {
+		data.Result = &WebhookResult{
+			Status:     string(payload.Status),
+			Rejections: payload.Rejections,
+		}
+	}
+
+	return &WebhookEvent{
+		Event:     mapToWebhookEvent(event),
+		ID:        id,
+		Timestamp: payload.Timestamp,
+		Version:   "1.0",
+		Data:      data,
+	}
+}

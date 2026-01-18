@@ -28,6 +28,7 @@ require (
 	github.com/go-andiamo/splitter v1.2.5
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-chi/render v1.0.3
+	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
 	github.com/hashicorp/go-version v1.8.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
@@ -77,7 +78,6 @@ require (
 	github.com/gdm85/go-rencode v0.1.8 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hekmon/cunits/v2 v2.1.0 // indirect

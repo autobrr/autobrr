@@ -24,19 +24,29 @@ func TestGenericWebhookSender_Send(t *testing.T) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
-		assert.Equal(t, string(domain.NotificationEventReleaseNew), r.Header.Get("X-Autobrr-Event"))
+		assert.Equal(t, string(domain.WebhookEventReleaseNew), r.Header.Get("X-Autobrr-Event"))
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 
-		var payload domain.GenericWebhookPayload
+		var payload domain.WebhookEvent
 		err = json.Unmarshal(body, &payload)
 		require.NoError(t, err)
 
-		assert.Equal(t, domain.NotificationEventReleaseNew, payload.Event)
-		assert.Equal(t, "Test.Release-Group", payload.ReleaseName)
-		assert.Equal(t, "MockIndexer", payload.Indexer)
-		assert.Equal(t, "1080p", payload.Resolution)
+		// Assert structured payload
+		assert.Equal(t, domain.WebhookEventReleaseNew, payload.Event)
+		assert.Equal(t, "1.0", payload.Version)
+		assert.NotEmpty(t, payload.ID) // UUID should be present
+		assert.NotNil(t, payload.Data)
+		assert.NotNil(t, payload.Data.Release)
+
+		// Assert release details
+		assert.Equal(t, "Test.Release-Group", payload.Data.Release.Name)
+		assert.Equal(t, "1080p", payload.Data.Release.Resolution)
+
+		// Assert indexer details
+		assert.NotNil(t, payload.Data.Indexer)
+		assert.Equal(t, "MockIndexer", payload.Data.Indexer.Name)
 
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -61,6 +71,7 @@ func TestGenericWebhookSender_Send(t *testing.T) {
 		Release: &domain.Release{
 			TorrentName: "Test.Release-Group",
 			Resolution:  "1080p",
+			Indexer:     domain.IndexerMinimal{Identifier: "mock_indexer"},
 		},
 	}
 
@@ -142,8 +153,8 @@ func TestGenericWebhookSender_Send_CustomHeaders(t *testing.T) {
 		// Default headers should still be set
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
-		// Event header should also be set
-		assert.Equal(t, string(domain.NotificationEventTest), r.Header.Get("X-Autobrr-Event"))
+		// Event header should also be set (using namespaced value)
+		assert.Equal(t, string(domain.WebhookEventTest), r.Header.Get("X-Autobrr-Event"))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
