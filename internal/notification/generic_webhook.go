@@ -62,6 +62,7 @@ func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload doma
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("X-Autobrr-Event", string(event))
 
 	// Parse and apply custom headers (format: "KEY=value,KEY2=value2")
 	if s.Settings.Headers != "" {

@@ -24,6 +24,7 @@ func TestGenericWebhookSender_Send(t *testing.T) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
+		assert.Equal(t, string(domain.NotificationEventReleaseNew), r.Header.Get("X-Autobrr-Event"))
 
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
@@ -141,6 +142,8 @@ func TestGenericWebhookSender_Send_CustomHeaders(t *testing.T) {
 		// Default headers should still be set
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
+		// Event header should also be set
+		assert.Equal(t, string(domain.NotificationEventTest), r.Header.Get("X-Autobrr-Event"))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
