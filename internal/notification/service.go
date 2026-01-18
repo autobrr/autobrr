@@ -463,7 +463,7 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Timestamp: time.Now(),
 		},
 		{
-			Subject:        "New release matched!",
+			Subject:        "New release received!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Event:          domain.NotificationEventReleaseNew,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
