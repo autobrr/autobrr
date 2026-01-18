@@ -352,6 +352,7 @@ func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, indexer.Identifier)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error finding filters for indexer: %s", indexer.Name)
+		return err
 	}
 	// Send RELEASE_NEW notification for ALL incoming releases (before filter checking)
 	for _, release := range releases {
