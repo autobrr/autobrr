@@ -289,39 +289,50 @@ func (s *Service) Send(event domain.NotificationEvent, payload domain.Notificati
 		return
 	}
 
-	go func(event domain.NotificationEvent, payload domain.NotificationPayload) {
-		if payload.FilterID > 0 {
-			shouldSendGlobal := true
-			for _, sender := range s.senders {
-				if sender.HasFilterEvents(payload.FilterID) {
-					shouldSendGlobal = false
-					if sender.CanSendPayload(event, payload) {
-						s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+	// Find interested senders first to avoid spawning goroutines for no reason
+	var interestedSenders []domain.NotificationSender
 
-						if err := sender.Send(event, payload); err != nil {
-							s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
-						}
-					}
-				}
-			}
-			if !shouldSendGlobal {
-				return
-			}
-		}
-
+	if payload.FilterID > 0 {
+		hasFilterSpecific := false
 		for _, sender := range s.senders {
-			// check if the sender is active and have notification types
-			if sender.CanSendPayload(event, payload) {
-				s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
-
-				if err := sender.Send(event, payload); err != nil {
-					s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
+			if sender.HasFilterEvents(payload.FilterID) {
+				hasFilterSpecific = true
+				if sender.CanSendPayload(event, payload) {
+					interestedSenders = append(interestedSenders, sender)
 				}
 			}
 		}
-	}(event, payload)
 
-	return
+		if !hasFilterSpecific {
+			// Fall back to global if no specific filter notifications
+			for _, sender := range s.senders {
+				if sender.CanSendPayload(event, payload) {
+					interestedSenders = append(interestedSenders, sender)
+				}
+			}
+		}
+	} else {
+		for _, sender := range s.senders {
+			if sender.CanSendPayload(event, payload) {
+				interestedSenders = append(interestedSenders, sender)
+			}
+		}
+	}
+
+	if len(interestedSenders) == 0 {
+		s.log.Trace().Str("event", string(event)).Msg("no interested notification senders for event")
+		return
+	}
+
+	go func(interested []domain.NotificationSender, event domain.NotificationEvent, payload domain.NotificationPayload) {
+		for _, sender := range interested {
+			s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+
+			if err := sender.Send(event, payload); err != nil {
+				s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
+			}
+		}
+	}(interestedSenders, event, payload)
 }
 
 func (s *Service) Test(ctx context.Context, notification *domain.Notification) error {
