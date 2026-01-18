@@ -13,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
 )
 
@@ -367,6 +368,21 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Protocol:       domain.ReleaseProtocolTorrent,
 			Implementation: domain.ReleaseImplementationIRC,
 			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				Type:        rls.Episode,
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
 		},
 		{
 			Subject:        "New release!",
@@ -383,6 +399,20 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Protocol:       domain.ReleaseProtocolTorrent,
 			Implementation: domain.ReleaseImplementationIRC,
 			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
 		},
 		{
 			Subject:        "New release!",
@@ -399,6 +429,20 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Protocol:       domain.ReleaseProtocolTorrent,
 			Implementation: domain.ReleaseImplementationIRC,
 			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
 		},
 		{
 			Subject:   "IRC Disconnected unexpectedly",
