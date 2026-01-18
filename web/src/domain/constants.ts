@@ -636,7 +636,7 @@ export const EventOptions: SelectOption[] = [
   {
     label: "New Release",
     value: "RELEASE_NEW",
-    description: "On new release matching a filter (before push)"
+    description: "On new release from indexer (before filtering)"
   }
 ];
 
