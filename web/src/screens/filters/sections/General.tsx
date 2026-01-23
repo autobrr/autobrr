@@ -4,8 +4,9 @@
  */
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useFormikContext } from "formik";
 
-import { downloadsPerUnitOptions } from "@domain/constants";
+import { downloadsPerUnitOptions, windowTypeOptions } from "@domain/constants";
 import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 
 import { DocsLink } from "@components/ExternalLink";
@@ -29,6 +30,54 @@ const MapIndexer = (indexer: Indexer) => (
 const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
   { label: profile.name, value: profile.id } as SelectFieldOption
 );
+
+const MaxDownloadsIndicator = () => {
+  const { values } = useFormikContext<Filter>();
+  
+  const maxDownloads = values.max_downloads;
+  const interval = values.max_downloads_interval || 1;
+  const unit = values.max_downloads_unit;
+  
+  // Don't show anything if max_downloads is not set or is 0 (infinite)
+  if (!maxDownloads || maxDownloads === 0) {
+    return null;
+  }
+  
+  // Don't show if unit is not selected
+  if (!unit || unit === "") {
+    return null;
+  }
+  
+  // Format the unit to be more readable
+  const formatUnit = (unitValue: string, count: number) => {
+    const unitMap: Record<string, string> = {
+      "HOUR": "hour",
+      "DAY": "day",
+      "WEEK": "week",
+      "MONTH": "month",
+      "EVER": "ever"
+    };
+    
+    const baseUnit = unitMap[unitValue] || unitValue.toLowerCase();
+    
+    // Handle "ever" specially (no plural)
+    if (unitValue === "EVER") {
+      return baseUnit;
+    }
+    
+    // Pluralize if interval > 1
+    return count > 1 ? `${baseUnit}s` : baseUnit;
+  };
+  
+  const readableUnit = formatUnit(unit, interval);
+  const intervalText = interval > 1 ? `${interval} ` : "";
+  
+  return (
+    <div className="col-span-12 -mt-3 text-sm text-gray-600 dark:text-gray-400">
+      {maxDownloads} download{maxDownloads > 1 ? "s" : ""} every {intervalText}{readableUnit}
+    </div>
+  );
+};
 
 export const General = () => {
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
@@ -124,14 +173,43 @@ export const General = () => {
               </div>
             }
           />
+          <NumberField
+            name="max_downloads_interval"
+            label="Download interval"
+            min={1}
+            columns={3}
+            placeholder="1 (default)"
+            tooltip={
+              <div>
+                <p>Interval multiplier for max downloads. For example: 10 downloads every 2 hours.</p>
+                <DocsLink href="https://autobrr.com/filters#rules" />
+              </div>
+            }
+          />
           <Select
             name="max_downloads_unit"
             label="Max downloads per"
+            columns={3}
             options={downloadsPerUnitOptions}
             optionDefaultText="Select unit"
             tooltip={
               <div>
                 <p>The unit of time for counting the maximum downloads per filter.</p>
+                <DocsLink href="https://autobrr.com/filters#rules" />
+              </div>
+            }
+          />
+          <MaxDownloadsIndicator />
+          <Select
+            name="max_downloads_window_type"
+            label="Window type"
+            columns={6}
+            options={windowTypeOptions}
+            optionDefaultText="Select window type"
+            tooltip={
+              <div>
+                <p><strong>Fixed:</strong> Resets at calendar boundaries (e.g., midnight, top of hour). Multiple filters may download simultaneously at reset time.</p>
+                <p><strong>Rolling:</strong> Sliding window of last X hours/days. Better load distribution across time.</p>
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
