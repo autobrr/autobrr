@@ -24,6 +24,17 @@ type httpProxyDialer struct {
 	forward  proxy.Dialer
 }
 
+// bufferedConn wraps a net.Conn with a buffered reader to preserve any
+// data that was buffered during the HTTP CONNECT handshake.
+type bufferedConn struct {
+	net.Conn
+	reader *bufio.Reader
+}
+
+func (c *bufferedConn) Read(b []byte) (int, error) {
+	return c.reader.Read(b)
+}
+
 // newHTTPProxyDialer creates a new HTTP CONNECT proxy dialer
 func newHTTPProxyDialer(proxyURL *url.URL, forward proxy.Dialer) *httpProxyDialer {
 	return &httpProxyDialer{
@@ -36,7 +47,7 @@ func newHTTPProxyDialer(proxyURL *url.URL, forward proxy.Dialer) *httpProxyDiale
 func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
 	// Only support TCP connections
 	if network != "tcp" && network != "tcp4" && network != "tcp6" {
-		return nil, fmt.Errorf("unsupported network type: %s", network)
+		return nil, errors.New("unsupported network type: %s", network)
 	}
 
 	// Connect to the proxy server
@@ -50,7 +61,7 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	dialer := &net.Dialer{}
 	proxyConn, err := dialer.DialContext(ctx, "tcp", proxyAddr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to proxy %s: %w", proxyAddr, err)
+		return nil, errors.Wrap(err, "failed to connect to proxy %s: %w", proxyAddr)
 	}
 
 	// Handle HTTPS proxies (HTTP CONNECT over TLS)
@@ -86,20 +97,20 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	}
 	if err := proxyConn.SetDeadline(deadline); err != nil {
 		proxyConn.Close()
-		return nil, err
+		return nil, errors.Wrap(err, "failed to reset deadline")
 	}
 
 	// Send the CONNECT request
 	if _, err := proxyConn.Write([]byte(connectReq)); err != nil {
 		proxyConn.Close()
-		return nil, fmt.Errorf("failed to send CONNECT request: %w", err)
+		return nil, errors.Wrap(err, "failed to send CONNECT request")
 	}
 
 	reader := bufio.NewReader(proxyConn)
 	resp, err := http.ReadResponse(reader, &http.Request{Method: "CONNECT"})
 	if err != nil {
 		proxyConn.Close()
-		return nil, fmt.Errorf("failed to read CONNECT response: %w", err)
+		return nil, errors.Wrap(err, "failed to read CONNECT response")
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -115,21 +126,19 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 		}
 
 		proxyConn.Close()
-		errMsg := fmt.Sprintf("proxy CONNECT to %s failed with status: %s", addr, resp.Status)
-		if errorBody != "" {
-			errMsg += fmt.Sprintf(" (body: %s)", errorBody)
-		}
+
+		err = errors.New("proxy CONNECT to %s failed with status: %s body: %s", addr, resp.Status, errorBody)
 
 		switch resp.StatusCode {
 		case http.StatusForbidden:
-			errMsg += " - The proxy may be blocking IRC ports (6667/6697) or the destination host"
+			return nil, errors.Wrap(err, "the proxy may be blocking IRC ports (6667/6697) or the destination host")
 		case http.StatusProxyAuthRequired:
-			errMsg += " - Proxy authentication required"
+			return nil, errors.Wrap(err, "proxy authentication required")
 		case http.StatusUnauthorized:
-			errMsg += " - Invalid proxy credentials"
+			return nil, errors.Wrap(err, "invalid proxy credentials")
+		default:
+			return nil, err
 		}
-
-		return nil, errors.New(errMsg)
 	}
 
 	// Close the response body for successful responses (should be empty for CONNECT)
@@ -140,7 +149,12 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	// Reset the deadline
 	if err := proxyConn.SetDeadline(time.Time{}); err != nil {
 		proxyConn.Close()
-		return nil, err
+		return nil, errors.Wrap(err, "failed to reset deadline")
+	}
+
+	// Check if there's any buffered data that we need to preserve
+	if reader.Buffered() > 0 {
+		return &bufferedConn{Conn: proxyConn, reader: reader}, nil
 	}
 
 	return proxyConn, nil
