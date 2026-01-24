@@ -61,7 +61,7 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	dialer := &net.Dialer{}
 	proxyConn, err := dialer.DialContext(ctx, "tcp", proxyAddr)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to proxy %s: %w", proxyAddr)
+		return nil, errors.Wrap(err, "failed to connect to proxy %s", proxyAddr)
 	}
 
 	// Handle HTTPS proxies (HTTP CONNECT over TLS)
