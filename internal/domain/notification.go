@@ -290,8 +290,8 @@ type GenericWebhookPayload struct {
 	Leechers int `json:"leechers,omitempty"`
 }
 
-// NewGenericWebhookPayload creates a GenericWebhookPayload from a NotificationPayload and Release
-func NewGenericWebhookPayload(payload NotificationPayload, release *Release) *GenericWebhookPayload {
+// NewGenericWebhookPayload creates a GenericWebhookPayload from a NotificationPayload
+func NewGenericWebhookPayload(payload NotificationPayload) *GenericWebhookPayload {
 	p := &GenericWebhookPayload{
 		Event:          payload.Event,
 		Timestamp:      payload.Timestamp,
@@ -310,53 +310,53 @@ func NewGenericWebhookPayload(payload NotificationPayload, release *Release) *Ge
 		Rejections:     payload.Rejections,
 	}
 
-	if release != nil {
-		p.TorrentName = release.TorrentName
-		p.Size = release.Size
-		p.Title = release.Title
-		p.SubTitle = release.SubTitle
-		p.Type = release.Type.String()
-		p.InfoURL = release.InfoURL
-		p.DownloadURL = release.DownloadURL
-		p.Category = release.Category
-		p.Categories = release.Categories
-		p.Season = release.Season
-		p.Episode = release.Episode
-		p.Year = release.Year
-		p.Month = release.Month
-		p.Day = release.Day
-		p.Resolution = release.Resolution
-		p.Source = release.Source
-		p.Codec = release.Codec
-		p.Container = release.Container
-		p.HDR = release.HDR
-		p.Audio = release.Audio
-		p.AudioChannels = release.AudioChannels
-		p.AudioFormat = release.AudioFormat
-		p.MediaProcessing = release.MediaProcessing
-		p.Group = release.Group
-		p.Website = release.Website
-		p.Origin = release.Origin
-		p.Uploader = release.Uploader
-		p.PreTime = release.PreTime
-		p.Edition = release.Edition
-		p.Cut = release.Cut
-		p.Language = release.Language
-		p.Region = release.Region
-		p.Tags = release.Tags
-		p.Proper = release.Proper
-		p.Repack = release.Repack
-		p.Hybrid = release.Hybrid
-		p.Freeleech = release.Freeleech
-		p.FreeleechPercent = release.FreeleechPercent
-		p.Artists = release.Artists
-		p.RecordLabel = release.RecordLabel
-		p.LogScore = release.LogScore
-		p.HasCue = release.HasCue
-		p.HasLog = release.HasLog
-		p.Bonus = release.Bonus
-		p.Seeders = release.Seeders
-		p.Leechers = release.Leechers
+	if payload.Release != nil {
+		p.TorrentName = payload.Release.TorrentName
+		p.Size = payload.Release.Size
+		p.Title = payload.Release.Title
+		p.SubTitle = payload.Release.SubTitle
+		p.Type = payload.Release.Type.String()
+		p.InfoURL = payload.Release.InfoURL
+		p.DownloadURL = payload.Release.DownloadURL
+		p.Category = payload.Release.Category
+		p.Categories = payload.Release.Categories
+		p.Season = payload.Release.Season
+		p.Episode = payload.Release.Episode
+		p.Year = payload.Release.Year
+		p.Month = payload.Release.Month
+		p.Day = payload.Release.Day
+		p.Resolution = payload.Release.Resolution
+		p.Source = payload.Release.Source
+		p.Codec = payload.Release.Codec
+		p.Container = payload.Release.Container
+		p.HDR = payload.Release.HDR
+		p.Audio = payload.Release.Audio
+		p.AudioChannels = payload.Release.AudioChannels
+		p.AudioFormat = payload.Release.AudioFormat
+		p.MediaProcessing = payload.Release.MediaProcessing
+		p.Group = payload.Release.Group
+		p.Website = payload.Release.Website
+		p.Origin = payload.Release.Origin
+		p.Uploader = payload.Release.Uploader
+		p.PreTime = payload.Release.PreTime
+		p.Edition = payload.Release.Edition
+		p.Cut = payload.Release.Cut
+		p.Language = payload.Release.Language
+		p.Region = payload.Release.Region
+		p.Tags = payload.Release.Tags
+		p.Proper = payload.Release.Proper
+		p.Repack = payload.Release.Repack
+		p.Hybrid = payload.Release.Hybrid
+		p.Freeleech = payload.Release.Freeleech
+		p.FreeleechPercent = payload.Release.FreeleechPercent
+		p.Artists = payload.Release.Artists
+		p.RecordLabel = payload.Release.RecordLabel
+		p.LogScore = payload.Release.LogScore
+		p.HasCue = payload.Release.HasCue
+		p.HasLog = payload.Release.HasLog
+		p.Bonus = payload.Release.Bonus
+		p.Seeders = payload.Release.Seeders
+		p.Leechers = payload.Release.Leechers
 	}
 
 	return p
@@ -566,9 +566,10 @@ func mapToWebhookEvent(event NotificationEvent) WebhookEventType {
 }
 
 // NewWebhookEvent creates a structured webhook payload
-func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, release *Release, id string) *WebhookEvent {
+func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id string) *WebhookEvent {
 	// If release is nil but available in payload, use that
-	if release == nil && payload.Release != nil {
+	var release *Release
+	if payload.Release != nil {
 		release = payload.Release
 	}
 

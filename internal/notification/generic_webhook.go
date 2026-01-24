@@ -46,7 +46,7 @@ func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload doma
 	eventID := uuid.New().String()
 
 	// Build the full payload with new structured schema
-	webhookPayload := domain.NewWebhookEvent(event, payload, payload.Release, eventID)
+	webhookPayload := domain.NewWebhookEvent(event, payload, eventID)
 
 	jsonData, err := json.Marshal(webhookPayload)
 	if err != nil {

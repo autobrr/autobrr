@@ -38,7 +38,10 @@ func TestNewGenericWebhookPayload(t *testing.T) {
 		MediaProcessing: "Encode",
 	}
 
-	result := NewGenericWebhookPayload(payload, release)
+	// set release on payload
+	payload.Release = release
+
+	result := NewGenericWebhookPayload(payload)
 
 	assert.Equal(t, NotificationEventReleaseNew, result.Event)
 	assert.Equal(t, now, result.Timestamp)
@@ -86,8 +89,11 @@ func TestNewWebhookEvent(t *testing.T) {
 		Indexer:         IndexerMinimal{Identifier: "mock_indexer"},
 	}
 
+	// set release on payload
+	payload.Release = release
+
 	id := "test-uuid-123"
-	result := NewWebhookEvent(payload.Event, payload, release, id)
+	result := NewWebhookEvent(payload.Event, payload, id)
 
 	assert.Equal(t, WebhookEventReleaseNew, result.Event)
 	assert.Equal(t, id, result.ID)
@@ -130,7 +136,7 @@ func TestNewWebhookEvent_Action(t *testing.T) {
 	}
 
 	id := "test-uuid-456"
-	result := NewWebhookEvent(payload.Event, payload, nil, id)
+	result := NewWebhookEvent(payload.Event, payload, id)
 
 	assert.Equal(t, WebhookEventActionApproved, result.Event)
 	assert.NotNil(t, result.Data.Action)
@@ -149,7 +155,7 @@ func TestNewWebhookEvent_NilRelease(t *testing.T) {
 	}
 
 	id := "test-uuid-789"
-	result := NewWebhookEvent(payload.Event, payload, nil, id)
+	result := NewWebhookEvent(payload.Event, payload, id)
 
 	assert.Equal(t, WebhookEventTest, result.Event)
 	assert.Equal(t, id, result.ID)
