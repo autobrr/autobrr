@@ -240,10 +240,19 @@ func (h *Handler) Run() (err error) {
 				proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
 			}
 
-			proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
-			if err != nil {
-				return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+			var proxyDialer proxy.Dialer
+
+			if proxyUrl.Scheme == "http" || proxyUrl.Scheme == "https" {
+				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, h.network.Server, h.network.Port)
+				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct)
+			} else {
+				h.log.Debug().Msgf("Using %s proxy: %s", proxyUrl.Scheme, proxyUrl.Host)
+				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
+				if err != nil {
+					return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+				}
 			}
+
 			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
 			if !ok {
 				return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
