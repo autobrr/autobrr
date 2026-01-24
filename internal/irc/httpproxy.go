@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/autobrr/autobrr/pkg/errors"
 	"golang.org/x/net/proxy"
 )
 
