@@ -80,8 +80,8 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 
 	// Set a deadline for the CONNECT handshake
 	deadline := time.Now().Add(30 * time.Second)
-	if d, ok := ctx.Deadline(); ok && d.Before(deadline) {
-		deadline = d
+	if ctxDeadline, ok := ctx.Deadline(); ok && ctxDeadline.Before(deadline) {
+		deadline = ctxDeadline
 	}
 	if err := proxyConn.SetDeadline(deadline); err != nil {
 		proxyConn.Close()
@@ -101,17 +101,18 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 		return nil, fmt.Errorf("failed to read CONNECT response: %w", err)
 	}
 
-	var errorBody string
-	if resp.Body != nil {
-		bodyBytes := make([]byte, 1024)
-		n, _ := resp.Body.Read(bodyBytes)
-		if n > 0 {
-			errorBody = string(bodyBytes[:n])
-		}
-		resp.Body.Close()
-	}
-
 	if resp.StatusCode != http.StatusOK {
+		// Only read error body on failure
+		var errorBody string
+		if resp.Body != nil {
+			bodyBytes := make([]byte, 1024)
+			n, _ := resp.Body.Read(bodyBytes)
+			if n > 0 {
+				errorBody = string(bodyBytes[:n])
+			}
+			resp.Body.Close()
+		}
+
 		proxyConn.Close()
 		errMsg := fmt.Sprintf("proxy CONNECT to %s failed with status: %s", addr, resp.Status)
 		if errorBody != "" {
@@ -128,6 +129,11 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 		}
 
 		return nil, fmt.Errorf(errMsg)
+	}
+
+	// Close the response body for successful responses (should be empty for CONNECT)
+	if resp.Body != nil {
+		resp.Body.Close()
 	}
 
 	// Reset the deadline
