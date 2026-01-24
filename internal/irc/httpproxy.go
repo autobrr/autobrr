@@ -128,7 +128,7 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 			errMsg += " - Invalid proxy credentials"
 		}
 
-		return nil, fmt.Errorf(errMsg)
+		return nil, errors.New(errMsg)
 	}
 
 	// Close the response body for successful responses (should be empty for CONNECT)
