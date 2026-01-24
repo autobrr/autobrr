@@ -53,6 +53,11 @@ func (m *mockReleaseRepo) Store(ctx context.Context, release *domain.Release) er
 	return args.Error(0)
 }
 
+func (m *mockReleaseRepo) Update(ctx context.Context, release *domain.Release) error {
+	args := m.Called(ctx, release)
+	return args.Error(0)
+}
+
 func TestService_Process_PublishesEvent(t *testing.T) {
 	bus := EventBus.New()
 
@@ -78,6 +83,7 @@ func TestService_Process_PublishesEvent(t *testing.T) {
 	// Minimal mock for Repo
 	repo := &mockReleaseRepo{}
 	repo.On("Store", mock.Anything, mock.Anything).Return(nil)
+	repo.On("Update", mock.Anything, mock.Anything).Return(nil)
 
 	s := &service{
 		log:        log.With().Logger(),
