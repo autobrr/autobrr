@@ -33,6 +33,11 @@ export const ReleaseKeys = {
   indexers: () => [...ReleaseKeys.all, "indexers"] as const,
   stats: () => [...ReleaseKeys.all, "stats"] as const,
   latestActivity: () => [...ReleaseKeys.all, "latest-activity"] as const,
+  cleanupJobs: {
+    all: () => [...ReleaseKeys.all, "cleanup-jobs"] as const,
+    lists: () => [...ReleaseKeys.cleanupJobs.all(), "list"] as const,
+    detail: (id: number) => [...ReleaseKeys.cleanupJobs.all(), id] as const,
+  }
 };
 
 export const ReleaseProfileDuplicateKeys = {

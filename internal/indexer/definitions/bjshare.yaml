@@ -24,7 +24,7 @@ irc:
   port: 6697
   tls: true
   channels:
-    - "#bj.announce"
+    - "#BJ.Announce"
   announcers:
     - BJAnnounce
   settings:
