@@ -30,6 +30,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
+	"github.com/robfig/cron/v3"
 	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -53,6 +54,8 @@ type ReleaseRepo interface {
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
 	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *Release) (bool, error)
+
+	ReleaseCleanupJobRepo
 }
 
 type Release struct {
@@ -446,6 +449,91 @@ func ValidReleasePushStatus(s string) bool {
 	default:
 		return false
 	}
+}
+
+// ValidDeletableReleasePushStatus checks if a status is valid for deletion operations.
+// Excludes PENDING status as it's not applicable for completed release deletions.
+func ValidDeletableReleasePushStatus(s string) bool {
+	switch s {
+	case string(ReleasePushStatusApproved):
+		return true
+	case string(ReleasePushStatusRejected):
+		return true
+	case string(ReleasePushStatusErr):
+		return true
+	default:
+		return false
+	}
+}
+
+// ReleaseCleanupStatus represents the status of a cleanup job execution
+type ReleaseCleanupStatus string
+
+const (
+	ReleaseCleanupStatusSuccess ReleaseCleanupStatus = "SUCCESS"
+	ReleaseCleanupStatusError   ReleaseCleanupStatus = "ERROR"
+)
+
+// ReleaseCleanupJob represents a scheduled cleanup job for release history
+type ReleaseCleanupJob struct {
+	ID            int                  `json:"id"`
+	Name          string               `json:"name"`
+	Enabled       bool                 `json:"enabled"`
+	Schedule      string               `json:"schedule"`   // cron format
+	OlderThan     int                  `json:"older_than"` // hours
+	Indexers      string               `json:"indexers"`   // comma-separated
+	Statuses      string               `json:"statuses"`   // comma-separated
+	LastRun       time.Time            `json:"last_run"`
+	LastRunStatus ReleaseCleanupStatus `json:"last_run_status"`
+	LastRunData   string               `json:"last_run_data"` // JSON stats or error message
+	NextRun       time.Time            `json:"next_run"`      // enriched from scheduler
+	CreatedAt     time.Time            `json:"created_at"`
+	UpdatedAt     time.Time            `json:"updated_at"`
+}
+
+func (j *ReleaseCleanupJob) Validate() error {
+	if j.Name == "" {
+		return errors.New("name is required")
+	}
+
+	if j.Schedule == "" {
+		return errors.New("schedule is required")
+	}
+
+	if j.OlderThan <= 0 {
+		return errors.New("older_than must be greater than 0")
+	}
+
+	// Validate cron schedule format
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	_, err := parser.Parse(j.Schedule)
+	if err != nil {
+		return errors.Wrap(err, "invalid cron schedule")
+	}
+
+	// Validate statuses if provided
+	if j.Statuses != "" {
+		statuses := strings.Split(j.Statuses, ",")
+		for _, status := range statuses {
+			status = strings.TrimSpace(status)
+			if status != "" && !ValidDeletableReleasePushStatus(status) {
+				return errors.New("invalid status: %s", status)
+			}
+		}
+	}
+
+	return nil
+}
+
+// ReleaseCleanupJobRepo interface for managing cleanup jobs
+type ReleaseCleanupJobRepo interface {
+	ListCleanupJobs(ctx context.Context) ([]*ReleaseCleanupJob, error)
+	FindCleanupJobByID(ctx context.Context, id int) (*ReleaseCleanupJob, error)
+	StoreCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
+	UpdateCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
+	UpdateCleanupJobLastRun(ctx context.Context, job *ReleaseCleanupJob) error
+	CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error
+	DeleteCleanupJob(ctx context.Context, id int) error
 }
 
 type ReleaseFilterStatus string
