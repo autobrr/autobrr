@@ -522,6 +522,8 @@ type IndexerTestApiRequest struct {
 	Identifier string `json:"identifier,omitempty"`
 	ApiUser    string `json:"api_user,omitempty"`
 	ApiKey     string `json:"api_key"`
+	ProxyID    int64  `json:"proxy_id,omitempty"`
+	UseProxy   bool   `json:"use_proxy"`
 }
 
 type GetIndexerRequest struct {

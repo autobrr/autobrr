@@ -683,6 +683,10 @@ export const ProxyTypeOptions: OptionBasicTyped<ProxyType>[] = [
     label: "SOCKS5",
     value: "SOCKS5"
   },
+  {
+    label: "HTTP",
+    value: "HTTP"
+  },
 ];
 
 export const ListsTraktOptions: OptionBasic[] = [
