@@ -72,7 +72,7 @@ func (s *Server) Start() error {
 	}
 
 	// start release cleanup scheduler
-	if err := s.releaseService.Start(); err != nil {
+	if err := s.releaseService.StartCleanupJobs(); err != nil {
 		s.log.Error().Err(err).Msg("Could not start release cleanup scheduler")
 	}
 

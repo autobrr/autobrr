@@ -54,6 +54,8 @@ type ReleaseRepo interface {
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
 	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *Release) (bool, error)
+
+	ReleaseCleanupJobRepo
 }
 
 type Release struct {
@@ -477,10 +479,10 @@ type ReleaseCleanupJob struct {
 	ID            int                  `json:"id"`
 	Name          string               `json:"name"`
 	Enabled       bool                 `json:"enabled"`
-	Schedule      string               `json:"schedule"`        // cron format
-	OlderThan     int                  `json:"older_than"`      // hours
-	Indexers      string               `json:"indexers"`        // comma-separated
-	Statuses      string               `json:"statuses"`        // comma-separated
+	Schedule      string               `json:"schedule"`   // cron format
+	OlderThan     int                  `json:"older_than"` // hours
+	Indexers      string               `json:"indexers"`   // comma-separated
+	Statuses      string               `json:"statuses"`   // comma-separated
 	LastRun       time.Time            `json:"last_run"`
 	LastRunStatus ReleaseCleanupStatus `json:"last_run_status"`
 	LastRunData   string               `json:"last_run_data"` // JSON stats or error message
@@ -525,13 +527,13 @@ func (j *ReleaseCleanupJob) Validate() error {
 
 // ReleaseCleanupJobRepo interface for managing cleanup jobs
 type ReleaseCleanupJobRepo interface {
-	List(ctx context.Context) ([]*ReleaseCleanupJob, error)
-	FindByID(ctx context.Context, id int) (*ReleaseCleanupJob, error)
-	Store(ctx context.Context, job *ReleaseCleanupJob) error
-	Update(ctx context.Context, job *ReleaseCleanupJob) error
-	UpdateLastRun(ctx context.Context, job *ReleaseCleanupJob) error
-	ToggleEnabled(ctx context.Context, id int, enabled bool) error
-	Delete(ctx context.Context, id int) error
+	ListCleanupJobs(ctx context.Context) ([]*ReleaseCleanupJob, error)
+	FindCleanupJobByID(ctx context.Context, id int) (*ReleaseCleanupJob, error)
+	StoreCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
+	UpdateCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
+	UpdateCleanupJobLastRun(ctx context.Context, job *ReleaseCleanupJob) error
+	CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error
+	DeleteCleanupJob(ctx context.Context, id int) error
 }
 
 type ReleaseFilterStatus string

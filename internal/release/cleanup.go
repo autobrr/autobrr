@@ -14,19 +14,22 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type CleanupJob struct {
-	log            zerolog.Logger
-	releaseRepo    domain.ReleaseRepo
-	cleanupJobRepo domain.ReleaseCleanupJobRepo
-	job            *domain.ReleaseCleanupJob
+type releaseRepo interface {
+	UpdateCleanupJobLastRun(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 }
 
-func NewCleanupJob(log zerolog.Logger, releaseRepo domain.ReleaseRepo, cleanupJobRepo domain.ReleaseCleanupJobRepo, job *domain.ReleaseCleanupJob) *CleanupJob {
+type CleanupJob struct {
+	log         zerolog.Logger
+	releaseRepo releaseRepo
+	job         *domain.ReleaseCleanupJob
+}
+
+func NewCleanupJob(log zerolog.Logger, releaseRepo releaseRepo, job *domain.ReleaseCleanupJob) *CleanupJob {
 	return &CleanupJob{
-		log:            log,
-		releaseRepo:    releaseRepo,
-		cleanupJobRepo: cleanupJobRepo,
-		job:            job,
+		log:         log,
+		releaseRepo: releaseRepo,
+		job:         job,
 	}
 }
 
@@ -78,7 +81,7 @@ func (j *CleanupJob) Run() {
 		// Update job with error status
 		j.job.LastRunStatus = domain.ReleaseCleanupStatusError
 		j.job.LastRunData = err.Error()
-		if err := j.cleanupJobRepo.UpdateLastRun(ctx, j.job); err != nil {
+		if err := j.releaseRepo.UpdateCleanupJobLastRun(ctx, j.job); err != nil {
 			j.log.Error().Err(err).Msg("error updating cleanup job status")
 		}
 		return
@@ -101,7 +104,7 @@ func (j *CleanupJob) Run() {
 	// Update job with success status
 	j.job.LastRunStatus = domain.ReleaseCleanupStatusSuccess
 	j.job.LastRunData = string(dataJSON)
-	if err := j.cleanupJobRepo.UpdateLastRun(ctx, j.job); err != nil {
+	if err := j.releaseRepo.UpdateCleanupJobLastRun(ctx, j.job); err != nil {
 		j.log.Error().Err(err).Msg("error updating cleanup job status")
 	}
 

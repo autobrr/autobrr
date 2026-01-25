@@ -49,7 +49,7 @@ type Service interface {
 	ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error
 	ForceRunCleanupJob(ctx context.Context, id int) error
 
-	Start() error
+	StartCleanupJobs() error
 }
 
 type actionClientTypeKey struct {
@@ -68,27 +68,26 @@ func (k cleanupJobKey) ToString() string {
 }
 
 type service struct {
-	log            zerolog.Logger
-	repo           domain.ReleaseRepo
-	cleanupJobs    map[string]int
-	m              sync.RWMutex
-	cleanupJobRepo domain.ReleaseCleanupJobRepo
-	actionSvc      action.Service
-	filterSvc      filter.Service
-	indexerSvc     indexer.Service
-	scheduler      scheduler.Service
+	log         zerolog.Logger
+	m           sync.RWMutex
+	cleanupJobs map[string]int
+
+	repo       domain.ReleaseRepo
+	actionSvc  action.Service
+	filterSvc  filter.Service
+	indexerSvc indexer.Service
+	scheduler  scheduler.Service
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, cleanupJobRepo domain.ReleaseCleanupJobRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service) Service {
 	return &service{
-		log:            log.With().Str("module", "release").Logger(),
-		repo:           repo,
-		cleanupJobs:    map[string]int{},
-		cleanupJobRepo: cleanupJobRepo,
-		actionSvc:      actionSvc,
-		filterSvc:      filterSvc,
-		indexerSvc:     indexerSvc,
-		scheduler:      scheduler,
+		log:         log.With().Str("module", "release").Logger(),
+		cleanupJobs: map[string]int{},
+		repo:        repo,
+		actionSvc:   actionSvc,
+		filterSvc:   filterSvc,
+		indexerSvc:  indexerSvc,
+		scheduler:   scheduler,
 	}
 }
 
@@ -141,7 +140,7 @@ func (s *service) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) e
 }
 
 func (s *service) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error) {
-	jobs, err := s.cleanupJobRepo.List(ctx)
+	jobs, err := s.repo.ListCleanupJobs(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +160,7 @@ func (s *service) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanup
 }
 
 func (s *service) GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error) {
-	return s.cleanupJobRepo.FindByID(ctx, id)
+	return s.repo.FindCleanupJobByID(ctx, id)
 }
 
 func (s *service) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
@@ -171,7 +170,7 @@ func (s *service) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanu
 		return err
 	}
 
-	if err := s.cleanupJobRepo.Store(ctx, job); err != nil {
+	if err := s.repo.StoreCleanupJob(ctx, job); err != nil {
 		s.log.Error().Err(err).Msg("error storing cleanup job")
 		return err
 	}
@@ -195,13 +194,13 @@ func (s *service) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseClean
 	}
 
 	// Get current state before updating
-	currentJob, err := s.cleanupJobRepo.FindByID(ctx, job.ID)
+	currentJob, err := s.repo.FindCleanupJobByID(ctx, job.ID)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding cleanup job")
 		return err
 	}
 
-	if err := s.cleanupJobRepo.Update(ctx, job); err != nil {
+	if err := s.repo.UpdateCleanupJob(ctx, job); err != nil {
 		s.log.Error().Err(err).Msg("error updating cleanup job")
 		return err
 	}
@@ -218,7 +217,7 @@ func (s *service) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseClean
 }
 
 func (s *service) DeleteCleanupJob(ctx context.Context, id int) error {
-	job, err := s.cleanupJobRepo.FindByID(ctx, id)
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding cleanup job")
 		return err
@@ -235,7 +234,7 @@ func (s *service) DeleteCleanupJob(ctx context.Context, id int) error {
 	}
 
 	// Delete from database
-	if err := s.cleanupJobRepo.Delete(ctx, id); err != nil {
+	if err := s.repo.DeleteCleanupJob(ctx, id); err != nil {
 		s.log.Error().Err(err).Msgf("error deleting cleanup job: %s", job.Name)
 		return err
 	}
@@ -244,7 +243,7 @@ func (s *service) DeleteCleanupJob(ctx context.Context, id int) error {
 }
 
 func (s *service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error {
-	job, err := s.cleanupJobRepo.FindByID(ctx, id)
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding cleanup job")
 		return err
@@ -259,7 +258,7 @@ func (s *service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled b
 	}
 
 	// Update database
-	if err := s.cleanupJobRepo.ToggleEnabled(ctx, id, enabled); err != nil {
+	if err := s.repo.CleanupJobToggleEnabled(ctx, id, enabled); err != nil {
 		s.log.Error().Err(err).Msg("error toggling cleanup job enabled")
 		return err
 	}
@@ -284,7 +283,7 @@ func (s *service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled b
 }
 
 func (s *service) ForceRunCleanupJob(ctx context.Context, id int) error {
-	job, err := s.cleanupJobRepo.FindByID(ctx, id)
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding cleanup job")
 		return err
@@ -292,12 +291,7 @@ func (s *service) ForceRunCleanupJob(ctx context.Context, id int) error {
 
 	s.log.Info().Msgf("manually triggering cleanup job: %s", job.Name)
 
-	cleanupJob := NewCleanupJob(
-		s.log.With().Str("job", job.Name).Logger(),
-		s.repo,
-		s.cleanupJobRepo,
-		job,
-	)
+	cleanupJob := NewCleanupJob(s.log.With().Str("job", job.Name).Logger(), s.repo, job)
 
 	cleanupJob.Run()
 
@@ -700,12 +694,7 @@ func (s *service) startCleanupJob(job *domain.ReleaseCleanupJob) error {
 	}
 
 	// Create the cleanup job instance
-	cleanupJob := NewCleanupJob(
-		s.log.With().Str("job", job.Name).Logger(),
-		s.repo,
-		s.cleanupJobRepo,
-		job,
-	)
+	cleanupJob := NewCleanupJob(s.log.With().Str("job", job.Name).Logger(), s.repo, job)
 
 	identifierKey := cleanupJobKey{id: job.ID}.ToString()
 
@@ -765,20 +754,20 @@ func (s *service) restartCleanupJob(job *domain.ReleaseCleanupJob) error {
 	return nil
 }
 
-func (s *service) Start() error {
-	return s.start()
-}
-
-func (s *service) start() error {
+func (s *service) StartCleanupJobs() error {
 	ctx := context.TODO()
 
 	// Get all cleanup jobs from database
-	jobs, err := s.cleanupJobRepo.List(ctx)
+	jobs, err := s.repo.ListCleanupJobs(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding cleanup jobs")
 		return err
 	}
 
+	return s.startCleanupJobs(jobs)
+}
+
+func (s *service) startCleanupJobs(jobs []*domain.ReleaseCleanupJob) error {
 	if len(jobs) == 0 {
 		s.log.Debug().Msg("found 0 cleanup jobs to start")
 		return nil
