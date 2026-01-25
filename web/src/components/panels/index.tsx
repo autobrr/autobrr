@@ -113,7 +113,7 @@ function SlideOver<DataType extends FormikValues>({
                             <div className="h-7 flex items-center">
                               <button
                                 type="button"
-                                className="bg-white dark:bg-gray-900 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                                className="bg-white dark:bg-gray-900 rounded-md text-gray-400 hover:text-gray-500 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                 onClick={toggle}
                               >
                                 <span className="sr-only">Close panel</span>
@@ -133,7 +133,7 @@ function SlideOver<DataType extends FormikValues>({
                           {type === "UPDATE" && (
                             <button
                               type="button"
-                              className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                              className="inline-flex items-center justify-center px-4 py-2 border border-transparent cursor-pointer font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                               onClick={toggleDeleteModal}
                             >
                               Remove

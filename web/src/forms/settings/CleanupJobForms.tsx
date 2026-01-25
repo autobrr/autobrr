@@ -8,28 +8,28 @@ import { Field as FormikField, type FieldProps } from "formik";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { format } from "date-fns";
 
-import { APIClient } from "@api/APIClient.ts";
-import { ReleaseKeys } from "@api/query_keys.ts";
+import { APIClient } from "@api/APIClient";
+import { ReleaseKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
-import Toast from "@components/notifications/Toast.tsx";
-import { SwitchGroupWide, TextFieldWide, DurationFieldWide } from "@components/inputs";
+import Toast from "@components/notifications/Toast";
+import { DurationFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 import { classNames } from "@utils";
 import { PushStatusOptions } from "@domain/constants";
 
-export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
+export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
     mutationFn: (job: ReleaseCleanupJob) => APIClient.release.cleanupJobs.store(job),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
-      toast.custom((t) => <Toast type="success" body="Cleanup job created" t={t} />);
+      queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.lists()});
+      toast.custom((t) => <Toast type="success" body="Cleanup job created" t={t}/>);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Job could not be created" t={t} />);
+      toast.custom((t) => <Toast type="error" body="Job could not be created" t={t}/>);
     }
   });
 
@@ -44,8 +44,7 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
     statuses: ""
   };
 
-  // Get indexer options for multi-select
-  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
+  const {data: indexerOptions} = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
     queryKey: ['indexers'],
     queryFn: () => APIClient.indexers.getAll(),
     select: data => data.map(indexer => ({
@@ -65,13 +64,10 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          {/* Name */}
-          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup" />
+          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup"/>
 
-          {/* Enabled */}
-          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job" />
+          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job"/>
 
-          {/* Schedule (Cron) */}
           <TextFieldWide
             required
             name="schedule"
@@ -80,7 +76,6 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
             help="Cron expression. Examples: '0 3 * * *' = daily 3 AM, '0 */6 * * *' = every 6 hours"
           />
 
-          {/* Older Than (using NEW DurationFieldWide component) */}
           <DurationFieldWide
             required
             name="older_than"
@@ -93,14 +88,13 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
             storeAsHours={true}
           />
 
-          {/* Indexers (Multi-Select) */}
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
               Indexers (Optional)
             </label>
             <div className="col-span-2">
               <FormikField name="indexers">
-                {({ field, form }: FieldProps) => (
+                {({field, form}: FieldProps) => (
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
@@ -108,18 +102,18 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
                     }}
                   >
                     <RMSC
-                      options={indexerOptions?.map(opt => ({ value: opt.identifier, label: opt.name })) || []}
+                      options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
                       value={
                         !field.value || field.value === '' || !indexerOptions
                           ? []
                           : field.value
-                              .split(',')
-                              .filter(Boolean)
-                              .map((v: string) => {
-                                const option = indexerOptions.find(opt => opt.identifier === v);
-                                return option ? { value: option.identifier, label: option.name } : null;
-                              })
-                              .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
+                            .split(',')
+                            .filter(Boolean)
+                            .map((v: string) => {
+                              const option = indexerOptions.find(opt => opt.identifier === v);
+                              return option ? {value: option.identifier, label: option.name} : null;
+                            })
+                            .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
                       }
                       onChange={(selected: { value: string; label: string }[]) => {
                         const indexerString = selected.map(s => s.value).join(',');
@@ -136,14 +130,13 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
             </div>
           </div>
 
-          {/* Statuses (Multi-Select) */}
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
               Statuses (Optional)
             </label>
             <div className="col-span-2">
               <FormikField name="statuses">
-                {({ field, form }: FieldProps) => (
+                {({field, form}: FieldProps) => (
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
@@ -156,13 +149,13 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
                         !field.value || field.value === ''
                           ? []
                           : field.value
-                              .split(',')
-                              .filter(Boolean)
-                              .map((v: string) => {
-                                const option = PushStatusOptions.find(opt => opt.value === v);
-                                return option ? { value: option.value, label: option.label } : null;
-                              })
-                              .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
+                            .split(',')
+                            .filter(Boolean)
+                            .map((v: string) => {
+                              const option = PushStatusOptions.find(opt => opt.value === v);
+                              return option ? {value: option.value, label: option.label} : null;
+                            })
+                            .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
                       }
                       onChange={(selected: { value: string; label: string }[]) => {
                         const statusString = selected.map(s => s.value).join(',');
@@ -184,18 +177,18 @@ export function CleanupJobAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormProps<ReleaseCleanupJob>) {
+export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProps<ReleaseCleanupJob>) {
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
     mutationFn: (job: ReleaseCleanupJob) => APIClient.release.cleanupJobs.update(job),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
-      toast.custom((t) => <Toast type="success" body="Job updated" t={t} />);
+      queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.lists()});
+      toast.custom((t) => <Toast type="success" body="Job updated" t={t}/>);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Job could not be updated" t={t} />);
+      toast.custom((t) => <Toast type="error" body="Job could not be updated" t={t}/>);
     }
   });
 
@@ -204,9 +197,9 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
   const deleteMutation = useMutation({
     mutationFn: (jobId: number) => APIClient.release.cleanupJobs.delete(jobId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
-      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.detail(job.id) });
-      toast.custom((t) => <Toast type="success" body={`${job.name} deleted`} t={t} />);
+      queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.lists()});
+      queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.detail(job.id)});
+      toast.custom((t) => <Toast type="success" body={`${job.name} deleted`} t={t}/>);
       toggle();
     },
   });
@@ -231,7 +224,7 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
   };
 
   // Get indexer options for multi-select
-  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
+  const {data: indexerOptions} = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
     queryKey: ['indexers'],
     queryFn: () => APIClient.indexers.getAll(),
     select: data => data.map(indexer => ({
@@ -253,9 +246,9 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
           {/* Same fields as AddForm */}
-          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup" />
+          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup"/>
 
-          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job" />
+          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job"/>
 
           <TextFieldWide
             required
@@ -283,17 +276,17 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
             </label>
             <div className="col-span-2">
               <FormikField name="indexers">
-                {({ field, form }: FieldProps) => {
+                {({field, form}: FieldProps) => {
                   const computedValue = !field.value || field.value === '' || !indexerOptions
                     ? []
                     : field.value
-                        .split(',')
-                        .filter(Boolean)
-                        .map((v: string) => {
-                          const option = indexerOptions.find(opt => opt.identifier === v);
-                          return option ? { value: option.identifier, label: option.name } : null;
-                        })
-                        .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
+                      .split(',')
+                      .filter(Boolean)
+                      .map((v: string) => {
+                        const option = indexerOptions.find(opt => opt.identifier === v);
+                        return option ? {value: option.identifier, label: option.name} : null;
+                      })
+                      .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
 
                   return (
                     <div
@@ -303,7 +296,7 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
                       }}
                     >
                       <RMSC
-                        options={indexerOptions?.map(opt => ({ value: opt.identifier, label: opt.name })) || []}
+                        options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
                         value={computedValue}
                         onChange={(selected: { value: string; label: string }[]) => {
                           const indexerString = selected.map(s => s.value).join(',');
@@ -327,17 +320,17 @@ export function CleanupJobUpdateForm({ isOpen, toggle, data: job }: UpdateFormPr
             </label>
             <div className="col-span-2">
               <FormikField name="statuses">
-                {({ field, form }: FieldProps) => {
+                {({field, form}: FieldProps) => {
                   const computedValue = !field.value || field.value === ''
                     ? []
                     : field.value
-                        .split(',')
-                        .filter(Boolean)
-                        .map((v: string) => {
-                          const option = PushStatusOptions.find(opt => opt.value === v);
-                          return option ? { value: option.value, label: option.label } : null;
-                        })
-                        .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
+                      .split(',')
+                      .filter(Boolean)
+                      .map((v: string) => {
+                        const option = PushStatusOptions.find(opt => opt.value === v);
+                        return option ? {value: option.value, label: option.label} : null;
+                      })
+                      .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
 
                   return (
                     <div

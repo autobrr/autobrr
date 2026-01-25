@@ -3,26 +3,29 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { useMutation, useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { MultiSelect as RMSC } from "react-multi-select-component";
-import { AgeSelect } from "@components/inputs"
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
+import { EllipsisHorizontalIcon, ForwardIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PlusIcon } from "@heroicons/react/24/solid";
+import { format } from "date-fns";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
+import { ReleaseProfileDuplicateList } from "@api/queries";
+import { useToggle } from "@hooks/hooks";
+
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { useToggle } from "@hooks/hooks";
+import { AgeSelect } from "@components/inputs"
 import { DeleteModal } from "@components/modals";
-import { Section } from "./_components";
-import { ReleaseProfileDuplicateList } from "@api/queries.ts";
 import { EmptySimple } from "@components/emptystates";
-import { PlusIcon } from "@heroicons/react/24/solid";
-import { ReleaseProfileDuplicateAddForm, ReleaseProfileDuplicateUpdateForm } from "@forms/settings/ReleaseForms.tsx";
-import { CleanupJobAddForm, CleanupJobUpdateForm } from "@forms/settings/CleanupJobForms.tsx";
 import { Checkbox } from "@components/Checkbox";
-import { format } from "date-fns";
-import { classNames, formatHoursAsDuration } from "@utils";
+import { Section } from "./_components";
+import { ReleaseProfileDuplicateAddForm, ReleaseProfileDuplicateUpdateForm } from "@forms/settings/ReleaseForms";
+import { CleanupJobAddForm, CleanupJobUpdateForm } from "@forms/settings/CleanupJobForms";
+import { classNames } from "@utils";
 import { PushStatusOptions } from "@domain/constants";
 
 const ReleaseSettings = () => (
@@ -131,7 +134,7 @@ function ReleaseProfileDuplicates() {
       rightSide={
         <button
           type="button"
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs cursor-pointer text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           onClick={toggleAdd}
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
@@ -195,7 +198,7 @@ function ReleaseCleanupJobs() {
       rightSide={
         <button
           type="button"
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs cursor-pointer text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           onClick={toggleAdd}
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
@@ -212,14 +215,8 @@ function ReleaseCleanupJobs() {
               <div className="col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Enabled
               </div>
-              <div className="col-span-3 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <div className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Name
-              </div>
-              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Schedule
-              </div>
-              <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Retention
               </div>
               <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Last Run
@@ -253,16 +250,6 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
   const [updatePanelIsOpen, toggleUpdatePanel] = useToggle(false);
   const queryClient = useQueryClient();
 
-  // Get indexer options to check if all are selected
-  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
-    queryKey: ['indexers'],
-    queryFn: () => APIClient.indexers.getAll(),
-    select: data => data.map(indexer => ({
-      identifier: indexer.identifier,
-      name: indexer.name
-    })),
-  });
-
   const toggleMutation = useMutation({
     mutationFn: (enabled: boolean) => APIClient.release.cleanupJobs.toggleEnabled(job.id, enabled),
     onSuccess: () => {
@@ -293,9 +280,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
     <li>
       <CleanupJobUpdateForm isOpen={updatePanelIsOpen} toggle={toggleUpdatePanel} data={job}/>
 
-      {/* Row 1: Main job info */}
       <div className="grid grid-cols-12 items-center py-1">
-        {/* Enabled Toggle */}
         <div className="col-span-1 flex pl-1 sm:pl-4 items-center">
           <Checkbox
             value={job.enabled}
@@ -303,22 +288,10 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
           />
         </div>
 
-        {/* Name (without badges) */}
-        <div className="col-span-3 pl-12 pr-6 py-3 text-sm font-medium text-gray-900 dark:text-white truncate" title={job.name}>
+        <div className="col-span-6 pl-12 pr-6 py-3 text-sm font-medium text-gray-900 dark:text-white truncate" title={job.name}>
           {job.name}
         </div>
 
-        {/* Schedule */}
-        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
-          <span className="font-mono text-xs">{job.schedule}</span>
-        </div>
-
-        {/* Retention (older_than) */}
-        <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
-          {formatHoursAsDuration(job.older_than)}
-        </div>
-
-        {/* Last Run Status */}
         <div className="col-span-2 py-3 text-sm">
           <span className={classNames(
             "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
@@ -332,78 +305,144 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
           </span>
         </div>
 
-        {/* Next Run */}
         <div className="col-span-2 py-3 text-sm text-gray-500 dark:text-gray-400">
           {nextRunDisplay}
         </div>
-      </div>
 
-      {/* Row 2: Filter badges (left) + Actions (right) */}
-      <div className="grid grid-cols-12 items-center py-0.5">
-        <div className="col-span-1" />
-        <div className="col-span-8 pl-12 flex gap-x-0.5 flex-row flex-wrap">
-          {/* Indexer badges */}
-          {(() => {
-            if (!job.indexers) {
-              // No indexers selected = all indexers
-              return <EnabledPill value={false} label="All Indexers" title="Applies to all indexers" />;
-            }
-            const selectedIndexers = job.indexers.split(',').filter(Boolean);
-            const totalIndexers = indexerOptions?.length || 0;
-            if (totalIndexers > 0 && selectedIndexers.length === totalIndexers) {
-              // All indexers explicitly selected = show as "All Indexers"
-              return <EnabledPill value={false} label="All Indexers" title="Applies to all indexers" />;
-            }
-            // Some indexers selected = show blue badges with full names
-            return selectedIndexers.map((idx) => {
-              const indexerDef = indexerOptions?.find(opt => opt.identifier === idx);
-              const displayName = indexerDef?.name || idx.toUpperCase();
-              return (
-                <EnabledPill
-                  key={`idx-${idx}`}
-                  value={true}
-                  label={displayName}
-                  title={`Indexer: ${displayName}`}
-                />
-              );
-            });
-          })()}
-          {/* Status badges */}
-          {(() => {
-            if (!job.statuses) {
-              // No statuses selected = all statuses
-              return <EnabledPill value={false} label="All Statuses" title="Applies to all release statuses" />;
-            }
-            const selectedStatuses = job.statuses.split(',').filter(Boolean);
-            if (selectedStatuses.length === PushStatusOptions.length) {
-              // All statuses explicitly selected = show as "All Statuses"
-              return <EnabledPill value={false} label="All Statuses" title="Applies to all release statuses" />;
-            }
-            // Some statuses selected = show blue badges
-            return selectedStatuses.map((status) => {
-              const statusOption = PushStatusOptions.find(opt => opt.value === status);
-              const label = statusOption?.label || status;
-              return <EnabledPill key={`status-${status}`} value={true} label={label} title={`Status: ${label}`} />;
-            });
-          })()}
-        </div>
-
-        {/* Actions - right aligned */}
-        <div className="col-span-3 flex gap-2 justify-end pr-6">
-          <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer text-sm" onClick={toggleUpdatePanel}>
-            Edit
-          </span>
-          <span className="text-gray-400">|</span>
-          <span
-            className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer text-sm"
-            onClick={() => forceRunMutation.mutate()}
-          >
-            Run Now
-          </span>
+        <div className="col-span-1 md:col-span-1 sm:col-span-2 flex justify-center items-center md:px-6">
+          <CleanupItemDropdown job={job} toggleUpdate={toggleUpdatePanel} forceRun={forceRunMutation.mutate} />
         </div>
       </div>
     </li>
   );
+}
+
+interface CleanupItemDropdownProps {
+  job: ReleaseCleanupJob;
+  toggleUpdate: () => void;
+  forceRun: () => void;
+}
+
+function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdownProps) {
+  const cancelModalButtonRef = useRef(null);
+  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (jobId: number) => APIClient.release.cleanupJobs.delete(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.detail(job.id) });
+      toast.custom((t) => <Toast type="success" body={`${job.name} deleted`} t={t} />);
+      toggleDeleteModal();
+    },
+  });
+
+  return (
+    <Menu as="div">
+      <DeleteModal
+        isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isPending}
+        toggle={toggleDeleteModal}
+        buttonRef={cancelModalButtonRef}
+        deleteAction={() => {
+          deleteMutation.mutate(job.id);
+          toggleDeleteModal();
+        }}
+        title={`Remove cleanup job: ${job.name}`}
+        text="Are you sure you want to remove this cleanup job? This action cannot be undone."
+      />
+
+      <MenuButton className="px-4 py-2">
+        <EllipsisHorizontalIcon
+          className="cursor-pointer w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
+          aria-hidden="true"
+        />
+      </MenuButton>
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <MenuItems
+          anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
+        >
+          <div className="px-1 py-1">
+            <MenuItem>
+              {({ focus }) => (
+                <button
+                  className={classNames(
+                    focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "cursor-pointer font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => toggleUpdate()}
+                >
+                  <PencilSquareIcon
+                    className={classNames(
+                      focus ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Edit
+                </button>
+              )}
+            </MenuItem>
+          </div>
+          <div className="px-1 py-1">
+            <MenuItem>
+              {({ focus }) => (
+                <button
+                  onClick={() => forceRun()}
+                  className={classNames(
+                    focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "cursor-pointer font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                >
+                  <ForwardIcon
+                    className={classNames(
+                      focus ? "text-white" : "text-blue-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Run now
+                </button>
+              )}
+            </MenuItem>
+          </div>
+          <div className="px-1 py-1">
+            <MenuItem>
+              {({ focus }) => (
+                <button
+                  className={classNames(
+                    focus ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "cursor-pointer font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => toggleDeleteModal()}
+                >
+                  <TrashIcon
+                    className={classNames(
+                      focus ? "text-white" : "text-red-500",
+                      "w-5 h-5 mr-2"
+                    )}
+                    aria-hidden="true"
+                  />
+                  Delete
+                </button>
+              )}
+            </MenuItem>
+          </div>
+        </MenuItems>
+      </Transition>
+    </Menu>
+  )
 }
 
 const getDurationLabel = (durationValue: number): string => {
@@ -548,7 +587,7 @@ function DeleteReleases() {
                 toggleDeleteModal();
               }
             }}
-            className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 sm:mt-6 border border-transparent text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-hidden focus:ring-1 focus:ring-inset focus:ring-red-600"
+            className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 sm:mt-6 border border-transparent cursor-pointer text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-hidden focus:ring-1 focus:ring-inset focus:ring-red-600"
           >
             Delete
           </button>
@@ -556,9 +595,7 @@ function DeleteReleases() {
         </div>
       </div>
     </div>
-
   );
-
 }
 
 export default ReleaseSettings;
