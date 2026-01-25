@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { JSX, useState, useEffect, useRef, Fragment } from "react";
+import { JSX, useState, Fragment } from "react";
 import { Field as FormikField } from "formik";
 import Select from "react-select";
 import { Field, Label, Description, Listbox, ListboxButton, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
@@ -444,23 +444,24 @@ const DurationFieldInner = ({
   meta,
   form
 }: DurationFieldInnerProps) => {
-  // State for unit selection (separate from stored value)
-  const [selectedUnit, setSelectedUnit] = useState(defaultUnit);
-  const [displayValue, setDisplayValue] = useState(defaultValue);
-  const initializedRef = useRef(false);
-
-  // Initialize from Formik field value on mount (for edit forms)
-  useEffect(() => {
-    if (!initializedRef.current) {
-      const fieldValue = form.values[name];
-      if (fieldValue !== undefined && fieldValue !== null && fieldValue !== 0) {
-        const { value, unit } = convertHoursToBestUnit(fieldValue, units, defaultUnit);
-        setDisplayValue(value);
-        setSelectedUnit(unit);
-      }
-      initializedRef.current = true;
+  // Initialize state with computed values from Formik field (for edit forms)
+  const [selectedUnit, setSelectedUnit] = useState(() => {
+    const fieldValue = form.values[name];
+    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== 0) {
+      const { unit } = convertHoursToBestUnit(fieldValue, units, defaultUnit);
+      return unit;
     }
-  }, [form.values, name, units, defaultUnit]);
+    return defaultUnit;
+  });
+
+  const [displayValue, setDisplayValue] = useState(() => {
+    const fieldValue = form.values[name];
+    if (fieldValue !== undefined && fieldValue !== null && fieldValue !== 0) {
+      const { value } = convertHoursToBestUnit(fieldValue, units, defaultUnit);
+      return value;
+    }
+    return defaultValue;
+  });
 
   // Calculate hours value for storage
   const calculateHours = (value: number, unit: string) => {
@@ -499,7 +500,6 @@ const DurationFieldInner = ({
         />
       </div>
 
-      {/* Unit Dropdown - 3 columns (25%) */}
       <div className="col-span-3">
         <Listbox value={selectedUnit} onChange={handleUnitChange}>
           {({ open }) => (
