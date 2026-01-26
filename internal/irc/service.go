@@ -211,6 +211,10 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 				restartNeeded = true
 				fieldsChanged = append(fieldsChanged, "tls")
 			}
+			if handler.TLSSkipVerify != network.TLSSkipVerify {
+				restartNeeded = true
+				fieldsChanged = append(fieldsChanged, "tls skip verify")
+			}
 			if handler.Pass != network.Pass {
 				restartNeeded = true
 				fieldsChanged = append(fieldsChanged, "pass")
@@ -493,6 +497,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			Server:           n.Server,
 			Port:             n.Port,
 			TLS:              n.TLS,
+			TLSSkipVerify:    n.TLSSkipVerify,
 			Pass:             n.Pass,
 			Nick:             n.Nick,
 			Auth:             n.Auth,
