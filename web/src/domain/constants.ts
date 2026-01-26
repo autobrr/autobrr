@@ -642,6 +642,34 @@ export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
   }
 ];
 
+// Built-in Pushover sounds - https://pushover.net/api#sounds
+// Custom user-uploaded sounds are fetched from the API when available
+export const PushoverSoundOptions: OptionBasic[] = [
+  { label: "Pushover (default)", value: "pushover" },
+  { label: "Bike", value: "bike" },
+  { label: "Bugle", value: "bugle" },
+  { label: "Cash Register", value: "cashregister" },
+  { label: "Classical", value: "classical" },
+  { label: "Cosmic", value: "cosmic" },
+  { label: "Falling", value: "falling" },
+  { label: "Gamelan", value: "gamelan" },
+  { label: "Incoming", value: "incoming" },
+  { label: "Intermission", value: "intermission" },
+  { label: "Magic", value: "magic" },
+  { label: "Mechanical", value: "mechanical" },
+  { label: "Piano Bar", value: "pianobar" },
+  { label: "Siren", value: "siren" },
+  { label: "Space Alarm", value: "spacealarm" },
+  { label: "Tug Boat", value: "tugboat" },
+  { label: "Alien Alarm (long)", value: "alien" },
+  { label: "Climb (long)", value: "climb" },
+  { label: "Persistent (long)", value: "persistent" },
+  { label: "Pushover Echo (long)", value: "echo" },
+  { label: "Up Down (long)", value: "updown" },
+  { label: "Vibrate Only", value: "vibrate" },
+  { label: "None (silent)", value: "none" },
+];
+
 export const tagsMatchLogicOptions: OptionBasic[] = [
   {
     label: "any",
