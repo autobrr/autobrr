@@ -143,3 +143,22 @@ export const LunaSeaIcon = () => (
     <path d="m749.31 375.08c0 107.48-87.14 194.61-194.62 194.61s-194.62-87.13-194.62-194.61 87.13-194.62 194.62-194.62c7.391-2e-3 14.776 0.412 22.12 1.24-78.731 10.172-136.59 78.893-133.2 158.2 3.393 79.313 66.907 142.84 146.22 146.25 79.311 3.411 148.05-54.43 158.24-133.16 0.826 7.331 1.24 14.703 1.24 22.08z" />
   </svg>
 );
+
+export const WebhookIcon = () => (
+  <svg {...commonSVGProps} viewBox="0 0 24 24">
+    {/* Bottom left node */}
+    <circle cx="5" cy="18" r="3" />
+    {/* Top center node */}
+    <circle cx="12" cy="5" r="3" />
+    {/* Bottom right node */}
+    <circle cx="19" cy="18" r="3" />
+    {/* Line from top to center hub */}
+    <path d="M12 8v4" strokeWidth="2" stroke="currentColor" />
+    {/* Line from center to bottom left */}
+    <path d="M12 12L6.5 16.5" strokeWidth="2" stroke="currentColor" />
+    {/* Line from center to bottom right */}
+    <path d="M12 12L17.5 16.5" strokeWidth="2" stroke="currentColor" />
+  </svg>
+)
+
+
