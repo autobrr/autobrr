@@ -98,7 +98,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("74_indexers_update_aither_irc_auth.sql")
 	migrate.AddFileMigration("75_create_release_cleanup_job.sql")
 	migrate.AddFileMigration("76_add_notification_sound.sql")
-	migrate.AddFileMigration("75_add_notification_method_headers.sql")
+	migrate.AddFileMigration("77_add_notification_method_headers.sql")
 
 	return migrate
 }
