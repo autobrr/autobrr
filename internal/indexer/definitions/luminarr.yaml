@@ -1,0 +1,170 @@
+---
+#id: luminarr
+name: Luminarr
+identifier: luminarr
+description: Luminarr is a private torrent tracker for MOVIES and TV
+language: en-us
+urls:
+  - https://luminarr.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: Luminarr
+  server: irc.luminarr.me
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - Announce
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_autobrr
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: 0:1:1:0:1873:21210147233:1769458612:63|Encode/1080p|1995|Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek|uploader1
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 1
+            leechTypeEnum: 1
+            originEnum: 0
+            torrentId: "1873"
+            torrentSizeBytes: "21210147233"
+            uploadedDate: "1769458612"
+            tmdb: "63"
+            releaseTags: Encode/1080p
+            year: "1995"
+            torrentName: Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek
+            uploader: uploader1
+        - line: 0:1:1:0:1874:22018733375:1769458621:302699|WEB-DL/2160p||Central Intelligence 2016 UNRATED 2160p MA WEB-DL DD+ 5.1 H.265-HHWEB|uploader2
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 1
+            leechTypeEnum: 1
+            originEnum: 0
+            torrentId: "1874"
+            torrentSizeBytes: "22018733375"
+            uploadedDate: "1769458621"
+            tmdb: "302699"
+            releaseTags: WEB-DL/2160p
+            year:
+            torrentName: Central Intelligence 2016 UNRATED 2160p MA WEB-DL DD+ 5.1 H.265-HHWEB
+            uploader: uploader2
+        - line: 0:1:1:0:1849:33432711823:1769444162:289727|Remux/1080p|2014|The Rewrite 2014 1080p BluRay REMUX AVC DTS-HD MA 5.1-SilentRogue|uploader3
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 1
+            leechTypeEnum: 1
+            originEnum: 0
+            torrentId: "1849"
+            torrentSizeBytes: "33432711823"
+            uploadedDate: "1769444162"
+            tmdb: "289727"
+            releaseTags: Remux/1080p
+            year: "2014"
+            torrentName: The Rewrite 2014 1080p BluRay REMUX AVC DTS-HD MA 5.1-SilentRogue
+            uploader: uploader3
+        - line: 0:1:1:0:1881:76425179845:1769461400:414|Remux/2160p||Batman Forever 1995 Hybrid 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-FraMeSToR|uploader4
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 1
+            leechTypeEnum: 1
+            originEnum: 0
+            torrentId: "1881"
+            torrentSizeBytes: "76425179845"
+            uploadedDate: "1769461400"
+            tmdb: "414"
+            releaseTags: Remux/2160p
+            year:
+            torrentName: Batman Forever 1995 Hybrid 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-FraMeSToR
+            uploader: uploader4
+        # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
+        pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\d+):(\d+)\|(.*)\|(\d+)?\|(.+)\|(.+)'
+        vars:
+          - announceTypeEnum
+          - categoryEnum
+          - leechTypeEnum
+          - originEnum
+          - torrentId
+          - torrentSizeBytes
+          - uploadedDate
+          - tmdb
+          - releaseTags
+          - year
+          - torrentName
+          - uploader
+
+    mappings:
+      announceTypeEnum:
+        "0":
+          announceType: NEW
+        "1":
+          announceType: CHECKED
+        "2":
+          announceType: PROMO # X-leeched (could be neutral/half/free)
+        "3":
+          announceType: RESURRECTED # reseeded/revived from dead
+
+      categoryEnum:
+        "1":
+          category: "Movies"
+        "2":
+          category: "TV"
+
+      originEnum:
+        "0":
+          origin: "P2P"
+        "1":
+          origin: "SCENE"
+        "2":
+          origin: "INTERNAL" # PERSONAL RIP
+
+      leechTypeEnum:
+        "0": # Normal
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+        "1": # Freeleech
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 1
+        "2": # 50%
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 1
+        "3": # 75%
+          downloadVolumeFactor: 0.75
+          uploadVolumeFactor: 1
+        "4": # Neutral
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 0
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
