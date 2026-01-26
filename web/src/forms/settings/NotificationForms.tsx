@@ -4,7 +4,7 @@
  */
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -15,7 +15,7 @@ import { Link } from "@tanstack/react-router";
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
 import { PushoverSoundsQueryOptions } from "@api/queries";
-import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
+import { EventOptions, NotificationTypeOptions, PushoverSoundOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
@@ -606,107 +606,106 @@ const EventCheckBoxes = () => {
   );
 };
 
-const EventSoundSelector = ({event, soundOptions, isPushover, isApiKeyRedacted, soundsQueryLoading}: {
+const EventSoundSelector = ({event, soundOptions}: {
   event: typeof EventOptions[number];
   soundOptions: SoundOption[];
-  isPushover: boolean;
-  isApiKeyRedacted: boolean;
-  soundsQueryLoading: boolean;
 }) => {
   const {values, setFieldValue} = useFormikContext<ServiceNotification>();
   const eventSounds = values.event_sounds || {};
   const currentSound = eventSounds[event.value] || "";
 
   return (
-    <div>
-      {isPushover && (
-        <div className="px-4 flex items-center justify-between space-x-3">
-          <span className="text-sm">
-            <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
-          </span>
-          <Field name={`event_sounds.${event.value}`} type="select">
-            {({field: soundField}: FieldProps) => (
-              <Select
-                {...soundField}
-                isClearable={true}
-                isSearchable={true}
-                components={{
-                  Input: common.SelectInput,
-                  Control: common.SelectControl,
-                  Menu: common.SelectMenu,
-                  Option: common.SelectOption,
-                  IndicatorSeparator: common.IndicatorSeparator,
-                  DropdownIndicator: common.DropdownIndicator
-                }}
-                placeholder="Default (use user's default tone)"
-                styles={{
-                  singleValue: (base) => ({
-                    ...base,
-                    color: "unset"
-                  })
-                }}
-                theme={(theme) => ({
-                  ...theme,
-                  spacing: {
-                    ...theme.spacing,
-                    controlHeight: 30,
-                    baseUnit: 2
-                  }
-                })}
-                value={soundOptions.find(o => o.value === currentSound) || null}
-                onChange={(option: unknown) => {
-                  const opt = option as SoundOption | null;
-                  const newEventSounds = {...eventSounds};
-                  if (opt?.value) {
-                    newEventSounds[event.value] = opt.value;
-                  } else {
-                    delete newEventSounds[event.value];
-                  }
-                  setFieldValue("event_sounds", newEventSounds);
-                }}
-                options={soundOptions}
-                isLoading={soundsQueryLoading}
-                isDisabled={isApiKeyRedacted || soundsQueryLoading}
-              />
-            )}
-          </Field>
-        </div>
-      )}
+    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <span className="text-sm">
+        <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+      </span>
+
+      <div className="sm:col-span-2">
+        <Field name={`event_sounds.${event.value}`} type="select">
+          {({field: soundField}: FieldProps) => (
+            <Select
+              {...soundField}
+              isClearable={true}
+              isSearchable={true}
+              components={{
+                Input: common.SelectInput,
+                Control: common.SelectControl,
+                Menu: common.SelectMenu,
+                Option: common.SelectOption,
+                IndicatorSeparator: common.IndicatorSeparator,
+                DropdownIndicator: common.DropdownIndicator
+              }}
+              placeholder="Default (user's default tone)"
+              styles={{
+                singleValue: (base) => ({
+                  ...base,
+                  color: "unset"
+                })
+              }}
+              theme={(theme) => ({
+                ...theme,
+                spacing: {
+                  ...theme.spacing,
+                  controlHeight: 30,
+                  baseUnit: 2
+                }
+              })}
+              value={soundOptions.find(o => o.value === currentSound) || null}
+              onChange={(option: unknown) => {
+                const opt = option as SoundOption | null;
+                const newEventSounds = {...eventSounds};
+                if (opt?.value) {
+                  newEventSounds[event.value] = opt.value;
+                } else {
+                  delete newEventSounds[event.value];
+                }
+                setFieldValue("event_sounds", newEventSounds);
+              }}
+              options={soundOptions}
+            />
+          )}
+        </Field>
+      </div>
     </div>
   );
 };
 
 const EventSounds = () => {
   const { values } = useFormikContext<ServiceNotification>();
-  const isPushover = values.type === "PUSHOVER";
   const apiKey = values.api_key || "";
-  const isApiKeyRedacted = apiKey === "<redacted>" || !apiKey || apiKey === "";
+
+  const canFetchCustomSounds = Boolean(apiKey && apiKey !== "<redacted>");
 
   const soundsQuery = useQuery({
     ...PushoverSoundsQueryOptions(apiKey),
-    enabled: !isApiKeyRedacted && isPushover
+    enabled: canFetchCustomSounds
   });
 
-  const soundOptions: SoundOption[] = [
-    { label: "Default (use user's default tone)", value: "" },
-    ...(soundsQuery.data
+  const soundOptions: SoundOption[] = useMemo(() => {
+    const builtInKeys = new Set(PushoverSoundOptions.map(s => s.value));
+
+    const customSounds: SoundOption[] = soundsQuery.data
       ? Object.entries(soundsQuery.data)
-        .sort(([, a], [, b]) => a.localeCompare(b))
-        .map(([key, value]) => ({ label: value, value: key }))
-      : [])
-  ];
+          .filter(([key]) => !builtInKeys.has(key))
+          .sort(([, a], [, b]) => a.localeCompare(b))
+          .map(([key, value]) => ({ label: `${value} (custom)`, value: key }))
+      : [];
+
+    return [
+      { label: "Default (user's default tone)", value: "" },
+      ...PushoverSoundOptions,
+      ...customSounds
+    ];
+  }, [soundsQuery.data]);
 
   return (
-    <fieldset className="space-y-5">
+    <fieldset className="">
       <legend className="sr-only">Notifications</legend>
       {EventOptions.map((event, idx) => (
         <EventSoundSelector
           key={idx}
           event={event}
           soundOptions={soundOptions}
-          isPushover={isPushover}
-          isApiKeyRedacted={isApiKeyRedacted}
-          soundsQueryLoading={soundsQuery.isLoading}
         />
       ))}
     </fieldset>
@@ -907,19 +906,6 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
           </div>
 
           {componentMap[values.type]}
-
-          {/*<div className="pb-2">*/}
-          {/*  <div className="p-4">*/}
-          {/*    <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">*/}
-          {/*      Events sounds*/}
-          {/*    </DialogTitle>*/}
-          {/*    <p className="text-sm text-gray-500 dark:text-gray-400">*/}
-          {/*      Set custom sounds per event*/}
-          {/*    </p>*/}
-          {/*  </div>*/}
-
-          {/*  <EventSounds />*/}
-          {/*</div>*/}
 
         </div>
       )}
