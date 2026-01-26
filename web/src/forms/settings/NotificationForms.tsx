@@ -344,7 +344,7 @@ function FormFieldsGenericWebhook() {
       <PasswordFieldWide
         name="webhook"
         label="Webhook URL"
-        help="Generic Webhook URL"
+        help="Webhook URL"
         placeholder="https://example.com/webhook"
         required={true}
       />
@@ -374,7 +374,7 @@ const componentMap: componentMapType = {
   NTFY: <FormFieldsNtfy />,
   SHOUTRRR: <FormFieldsShoutrrr />,
   LUNASEA: <FormFieldsLunaSea />,
-  GENERIC_WEBHOOK: <FormFieldsGenericWebhook />
+  WEBHOOK: <FormFieldsGenericWebhook />
 };
 
 interface NotificationAddFormValues {

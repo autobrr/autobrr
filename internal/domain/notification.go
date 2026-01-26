@@ -55,7 +55,7 @@ type Notification struct {
 	Sound         string               `json:"sound"`
 	EventSounds   map[string]string    `json:"event_sounds,omitempty"` // event -> sound mapping
 	UsedByFilters []FilterNotification `json:"used_by_filters,omitempty"`
-  Method        string               `json:"method,omitempty"`
+	Method        string               `json:"method,omitempty"`
 	Headers       string               `json:"headers,omitempty"`
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
@@ -107,7 +107,7 @@ func (n *Notification) IsEnabled() bool {
 		if n.Token != "" && n.Channel != "" {
 			return true
 		}
-	case NotificationTypeGenericWebhook:
+	case NotificationTypeWebhook:
 		if n.Webhook != "" {
 			return true
 		}
@@ -206,183 +206,28 @@ type NotificationPayload struct {
 	Timestamp           time.Time
 	Sender              string
 	FilterNotifications []FilterNotification // per-filter notifications
-	Release             *Release             // full release data for generic webhook
-}
-
-// GenericWebhookPayload contains all available release and event data for generic webhook notifications
-type GenericWebhookPayload struct {
-	// Event metadata
-	Event     NotificationEvent `json:"event"`
-	Timestamp time.Time         `json:"timestamp"`
-
-	// Release identification
-	ReleaseName string `json:"release_name"`
-	TorrentName string `json:"torrent_name"`
-	InfoHash    string `json:"info_hash,omitempty"`
-	Size        uint64 `json:"size"`
-	Title       string `json:"title"`
-	SubTitle    string `json:"sub_title,omitempty"`
-	Type        string `json:"type"`
-
-	// Source information
-	Indexer        string                `json:"indexer"`
-	Protocol       ReleaseProtocol       `json:"protocol"`
-	Implementation ReleaseImplementation `json:"implementation"`
-	InfoURL        string                `json:"info_url,omitempty"`
-	DownloadURL    string                `json:"download_url,omitempty"`
-
-	// Filter/Action information
-	Filter       string            `json:"filter,omitempty"`
-	FilterID     int               `json:"filter_id,omitempty"`
-	Action       string            `json:"action,omitempty"`
-	ActionType   ActionType        `json:"action_type,omitempty"`
-	ActionClient string            `json:"action_client,omitempty"`
-	Status       ReleasePushStatus `json:"status,omitempty"`
-	Rejections   []string          `json:"rejections,omitempty"`
-
-	// Media identification
-	Category   string   `json:"category,omitempty"`
-	Categories []string `json:"categories,omitempty"`
-	Season     int      `json:"season,omitempty"`
-	Episode    int      `json:"episode,omitempty"`
-	Year       int      `json:"year,omitempty"`
-	Month      int      `json:"month,omitempty"`
-	Day        int      `json:"day,omitempty"`
-
-	// Media quality
-	Resolution      string   `json:"resolution,omitempty"`
-	Source          string   `json:"source,omitempty"`
-	Codec           []string `json:"codec,omitempty"`
-	Container       string   `json:"container,omitempty"`
-	HDR             []string `json:"hdr,omitempty"`
-	Audio           []string `json:"audio,omitempty"`
-	AudioChannels   string   `json:"audio_channels,omitempty"`
-	AudioFormat     string   `json:"audio_format,omitempty"`
-	MediaProcessing string   `json:"media_processing,omitempty"`
-
-	// Release metadata
-	Group    string   `json:"group,omitempty"`
-	Website  string   `json:"website,omitempty"`
-	Origin   string   `json:"origin,omitempty"`
-	Uploader string   `json:"uploader,omitempty"`
-	PreTime  string   `json:"pre_time,omitempty"`
-	Edition  []string `json:"edition,omitempty"`
-	Cut      []string `json:"cut,omitempty"`
-	Language []string `json:"language,omitempty"`
-	Region   string   `json:"region,omitempty"`
-	Tags     []string `json:"tags,omitempty"`
-
-	// Flags
-	Proper           bool `json:"proper"`
-	Repack           bool `json:"repack"`
-	Hybrid           bool `json:"hybrid"`
-	Freeleech        bool `json:"freeleech"`
-	FreeleechPercent int  `json:"freeleech_percent,omitempty"`
-
-	// Music specific
-	Artists     string   `json:"artists,omitempty"`
-	RecordLabel string   `json:"record_label,omitempty"`
-	LogScore    int      `json:"log_score,omitempty"`
-	HasCue      bool     `json:"has_cue,omitempty"`
-	HasLog      bool     `json:"has_log,omitempty"`
-	Bonus       []string `json:"bonus,omitempty"`
-
-	// Torrent stats
-	Seeders  int `json:"seeders,omitempty"`
-	Leechers int `json:"leechers,omitempty"`
-}
-
-// NewGenericWebhookPayload creates a GenericWebhookPayload from a NotificationPayload
-func NewGenericWebhookPayload(payload NotificationPayload) *GenericWebhookPayload {
-	p := &GenericWebhookPayload{
-		Event:          payload.Event,
-		Timestamp:      payload.Timestamp,
-		ReleaseName:    payload.ReleaseName,
-		InfoHash:       payload.InfoHash,
-		Size:           payload.Size,
-		Indexer:        payload.Indexer,
-		Protocol:       payload.Protocol,
-		Implementation: payload.Implementation,
-		Filter:         payload.Filter,
-		FilterID:       payload.FilterID,
-		Action:         payload.Action,
-		ActionType:     payload.ActionType,
-		ActionClient:   payload.ActionClient,
-		Status:         payload.Status,
-		Rejections:     payload.Rejections,
-	}
-
-	if payload.Release != nil {
-		p.TorrentName = payload.Release.TorrentName
-		p.Size = payload.Release.Size
-		p.Title = payload.Release.Title
-		p.SubTitle = payload.Release.SubTitle
-		p.Type = payload.Release.Type.String()
-		p.InfoURL = payload.Release.InfoURL
-		p.DownloadURL = payload.Release.DownloadURL
-		p.Category = payload.Release.Category
-		p.Categories = payload.Release.Categories
-		p.Season = payload.Release.Season
-		p.Episode = payload.Release.Episode
-		p.Year = payload.Release.Year
-		p.Month = payload.Release.Month
-		p.Day = payload.Release.Day
-		p.Resolution = payload.Release.Resolution
-		p.Source = payload.Release.Source
-		p.Codec = payload.Release.Codec
-		p.Container = payload.Release.Container
-		p.HDR = payload.Release.HDR
-		p.Audio = payload.Release.Audio
-		p.AudioChannels = payload.Release.AudioChannels
-		p.AudioFormat = payload.Release.AudioFormat
-		p.MediaProcessing = payload.Release.MediaProcessing
-		p.Group = payload.Release.Group
-		p.Website = payload.Release.Website
-		p.Origin = payload.Release.Origin
-		p.Uploader = payload.Release.Uploader
-		p.PreTime = payload.Release.PreTime
-		p.Edition = payload.Release.Edition
-		p.Cut = payload.Release.Cut
-		p.Language = payload.Release.Language
-		p.Region = payload.Release.Region
-		p.Tags = payload.Release.Tags
-		p.Proper = payload.Release.Proper
-		p.Repack = payload.Release.Repack
-		p.Hybrid = payload.Release.Hybrid
-		p.Freeleech = payload.Release.Freeleech
-		p.FreeleechPercent = payload.Release.FreeleechPercent
-		p.Artists = payload.Release.Artists
-		p.RecordLabel = payload.Release.RecordLabel
-		p.LogScore = payload.Release.LogScore
-		p.HasCue = payload.Release.HasCue
-		p.HasLog = payload.Release.HasLog
-		p.Bonus = payload.Release.Bonus
-		p.Seeders = payload.Release.Seeders
-		p.Leechers = payload.Release.Leechers
-	}
-
-	return p
+	Release             *Release             // full release data for webhook
 }
 
 type NotificationType string
 
 const (
-	NotificationTypeDiscord        NotificationType = "DISCORD"
-	NotificationTypeNotifiarr      NotificationType = "NOTIFIARR"
-	NotificationTypeIFTTT          NotificationType = "IFTTT"
-	NotificationTypeJoin           NotificationType = "JOIN"
-	NotificationTypeMattermost     NotificationType = "MATTERMOST"
-	NotificationTypeMatrix         NotificationType = "MATRIX"
-	NotificationTypePushBullet     NotificationType = "PUSH_BULLET"
-	NotificationTypePushover       NotificationType = "PUSHOVER"
-	NotificationTypeRocketChat     NotificationType = "ROCKETCHAT"
-	NotificationTypeSlack          NotificationType = "SLACK"
-	NotificationTypeTelegram       NotificationType = "TELEGRAM"
-	NotificationTypeGotify         NotificationType = "GOTIFY"
-	NotificationTypeNtfy           NotificationType = "NTFY"
-	NotificationTypeLunaSea        NotificationType = "LUNASEA"
-	NotificationTypeShoutrrr       NotificationType = "SHOUTRRR"
-	NotificationTypeGenericWebhook NotificationType = "GENERIC_WEBHOOK"
+	NotificationTypeDiscord    NotificationType = "DISCORD"
+	NotificationTypeNotifiarr  NotificationType = "NOTIFIARR"
+	NotificationTypeIFTTT      NotificationType = "IFTTT"
+	NotificationTypeJoin       NotificationType = "JOIN"
+	NotificationTypeMattermost NotificationType = "MATTERMOST"
+	NotificationTypeMatrix     NotificationType = "MATRIX"
+	NotificationTypePushBullet NotificationType = "PUSH_BULLET"
+	NotificationTypePushover   NotificationType = "PUSHOVER"
+	NotificationTypeRocketChat NotificationType = "ROCKETCHAT"
+	NotificationTypeSlack      NotificationType = "SLACK"
+	NotificationTypeTelegram   NotificationType = "TELEGRAM"
+	NotificationTypeGotify     NotificationType = "GOTIFY"
+	NotificationTypeNtfy       NotificationType = "NTFY"
+	NotificationTypeLunaSea    NotificationType = "LUNASEA"
+	NotificationTypeShoutrrr   NotificationType = "SHOUTRRR"
+	NotificationTypeWebhook    NotificationType = "WEBHOOK"
 )
 
 type NotificationEvent string
@@ -472,49 +317,61 @@ type WebhookData struct {
 
 // WebhookRelease contains release-specific data
 type WebhookRelease struct {
-	Name            string    `json:"name"`
-	Title           string    `json:"title,omitempty"`
-	SubTitle        string    `json:"sub_title,omitempty"`
-	Multiplier      string    `json:"multiplier,omitempty"` // Added to handle release metadata
-	Category        string    `json:"category,omitempty"`
-	Categories      []string  `json:"categories,omitempty"`
-	Season          int       `json:"season,omitempty"`
-	Episode         int       `json:"episode,omitempty"`
-	Year            int       `json:"year,omitempty"`
-	Month           int       `json:"month,omitempty"`
-	Day             int       `json:"day,omitempty"`
-	Resolution      string    `json:"resolution,omitempty"`
-	Source          string    `json:"source,omitempty"`
-	Codec           []string  `json:"codec,omitempty"`
-	Container       string    `json:"container,omitempty"`
-	HDR             []string  `json:"hdr,omitempty"`
-	Audio           []string  `json:"audio,omitempty"`
-	AudioChannels   string    `json:"audio_channels,omitempty"`
-	AudioFormat     string    `json:"audio_format,omitempty"`
-	MediaProcessing string    `json:"media_processing,omitempty"`
-	Group           string    `json:"group,omitempty"`
-	Website         string    `json:"website,omitempty"`
-	Origin          string    `json:"origin,omitempty"`
-	Uploader        string    `json:"uploader,omitempty"`
-	PreTime         string    `json:"pre_time,omitempty"`
-	Edition         []string  `json:"edition,omitempty"`
-	Cut             []string  `json:"cut,omitempty"`
-	Language        []string  `json:"language,omitempty"`
-	Region          string    `json:"region,omitempty"`
-	Tags            []string  `json:"tags,omitempty"`
-	Proper          bool      `json:"proper,omitempty"`
-	Repack          bool      `json:"repack,omitempty"`
-	Hybrid          bool      `json:"hybrid,omitempty"`
-	Freeleech       bool      `json:"freeleech,omitempty"`
-	Link            string    `json:"link,omitempty"`
-	DownloadURL     string    `json:"download_url,omitempty"`
-	InfoURL         string    `json:"info_url,omitempty"`
-	Size            uint64    `json:"size,omitempty"`
-	Seeders         int       `json:"seeders,omitempty"`
-	Leechers        int       `json:"leechers,omitempty"`
-	Protocol        string    `json:"protocol,omitempty"`
-	Implementation  string    `json:"implementation,omitempty"`
-	Timestamp       time.Time `json:"timestamp,omitempty"`
+	Protocol         string       `json:"protocol,omitempty"`
+	Implementation   string       `json:"implementation,omitempty"`
+	Timestamp        time.Time    `json:"timestamp,omitempty"`
+	Type             string       `json:"type"`
+	AnnounceType     AnnounceType `json:"announce_type"`
+	Link             string       `json:"link,omitempty"`
+	DownloadURL      string       `json:"download_url,omitempty"`
+	InfoURL          string       `json:"info_url,omitempty"`
+	MagnetURI        string       `json:"magnet_uri,omitempty"`
+	Category         string       `json:"category,omitempty"`
+	Categories       []string     `json:"categories,omitempty"`
+	ExternalID       string       `json:"external_id,omitempty"`
+	ExternalGroupID  string       `json:"external_group_id,omitempty"`
+	Size             uint64       `json:"size,omitempty"`
+	Name             string       `json:"name"`
+	Title            string       `json:"title,omitempty"`
+	SubTitle         string       `json:"sub_title,omitempty"`
+	Season           int          `json:"season,omitempty"`
+	Episode          int          `json:"episode,omitempty"`
+	Year             int          `json:"year,omitempty"`
+	Month            int          `json:"month,omitempty"`
+	Day              int          `json:"day,omitempty"`
+	Resolution       string       `json:"resolution,omitempty"`
+	Source           string       `json:"source,omitempty"`
+	Codec            []string     `json:"codec,omitempty"`
+	Container        string       `json:"container,omitempty"`
+	DynamicRange     []string     `json:"dynamic_range,omitempty"`
+	Audio            []string     `json:"audio,omitempty"`
+	AudioChannels    string       `json:"audio_channels,omitempty"`
+	AudioFormat      string       `json:"audio_format,omitempty"`
+	Bitrate          string       `json:"bitrate,omitempty"`
+	MediaProcessing  string       `json:"media_processing,omitempty"`
+	Group            string       `json:"group,omitempty"`
+	Website          string       `json:"website,omitempty"`
+	Origin           string       `json:"origin,omitempty"`
+	Uploader         string       `json:"uploader,omitempty"`
+	PreTime          string       `json:"pre_time,omitempty"`
+	Edition          []string     `json:"edition,omitempty"`
+	Cut              []string     `json:"cut,omitempty"`
+	Language         []string     `json:"language,omitempty"`
+	Region           string       `json:"region,omitempty"`
+	Tags             []string     `json:"tags,omitempty"`
+	Proper           bool         `json:"proper,omitempty"`
+	Repack           bool         `json:"repack,omitempty"`
+	Hybrid           bool         `json:"hybrid,omitempty"`
+	Artists          string       `json:"artists,omitempty"`
+	RecordLabel      string       `json:"record_label,omitempty"`
+	HasCue           bool         `json:"has_cue,omitempty"`
+	HasLog           bool         `json:"has_log,omitempty"`
+	LogScore         int          `json:"log_score,omitempty"`
+	Freeleech        bool         `json:"freeleech,omitempty"`
+	FreeleechPercent int          `json:"freeleech_percent,omitempty"`
+	Seeders          int          `json:"seeders,omitempty"`
+	Leechers         int          `json:"leechers,omitempty"`
+	MetaIMDB         string       `json:"meta_imdb,omitempty"`
 }
 
 // WebhookIndexer contains indexer information
@@ -544,7 +401,7 @@ type WebhookResult struct {
 	Rejections []string `json:"rejections,omitempty"`
 }
 
-func mapToWebhookEvent(event NotificationEvent) WebhookEventType {
+func mapNotificationEventToWebhookEvent(event NotificationEvent) WebhookEventType {
 	switch event {
 	case NotificationEventReleaseNew:
 		return WebhookEventReleaseNew
@@ -569,58 +426,72 @@ func mapToWebhookEvent(event NotificationEvent) WebhookEventType {
 
 // NewWebhookEvent creates a structured webhook payload
 func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id string) *WebhookEvent {
-	// If release is nil but available in payload, use that
-	var release *Release
-	if payload.Release != nil {
-		release = payload.Release
+	eventPayload := &WebhookEvent{
+		Event:     mapNotificationEventToWebhookEvent(event),
+		ID:        id,
+		Timestamp: payload.Timestamp,
+		Version:   "1.0",
 	}
-
 	data := &WebhookData{}
 
 	// Populate Release data if available
-	if release != nil {
+	if payload.Release != nil {
+		release := payload.Release
 		data.Release = &WebhookRelease{
-			Name:            release.TorrentName,
-			Title:           release.Title,
-			SubTitle:        release.SubTitle,
-			Category:        release.Category,
-			Categories:      release.Categories,
-			Season:          release.Season,
-			Episode:         release.Episode,
-			Year:            release.Year,
-			Month:           release.Month,
-			Day:             release.Day,
-			Resolution:      release.Resolution,
-			Source:          release.Source,
-			Codec:           release.Codec,
-			Container:       release.Container,
-			HDR:             release.HDR,
-			Audio:           release.Audio,
-			AudioChannels:   release.AudioChannels,
-			AudioFormat:     release.AudioFormat,
-			MediaProcessing: release.MediaProcessing,
-			Group:           release.Group,
-			Website:         release.Website,
-			Origin:          release.Origin,
-			Uploader:        release.Uploader,
-			PreTime:         release.PreTime,
-			Edition:         release.Edition,
-			Cut:             release.Cut,
-			Language:        release.Language,
-			Region:          release.Region,
-			Tags:            release.Tags,
-			Proper:          release.Proper,
-			Repack:          release.Repack,
-			Hybrid:          release.Hybrid,
-			Freeleech:       release.Freeleech,
-			DownloadURL:     release.DownloadURL,
-			InfoURL:         release.InfoURL,
-			Size:            release.Size,
-			Seeders:         release.Seeders,
-			Leechers:        release.Leechers,
-			Protocol:        string(release.Protocol),
-			Implementation:  string(release.Implementation),
-			Timestamp:       release.Timestamp,
+			Protocol:         string(release.Protocol),
+			Implementation:   string(release.Implementation),
+			Timestamp:        release.Timestamp,
+			Type:             release.Type.String(),
+			AnnounceType:     release.AnnounceType,
+			DownloadURL:      release.DownloadURL,
+			InfoURL:          release.InfoURL,
+			MagnetURI:        release.MagnetURI,
+			Category:         release.Category,
+			Categories:       release.Categories,
+			ExternalID:       release.TorrentID,
+			ExternalGroupID:  release.GroupID,
+			Size:             release.Size,
+			Name:             release.TorrentName,
+			Title:            release.Title,
+			SubTitle:         release.SubTitle,
+			Season:           release.Season,
+			Episode:          release.Episode,
+			Year:             release.Year,
+			Month:            release.Month,
+			Day:              release.Day,
+			Resolution:       release.Resolution,
+			Source:           release.Source,
+			Codec:            release.Codec,
+			Container:        release.Container,
+			DynamicRange:     release.HDR,
+			Audio:            release.Audio,
+			AudioChannels:    release.AudioChannels,
+			AudioFormat:      release.AudioFormat,
+			Bitrate:          release.Bitrate,
+			MediaProcessing:  release.MediaProcessing,
+			Group:            release.Group,
+			Website:          release.Website,
+			Origin:           release.Origin,
+			Uploader:         release.Uploader,
+			PreTime:          release.PreTime,
+			Edition:          release.Edition,
+			Cut:              release.Cut,
+			Language:         release.Language,
+			Region:           release.Region,
+			Tags:             release.Tags,
+			Proper:           release.Proper,
+			Repack:           release.Repack,
+			Hybrid:           release.Hybrid,
+			Artists:          release.Artists,
+			RecordLabel:      release.RecordLabel,
+			HasCue:           release.HasCue,
+			HasLog:           release.HasLog,
+			LogScore:         release.LogScore,
+			Freeleech:        release.Freeleech,
+			FreeleechPercent: release.FreeleechPercent,
+			Seeders:          release.Seeders,
+			Leechers:         release.Leechers,
+			MetaIMDB:         release.MetaIMDB,
 		}
 	} else if payload.ReleaseName != "" {
 		// Fallback if full release object is missing but we have basic info in payload
@@ -637,8 +508,8 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 			Protocol: string(payload.Protocol),
 		}
 		// If we have full release object, we might have more indexer info
-		if release != nil {
-			data.Indexer.Identifier = release.Indexer.Identifier
+		if payload.Release != nil {
+			data.Indexer.Identifier = payload.Release.Indexer.Identifier
 		}
 	}
 
@@ -667,11 +538,7 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 		}
 	}
 
-	return &WebhookEvent{
-		Event:     mapToWebhookEvent(event),
-		ID:        id,
-		Timestamp: payload.Timestamp,
-		Version:   "1.0",
-		Data:      data,
-	}
+	eventPayload.Data = data
+
+	return eventPayload
 }

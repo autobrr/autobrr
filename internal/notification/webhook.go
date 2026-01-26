@@ -19,16 +19,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type genericWebhookSender struct {
+type webhookSender struct {
 	log      zerolog.Logger
 	Settings *domain.Notification
 
 	httpClient *http.Client
 }
 
-func NewGenericWebhookSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
-	return &genericWebhookSender{
-		log:      log.With().Str("sender", "generic_webhook").Str("name", settings.Name).Logger(),
+func NewWebhookSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+	return &webhookSender{
+		log:      log.With().Str("sender", "webhook").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
@@ -37,11 +37,11 @@ func NewGenericWebhookSender(log zerolog.Logger, settings *domain.Notification) 
 	}
 }
 
-func (s *genericWebhookSender) Name() string {
-	return "generic_webhook"
+func (s *webhookSender) Name() string {
+	return "webhook"
 }
 
-func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+func (s *webhookSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	// Generate unique event ID
 	eventID := uuid.New().String()
 
@@ -85,7 +85,7 @@ func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload doma
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("generic webhook response status: %d", res.StatusCode)
+	s.log.Trace().Msgf("webhook response status: %d", res.StatusCode)
 
 	// Accept 2xx status codes as success
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
@@ -99,19 +99,19 @@ func (s *genericWebhookSender) Send(event domain.NotificationEvent, payload doma
 		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
-	s.log.Debug().Str("event", string(event)).Msg("notification successfully sent to generic webhook")
+	s.log.Debug().Str("event", string(event)).Msg("notification successfully sent to webhook")
 
 	return nil
 }
 
-func (s *genericWebhookSender) CanSend(event domain.NotificationEvent) bool {
+func (s *webhookSender) CanSend(event domain.NotificationEvent) bool {
 	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *genericWebhookSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+func (s *webhookSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
 	if !s.IsEnabled() {
 		return false
 	}
@@ -141,17 +141,17 @@ func (s *genericWebhookSender) CanSendPayload(event domain.NotificationEvent, pa
 	return false
 }
 
-func (s *genericWebhookSender) HasFilterEvents(filterID int) bool {
+func (s *webhookSender) HasFilterEvents(filterID int) bool {
 	if s.Settings.HasFilterNotifications(filterID) {
 		return true
 	}
 	return false
 }
 
-func (s *genericWebhookSender) IsEnabled() bool {
+func (s *webhookSender) IsEnabled() bool {
 	return s.Settings.IsEnabled()
 }
 
-func (s *genericWebhookSender) isEnabledEvent(event domain.NotificationEvent) bool {
+func (s *webhookSender) isEnabledEvent(event domain.NotificationEvent) bool {
 	return s.Settings.EventEnabled(string(event))
 }

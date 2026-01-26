@@ -513,8 +513,8 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     value: "TELEGRAM"
   },
   {
-    label: "Generic Webhook",
-    value: "GENERIC_WEBHOOK"
+    label: "Webhook",
+    value: "WEBHOOK"
   },
 ];
 

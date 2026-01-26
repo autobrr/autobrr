@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR" | "GENERIC_WEBHOOK";
+type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR" | "WEBHOOK";
 type NotificationEvent =
   "PUSH_APPROVED"
   | "PUSH_REJECTED"
