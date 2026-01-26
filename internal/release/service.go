@@ -18,6 +18,7 @@ import (
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/rs/zerolog"
 )
 
@@ -71,6 +72,7 @@ type service struct {
 	log         zerolog.Logger
 	m           sync.RWMutex
 	cleanupJobs map[string]int
+	bus         EventBus.Bus
 
 	repo       domain.ReleaseRepo
 	actionSvc  action.Service
@@ -79,10 +81,11 @@ type service struct {
 	scheduler  scheduler.Service
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service, bus EventBus.Bus) Service {
 	return &service{
 		log:         log.With().Str("module", "release").Logger(),
 		cleanupJobs: map[string]int{},
+		bus:         bus,
 		repo:        repo,
 		actionSvc:   actionSvc,
 		filterSvc:   filterSvc,
@@ -365,9 +368,9 @@ func (s *service) Process(release *domain.Release) {
 
 	ctx := context.Background()
 
+	s.publishEventReleaseNew(release)
+
 	// TODO check in config for "Save all releases"
-	// TODO cross-seed check
-	// TODO dupe checks
 
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, release.Indexer.Identifier)
@@ -564,12 +567,22 @@ func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, indexer.Identifier)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error finding filters for indexer: %s", indexer.Name)
 		return err
 	}
 
+	// TODO check in config for "Save all releases"
+
 	if len(filters) == 0 {
-		s.log.Debug().Msgf("no active filters found for indexer: %s skipping rest..", indexer.Name)
+		// Send RELEASE_NEW notification for ALL incoming releases (before filter checking)
+		for _, release := range releases {
+			if release == nil {
+				continue
+			}
+			s.publishEventReleaseNew(release)
+		}
+
+		s.log.Debug().Msgf("no active filters found for indexer: %s skipping filter processing", indexer.Name)
 		return domain.ErrNoActiveFiltersFoundForIndexer
 	}
 
@@ -577,6 +590,8 @@ func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 		if release == nil {
 			continue
 		}
+
+		s.publishEventReleaseNew(release)
 
 		if err := s.processRelease(ctx, release, filters); err != nil {
 			s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error processing filters for indexer: %s", indexer.Name)
@@ -685,6 +700,21 @@ func (s *service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	s.log.Info().Msgf("successfully replayed action %s for release %s", filterAction.Name, release.TorrentName)
 
 	return nil
+}
+
+func (s *service) publishEventReleaseNew(release *domain.Release) {
+	payload := &domain.NotificationPayload{
+		Event:          domain.NotificationEventReleaseNew,
+		ReleaseName:    release.TorrentName,
+		Indexer:        release.Indexer.Name,
+		InfoHash:       release.TorrentHash,
+		Size:           release.Size,
+		Protocol:       release.Protocol,
+		Implementation: release.Implementation,
+		Timestamp:      time.Now(),
+		Release:        release,
+	}
+	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
 }
 
 func (s *service) startCleanupJob(job *domain.ReleaseCleanupJob) error {

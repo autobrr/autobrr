@@ -45,6 +45,8 @@ CREATE TABLE notification
     sound        TEXT,
     event_sounds TEXT,
     priority     INTEGER   DEFAULT 0,
+    method       TEXT,
+    headers      TEXT,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

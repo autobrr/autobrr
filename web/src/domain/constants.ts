@@ -512,6 +512,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     label: "Telegram",
     value: "TELEGRAM"
   },
+  {
+    label: "Webhook",
+    value: "WEBHOOK"
+  },
 ];
 
 export const IrcAuthMechanismTypeOptions: OptionBasicTyped<IrcAuthMechanism>[] = [
@@ -628,6 +632,11 @@ export const EventOptions: SelectOption[] = [
     label: "New update",
     value: "APP_UPDATE_AVAILABLE",
     description: "Get notified on updates"
+  },
+  {
+    label: "New Release",
+    value: "RELEASE_NEW",
+    description: "On new release from indexer (before filtering)"
   }
 ];
 
@@ -691,11 +700,11 @@ export const ExternalFilterTypeNameMap = {
   "WEBHOOK": "Webhook"
 };
 
-export const ExternalFilterOnErrorValues: ExternalFilterOnError[]  = ["REJECT", "CONTINUE"];
+export const ExternalFilterOnErrorValues: ExternalFilterOnError[] = ["REJECT", "CONTINUE"];
 
 export const ExternalFilterOnErrorOptions: SelectGenericOption<ExternalFilterOnError>[] = [
-    { label: "Reject", description: "Reject on error, default", value: "REJECT" },
-    { label: "Continue to next", description: "Continue on error", value: "CONTINUE" },
+  { label: "Reject", description: "Reject on error, default", value: "REJECT" },
+  { label: "Continue to next", description: "Continue on error", value: "CONTINUE" },
 ];
 
 export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>[] = [
