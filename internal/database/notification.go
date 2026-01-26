@@ -29,7 +29,7 @@ func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
 	}
 }
 
-func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
+func (r *NotificationRepo) Find(ctx context.Context, _ domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 	queryBuilder := r.db.squirrel.
 		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "sound", "event_sounds", "host", "username", "password", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
@@ -205,13 +205,9 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 }
 
 func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notification) error {
-	var eventSoundsJSON sql.Null[string]
-	if notification.EventSounds != nil && len(notification.EventSounds) > 0 {
-		eventSoundsBytes, err := json.Marshal(notification.EventSounds)
-		if err != nil {
-			return errors.Wrap(err, "error marshaling event_sounds")
-		}
-		eventSoundsJSON = sql.Null[string]{V: string(eventSoundsBytes), Valid: true}
+	eventSoundsJSON, err := json.Marshal(notification.EventSounds)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling event_sounds")
 	}
 
 	queryBuilder := r.db.squirrel.
@@ -245,7 +241,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			notification.Priority,
 			toNullString(notification.Topic),
 			toNullString(notification.Sound),
-			eventSoundsJSON,
+			string(eventSoundsJSON),
 			toNullString(notification.Host),
 			toNullString(notification.Username),
 			toNullString(notification.Password),
@@ -262,15 +258,9 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 }
 
 func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Notification) error {
-	var eventSoundsJSON sql.Null[string]
-	if notification.EventSounds != nil && len(notification.EventSounds) > 0 {
-		eventSoundsBytes, err := json.Marshal(notification.EventSounds)
-		if err != nil {
-			return errors.Wrap(err, "error marshaling event_sounds")
-		}
-		eventSoundsJSON = sql.Null[string]{V: string(eventSoundsBytes), Valid: true}
-	} else {
-		eventSoundsJSON = sql.Null[string]{Valid: false}
+	eventSoundsJSON, err := json.Marshal(notification.EventSounds)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling event_sounds")
 	}
 
 	queryBuilder := r.db.squirrel.
@@ -286,7 +276,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		Set("priority", notification.Priority).
 		Set("topic", toNullString(notification.Topic)).
 		Set("sound", toNullString(notification.Sound)).
-		Set("event_sounds", eventSoundsJSON).
+		Set("event_sounds", string(eventSoundsJSON)).
 		Set("host", toNullString(notification.Host)).
 		Set("username", toNullString(notification.Username)).
 		Set("password", toNullString(notification.Password)).
