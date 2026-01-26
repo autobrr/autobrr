@@ -98,7 +98,7 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		n := domain.NewNotification()
 		//var eventsSlice []string
 
-		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds sql.Null[string]
+		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds, method, headers sql.Null[string]
 		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -158,7 +158,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 			"topic",
 			"sound",
 			"event_sounds",
-      "method",
+			"method",
 			"headers",
 			"created_at",
 			"updated_at",
@@ -199,7 +199,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 	n.Targets = targets.V
 	n.Devices = devices.V
 	n.Topic = topic.V
-  n.Sound = sound.V
+	n.Sound = sound.V
 	n.Method = method.V
 	n.Headers = headers.V
 
