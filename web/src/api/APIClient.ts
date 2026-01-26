@@ -415,7 +415,14 @@ export const APIClient = {
     delete: (id: number) => appClient.Delete(`api/notification/${id}`),
     test: (notification: ServiceNotification) => appClient.Post("api/notification/test", {
       body: notification
-    })
+    }),
+    getPushoverSounds: (apiToken: string) => {
+      // Don't make request if token is redacted or empty
+      if (!apiToken || apiToken === "<redacted>" || apiToken === "") {
+        return Promise.reject(new Error("API token is required"));
+      }
+      return appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`);
+    }
   },
   lists: {
     list: () => appClient.Get<List[]>("api/lists"),
@@ -506,6 +513,22 @@ export const APIClient = {
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
     ),
+    cleanupJobs: {
+      list: () => appClient.Get<ReleaseCleanupJob[]>("api/release/cleanup-jobs"),
+      getByID: (id: number) => appClient.Get<ReleaseCleanupJob>(`api/release/cleanup-jobs/${id}`),
+      store: (job: ReleaseCleanupJob) => appClient.Post("api/release/cleanup-jobs", {
+        body: job
+      }),
+      update: (job: ReleaseCleanupJob) => appClient.Put(`api/release/cleanup-jobs/${job.id}`, {
+        body: job
+      }),
+      delete: (id: number) => appClient.Delete(`api/release/cleanup-jobs/${id}`),
+      toggleEnabled: (id: number, enabled: boolean) => appClient.Patch(
+        `api/release/cleanup-jobs/${id}/enabled`,
+        { body: { enabled } }
+      ),
+      forceRun: (id: number) => appClient.Post(`api/release/cleanup-jobs/${id}/run`)
+    },
     profiles: {
       duplicates: {
         list: () => appClient.Get<ReleaseProfileDuplicate[]>(`api/release/profiles/duplicate`),

@@ -5,7 +5,9 @@ package release
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/action"
@@ -13,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/asaskevich/EventBus"
@@ -38,6 +41,16 @@ type Service interface {
 	StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+
+	ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error)
+	GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error)
+	StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	DeleteCleanupJob(ctx context.Context, id int) error
+	ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error
+	ForceRunCleanupJob(ctx context.Context, id int) error
+
+	StartCleanupJobs() error
 }
 
 type actionClientTypeKey struct {
@@ -45,24 +58,39 @@ type actionClientTypeKey struct {
 	ClientID int32
 }
 
-type service struct {
-	log  zerolog.Logger
-	repo domain.ReleaseRepo
-	bus  EventBus.Bus
+// cleanupJobKey creates a unique identifier for controlling cleanup jobs in the scheduler
+type cleanupJobKey struct {
+	id int
+}
 
+// ToString creates a string of the unique id to be used for controlling jobs in the scheduler
+func (k cleanupJobKey) ToString() string {
+	return fmt.Sprintf("release-cleanup-%d", k.id)
+}
+
+type service struct {
+	log         zerolog.Logger
+	m           sync.RWMutex
+	cleanupJobs map[string]int
+  bus         EventBus.Bus
+
+	repo       domain.ReleaseRepo
 	actionSvc  action.Service
 	filterSvc  filter.Service
 	indexerSvc indexer.Service
+	scheduler  scheduler.Service
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, bus EventBus.Bus) Service {
+func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service, scheduler scheduler.Service, bus EventBus.Bus) Service {
 	return &service{
-		log:        log.With().Str("module", "release").Logger(),
-		repo:       repo,
-		bus:        bus,
-		actionSvc:  actionSvc,
-		filterSvc:  filterSvc,
-		indexerSvc: indexerSvc,
+		log:         log.With().Str("module", "release").Logger(),
+		cleanupJobs: map[string]int{},
+    bus:         bus,
+		repo:        repo,
+		actionSvc:   actionSvc,
+		filterSvc:   filterSvc,
+		indexerSvc:  indexerSvc,
+		scheduler:   scheduler,
 	}
 }
 
@@ -112,6 +140,165 @@ func (s *service) StoreReleaseProfileDuplicate(ctx context.Context, profile *dom
 
 func (s *service) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error {
 	return s.repo.DeleteReleaseProfileDuplicate(ctx, id)
+}
+
+func (s *service) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error) {
+	jobs, err := s.repo.ListCleanupJobs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Enrich with next run time from scheduler
+	for i, job := range jobs {
+		if job.Enabled {
+			nextRun, err := s.scheduler.GetNextRun(cleanupJobKey{id: job.ID}.ToString())
+			if err == nil {
+				job.NextRun = nextRun
+				jobs[i] = job
+			}
+		}
+	}
+
+	return jobs, nil
+}
+
+func (s *service) GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error) {
+	return s.repo.FindCleanupJobByID(ctx, id)
+}
+
+func (s *service) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	// Validate before storing
+	if err := job.Validate(); err != nil {
+		s.log.Error().Err(err).Msg("cleanup job validation failed")
+		return err
+	}
+
+	if err := s.repo.StoreCleanupJob(ctx, job); err != nil {
+		s.log.Error().Err(err).Msg("error storing cleanup job")
+		return err
+	}
+
+	// Start job if enabled
+	if job.Enabled {
+		if err := s.startCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msgf("error starting cleanup job: %s", job.Name)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *service) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	// Validate before updating
+	if err := job.Validate(); err != nil {
+		s.log.Error().Err(err).Msg("cleanup job validation failed")
+		return err
+	}
+
+	// Get current state before updating
+	currentJob, err := s.repo.FindCleanupJobByID(ctx, job.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	if err := s.repo.UpdateCleanupJob(ctx, job); err != nil {
+		s.log.Error().Err(err).Msg("error updating cleanup job")
+		return err
+	}
+
+	// Only restart if job is/was enabled (touching scheduler only when needed)
+	if currentJob.Enabled || job.Enabled {
+		if err := s.restartCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msgf("error restarting cleanup job: %s", job.Name)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *service) DeleteCleanupJob(ctx context.Context, id int) error {
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	s.log.Debug().Msgf("deleting cleanup job: %s", job.Name)
+
+	// Only stop if it's actually running
+	if job.Enabled {
+		if err := s.stopCleanupJob(id); err != nil {
+			s.log.Error().Err(err).Msgf("error stopping cleanup job: %s id: %d", job.Name, id)
+			return err
+		}
+	}
+
+	// Delete from database
+	if err := s.repo.DeleteCleanupJob(ctx, id); err != nil {
+		s.log.Error().Err(err).Msgf("error deleting cleanup job: %s", job.Name)
+		return err
+	}
+
+	return nil
+}
+
+func (s *service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error {
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	// Check if already in desired state
+	if job.Enabled == enabled {
+		s.log.Debug().Msgf("cleanup job already %s: %s",
+			map[bool]string{true: "enabled", false: "disabled"}[enabled],
+			job.Name)
+		return nil
+	}
+
+	// Update database
+	if err := s.repo.CleanupJobToggleEnabled(ctx, id, enabled); err != nil {
+		s.log.Error().Err(err).Msg("error toggling cleanup job enabled")
+		return err
+	}
+
+	// Handle scheduler side effects
+	if enabled {
+		job.Enabled = true
+		if err := s.startCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msg("error starting cleanup job")
+			return err
+		}
+		s.log.Debug().Msgf("cleanup job started: %s", job.Name)
+		return nil
+	}
+
+	if err := s.stopCleanupJob(id); err != nil {
+		s.log.Error().Err(err).Msg("error stopping cleanup job")
+		return err
+	}
+	s.log.Debug().Msgf("cleanup job stopped: %s", job.Name)
+	return nil
+}
+
+func (s *service) ForceRunCleanupJob(ctx context.Context, id int) error {
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	s.log.Info().Msgf("manually triggering cleanup job: %s", job.Name)
+
+	cleanupJob := NewCleanupJob(s.log.With().Str("job", job.Name).Logger(), s.repo, job)
+
+	cleanupJob.Run()
+
+	return nil
 }
 
 func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error {
@@ -498,4 +685,110 @@ func (s *service) publishReleaseNew(release *domain.Release) {
 		Release:        release,
 	}
 	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
+}
+
+func (s *service) startCleanupJob(job *domain.ReleaseCleanupJob) error {
+	// If it's not enabled, we should not start it
+	if !job.Enabled {
+		return errors.New("cleanup job %s not enabled", job.Name)
+	}
+
+	// Create the cleanup job instance
+	cleanupJob := NewCleanupJob(s.log.With().Str("job", job.Name).Logger(), s.repo, job)
+
+	identifierKey := cleanupJobKey{id: job.ID}.ToString()
+
+	// Schedule job using cron schedule
+	id, err := s.scheduler.AddJob(cleanupJob, job.Schedule, identifierKey)
+	if err != nil {
+		return errors.Wrap(err, "add cleanup job %s failed", identifierKey)
+	}
+
+	// Add to job map
+	s.m.Lock()
+	s.cleanupJobs[identifierKey] = id
+	s.m.Unlock()
+
+	s.log.Debug().Msgf("successfully started cleanup job: %s (schedule: %s)", job.Name, job.Schedule)
+
+	return nil
+}
+
+func (s *service) stopCleanupJob(id int) error {
+	identifierKey := cleanupJobKey{id: id}.ToString()
+
+	// Remove job from scheduler
+	if err := s.scheduler.RemoveJobByIdentifier(identifierKey); err != nil {
+		return errors.Wrap(err, "stop cleanup job failed")
+	}
+
+	// Remove from job map
+	s.m.Lock()
+	delete(s.cleanupJobs, identifierKey)
+	s.m.Unlock()
+
+	s.log.Debug().Msgf("stopped cleanup job: %d", id)
+
+	return nil
+}
+
+func (s *service) restartCleanupJob(job *domain.ReleaseCleanupJob) error {
+	s.log.Debug().Msgf("restarting cleanup job: %s", job.Name)
+
+	// Stop job
+	if err := s.stopCleanupJob(job.ID); err != nil {
+		s.log.Error().Err(err).Msg("error stopping cleanup job")
+		return err
+	}
+
+	// Start job if enabled
+	if job.Enabled {
+		if err := s.startCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msg("error starting cleanup job")
+			return err
+		}
+
+		s.log.Debug().Msgf("restarted cleanup job: %s", job.Name)
+	}
+
+	return nil
+}
+
+func (s *service) StartCleanupJobs() error {
+	ctx := context.TODO()
+
+	// Get all cleanup jobs from database
+	jobs, err := s.repo.ListCleanupJobs(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup jobs")
+		return err
+	}
+
+	return s.startCleanupJobs(jobs)
+}
+
+func (s *service) startCleanupJobs(jobs []*domain.ReleaseCleanupJob) error {
+	if len(jobs) == 0 {
+		s.log.Debug().Msg("found 0 cleanup jobs to start")
+		return nil
+	}
+
+	s.log.Debug().Msgf("starting %d cleanup jobs", len(jobs))
+
+	// Start in background to not block startup
+	go func(jobs []*domain.ReleaseCleanupJob) {
+		for _, job := range jobs {
+			if !job.Enabled {
+				s.log.Trace().Msgf("cleanup job disabled, skipping... %s", job.Name)
+				continue
+			}
+
+			if err := s.startCleanupJob(job); err != nil {
+				s.log.Error().Err(err).Msgf("failed to initialize cleanup job: %s", job.Name)
+				continue
+			}
+		}
+	}(jobs)
+
+	return nil
 }
