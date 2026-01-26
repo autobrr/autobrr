@@ -168,6 +168,8 @@ interface SoundOption {
 
 function FormFieldsPushover() {
   return (
+    <div>
+
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
@@ -201,6 +203,28 @@ function FormFieldsPushover() {
         help="-2, -1, 0 (default), 1, or 2"
         required={true}
       />
+    </div>
+      <div className="pb-2">
+        <div className="flex justify-between items-center p-4">
+
+        <div className="">
+          <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+            Events sounds
+          </DialogTitle>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Set custom sounds per event
+          </p>
+        </div>
+          {/*<button*/}
+          {/*  // type="submit"*/}
+          {/*  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"*/}
+          {/*>*/}
+          {/*  Fetch*/}
+          {/*</button>*/}
+        </div>
+
+        <EventSounds />
+      </div>
     </div>
   );
 }
@@ -543,99 +567,121 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-const EventCheckBox = ({ event, soundOptions, isPushover, isApiKeyRedacted, soundsQueryLoading }: { 
+const EventCheckBox = ({ event }: { event: typeof EventOptions[number]; }) => (
+  <Field name="events">
+    {({ field, form }: FieldProps<string[]>) => (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm">
+            <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+            {event.description && <p className="text-gray-500">{event.description}</p>}
+          </span>
+          <Checkbox
+            value={field.value.includes(event.value)}
+            setValue={(checked) =>
+              form.setFieldValue('events',
+                checked
+                  ? [...field.value, event.value]
+                  : field.value.filter(e => e !== event.value)
+              )
+            }
+          />
+        </div>
+      </div>
+    )}
+  </Field>
+);
+
+const EventCheckBoxes = () => {
+  return (
+    <fieldset className="space-y-5">
+      <legend className="sr-only">Notifications</legend>
+      {EventOptions.map((event, idx) => (
+        <EventCheckBox 
+          key={idx} 
+          event={event} 
+        />
+      ))}
+    </fieldset>
+  );
+};
+
+const EventSoundSelector = ({event, soundOptions, isPushover, isApiKeyRedacted, soundsQueryLoading}: {
   event: typeof EventOptions[number];
   soundOptions: SoundOption[];
   isPushover: boolean;
   isApiKeyRedacted: boolean;
   soundsQueryLoading: boolean;
 }) => {
-  const { values, setFieldValue } = useFormikContext<ServiceNotification>();
+  const {values, setFieldValue} = useFormikContext<ServiceNotification>();
   const eventSounds = values.event_sounds || {};
   const currentSound = eventSounds[event.value] || "";
 
   return (
-    <Field name="events">
-      {({ field, form }: FieldProps<string[]>) => (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm">
-              <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
-              {event.description && <p className="text-gray-500">{event.description}</p>}
-            </span>
-            <Checkbox
-              value={field.value.includes(event.value)}
-              setValue={(checked) => 
-                form.setFieldValue('events', 
-                  checked 
-                    ? [...field.value, event.value]
-                    : field.value.filter(e => e !== event.value)
-                )
-              }
-            />
-          </div>
-          {isPushover && (
-            <div className="ml-4">
-              <Field name={`event_sounds.${event.value}`} type="select">
-                {({ field: soundField }: FieldProps) => (
-                  <Select
-                    {...soundField}
-                    isClearable={true}
-                    isSearchable={true}
-                    components={{
-                      Input: common.SelectInput,
-                      Control: common.SelectControl,
-                      Menu: common.SelectMenu,
-                      Option: common.SelectOption,
-                      IndicatorSeparator: common.IndicatorSeparator,
-                      DropdownIndicator: common.DropdownIndicator
-                    }}
-                    placeholder="Default (use user's default tone)"
-                    styles={{
-                      singleValue: (base) => ({
-                        ...base,
-                        color: "unset"
-                      })
-                    }}
-                    theme={(theme) => ({
-                      ...theme,
-                      spacing: {
-                        ...theme.spacing,
-                        controlHeight: 30,
-                        baseUnit: 2
-                      }
-                    })}
-                    value={soundOptions.find(o => o.value === currentSound) || null}
-                    onChange={(option: unknown) => {
-                      const opt = option as SoundOption | null;
-                      const newEventSounds = { ...eventSounds };
-                      if (opt?.value) {
-                        newEventSounds[event.value] = opt.value;
-                      } else {
-                        delete newEventSounds[event.value];
-                      }
-                      setFieldValue("event_sounds", newEventSounds);
-                    }}
-                    options={soundOptions}
-                    isLoading={soundsQueryLoading}
-                    isDisabled={isApiKeyRedacted || soundsQueryLoading}
-                  />
-                )}
-              </Field>
-            </div>
-          )}
+    <div>
+      {isPushover && (
+        <div className="px-4 flex items-center justify-between space-x-3">
+          <span className="text-sm">
+            <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+          </span>
+          <Field name={`event_sounds.${event.value}`} type="select">
+            {({field: soundField}: FieldProps) => (
+              <Select
+                {...soundField}
+                isClearable={true}
+                isSearchable={true}
+                components={{
+                  Input: common.SelectInput,
+                  Control: common.SelectControl,
+                  Menu: common.SelectMenu,
+                  Option: common.SelectOption,
+                  IndicatorSeparator: common.IndicatorSeparator,
+                  DropdownIndicator: common.DropdownIndicator
+                }}
+                placeholder="Default (use user's default tone)"
+                styles={{
+                  singleValue: (base) => ({
+                    ...base,
+                    color: "unset"
+                  })
+                }}
+                theme={(theme) => ({
+                  ...theme,
+                  spacing: {
+                    ...theme.spacing,
+                    controlHeight: 30,
+                    baseUnit: 2
+                  }
+                })}
+                value={soundOptions.find(o => o.value === currentSound) || null}
+                onChange={(option: unknown) => {
+                  const opt = option as SoundOption | null;
+                  const newEventSounds = {...eventSounds};
+                  if (opt?.value) {
+                    newEventSounds[event.value] = opt.value;
+                  } else {
+                    delete newEventSounds[event.value];
+                  }
+                  setFieldValue("event_sounds", newEventSounds);
+                }}
+                options={soundOptions}
+                isLoading={soundsQueryLoading}
+                isDisabled={isApiKeyRedacted || soundsQueryLoading}
+              />
+            )}
+          </Field>
         </div>
       )}
-    </Field>
+    </div>
   );
 };
 
-const EventCheckBoxes = () => {
+const EventSounds = () => {
   const { values } = useFormikContext<ServiceNotification>();
   const isPushover = values.type === "PUSHOVER";
   const apiKey = values.api_key || "";
   const isApiKeyRedacted = apiKey === "<redacted>" || !apiKey || apiKey === "";
-  
+
   const soundsQuery = useQuery({
     ...PushoverSoundsQueryOptions(apiKey),
     enabled: !isApiKeyRedacted && isPushover
@@ -645,8 +691,8 @@ const EventCheckBoxes = () => {
     { label: "Default (use user's default tone)", value: "" },
     ...(soundsQuery.data
       ? Object.entries(soundsQuery.data)
-          .sort(([, a], [, b]) => a.localeCompare(b))
-          .map(([key, value]) => ({ label: value, value: key }))
+        .sort(([, a], [, b]) => a.localeCompare(b))
+        .map(([key, value]) => ({ label: value, value: key }))
       : [])
   ];
 
@@ -654,9 +700,9 @@ const EventCheckBoxes = () => {
     <fieldset className="space-y-5">
       <legend className="sr-only">Notifications</legend>
       {EventOptions.map((event, idx) => (
-        <EventCheckBox 
-          key={idx} 
-          event={event} 
+        <EventSoundSelector
+          key={idx}
+          event={event}
           soundOptions={soundOptions}
           isPushover={isPushover}
           isApiKeyRedacted={isApiKeyRedacted}
@@ -861,6 +907,20 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
           </div>
 
           {componentMap[values.type]}
+
+          {/*<div className="pb-2">*/}
+          {/*  <div className="p-4">*/}
+          {/*    <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">*/}
+          {/*      Events sounds*/}
+          {/*    </DialogTitle>*/}
+          {/*    <p className="text-sm text-gray-500 dark:text-gray-400">*/}
+          {/*      Set custom sounds per event*/}
+          {/*    </p>*/}
+          {/*  </div>*/}
+
+          {/*  <EventSounds />*/}
+          {/*</div>*/}
+
         </div>
       )}
     </SlideOver>
