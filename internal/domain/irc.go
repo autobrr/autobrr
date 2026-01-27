@@ -76,6 +76,7 @@ type IrcNetwork struct {
 	Server         string       `json:"server"`
 	Port           int          `json:"port"`
 	TLS            bool         `json:"tls"`
+	TLSSkipVerify  bool         `json:"tls_skip_verify"`
 	Pass           string       `json:"pass"`
 	Nick           string       `json:"nick"`
 	Auth           IRCAuth      `json:"auth,omitempty"`
@@ -109,6 +110,7 @@ type IrcNetworkWithHealth struct {
 	Server           string              `json:"server"`
 	Port             int                 `json:"port"`
 	TLS              bool                `json:"tls"`
+	TLSSkipVerify    bool                `json:"tls_skip_verify"`
 	Pass             string              `json:"pass"`
 	Nick             string              `json:"nick"`
 	Auth             IRCAuth             `json:"auth,omitempty"`

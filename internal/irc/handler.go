@@ -283,7 +283,7 @@ func (h *Handler) Run() (err error) {
 
 		client.UseTLS = true
 		client.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: h.network.TLSSkipVerify,
 			MinVersion:         tls.VersionTLS10,
 			CipherSuites:       unsafeCipherSuites,
 		}

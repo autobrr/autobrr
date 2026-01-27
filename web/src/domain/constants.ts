@@ -512,6 +512,10 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     label: "Telegram",
     value: "TELEGRAM"
   },
+  {
+    label: "Webhook",
+    value: "WEBHOOK"
+  },
 ];
 
 export const IrcAuthMechanismTypeOptions: OptionBasicTyped<IrcAuthMechanism>[] = [
@@ -628,6 +632,11 @@ export const EventOptions: SelectOption[] = [
     label: "New update",
     value: "APP_UPDATE_AVAILABLE",
     description: "Get notified on updates"
+  },
+  {
+    label: "New Release",
+    value: "RELEASE_NEW",
+    description: "On new release from indexer (before filtering)"
   }
 ];
 
@@ -640,6 +649,34 @@ export const FeedDownloadTypeOptions: OptionBasicTyped<FeedDownloadType>[] = [
     label: "Torrent",
     value: "TORRENT"
   }
+];
+
+// Built-in Pushover sounds - https://pushover.net/api#sounds
+// Custom user-uploaded sounds are fetched from the API when available
+export const PushoverSoundOptions: OptionBasic[] = [
+  { label: "Pushover (default)", value: "pushover" },
+  { label: "Bike", value: "bike" },
+  { label: "Bugle", value: "bugle" },
+  { label: "Cash Register", value: "cashregister" },
+  { label: "Classical", value: "classical" },
+  { label: "Cosmic", value: "cosmic" },
+  { label: "Falling", value: "falling" },
+  { label: "Gamelan", value: "gamelan" },
+  { label: "Incoming", value: "incoming" },
+  { label: "Intermission", value: "intermission" },
+  { label: "Magic", value: "magic" },
+  { label: "Mechanical", value: "mechanical" },
+  { label: "Piano Bar", value: "pianobar" },
+  { label: "Siren", value: "siren" },
+  { label: "Space Alarm", value: "spacealarm" },
+  { label: "Tug Boat", value: "tugboat" },
+  { label: "Alien Alarm (long)", value: "alien" },
+  { label: "Climb (long)", value: "climb" },
+  { label: "Persistent (long)", value: "persistent" },
+  { label: "Pushover Echo (long)", value: "echo" },
+  { label: "Up Down (long)", value: "updown" },
+  { label: "Vibrate Only", value: "vibrate" },
+  { label: "None (silent)", value: "none" },
 ];
 
 export const tagsMatchLogicOptions: OptionBasic[] = [
@@ -663,11 +700,11 @@ export const ExternalFilterTypeNameMap = {
   "WEBHOOK": "Webhook"
 };
 
-export const ExternalFilterOnErrorValues: ExternalFilterOnError[]  = ["REJECT", "CONTINUE"];
+export const ExternalFilterOnErrorValues: ExternalFilterOnError[] = ["REJECT", "CONTINUE"];
 
 export const ExternalFilterOnErrorOptions: SelectGenericOption<ExternalFilterOnError>[] = [
-    { label: "Reject", description: "Reject on error, default", value: "REJECT" },
-    { label: "Continue to next", description: "Continue on error", value: "CONTINUE" },
+  { label: "Reject", description: "Reject on error, default", value: "REJECT" },
+  { label: "Continue to next", description: "Continue on error", value: "CONTINUE" },
 ];
 
 export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>[] = [

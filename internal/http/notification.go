@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
@@ -40,6 +41,7 @@ func (h notificationHandler) Routes(r chi.Router) {
 	r.Get("/", h.list)
 	r.Post("/", h.store)
 	r.Post("/test", h.test)
+	r.Get("/pushover/sounds", h.pushoverSounds)
 
 	r.Route("/{notificationID}", func(r chi.Router) {
 		r.Get("/", h.findByID)
@@ -139,4 +141,20 @@ func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.NoContent(w)
+}
+
+func (h notificationHandler) pushoverSounds(w http.ResponseWriter, r *http.Request) {
+	apiToken := r.URL.Query().Get("token")
+	if apiToken == "" {
+		h.encoder.Error(w, errors.New("api token is required"))
+		return
+	}
+
+	sounds, err := notification.GetPushoverSounds(apiToken)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, sounds)
 }

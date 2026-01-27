@@ -23,7 +23,8 @@ import {
   NtfyIcon,
   PushoverIcon,
   Section,
-  TelegramIcon
+  TelegramIcon,
+  WebhookIcon
 } from "./_components";
 import { Checkbox } from "@components/Checkbox";
 
@@ -94,7 +95,8 @@ const iconComponentMap: componentMapType = {
   GOTIFY: <span className={iconStyle}><GotifyIcon /> Gotify</span>,
   NTFY: <span className={iconStyle}><NtfyIcon /> ntfy</span>,
   SHOUTRRR: <span className={iconStyle}><NtfyIcon /> Shoutrrr</span>,
-  LUNASEA: <span className={iconStyle}><LunaSeaIcon /> LunaSea</span>
+  LUNASEA: <span className={iconStyle}><LunaSeaIcon /> LunaSea</span>,
+  WEBHOOK: <span className={iconStyle}><WebhookIcon /> Webhook</span>
 };
 
 interface ListItemProps {
