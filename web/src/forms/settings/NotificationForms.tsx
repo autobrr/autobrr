@@ -241,7 +241,7 @@ function FormFieldsGotify() {
       <TextFieldWide
         name="host"
         label="Gotify URL"
-        help="Gotify URL"
+        help="Gotify URL (without /message)"
         placeholder="https://some.gotify.server.com"
         required={true}
       />
