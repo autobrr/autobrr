@@ -127,12 +127,6 @@ irc:
       announceTypeEnum:
         "0":
           announceType: NEW
-        "1":
-          announceType: CHECKED
-        "2":
-          announceType: PROMO # X-leeched (could be neutral/half/free)
-        "3":
-          announceType: RESURRECTED # reseeded/revived from dead
 
       categoryEnum:
         "1":
@@ -142,9 +136,9 @@ irc:
 
       originEnum:
         "0":
-          origin: "P2P"
+          origin: ""
         "1":
-          origin: "SCENE"
+          origin: "INTERNAL"
         "2":
           origin: "INTERNAL" # PERSONAL RIP
 
@@ -152,18 +146,33 @@ irc:
         "0": # Normal
           downloadVolumeFactor: 1
           uploadVolumeFactor: 1
-        "1": # Freeleech
+        "1": # 100% FL
           downloadVolumeFactor: 0
           uploadVolumeFactor: 1
-        "2": # 50%
-          downloadVolumeFactor: 0.5
-          uploadVolumeFactor: 1
-        "3": # 75%
+        "2": # 75% FL
           downloadVolumeFactor: 0.75
           uploadVolumeFactor: 1
-        "4": # Neutral
+        "3": # 50% FL
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 1
+        "4": # 25% FL
+          downloadVolumeFactor: 0.25
+          uploadVolumeFactor: 1
+        "5": # Normal leech with Double up
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 2
+        "6": # 100% FL with Double up
           downloadVolumeFactor: 0
-          uploadVolumeFactor: 0
+          uploadVolumeFactor: 1
+        "7": # 75% FL with Double up
+          downloadVolumeFactor: 0.75
+          uploadVolumeFactor: 2
+        "8": # 50% FL with Double up
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 2
+        "9": # 25% FL with Double up
+          downloadVolumeFactor: 0.25
+          uploadVolumeFactor: 2
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
