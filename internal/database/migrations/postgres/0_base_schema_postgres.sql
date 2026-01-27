@@ -28,7 +28,6 @@ CREATE TABLE irc_network
     server            TEXT    NOT NULL,
     port              INTEGER NOT NULL,
     tls               BOOLEAN,
-    tls_skip_verify   BOOLEAN DEFAULT FALSE,
     pass              TEXT,
     invite_command    TEXT,
     nickserv_account  TEXT,
