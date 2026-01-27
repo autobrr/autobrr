@@ -250,3 +250,8 @@ export async function CopyTextToClipboard(text: string) {
   }
   document.body.removeChild(textarea);
  }
+
+
+export const IsErrorWithMessage = (error: unknown): error is { message: string } => {
+  return typeof error === 'object' && error !== null && 'message' in error;
+};
