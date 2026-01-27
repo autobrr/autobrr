@@ -242,10 +242,12 @@ func (h *Handler) Run() (err error) {
 
 			var proxyDialer proxy.Dialer
 
-			if proxyUrl.Scheme == "http" || proxyUrl.Scheme == "https" {
+			switch proxyUrl.Scheme {
+			case "http", "https":
 				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, h.network.Server, h.network.Port)
-				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct)
-			} else {
+				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, h.network.TLSSkipVerify)
+
+			default:
 				h.log.Debug().Msgf("Using %s proxy: %s", proxyUrl.Scheme, proxyUrl.Host)
 				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
 				if err != nil {

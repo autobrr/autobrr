@@ -20,8 +20,9 @@ import (
 
 // httpProxyDialer implements proxy.ContextDialer for HTTP CONNECT proxies
 type httpProxyDialer struct {
-	proxyURL *url.URL
-	forward  proxy.Dialer
+	proxyURL      *url.URL
+	forward       proxy.Dialer
+	tlsSkipVerify bool
 }
 
 // bufferedConn wraps a net.Conn with a buffered reader to preserve any
@@ -36,10 +37,11 @@ func (c *bufferedConn) Read(b []byte) (int, error) {
 }
 
 // newHTTPProxyDialer creates a new HTTP CONNECT proxy dialer
-func newHTTPProxyDialer(proxyURL *url.URL, forward proxy.Dialer) *httpProxyDialer {
+func newHTTPProxyDialer(proxyURL *url.URL, forward proxy.Dialer, tlsSkipVerify bool) *httpProxyDialer {
 	return &httpProxyDialer{
-		proxyURL: proxyURL,
-		forward:  forward,
+		proxyURL:      proxyURL,
+		forward:       forward,
+		tlsSkipVerify: tlsSkipVerify,
 	}
 }
 
@@ -68,7 +70,7 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	if d.proxyURL.Scheme == "https" {
 		tlsConfig := &tls.Config{
 			ServerName:         d.proxyURL.Hostname(),
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: d.tlsSkipVerify,
 		}
 		proxyConn = tls.Client(proxyConn, tlsConfig)
 	}
