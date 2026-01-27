@@ -392,6 +392,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
         server: ind.irc.server,
         port: ind.irc.port,
         tls: ind.irc.tls,
+        tls_skip_verify: false,
         nick: formData.irc.nick,
         auth: {
           mechanism: "NONE"
