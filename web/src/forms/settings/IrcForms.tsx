@@ -106,6 +106,7 @@ interface IrcNetworkAddFormValues {
     server : string;
     port: number;
     tls: boolean;
+    tls_skip_verify: boolean;
     pass: string;
     nick: string;
     auth: IrcAuth;
@@ -136,6 +137,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     server: "",
     port: 6667,
     tls: false,
+    tls_skip_verify: false,
     pass: "",
     nick: "",
     auth: {
@@ -180,6 +182,9 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
             required={true}
           />
           <SwitchGroupWide name="tls" label="TLS" />
+          {values.tls && (
+            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)"/>
+          )}
           <PasswordFieldWide
             name="pass"
             label="Password"
@@ -248,6 +253,7 @@ interface IrcNetworkUpdateFormValues {
     server: string;
     port: number;
     tls: boolean;
+    tls_skip_verify: boolean;
     pass: string;
     nick: string;
     auth?: IrcAuth;
@@ -302,6 +308,7 @@ export function IrcNetworkUpdateForm({
     server: network.server,
     port: network.port,
     tls: network.tls,
+    tls_skip_verify: network.tls_skip_verify,
     nick: network.nick,
     pass: network.pass,
     auth: network.auth,
@@ -349,6 +356,9 @@ export function IrcNetworkUpdateForm({
           />
 
           <SwitchGroupWide name="tls" label="TLS"/>
+          {values.tls && (
+            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)"/>
+          )}
 
           <PasswordFieldWide
             name="pass"

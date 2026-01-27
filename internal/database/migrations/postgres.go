@@ -99,6 +99,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("75_create_release_cleanup_job.sql")
 	migrate.AddFileMigration("76_add_notification_sound.sql")
 	migrate.AddFileMigration("77_add_notification_method_headers.sql")
+	migrate.AddFileMigration("78_irc_skip_tls_verify.sql")
 
 	return migrate
 }
