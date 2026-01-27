@@ -240,10 +240,21 @@ func (h *Handler) Run() (err error) {
 				proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
 			}
 
-			proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
-			if err != nil {
-				return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+			var proxyDialer proxy.Dialer
+
+			switch proxyUrl.Scheme {
+			case "http", "https":
+				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, h.network.Server, h.network.Port)
+				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, h.network.TLSSkipVerify)
+
+			default:
+				h.log.Debug().Msgf("Using %s proxy: %s", proxyUrl.Scheme, proxyUrl.Host)
+				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
+				if err != nil {
+					return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+				}
 			}
+
 			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
 			if !ok {
 				return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
@@ -274,7 +285,7 @@ func (h *Handler) Run() (err error) {
 
 		client.UseTLS = true
 		client.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: h.network.TLSSkipVerify,
 			MinVersion:         tls.VersionTLS10,
 			CipherSuites:       unsafeCipherSuites,
 		}
