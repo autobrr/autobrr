@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/http"
 	"slices"
 	"strconv"
 	"time"
@@ -37,7 +38,7 @@ type TorznabJob struct {
 	Name       string
 	Log        zerolog.Logger
 	URL        string
-	Client     torznab.Client
+	Client     torznabClient
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
@@ -53,7 +54,12 @@ type RefreshFeedJob interface {
 	RunE(ctx context.Context) error
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
+type torznabClient interface {
+	WithHTTPClient(client *http.Client)
+	Search(ctx context.Context, query string, categories []int) (*torznab.SearchResponse, error)
+}
+
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
 	return &TorznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -238,7 +244,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 	}
 
 	// get feed
-	feed, err := j.Client.FetchFeed(ctx)
+	feed, err := j.Client.Search(ctx, "", j.Feed.Categories)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
@@ -248,10 +254,10 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
-	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feed.Channel.Items))
+	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feed.Items))
 
 	items := make([]torznab.FeedItem, 0)
-	if len(feed.Channel.Items) == 0 {
+	if len(feed.Items) == 0 {
 		return items, nil
 	}
 
@@ -259,7 +265,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 	guidItemMap := make(map[string]*torznab.FeedItem)
 	var guids []string
 
-	for _, item := range feed.Channel.Items {
+	for _, item := range feed.Items {
 		if item.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue

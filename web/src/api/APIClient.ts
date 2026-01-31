@@ -341,6 +341,10 @@ export const APIClient = {
     create: (feed: FeedCreate) => appClient.Post("api/feeds", {
       body: feed
     }),
+    fetchCapsDraft: (feed: FeedCapsRequest) => appClient.Post<unknown>("api/feeds/caps", {
+      body: feed
+    }),
+    fetchCaps: (id: number) => appClient.Get<FeedCaps>(`api/feeds/${id}/caps`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, {
       body: { enabled }
     }),

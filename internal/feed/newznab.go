@@ -5,6 +5,7 @@ package feed
 
 import (
 	"context"
+	"net/http"
 	"slices"
 	"strconv"
 	"time"
@@ -22,7 +23,7 @@ type NewznabJob struct {
 	Name       string
 	Log        zerolog.Logger
 	URL        string
-	Client     newznab.Client
+	Client     newznabClient
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
@@ -33,7 +34,12 @@ type NewznabJob struct {
 	JobID int
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
+type newznabClient interface {
+	WithHTTPClient(client *http.Client)
+	Search(ctx context.Context, query string, categories []int) (*newznab.SearchResponse, error)
+}
+
+func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
 	return &NewznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -153,7 +159,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	}
 
 	// get feed
-	feed, err := j.Client.GetFeed(ctx)
+	feed, err := j.Client.Search(ctx, "", j.Feed.Categories)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
@@ -163,10 +169,10 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
-	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Channel.Items))
+	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Items))
 
 	items := make([]newznab.FeedItem, 0)
-	if len(feed.Channel.Items) == 0 {
+	if len(feed.Items) == 0 {
 		return items, nil
 	}
 
@@ -178,7 +184,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	guidItemMap := make(map[string]*newznab.FeedItem)
 	var guids []string
 
-	for _, item := range feed.Channel.Items {
+	for _, item := range feed.Items {
 		if item.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
