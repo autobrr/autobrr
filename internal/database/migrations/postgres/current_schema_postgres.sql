@@ -522,7 +522,7 @@ CREATE TABLE feed
     timeout       INTEGER   DEFAULT 60,
     max_age       INTEGER   DEFAULT 0,
     categories    TEXT[]    DEFAULT '{}' NOT NULL,
-    capabilities  TEXT[]    DEFAULT '{}' NOT NULL,
+    capabilities  JSON,
     api_key       TEXT,
     cookie        TEXT,
     settings      TEXT,
