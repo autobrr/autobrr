@@ -39,6 +39,7 @@ type RSSJob struct {
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
 	Timeout    time.Duration
+	Slots      chan struct{}
 
 	attempts int
 	errors   []error
@@ -46,7 +47,7 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration) RefreshFeedJob {
+func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration, slots chan struct{}) RefreshFeedJob {
 	return &RSSJob{
 		Feed:       feed,
 		Name:       name,
@@ -56,6 +57,7 @@ func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, r
 		CacheRepo:  cacheRepo,
 		ReleaseSvc: releaseSvc,
 		Timeout:    timeout,
+		Slots:      slots,
 	}
 }
 
@@ -73,6 +75,15 @@ func (j *RSSJob) Run() {
 }
 
 func (j *RSSJob) RunE(ctx context.Context) error {
+	if j.Slots != nil {
+		select {
+		case j.Slots <- struct{}{}:
+			defer func() { <-j.Slots }()
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
 	if err := j.process(ctx); err != nil {
 		j.Log.Err(err).Msg("rss feed process error")
 		return err
@@ -335,12 +346,9 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	}
 
 	if len(toCache) > 0 {
-		go func(items []domain.FeedCacheItem) {
-			ctx := context.Background()
-			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
-				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
-			}
-		}(toCache)
+		if err := j.CacheRepo.PutMany(ctx, toCache); err != nil {
+			j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+		}
 	}
 
 	// send to filters
