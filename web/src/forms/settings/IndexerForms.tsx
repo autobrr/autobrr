@@ -12,7 +12,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 
 import { classNames, sleep } from "@utils";
-import { extractCategoriesFromCaps, parseCapabilitiesPayload } from "@utils/caps";
+import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
@@ -109,19 +109,26 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
 
-            {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
-              switch (f.type) {
-              case "text": {
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+            <TextFieldWide
+              name="feed.url"
+              label="URL"
+              required={true}
+              help="Torznab url. Just URL without extra params."
+              tooltip={
+                <div>
+                  <p>Prowlarr and Jackett have different formats:</p>
+                  <br/>
+                  <ul>
+                    <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                    <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
+                  </ul>
+                </div>
               }
-              case "secret": {
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
-              }
-              }
-              return null;
-            })}
+            />
+
+            <PasswordFieldWide name="feed.api_key" label="API key" help="API key" required={true} />
 
             <SelectFieldBasic
               name="feed.settings.download_type"
@@ -152,7 +159,26 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
+
+            <TextFieldWide
+              name="feed.newznab_url"
+              label="URL"
+              required={true}
+              help="Newznab url. Just URL without extra params."
+              tooltip={
+                <div>
+                  <p>Prowlarr and Jackett have different formats:</p>
+                  <br/>
+                  <ul>
+                    <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                    <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
+                  </ul>
+                </div>
+              }
+            />
+
+            <PasswordFieldWide name="feed.api_key" label="API key" help="API key" required={true} />
 
             {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
@@ -221,7 +247,7 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
   const capabilities = feedValues.capabilities ?? null;
   const categoriesValue = Array.isArray(feedValues.categories) ? (feedValues.categories as number[]) : [];
   const capsPayload = useMemo(() => parseCapabilitiesPayload(capabilities), [capabilities]);
-  const categories = useMemo(() => extractCategoriesFromCaps(capsPayload), [capsPayload]);
+  const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
   const url = feedType === "TORZNAB"
     ? String(feedValues.url ?? "")
     : String(feedValues.newznab_url ?? feedValues.url ?? "");
@@ -237,7 +263,7 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
       timeout: 60
     }),
     onSuccess: (caps) => {
-      const nextCategories = extractCategoriesFromCaps(caps).map((item) => item.id);
+      const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
       const filteredSelection = categoriesValue.filter((id) => nextCategories.includes(id));
 
       setFieldValue("feed.capabilities", caps ?? null);
@@ -261,6 +287,21 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
     setFieldValue("feed.categories", [...categoriesValue, id]);
   };
 
+  const toggleParentCategory = (id: number, childIds: number[]) => {
+    if (categoriesValue.includes(id)) {
+      setFieldValue(
+        "feed.categories",
+        categoriesValue.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue(
+      "feed.categories",
+      [...categoriesValue.filter((category) => !childIds.includes(category)), id]
+    );
+  };
+
   return (
     <div className="mt-6 border-t border-gray-200 dark:border-gray-700">
       <div className="pt-4 px-4 flex items-center justify-between">
@@ -272,7 +313,7 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
         </div>
         <button
           type="button"
-          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           onClick={() => fetchCapsMutation.mutate()}
           disabled={!canFetch || fetchCapsMutation.isPending}
           title={!canFetch ? "Enter a URL to fetch categories" : undefined}
@@ -281,24 +322,54 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
         </button>
       </div>
 
-      {categories.length ? (
-        <div className="px-4 pt-4 pb-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 max-h-64 overflow-y-auto">
-          {categories.map((category) => (
-            <label
-              key={category.id}
-              className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <input
-                type="checkbox"
-                checked={categoriesValue.includes(category.id)}
-                onChange={() => toggleCategory(category.id)}
-                onClick={(event) => event.stopPropagation()}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
-              />
-              <span className="truncate">{category.name}</span>
-            </label>
-          ))}
+      {categoriesTree.length ? (
+        <div className="px-4 pt-4 pb-2 space-y-3 max-h-max overflow-y-auto">
+          {categoriesTree.map((category) => {
+            const childIds = category.subcategories.map((sub) => sub.id);
+            const isParentSelected = categoriesValue.includes(category.id);
+
+            return (
+              <div key={category.id} className="space-y-2">
+                <label
+                  className="flex items-center justify-between gap-3 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={categoriesValue.includes(category.id)}
+                      onChange={() => toggleParentCategory(category.id, childIds)}
+                      onClick={(event) => event.stopPropagation()}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span className="font-medium truncate">{category.name}</span>
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{category.id}</span>
+                </label>
+
+                {category.subcategories.map((subCategory) => (
+                  <label
+                    key={subCategory.id}
+                    className="flex items-center justify-between gap-3 pl-6 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={categoriesValue.includes(subCategory.id)}
+                        onChange={() => toggleCategory(subCategory.id)}
+                        onClick={(event) => event.stopPropagation()}
+                        disabled={isParentSelected}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800"
+                      />
+                      <span className="truncate">{subCategory.name}</span>
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{subCategory.id}</span>
+                  </label>
+                ))}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="px-4 pt-3 pb-2 text-sm text-gray-500 dark:text-gray-400">

@@ -3,6 +3,12 @@ export type CapsCategoryItem = {
   name: string;
 };
 
+export type CapsCategoryNode = {
+  id: number;
+  name: string;
+  subcategories: CapsCategoryNode[];
+};
+
 const toRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== "object") {
     return null;
@@ -89,6 +95,10 @@ const getCategoriesList = (caps: Record<string, unknown>): unknown[] => {
 };
 
 export const extractCategoriesFromCaps = (caps: unknown): CapsCategoryItem[] => {
+  return flattenCategories(extractCategoryTreeFromCaps(caps));
+};
+
+export const extractCategoryTreeFromCaps = (caps: unknown): CapsCategoryNode[] => {
   const root = toRecord(caps);
   if (!root) {
     return [];
@@ -99,27 +109,56 @@ export const extractCategoriesFromCaps = (caps: unknown): CapsCategoryItem[] => 
     return [];
   }
 
-  const items: CapsCategoryItem[] = [];
   const seen = new Set<number>();
 
-  const visit = (category: unknown, parentName = "") => {
+  const buildNode = (category: unknown, parentName = ""): CapsCategoryNode | null => {
     const id = getCategoryId(category);
     const name = getCategoryName(category);
-    const displayName = buildCategoryName(parentName, name);
-
-    if (id !== null && displayName && !seen.has(id)) {
-      items.push({ id, name: displayName });
-      seen.add(id);
+    if (id === null || !name) {
+      return null;
     }
 
-    const subCategories = getSubCategories(category);
-    subCategories.forEach((subCategory) => {
-      visit(subCategory, name || parentName);
-    });
+    if (seen.has(id)) {
+      return null;
+    }
+
+    seen.add(id);
+
+    const subCategories = getSubCategories(category)
+      .map((subCategory) => buildNode(subCategory, name || parentName))
+      .filter((subCategory): subCategory is CapsCategoryNode => Boolean(subCategory));
+
+    return {
+      id,
+      name: parentName ? buildCategoryName(parentName, name) : name,
+      subcategories: subCategories
+    };
   };
 
-  categories.forEach((category) => visit(category));
+  return categories
+    .map((category) => buildNode(category))
+    .filter((category): category is CapsCategoryNode => Boolean(category));
+};
 
+export const flattenCategoryIds = (nodes: CapsCategoryNode[]): number[] => {
+  const ids: number[] = [];
+  nodes.forEach((node) => {
+    ids.push(node.id);
+    if (node.subcategories.length) {
+      ids.push(...flattenCategoryIds(node.subcategories));
+    }
+  });
+  return ids;
+};
+
+const flattenCategories = (nodes: CapsCategoryNode[]): CapsCategoryItem[] => {
+  const items: CapsCategoryItem[] = [];
+  nodes.forEach((node) => {
+    items.push({ id: node.id, name: node.name });
+    if (node.subcategories.length) {
+      items.push(...flattenCategories(node.subcategories));
+    }
+  });
   return items.sort((a, b) => a.name.localeCompare(b.name));
 };
 

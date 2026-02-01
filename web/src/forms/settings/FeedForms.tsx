@@ -18,7 +18,7 @@ import { sleep } from "@utils";
 import { ImplementationBadges } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
-import { extractCategoriesFromCaps, parseCapabilitiesPayload } from "@utils/caps";
+import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 
 interface InitialValues {
   id: number;
@@ -281,13 +281,13 @@ function FormFieldsRSS() {
 function FeedCategoriesSection({ feedID }: { feedID: number }) {
   const { values, setFieldValue } = useFormikContext<InitialValues>();
   const capsPayload = useMemo(() => parseCapabilitiesPayload(values.capabilities), [values.capabilities]);
-  const categories = useMemo(() => extractCategoriesFromCaps(capsPayload), [capsPayload]);
+  const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
   const hasCaps = Boolean(values.capabilities);
 
   const fetchCapsMutation = useMutation({
     mutationFn: () => APIClient.feeds.fetchCaps(feedID),
     onSuccess: (caps) => {
-      const nextCategories = extractCategoriesFromCaps(caps).map((item) => item.id);
+      const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
       const selected = values.categories ?? [];
 
       setFieldValue("capabilities", caps ?? null);
@@ -315,6 +315,22 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
     setFieldValue("categories", [...selected, id]);
   };
 
+  const toggleParentCategory = (id: number, childIds: number[]) => {
+    const selected = values.categories ?? [];
+    if (selected.includes(id)) {
+      setFieldValue(
+        "categories",
+        selected.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue(
+      "categories",
+      [...selected.filter((category) => !childIds.includes(category)), id]
+    );
+  };
+
   return (
     <div className="mt-6 border-t border-gray-200 dark:border-gray-700">
       <div className="pt-4 px-4 flex items-center justify-between">
@@ -326,7 +342,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
         </div>
         <button
           type="button"
-          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           onClick={() => fetchCapsMutation.mutate()}
           disabled={fetchCapsMutation.isPending}
         >
@@ -334,24 +350,54 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
         </button>
       </div>
 
-      {categories.length ? (
-        <div className="px-4 pt-4 pb-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 max-h-64 overflow-y-auto">
-          {categories.map((category) => (
-            <label
-              key={category.id}
-              className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <input
-                type="checkbox"
-                checked={(values.categories ?? []).includes(category.id)}
-                onChange={() => toggleCategory(category.id)}
-                onClick={(event) => event.stopPropagation()}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
-              />
-              <span className="truncate">{category.name}</span>
-            </label>
-          ))}
+      {categoriesTree.length ? (
+        <div className="px-4 pt-4 pb-2 space-y-3 overflow-y-auto">
+          {categoriesTree.map((category) => {
+            const childIds = category.subcategories.map((sub) => sub.id);
+            const isParentSelected = (values.categories ?? []).includes(category.id);
+
+            return (
+              <div key={category.id} className="space-y-2">
+                <label
+                  className="flex items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-200"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={(values.categories ?? []).includes(category.id)}
+                      onChange={() => toggleParentCategory(category.id, childIds)}
+                      onClick={(event) => event.stopPropagation()}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span className="font-medium truncate">{category.name}</span>
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{category.id}</span>
+                </label>
+
+                {category.subcategories.map((subCategory) => (
+                  <label
+                    key={subCategory.id}
+                    className="flex items-center justify-between gap-3 pl-6 text-sm text-gray-700 dark:text-gray-200"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={(values.categories ?? []).includes(subCategory.id)}
+                        onChange={() => toggleCategory(subCategory.id)}
+                        onClick={(event) => event.stopPropagation()}
+                        disabled={isParentSelected}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800"
+                      />
+                      <span className="truncate">{subCategory.name}</span>
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{subCategory.id}</span>
+                  </label>
+                ))}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="px-4 pt-3 pb-2 text-sm text-gray-500 dark:text-gray-400">
