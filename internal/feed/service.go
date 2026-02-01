@@ -203,6 +203,11 @@ func (s *service) delete(ctx context.Context, id int) error {
 		return err
 	}
 
+	// if foreign keys are not enforced in SQLite clear feed cache explicitly
+	if err := s.cacheRepo.DeleteByFeed(ctx, id); err != nil {
+		s.log.Error().Err(err).Msgf("error deleting feed cache: %s", f.Name)
+	}
+
 	return nil
 }
 

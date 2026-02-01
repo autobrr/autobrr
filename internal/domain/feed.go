@@ -23,6 +23,7 @@ type FeedCacheRepo interface {
 	Delete(ctx context.Context, feedId int, key string) error
 	DeleteByFeed(ctx context.Context, feedId int) error
 	DeleteStale(ctx context.Context) error
+	DeleteOrphaned(ctx context.Context) error
 }
 
 type FeedRepo interface {
