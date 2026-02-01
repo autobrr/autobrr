@@ -155,17 +155,8 @@ func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
 }
 
 func (c *Client) FetchFeed(ctx context.Context) (*Feed, error) {
-	if c.Capabilities == nil {
-		caps, err := c.getCaps(ctx)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not get caps for feed")
-		}
-
-		if caps == nil {
-			return nil, errors.New("could not get caps for feed")
-		}
-
-		c.Capabilities = caps
+	if err := c.getAndSetCaps(ctx); err != nil {
+		return nil, err
 	}
 
 	params := url.Values{}
@@ -259,6 +250,23 @@ func (c *Client) getCaps(ctx context.Context) (*Caps, error) {
 	return &response, nil
 }
 
+func (c *Client) getAndSetCaps(ctx context.Context) error {
+	if c.Capabilities == nil {
+		caps, err := c.getCaps(ctx)
+		if err != nil {
+			return errors.Wrap(err, "could not get caps for feed")
+		}
+
+		if caps == nil {
+			return errors.New("could not get caps for feed")
+		}
+
+		c.Capabilities = caps
+	}
+
+	return nil
+}
+
 func (c *Client) FetchCaps(ctx context.Context) (*Caps, error) {
 	res, err := c.getCaps(ctx)
 	if err != nil {
@@ -273,6 +281,10 @@ func (c *Client) GetCaps() *Caps {
 }
 
 func (c *Client) Search(ctx context.Context, query string, categories []int) (*SearchResponse, error) {
+	if err := c.getAndSetCaps(ctx); err != nil {
+		return nil, err
+	}
+
 	params := url.Values{}
 	params.Set("t", "search")
 	if query != "" {
@@ -291,6 +303,10 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 	res, err := c.get(ctx, params)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not search feed")
+	}
+
+	for _, item := range res.Channel.Items {
+		item.MapCategories(c.Capabilities.Categories.Categories)
 	}
 
 	resp := &SearchResponse{

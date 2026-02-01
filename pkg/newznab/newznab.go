@@ -198,6 +198,10 @@ func (c *Client) getData(ctx context.Context, params url.Values) (*http.Response
 }
 
 func (c *Client) GetFeed(ctx context.Context) (*Feed, error) {
+	if err := c.getAndSetCaps(ctx); err != nil {
+		return nil, err
+	}
+
 	params := url.Values{}
 	params.Set("t", "search")
 	params.Set("extended", "1")
@@ -256,36 +260,6 @@ func (c *Client) GetFeed(ctx context.Context) (*Feed, error) {
 	}
 
 	return &response, nil
-}
-
-func (c *Client) GetFeedAndCaps(ctx context.Context) (*Feed, error) {
-	if c.Capabilities == nil {
-		caps, err := c.getCaps(ctx)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not get caps for feed")
-		}
-
-		c.Capabilities = caps
-	}
-
-	params := url.Values{}
-	params.Set("t", "search")
-	params.Set("extended", "1")
-	params.Add("limit", "50")
-	if c.Capabilities != nil && c.Capabilities.Limits.Max > 0 {
-		params.Set("limit", strconv.Itoa(c.Capabilities.Limits.Max))
-	}
-
-	res, err := c.get(ctx, params)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get feed")
-	}
-
-	for _, item := range res.Channel.Items {
-		item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
-	}
-
-	return res, nil
 }
 
 func (c *Client) getCaps(ctx context.Context) (*Caps, error) {
@@ -367,11 +341,32 @@ func (c *Client) GetCaps(ctx context.Context) (*Caps, error) {
 	return res, nil
 }
 
+func (c *Client) getAndSetCaps(ctx context.Context) error {
+	if c.Capabilities == nil {
+		caps, err := c.getCaps(ctx)
+		if err != nil {
+			return errors.Wrap(err, "could not get caps for feed")
+		}
+
+		if caps == nil {
+			return errors.New("could not get caps for feed")
+		}
+
+		c.Capabilities = caps
+	}
+
+	return nil
+}
+
 func (c *Client) Caps() *Caps {
 	return c.Capabilities
 }
 
 func (c *Client) Search(ctx context.Context, query string, categories []int) (*SearchResponse, error) {
+	if err := c.getAndSetCaps(ctx); err != nil {
+		return nil, err
+	}
+
 	params := url.Values{}
 	params.Set("t", "search")
 	if query != "" {
@@ -390,6 +385,16 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 	res, err := c.get(ctx, params)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not search feed")
+	}
+
+	if c.Capabilities != nil {
+		for _, item := range res.Channel.Items {
+			item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
+		}
+	} else {
+		for _, item := range res.Channel.Items {
+			item.MapCategoriesFromAttr()
+		}
 	}
 
 	resp := &SearchResponse{
