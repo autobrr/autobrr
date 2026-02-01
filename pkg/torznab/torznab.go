@@ -31,11 +31,16 @@ type Client struct {
 
 	Capabilities *Caps
 
-	Log *log.Logger
+	Log   *log.Logger
+	Debug bool
 }
 
 func (c *Client) WithHTTPClient(client *http.Client) {
 	c.http = client
+}
+
+func (c *Client) WithDebug() {
+	c.Debug = true
 }
 
 type BasicAuth struct {
@@ -114,12 +119,14 @@ func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
 
 	defer sharedhttp.DrainAndClose(resp)
 
-	dump, err := httputil.DumpResponse(resp, true)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not dump response")
-	}
+	if c.Debug {
+		dump, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not dump response")
+		}
 
-	c.Log.Printf("torznab get feed response dump: %q", dump)
+		c.Log.Printf("torznab get feed response dump: %q", dump)
+	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -219,12 +226,14 @@ func (c *Client) getCaps(ctx context.Context) (*Caps, error) {
 
 	defer sharedhttp.DrainAndClose(resp)
 
-	dump, err := httputil.DumpResponse(resp, true)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not dump response")
-	}
+	if c.Debug {
+		dump, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not dump response")
+		}
 
-	c.Log.Printf("torznab get caps response dump: %q", dump)
+		c.Log.Printf("torznab get caps response dump: %q", dump)
+	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
