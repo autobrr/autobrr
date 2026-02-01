@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -66,6 +67,19 @@ type Feed struct {
 	ProxyID  int64  `json:"-"`
 	UseProxy bool   `json:"-"`
 	Proxy    *Proxy `json:"-"`
+}
+
+func (f Feed) MarshalJSON() ([]byte, error) {
+	type Alias Feed
+	return json.Marshal(&struct {
+		*Alias
+		APIKey string `json:"api_key"`
+		Cookie string `json:"cookie"`
+	}{
+		APIKey: RedactString(f.ApiKey),
+		Cookie: RedactString(f.Cookie),
+		Alias:  (*Alias)(&f),
+	})
 }
 
 type FeedSettingsJSON struct {
