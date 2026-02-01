@@ -1,8 +1,7 @@
 ALTER TABLE feed
-    ALTER COLUMN capabilities type json using capabilities::json;
+    DROP COLUMN IF EXISTS capabilities,
+    ADD COLUMN capabilities json NOT NULL DEFAULT '{}'::json;
 
+-- check if categories is needed. It as removed in some early version
 ALTER TABLE feed
-    ALTER COLUMN capabilities DROP NOT NULL;
-
-ALTER TABLE feed
-    ALTER COLUMN capabilities DROP DEFAULT;
+    ADD COLUMN IF NOT EXISTS categories TEXT [] DEFAULT '{}' NOT NULL;

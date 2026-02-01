@@ -290,7 +290,7 @@ CREATE TABLE client
     tls_skip_verify BOOLEAN,
     username        TEXT,
     password        TEXT,
-    settings        JSON
+    settings        JSON NOT NULL DEFAULT '{}'::json
 );
 
 CREATE TABLE action
@@ -522,7 +522,7 @@ CREATE TABLE feed
     timeout       INTEGER   DEFAULT 60,
     max_age       INTEGER   DEFAULT 0,
     categories    TEXT[]    DEFAULT '{}' NOT NULL,
-    capabilities  JSON,
+    capabilities  JSON      DEFAULT '{}'::json NOT NULL,
     api_key       TEXT,
     cookie        TEXT,
     settings      TEXT,
