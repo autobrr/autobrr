@@ -13,6 +13,8 @@ interface Feed {
   interval: number;
   timeout: number;
   max_age: number;
+  categories: number[];
+  capabilities: FeedCaps | null;
   api_key: string;
   cookie: string;
   last_run: string;
@@ -41,5 +43,30 @@ interface FeedCreate {
   timeout: number;
   api_key?: string;
   indexer_id: number;
+  categories?: number[];
+  capabilities?: FeedCaps | null;
   settings: FeedSettings;
+}
+
+interface FeedCapsLimits {
+  max: string;
+  default: string;
+}
+
+interface FeedCapsCategory {
+  id: number;
+  name: string;
+  subcategories: FeedCapsCategory[] | null;
+}
+
+interface FeedCaps {
+  limits: FeedCapsLimits;
+  categories: FeedCapsCategory[];
+}
+
+interface FeedCapsRequest {
+  type: FeedType;
+  url: string;
+  api_key?: string;
+  timeout?: number;
 }

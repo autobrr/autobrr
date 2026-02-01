@@ -3,15 +3,16 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
 import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikValues } from "formik";
+import { Field, Form, Formik, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 
 import { classNames, sleep } from "@utils";
+import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
@@ -108,19 +109,26 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
 
-            {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
-              switch (f.type) {
-              case "text": {
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+            <TextFieldWide
+              name="feed.url"
+              label="URL"
+              required={true}
+              help="Torznab url. Just URL without extra params."
+              tooltip={
+                <div>
+                  <p>Prowlarr and Jackett have different formats:</p>
+                  <br/>
+                  <ul>
+                    <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                    <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
+                  </ul>
+                </div>
               }
-              case "secret": {
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
-              }
-              }
-              return null;
-            })}
+            />
+
+            <PasswordFieldWide name="feed.api_key" label="API key" help="API key" required={true} />
 
             <SelectFieldBasic
               name="feed.settings.download_type"
@@ -129,6 +137,8 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               tooltip={<span>Some feeds needs to force set as Magnet.</span>}
               help="Set to Torrent or Magnet depending on indexer."
             />
+
+            <FeedCategoriesDraftSection feedType="TORZNAB" />
           </div>
         )}
       </Fragment>
@@ -149,7 +159,26 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
+
+            <TextFieldWide
+              name="feed.newznab_url"
+              label="URL"
+              required={true}
+              help="Newznab url. Just URL without extra params."
+              tooltip={
+                <div>
+                  <p>Prowlarr and Jackett have different formats:</p>
+                  <br/>
+                  <ul>
+                    <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                    <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
+                  </ul>
+                </div>
+              }
+            />
+
+            <PasswordFieldWide name="feed.api_key" label="API key" help="API key" required={true} />
 
             {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
@@ -162,6 +191,8 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               }
               return null;
             })}
+
+            <FeedCategoriesDraftSection feedType="NEWZNAB" />
           </div>
         )}
       </Fragment>
@@ -209,6 +240,145 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
     );
   }
 };
+
+function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
+  const { values, setFieldValue } = useFormikContext<FormikValues>();
+  const feedValues = (values.feed ?? {}) as Record<string, unknown>;
+  const capabilities = feedValues.capabilities ?? null;
+  const categoriesValue = Array.isArray(feedValues.categories) ? (feedValues.categories as number[]) : [];
+  const capsPayload = useMemo(() => parseCapabilitiesPayload(capabilities), [capabilities]);
+  const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
+  const url = feedType === "TORZNAB"
+    ? String(feedValues.url ?? "")
+    : String(feedValues.newznab_url ?? feedValues.url ?? "");
+  const apiKey = typeof feedValues.api_key === "string" ? feedValues.api_key : "";
+  const hasCaps = Boolean(capabilities);
+  const canFetch = url.length > 0;
+
+  const fetchCapsMutation = useMutation({
+    mutationFn: () => APIClient.feeds.fetchCapsDraft({
+      type: feedType,
+      url,
+      api_key: apiKey,
+      timeout: 60
+    }),
+    onSuccess: (caps) => {
+      const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
+      const filteredSelection = categoriesValue.filter((id) => nextCategories.includes(id));
+
+      setFieldValue("feed.capabilities", caps ?? null);
+      setFieldValue("feed.categories", filteredSelection);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to fetch categories";
+      toast.custom((t) => <Toast type="error" body={message} t={t} />);
+    }
+  });
+
+  const toggleCategory = (id: number) => {
+    if (categoriesValue.includes(id)) {
+      setFieldValue(
+        "feed.categories",
+        categoriesValue.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue("feed.categories", [...categoriesValue, id]);
+  };
+
+  const toggleParentCategory = (id: number, childIds: number[]) => {
+    if (categoriesValue.includes(id)) {
+      setFieldValue(
+        "feed.categories",
+        categoriesValue.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue(
+      "feed.categories",
+      [...categoriesValue.filter((category) => !childIds.includes(category)), id]
+    );
+  };
+
+  return (
+    <div className="mt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="pt-4 px-4 flex items-center justify-between">
+        <div>
+          <div className="text-lg font-medium text-gray-900 dark:text-white">Categories</div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Fetch available categories and select what to include.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          onClick={() => fetchCapsMutation.mutate()}
+          disabled={!canFetch || fetchCapsMutation.isPending}
+          title={!canFetch ? "Enter a URL to fetch categories" : undefined}
+        >
+          {fetchCapsMutation.isPending ? "Fetching" : hasCaps ? "Refetch" : "Fetch"}
+        </button>
+      </div>
+
+      {categoriesTree.length ? (
+        <div className="px-4 pt-4 pb-2 space-y-3 max-h-max overflow-y-auto">
+          {categoriesTree.map((category) => {
+            const childIds = category.subcategories.map((sub) => sub.id);
+            const isParentSelected = categoriesValue.includes(category.id);
+
+            return (
+              <div key={category.id} className="space-y-2">
+                <label
+                  className="flex items-center justify-between gap-3 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={categoriesValue.includes(category.id)}
+                      onChange={() => toggleParentCategory(category.id, childIds)}
+                      onClick={(event) => event.stopPropagation()}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span className="font-medium truncate">{category.name}</span>
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{category.id}</span>
+                </label>
+
+                {category.subcategories.map((subCategory) => (
+                  <label
+                    key={subCategory.id}
+                    className="flex items-center justify-between gap-3 pl-6 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={categoriesValue.includes(subCategory.id)}
+                        onChange={() => toggleCategory(subCategory.id)}
+                        onClick={(event) => event.stopPropagation()}
+                        disabled={isParentSelected}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800"
+                      />
+                      <span className="truncate">{subCategory.name}</span>
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{subCategory.id}</span>
+                  </label>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="px-4 pt-3 pb-2 text-sm text-gray-500 dark:text-gray-400">
+          {hasCaps ? "No categories found." : "Fetch categories to select."}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const SettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
@@ -304,6 +474,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
         interval: 30,
         timeout: 60,
         indexer_id: 0,
+        categories: formData.feed.categories ?? [],
+        capabilities: formData.feed.capabilities ?? null,
         settings: formData.feed.settings
       };
 
@@ -329,6 +501,8 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
         interval: 30,
         timeout: 60,
         indexer_id: 0,
+        categories: formData.feed.categories ?? [],
+        capabilities: formData.feed.capabilities ?? null,
         settings: formData.feed.settings
       };
 
@@ -442,7 +616,12 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
                     implementation: "irc",
                     name: "",
                     irc: {},
-                    settings: {}
+                    settings: {},
+                    feed: {
+                      categories: [],
+                      capabilities: null,
+                      settings: {}
+                    }
                   }}
                   onSubmit={onSubmit}
                 >
