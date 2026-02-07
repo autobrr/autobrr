@@ -378,52 +378,57 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 
 	case domain.DownloadClientTypeLidarr:
 		client.Client = lidarr.New(lidarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeRadarr:
 		client.Client = radarr.New(radarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeReadarr:
 		client.Client = readarr.New(readarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeSonarr:
 		client.Client = sonarr.New(sonarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeWhisparr:
 		client.Client = whisparr.New(whisparr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeSabnzbd:

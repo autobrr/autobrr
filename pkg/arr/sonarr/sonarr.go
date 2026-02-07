@@ -29,6 +29,8 @@ type Config struct {
 	Username  string
 	Password  string
 
+	TLSSkipVerify bool
+
 	Log *log.Logger
 }
 
@@ -46,9 +48,14 @@ type Client struct {
 
 // New create new sonarr Client
 func New(config Config) *Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
+
 	httpClient := &http.Client{
 		Timeout:   time.Second * 120,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
 	c := &Client{
