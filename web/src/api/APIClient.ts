@@ -472,13 +472,13 @@ export const APIClient = {
         if (!filter.value)
           return;
 
-        if (filter.id == "indexer.identifier") {
+        if (filter.id == "indexer.identifier" || filter.id == "indexer_identifier") {
           if (typeof filter.value === "string") {
             params["indexer"].push(filter.value);
-          }
-        } else if (filter.id == "indexer_identifier") {
-          if (typeof filter.value === "string") {
-            params["indexer"].push(filter.value);
+          } else if (Array.isArray(filter.value)) {
+            for (const v of filter.value) {
+              if (typeof v === "string") params["indexer"].push(v);
+            }
           }
         } else if (filter.id === "action_status") {
           if (typeof filter.value === "string") {

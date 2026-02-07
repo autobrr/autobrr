@@ -66,21 +66,63 @@ const ListboxFilter = ({
 export const IndexerSelectColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
   const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
-  // Assign indexer name based on the filterValue (indexer.identifier)
-  const currentIndexerName = data?.find(indexer => indexer.identifier === column.getFilterValue())?.name ?? "Indexer";
+  const selectedValues = (column.getFilterValue() as string[] | undefined) ?? [];
+
+  let label = "Indexer";
+  if (selectedValues.length === 1) {
+    label = data?.find(i => i.identifier === selectedValues[0])?.name ?? selectedValues[0];
+  } else if (selectedValues.length > 1) {
+    label = `${selectedValues.length} indexers`;
+  }
 
   return (
-    <ListboxFilter
-      id={column.id}
-      key={column.id}
-      label={currentIndexerName}
-      currentValue={column.getFilterValue() as string || ""}
-      onChange={newValue => column.setFilterValue(newValue || undefined)}
-    >
-      {isSuccess && data && data?.map((indexer, idx) => (
-        <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
-      ))}
-    </ListboxFilter>
+    <div className="w-48">
+      <Listbox
+        value={selectedValues}
+        onChange={(newValues: string[]) => {
+          column.setFilterValue(newValues.length > 0 ? newValues : undefined);
+        }}
+        multiple
+      >
+        <div className="relative mt-1">
+          <ListboxButton className="relative w-full py-2 pl-3 pr-10 text-left bg-white dark:bg-gray-800 rounded-lg shadow-md cursor-pointer dark:text-gray-400 sm:text-sm">
+            <span className="block truncate">{label}</span>
+            <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+              <ChevronDownIcon
+                className="w-5 h-5 ml-2 -mr-1 text-gray-600 hover:text-gray-600"
+                aria-hidden="true"
+              />
+            </span>
+          </ListboxButton>
+          <Transition
+            as={React.Fragment}
+            leave="transition ease-in duration-100"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <ListboxOptions
+              className="absolute z-10 w-full mt-1 overflow-auto text-base bg-white dark:bg-gray-800 rounded-md shadow-lg max-h-60 border border-black/5 dark:border-gray-700/40 focus:outline-hidden sm:text-sm"
+            >
+              {selectedValues.length > 0 && (
+                <button
+                  type="button"
+                  className="w-full cursor-pointer select-none relative py-2 pl-10 pr-4 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 text-left text-sm"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    column.setFilterValue(undefined);
+                  }}
+                >
+                  Clear selection
+                </button>
+              )}
+              {isSuccess && data?.map((indexer, idx) => (
+                <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
+              ))}
+            </ListboxOptions>
+          </Transition>
+        </div>
+      </Listbox>
+    </div>
   );
 };
 

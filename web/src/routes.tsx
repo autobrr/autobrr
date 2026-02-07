@@ -149,13 +149,11 @@ export const ReleasesRoute = createRoute({
   path: 'releases',
   component: Releases,
   validateSearch: (search) => z.object({
-    offset: z.number().optional(),
-    limit: z.number().optional(),
-    filter: z.string().optional(),
+    page: z.number().optional(),
+    pageSize: z.number().optional(),
     q: z.string().optional(),
     action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PENDING', 'PUSH_ERROR', '']).optional(),
-    // filters: z.array().catch(''),
-    // sort: z.enum(['newest', 'oldest', 'price']).catch('newest'),
+    indexer: z.string().optional(),
   }).parse(search),
 });
 

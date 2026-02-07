@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearch } from "@tanstack/react-router";
+import { useSearch, useNavigate } from "@tanstack/react-router";
 import {
   useReactTable,
   getCoreRowModel,
@@ -14,6 +14,8 @@ import {
   Column,
   RowData,
   PaginationState,
+  ColumnFiltersState,
+  OnChangeFn,
 } from "@tanstack/react-table";
 import {
   ChevronDoubleLeftIcon,
@@ -78,25 +80,69 @@ function Filter({ column }: { column: Column<Release, unknown> }) {
   }
 }
 
-interface ColumnFilter {
-  id: string
-  value: unknown
-}
-
-type ColumnFiltersState = ColumnFilter[];
-
 export const ReleaseTable = () => {
   const search = useSearch({
     from: "/auth/authenticated-routes/releases" as const,
   });
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const navigate = useNavigate({ from: "/releases" });
 
-  // Set initial filter based on URL params
-  React.useEffect(() => {
-    if (search.action_status) {
-      setColumnFilters([{ id: "action_status", value: search.action_status }]);
-    }
-  }, [search.action_status]);
+  // Derive column filters from URL search params
+  const columnFilters = useMemo<ColumnFiltersState>(() => {
+    const filters: ColumnFiltersState = [];
+    if (search.q) filters.push({ id: "name", value: search.q });
+    if (search.action_status) filters.push({ id: "action_status", value: search.action_status });
+    if (search.indexer) filters.push({ id: "indexer_identifier", value: search.indexer.split(",") });
+    return filters;
+  }, [search.q, search.action_status, search.indexer]);
+
+  // Derive pagination from URL search params
+  const pagination = useMemo<PaginationState>(() => ({
+    pageIndex: search.page ?? 0,
+    pageSize: search.pageSize ?? 10,
+  }), [search.page, search.pageSize]);
+
+  // Write column filter changes back to URL
+  const onColumnFiltersChange = useCallback<OnChangeFn<ColumnFiltersState>>((updaterOrValue) => {
+    const newFilters = typeof updaterOrValue === "function"
+      ? updaterOrValue(columnFilters)
+      : updaterOrValue;
+
+    const q = (newFilters.find(f => f.id === "name")?.value as string) || undefined;
+    const action_status = (newFilters.find(f => f.id === "action_status")?.value as string) || undefined;
+    const indexerValues = newFilters.find(f => f.id === "indexer_identifier")?.value;
+    const indexer = Array.isArray(indexerValues) && indexerValues.length > 0
+      ? indexerValues.join(",")
+      : undefined;
+
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        q,
+        action_status: action_status as "PUSH_APPROVED" | "PUSH_REJECTED" | "PENDING" | "PUSH_ERROR" | "" | undefined,
+        indexer,
+        // Reset to first page when filters change
+        page: undefined,
+      }),
+      replace: true,
+    });
+  }, [columnFilters, navigate]);
+
+  // Write pagination changes back to URL
+  const onPaginationChange = useCallback<OnChangeFn<PaginationState>>((updaterOrValue) => {
+    const newPagination = typeof updaterOrValue === "function"
+      ? updaterOrValue(pagination)
+      : updaterOrValue;
+
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        // Only set page/pageSize if not at defaults, to keep URLs clean
+        page: newPagination.pageIndex === 0 ? undefined : newPagination.pageIndex,
+        pageSize: newPagination.pageSize === 10 ? undefined : newPagination.pageSize,
+      }),
+      replace: false,
+    });
+  }, [pagination, navigate]);
 
   const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
     {
@@ -135,11 +181,6 @@ export const ReleaseTable = () => {
       },
     }
   ], []);
-
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  })
 
   const {
     isLoading,
@@ -202,8 +243,8 @@ export const ReleaseTable = () => {
     initialState: {
       pagination
     },
-    onPaginationChange: setPagination,
-    onColumnFiltersChange: setColumnFilters,
+    onPaginationChange,
+    onColumnFiltersChange,
   });
 
   // Manage your own state
