@@ -55,8 +55,9 @@ type Config struct {
 	ApiKey  string
 	Timeout time.Duration
 
-	UseBasicAuth bool
-	BasicAuth    BasicAuth
+	UseBasicAuth  bool
+	BasicAuth     BasicAuth
+	TLSSkipVerify bool
 
 	Log *log.Logger
 }
@@ -67,9 +68,13 @@ type Capabilities struct {
 }
 
 func NewClient(config Config) *Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
 	httpClient := &http.Client{
 		Timeout:   time.Second * DefaultTimeout,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
 	if config.Timeout > 0 {

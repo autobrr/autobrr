@@ -29,6 +29,7 @@ interface InitialValues {
   url: string;
   api_key: string;
   cookie: string;
+  tls_skip_verify: boolean;
   interval: number;
   timeout: number;
   max_age: number;
@@ -109,6 +110,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     url: feed.url,
     api_key: feed.api_key,
     cookie: feed.cookie || "",
+    tls_skip_verify: feed.tls_skip_verify ?? false,
     interval: feed.interval,
     timeout: feed.timeout,
     max_age: feed.max_age,
@@ -206,6 +208,8 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
 
       <PasswordFieldWide name="api_key" label="API key" />
 
+      <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
+
       {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
@@ -242,6 +246,8 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
 
       <PasswordFieldWide name="api_key" label="API key" />
 
+      <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
+
       {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
 
@@ -267,6 +273,8 @@ function FormFieldsRSS() {
       />
 
       <SelectFieldBasic name="settings.download_type" label="Download type" options={FeedDownloadTypeOptions} />
+
+      <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
 
       {interval < 15 && <WarningLabel />}
       <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>

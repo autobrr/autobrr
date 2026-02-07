@@ -42,26 +42,27 @@ type FeedRepo interface {
 }
 
 type Feed struct {
-	ID           int               `json:"id"`
-	Name         string            `json:"name"`
-	Indexer      IndexerMinimal    `json:"indexer"`
-	Type         string            `json:"type"`
-	Enabled      bool              `json:"enabled"`
-	URL          string            `json:"url"`
-	Interval     int               `json:"interval"`
-	Timeout      int               `json:"timeout"` // seconds
-	MaxAge       int               `json:"max_age"` // seconds
-	Categories   []int             `json:"categories"`
-	Capabilities *FeedCapabilities `json:"capabilities"`
-	ApiKey       string            `json:"api_key"`
-	Cookie       string            `json:"cookie"`
-	Settings     *FeedSettingsJSON `json:"settings"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
-	IndexerID    int               `json:"indexer_id,omitempty"`
-	LastRun      time.Time         `json:"last_run"`
-	LastRunData  string            `json:"last_run_data"`
-	NextRun      time.Time         `json:"next_run"`
+	ID            int               `json:"id"`
+	Name          string            `json:"name"`
+	Indexer       IndexerMinimal    `json:"indexer"`
+	Type          string            `json:"type"`
+	Enabled       bool              `json:"enabled"`
+	URL           string            `json:"url"`
+	Interval      int               `json:"interval"`
+	Timeout       int               `json:"timeout"` // seconds
+	MaxAge        int               `json:"max_age"` // seconds
+	Categories    []int             `json:"categories"`
+	Capabilities  *FeedCapabilities `json:"capabilities"`
+	ApiKey        string            `json:"api_key"`
+	Cookie        string            `json:"cookie"`
+	TLSSkipVerify bool              `json:"tls_skip_verify"`
+	Settings      *FeedSettingsJSON `json:"settings"`
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
+	IndexerID     int               `json:"indexer_id,omitempty"`
+	LastRun       time.Time         `json:"last_run"`
+	LastRunData   string            `json:"last_run_data"`
+	NextRun       time.Time         `json:"next_run"`
 
 	// belongs to Indexer
 	ProxyID  int64  `json:"-"`
