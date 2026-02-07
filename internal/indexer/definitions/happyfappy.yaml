@@ -57,25 +57,23 @@ irc:
     type: single
     lines:
       - tests:
-          - line: '[Packs] Actress.com - Actress Episodes (720p) [55.15 GiB - Uploader: uhhh] - https://www.happyfappy.org/torrents.php?id=00000'
+          - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.org/torrents.php?torrentid=00000'
             expect:
-              category: Packs
-              torrentName: 'Actress.com - Actress Episodes (720p)'
-              torrentSize: 55.15 GiB
-              uploader: uhhh
+              torrentName: '[OnlyFans] Some Actress, Other Actress - Having fun together'
+              torrentSize: 1.03 GiB
+              uploader: UPLOADER
+              tags: 1080p, lesbian, onlyfans.com, fansite
               baseUrl: https://www.happyfappy.org/
               torrentId: 00000
 
-
-        pattern: '\[(.*?)\] (.*) \[(.*) - Uploader: (.*)\] - (https:\/\/.*\/).*id=(\d+)'
+        pattern: '^(.+) - Size: (.+) - Uploader: (.+) - Tags: (.+) - (https:\/\/.*\/).*id=(\d+)$'
         vars:
-          - category
           - torrentName
           - torrentSize
           - uploader
+          - tags
           - baseUrl
           - torrentId
-
 
     match:
       infourl: "/torrents.php?torrentid={{ .torrentId }}"
