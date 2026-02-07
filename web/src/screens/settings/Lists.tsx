@@ -8,7 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { EllipsisHorizontalIcon, ForwardIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ClipboardDocumentIcon, EllipsisHorizontalIcon, ForwardIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
@@ -235,6 +235,29 @@ function ListItem({ list }: ListItemProps) {
                           aria-hidden="true"
                         />
                         Edit
+                      </button>
+                    )}
+                  </MenuItem>
+                  <MenuItem>
+                    {({ focus }) => (
+                      <button
+                        className={classNames(
+                          focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                          "font-medium cursor-pointer group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                        )}
+                        onClick={() => {
+                          navigator.clipboard.writeText(String(list.id));
+                          toast.custom(t => <Toast type="success" body={`List ID ${list.id} copied to clipboard.`} t={t} />);
+                        }}
+                      >
+                        <ClipboardDocumentIcon
+                          className={classNames(
+                            focus ? "text-white" : "text-blue-500",
+                            "w-5 h-5 mr-2"
+                          )}
+                          aria-hidden="true"
+                        />
+                        Copy List ID
                       </button>
                     )}
                   </MenuItem>
