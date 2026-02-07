@@ -77,14 +77,14 @@ irc:
             expect:
               torrentName: "The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES"
               category: TV
-              releaseTags: Seasons-HD
+              releaseTags: WEB-DL
               resolution: 1080p
               torrentSize: 36.81 GiB
               uploader: STCBOT
               origin: ""
               baseUrl: https://skipthecommercials.xyz/
               torrentId: "27884"
-        pattern: '^\[NEW\]\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)(?:\s+\|\s+([^|]+))?\s+\|\s+DL:\s+(.+)$'
+        pattern: '^\[NEW\]\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)(?:\s+\|\s+([^|]+))?\s+\|\s+DL:\s+(https?\:\/\/.*?\/).*\/(\d+)$'
         vars:
           - torrentName
           - category
