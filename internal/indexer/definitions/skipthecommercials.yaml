@@ -51,7 +51,7 @@ irc:
     type: single
     lines:
       - tests:
-          - line: [NEW] Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH | TV | WEB-DL | 1080p | 2.81 GiB | STCBOT | SCENE | DL: https://skipthecommercials.xyz/torrents/27653
+          - line: '[NEW] Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH | TV | WEB-DL | 1080p | 2.81 GiB | STCBOT | SCENE | DL: https://skipthecommercials.xyz/torrents/27653'
             expect:
               torrentName: Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH
               category: TV
@@ -62,7 +62,7 @@ irc:
               origin: SCENE
               baseUrl: https://skipthecommercials.xyz/
               torrentId: "27653"
-          - line: [NEW] The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC | TV | Seasons-HD | 1080p | 23.41 GiB | STCBOT | INTERNAL | DL: https://skipthecommercials.xyz/torrents/27848
+          - line: '[NEW] The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC | TV | Seasons-HD | 1080p | 23.41 GiB | STCBOT | INTERNAL | DL: https://skipthecommercials.xyz/torrents/27848'
             expect:
               torrentName: The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC
               category: TV
@@ -73,7 +73,7 @@ irc:
               origin: INTERNAL
               baseUrl: https://skipthecommercials.xyz/
               torrentId: "27848"
-          - line: [NEW] The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES | TV | WEB-DL | 1080p | 36.81 GiB | STCBOT | DL: https://skipthecommercials.xyz/torrents/27884
+          - line: '[NEW] The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES | TV | WEB-DL | 1080p | 36.81 GiB | STCBOT | DL: https://skipthecommercials.xyz/torrents/27884'
             expect:
               torrentName: The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES
               category: TV
