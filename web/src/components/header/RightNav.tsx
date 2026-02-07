@@ -13,20 +13,41 @@ import { classNames } from "@utils";
 
 import { RightNavProps } from "./_shared";
 
-import { Cog6ToothIcon, ArrowLeftOnRectangleIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { Cog6ToothIcon, ArrowLeftOnRectangleIcon, MoonIcon, SunIcon, ComputerDesktopIcon } from "@heroicons/react/24/outline";
 import { Link } from "@tanstack/react-router";
-import { AuthContext, SettingsContext } from "@utils/Context";
+import { AuthContext, SettingsContext, isDarkTheme } from "@utils/Context";
+import type { Theme } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
   const auth = AuthContext.get();
 
+  const nextTheme: Record<Theme, Theme> = {
+    light: "dark",
+    dark: "system",
+    system: "light"
+  };
+
+  const themeIcons: Record<Theme, typeof MoonIcon> = {
+    dark: MoonIcon,
+    light: SunIcon,
+    system: ComputerDesktopIcon
+  };
+
+  const themeLabels: Record<Theme, string> = {
+    light: "Light mode (click for dark)",
+    dark: "Dark mode (click for system)",
+    system: "System mode (click for light)"
+  };
+
   const toggleTheme = () => {
     setSettings(prevState => ({
       ...prevState,
-      darkTheme: !prevState.darkTheme
+      theme: nextTheme[prevState.theme]
     }));
   };
+
+  const ThemeIcon = themeIcons[settings.theme];
 
   return (
     <div className="hidden sm:block">
@@ -35,13 +56,9 @@ export const RightNav = (props: RightNavProps) => {
           <button
             onClick={toggleTheme}
             className="p-1 rounded-full hover:cursor-pointer focus:outline-hidden focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
-            title={settings.darkTheme ? "Switch to light mode (currently dark mode)" : "Switch to dark mode (currently light mode)"}
+            title={themeLabels[settings.theme]}
           >
-            {settings.darkTheme ? (
-              <MoonIcon className="h-4 w-4 text-gray-500 transition duration-100 ease-out transform" aria-hidden="true" />
-            ) : (
-              <SunIcon className="h-4 w-4 text-gray-600" aria-hidden="true" />
-            )}
+            <ThemeIcon className={`h-4 w-4 transition duration-100 ease-out transform ${isDarkTheme(settings.theme) ? "text-gray-500" : "text-gray-600"}`} aria-hidden="true" />
           </button>
         </div>
         <Menu as="div" className="ml-2 relative">

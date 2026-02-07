@@ -10,6 +10,7 @@ import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
+import type { Theme } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
@@ -144,18 +145,30 @@ function ApplicationSettings() {
             toggleCheckUpdateMutation.mutate(newValue);
           }}
         />
-        <Checkbox
-          label="Dark theme"
-          description="Switch between dark and light theme."
-          value={settings.darkTheme}
-          className="p-4 sm:px-6"
-          setValue={
-            (newValue: boolean) => setSettings((prevState) => ({
+        <div className="flex items-center justify-between p-4 sm:px-6">
+          <div className="flex flex-col mr-4">
+            <p className="text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white">
+              Theme
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Choose between light, dark, or follow system theme.
+            </p>
+          </div>
+          <div>
+          <select
+            value={settings.theme}
+            onChange={(e) => setSettings((prevState) => ({
               ...prevState,
-              darkTheme: newValue
-            }))
-          }
-        />
+              theme: e.target.value as Theme
+            }))}
+            className="rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer text-sm text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="system">System</option>
+          </select>
+          </div>
+        </div>
       </div>
     </Section>
   );
