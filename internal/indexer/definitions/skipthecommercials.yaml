@@ -27,7 +27,6 @@ irc:
   channels:
     - "#announce"
   announcers:
-    - STCBOT
     - STC
   settings:
     - name: nick
@@ -52,28 +51,48 @@ irc:
     type: single
     lines:
       - tests:
-          - line: Category [TV Show] Type [WEB-DL] Name [Some Show S35E11 1080p DSNP WEB-DL DD+ 5.1 H.264-GROUP] Resolution [1080p] Freeleech [0%] Double Upload [No] Size [709.11 MB] Uploader [Seeder] Url [https://skipthecommercials.xyz/torrent/download/00000]
+          - line: [NEW] Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH | TV | WEB-DL | 1080p | 2.81 GiB | STCBOT | SCENE | DL: https://skipthecommercials.xyz/torrents/27653
             expect:
-              category: TV Show
+              torrentName: Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH
+              category: TV
               releaseTags: WEB-DL
               resolution: 1080p
-              torrentName: Some Show S35E11 1080p DSNP WEB-DL DD+ 5.1 H.264-GROUP
-              freeleechPercent: 0%
-              tags: "No"
-              torrentSize: 709.11 MB
-              uploader: Seeder
+              torrentSize: 2.81 GiB
+              uploader: STCBOT
+              origin: SCENE
               baseUrl: https://skipthecommercials.xyz/
-              torrentId: "00000"
-        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] Resolution \[(.+)\] Freeleech \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
+              torrentId: "27653"
+          - line: [NEW] The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC | TV | Seasons-HD | 1080p | 23.41 GiB | STCBOT | INTERNAL | DL: https://skipthecommercials.xyz/torrents/27848
+            expect:
+              torrentName: The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC
+              category: TV
+              releaseTags: Seasons-HD
+              resolution: 1080p
+              torrentSize: 23.41 GiB
+              uploader: STCBOT
+              origin: INTERNAL
+              baseUrl: https://skipthecommercials.xyz/
+              torrentId: "27848"
+          - line: [NEW] The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES | TV | WEB-DL | 1080p | 36.81 GiB | STCBOT | DL: https://skipthecommercials.xyz/torrents/27884
+            expect:
+              torrentName: The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES
+              category: TV
+              releaseTags: Seasons-HD
+              resolution: 1080p
+              torrentSize: 36.81 GiB
+              uploader: STCBOT
+              origin: ""
+              baseUrl: https://skipthecommercials.xyz/
+              torrentId: "27884"
+        pattern: '^\[NEW\]\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)(?:\s+\|\s+([^|]+))?\s+\|\s+DL:\s+(.+)$'
         vars:
+          - torrentName
           - category
           - releaseTags
-          - torrentName
           - resolution
-          - freeleechPercent
-          - tags
           - torrentSize
           - uploader
+          - origin
           - baseUrl
           - torrentId
 
