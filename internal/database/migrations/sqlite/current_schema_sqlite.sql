@@ -24,27 +24,31 @@ CREATE TABLE proxy
 
 CREATE TABLE notification
 (
-    id         INTEGER PRIMARY KEY,
-    name       TEXT,
-    type       TEXT,
-    enabled    BOOLEAN,
-    events     TEXT []   DEFAULT '{}' NOT NULL,
-    token      TEXT,
-    api_key    TEXT,
-    webhook    TEXT,
-    title      TEXT,
-    icon       TEXT,
-    host       TEXT,
-    username   TEXT,
-    password   TEXT,
-    channel    TEXT,
-    rooms      TEXT,
-    targets    TEXT,
-    devices    TEXT,
-    topic      TEXT,
-    priority   INTEGER   DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id           INTEGER PRIMARY KEY,
+    name         TEXT,
+    type         TEXT,
+    enabled      BOOLEAN,
+    events       TEXT []   DEFAULT '{}' NOT NULL,
+    token        TEXT,
+    api_key      TEXT,
+    webhook      TEXT,
+    title        TEXT,
+    icon         TEXT,
+    host         TEXT,
+    username     TEXT,
+    password     TEXT,
+    channel      TEXT,
+    rooms        TEXT,
+    targets      TEXT,
+    devices      TEXT,
+    topic        TEXT,
+    sound        TEXT,
+    event_sounds TEXT,
+    priority     INTEGER   DEFAULT 0,
+    method       TEXT,
+    headers      TEXT,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE indexer
@@ -76,6 +80,7 @@ CREATE TABLE irc_network
     server          TEXT    NOT NULL,
     port            INTEGER NOT NULL,
     tls             BOOLEAN,
+    tls_skip_verify BOOLEAN   DEFAULT FALSE,
     pass            TEXT,
     nick            TEXT,
     auth_mechanism  TEXT,
@@ -515,7 +520,7 @@ CREATE TABLE feed
     timeout       INTEGER   DEFAULT 60,
     max_age       INTEGER   DEFAULT 0,
     categories    TEXT []   DEFAULT '{}' NOT NULL,
-    capabilities  TEXT []   DEFAULT '{}' NOT NULL,
+    capabilities  TEXT      DEFAULT '{}' NOT NULL,
     api_key       TEXT,
     cookie        TEXT,
     settings      TEXT,
@@ -589,3 +594,19 @@ CREATE TABLE sessions
 );
 
 CREATE INDEX sessions_expiry_idx ON sessions (expiry);
+
+CREATE TABLE release_cleanup_job
+(
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    enabled BOOLEAN DEFAULT FALSE,
+    schedule TEXT NOT NULL,
+    older_than INTEGER NOT NULL,
+    indexers TEXT,
+    statuses TEXT,
+    last_run TIMESTAMP,
+    last_run_status TEXT,
+    last_run_data TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

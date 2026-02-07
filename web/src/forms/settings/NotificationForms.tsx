@@ -4,24 +4,25 @@
  */
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
+import { Field, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
-import { EventOptions, NotificationTypeOptions, SelectOption } from "@domain/constants";
+import { PushoverSoundsQueryOptions } from "@api/queries";
+import { EventOptions, ExternalFilterWebhookMethodOptions, NotificationTypeOptions, PushoverSoundOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import { SlideOver } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
 
@@ -86,7 +87,7 @@ function FormFieldsLunaSea() {
           Settings
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-        LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
+          LunaSea offers notifications across all devices linked to your account (User-Based) or to a single device without an account, using a unique webhook per device (Device-Based).
         </p>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {"Read the "}
@@ -160,8 +161,15 @@ function FormFieldsTelegram() {
   );
 }
 
+interface SoundOption {
+  label: string;
+  value: string;
+}
+
 function FormFieldsPushover() {
   return (
+    <div>
+
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
@@ -196,6 +204,28 @@ function FormFieldsPushover() {
         required={true}
       />
     </div>
+      <div className="pb-2">
+        <div className="flex justify-between items-center p-4">
+
+        <div className="">
+          <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+            Events sounds
+          </DialogTitle>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Set custom sounds per event
+          </p>
+        </div>
+          {/*<button*/}
+          {/*  // type="submit"*/}
+          {/*  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"*/}
+          {/*>*/}
+          {/*  Fetch*/}
+          {/*</button>*/}
+        </div>
+
+        <EventSounds />
+      </div>
+    </div>
   );
 }
 
@@ -211,7 +241,7 @@ function FormFieldsGotify() {
       <TextFieldWide
         name="host"
         label="Gotify URL"
-        help="Gotify URL"
+        help="Gotify URL (without /message)"
         placeholder="https://some.gotify.server.com"
         required={true}
       />
@@ -299,6 +329,42 @@ function FormFieldsShoutrrr() {
   );
 }
 
+function FormFieldsGenericWebhook() {
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          Settings
+        </DialogTitle>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Send a generic autobrr JSON payload to a user-defined webhook URL.
+        </p>
+      </div>
+
+      <PasswordFieldWide
+        name="webhook"
+        label="Webhook URL"
+        help="Webhook URL"
+        placeholder="https://example.com/webhook"
+        required={true}
+      />
+      <SelectFieldWide
+        name="method"
+        label="HTTP Method"
+        optionDefaultText="POST (default)"
+        options={ExternalFilterWebhookMethodOptions}
+        tooltip={<p>HTTP method for the webhook request. Defaults to POST.</p>}
+      />
+      <TextFieldWide
+        name="headers"
+        label="Custom Headers"
+        help="Comma-separated KEY=value pairs (e.g., Authorization=Bearer token,X-Custom=value)"
+        placeholder="Authorization=Bearer token,X-Custom-Header=value"
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
@@ -307,12 +373,13 @@ const componentMap: componentMapType = {
   GOTIFY: <FormFieldsGotify />,
   NTFY: <FormFieldsNtfy />,
   SHOUTRRR: <FormFieldsShoutrrr />,
-  LUNASEA: <FormFieldsLunaSea />
+  LUNASEA: <FormFieldsLunaSea />,
+  WEBHOOK: <FormFieldsGenericWebhook />
 };
 
 interface NotificationAddFormValues {
-    name: string;
-    enabled: boolean;
+  name: string;
+  enabled: boolean;
 }
 
 export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
@@ -379,7 +446,9 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                     name: "",
                     webhook: "",
                     events: [],
-                    username: ""
+                    username: "",
+                    sound: "",
+                    event_sounds: {}
                   }}
                   onSubmit={onSubmit}
                   validate={validate}
@@ -489,7 +558,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                               </p>
                             </div>
 
-                              <div className="p-4 sm:grid sm:gap-4">
+                            <div className="p-4 sm:grid sm:gap-4">
                               <EventCheckBoxes />
                             </div>
                           </div>
@@ -535,37 +604,150 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-const EventCheckBox = ({ event }: { event: typeof EventOptions[number] }) => (
+const EventCheckBox = ({ event }: { event: typeof EventOptions[number]; }) => (
   <Field name="events">
     {({ field, form }: FieldProps<string[]>) => (
-      <div className="flex items-center justify-between">
-        <span className="text-sm">
-          <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
-          {event.description && <p className="text-gray-500">{event.description}</p>}
-        </span>
-        <Checkbox
-          value={field.value.includes(event.value)}
-          setValue={(checked) => 
-            form.setFieldValue('events', 
-              checked 
-                ? [...field.value, event.value]
-                : field.value.filter(e => e !== event.value)
-            )
-          }
-        />
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm">
+            <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+            {event.description && <p className="text-gray-500">{event.description}</p>}
+          </span>
+          <Checkbox
+            value={field.value.includes(event.value)}
+            setValue={(checked) =>
+              form.setFieldValue('events',
+                checked
+                  ? [...field.value, event.value]
+                  : field.value.filter(e => e !== event.value)
+              )
+            }
+          />
+        </div>
       </div>
     )}
   </Field>
 );
 
-const EventCheckBoxes = () => (
-  <fieldset className="space-y-5">
-    <legend className="sr-only">Notifications</legend>
-    {EventOptions.map((event, idx) => (
-      <EventCheckBox key={idx} event={event} />
-    ))}
-  </fieldset>
-);
+const EventCheckBoxes = () => {
+  return (
+    <fieldset className="space-y-5">
+      <legend className="sr-only">Notifications</legend>
+      {EventOptions.map((event, idx) => (
+        <EventCheckBox 
+          key={idx} 
+          event={event} 
+        />
+      ))}
+    </fieldset>
+  );
+};
+
+const EventSoundSelector = ({event, soundOptions}: {
+  event: typeof EventOptions[number];
+  soundOptions: SoundOption[];
+}) => {
+  const {values, setFieldValue} = useFormikContext<ServiceNotification>();
+  const eventSounds = values.event_sounds || {};
+  const currentSound = eventSounds[event.value] || "";
+
+  return (
+    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <span className="text-sm">
+        <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+      </span>
+
+      <div className="sm:col-span-2">
+        <Field name={`event_sounds.${event.value}`} type="select">
+          {({field: soundField}: FieldProps) => (
+            <Select
+              {...soundField}
+              isClearable={true}
+              isSearchable={true}
+              components={{
+                Input: common.SelectInput,
+                Control: common.SelectControl,
+                Menu: common.SelectMenu,
+                Option: common.SelectOption,
+                IndicatorSeparator: common.IndicatorSeparator,
+                DropdownIndicator: common.DropdownIndicator
+              }}
+              placeholder="Default (user's default tone)"
+              styles={{
+                singleValue: (base) => ({
+                  ...base,
+                  color: "unset"
+                })
+              }}
+              theme={(theme) => ({
+                ...theme,
+                spacing: {
+                  ...theme.spacing,
+                  controlHeight: 30,
+                  baseUnit: 2
+                }
+              })}
+              value={soundOptions.find(o => o.value === currentSound) || null}
+              onChange={(option: unknown) => {
+                const opt = option as SoundOption | null;
+                const newEventSounds = {...eventSounds};
+                if (opt?.value) {
+                  newEventSounds[event.value] = opt.value;
+                } else {
+                  delete newEventSounds[event.value];
+                }
+                setFieldValue("event_sounds", newEventSounds);
+              }}
+              options={soundOptions}
+            />
+          )}
+        </Field>
+      </div>
+    </div>
+  );
+};
+
+const EventSounds = () => {
+  const { values } = useFormikContext<ServiceNotification>();
+  const apiKey = values.api_key || "";
+
+  const canFetchCustomSounds = Boolean(apiKey && apiKey !== "<redacted>");
+
+  const soundsQuery = useQuery({
+    ...PushoverSoundsQueryOptions(apiKey),
+    enabled: canFetchCustomSounds
+  });
+
+  const soundOptions: SoundOption[] = useMemo(() => {
+    const builtInKeys = new Set(PushoverSoundOptions.map(s => s.value));
+
+    const customSounds: SoundOption[] = soundsQuery.data
+      ? Object.entries(soundsQuery.data)
+          .filter(([key]) => !builtInKeys.has(key))
+          .sort(([, a], [, b]) => a.localeCompare(b))
+          .map(([key, value]) => ({ label: `${value} (custom)`, value: key }))
+      : [];
+
+    return [
+      { label: "Default (user's default tone)", value: "" },
+      ...PushoverSoundOptions,
+      ...customSounds
+    ];
+  }, [soundsQuery.data]);
+
+  return (
+    <fieldset className="">
+      <legend className="sr-only">Notifications</legend>
+      {EventOptions.map((event, idx) => (
+        <EventSoundSelector
+          key={idx}
+          event={event}
+          soundOptions={soundOptions}
+        />
+      ))}
+    </fieldset>
+  );
+};
 
 interface InitialValues {
   id: number;
@@ -578,6 +760,8 @@ interface InitialValues {
   priority?: number;
   channel?: string;
   topic?: string;
+  sound?: string;
+  event_sounds?: Record<string, string>;
   host?: string;
   events: NotificationEvent[];
   username?: string;
@@ -593,7 +777,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was updated successfully`} t={t} />);
       toggle();
     }
   });
@@ -605,7 +789,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: NotificationKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t}/>);
+      toast.custom((t) => <Toast type="success" body={`${notification.name} was deleted.`} t={t} />);
     }
   });
 
@@ -631,6 +815,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     priority: notification.priority,
     channel: notification.channel,
     topic: notification.topic,
+    sound: notification.sound,
+    event_sounds: notification.event_sounds || {},
     host: notification.host,
     events: notification.events || [],
     username: notification.username,
@@ -651,7 +837,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     >
       {(values) => (
         <div>
-          <TextFieldWide name="name" label="Name" required={true}/>
+          <TextFieldWide name="name" label="Name" required={true} />
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
@@ -704,7 +890,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                 </Field>
               </div>
             </div>
-            <SwitchGroupWide name="enabled" label="Enabled"/>
+            <SwitchGroupWide name="enabled" label="Enabled" />
             <div className="pb-2">
               <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
@@ -734,7 +920,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
             <div className="p-4 sm:grid sm:gap-4">
               {values.used_by_filters && values.used_by_filters?.length > 0
                 ? values.used_by_filters?.map(f => (
-                  <Link key={f.filter_id} to="/filters/$filterId/notifications" params={{filterId: f.filter_id}}>
+                  <Link key={f.filter_id} to="/filters/$filterId/notifications" params={{ filterId: f.filter_id }}>
                     <div key={f.filter_id} className="flex justify-between px-2 py-2 bg-gray-50 dark:bg-gray-750 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
                       <span className="font-medium text-gray-500 dark:text-gray-300">{f.filter_name}</span>
                       <div className="flex gap-2">
@@ -757,6 +943,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
           </div>
 
           {componentMap[values.type]}
+
         </div>
       )}
     </SlideOver>
@@ -767,4 +954,5 @@ const FilterEventOptions: Record<NotificationFilterEvent, string> = {
   "PUSH_APPROVED": "Push Approved",
   "PUSH_REJECTED": "Push Rejected",
   "PUSH_ERROR": "Push Error",
+  "RELEASE_NEW": "New Release",
 }

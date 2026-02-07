@@ -13,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
 )
 
@@ -270,6 +271,9 @@ func (s *Service) registerSender(notification *domain.Notification) {
 	case domain.NotificationTypeTelegram:
 		s.senders[notification.ID] = NewTelegramSender(s.log, notification)
 		break
+	case domain.NotificationTypeWebhook:
+		s.senders[notification.ID] = NewWebhookSender(s.log, notification)
+		break
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return
@@ -285,39 +289,50 @@ func (s *Service) Send(event domain.NotificationEvent, payload domain.Notificati
 		return
 	}
 
-	go func(event domain.NotificationEvent, payload domain.NotificationPayload) {
-		if payload.FilterID > 0 {
-			shouldSendGlobal := true
-			for _, sender := range s.senders {
-				if sender.HasFilterEvents(payload.FilterID) {
-					shouldSendGlobal = false
-					if sender.CanSendPayload(event, payload) {
-						s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+	// Find interested senders first to avoid spawning goroutines for no reason
+	var interestedSenders []domain.NotificationSender
 
-						if err := sender.Send(event, payload); err != nil {
-							s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
-						}
-					}
-				}
-			}
-			if !shouldSendGlobal {
-				return
-			}
-		}
-
+	if payload.FilterID > 0 {
+		hasFilterSpecific := false
 		for _, sender := range s.senders {
-			// check if the sender is active and have notification types
-			if sender.CanSendPayload(event, payload) {
-				s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
-
-				if err := sender.Send(event, payload); err != nil {
-					s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
+			if sender.HasFilterEvents(payload.FilterID) {
+				hasFilterSpecific = true
+				if sender.CanSendPayload(event, payload) {
+					interestedSenders = append(interestedSenders, sender)
 				}
 			}
 		}
-	}(event, payload)
 
-	return
+		if !hasFilterSpecific {
+			// Fall back to global if no specific filter notifications
+			for _, sender := range s.senders {
+				if sender.CanSendPayload(event, payload) {
+					interestedSenders = append(interestedSenders, sender)
+				}
+			}
+		}
+	} else {
+		for _, sender := range s.senders {
+			if sender.CanSendPayload(event, payload) {
+				interestedSenders = append(interestedSenders, sender)
+			}
+		}
+	}
+
+	if len(interestedSenders) == 0 {
+		s.log.Trace().Str("event", string(event)).Msg("no interested notification senders for event")
+		return
+	}
+
+	go func(interested []domain.NotificationSender, event domain.NotificationEvent, payload domain.NotificationPayload) {
+		for _, sender := range interested {
+			s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+
+			if err := sender.Send(event, payload); err != nil {
+				s.log.Error().Err(err).Msgf("could not send %s notification for %v", sender.Name(), string(event))
+			}
+		}
+	}(interestedSenders, event, payload)
 }
 
 func (s *Service) Test(ctx context.Context, notification *domain.Notification) error {
@@ -364,6 +379,21 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Protocol:       domain.ReleaseProtocolTorrent,
 			Implementation: domain.ReleaseImplementationIRC,
 			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				Type:        rls.Episode,
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
 		},
 		{
 			Subject:        "New release!",
@@ -380,6 +410,20 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Protocol:       domain.ReleaseProtocolTorrent,
 			Implementation: domain.ReleaseImplementationIRC,
 			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
 		},
 		{
 			Subject:        "New release!",
@@ -396,6 +440,20 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Protocol:       domain.ReleaseProtocolTorrent,
 			Implementation: domain.ReleaseImplementationIRC,
 			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
 		},
 		{
 			Subject:   "IRC Disconnected unexpectedly",
@@ -414,6 +472,31 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Message:   "v1.6.0",
 			Event:     domain.NotificationEventAppUpdateAvailable,
 			Timestamp: time.Now(),
+		},
+		{
+			Subject:        "New release received!",
+			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+			Event:          domain.NotificationEventReleaseNew,
+			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+			Filter:         "TV",
+			Indexer:        "MockIndexer",
+			Protocol:       domain.ReleaseProtocolTorrent,
+			Implementation: domain.ReleaseImplementationIRC,
+			Timestamp:      time.Now(),
+			Release: &domain.Release{
+				TorrentName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+				Title:       "Best Show Ever",
+				Season:      18,
+				Episode:     21,
+				Year:        2026,
+				Resolution:  "1080p",
+				Source:      "WEB-DL",
+				Codec:       []string{"H.264"},
+				Container:   "mkv",
+				Audio:       []string{"DDP2.0"},
+				Group:       "GROUP",
+				Size:        1500000000,
+			},
 		},
 	}
 
@@ -434,6 +517,8 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		agent = NewShoutrrrSender(s.log, notification)
 	case domain.NotificationTypeTelegram:
 		agent = NewTelegramSender(s.log, notification)
+	case domain.NotificationTypeWebhook:
+		agent = NewWebhookSender(s.log, notification)
 	default:
 		s.log.Error().Msgf("unsupported notification type: %v", notification.Type)
 		return errors.New("unsupported notification type")

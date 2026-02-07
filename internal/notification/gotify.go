@@ -4,7 +4,6 @@
 package notification
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -57,7 +56,13 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 	data.Set("message", m.Message)
 	data.Set("title", m.Title)
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%v/message?token=%v", s.Settings.Host, s.Settings.Token), strings.NewReader(data.Encode()))
+	urlPath, err := url.JoinPath(s.Settings.Host, "message")
+	if err != nil {
+		return err
+	}
+	urlPath += "?token=" + url.QueryEscape(s.Settings.Token)
+
+	req, err := http.NewRequest(http.MethodPost, urlPath, strings.NewReader(data.Encode()))
 	if err != nil {
 		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}

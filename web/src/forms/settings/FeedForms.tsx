@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFormikContext } from "formik";
 
@@ -14,11 +14,11 @@ import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
-import { componentMapType } from "./DownloadClientForms";
 import { sleep } from "@utils";
 import { ImplementationBadges } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
+import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 
 interface InitialValues {
   id: number;
@@ -32,6 +32,8 @@ interface InitialValues {
   interval: number;
   timeout: number;
   max_age: number;
+  categories: number[];
+  capabilities: FeedCaps | null;
   settings: FeedSettings;
 }
 
@@ -110,6 +112,8 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     interval: feed.interval,
     timeout: feed.timeout,
     max_age: feed.max_age,
+    categories: feed.categories || [],
+    capabilities: feed.capabilities || null,
     settings: feed.settings
   };
 
@@ -151,7 +155,9 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
               <SwitchGroupWide name="enabled" label="Enabled" />
             </div>
           </div>
-          {componentMap[values.type]}
+          {values.type === "TORZNAB" && <FormFieldsTorznab feedID={feed.id} />}
+          {values.type === "NEWZNAB" && <FormFieldsNewznab feedID={feed.id} />}
+          {values.type === "RSS" && <FormFieldsRSS />}
         </div>
       )}
     </SlideOver>
@@ -173,7 +179,7 @@ function WarningLabel() {
   );
 }
 
-function FormFieldsTorznab() {
+function FormFieldsTorznab({ feedID }: { feedID: number }) {
   const {
     values: { interval }
   } = useFormikContext<InitialValues>();
@@ -183,7 +189,17 @@ function FormFieldsTorznab() {
       <TextFieldWide
         name="url"
         label="URL"
-        help="Torznab url"
+        help="Torznab url. Just URL without extra params."
+        tooltip={
+          <div>
+            <p>Prowlarr and Jackett have different formats:</p>
+            <br/>
+            <ul>
+              <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+              <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
+            </ul>
+          </div>
+        }
       />
 
       <SelectFieldBasic name="settings.download_type" label="Download type" options={FeedDownloadTypeOptions} />
@@ -195,11 +211,13 @@ function FormFieldsTorznab() {
 
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
       <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+
+      <FeedCategoriesSection feedID={feedID} />
     </div>
   );
 }
 
-function FormFieldsNewznab() {
+function FormFieldsNewznab({ feedID }: { feedID: number }) {
   const {
     values: { interval }
   } = useFormikContext<InitialValues>();
@@ -209,7 +227,17 @@ function FormFieldsNewznab() {
       <TextFieldWide
         name="url"
         label="URL"
-        help="Newznab url"
+        help="Newznab url. Just URL without extra params."
+        tooltip={
+          <div>
+            <p>Prowlarr and Jackett have different formats:</p>
+            <br/>
+            <ul>
+              <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+              <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
+            </ul>
+          </div>
+        }
       />
 
       <PasswordFieldWide name="api_key" label="API key" />
@@ -219,6 +247,8 @@ function FormFieldsNewznab() {
 
       <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
       <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+
+      <FeedCategoriesSection feedID={feedID} />
     </div>
   );
 }
@@ -248,8 +278,132 @@ function FormFieldsRSS() {
   );
 }
 
-const componentMap: componentMapType = {
-  TORZNAB: <FormFieldsTorznab />,
-  NEWZNAB: <FormFieldsNewznab />,
-  RSS: <FormFieldsRSS />
-};
+function FeedCategoriesSection({ feedID }: { feedID: number }) {
+  const { values, setFieldValue } = useFormikContext<InitialValues>();
+  const capsPayload = useMemo(() => parseCapabilitiesPayload(values.capabilities), [values.capabilities]);
+  const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
+  const hasCaps = Boolean(values.capabilities);
+
+  const fetchCapsMutation = useMutation({
+    mutationFn: () => APIClient.feeds.fetchCaps(feedID),
+    onSuccess: (caps) => {
+      const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
+      const selected = values.categories ?? [];
+
+      setFieldValue("capabilities", caps ?? null);
+      setFieldValue(
+        "categories",
+        selected.filter((id) => nextCategories.includes(id))
+      );
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to fetch categories";
+      toast.custom((t) => <Toast type="error" body={message} t={t} />);
+    }
+  });
+
+  const toggleCategory = (id: number) => {
+    const selected = values.categories ?? [];
+    if (selected.includes(id)) {
+      setFieldValue(
+        "categories",
+        selected.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue("categories", [...selected, id]);
+  };
+
+  const toggleParentCategory = (id: number, childIds: number[]) => {
+    const selected = values.categories ?? [];
+    if (selected.includes(id)) {
+      setFieldValue(
+        "categories",
+        selected.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue(
+      "categories",
+      [...selected.filter((category) => !childIds.includes(category)), id]
+    );
+  };
+
+  return (
+    <div className="mt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="pt-4 px-4 flex items-center justify-between">
+        <div>
+          <div className="text-lg font-medium text-gray-900 dark:text-white">Categories</div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Fetch available categories and select what to include.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          onClick={() => fetchCapsMutation.mutate()}
+          disabled={fetchCapsMutation.isPending}
+        >
+          {fetchCapsMutation.isPending ? "Fetching" : hasCaps ? "Refetch" : "Fetch"}
+        </button>
+      </div>
+
+      {categoriesTree.length ? (
+        <div className="px-4 pt-4 pb-2 space-y-3 overflow-y-auto">
+          {categoriesTree.map((category) => {
+            const childIds = category.subcategories.map((sub) => sub.id);
+            const isParentSelected = (values.categories ?? []).includes(category.id);
+
+            return (
+              <div key={category.id} className="space-y-2">
+                <label
+                  className="flex items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-200"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={(values.categories ?? []).includes(category.id)}
+                      onChange={() => toggleParentCategory(category.id, childIds)}
+                      onClick={(event) => event.stopPropagation()}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span className="font-medium truncate">{category.name}</span>
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{category.id}</span>
+                </label>
+
+                {category.subcategories.map((subCategory) => (
+                  <label
+                    key={subCategory.id}
+                    className="flex items-center justify-between gap-3 pl-6 text-sm text-gray-700 dark:text-gray-200"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={(values.categories ?? []).includes(subCategory.id)}
+                        onChange={() => toggleCategory(subCategory.id)}
+                        onClick={(event) => event.stopPropagation()}
+                        disabled={isParentSelected}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800"
+                      />
+                      <span className="truncate">{subCategory.name}</span>
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{subCategory.id}</span>
+                  </label>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="px-4 pt-3 pb-2 text-sm text-gray-500 dark:text-gray-400">
+          {hasCaps ? "No categories found." : "Fetch categories to select."}
+        </div>
+      )}
+    </div>
+  );
+}

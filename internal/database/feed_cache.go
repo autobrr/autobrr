@@ -314,3 +314,28 @@ func (r *FeedCacheRepo) DeleteStale(ctx context.Context) error {
 
 	return nil
 }
+
+func (r *FeedCacheRepo) DeleteOrphaned(ctx context.Context) error {
+	queryBuilder := sq.
+		Delete("feed_cache").
+		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM feed WHERE feed.id = feed_cache.feed_id)"))
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error exec result")
+	}
+
+	r.log.Debug().Int64("items", rows).Msg("deleted rows from orphaned feed cache")
+
+	return nil
+}

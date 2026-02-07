@@ -126,6 +126,37 @@ export function humanFileSize(sizeBytes: number | bigint): string {
   }).format(size)
 }
 
+/**
+ * Format hours as human-readable duration.
+ * Converts hours to the largest unit that divides evenly (years, months, weeks, days, hours).
+ *
+ * @param hours Number of hours.
+ *
+ * @return Formatted string (e.g., "1 day", "2 weeks", "1 year").
+ */
+export function formatHoursAsDuration(hours: number): string {
+  if (hours === 0) return "0 hours";
+
+  // Try to find the largest unit that divides evenly
+  if (hours % 8760 === 0) {
+    const years = hours / 8760;
+    return `${years} ${years === 1 ? "year" : "years"}`;
+  }
+  if (hours % 720 === 0) {
+    const months = hours / 720;
+    return `${months} ${months === 1 ? "month" : "months"}`;
+  }
+  if (hours % 168 === 0) {
+    const weeks = hours / 168;
+    return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+  }
+  if (hours % 24 === 0) {
+    const days = hours / 24;
+    return `${days} ${days === 1 ? "day" : "days"}`;
+  }
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+}
+
 export const RandomLinuxIsos = (count: number) => {
   const linuxIsos = [
     "debian-live-12.10.0-amd64-kde.iso",
@@ -219,3 +250,8 @@ export async function CopyTextToClipboard(text: string) {
   }
   document.body.removeChild(textarea);
  }
+
+
+export const IsErrorWithMessage = (error: unknown): error is { message: string } => {
+  return typeof error === 'object' && error !== null && 'message' in error;
+};

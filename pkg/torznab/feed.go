@@ -26,6 +26,12 @@ type Channel struct {
 	Items []*FeedItem `xml:"item"`
 }
 
+type SearchResponse struct {
+	Title string      `xml:"title"`
+	Items []*FeedItem `xml:"item"`
+	Raw   string
+}
+
 type Response struct {
 	Channel struct {
 		Items []*FeedItem `xml:"item"`

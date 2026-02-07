@@ -37,6 +37,8 @@ type Service interface {
 	GetLastRunData(ctx context.Context, id int) (string, error)
 	DeleteFeedCacheStale(ctx context.Context) error
 	ForceRun(ctx context.Context, id int) error
+	FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.FeedCapabilities, error)
+	FetchCapsByID(ctx context.Context, id int) (*domain.FeedCapabilities, error)
 
 	Start() error
 }
@@ -199,6 +201,11 @@ func (s *service) delete(ctx context.Context, id int) error {
 	if err := s.repo.Delete(ctx, f.ID); err != nil {
 		s.log.Error().Err(err).Msgf("error deleting feed: %s", f.Name)
 		return err
+	}
+
+	// if foreign keys are not enforced in SQLite clear feed cache explicitly
+	if err := s.cacheRepo.DeleteByFeed(ctx, id); err != nil {
+		s.log.Error().Err(err).Msgf("error deleting feed cache: %s", f.Name)
 	}
 
 	return nil
@@ -652,4 +659,91 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 	}
 
 	return nil
+}
+
+func (s *service) FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.FeedCapabilities, error) {
+	if feed == nil {
+		return nil, errors.New("feed is required")
+	}
+
+	if feed.URL == "" {
+		return nil, errors.New("feed URL is required")
+	}
+
+	if feed.Timeout == 0 {
+		feed.Timeout = 60
+	}
+
+	if feed.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			feed.Proxy = proxyConf
+		}
+	}
+
+	switch feed.Type {
+	case string(domain.FeedTypeTorznab):
+		client := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second})
+
+		if feed.UseProxy && feed.Proxy != nil {
+			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not get proxy client")
+			}
+			client.WithHTTPClient(proxyClient)
+		}
+
+		caps, err := client.FetchCaps(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		unifiedCaps := domain.NewFeedCapabilitiesFromTorznab(caps)
+
+		return unifiedCaps, nil
+
+	case string(domain.FeedTypeNewznab):
+		client := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second})
+
+		if feed.UseProxy && feed.Proxy != nil {
+			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not get proxy client")
+			}
+			client.WithHTTPClient(proxyClient)
+		}
+
+		caps, err := client.GetCaps(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		unifiedCaps := domain.NewFeedCapabilitiesFromNewznab(caps)
+
+		return unifiedCaps, nil
+	default:
+		return nil, errors.New("unsupported feed type: %s", feed.Type)
+	}
+}
+
+func (s *service) FetchCapsByID(ctx context.Context, id int) (*domain.FeedCapabilities, error) {
+	feed, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	caps, err := s.FetchCaps(ctx, feed)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.UpdateCapabilities(ctx, feed.ID, caps); err != nil {
+		return nil, err
+	}
+
+	return caps, nil
 }
