@@ -240,7 +240,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	if params.Filters.Indexers != nil {
-		filter := sq.And{}
+		filter := sq.Or{}
 		for _, v := range params.Filters.Indexers {
 			filter = append(filter, sq.Eq{"r.indexer": v})
 		}
