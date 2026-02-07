@@ -5,8 +5,12 @@ package feed
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
+	"os"
+	"runtime"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -60,6 +64,43 @@ func (c *RSSParser) WithHTTPClient(client *http.Client) {
 }
 
 func (c *RSSParser) ParseURLWithContext(ctx context.Context, feedURL string) (feed *gofeed.Feed, err error) {
+	parsedURL, err := url.Parse(feedURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse feed URL: %w", err)
+	}
+
+	switch parsedURL.Scheme {
+	case "file":
+		return c.parseFile(parsedURL)
+	case "http", "https":
+		return c.parseHTTP(ctx, feedURL)
+	default:
+		return nil, fmt.Errorf("unsupported URL scheme: %q", parsedURL.Scheme)
+	}
+}
+
+func (c *RSSParser) parseFile(parsedURL *url.URL) (*gofeed.Feed, error) {
+	filePath := parsedURL.Path
+
+	if runtime.GOOS == "windows" {
+		// On Windows, remove leading slash from path if needed
+		if len(filePath) > 0 && filePath[0] == '/' && len(parsedURL.Host) > 0 {
+			filePath = parsedURL.Host + filePath
+		} else if len(filePath) > 0 && filePath[0] == '/' {
+			filePath = filePath[1:]
+		}
+	}
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %q: %w", filePath, err)
+	}
+	defer f.Close()
+
+	return c.parser.Parse(f)
+}
+
+func (c *RSSParser) parseHTTP(ctx context.Context, feedURL string) (feed *gofeed.Feed, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
 	if err != nil {
 		return nil, err
