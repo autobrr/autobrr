@@ -5,7 +5,9 @@ package feed
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/xml"
+	"net/http"
 	"net/url"
 	"regexp"
 	"slices"
@@ -253,12 +255,18 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	ctx, cancel := context.WithTimeout(ctx, j.Timeout)
 	defer cancel()
 
-	feedParser := NewFeedParser(j.Timeout, j.Feed.Cookie)
+	feedParser := NewFeedParser(j.Timeout, j.Feed.Cookie, j.Feed.TLSSkipVerify)
 
 	if j.Feed.UseProxy && j.Feed.Proxy != nil {
 		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get proxy client")
+		}
+
+		if j.Feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
 		}
 
 		feedParser.WithHTTPClient(proxyClient)

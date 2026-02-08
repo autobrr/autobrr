@@ -5,6 +5,7 @@ package feed
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"slices"
 	"strconv"
@@ -151,6 +152,12 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get proxy client")
+		}
+
+		if j.Feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
 		}
 
 		j.Client.WithHTTPClient(proxyClient)

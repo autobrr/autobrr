@@ -5,8 +5,10 @@ package feed
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -296,13 +298,19 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie)
+	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie, feed.TLSSkipVerify)
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {
 		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
 		if err != nil {
 			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		if feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
 		}
 
 		feedParser.WithHTTPClient(proxyClient)
@@ -323,13 +331,19 @@ func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
 
 func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
 	// setup torznab Client
-	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {
 		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
 		if err != nil {
 			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		if feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
 		}
 
 		c.WithHTTPClient(proxyClient)
@@ -350,13 +364,19 @@ func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 
 func (s *service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
 	// setup newznab Client
-	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {
 		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
 		if err != nil {
 			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		if feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
 		}
 
 		c.WithHTTPClient(proxyClient)
@@ -547,7 +567,7 @@ func (s *service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
 	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// setup torznab Client
-	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
+	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
 
 	// create job
 	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
@@ -566,7 +586,7 @@ func (s *service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
 	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// setup newznab Client
-	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
+	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
 
 	// create job
 	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
@@ -687,13 +707,20 @@ func (s *service) FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.Fee
 
 	switch feed.Type {
 	case string(domain.FeedTypeTorznab):
-		client := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second})
+		client := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify})
 
 		if feed.UseProxy && feed.Proxy != nil {
 			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not get proxy client")
 			}
+
+			if feed.TLSSkipVerify {
+				if t, ok := proxyClient.Transport.(*http.Transport); ok {
+					t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				}
+			}
+
 			client.WithHTTPClient(proxyClient)
 		}
 
@@ -707,13 +734,20 @@ func (s *service) FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.Fee
 		return unifiedCaps, nil
 
 	case string(domain.FeedTypeNewznab):
-		client := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second})
+		client := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify})
 
 		if feed.UseProxy && feed.Proxy != nil {
 			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not get proxy client")
 			}
+
+			if feed.TLSSkipVerify {
+				if t, ok := proxyClient.Transport.(*http.Transport); ok {
+					t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				}
+			}
+
 			client.WithHTTPClient(proxyClient)
 		}
 

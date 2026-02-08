@@ -5,6 +5,7 @@ package feed
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"math"
 	"net/http"
@@ -236,6 +237,12 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get proxy client")
+		}
+
+		if j.Feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
 		}
 
 		j.Client.WithHTTPClient(proxyClient)
