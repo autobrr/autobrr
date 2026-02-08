@@ -112,7 +112,7 @@ function FormFieldsDeluge() {
 
 function FormFieldsArr() {
   const {
-    values: { settings }
+    values: { tls, settings }
   } = useFormikContext<InitialValues>();
 
   return (
@@ -133,6 +133,15 @@ function FormFieldsArr() {
           </div>
         }
       />
+
+      <SwitchGroupWide name="tls" label="TLS" />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label="Skip TLS verification (insecure)"
+        />
+      )}
 
       <PasswordFieldWide required name="settings.apikey" label="API key" />
 

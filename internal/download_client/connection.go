@@ -240,12 +240,13 @@ func (s *service) testTransmissionConnection(ctx context.Context, client domain.
 
 func (s *service) testRadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := radarr.New(radarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -259,12 +260,13 @@ func (s *service) testRadarrConnection(ctx context.Context, client domain.Downlo
 
 func (s *service) testSonarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := sonarr.New(sonarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -278,12 +280,13 @@ func (s *service) testSonarrConnection(ctx context.Context, client domain.Downlo
 
 func (s *service) testLidarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := lidarr.New(lidarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -297,12 +300,13 @@ func (s *service) testLidarrConnection(ctx context.Context, client domain.Downlo
 
 func (s *service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := whisparr.New(whisparr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -316,12 +320,13 @@ func (s *service) testWhisparrConnection(ctx context.Context, client domain.Down
 
 func (s *service) testReadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := readarr.New(readarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
