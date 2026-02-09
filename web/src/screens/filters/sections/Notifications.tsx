@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useRef } from "react";
-import { useFormikContext, FieldArray, FieldArrayRenderProps } from "formik";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChevronRightIcon, InformationCircleIcon } from "@heroicons/react/24/solid";
 import { BellIcon } from "@heroicons/react/24/outline";
@@ -15,10 +14,12 @@ import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
-import { Select } from "@components/inputs";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { FilterSection, FilterLayout, FilterPage } from "./_components";
+
+import { useFormContext, useStore, ContextField } from "@app/lib/form";
+import { Select } from "@components/inputs/tanstack";
 
 const EVENT_OPTIONS = [
   { label: "Push Approved", value: "PUSH_APPROVED" },
@@ -39,7 +40,9 @@ const NOTIFICATION_TYPE_MAP: Record<string, string> = {
 };
 
 export function Notifications() {
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const notifications = useStore(form.store, (s: any) => s.values.notifications) as FilterNotification[];
 
   // Fetch all available notifications
   const { data: availableNotifications = [] } = useSuspenseQuery({
@@ -51,9 +54,9 @@ export function Notifications() {
   // Create a new notification object
   const createNewNotification = (): FilterNotification => {
     const firstAvailable = availableNotifications.find(
-      n => !values.notifications?.some(sn => sn.notification_id === n.id)
+      n => !notifications?.some(sn => sn.notification_id === n.id)
     );
-    
+
     return {
       notification_id: firstAvailable?.id || 0,
       notification: firstAvailable,
@@ -61,56 +64,58 @@ export function Notifications() {
     };
   };
 
+  const pushNotification = () => {
+    (form as any).pushFieldValue("notifications", createNewNotification());
+  };
+
+  const removeNotification = (index: number) => {
+    (form as any).removeFieldValue("notifications", index);
+  };
+
+  const availableToAdd = availableNotifications.filter(
+    n => !notifications?.some((sn: FilterNotification) => sn.notification_id === n.id)
+  );
+
   return (
     <div className="mt-5">
-      <FieldArray name="notifications">
-        {({ remove, push }: FieldArrayRenderProps) => {
-          const availableToAdd = availableNotifications.filter(
-            n => !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id)
-          );
+      <>
+        <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
+          <TitleSubtitle
+            className="ml-4 mt-4"
+            title="Filter Notifications"
+            subtitle="Configure which notifications should be sent for this filter. These override global notification settings."
+          />
+          <div className="ml-4 mt-4 shrink-0">
+            {availableToAdd.length > 0 && (
+              <button
+                type="button"
+                className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                onClick={pushNotification}
+              >
+                <BellIcon className="w-5 h-5 mr-1" aria-hidden="true" />
+                Add notification
+              </button>
+            )}
+          </div>
+        </div>
 
-          return (
-            <>
-              <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-                <TitleSubtitle
-                  className="ml-4 mt-4"
-                  title="Filter Notifications"
-                  subtitle="Configure which notifications should be sent for this filter. These override global notification settings."
-                />
-                <div className="ml-4 mt-4 shrink-0">
-                  {availableToAdd.length > 0 && (
-                    <button
-                      type="button"
-                      className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                      onClick={() => push(createNewNotification())}
-                    >
-                      <BellIcon className="w-5 h-5 mr-1" aria-hidden="true" />
-                      Add notification
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {values.notifications && values.notifications.length > 0 ? (
-                <ul className="rounded-md">
-                  {values.notifications.map((notification: FilterNotification, index: number) => (
-                    <NotificationItem
-                      key={index}
-                      notification={notification}
-                      availableNotifications={availableNotifications}
-                      idx={index}
-                      remove={remove}
-                      initialEdit={values.notifications!.length === 1}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyListState text="No filter-specific notifications configured. Global notifications will be used." />
-              )}
-            </>
-          );
-        }}
-      </FieldArray>
+        {notifications && notifications.length > 0 ? (
+          <ul className="rounded-md">
+            {notifications.map((notification: FilterNotification, index: number) => (
+              <NotificationItem
+                key={index}
+                notification={notification}
+                availableNotifications={availableNotifications}
+                idx={index}
+                remove={removeNotification}
+                initialEdit={notifications.length === 1}
+              />
+            ))}
+          </ul>
+        ) : (
+          <EmptyListState text="No filter-specific notifications configured. Global notifications will be used." />
+        )}
+      </>
     </div>
   );
 }
@@ -120,45 +125,47 @@ interface NotificationItemProps {
   availableNotifications: ServiceNotification[];
   idx: number;
   initialEdit: boolean;
-  remove: <T>(index: number) => T | undefined;
+  remove: (index: number) => void;
 }
 
 function NotificationItem({ notification, availableNotifications, idx, initialEdit, remove }: NotificationItemProps) {
-  const { values, setFieldValue } = useFormikContext<Filter>();
+  const form = useFormContext();
   const cancelButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
+
+  const notifications = useStore(form.store, (s: any) => s.values.notifications) as FilterNotification[];
+  const currentNotificationId = notifications?.[idx]?.notification_id;
+  const currentEvents = notifications?.[idx]?.events || [];
 
   const removeNotification = () => {
     remove(idx);
   };
 
   const handleEventToggle = (event: string, checked: boolean) => {
-    const currentEvents = values.notifications?.[idx]?.events || [];
     const newEvents = checked
       ? [...currentEvents, event]
       : currentEvents.filter((e: string) => e !== event);
-    setFieldValue(`notifications.${idx}.events`, newEvents);
+    (form as any).setFieldValue(`notifications[${idx}].events`, newEvents);
   };
 
   // Update notification object when ID changes
-  const currentNotificationId = values.notifications?.[idx]?.notification_id;
   useEffect(() => {
     if (currentNotificationId) {
       const notif = availableNotifications.find(n => n.id === currentNotificationId);
       if (notif) {
-        setFieldValue(`notifications.${idx}.notification`, notif);
+        (form as any).setFieldValue(`notifications[${idx}].notification`, notif);
       }
     }
-  }, [currentNotificationId, availableNotifications, idx, setFieldValue, values.notifications]);
+  }, [currentNotificationId, availableNotifications, idx, form]);
 
   const selectedNotification = availableNotifications.find(
     n => n.id === notification.notification_id
   );
 
   const availableOptions = availableNotifications
-    .filter(n => n.id === notification.notification_id || 
-      !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id))
+    .filter(n => n.id === notification.notification_id ||
+      !notifications?.some((sn: FilterNotification) => sn.notification_id === n.id))
     .map(n => ({ label: `${n.name} (${NOTIFICATION_TYPE_MAP[n.type] || n.type})`, value: n.id }));
 
   return (
@@ -212,20 +219,21 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
             >
               <FilterLayout>
                 <div className="col-span-12">
-                  <Select
-                    name={`notifications.${idx}.notification_id`}
-                    label="Notification service"
-                    optionDefaultText="Select a notification"
-                    options={availableOptions}
-                    tooltip={<div><p>Select the notification service to use for this filter.</p></div>}
-                  />
+                  <ContextField name={`notifications[${idx}].notification_id`}>
+                    <Select
+                      label="Notification service"
+                      optionDefaultText="Select a notification"
+                      options={availableOptions}
+                      tooltip={<div><p>Select the notification service to use for this filter.</p></div>}
+                    />
+                  </ContextField>
                 </div>
 
                 <div className="col-span-12">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
                     Notification Settings
                   </label>
-                  
+
                   {/* Mute Switch */}
                   <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                     <Checkbox
@@ -233,16 +241,16 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                       setValue={(muted) => {
                         if (muted) {
                           // Clear all events to mute
-                          setFieldValue(`notifications.${idx}.events`, []);
+                          (form as any).setFieldValue(`notifications[${idx}].events`, []);
                         } else {
                           // Enable Push Approved by default when unmuting
-                          setFieldValue(`notifications.${idx}.events`, ["PUSH_APPROVED"]);
+                          (form as any).setFieldValue(`notifications[${idx}].events`, ["PUSH_APPROVED"]);
                         }
                       }}
                       label="Mute filter"
                       description="Disable all notifications for this filter. When muted, no notifications will be sent for releases matched by this filter."
                     />
-                    
+
                     {notification.events?.length === 0 && (
                       <div className="mt-3 flex items-start">
                         <InformationCircleIcon className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />

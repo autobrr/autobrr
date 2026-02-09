@@ -15,7 +15,7 @@ import Toast from "@components/notifications/Toast";
 import { LogLevelOptions, SelectOption } from "@domain/constants";
 
 import { Section, RowItem } from "./_components";
-import * as common from "@components/inputs/common";
+import * as common from "@components/inputs/tanstack/common";
 import { LogFiles } from "@screens/Logs";
 
 type SelectWrapperProps = {

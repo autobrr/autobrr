@@ -34,6 +34,7 @@
     "@tanstack/react-query-devtools": "^5.29.2",
     "@tanstack/react-router": "^1.157.18",
     "@tanstack/react-router-devtools": "^1.157.18",
+    "@tanstack/react-store": "^0.8.0",
     "@tanstack/react-table": "^8.21.3",
     "@types/node": "^25.1.0",
     "@types/react": "^19.2.10",
@@ -44,7 +45,6 @@
     "autoprefixer": "^10.4.24",
     "buffer": "^6.0.3",
     "date-fns": "^4.1.0",
-    "formik": "^2.4.9",
     "goober": "^2.1.18",
     "http-proxy-middleware": "^3.0.5",
     "react": "^19.2.4",
@@ -59,8 +59,7 @@
     "tailwind-lerp-colors": "1.2.6",
     "tailwindcss": "^4.1.18",
     "workbox-window": "^7.4.0",
-    "zod": "^4.3.6",
-    "zod-formik-adapter": "^2.0.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@microsoft/eslint-formatter-sarif": "^3.1.0",

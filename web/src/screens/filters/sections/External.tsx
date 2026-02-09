@@ -6,13 +6,10 @@
 import { useRef } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import { ArrowDownIcon, ArrowUpIcon, SquaresPlusIcon } from "@heroicons/react/24/outline";
-import { Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext } from "formik";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
-import { TextAreaAutoResize } from "@components/inputs/input";
 import { EmptyListState } from "@components/emptystates";
-import { NumberField, Select, TextField } from "@components/inputs";
 import {
   ExternalFilterOnErrorOptions,
   ExternalFilterTypeNameMap,
@@ -20,6 +17,8 @@ import {
   ExternalFilterWebhookMethodOptions
 } from "@domain/constants";
 
+import { useFormContext, useStore, ContextField } from "@app/lib/form";
+import { NumberField, Select, TextField, TextAreaAutoResize } from "@components/inputs/tanstack";
 import { DeleteModal } from "@components/modals";
 import { DocsLink } from "@components/ExternalLink";
 import { Checkbox } from "@components/Checkbox";
@@ -27,62 +26,73 @@ import { TitleSubtitle } from "@components/headings";
 import { FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
 
 export function External() {
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const external = useStore(form.store, (s: any) => s.values.external) as ExternalFilter[];
 
   const newItem: ExternalFilter = {
-    id: values.external.length + 1,
-    index: values.external.length,
-    name: `External ${values.external.length + 1}`,
+    id: external.length + 1,
+    index: external.length,
+    name: `External ${external.length + 1}`,
     enabled: false,
     type: "EXEC",
     on_error: "REJECT",
   };
 
+  const pushItem = () => {
+    (form as any).pushFieldValue("external", newItem);
+  };
+
+  const removeItem = (index: number) => {
+    (form as any).removeFieldValue("external", index);
+  };
+
+  const moveItem = (from: number, to: number) => {
+    (form as any).swapFieldValues("external", from, to);
+  };
+
   return (
     <div className="mt-5">
-      <FieldArray name="external">
-        {({ remove, push, move }: FieldArrayRenderProps) => (
-          <>
-            <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-              <TitleSubtitle
-                className="ml-4 mt-4"
-                title="External filters"
-                subtitle="Run external scripts or webhooks and check status as part of filtering."
+      <>
+        <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
+          <TitleSubtitle
+            className="ml-4 mt-4"
+            title="External filters"
+            subtitle="Run external scripts or webhooks and check status as part of filtering."
+          />
+          <div className="ml-4 mt-4 shrink-0">
+            <button
+              type="button"
+              className="relative inline-flex items-center px-4 py-2 transition border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              onClick={pushItem}
+            >
+              <SquaresPlusIcon
+                className="w-5 h-5 mr-1"
+                aria-hidden="true"
               />
-              <div className="ml-4 mt-4 shrink-0">
-                <button
-                  type="button"
-                  className="relative inline-flex items-center px-4 py-2 transition border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => push(newItem)}
-                >
-                  <SquaresPlusIcon
-                    className="w-5 h-5 mr-1"
-                    aria-hidden="true"
-                  />
-                  Add new
-                </button>
-              </div>
-            </div>
+              Add new
+            </button>
+          </div>
+        </div>
 
-            {values.external.length > 0 ? (
-              <ul className="rounded-md">
-                {values.external.map((external, index: number) => (
-                  <FilterExternalItem
-                    key={external.id}
-                    initialEdit
-                    external={external}
-                    idx={index}
-                    remove={remove}
-                    move={move}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <EmptyListState text="No external filters yet!" />
-            )}
-          </>
+        {external.length > 0 ? (
+          <ul className="rounded-md">
+            {external.map((ext, index: number) => (
+              <FilterExternalItem
+                key={ext.id}
+                initialEdit
+                external={ext}
+                idx={index}
+                totalCount={external.length}
+                remove={removeItem}
+                move={moveItem}
+              />
+            ))}
+          </ul>
+        ) : (
+          <EmptyListState text="No external filters yet!" />
         )}
-      </FieldArray>
+      </>
     </div>
   );
 }
@@ -90,17 +100,20 @@ export function External() {
 interface FilterExternalItemProps {
   external: ExternalFilter;
   idx: number;
+  totalCount: number;
   initialEdit: boolean;
-  remove: <T>(index: number) => T | undefined;
+  remove: (index: number) => void;
   move: (from: number, to: number) => void;
 }
 
-function FilterExternalItem({ idx, external, initialEdit, remove, move }: FilterExternalItemProps) {
-  const { values, setFieldValue } = useFormikContext<Filter>();
+function FilterExternalItem({ idx, external, totalCount, initialEdit, remove, move }: FilterExternalItemProps) {
+  const form = useFormContext();
   const cancelButtonRef = useRef(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
+
+  const externalEnabled = useStore(form.store, (s: any) => s.values.external?.[idx]?.enabled);
 
   const removeAction = () => {
     remove(idx);
@@ -108,12 +121,12 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
 
   const moveUp = () => {
     move(idx, idx - 1);
-    setFieldValue(`external.${idx}.index`, idx - 1);
+    (form as any).setFieldValue(`external[${idx}].index`, idx - 1);
   };
 
   const moveDown = () => {
     move(idx, idx + 1);
-    setFieldValue(`external.${idx}.index`, idx + 1);
+    (form as any).setFieldValue(`external[${idx}].index`, idx + 1);
   };
 
   return (
@@ -126,7 +139,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
           "flex items-center transition px-2 sm:px-6 rounded-md my-1 border border-gray-150 dark:border-gray-750 hover:bg-gray-200 dark:hover:bg-gray-850"
         )}
       >
-        {((idx > 0) || (idx < values.external.length - 1)) ? (
+        {((idx > 0) || (idx < totalCount - 1)) ? (
           <div className="flex flex-col pr-3 justify-between">
             {idx > 0 && (
               <button type="button" className="cursor-pointer" onClick={moveUp}>
@@ -137,7 +150,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
               </button>
             )}
 
-            {idx < values.external.length - 1 && (
+            {idx < totalCount - 1 && (
               <button type="button" className="cursor-pointer" onClick={moveDown}>
                 <ArrowDownIcon
                   className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"
@@ -148,20 +161,12 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
           </div>
         ) : null}
 
-        <Field name={`external.${idx}.enabled`} type="checkbox">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
-            <Checkbox
-              {...field}
-              value={!!field.checked}
-              setValue={(value: boolean) => {
-                setFieldValue(field.name, value);
-              }}
-            />
-          )}
-        </Field>
+        <Checkbox
+          value={!!externalEnabled}
+          setValue={(value: boolean) => {
+            (form as any).setFieldValue(`external[${idx}].enabled`, value);
+          }}
+        />
 
         <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center cursor-pointer" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
@@ -204,28 +209,31 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
               subtitle="Define the type of your filter and its name"
             >
               <FilterLayout>
-                <Select
-                  name={`external.${idx}.type`}
-                  label="Type"
-                  optionDefaultText="Select type"
-                  options={ExternalFilterTypeOptions}
-                  tooltip={<div><p>Select the type for this external filter.</p></div>}
-                  columns={4}
-                />
+                <ContextField name={`external[${idx}].type`}>
+                  <Select
+                    label="Type"
+                    optionDefaultText="Select type"
+                    options={ExternalFilterTypeOptions}
+                    tooltip={<div><p>Select the type for this external filter.</p></div>}
+                    columns={4}
+                  />
+                </ContextField>
 
-                <TextField
-                  name={`external.${idx}.name`}
-                  label="Name" columns={4}
-                />
+                <ContextField name={`external[${idx}].name`}>
+                  <TextField
+                    label="Name" columns={4}
+                  />
+                </ContextField>
 
-                <Select
-                  name={`external.${idx}.on_error`}
-                  label="On Error"
-                  optionDefaultText="Select type"
-                  options={ExternalFilterOnErrorOptions}
-                  tooltip={<div><p>Select what to do on error for this external filter.</p></div>}
-                  columns={4}
-                />
+                <ContextField name={`external[${idx}].on_error`}>
+                  <Select
+                    label="On Error"
+                    optionDefaultText="Select type"
+                    options={ExternalFilterOnErrorOptions}
+                    tooltip={<div><p>Select what to do on error for this external filter.</p></div>}
+                    columns={4}
+                  />
+                </ContextField>
               </FilterLayout>
             </FilterSection>
 
@@ -270,33 +278,36 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
         subtitle="Specify the executable, the argument and the expected exit status to run as a pre-filter"
       >
         <FilterLayout>
-          <TextAreaAutoResize
-            name={`external.${idx}.exec_cmd`}
-            label="Path to Executable"
-            columns={5}
-            placeholder="Absolute path to executable eg. /bin/test"
-            tooltip={
-              <div>
-                <p>
-                  For custom commands you should specify the full path to the binary/program
-                  you want to run. And you can include your own static variables:
-                </p>
-                <DocsLink href="https://autobrr.com/filters/actions#custom-commands--exec" />
-              </div>
-            }
-          />
-          <TextAreaAutoResize
-            name={`external.${idx}.exec_args`}
-            label="Exec Arguments"
-            columns={5}
-            placeholder={"Arguments eg. --test \"{{ .TorrentName }}\""}
-          />
-          <div className="col-span-12 sm:col-span-2">
-            <NumberField
-              name={`external.${idx}.exec_expect_status`}
-              label="Expected exit status"
-              placeholder="0"
+          <ContextField name={`external[${idx}].exec_cmd`}>
+            <TextAreaAutoResize
+              label="Path to Executable"
+              columns={5}
+              placeholder="Absolute path to executable eg. /bin/test"
+              tooltip={
+                <div>
+                  <p>
+                    For custom commands you should specify the full path to the binary/program
+                    you want to run. And you can include your own static variables:
+                  </p>
+                  <DocsLink href="https://autobrr.com/filters/actions#custom-commands--exec" />
+                </div>
+              }
             />
+          </ContextField>
+          <ContextField name={`external[${idx}].exec_args`}>
+            <TextAreaAutoResize
+              label="Exec Arguments"
+              columns={5}
+              placeholder={"Arguments eg. --test \"{{ .TorrentName }}\""}
+            />
+          </ContextField>
+          <div className="col-span-12 sm:col-span-2">
+            <ContextField name={`external[${idx}].exec_expect_status`}>
+              <NumberField
+                label="Expected exit status"
+                placeholder="0"
+              />
+            </ContextField>
           </div>
         </FilterLayout>
       </FilterSection>
@@ -310,31 +321,35 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
           subtitle="Specify your request destination endpoint, headers and expected return status"
         >
           <FilterLayout>
-            <TextField
-              name={`external.${idx}.webhook_host`}
-              label="Endpoint"
-              columns={6}
-              placeholder="Host eg. http://localhost/webhook"
-              tooltip={<p>URL or IP to your API. Pass params and set API tokens etc.</p>}
-            />
-            <Select
-              name={`external.${idx}.webhook_method`}
-              label="HTTP method"
-              optionDefaultText="Select http method"
-              options={ExternalFilterWebhookMethodOptions}
-              tooltip={<div><p>Select the HTTP method for this webhook. Defaults to POST</p></div>}
-            />
-            <TextField
-              name={`external.${idx}.webhook_headers`}
-              label="HTTP Request Headers"
-              columns={6}
-              placeholder="HEADER=custom1,HEADER2=custom2"
-            />
-            <NumberField
-              name={`external.${idx}.webhook_expect_status`}
-              label="Expected HTTP status code"
-              placeholder="200"
-            />
+            <ContextField name={`external[${idx}].webhook_host`}>
+              <TextField
+                label="Endpoint"
+                columns={6}
+                placeholder="Host eg. http://localhost/webhook"
+                tooltip={<p>URL or IP to your API. Pass params and set API tokens etc.</p>}
+              />
+            </ContextField>
+            <ContextField name={`external[${idx}].webhook_method`}>
+              <Select
+                label="HTTP method"
+                optionDefaultText="Select http method"
+                options={ExternalFilterWebhookMethodOptions}
+                tooltip={<div><p>Select the HTTP method for this webhook. Defaults to POST</p></div>}
+              />
+            </ContextField>
+            <ContextField name={`external[${idx}].webhook_headers`}>
+              <TextField
+                label="HTTP Request Headers"
+                columns={6}
+                placeholder="HEADER=custom1,HEADER2=custom2"
+              />
+            </ContextField>
+            <ContextField name={`external[${idx}].webhook_expect_status`}>
+              <NumberField
+                label="Expected HTTP status code"
+                placeholder="200"
+              />
+            </ContextField>
           </FilterLayout>
         </FilterSection>
         <FilterSection
@@ -342,22 +357,25 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
           subtitle="Retry behavior on request failure"
         >
           <FilterLayout>
-            <TextField
-              name={`external.${idx}.webhook_retry_status`}
-              label="Retry http status code(s)"
-              placeholder="Retry on status eg. 202, 204"
-              columns={6}
-            />
-            <NumberField
-              name={`external.${idx}.webhook_retry_attempts`}
-              label="Maximum retry attempts"
-              placeholder="10"
-            />
-            <NumberField
-              name={`external.${idx}.webhook_retry_delay_seconds`}
-              label="Retry delay in seconds"
-              placeholder="1"
-            />
+            <ContextField name={`external[${idx}].webhook_retry_status`}>
+              <TextField
+                label="Retry http status code(s)"
+                placeholder="Retry on status eg. 202, 204"
+                columns={6}
+              />
+            </ContextField>
+            <ContextField name={`external[${idx}].webhook_retry_attempts`}>
+              <NumberField
+                label="Maximum retry attempts"
+                placeholder="10"
+              />
+            </ContextField>
+            <ContextField name={`external[${idx}].webhook_retry_delay_seconds`}>
+              <NumberField
+                label="Retry delay in seconds"
+                placeholder="1"
+              />
+            </ContextField>
           </FilterLayout>
         </FilterSection>
         <FilterSection
@@ -365,11 +383,12 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
           subtitle="Specify your JSON payload"
         >
           <FilterLayout>
-            <TextAreaAutoResize
-              name={`external.${idx}.webhook_data`}
-              label="Data (json)"
-              placeholder={"Request data: { \"key\": \"value\" }"}
-            />
+            <ContextField name={`external[${idx}].webhook_data`}>
+              <TextAreaAutoResize
+                label="Data (json)"
+                placeholder={"Request data: { \"key\": \"value\" }"}
+              />
+            </ContextField>
           </FilterLayout>
         </FilterSection>
       </>

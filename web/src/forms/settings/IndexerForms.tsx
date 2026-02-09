@@ -6,8 +6,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
-import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 
@@ -20,18 +18,19 @@ import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
 import { SlideOver } from "@components/panels";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
-import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
+import { TextFieldWide, PasswordFieldWide, SwitchGroupWide } from "@components/inputs/tanstack/text_wide";
+import { SwitchButton } from "@components/inputs/tanstack/switch";
+import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/tanstack/select_wide";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { DocsLink } from "@components/ExternalLink";
-import * as common from "@components/inputs/common";
-import { SelectField } from "@forms/settings/IrcForms";
+import * as common from "@components/inputs/tanstack/common";
+import { useAppForm, ContextField, useFormContext, useStore, useFieldContext } from "@app/lib/form";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
 
-function validateField(s: IndexerSetting) {
-  return (value?: string | undefined) => {
+function validateFieldTanstack(s: IndexerSetting) {
+  return ({ value }: { value: string }) => {
     if (s.required) {
       if (s.default !== "") {
         if (value && s.default === value) {
@@ -63,28 +62,39 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
             switch (f.type) {
             case "text": {
               return (
-                <TextFieldWide
+                <ContextField
                   key={idx}
                   name={`irc.${f.name}`}
-                  label={f.label}
-                  required={f.required}
-                  help={f.help}
-                  autoComplete="off"
-                  validate={validateField(f)}
-                  tooltip={
-                    <div>
-                      <p>Please read our IRC guide if you are unfamiliar with IRC.</p>
-                      <DocsLink href="https://autobrr.com/configuration/irc" />
-                    </div>
-                  }
-                />
+                  validators={{ onChange: validateFieldTanstack(f) }}
+                >
+                  <TextFieldWide
+                    label={f.label}
+                    required={f.required}
+                    help={f.help}
+                    autoComplete="off"
+                    tooltip={
+                      <div>
+                        <p>Please read our IRC guide if you are unfamiliar with IRC.</p>
+                        <DocsLink href="https://autobrr.com/configuration/irc" />
+                      </div>
+                    }
+                  />
+                </ContextField>
               );
             }
             case "secret": {
               if (f.name === "invite_command") {
-                return <PasswordFieldWide defaultVisible name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+                return (
+                  <ContextField key={idx} name={`irc.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                    <PasswordFieldWide defaultVisible label={f.label} required={f.required} help={f.help} defaultValue={f.default} />
+                  </ContextField>
+                );
               }
-              return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              return (
+                <ContextField key={idx} name={`irc.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                  <PasswordFieldWide label={f.label} required={f.required} help={f.help} defaultValue={f.default} />
+                </ContextField>
+              );
             }
           }
             return null;
@@ -109,34 +119,40 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
+            <ContextField name="name">
+              <TextFieldWide label="Name" defaultValue="" required={true} />
+            </ContextField>
 
-            <TextFieldWide
-              name="feed.url"
-              label="URL"
-              required={true}
-              help="Torznab url. Just URL without extra params."
-              tooltip={
-                <div>
-                  <p>Prowlarr and Jackett have different formats:</p>
-                  <br/>
-                  <ul>
-                    <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
-                    <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
-                  </ul>
-                </div>
-              }
-            />
+            <ContextField name="feed.url">
+              <TextFieldWide
+                label="URL"
+                required={true}
+                help="Torznab url. Just URL without extra params."
+                tooltip={
+                  <div>
+                    <p>Prowlarr and Jackett have different formats:</p>
+                    <br/>
+                    <ul>
+                      <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                      <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
+                    </ul>
+                  </div>
+                }
+              />
+            </ContextField>
 
-            <PasswordFieldWide name="feed.api_key" label="API key" help="API key" required={true} />
+            <ContextField name="feed.api_key">
+              <PasswordFieldWide label="API key" help="API key" required={true} />
+            </ContextField>
 
-            <SelectFieldBasic
-              name="feed.settings.download_type"
-              label="Download type"
-              options={FeedDownloadTypeOptions}
-              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
-              help="Set to Torrent or Magnet depending on indexer."
-            />
+            <ContextField name="feed.settings.download_type">
+              <SelectFieldBasic
+                label="Download type"
+                options={FeedDownloadTypeOptions}
+                tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+                help="Set to Torrent or Magnet depending on indexer."
+              />
+            </ContextField>
 
             <FeedCategoriesDraftSection feedType="TORZNAB" />
           </div>
@@ -159,34 +175,47 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
+            <ContextField name="name">
+              <TextFieldWide label="Name" defaultValue="" required={true} />
+            </ContextField>
 
-            <TextFieldWide
-              name="feed.newznab_url"
-              label="URL"
-              required={true}
-              help="Newznab url. Just URL without extra params."
-              tooltip={
-                <div>
-                  <p>Prowlarr and Jackett have different formats:</p>
-                  <br/>
-                  <ul>
-                    <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
-                    <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
-                  </ul>
-                </div>
-              }
-            />
+            <ContextField name="feed.newznab_url">
+              <TextFieldWide
+                label="URL"
+                required={true}
+                help="Newznab url. Just URL without extra params."
+                tooltip={
+                  <div>
+                    <p>Prowlarr and Jackett have different formats:</p>
+                    <br/>
+                    <ul>
+                      <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                      <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
+                    </ul>
+                  </div>
+                }
+              />
+            </ContextField>
 
-            <PasswordFieldWide name="feed.api_key" label="API key" help="API key" required={true} />
+            <ContextField name="feed.api_key">
+              <PasswordFieldWide label="API key" help="API key" required={true} />
+            </ContextField>
 
             {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text": {
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+                return (
+                  <ContextField key={idx} name={`feed.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                    <TextFieldWide label={f.label} required={f.required} help={f.help} autoComplete="off" />
+                  </ContextField>
+                );
               }
               case "secret": {
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+                return (
+                  <ContextField key={idx} name={`feed.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                    <PasswordFieldWide label={f.label} required={f.required} help={f.help} defaultValue={f.default} />
+                  </ContextField>
+                );
               }
               }
               return null;
@@ -213,27 +242,38 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <ContextField name="name">
+              <TextFieldWide label="Name" defaultValue="" />
+            </ContextField>
 
             {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text": {
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
+                return (
+                  <ContextField key={idx} name={`feed.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                    <TextFieldWide label={f.label} required={f.required} help={f.help} autoComplete="off" />
+                  </ContextField>
+                );
               }
               case "secret": {
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+                return (
+                  <ContextField key={idx} name={`feed.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                    <PasswordFieldWide label={f.label} required={f.required} help={f.help} defaultValue={f.default} />
+                  </ContextField>
+                );
               }
               }
               return null;
             })}
 
-            <SelectFieldBasic
-              name="feed.settings.download_type"
-              label="Download type"
-              options={FeedDownloadTypeOptions}
-              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
-              help="Set to Torrent or Magnet depending on indexer."
-            />
+            <ContextField name="feed.settings.download_type">
+              <SelectFieldBasic
+                label="Download type"
+                options={FeedDownloadTypeOptions}
+                tooltip={<span>Some feeds needs to force set as Magnet.</span>}
+                help="Set to Torrent or Magnet depending on indexer."
+              />
+            </ContextField>
           </div>
         )}
       </Fragment>
@@ -242,8 +282,8 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 };
 
 function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
-  const { values, setFieldValue } = useFormikContext<FormikValues>();
-  const feedValues = (values.feed ?? {}) as Record<string, unknown>;
+  const form = useFormContext();
+  const feedValues = useStore(form.store, (s: any) => s.values.feed ?? {}) as Record<string, unknown>;
   const capabilities = feedValues.capabilities ?? null;
   const categoriesValue = Array.isArray(feedValues.categories) ? (feedValues.categories as number[]) : [];
   const capsPayload = useMemo(() => parseCapabilitiesPayload(capabilities), [capabilities]);
@@ -266,8 +306,8 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
       const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
       const filteredSelection = categoriesValue.filter((id) => nextCategories.includes(id));
 
-      setFieldValue("feed.capabilities", caps ?? null);
-      setFieldValue("feed.categories", filteredSelection);
+      (form as any).setFieldValue("feed.capabilities", caps ?? null);
+      (form as any).setFieldValue("feed.categories", filteredSelection);
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : "Failed to fetch categories";
@@ -277,26 +317,26 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
 
   const toggleCategory = (id: number) => {
     if (categoriesValue.includes(id)) {
-      setFieldValue(
+      (form as any).setFieldValue(
         "feed.categories",
         categoriesValue.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue("feed.categories", [...categoriesValue, id]);
+    (form as any).setFieldValue("feed.categories", [...categoriesValue, id]);
   };
 
   const toggleParentCategory = (id: number, childIds: number[]) => {
     if (categoriesValue.includes(id)) {
-      setFieldValue(
+      (form as any).setFieldValue(
         "feed.categories",
         categoriesValue.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue(
+    (form as any).setFieldValue(
       "feed.categories",
       [...categoriesValue.filter((category) => !childIds.includes(category)), id]
     );
@@ -388,33 +428,36 @@ const SettingFields = (ind: IndexerDefinition, indexer: string) => {
           switch (f.type) {
           case "text": {
             return (
-              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
+              <ContextField key={idx} name={`settings.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                <TextFieldWide label={f.label} required={f.required} help={f.help} autoComplete="off" />
+              </ContextField>
             );
           }
           case "secret": {
             return (
-              <PasswordFieldWide
-                name={`settings.${f.name}`}
-                label={f.label}
-                required={f.required}
-                key={idx}
-                help={f.help}
-                validate={validateField(f)}
-                tooltip={
-                  <div>
-                    <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
-                    <br />
-                    <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
-                  </div>
-                }
-              />
+              <ContextField key={idx} name={`settings.${f.name}`} validators={{ onChange: validateFieldTanstack(f) }}>
+                <PasswordFieldWide
+                  label={f.label}
+                  required={f.required}
+                  help={f.help}
+                  tooltip={
+                    <div>
+                      <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
+                      <br />
+                      <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
+                    </div>
+                  }
+                />
+              </ContextField>
             );
           }
           }
           return null;
         })}
         <div hidden={true}>
-          <TextFieldWide name="name" label="Name" defaultValue={ind?.name} />
+          <ContextField name="name">
+            <TextFieldWide label="Name" defaultValue={ind?.name} hidden={true} />
+          </ContextField>
         </div>
       </div>
     );
@@ -459,7 +502,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
     }
   });
 
-  const onSubmit = (formData: FormikValues) => {
+  const onSubmit = (formData: Record<string, any>) => {
     const ind = data && data.find(i => i.identifier === formData.identifier);
     if (!ind)
       return;
@@ -593,6 +636,29 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
     }
   };
 
+  const form = useAppForm({
+    defaultValues: {
+      enabled: true,
+      identifier: "",
+      implementation: "irc",
+      name: "",
+      irc: {} as Record<string, any>,
+      settings: {} as Record<string, any>,
+      feed: {
+        categories: [] as number[],
+        capabilities: null as unknown,
+        settings: {} as Record<string, any>
+      } as Record<string, any>,
+      base_url: ""
+    },
+    onSubmit: async ({ value }) => {
+      onSubmit(value as Record<string, any>);
+    }
+  });
+
+  const valuesIdentifier = useStore(form.store, (s: any) => s.values.identifier);
+  const valuesAll = useStore(form.store, (s: any) => s.values);
+
   return (
     <Transition show={isOpen} as={Fragment}>
       <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
@@ -608,166 +674,152 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    identifier: "",
-                    implementation: "irc",
-                    name: "",
-                    irc: {},
-                    settings: {},
-                    feed: {
-                      categories: [],
-                      capabilities: null,
-                      settings: {}
-                    }
-                  }}
-                  onSubmit={onSubmit}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add indexer
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Add indexer.
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                              </button>
-                            </div>
+                <form.AppForm>
+                  <form
+                    className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      form.handleSubmit();
+                    }}
+                  >
+                    <div className="flex-1">
+                      <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                        <div className="flex items-start justify-between space-x-3">
+                          <div className="space-y-1">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Add indexer
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-200">
+                              Add indexer.
+                            </p>
+                          </div>
+                          <div className="h-7 flex items-center">
+                            <button
+                              type="button"
+                              className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                              onClick={toggle}
+                            >
+                              <span className="sr-only">Close panel</span>
+                              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
+                          <div>
+                            <label
+                              htmlFor="identifier"
+                              className="block text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                              Indexer
+                            </label>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <Select
+                              isClearable={true}
+                              isSearchable={true}
+                              components={{
+                                Input: common.SelectInput,
+                                Control: common.SelectControl,
+                                Menu: common.SelectMenu,
+                                Option: common.SelectOption,
+                                IndicatorSeparator: common.IndicatorSeparator,
+                                DropdownIndicator: common.DropdownIndicator
+                              }}
+                              placeholder="Choose an indexer"
+                              styles={{
+                                singleValue: (base) => ({
+                                  ...base,
+                                  color: "unset"
+                                })
+                              }}
+                              theme={(theme) => ({
+                                ...theme,
+                                spacing: {
+                                  ...theme.spacing,
+                                  controlHeight: 30,
+                                  baseUnit: 2
+                                }
+                              })}
+                              value={valuesIdentifier ? { label: valuesIdentifier, value: valuesIdentifier } : null}
+                              onChange={(option: unknown) => {
+                                form.reset();
+
+                                if (option != null) {
+                                  const opt = option as SelectValue;
+                                  (form as any).setFieldValue("name", opt.label ?? "");
+                                  (form as any).setFieldValue("identifier", opt.value ?? "");
+
+                                  const ind = data && data.find(i => i.identifier === opt.value);
+                                  if (ind) {
+                                    setIndexer(ind);
+                                    (form as any).setFieldValue("implementation", ind.implementation);
+
+                                    if (ind.irc && ind.irc.settings) {
+                                      (form as any).setFieldValue("base_url", ind.urls[0]);
+                                      ind.irc.settings.forEach((s) => {
+                                        (form as any).setFieldValue(`irc.${s.name}`, s.default ?? "");
+                                      });
+                                    }
+                                  }
+                                }
+                              }}
+                              options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
+                                label: v.name,
+                                value: v.identifier
+                              }))}
+                            />
                           </div>
                         </div>
 
-                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                          <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label
-                                htmlFor="identifier"
-                                className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
-                                Indexer
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <Field name="identifier" type="select">
-                                {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
-                                  <Select {...field}
-                                    isClearable={true}
-                                    isSearchable={true}
-                                    components={{
-                                      Input: common.SelectInput,
-                                      Control: common.SelectControl,
-                                      Menu: common.SelectMenu,
-                                      Option: common.SelectOption,
-                                      IndicatorSeparator: common.IndicatorSeparator,
-                                      DropdownIndicator: common.DropdownIndicator
-                                    }}
-                                    placeholder="Choose an indexer"
-                                    styles={{
-                                      singleValue: (base) => ({
-                                        ...base,
-                                        color: "unset"
-                                      })
-                                    }}
-                                    theme={(theme) => ({
-                                      ...theme,
-                                      spacing: {
-                                        ...theme.spacing,
-                                        controlHeight: 30,
-                                        baseUnit: 2
-                                      }
-                                    })}
-                                    value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      resetForm();
+                        <ContextField name="enabled">
+                          <SwitchGroupWide label="Enabled" />
+                        </ContextField>
 
-                                      if (option != null) {
-                                        const opt = option as SelectValue;
-                                        setFieldValue("name", opt.label ?? "");
-                                        setFieldValue(field.name, opt.value ?? "");
-
-                                        const ind = data && data.find(i => i.identifier === opt.value);
-                                        if (ind) {
-                                          setIndexer(ind);
-                                          setFieldValue("implementation", ind.implementation);
-
-                                          if (ind.irc && ind.irc.settings) {
-                                            setFieldValue("base_url", ind.urls[0]);
-                                            ind.irc.settings.forEach((s) => {
-                                              setFieldValue(`irc.${s.name}`, s.default ?? "");
-                                            });
-                                          }
-                                        }
-                                      }
-                                    }}
-                                    options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
-                                      label: v.name,
-                                      value: v.identifier
-                                    }))}
-                                  />
-                                )}
-                              </Field>
-
-                            </div>
-                          </div>
-
-                          <SwitchGroupWide name="enabled" label="Enabled" />
-
-                          {indexer.implementation == "irc" && (
+                        {indexer.implementation == "irc" && (
+                          <ContextField name="base_url">
                             <SelectFieldCreatable
-                              name="base_url"
                               label="Base URL"
                               help="Override baseurl if it's blocked by your ISP."
                               options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
                             />
-                          )}
+                          </ContextField>
+                        )}
 
-                          {SettingFields(indexer, values.identifier)}
+                        {SettingFields(indexer, valuesIdentifier)}
 
-                        </div>
-
-                        {IrcSettingFields(indexer, values.identifier)}
-                        {TorznabFeedSettingFields(indexer, values.identifier)}
-                        {NewznabFeedSettingFields(indexer, values.identifier)}
-                        {RSSFeedSettingFields(indexer, values.identifier)}
                       </div>
 
-                      <div
-                        className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </div>
+                      {IrcSettingFields(indexer, valuesIdentifier)}
+                      {TorznabFeedSettingFields(indexer, valuesIdentifier)}
+                      {NewznabFeedSettingFields(indexer, valuesIdentifier)}
+                      {RSSFeedSettingFields(indexer, valuesIdentifier)}
+                    </div>
 
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+                    <div
+                      className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+                      <div className="space-x-3 flex justify-end">
+                        <button
+                          type="button"
+                          className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                          onClick={toggle}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+
+                    <DEBUG values={valuesAll} />
+                  </form>
+                </form.AppForm>
               </div>
             </TransitionChild>
           </DialogPanel>
@@ -778,7 +830,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
 }
 
 interface TestApiButtonProps {
-  values: FormikValues;
+  values: Record<string, any>;
   show: boolean;
 }
 
@@ -905,6 +957,62 @@ interface IndexerUpdateInitialValues {
   }
 }
 
+function ProxySelectField({ options, placeholder }: { options: { label: string; value: number }[]; placeholder?: string }) {
+  const field = useFieldContext<number>();
+
+  return (
+    <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <div>
+        <label
+          htmlFor={field.name}
+          className="block text-sm font-medium text-gray-900 dark:text-white"
+        >
+          Select proxy
+        </label>
+      </div>
+      <div className="sm:col-span-2">
+        <Select
+          id={field.name}
+          isClearable={true}
+          isSearchable={true}
+          components={{
+            Input: common.SelectInput,
+            Control: common.SelectControl,
+            Menu: common.SelectMenu,
+            Option: common.SelectOption,
+            IndicatorSeparator: common.IndicatorSeparator,
+            DropdownIndicator: common.DropdownIndicator
+          }}
+          placeholder={placeholder ?? "Select a proxy"}
+          styles={{
+            singleValue: (base) => ({
+              ...base,
+              color: "unset"
+            })
+          }}
+          theme={(theme) => ({
+            ...theme,
+            spacing: {
+              ...theme.spacing,
+              controlHeight: 30,
+              baseUnit: 2
+            }
+          })}
+          value={field.state.value ? options.find(o => o.value == field.state.value) ?? null : null}
+          onChange={(newValue: unknown) => {
+            if (newValue) {
+              field.handleChange((newValue as { value: number }).value);
+            } else {
+              field.handleChange(0);
+            }
+          }}
+          options={options}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormProps<IndexerDefinition>) {
   const queryClient = useQueryClient();
 
@@ -953,24 +1061,26 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
           switch (f.type) {
           case "text": {
             return (
-              <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
+              <ContextField key={idx} name={`settings.${f.name}`}>
+                <TextFieldWide label={f.label} help={f.help} />
+              </ContextField>
             );
           }
           case "secret": {
             return (
-              <PasswordFieldWide
-                key={idx}
-                name={`settings.${f.name}`}
-                label={f.label}
-                help={f.help}
-                tooltip={
-                  <div>
-                    <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
-                    <br />
-                    <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
-                  </div>
-                }
-              />
+              <ContextField key={idx} name={`settings.${f.name}`}>
+                <PasswordFieldWide
+                  label={f.label}
+                  help={f.help}
+                  tooltip={
+                    <div>
+                      <p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p>
+                      <br />
+                      <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
+                    </div>
+                  }
+                />
+              </ContextField>
             );
           }
           }
@@ -1008,7 +1118,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      extraButtons={(values) => <TestApiButton values={values as FormikValues} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
+      extraButtons={(values) => <TestApiButton values={values as Record<string, any>} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
     >
       {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
@@ -1019,44 +1129,39 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
             >
               Name
             </label>
-            <Field name="name">
-              {({ field, meta }: FieldProps) => (
-                <div className="sm:col-span-2">
-                  <input
-                    type="text"
-                    {...field}
-                    className="block w-full shadow-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
-                  />
-                  {meta.touched && meta.error && <span>{meta.error}</span>}
-                </div>
-              )}
-            </Field>
+            <ContextField name="name">
+              <NameFieldInline />
+            </ContextField>
           </div>
 
-          <TextFieldWide
-            name="identifier_external"
-            label="External Identifier"
-            help={`External Identifier for ARRs. If using Prowlarr set like: ${indexer.name} (Prowlarr)`}
-            tooltip={
-              <div>
-                <p>External Identifier for use with ARRs to get features like seed limits working.</p>
-                <br/>
-                <p>This needs to match the indexer name in your ARR. If using Prowlarr it will likely be
-                  "{indexer.name} (Prowlarr)"</p>
-                <br/>
-                <DocsLink href="https://autobrr.com/configuration/indexers#setup"/>
-              </div>
-            }
-          />
-          <SwitchGroupWide name="enabled" label="Enabled"/>
+          <ContextField name="identifier_external">
+            <TextFieldWide
+              label="External Identifier"
+              help={`External Identifier for ARRs. If using Prowlarr set like: ${indexer.name} (Prowlarr)`}
+              tooltip={
+                <div>
+                  <p>External Identifier for use with ARRs to get features like seed limits working.</p>
+                  <br/>
+                  <p>This needs to match the indexer name in your ARR. If using Prowlarr it will likely be
+                    "{indexer.name} (Prowlarr)"</p>
+                  <br/>
+                  <DocsLink href="https://autobrr.com/configuration/indexers#setup"/>
+                </div>
+              }
+            />
+          </ContextField>
+          <ContextField name="enabled">
+            <SwitchGroupWide label="Enabled"/>
+          </ContextField>
 
           {indexer.implementation == "irc" && (
-            <SelectFieldCreatable
-              name="base_url"
-              label="Base URL"
-              help="Override baseurl if it's blocked by your ISP."
-              options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
-            />
+            <ContextField name="base_url">
+              <SelectFieldCreatable
+                label="Base URL"
+                help="Override baseurl if it's blocked by your ISP."
+                options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
+              />
+            </ContextField>
           )}
 
           {renderSettingFields(indexer.settings)}
@@ -1071,22 +1176,43 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
                   Set a proxy to be used for downloads of .torrent files and feeds.
                 </p>
               </div>
-              <SwitchButton name="use_proxy" />
+              <ContextField name="use_proxy">
+                <SwitchButton />
+              </ContextField>
             </div>
 
             {values.use_proxy === true && (
               <div className="py-4 pt-6">
-                <SelectField<number>
-                  name="proxy_id"
-                  label="Select proxy"
-                  placeholder="Select a proxy"
-                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
-                />
+                <ContextField name="proxy_id">
+                  <ProxySelectField
+                    placeholder="Select a proxy"
+                    options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                  />
+                </ContextField>
               </div>
             )}
           </div>
         </div>
       )}
     </SlideOver>
+  );
+}
+
+function NameFieldInline() {
+  const field = useFieldContext<string>();
+
+  return (
+    <div className="sm:col-span-2">
+      <input
+        type="text"
+        value={field.state.value ?? ""}
+        onChange={(e) => field.handleChange(e.target.value)}
+        onBlur={field.handleBlur}
+        className="block w-full shadow-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
+      />
+      {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+        <span>{field.state.meta.errors.join(", ")}</span>
+      )}
+    </div>
   );
 }
