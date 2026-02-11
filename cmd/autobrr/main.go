@@ -4,7 +4,8 @@
 package main
 
 import (
-	"log"
+	"context"
+	stdlog "log"
 	"os"
 	"os/signal"
 	"runtime/pprof"
@@ -62,6 +63,8 @@ func main() {
 	pflag.Parse()
 
 	shutdownFunc, isPGO := pgoRun(profilePath)
+
+	ctx := context.Background()
 
 	// read config
 	cfg := config.New(configPath, version)
@@ -123,6 +126,12 @@ func main() {
 		sessionManager.Store = sqlite3store.New(db)
 	case database.DriverPostgres:
 		sessionManager.Store = postgresstore.New(db.Handler)
+	}
+
+	// setup OIDC
+	oidcService := auth.NewOIDCService(log, cfg.Config)
+	if err := oidcService.Discover(ctx); err != nil {
+		log.Fatal().Err(err).Msg("could not init OIDC service")
 	}
 
 	// setup repos
@@ -188,6 +197,7 @@ func main() {
 			IrcService:            ircService,
 			ListService:           listService,
 			NotificationService:   notificationService,
+			OIDCService:           oidcService,
 			ProxyService:          proxyService,
 			ReleaseService:        releaseService,
 			UpdateService:         updateService,
@@ -248,11 +258,11 @@ func pgoRun(file string) (func(), bool) {
 
 	f, err := os.Create(file)
 	if err != nil {
-		log.Fatalf("could not create CPU profile: %v", err)
+		stdlog.Fatalf("could not create CPU profile: %v", err)
 	}
 
 	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatalf("could not create CPU profile: %v", err)
+		stdlog.Fatalf("could not create CPU profile: %v", err)
 	}
 
 	return func() {

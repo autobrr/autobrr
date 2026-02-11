@@ -29,27 +29,25 @@ type authHandler struct {
 	encoder        encoder
 	config         *domain.Config
 	service        authService
+	oidcService    oidcService
 	server         *Server
 	sessionManager *scs.SessionManager
 	oidcHandler    *OIDCHandler
 }
 
-func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService) *authHandler {
+func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService, oidcService oidcService) *authHandler {
 	h := &authHandler{
 		log:            log,
 		encoder:        encoder,
 		config:         config,
 		service:        service,
+		oidcService:    oidcService,
 		sessionManager: sessionManager,
 		server:         server,
 	}
 
-	if config.OIDCEnabled {
-		oidcHandler, err := NewOIDCHandler(encoder, log, config, sessionManager)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to initialize OIDC handler")
-		}
-		h.oidcHandler = oidcHandler
+	if h.oidcService.IsEnabled() {
+		h.oidcHandler = NewOIDCHandler(encoder, log, config, sessionManager, oidcService)
 	}
 
 	return h
@@ -165,6 +163,10 @@ func (h *authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 
 // onboardEligible checks if the onboarding process is eligible.
 func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
+	if h.config.OIDCEnabled {
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: using oidc provider")
+	}
+
 	userCount, err := h.service.GetUserCount(ctx)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New("could not get user count")
