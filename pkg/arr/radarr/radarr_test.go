@@ -64,7 +64,7 @@ func Test_client_Push(t *testing.T) {
 		config Config
 	}
 	type args struct {
-		release Release
+		release ReleasePushRequest
 	}
 	tests := []struct {
 		name       string
@@ -85,7 +85,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP.torrent",
 				Size:             0,
@@ -107,7 +107,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP.torrent",
 				Size:             0,
@@ -129,7 +129,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "Minx 1 epi 9 2160p",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/Minx.1.epi.9.2160p.torrent",
 				Size:             0,
