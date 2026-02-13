@@ -35,7 +35,7 @@ type Config struct {
 
 type ClientInterface interface {
 	Test(ctx context.Context) (*SystemStatusResponse, error)
-	Push(ctx context.Context, release Release) ([]string, error)
+	Push(ctx context.Context, release ReleasePushRequest) ([]string, error)
 }
 
 type Client struct {
@@ -89,7 +89,7 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
+func (c *Client) Push(ctx context.Context, release ReleasePushRequest) ([]string, error) {
 	status, res, err := c.postBody(ctx, "release/push", release)
 	if err != nil {
 		return nil, errors.Wrap(err, "error push release")
@@ -111,7 +111,7 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		return rejections, nil
 	}
 
-	pushResponse := make([]PushResponse, 0)
+	pushResponse := make([]ReleasePushResponse, 0)
 	if err = json.Unmarshal(res, &pushResponse); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}

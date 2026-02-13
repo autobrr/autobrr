@@ -51,7 +51,7 @@ func Test_client_Push(t *testing.T) {
 		config Config
 	}
 	type args struct {
-		release Release
+		release ReleasePushRequest
 	}
 	tests := []struct {
 		name       string
@@ -72,7 +72,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP.torrent",
 				Size:             0,
@@ -96,7 +96,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP.torrent",
 				Size:             0,
