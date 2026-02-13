@@ -72,6 +72,7 @@ type Macro struct {
 	Protocol                  string
 	Proper                    bool
 	Region                    string
+	ReleaseTags               string
 	Repack                    bool
 	Resolution                string
 	Season                    int
@@ -152,6 +153,7 @@ func NewMacro(release Release) Macro {
 		Protocol:                  release.Protocol.String(),
 		Proper:                    release.Proper,
 		Region:                    release.Region,
+		ReleaseTags:               release.ReleaseTags,
 		Repack:                    release.Repack,
 		Resolution:                release.Resolution,
 		Season:                    release.Season,

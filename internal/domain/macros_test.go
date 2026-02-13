@@ -274,6 +274,15 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "indexer=Mock Indexer",
 			wantErr: false,
 		},
+		{
+			name: "test_release_tags",
+			release: Release{
+				ReleaseTags: "WEB-DL",
+			},
+			args:    args{text: "tags: {{.ReleaseTags}}"},
+			want:    "tags: WEB-DL",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
