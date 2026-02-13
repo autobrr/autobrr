@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Form, Formik } from "formik";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { APIClient } from "@api/APIClient";
-import { TextField, PasswordField } from "@components/inputs";
+import { useAppForm } from "@app/lib/form";
+import { TextField, PasswordField } from "@components/inputs/tanstack";
 
 import { UserPlusIcon } from "@heroicons/react/24/outline";
 
@@ -21,24 +21,6 @@ interface InputValues {
 }
 
 export const Onboarding = () => {
-  const validate = (values: InputValues) => {
-    const obj: Record<string, string> = {};
-
-    if (!values.username)
-      obj.username = "Required";
-
-    if (!values.password1)
-      obj.password1 = "Required";
-
-    if (!values.password2)
-      obj.password2 = "Required";
-
-    if (values.password1 !== values.password2)
-      obj.password2 = "Passwords don't match!";
-
-    return obj;
-  };
-
   const navigate = useNavigate();
 
   // Query to check if OIDC is enabled
@@ -50,6 +32,15 @@ export const Onboarding = () => {
   const mutation = useMutation({
     mutationFn: (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
     onSuccess: () => navigate({ to: "/login" })
+  });
+
+  const form = useAppForm({
+    defaultValues: {
+      username: "",
+      password1: "",
+      password2: ""
+    } as InputValues,
+    onSubmit: async ({ value }) => mutation.mutate(value),
   });
 
   // If OIDC is enabled, redirect to login
@@ -68,20 +59,24 @@ export const Onboarding = () => {
       </div>
       <div className="mx-auto w-full max-w-md rounded-2xl shadow-lg">
         <div className="px-8 pt-8 pb-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775">
-          <Formik
-            initialValues={{
-              username: "",
-              password1: "",
-              password2: ""
-            }}
-            onSubmit={(data) => mutation.mutate(data)}
-            validate={validate}
-          >
-            <Form>
+          <form.AppForm>
+            <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
               <div className="space-y-6">
-                <TextField name="username" label="Username" columns={6} autoComplete="username" />
-                <PasswordField name="password1" label="Password" columns={6} autoComplete="current-password" />
-                <PasswordField name="password2" label="Confirm password" columns={6} autoComplete="current-password" />
+                <form.AppField name="username" validators={{ onSubmit: ({ value }) => !value ? "Required" : undefined }}>
+                  {() => <TextField label="Username" columns={6} autoComplete="username" />}
+                </form.AppField>
+                <form.AppField name="password1" validators={{ onSubmit: ({ value }) => !value ? "Required" : undefined }}>
+                  {() => <PasswordField label="Password" columns={6} autoComplete="current-password" />}
+                </form.AppField>
+                <form.AppField name="password2" validators={{
+                  onSubmit: ({ value, fieldApi }) => {
+                    if (!value) return "Required";
+                    if (value !== fieldApi.form.getFieldValue("password1")) return "Passwords don't match!";
+                    return undefined;
+                  }
+                }}>
+                  {() => <PasswordField label="Confirm password" columns={6} autoComplete="current-password" />}
+                </form.AppField>
               </div>
               <button
                 type="submit"
@@ -90,8 +85,8 @@ export const Onboarding = () => {
                 <UserPlusIcon className="w-4 h-4 mr-1.5" />
                 Create account
               </button>
-            </Form>
-          </Formik>
+            </form>
+          </form.AppForm>
         </div>
       </div>
     </div>

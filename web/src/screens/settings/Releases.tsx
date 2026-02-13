@@ -18,7 +18,7 @@ import { useToggle } from "@hooks/hooks";
 
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { AgeSelect } from "@components/inputs"
+import { AgeSelect } from "@components/inputs/tanstack/select"
 import { DeleteModal } from "@components/modals";
 import { EmptySimple } from "@components/emptystates";
 import { Checkbox } from "@components/Checkbox";

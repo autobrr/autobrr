@@ -4,7 +4,6 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Field as FormikField, type FieldProps } from "formik";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { format } from "date-fns";
 
@@ -12,11 +11,64 @@ import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { DurationFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { DurationFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs/tanstack";
 import { SlideOver } from "@components/panels";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 import { classNames } from "@utils";
 import { PushStatusOptions } from "@domain/constants";
+import { ContextField, useFormContext, useStore } from "@app/lib/form";
+
+function IndexerMultiSelectField({ indexerOptions, labelledBy }: { indexerOptions?: { identifier: string; name: string }[]; labelledBy: string }) {
+  const form = useFormContext();
+  const value = useStore(form.store, (s: any) => s.values.indexers) as string;
+
+  const computedValue = !value || value === '' || !indexerOptions
+    ? []
+    : value.split(',').filter(Boolean).map((v: string) => {
+        const option = indexerOptions.find(opt => opt.identifier === v);
+        return option ? { value: option.identifier, label: option.name } : null;
+      }).filter((item): item is { value: string; label: string } => item !== null);
+
+  return (
+    <div onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}>
+      <RMSC
+        options={indexerOptions?.map(opt => ({ value: opt.identifier, label: opt.name })) || []}
+        value={computedValue}
+        onChange={(selected: { value: string; label: string }[]) => {
+          const indexerString = selected.map(s => s.value).join(',');
+          (form as any).setFieldValue("indexers", indexerString);
+        }}
+        labelledBy={labelledBy}
+      />
+    </div>
+  );
+}
+
+function StatusMultiSelectField({ labelledBy }: { labelledBy: string }) {
+  const form = useFormContext();
+  const value = useStore(form.store, (s: any) => s.values.statuses) as string;
+
+  const computedValue = !value || value === ''
+    ? []
+    : value.split(',').filter(Boolean).map((v: string) => {
+        const option = PushStatusOptions.find(opt => opt.value === v);
+        return option ? { value: option.value, label: option.label } : null;
+      }).filter((item): item is { value: string; label: string } => item !== null);
+
+  return (
+    <div onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); }}>
+      <RMSC
+        options={PushStatusOptions}
+        value={computedValue}
+        onChange={(selected: { value: string; label: string }[]) => {
+          const statusString = selected.map(s => s.value).join(',');
+          (form as any).setFieldValue("statuses", statusString);
+        }}
+        labelledBy={labelledBy}
+      />
+    </div>
+  );
+}
 
 export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
   const queryClient = useQueryClient();
@@ -64,66 +116,42 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup"/>
+          <ContextField name="name">
+            <TextFieldWide required label="Name" placeholder="Weekly Cleanup"/>
+          </ContextField>
 
-          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job"/>
+          <ContextField name="enabled">
+            <SwitchGroupWide label="Enabled" description="Enable this cleanup job"/>
+          </ContextField>
 
-          <TextFieldWide
-            required
-            name="schedule"
-            label="Schedule (Cron)"
-            placeholder="0 3 * * *"
-            help="Cron expression. Examples: '0 3 * * *' = daily 3 AM, '0 */6 * * *' = every 6 hours"
-          />
+          <ContextField name="schedule">
+            <TextFieldWide
+              required
+              label="Schedule (Cron)"
+              placeholder="0 3 * * *"
+              help="Cron expression. Examples: '0 3 * * *' = daily 3 AM, '0 */6 * * *' = every 6 hours"
+            />
+          </ContextField>
 
-          <DurationFieldWide
-            required
-            name="older_than"
-            label="Older than"
-            placeholder="30"
-            help="Delete releases older than this duration"
-            defaultValue={30}
-            defaultUnit="days"
-            units={["hours", "days", "weeks", "months", "years"]}
-            storeAsHours={true}
-          />
+          <ContextField name="older_than">
+            <DurationFieldWide
+              required
+              label="Older than"
+              placeholder="30"
+              help="Delete releases older than this duration"
+              defaultValue={30}
+              defaultUnit="days"
+              units={["hours", "days", "weeks", "months", "years"]}
+              storeAsHours={true}
+            />
+          </ContextField>
 
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
               Indexers (Optional)
             </label>
             <div className="col-span-2">
-              <FormikField name="indexers">
-                {({field, form}: FieldProps) => (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.nativeEvent.stopImmediatePropagation();
-                    }}
-                  >
-                    <RMSC
-                      options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
-                      value={
-                        !field.value || field.value === '' || !indexerOptions
-                          ? []
-                          : field.value
-                            .split(',')
-                            .filter(Boolean)
-                            .map((v: string) => {
-                              const option = indexerOptions.find(opt => opt.identifier === v);
-                              return option ? {value: option.identifier, label: option.name} : null;
-                            })
-                            .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
-                      }
-                      onChange={(selected: { value: string; label: string }[]) => {
-                        const indexerString = selected.map(s => s.value).join(',');
-                        form.setFieldValue("indexers", indexerString);
-                      }}
-                      labelledBy="cleanup-job-add-indexers"
-                    />
-                  </div>
-                )}
-              </FormikField>
+              <IndexerMultiSelectField indexerOptions={indexerOptions} labelledBy="cleanup-job-add-indexers" />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Leave empty to apply to all indexers
               </p>
@@ -135,37 +163,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
               Statuses (Optional)
             </label>
             <div className="col-span-2">
-              <FormikField name="statuses">
-                {({field, form}: FieldProps) => (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.nativeEvent.stopImmediatePropagation();
-                    }}
-                  >
-                    <RMSC
-                      options={PushStatusOptions}
-                      value={
-                        !field.value || field.value === ''
-                          ? []
-                          : field.value
-                            .split(',')
-                            .filter(Boolean)
-                            .map((v: string) => {
-                              const option = PushStatusOptions.find(opt => opt.value === v);
-                              return option ? {value: option.value, label: option.label} : null;
-                            })
-                            .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
-                      }
-                      onChange={(selected: { value: string; label: string }[]) => {
-                        const statusString = selected.map(s => s.value).join(',');
-                        form.setFieldValue("statuses", statusString);
-                      }}
-                      labelledBy="cleanup-job-add-statuses"
-                    />
-                  </div>
-                )}
-              </FormikField>
+              <StatusMultiSelectField labelledBy="cleanup-job-add-statuses" />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Leave empty to apply to all statuses
               </p>
@@ -246,68 +244,42 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
           {/* Same fields as AddForm */}
-          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup"/>
+          <ContextField name="name">
+            <TextFieldWide required label="Name" placeholder="Weekly Cleanup"/>
+          </ContextField>
 
-          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job"/>
+          <ContextField name="enabled">
+            <SwitchGroupWide label="Enabled" description="Enable this cleanup job"/>
+          </ContextField>
 
-          <TextFieldWide
-            required
-            name="schedule"
-            label="Schedule (Cron)"
-            placeholder="0 3 * * *"
-            help="Cron expression. Examples: '0 3 * * *' = daily 3 AM, '0 */6 * * *' = every 6 hours"
-          />
+          <ContextField name="schedule">
+            <TextFieldWide
+              required
+              label="Schedule (Cron)"
+              placeholder="0 3 * * *"
+              help="Cron expression. Examples: '0 3 * * *' = daily 3 AM, '0 */6 * * *' = every 6 hours"
+            />
+          </ContextField>
 
-          <DurationFieldWide
-            required
-            name="older_than"
-            label="Older than"
-            placeholder="30"
-            help="Delete releases older than this duration"
-            defaultValue={30}
-            defaultUnit="days"
-            units={["hours", "days", "weeks", "months", "years"]}
-            storeAsHours={true}
-          />
+          <ContextField name="older_than">
+            <DurationFieldWide
+              required
+              label="Older than"
+              placeholder="30"
+              help="Delete releases older than this duration"
+              defaultValue={30}
+              defaultUnit="days"
+              units={["hours", "days", "weeks", "months", "years"]}
+              storeAsHours={true}
+            />
+          </ContextField>
 
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
               Indexers (Optional)
             </label>
             <div className="col-span-2">
-              <FormikField name="indexers">
-                {({field, form}: FieldProps) => {
-                  const computedValue = !field.value || field.value === '' || !indexerOptions
-                    ? []
-                    : field.value
-                      .split(',')
-                      .filter(Boolean)
-                      .map((v: string) => {
-                        const option = indexerOptions.find(opt => opt.identifier === v);
-                        return option ? {value: option.identifier, label: option.name} : null;
-                      })
-                      .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
-
-                  return (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.nativeEvent.stopImmediatePropagation();
-                      }}
-                    >
-                      <RMSC
-                        options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
-                        value={computedValue}
-                        onChange={(selected: { value: string; label: string }[]) => {
-                          const indexerString = selected.map(s => s.value).join(',');
-                          form.setFieldValue("indexers", indexerString);
-                        }}
-                        labelledBy="cleanup-job-edit-indexers"
-                      />
-                    </div>
-                  );
-                }}
-              </FormikField>
+              <IndexerMultiSelectField indexerOptions={indexerOptions} labelledBy="cleanup-job-edit-indexers" />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Leave empty to apply to all indexers
               </p>
@@ -319,39 +291,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
               Statuses (Optional)
             </label>
             <div className="col-span-2">
-              <FormikField name="statuses">
-                {({field, form}: FieldProps) => {
-                  const computedValue = !field.value || field.value === ''
-                    ? []
-                    : field.value
-                      .split(',')
-                      .filter(Boolean)
-                      .map((v: string) => {
-                        const option = PushStatusOptions.find(opt => opt.value === v);
-                        return option ? {value: option.value, label: option.label} : null;
-                      })
-                      .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
-
-                  return (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.nativeEvent.stopImmediatePropagation();
-                      }}
-                    >
-                      <RMSC
-                        options={PushStatusOptions}
-                        value={computedValue}
-                        onChange={(selected: { value: string; label: string }[]) => {
-                          const statusString = selected.map(s => s.value).join(',');
-                          form.setFieldValue("statuses", statusString);
-                        }}
-                        labelledBy="cleanup-job-edit-statuses"
-                      />
-                    </div>
-                  );
-                }}
-              </FormikField>
+              <StatusMultiSelectField labelledBy="cleanup-job-edit-statuses" />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Leave empty to apply to all statuses
               </p>

@@ -7,15 +7,6 @@ import { Fragment, JSX, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
 import {
-  Field,
-  FieldProps,
-  Form,
-  Formik,
-  FormikErrors,
-  FormikValues,
-  useFormikContext
-} from "formik";
-import {
   Dialog,
   DialogPanel,
   DialogTitle,
@@ -32,13 +23,13 @@ import { APIClient } from "@api/APIClient";
 import { ListKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import * as common from "@components/inputs/common";
+import * as common from "@components/inputs/tanstack/common";
 import {
   MultiSelectOption,
   PasswordFieldWide,
   SwitchGroupWide,
   TextFieldWide
-} from "@components/inputs";
+} from "@components/inputs/tanstack";
 import {
   ListsMDBListOptions,
   ListsMetacriticOptions,
@@ -58,17 +49,13 @@ import {
   ListFilterMultiSelectField,
   SelectFieldBasic,
   SelectFieldCreatable
-} from "@components/inputs/select_wide";
+} from "@components/inputs/tanstack/select_wide";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { useToggle } from "@hooks/hooks.ts";
 import { DeleteModal } from "@components/modals";
-import {DocsLink} from "@components/ExternalLink.tsx";
-
-interface ListAddFormValues {
-  name: string;
-  enabled: boolean;
-}
+import { DocsLink } from "@components/ExternalLink.tsx";
+import { useAppForm, ContextField, useFormContext, useFieldContext, useStore } from "@app/lib/form";
 
 interface AddFormProps {
   isOpen: boolean;
@@ -97,13 +84,36 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
 
   const onSubmit = (formData: unknown) => createMutation.mutate(formData as List);
 
-  const validate = (values: ListAddFormValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-    if (!values.name)
-      errors.name = "Required";
+  const form = useAppForm({
+    defaultValues: {
+      enabled: true,
+      type: "",
+      name: "",
+      client_id: 0,
+      url: "",
+      headers: [] as string[],
+      api_key: "",
+      filters: [] as ListFilter[],
+      match_release: false,
+      tags_included: [] as string[],
+      tags_excluded: [] as string[],
+      include_unmonitored: false,
+      include_alternate_titles: false,
+      include_year: false,
+      skip_clean_sanitize: false,
+    },
+    onSubmit: async ({ value }) => onSubmit(value),
+    validators: {
+      onSubmit: ({ value }) => {
+        if (!value.name) {
+          return "Name is required";
+        }
+        return undefined;
+      }
+    }
+  });
 
-    return errors;
-  };
+  const listType = useStore(form.store, (s: any) => s.values.type);
 
   return (
     <Transition show={isOpen} as={Fragment}>
@@ -126,157 +136,100 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    type: "",
-                    name: "",
-                    client_id: 0,
-                    url: "",
-                    headers: [],
-                    api_key: "",
-                    filters: [],
-                    match_release: false,
-                    tags_included: [],
-                    tags_excluded: [],
-                    include_unmonitored: false,
-                    include_alternate_titles: false,
-                    include_year: false,
-                    skip_clean_sanitize: false,
-                  }}
-                  onSubmit={onSubmit}
-                  validate={validate}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add List
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Auto update filters from lists and arrs.
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="cursor-pointer bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
-                              </button>
-                            </div>
+                <form.AppForm>
+                  <form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto" onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+                    <div className="flex-1">
+                      <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                        <div className="flex items-start justify-between space-x-3">
+                          <div className="space-y-1">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Add List
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-200">
+                              Auto update filters from lists and arrs.
+                            </p>
+                          </div>
+                          <div className="h-7 flex items-center">
+                            <button
+                              type="button"
+                              className="cursor-pointer bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                              onClick={toggle}
+                            >
+                              <span className="sr-only">Close panel</span>
+                              <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
+                            </button>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                      <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                        <ContextField name="name">
                           <TextFieldWide
-                            name="name"
                             label="Name"
                             required={true}
                           />
+                        </ContextField>
 
-                          <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
-                                Type
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <Field name="type" type="select">
-                                {({
-                                    field,
-                                    form: { setFieldValue }
-                                  }: FieldProps) => (
-                                  <Select
-                                    {...field}
-                                    isClearable={true}
-                                    isSearchable={true}
-                                    components={{
-                                      Input: common.SelectInput,
-                                      Control: common.SelectControl,
-                                      Menu: common.SelectMenu,
-                                      Option: common.SelectOption,
-                                      IndicatorSeparator: common.IndicatorSeparator,
-                                      DropdownIndicator: common.DropdownIndicator
-                                    }}
-                                    placeholder="Choose a type"
-                                    styles={{
-                                      singleValue: (base) => ({
-                                        ...base,
-                                        color: "unset"
-                                      })
-                                    }}
-                                    theme={(theme) => ({
-                                      ...theme,
-                                      spacing: {
-                                        ...theme.spacing,
-                                        controlHeight: 30,
-                                        baseUnit: 2
-                                      }
-                                    })}
-                                    value={field?.value && field.value.value}
-                                    onChange={(newValue: unknown) => {
-                                      const option = newValue as { value: string };
-                                      setFieldValue(field.name, option?.value ?? "");
-                                    }}
-                                    options={ListTypeOptions}
-                                  />
-                                )}
-                              </Field>
-                            </div>
+                        <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                          <div>
+                            <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                              Type
+                            </label>
                           </div>
-
-                          <SwitchGroupWide name="enabled" label="Enabled"/>
+                          <div className="sm:col-span-2">
+                            <ContextField name="type">
+                              <TypeSelectField />
+                            </ContextField>
+                          </div>
                         </div>
 
-                        <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
+                        <ContextField name="enabled">
+                          <SwitchGroupWide label="Enabled"/>
+                        </ContextField>
+                      </div>
 
-                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
-                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Filters
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Select filters to update for this list.
-                              </p>
-                            </div>
+                      <ListTypeForm listType={listType as ListType} clients={clients ?? []}/>
 
+                      <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                        <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                          <div className="px-4">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Filters
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Select filters to update for this list.
+                            </p>
+                          </div>
+
+                          <ContextField name="filters">
                             <ListFilterMultiSelectField
-                              name="filters"
                               label="Filters"
                               required={true}
                               options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
                             />
+                          </ContextField>
 
-                          </div>
                         </div>
                       </div>
+                    </div>
 
-                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            Cancel
-                          </button>
-                          <SubmitButton isPending={createMutation.isPending} isError={createMutation.isError} isSuccess={createMutation.isSuccess} />
-                        </div>
+                    <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+                      <div className="space-x-3 flex justify-end">
+                        <button
+                          type="button"
+                          className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                          onClick={toggle}
+                        >
+                          Cancel
+                        </button>
+                        <SubmitButton isPending={createMutation.isPending} isError={createMutation.isError} isSuccess={createMutation.isSuccess} />
                       </div>
+                    </div>
 
-                      <DEBUG values={values}/>
-                    </Form>
-                  )}
-                </Formik>
+                    <DEBUG values={form.state.values}/>
+                  </form>
+                </form.AppForm>
               </div>
             </TransitionChild>
           </DialogPanel>
@@ -326,6 +279,30 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 
   const deleteAction = () => deleteMutation.mutate(data.id);
 
+  const form = useAppForm({
+    defaultValues: {
+      id: data.id,
+      enabled: data.enabled,
+      type: data.type,
+      name: data.name,
+      client_id: data.client_id,
+      url: data.url,
+      headers: data.headers || [],
+      api_key: data.api_key,
+      filters: data.filters,
+      match_release: data.match_release,
+      tags_included: data.tags_included,
+      tags_excluded: data.tags_excluded,
+      include_unmonitored: data.include_unmonitored,
+      include_alternate_titles: data.include_alternate_titles,
+      include_year: data.include_year,
+      skip_clean_sanitize: data.skip_clean_sanitize,
+    },
+    onSubmit: async ({ value }) => onSubmit(value),
+  });
+
+  const listType = useStore(form.store, (s: any) => s.values.type);
+
   return (
     <Transition show={isOpen} as={Fragment}>
       <Dialog
@@ -358,117 +335,100 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    id: data.id,
-                    enabled: data.enabled,
-                    type: data.type,
-                    name: data.name,
-                    client_id: data.client_id,
-                    url: data.url,
-                    headers: data.headers || [],
-                    api_key: data.api_key,
-                    filters: data.filters,
-                    match_release: data.match_release,
-                    tags_included: data.tags_included,
-                    tags_excluded: data.tags_excluded,
-                    include_unmonitored: data.include_unmonitored,
-                    include_alternate_titles: data.include_alternate_titles,
-                    include_year: data.include_year,
-                    skip_clean_sanitize: data.skip_clean_sanitize,
-                  }}
-                  onSubmit={onSubmit}
-                  // validate={validate}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Update List
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Auto update filters from lists and arrs.
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
-                              </button>
-                            </div>
+                <form.AppForm>
+                  <form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto" onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+                    <div className="flex-1">
+                      <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                        <div className="flex items-start justify-between space-x-3">
+                          <div className="space-y-1">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Update List
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-200">
+                              Auto update filters from lists and arrs.
+                            </p>
                           </div>
+                          <div className="h-7 flex items-center">
+                            <button
+                              type="button"
+                              className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                              onClick={toggle}
+                            >
+                              <span className="sr-only">Close panel</span>
+                              <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+
+                        <ContextField name="name">
+                          <TextFieldWide label="Name" required={true}/>
+                        </ContextField>
+
+                        <ContextField name="type">
+                          <TextFieldWide label="Type" required={true} disabled={true} />
+                        </ContextField>
+
+                        <ContextField name="enabled">
+                          <SwitchGroupWide label="Enabled"/>
+                        </ContextField>
+
+                        <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+                          <ListTypeForm listType={listType} clients={clientsQuery.data ?? []}/>
                         </div>
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                            <div className="px-4">
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                                Filters
+                              </DialogTitle>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Select filters to update for this list.
+                              </p>
+                            </div>
 
-                          <TextFieldWide name="name" label="Name" required={true}/>
-
-                          <TextFieldWide name="type" label="Type" required={true} disabled={true} />
-
-                          <SwitchGroupWide name="enabled" label="Enabled"/>
-
-                          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
-                            <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
-                          </div>
-
-                          <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
-                            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                              <div className="px-4">
-                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                  Filters
-                                </DialogTitle>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  Select filters to update for this list.
-                                </p>
-                              </div>
-
+                            <ContextField name="filters">
                               <ListFilterMultiSelectField
-                                name="filters"
                                 label="Filters"
                                 required={true}
                                 options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
                               />
+                            </ContextField>
 
-                            </div>
-                          </div>
-
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
-                        <div className="space-x-3 flex justify-between">
-                          <button
-                            type="button"
-                            className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
-                            onClick={toggleDeleteModal}
-                          >
-                            Remove
-                          </button>
-                          <div className="flex space-x-3">
-                          <button
-                            type="button"
-                            className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            Cancel
-                          </button>
-                          <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
                           </div>
                         </div>
-                      </div>
 
-                      <DEBUG values={values}/>
-                    </Form>
-                  )}
-                </Formik>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
+                      <div className="space-x-3 flex justify-between">
+                        <button
+                          type="button"
+                          className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                          onClick={toggleDeleteModal}
+                        >
+                          Remove
+                        </button>
+                        <div className="flex space-x-3">
+                        <button
+                          type="button"
+                          className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                          onClick={toggle}
+                        >
+                          Cancel
+                        </button>
+                        <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <DEBUG values={form.state.values}/>
+                  </form>
+                </form.AppForm>
               </div>
             </TransitionChild>
           </DialogPanel>
@@ -530,6 +490,46 @@ const SubmitButton = (props: SubmitButtonProps) => {
   );
 }
 
+function TypeSelectField() {
+  const field = useFieldContext<string>();
+
+  return (
+    <Select
+      isClearable={true}
+      isSearchable={true}
+      components={{
+        Input: common.SelectInput,
+        Control: common.SelectControl,
+        Menu: common.SelectMenu,
+        Option: common.SelectOption,
+        IndicatorSeparator: common.IndicatorSeparator,
+        DropdownIndicator: common.DropdownIndicator
+      }}
+      placeholder="Choose a type"
+      styles={{
+        singleValue: (base) => ({
+          ...base,
+          color: "unset"
+        })
+      }}
+      theme={(theme) => ({
+        ...theme,
+        spacing: {
+          ...theme.spacing,
+          controlHeight: 30,
+          baseUnit: 2
+        }
+      })}
+      value={field.state.value ? ListTypeOptions.find(o => o.value === field.state.value) ?? null : null}
+      onChange={(newValue: unknown) => {
+        const option = newValue as { value: string } | null;
+        field.handleChange(option?.value ?? "");
+      }}
+      options={ListTypeOptions}
+    />
+  );
+}
+
 interface ListTypeFormProps {
   listID?: number;
   listType: ListType;
@@ -537,20 +537,20 @@ interface ListTypeFormProps {
 }
 
 const ListTypeForm = (props: ListTypeFormProps) => {
-  const { setFieldValue } = useFormikContext();
+  const form = useFormContext() as any;
   const [prevActionType, setPrevActionType] = useState<string | null>(null);
   const { listType } = props;
 
   useEffect(() => {
     if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType)) {
       // Reset the client_id field value
-      setFieldValue('client_id', 0);
+      form.setFieldValue("client_id" as any, 0);
       // Reset the  url
-      setFieldValue('url', '');
+      form.setFieldValue("url" as any, '');
     }
 
     setPrevActionType(listType);
-  }, [listType, prevActionType, setFieldValue]);
+  }, [listType, prevActionType, form]);
 
   switch (listType) {
     case "RADARR":
@@ -587,9 +587,15 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
       return (
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-          <SwitchGroupWide name="include_alternate_titles" label="Include Alternate Titles" description="Include alternate titles in the filter." />
+          <ContextField name="match_release">
+            <SwitchGroupWide label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          </ContextField>
+          <ContextField name="include_unmonitored">
+            <SwitchGroupWide label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          </ContextField>
+          <ContextField name="include_alternate_titles">
+            <SwitchGroupWide label="Include Alternate Titles" description="Include alternate titles in the filter." />
+          </ContextField>
         </fieldset>
       );
     case "LIDARR":
@@ -598,26 +604,29 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
       return (
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <ContextField name="include_unmonitored">
+            <SwitchGroupWide label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          </ContextField>
         </fieldset>
       );
     case "PLAINTEXT":
       return (
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+          <ContextField name="skip_clean_sanitize">
+            <SwitchGroupWide label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+          </ContextField>
         </fieldset>
       );
   }
 }
 
 function ListTypeArr({ listType, clients }: ListTypeFormProps) {
-  const { values } = useFormikContext<List>();
+  const form = useFormContext() as any;
+  const clientId = useStore(form.store, (s: any) => (s.values as any).client_id as number);
+  const valuesType = useStore(form.store, (s: any) => (s.values as any).type as string);
 
-  useEffect(() => {
-  }, [values.client_id]);
-
-  const arrTagsQuery = useQuery(DownloadClientsArrTagsQueryOptions(values.client_id));
+  const arrTagsQuery = useQuery(DownloadClientsArrTagsQueryOptions(clientId));
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -631,22 +640,25 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
       </div>
 
       <DownloadClientSelectCustom
-        name={`client_id`}
         clients={clients}
         clientType={listType}
       />
 
-      {values.client_id > 0 && (values.type === "RADARR" || values.type == "SONARR") && (
+      {clientId > 0 && (valuesType === "RADARR" || valuesType == "SONARR") && (
         <>
-          <ListArrTagsMultiSelectField name="tags_included" label="Tags Included" options={arrTagsQuery.data?.map(f => ({
-            value: f.label,
-            label: f.label
-          })) ?? []}/>
+          <ContextField name="tags_included">
+            <ListArrTagsMultiSelectField label="Tags Included" options={arrTagsQuery.data?.map(f => ({
+              value: f.label,
+              label: f.label
+            })) ?? []}/>
+          </ContextField>
 
-          <ListArrTagsMultiSelectField name="tags_excluded" label="Tags Excluded" options={arrTagsQuery.data?.map(f => ({
-            value: f.label,
-            label: f.label
-          })) ?? []}/>
+          <ContextField name="tags_excluded">
+            <ListArrTagsMultiSelectField label="Tags Excluded" options={arrTagsQuery.data?.map(f => ({
+              value: f.label,
+              label: f.label
+            })) ?? []}/>
+          </ContextField>
         </>
       )}
 
@@ -658,7 +670,8 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 }
 
 function ListTypeTrakt() {
-  const { values } = useFormikContext<List>();
+  const form = useFormContext() as any;
+  const url = useStore(form.store, (s: any) => (s.values as any).url as string);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -671,25 +684,29 @@ function ListTypeTrakt() {
         </p>
       </div>
 
-      <SelectFieldCreatable
-        name="url"
-        label="List URL"
-        help="Default Trakt lists. Override with your own."
-        options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
-      />
-
-      {!values.url.startsWith("https://api.autobrr.com/") && (
-        <PasswordFieldWide
-          name="api_key"
-          label="API Key"
-          help="Trakt API Key. Required for private lists."
+      <ContextField name="url">
+        <SelectFieldCreatable
+          label="List URL"
+          help="Default Trakt lists. Override with your own."
+          options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
         />
+      </ContextField>
+
+      {!url.startsWith("https://api.autobrr.com/") && (
+        <ContextField name="api_key">
+          <PasswordFieldWide
+            label="API Key"
+            help="Trakt API Key. Required for private lists."
+          />
+        </ContextField>
       )}
 
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <ContextField name="match_release">
+            <SwitchGroupWide label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          </ContextField>
         </fieldset>
       </div>
     </div>
@@ -708,16 +725,19 @@ function ListTypeAniList() {
         </p>
       </div>
 
-      <SelectFieldBasic
-        name="url"
-        label="List URL"
-        options={ListsAniListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
-      />
+      <ContextField name="url">
+        <SelectFieldBasic
+          label="List URL"
+          options={ListsAniListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        />
+      </ContextField>
 
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <ContextField name="match_release">
+            <SwitchGroupWide label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          </ContextField>
         </fieldset>
       </div>
     </div>
@@ -736,33 +756,38 @@ function ListTypePlainText() {
         </p>
       </div>
 
-      <TextFieldWide
-        name="url"
-        label="List URL"
-        help="URL to a plain text file with one item per line"
-        placeholder="https://example.com/list.txt"
-        tooltip={
-            <div>
-                <p>Plaintext list can read from both http urls and local files on disk.</p>
-                <br />
-                <p>Remote: https://service.com/file.txt</p>
-                <br />
-                <p>Local: file:///home/username/file.txt</p>
-                <DocsLink href="https://autobrr.com/filters/lists" />
-            </div>
-        }
-      />
+      <ContextField name="url">
+        <TextFieldWide
+          label="List URL"
+          help="URL to a plain text file with one item per line"
+          placeholder="https://example.com/list.txt"
+          tooltip={
+              <div>
+                  <p>Plaintext list can read from both http urls and local files on disk.</p>
+                  <br />
+                  <p>Remote: https://service.com/file.txt</p>
+                  <br />
+                  <p>Local: file:///home/username/file.txt</p>
+                  <DocsLink href="https://autobrr.com/filters/lists" />
+              </div>
+          }
+        />
+      </ContextField>
 
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <ContextField name="match_release">
+            <SwitchGroupWide label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          </ContextField>
         </fieldset>
       </div>
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+          <ContextField name="skip_clean_sanitize">
+            <SwitchGroupWide label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+          </ContextField>
         </fieldset>
       </div>
     </div>
@@ -781,7 +806,9 @@ function ListTypeSteam() {
         </p>
       </div>
 
-      <TextFieldWide name="url" label="URL" help={"Steam Wishlist URL"} placeholder="https://store.steampowered.com/wishlist/id/USERNAME/wishlistdata"/>
+      <ContextField name="url">
+        <TextFieldWide label="URL" help={"Steam Wishlist URL"} placeholder="https://store.steampowered.com/wishlist/id/USERNAME/wishlistdata"/>
+      </ContextField>
     </div>
   )
 }
@@ -798,17 +825,20 @@ function ListTypeMetacritic() {
         </p>
       </div>
 
-      <SelectFieldCreatable
-        name="url"
-        label="List URL"
-        help="Metacritic lists. Override with your own."
-        options={ListsMetacriticOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
-      />
+      <ContextField name="url">
+        <SelectFieldCreatable
+          label="List URL"
+          help="Metacritic lists. Override with your own."
+          options={ListsMetacriticOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        />
+      </ContextField>
 
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <ContextField name="match_release">
+            <SwitchGroupWide label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          </ContextField>
         </fieldset>
       </div>
     </div>
@@ -816,14 +846,16 @@ function ListTypeMetacritic() {
 }
 
 function ListTypeMDBList() {
-    const { values, setFieldValue } = useFormikContext<List>();
+    const form = useFormContext() as any;
+    const matchRelease = useStore(form.store, (s: any) => (s.values as any).match_release as boolean);
+    const includeYear = useStore(form.store, (s: any) => (s.values as any).include_year as boolean);
 
     useEffect(() => {
-        if (!values.match_release && values.include_year) {
-            setFieldValue("match_release", true);
+        if (!matchRelease && includeYear) {
+            form.setFieldValue("match_release" as any, true);
         }
 
-    }, [setFieldValue, values.include_year, values.match_release])
+    }, [form, includeYear, matchRelease])
 
     return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -836,18 +868,23 @@ function ListTypeMDBList() {
         </p>
       </div>
 
-      <SelectFieldCreatable
-        name="url"
-        label="List URL"
-        help="MDBLists.com lists. Override with your own."
-        options={ListsMDBListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
-      />
+      <ContextField name="url">
+        <SelectFieldCreatable
+          label="List URL"
+          help="MDBLists.com lists. Override with your own."
+          options={ListsMDBListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        />
+      </ContextField>
 
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
-          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter for movies. It requires Match Releases enabled. Example: Movie?Title?2024*" />
+          <ContextField name="match_release">
+            <SwitchGroupWide label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          </ContextField>
+          <ContextField name="include_year">
+            <SwitchGroupWide label="Include Year" description="Include the release year in the filter for movies. It requires Match Releases enabled. Example: Movie?Title?2024*" />
+          </ContextField>
         </fieldset>
       </div>
     </div>
@@ -855,17 +892,19 @@ function ListTypeMDBList() {
 }
 
 interface DownloadClientSelectProps {
-  name: string;
   clientType: string;
   clients: DownloadClient[];
 }
 
-function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClientSelectProps) {
+function DownloadClientSelectCustom({ clientType, clients }: DownloadClientSelectProps) {
+  const form = useFormContext() as any;
+  const clientId = useStore(form.store, (s: any) => (s.values as any).client_id as number);
+
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
         <label
-          htmlFor={name}
+          htmlFor="client_id"
           className="block ml-px text-sm font-medium text-gray-900 dark:text-white"
         >
           <div className="flex">
@@ -874,105 +913,90 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
-          {({
-              field,
-              meta,
-              form: { setFieldValue }
-            }: FieldProps) => (
-            <Listbox
-              value={field.value}
-              onChange={(value) => setFieldValue(field?.name, value)}
-            >
-              {({ open }) => (
-                <>
-                  {/*<Label className="block text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide">*/}
-                  {/*  Client*/}
-                  {/*</Label>*/}
-                  <div className="relative">
-                    <ListboxButton
-                      className="block w-full shadow-xs sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
-                    <span className="block truncate">
-                      {field.value
-                        ? clients.find((c) => c.id === field.value)?.name
-                        : "Choose a client"}
-                    </span>
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <ChevronUpDownIcon
-                        className="h-5 w-5 text-gray-400 dark:text-gray-300"
-                        aria-hidden="true"/>
-                    </span>
-                    </ListboxButton>
+        <Listbox
+          value={clientId}
+          onChange={(value) => form.setFieldValue("client_id" as any, value)}
+        >
+          {({ open }) => (
+            <>
+              <div className="relative">
+                <ListboxButton
+                  className="block w-full shadow-xs sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
+                <span className="block truncate">
+                  {clientId
+                    ? clients.find((c) => c.id === clientId)?.name
+                    : "Choose a client"}
+                </span>
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <ChevronUpDownIcon
+                    className="h-5 w-5 text-gray-400 dark:text-gray-300"
+                    aria-hidden="true"/>
+                </span>
+                </ListboxButton>
 
-                    <Transition
-                      show={open}
-                      as={Fragment}
-                      leave="transition ease-in duration-100"
-                      leaveFrom="opacity-100"
-                      leaveTo="opacity-0"
-                    >
-                      <ListboxOptions
-                        static
-                        className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-hidden sm:text-sm"
-                      >
-                        {clients
-                          .filter((c) => c.type === clientType)
-                          .map((client) => (
-                            <ListboxOption
-                              key={client.id}
-                              className={({ focus }) => classNames(
-                                focus
-                                  ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-950"
-                                  : "text-gray-900 dark:text-gray-300",
-                                "cursor-default select-none relative py-2 pl-3 pr-9"
+                <Transition
+                  show={open}
+                  as={Fragment}
+                  leave="transition ease-in duration-100"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <ListboxOptions
+                    static
+                    className="absolute z-10 mt-1 w-full border border-gray-400 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg max-h-60 rounded-md py-1 text-base overflow-auto focus:outline-hidden sm:text-sm"
+                  >
+                    {clients
+                      .filter((c) => c.type === clientType)
+                      .map((client) => (
+                        <ListboxOption
+                          key={client.id}
+                          className={({ focus }) => classNames(
+                            focus
+                              ? "text-white dark:text-gray-100 bg-blue-600 dark:bg-gray-950"
+                              : "text-gray-900 dark:text-gray-300",
+                            "cursor-default select-none relative py-2 pl-3 pr-9"
+                          )}
+                          value={client.id}
+                        >
+                          {({ selected, focus }) => (
+                            <>
+                            <span
+                              className={classNames(
+                                selected ? "font-semibold" : "font-normal",
+                                "block truncate"
                               )}
-                              value={client.id}
                             >
-                              {({ selected, focus }) => (
-                                <>
+                              {client.name}
+                            </span>
+
+                              {selected ? (
                                 <span
                                   className={classNames(
-                                    selected ? "font-semibold" : "font-normal",
-                                    "block truncate"
+                                    focus ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-blue-500",
+                                    "absolute inset-y-0 right-0 flex items-center pr-4"
                                   )}
                                 >
-                                  {client.name}
-                                </span>
-
-                                  {selected ? (
-                                    <span
-                                      className={classNames(
-                                        focus ? "text-white dark:text-gray-100" : "text-blue-600 dark:text-blue-500",
-                                        "absolute inset-y-0 right-0 flex items-center pr-4"
-                                      )}
-                                    >
-                                    <CheckIcon
-                                      className="h-5 w-5"
-                                      aria-hidden="true"/>
-                                  </span>
-                                  ) : null}
-                                </>
-                              )}
-                            </ListboxOption>
-                          ))}
-                      </ListboxOptions>
-                    </Transition>
-                    {meta.touched && meta.error && (
-                      <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-                    )}
-                  </div>
-                </>
-              )}
-            </Listbox>
+                                <CheckIcon
+                                  className="h-5 w-5"
+                                  aria-hidden="true"/>
+                              </span>
+                              ) : null}
+                            </>
+                          )}
+                        </ListboxOption>
+                      ))}
+                  </ListboxOptions>
+                </Transition>
+              </div>
+            </>
           )}
-        </Field>
+        </Listbox>
       </div>
     </div>
   );
 }
 
 export interface ListMultiSelectFieldProps {
-  name: string;
   label: string;
   help?: string;
   placeholder?: string;
@@ -981,12 +1005,13 @@ export interface ListMultiSelectFieldProps {
   options: OptionBasicTyped<number | string>[];
 }
 
-export function ListArrTagsMultiSelectField({ name, label, help, tooltip, options }: ListMultiSelectFieldProps) {
+export function ListArrTagsMultiSelectField({ label, help, tooltip, options }: ListMultiSelectFieldProps) {
+  const field = useFieldContext<string[]>();
+
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
         <label
-          htmlFor={name}
           className="block ml-px text-sm font-medium text-gray-900 dark:text-white"
         >
           <div className="flex">
@@ -997,34 +1022,20 @@ export function ListArrTagsMultiSelectField({ name, label, help, tooltip, option
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
-          {({
-              field,
-              form: { setFieldValue }
-            }: FieldProps) => (
-            <>
-              <RMSC
-                {...field}
-                options={options}
-                // disabled={disabled}
-                labelledBy={name}
-                // isCreatable={creatable}
-                // onCreateOption={handleNewField}
-                value={field.value && field.value.map((item: MultiSelectOption) => ({
-                  value: item.value ? item.value : item,
-                  label: item.label ? item.label : item
-                }))}
-                onChange={(values: Array<MultiSelectOption>) => {
-                  const am = values && values.map((i) => i.value);
-
-                  setFieldValue(field.name, am);
-                }}
-              />
-            </>
-          )}
-        </Field>
+        <RMSC
+          options={options}
+          labelledBy={label}
+          value={field.state.value && field.state.value.map((item: MultiSelectOption | string) => ({
+            value: typeof item === "object" && item !== null && "value" in item ? (item as MultiSelectOption).value : item,
+            label: typeof item === "object" && item !== null && "label" in item ? (item as MultiSelectOption).label : item
+          }))}
+          onChange={(values: Array<MultiSelectOption>) => {
+            const am = values && values.map((i) => i.value);
+            field.handleChange(am as any);
+          }}
+        />
         {help && (
-          <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+          <p className="mt-2 text-sm text-gray-500">{help}</p>
         )}
       </div>
     </div>

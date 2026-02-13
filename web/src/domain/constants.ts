@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { MultiSelectOption } from "@components/inputs/select";
+import { MultiSelectOption } from "@components/inputs/tanstack/select";
 
 export const AnnounceTypeOptions: MultiSelectOption[] = [
   {
