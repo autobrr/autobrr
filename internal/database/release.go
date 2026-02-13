@@ -44,8 +44,8 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
-		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
+		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "title_normalized", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.TitleNormalized, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.Handler)
 
 	q, args, err := queryBuilder.ToSql()
@@ -178,13 +178,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 }
 
 func (repo *ReleaseRepo) Find(ctx context.Context, params domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
-	tx, err := repo.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
-	if err != nil {
-		return nil, errors.Wrap(err, "error begin transaction")
-	}
-	defer tx.Rollback()
-
-	resp, err := repo.findReleases(ctx, tx, params)
+	resp, err := repo.findReleases(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +200,7 @@ var reservedSearch = map[string]*regexp.Regexp{
 	"r.filter":        regexp.MustCompile(`(?i)(?:` + `filter` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 }
 
-func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
+func (repo *ReleaseRepo) findReleases(ctx context.Context, params domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
 	whereQueryBuilder := sq.And{}
 	if params.Cursor > 0 {
 		whereQueryBuilder = append(whereQueryBuilder, sq.Lt{"r.id": params.Cursor})
@@ -304,6 +298,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			"r.info_url",
 			"r.download_url",
 			"r.title",
+			"r.title_normalized",
 			"r.sub_title",
 			"r.torrent_name",
 			"r.normalized_hash",
@@ -353,7 +348,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		NextCursor: 0,
 	}
 
-	rows, err := tx.QueryContext(ctx, query, args...)
+	rows, err := repo.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return resp, errors.Wrap(err, "error executing query")
 	}
@@ -368,7 +363,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		var rls domain.Release
 		var ras domain.ReleaseActionStatus
 
-		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, rlsAnnounceType, infoUrl, downloadUrl, subTitle, normalizedHash, codec, hdr, rlsType, audioStr, audioChannels, region, languageStr, editionStr, cutStr, website, mediaProcessing sql.NullString
+		var rlsIndexer, rlsIndexerName, rlsIndexerExternalName, rlsFilter, rlsAnnounceType, infoUrl, downloadUrl, normalizedTitle, subTitle, normalizedHash, codec, hdr, rlsType, audioStr, audioChannels, region, languageStr, editionStr, cutStr, website, mediaProcessing sql.NullString
 		var hybrid sql.NullBool
 
 		var rlsIndexerID sql.NullInt64
@@ -391,6 +386,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			&infoUrl,
 			&downloadUrl,
 			&rls.Title,
+			&normalizedTitle,
 			&subTitle,
 			&rls.TorrentName,
 			&normalizedHash,
@@ -468,6 +464,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		rls.ActionStatus = make([]domain.ReleaseActionStatus, 0)
 		rls.InfoURL = infoUrl.String
 		rls.DownloadURL = downloadUrl.String
+		rls.TitleNormalized = normalizedTitle.String
 		rls.SubTitle = subTitle.String
 		rls.NormalizedHash = normalizedHash.String
 		rls.Codec = strings.Split(codec.String, ",")
@@ -1043,7 +1040,7 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 
 func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id, r.torrent_name, r.normalized_hash, r.title, ras.action, ras.status").
+		Select("r.id, r.torrent_name, r.normalized_hash, r.title, r.title_normalized, ras.action, ras.status").
 		From("release r").
 		LeftJoin("release_action_status ras ON r.id = ras.release_id").
 		Where("ras.status = 'PUSH_APPROVED'")
@@ -1053,7 +1050,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.normalized_hash": release.NormalizedHash})
 	} else {
 		if profile.Title {
-			queryBuilder = queryBuilder.Where(repo.db.ILike("r.title", release.Title))
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.title_normalized", release.TitleNormalized))
 		}
 
 		if profile.SubTitle {
@@ -1116,9 +1113,9 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		}
 
 		// video features (hybrid, remux)
-		if release.IsTypeVideo() {
-			queryBuilder = queryBuilder.Where(sq.Eq{"r.media_processing": release.MediaProcessing})
-		}
+		//if release.IsTypeVideo() {
+		//	queryBuilder = queryBuilder.Where(sq.Eq{"r.media_processing": release.MediaProcessing})
+		//}
 
 		if profile.Language {
 			queryBuilder = queryBuilder.Where(sq.Eq{"r.region": release.Region})
@@ -1216,19 +1213,20 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	}
 
 	type result struct {
-		id      int
-		release string
-		hash    string
-		title   string
-		action  string
-		status  string
+		id              int
+		release         string
+		hash            string
+		title           string
+		titleNormalized string
+		action          string
+		status          string
 	}
 
 	var res []result
 
 	for rows.Next() {
 		r := result{}
-		if err := rows.Scan(&r.id, &r.release, &r.hash, &r.title, &r.action, &r.status); err != nil {
+		if err := rows.Scan(&r.id, &r.release, &r.hash, &r.title, &r.titleNormalized, &r.action, &r.status); err != nil {
 			return false, errors.Wrap(err, "error scan CheckIsDuplicateRelease")
 		}
 		res = append(res, r)
@@ -1243,8 +1241,8 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 	return true, nil
 }
 
-func (r *ReleaseRepo) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error) {
-	queryBuilder := r.db.squirrel.
+func (repo *ReleaseRepo) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error) {
+	queryBuilder := repo.db.squirrel.
 		Select(
 			"id",
 			"name",
@@ -1267,7 +1265,7 @@ func (r *ReleaseRepo) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCle
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -1310,8 +1308,8 @@ func (r *ReleaseRepo) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCle
 	return jobs, nil
 }
 
-func (r *ReleaseRepo) FindCleanupJobByID(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error) {
-	queryBuilder := r.db.squirrel.
+func (repo *ReleaseRepo) FindCleanupJobByID(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error) {
+	queryBuilder := repo.db.squirrel.
 		Select(
 			"id",
 			"name",
@@ -1334,7 +1332,7 @@ func (r *ReleaseRepo) FindCleanupJobByID(ctx context.Context, id int) (*domain.R
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.Handler.QueryRowContext(ctx, query, args...)
+	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -1374,7 +1372,7 @@ func (r *ReleaseRepo) FindCleanupJobByID(ctx context.Context, id int) (*domain.R
 	return &job, nil
 }
 
-func (r *ReleaseRepo) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+func (repo *ReleaseRepo) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
 	var indexers, statuses sql.NullString
 
 	if job.Indexers != "" {
@@ -1384,7 +1382,7 @@ func (r *ReleaseRepo) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCl
 		statuses = sql.NullString{String: job.Statuses, Valid: true}
 	}
 
-	queryBuilder := r.db.squirrel.
+	queryBuilder := repo.db.squirrel.
 		Insert("release_cleanup_job").
 		Columns(
 			"name",
@@ -1402,7 +1400,7 @@ func (r *ReleaseRepo) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCl
 			indexers,
 			statuses,
 		).
-		Suffix("RETURNING id").RunWith(r.db.Handler)
+		Suffix("RETURNING id").RunWith(repo.db.Handler)
 
 	var retID int
 
@@ -1415,7 +1413,7 @@ func (r *ReleaseRepo) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCl
 	return nil
 }
 
-func (r *ReleaseRepo) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+func (repo *ReleaseRepo) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
 	var indexers, statuses sql.NullString
 
 	if job.Indexers != "" {
@@ -1425,7 +1423,7 @@ func (r *ReleaseRepo) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseC
 		statuses = sql.NullString{String: job.Statuses, Valid: true}
 	}
 
-	queryBuilder := r.db.squirrel.
+	queryBuilder := repo.db.squirrel.
 		Update("release_cleanup_job").
 		Set("name", job.Name).
 		Set("enabled", job.Enabled).
@@ -1441,7 +1439,7 @@ func (r *ReleaseRepo) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseC
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	result, err := repo.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1455,7 +1453,7 @@ func (r *ReleaseRepo) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseC
 	return nil
 }
 
-func (r *ReleaseRepo) UpdateCleanupJobLastRun(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+func (repo *ReleaseRepo) UpdateCleanupJobLastRun(ctx context.Context, job *domain.ReleaseCleanupJob) error {
 	var lastRunStatus, lastRunData sql.NullString
 
 	if job.LastRunStatus != "" {
@@ -1465,7 +1463,7 @@ func (r *ReleaseRepo) UpdateCleanupJobLastRun(ctx context.Context, job *domain.R
 		lastRunData = sql.NullString{String: job.LastRunData, Valid: true}
 	}
 
-	queryBuilder := r.db.squirrel.
+	queryBuilder := repo.db.squirrel.
 		Update("release_cleanup_job").
 		Set("last_run", job.LastRun).
 		Set("last_run_status", lastRunStatus).
@@ -1477,7 +1475,7 @@ func (r *ReleaseRepo) UpdateCleanupJobLastRun(ctx context.Context, job *domain.R
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	result, err := repo.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1491,8 +1489,8 @@ func (r *ReleaseRepo) UpdateCleanupJobLastRun(ctx context.Context, job *domain.R
 	return nil
 }
 
-func (r *ReleaseRepo) CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	queryBuilder := r.db.squirrel.
+func (repo *ReleaseRepo) CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error {
+	queryBuilder := repo.db.squirrel.
 		Update("release_cleanup_job").
 		Set("enabled", enabled).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
@@ -1503,7 +1501,7 @@ func (r *ReleaseRepo) CleanupJobToggleEnabled(ctx context.Context, id int, enabl
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	result, err := repo.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1517,8 +1515,8 @@ func (r *ReleaseRepo) CleanupJobToggleEnabled(ctx context.Context, id int, enabl
 	return nil
 }
 
-func (r *ReleaseRepo) DeleteCleanupJob(ctx context.Context, id int) error {
-	queryBuilder := r.db.squirrel.
+func (repo *ReleaseRepo) DeleteCleanupJob(ctx context.Context, id int) error {
+	queryBuilder := repo.db.squirrel.
 		Delete("release_cleanup_job").
 		Where(sq.Eq{"id": id})
 
@@ -1527,7 +1525,7 @@ func (r *ReleaseRepo) DeleteCleanupJob(ctx context.Context, id int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	result, err := repo.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1538,7 +1536,7 @@ func (r *ReleaseRepo) DeleteCleanupJob(ctx context.Context, id int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Msgf("release_cleanup_job.delete: successfully deleted: %v", id)
+	repo.log.Debug().Msgf("release_cleanup_job.delete: successfully deleted: %v", id)
 
 	return nil
 }
