@@ -132,7 +132,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 		rls.MagnetURI = item.Link
-		rls.DownloadURL = ""
+		rls.DownloadURL = item.Link
 	}
 	// Loop through the enclosures.
 	for _, e := range item.Enclosures {
