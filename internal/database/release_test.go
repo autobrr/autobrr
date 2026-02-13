@@ -1197,6 +1197,39 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				isDuplicate: false, // not a match because REPACK checks for the same group
 			},
 			{
+				name: "18_1",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-OTHERGROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true},
+				},
+				isDuplicate: true, // Repack should not force group match when release isn't a repack
+			},
+			{
+				name: "18_2",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 REPACK 1080p HULU WEB-DL DDP 5.1 SDR H.264-OTHERGROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true},
+				},
+				isDuplicate: false, // Repack should not force group match when release isn't a repack
+			},
+			{
+				name: "18_3",
+				fields: fields{
+					releaseTitles: []string{
+						"The Best Show 2020 S04E10 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 REPACK 1080p HULU WEB-DL DDP 5.1 SDR H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true},
+				},
+				isDuplicate: false, // Repack with same group is not a duplicate
+			},
+			{
 				name: "19",
 				fields: fields{
 					releaseTitles: []string{

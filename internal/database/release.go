@@ -928,10 +928,10 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.proper": p.Proper})
 	}
 	if p.Repack {
-		queryBuilder = queryBuilder.Where(sq.And{
-			sq.Eq{"r.repack": p.Repack},
-			repo.db.ILike("r.release_group", p.Group),
-		})
+		queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": p.Repack})
+		if p.Repack {
+			queryBuilder = queryBuilder.Where(repo.db.ILike("r.release_group", p.Group))
+		}
 	}
 
 	if p.Season > 0 && p.Episode > 0 {
@@ -1188,10 +1188,10 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		}
 
 		if profile.Repack {
-			queryBuilder = queryBuilder.Where(sq.And{
-				sq.Eq{"r.repack": release.Repack},
-				repo.db.ILike("r.release_group", release.Group),
-			})
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.repack": release.Repack})
+			if release.Repack {
+				queryBuilder = queryBuilder.Where(repo.db.ILike("r.release_group", release.Group))
+			}
 		}
 	}
 
