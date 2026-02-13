@@ -3,6 +3,7 @@ module github.com/autobrr/autobrr
 go 1.25
 
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
+replace github.com/moistari/rls => github.com/autobrr/rls v0.8.0
 
 require (
 	github.com/Hellseher/go-shellquote v0.1.0
@@ -127,3 +128,4 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
