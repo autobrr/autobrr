@@ -46,7 +46,7 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-   parse:
+  parse:
     type: single
     lines:
       - tests:
