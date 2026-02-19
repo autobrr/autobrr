@@ -180,7 +180,8 @@ export async function HttpClient<T = unknown>(
     // It is most likely an error.
     switch (response.status) {
     case 403: {
-      if (AuthContext.get().isLoggedIn) {
+      const authState = AuthContext.get();
+      if (authState.isLoggedIn && authState.authMethod !== 'none') {
         return Promise.reject(new Error("Cookie expired or invalid."));
       }
       break;

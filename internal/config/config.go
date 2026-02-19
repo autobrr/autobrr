@@ -131,6 +131,11 @@ sessionSecret = "{{ .sessionSecret }}"
 # Disable Built In Login Form (only works when using external auth)
 #oidcDisableBuiltInLogin = false
 
+# Disable authentication entirely
+#
+# Do not use unless your instance is behind a secure proxy/firewall!
+#disableAuth = false
+
 # Metrics
 #
 # Enable metrics endpoint
@@ -297,6 +302,7 @@ func (c *AppConfig) defaults() {
 		ProfilingEnabled:      false,
 		ProfilingHost:         "127.0.0.1",
 		ProfilingPort:         6060,
+		DisableAuth:           false,
 		MetricsEnabled:        false,
 		MetricsHost:           "127.0.0.1",
 		MetricsPort:           9074,
@@ -458,6 +464,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvStr("METRICS_BASIC_AUTH_USERS"); v != "" {
 		c.Config.MetricsBasicAuthUsers = v
+	}
+
+	if v := GetEnvStr("DISABLE_AUTH"); v != "" {
+		c.Config.DisableAuth = strings.EqualFold(strings.ToLower(v), "true")
 	}
 }
 

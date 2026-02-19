@@ -74,6 +74,12 @@ func (h *authHandler) Routes(r chi.Router) {
 
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	if h.config.DisableAuth {
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("login not available: authentication is disabled"))
+		return
+	}
+
 	var data domain.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
@@ -167,6 +173,10 @@ func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
 		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: using oidc provider")
 	}
 
+	if h.config.DisableAuth {
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: no-auth mode enabled")
+	}
+
 	userCount, err := h.service.GetUserCount(ctx)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New("could not get user count")
@@ -184,6 +194,15 @@ func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
 // If there is a valid session return OK, otherwise the middleware returns early with a 401
 func (h *authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	if h.config.DisableAuth {
+		response := map[string]interface{}{
+			"auth_method": "none",
+		}
+		h.encoder.StatusResponse(w, http.StatusOK, response)
+		return
+	}
+
 	username := h.sessionManager.GetString(ctx, "username")
 	authMethod := h.sessionManager.GetString(ctx, "auth_method")
 	profilePicture := h.sessionManager.GetString(ctx, "profile_picture")

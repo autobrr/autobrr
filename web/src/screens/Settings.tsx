@@ -19,6 +19,7 @@ import {
 import { Link, Outlet } from "@tanstack/react-router";
 
 import { classNames } from "@utils";
+import { AuthContext } from "@utils/Context";
 
 interface NavTabType {
   name: string;
@@ -27,7 +28,7 @@ interface NavTabType {
   exact?: boolean;
 }
 
-const subNavigation: NavTabType[] = [
+const commonSubNavigation: NavTabType[] = [
   { name: "Application", href: "/settings", icon: CogIcon, exact: true },
   { name: "Logs", href: "/settings/logs", icon: Square3Stack3DIcon },
   { name: "Indexers", href: "/settings/indexers", icon: KeyIcon },
@@ -39,9 +40,12 @@ const subNavigation: NavTabType[] = [
   { name: "API keys", href: "/settings/api", icon: KeyIcon },
   { name: "Proxies", href: "/settings/proxies", icon: GlobeAltIcon },
   { name: "Releases", href: "/settings/releases", icon: RectangleStackIcon },
-  { name: "Account", href: "/settings/account", icon: UserCircleIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
+];
+
+const loggedInSubNavigation: NavTabType[] = [
+  { name: "Account", href: "/settings/account", icon: UserCircleIcon }
 ];
 
 interface NavLinkProps {
@@ -101,6 +105,10 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
 }
 
 export function Settings() {
+  const auth = AuthContext.get();
+  const isNoAuth = auth.authMethod === 'none';
+  const subNavigation = isNoAuth ? commonSubNavigation : [...commonSubNavigation, ...loggedInSubNavigation];
+
   return (
     <main>
       <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
