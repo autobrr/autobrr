@@ -6,7 +6,6 @@ package download_client
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -202,17 +201,17 @@ func (s *service) testRTorrentConnection(ctx context.Context, client domain.Down
 }
 
 func (s *service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
-	scheme := "http"
-	if client.TLS {
-		scheme = "https"
-	}
-
-	u, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+	clientHost, err := client.BuildLegacyHost()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error building Transmission host url: %v", client.Host)
 	}
 
-	tbt, err := transmission.New(u, &transmission.Config{
+	transmissionURL, err := url.Parse(clientHost)
+	if err != nil {
+		return errors.Wrap(err, "could not parse transmission url")
+	}
+
+	tbt, err := transmission.New(transmissionURL, &transmission.Config{
 		UserAgent:     "autobrr",
 		Username:      client.Username,
 		Password:      client.Password,
