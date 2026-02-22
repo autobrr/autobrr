@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
@@ -215,6 +216,9 @@ func (c DownloadClient) BuildLegacyHost() (string, error) {
 	if c.Type == DownloadClientTypeQbittorrent {
 		return c.qbitBuildLegacyHost()
 	}
+	if c.Type == DownloadClientTypeTransmission {
+		return c.transmissionBuildLegacyHost()
+	}
 	return c.Host, nil
 }
 
@@ -253,6 +257,52 @@ func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
 		} else {
 			u.Host = fmt.Sprintf("%v:%v", u.Host, c.Port)
 		}
+	}
+
+	// make into new string and return
+	return u.String(), nil
+}
+
+// transmissionBuildLegacyHost builds the full Transmission RPC URL from host, port, and tls settings
+func (c DownloadClient) transmissionBuildLegacyHost() (string, error) {
+	// parse url
+	u, err := url.Parse(c.Host)
+	if err != nil {
+		return "", err
+	}
+
+	// reset Opaque
+	u.Opaque = ""
+
+	// set scheme
+	scheme := "http"
+	if c.TLS {
+		scheme = "https"
+	}
+	u.Scheme = scheme
+
+	// if host is empty lets use one from settings
+	if u.Host == "" {
+		u.Host = c.Host
+	}
+
+	// reset Path if it's the same as Host (means Host was just a hostname)
+	if u.Host == u.Path {
+		u.Path = ""
+	}
+
+	// handle ports
+	if c.Port > 0 {
+		if c.Port == 80 || c.Port == 443 {
+			// skip for regular http and https
+		} else {
+			u.Host = fmt.Sprintf("%v:%v", u.Host, c.Port)
+		}
+	}
+
+	// Ensure path ends with /rpc
+	if !strings.HasSuffix(u.Path, "/rpc") {
+		u.Path = strings.TrimSuffix(u.Path, "/") + "/rpc"
 	}
 
 	// make into new string and return
