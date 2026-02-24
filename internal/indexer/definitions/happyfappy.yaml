@@ -5,7 +5,7 @@ identifier: happyfappy
 description: HappyFappy (HF) is a private torrent tracker for XXX
 language: en-US
 urls:
-  - https://www.happyfappy.org/
+  - https://www.happyfappy.net/
 privacy: private
 protocol: torrent
 supports:
@@ -57,13 +57,13 @@ irc:
     type: single
     lines:
       - tests:
-          - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.org/torrents.php?torrentid=00000'
+          - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.net/torrents.php?torrentid=00000'
             expect:
               torrentName: '[OnlyFans] Some Actress, Other Actress - Having fun together'
               torrentSize: 1.03 GiB
               uploader: UPLOADER
               tags: 1080p, lesbian, onlyfans.com, fansite
-              baseUrl: https://www.happyfappy.org/
+              baseUrl: https://www.happyfappy.net/
               torrentId: 00000
 
         pattern: '^(.+) - Size: (.+) - Uploader: (.+) - Tags: (.+) - (https:\/\/.*\/).*id=(\d+)$'
