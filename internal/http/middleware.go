@@ -17,6 +17,11 @@ import (
 
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.config.Config.DisableAuth {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if token := r.Header.Get("X-API-Token"); token != "" {
 			// check header
 			if !s.apiService.ValidateAPIKey(r.Context(), token) {

@@ -277,6 +277,18 @@ export const LoginRoute = createRoute({
     redirect: z.string().optional(),
   }),
   beforeLoad: async ({ navigate }) => {
+    const isNoAuth = await APIClient.auth.validate()
+      .then((r) => r.auth_method === 'none')
+      .catch(() => false);
+
+    if (isNoAuth) {
+      AuthContext.set({
+        isLoggedIn: true,
+        authMethod: 'none',
+      });
+      throw redirect({ to: '/' });
+    }
+
     // First check if OIDC is enabled
     try {
       const oidcConfig = await APIClient.auth.getOIDCConfig();
@@ -314,13 +326,13 @@ export const AuthRoute = createRoute({
           const oidcConfig = await APIClient.auth.getOIDCConfig();
           issuerUrl = oidcConfig.issuerUrl;
         }
-        
+
         AuthContext.set({
           isLoggedIn: true,
-          username: response.username || 'unknown',
+          username: response.username,
           authMethod: response.auth_method,
           profilePicture: response.profile_picture,
-          issuerUrl: issuerUrl
+          issuerUrl,
         });
       } catch (error) {
         console.debug("Authentication validation failed:", error);
@@ -407,4 +419,3 @@ export const Router = createRouter({
     queryClient
   },
 });
-

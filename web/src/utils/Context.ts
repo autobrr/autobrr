@@ -31,9 +31,9 @@ export type FilterListState = {
 };
 
 export interface AuthInfo {
-  username: string;
+  username?: string;
   isLoggedIn: boolean;
-  authMethod?: 'password' | 'oidc';
+  authMethod?: 'password' | 'oidc' | 'none';
   profilePicture?: string;
   issuerUrl?: string;
 }

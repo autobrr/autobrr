@@ -6,6 +6,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { Form, Formik } from "formik";
 import { UserIcon } from "@heroicons/react/24/solid";
+import { ShieldExclamationIcon } from "@heroicons/react/24/outline";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 
@@ -25,7 +26,7 @@ const AccountSettings = () => {
       description="Manage account settings."
     >
       <div className="py-0.5">
-        {auth.authMethod === 'oidc' ? <OIDCAccount /> : <Credentials />}
+        {auth.authMethod === 'none' ? <NoAuthAccount /> : auth.authMethod === 'oidc' ? <OIDCAccount /> : <Credentials />}
       </div>
     </Section>
   );
@@ -40,7 +41,7 @@ interface InputValues {
 }
 
 function Credentials() {
-  const username = AuthContext.useSelector((s) => s.username);
+  const username = AuthContext.useSelector((s) => s.username) || 'unknown';
 
   const validate = (values: InputValues) => {
     const errors: Record<string, string> = {};
@@ -161,11 +162,11 @@ function Credentials() {
 
 function OIDCAccount() {
   const auth = AuthContext.get();
-  
+
   // Helper function to format the issuer URL for display
   const getFormattedIssuerName = () => {
     if (!auth.issuerUrl) return "your identity provider";
-    
+
     try {
       const url = new URL(auth.issuerUrl);
       // Return domain name without 'www.'
@@ -174,7 +175,7 @@ function OIDCAccount() {
       return "your identity provider";
     }
   };
-  
+
   return (
     <Section
       titleElement={
@@ -199,9 +200,9 @@ function OIDCAccount() {
               />
             ) : (
               <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition duration-200">
-                <FontAwesomeIcon 
-                  icon={faOpenid} 
-                  className="h-16 w-16 text-gray-500 dark:text-gray-400" 
+                <FontAwesomeIcon
+                  icon={faOpenid}
+                  className="h-16 w-16 text-gray-500 dark:text-gray-400"
                   aria-hidden="true"
                 />
               </div>
@@ -217,7 +218,7 @@ function OIDCAccount() {
             </div>
             {auth.issuerUrl && (
               <div className="mt-2">
-                <a 
+                <a
                   href={auth.issuerUrl}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -230,6 +231,47 @@ function OIDCAccount() {
                 </a>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function NoAuthAccount() {
+  return (
+    <Section
+      titleElement={
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-700 dark:text-gray-300 font-bold">Authentication Disabled</span>
+          <ShieldExclamationIcon className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+        </div>
+      }
+      title="Authentication Disabled"
+      description="Authentication has been disabled for this instance. Account management is not available."
+      noLeftPadding
+    >
+      <div className="px-4 py-5 sm:p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 transition duration-150">
+        <div className="flex flex-col sm:flex-row items-center">
+          <div className="flex-shrink-0 relative">
+            <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition duration-200">
+              <ShieldExclamationIcon
+                className="h-10 w-10 text-yellow-500 dark:text-yellow-400"
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+          <div className="mt-4 sm:mt-0 sm:ml-6 text-center sm:text-left">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">
+              No authentication required
+            </h3>
+            <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
+              <ShieldExclamationIcon className="mr-1.5 h-4 w-4 flex-shrink-0" />
+              <p>Running with <code className="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">disableAuth</code> enabled</p>
+            </div>
+            <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-400">
+              Ensure this instance is only accessible behind a secure proxy or firewall.
+            </p>
           </div>
         </div>
       </div>
