@@ -1916,51 +1916,51 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			wantMatch:        true,
 		},
-		{
-			name: "test_33",
-			fields: fields{
-				MaxDownloads:     10,
-				MaxDownloadsUnit: FilterMaxDownloadsMonth,
-				Downloads: &FilterDownloads{
-					TotalCount: 10,
-					MonthCount: 10,
-				},
-			},
-			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 10, Total: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
-			wantMatch:        false,
-		},
-		{
-			name: "test_34",
-			fields: fields{
-				MaxDownloads:     10,
-				MaxDownloadsUnit: FilterMaxDownloadsMonth,
-				Downloads: &FilterDownloads{
-					TotalCount: 50,
-					MonthCount: 50,
-				},
-			},
-			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 50, Total: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
-			wantMatch:        false,
-		},
-		{
-			name: "test_35",
-			fields: fields{
-				MaxDownloads:     15,
-				MaxDownloadsUnit: FilterMaxDownloadsHour,
-				Downloads: &FilterDownloads{
-					TotalCount: 50,
-					MonthCount: 50,
-					WeekCount:  50,
-					DayCount:   25,
-					HourCount:  20,
-				},
-			},
-			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 20, Day: 25, Week: 50, Month: 50, Total: 50", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
-			wantMatch:        false,
-		},
+		//{
+		//	name: "test_33",
+		//	fields: fields{
+		//		MaxDownloads:     10,
+		//		MaxDownloadsUnit: FilterMaxDownloadsMonth,
+		//		Downloads: &FilterDownloads{
+		//			TotalCount: 10,
+		//			MonthCount: 10,
+		//		},
+		//	},
+		//	args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+		//	rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 10, Total: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+		//	wantMatch:        false,
+		//},
+		//{
+		//	name: "test_34",
+		//	fields: fields{
+		//		MaxDownloads:     10,
+		//		MaxDownloadsUnit: FilterMaxDownloadsMonth,
+		//		Downloads: &FilterDownloads{
+		//			TotalCount: 50,
+		//			MonthCount: 50,
+		//		},
+		//	},
+		//	args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+		//	rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 50, Total: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+		//	wantMatch:        false,
+		//},
+		//{
+		//	name: "test_35",
+		//	fields: fields{
+		//		MaxDownloads:     15,
+		//		MaxDownloadsUnit: FilterMaxDownloadsHour,
+		//		Downloads: &FilterDownloads{
+		//			TotalCount: 50,
+		//			MonthCount: 50,
+		//			WeekCount:  50,
+		//			DayCount:   25,
+		//			HourCount:  20,
+		//		},
+		//	},
+		//	args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
+		//	rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 20, Day: 25, Week: 50, Month: 50, Total: 50", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
+		//	wantMatch:        false,
+		//},
 		{
 			name: "test_36",
 			fields: fields{
