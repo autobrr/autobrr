@@ -237,3 +237,44 @@ func Test_client_Test(t *testing.T) {
 		})
 	}
 }
+
+func Test_client_Push_invalid_download_client(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	mux := http.NewServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`[{
+			"propertyName": "DownloadClient",
+			"errorMessage": "Download client does not exist.",
+			"errorCode": "InvalidValue",
+			"attemptedValue": "bad-client",
+			"severity": "Error"
+		}]`))
+	})
+
+	client := New(Config{
+		Hostname: ts.URL,
+	})
+
+	rejections, err := client.Push(context.Background(), Release{
+		Title:            "Example",
+		DownloadUrl:      "https://example.invalid/release.torrent",
+		Size:             0,
+		Indexer:          "test",
+		DownloadProtocol: "torrent",
+		Protocol:         "torrent",
+		PublishDate:      "2024-01-01T00:00:00Z",
+		DownloadClient:   "bad-client",
+	})
+
+	assert.Nil(t, rejections)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid configuration")
+		assert.Contains(t, err.Error(), "Download client does not exist.")
+	}
+}
