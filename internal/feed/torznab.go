@@ -141,11 +141,12 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
+
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
-			rls.DownloadURL = ""
-		}
-
+			rls.DownloadURL = item.Link
+		} 
+		
 		rls.ParseString(item.Title)
 		rls.Size = uint64(item.Size)
 		rls.Seeders = item.Seeders
