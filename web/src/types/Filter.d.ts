@@ -16,6 +16,8 @@ interface Filter {
   announce_types: string[];
   max_downloads: number;
   max_downloads_unit: string;
+  max_downloads_interval: number;
+  max_downloads_window_type: string;
   match_releases: string;
   except_releases: string;
   use_regex: boolean;
@@ -160,6 +162,7 @@ interface ExternalFilter {
 }
 
 interface FilterDownloads {
+  minute_count: number;
   hour_count: number;
   day_count: number;
   week_count: number;
