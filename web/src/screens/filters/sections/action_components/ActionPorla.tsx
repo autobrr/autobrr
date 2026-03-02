@@ -4,7 +4,8 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection } from "../_components";
-import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs/tanstack";
+import { ContextField } from "@app/lib/form";
 
 export const Porla = ({ idx, action, clients }: ClientActionProps) => (
   <>
@@ -16,30 +17,33 @@ export const Porla = ({ idx, action, clients }: ClientActionProps) => (
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
+          <ContextField name={`actions.${idx}.client_id`}>
+            <DownloadClientSelect
+              action={action}
+              clients={clients}
+            />
+          </ContextField>
         </FilterHalfRow>
         <FilterHalfRow>
-          <TextField
-            name={`actions.${idx}.label`}
-            label="Preset"
-            placeholder="eg. default"
-            tooltip={
-              <div>A case-sensitive preset name as configured in Porla.</div>
-            }
-          />
+          <ContextField name={`actions.${idx}.label`}>
+            <TextField
+              label="Preset"
+              placeholder="eg. default"
+              tooltip={
+                <div>A case-sensitive preset name as configured in Porla.</div>
+              }
+            />
+          </ContextField>
         </FilterHalfRow>
       </FilterLayout>
 
-      <TextAreaAutoResize
-        name={`actions.${idx}.save_path`}
-        label="Save path"
-        placeholder="eg. /full/path/to/torrent/data"
-        className="pb-6"
-      />
+      <ContextField name={`actions.${idx}.save_path`}>
+        <TextAreaAutoResize
+          label="Save path"
+          placeholder="eg. /full/path/to/torrent/data"
+          className="pb-6"
+        />
+      </ContextField>
 
       <CollapsibleSection
         noBottomBorder
@@ -47,18 +51,20 @@ export const Porla = ({ idx, action, clients }: ClientActionProps) => (
         subtitle="Configure your speed/ratio/seed time limits"
       >
         <FilterHalfRow>
-          <NumberField
-            name={`actions.${idx}.limit_download_speed`}
-            label="Limit download speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
-          />
+          <ContextField name={`actions.${idx}.limit_download_speed`}>
+            <NumberField
+              label="Limit download speed (KiB/s)"
+              placeholder="Takes any number (0 is no limit)"
+            />
+          </ContextField>
         </FilterHalfRow>
         <FilterHalfRow>
-          <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
-            label="Limit upload speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
-          />
+          <ContextField name={`actions.${idx}.limit_upload_speed`}>
+            <NumberField
+              label="Limit upload speed (KiB/s)"
+              placeholder="Takes any number (0 is no limit)"
+            />
+          </ContextField>
         </FilterHalfRow>
       </CollapsibleSection>
     </FilterSection>

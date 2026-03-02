@@ -5,20 +5,20 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useFormikContext } from "formik";
 
 import { APIClient } from "@api/APIClient";
 import { FeedKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
-import { SelectFieldBasic } from "@components/inputs/select_wide";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs/tanstack";
+import { SelectFieldBasic } from "@components/inputs/tanstack/select_wide";
 import { sleep } from "@utils";
 import { ImplementationBadges } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
+import { ContextField, useFormContext, useStore } from "@app/lib/form";
 
 interface InitialValues {
   id: number;
@@ -50,7 +50,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     mutationFn: (feed: Feed) => APIClient.feeds.update(feed),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
-      
+
       toast.custom((t) => <Toast type="success" body={`${feed.name} was updated successfully`} t={t} />);
       toggle();
     }
@@ -135,7 +135,9 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     >
       {(values) => (
         <div>
-          <TextFieldWide name="name" label="Name" required={true} />
+          <ContextField name="name">
+            <TextFieldWide label="Name" required={true} />
+          </ContextField>
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div
@@ -154,7 +156,9 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
             </div>
 
             <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
-              <SwitchGroupWide name="enabled" label="Enabled" />
+              <ContextField name="enabled">
+                <SwitchGroupWide label="Enabled" />
+              </ContextField>
             </div>
           </div>
           {values.type === "TORZNAB" && <FormFieldsTorznab feedID={feed.id} />}
@@ -182,39 +186,51 @@ function WarningLabel() {
 }
 
 function FormFieldsTorznab({ feedID }: { feedID: number }) {
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const interval = useStore(form.store, (s: any) => s.values.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-      <TextFieldWide
-        name="url"
-        label="URL"
-        help="Torznab url. Just URL without extra params."
-        tooltip={
-          <div>
-            <p>Prowlarr and Jackett have different formats:</p>
-            <br/>
-            <ul>
-              <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
-              <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
-            </ul>
-          </div>
-        }
-      />
+      <ContextField name="url">
+        <TextFieldWide
+          label="URL"
+          help="Torznab url. Just URL without extra params."
+          tooltip={
+            <div>
+              <p>Prowlarr and Jackett have different formats:</p>
+              <br/>
+              <ul>
+                <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
+              </ul>
+            </div>
+          }
+        />
+      </ContextField>
 
-      <SelectFieldBasic name="settings.download_type" label="Download type" options={FeedDownloadTypeOptions} />
+      <ContextField name="settings.download_type">
+        <SelectFieldBasic label="Download type" options={FeedDownloadTypeOptions} />
+      </ContextField>
 
-      <PasswordFieldWide name="api_key" label="API key" />
+      <ContextField name="api_key">
+        <PasswordFieldWide label="API key" />
+      </ContextField>
 
-      <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
+      <ContextField name="tls_skip_verify">
+        <SwitchGroupWide label="Skip TLS verification (insecure)" />
+      </ContextField>
 
       {interval < 15 && <WarningLabel />}
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      <ContextField name="interval">
+        <NumberFieldWide label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      </ContextField>
 
-      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+      <ContextField name="timeout">
+        <NumberFieldWide label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      </ContextField>
+      <ContextField name="max_age">
+        <NumberFieldWide label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+      </ContextField>
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
@@ -222,37 +238,47 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
 }
 
 function FormFieldsNewznab({ feedID }: { feedID: number }) {
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const interval = useStore(form.store, (s: any) => s.values.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-      <TextFieldWide
-        name="url"
-        label="URL"
-        help="Newznab url. Just URL without extra params."
-        tooltip={
-          <div>
-            <p>Prowlarr and Jackett have different formats:</p>
-            <br/>
-            <ul>
-              <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
-              <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
-            </ul>
-          </div>
-        }
-      />
+      <ContextField name="url">
+        <TextFieldWide
+          label="URL"
+          help="Newznab url. Just URL without extra params."
+          tooltip={
+            <div>
+              <p>Prowlarr and Jackett have different formats:</p>
+              <br/>
+              <ul>
+                <li>Prowlarr: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                <li>Jackett: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
+              </ul>
+            </div>
+          }
+        />
+      </ContextField>
 
-      <PasswordFieldWide name="api_key" label="API key" />
+      <ContextField name="api_key">
+        <PasswordFieldWide label="API key" />
+      </ContextField>
 
-      <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
+      <ContextField name="tls_skip_verify">
+        <SwitchGroupWide label="Skip TLS verification (insecure)" />
+      </ContextField>
 
       {interval < 15 && <WarningLabel />}
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      <ContextField name="interval">
+        <NumberFieldWide label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      </ContextField>
 
-      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+      <ContextField name="timeout">
+        <NumberFieldWide label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      </ContextField>
+      <ContextField name="max_age">
+        <NumberFieldWide label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+      </ContextField>
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
@@ -260,48 +286,63 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
 }
 
 function FormFieldsRSS() {
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const interval = useStore(form.store, (s: any) => s.values.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-      <TextFieldWide
-        name="url"
-        label="URL"
-        help="RSS url"
-      />
+      <ContextField name="url">
+        <TextFieldWide
+          label="URL"
+          help="RSS url"
+        />
+      </ContextField>
 
-      <SelectFieldBasic name="settings.download_type" label="Download type" options={FeedDownloadTypeOptions} />
+      <ContextField name="settings.download_type">
+        <SelectFieldBasic label="Download type" options={FeedDownloadTypeOptions} />
+      </ContextField>
 
-      <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)" />
+      <ContextField name="tls_skip_verify">
+        <SwitchGroupWide label="Skip TLS verification (insecure)" />
+      </ContextField>
 
       {interval < 15 && <WarningLabel />}
-      <NumberFieldWide name="interval" label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
-      <NumberFieldWide name="timeout" label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
-      <NumberFieldWide name="max_age" label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+      <ContextField name="interval">
+        <NumberFieldWide label="Refresh interval" help="Minutes. Recommended 15-30. Too low and risk ban."/>
+      </ContextField>
+      <ContextField name="timeout">
+        <NumberFieldWide label="Refresh timeout" help="Seconds to wait before cancelling refresh."/>
+      </ContextField>
+      <ContextField name="max_age">
+        <NumberFieldWide label="Max age" help="Enter the maximum age of feed content in seconds. It is recommended to set this to '0' to disable the age filter, ensuring all items in the feed are processed."/>
+      </ContextField>
 
-      <PasswordFieldWide name="cookie" label="Cookie" help="Not commonly used" />
+      <ContextField name="cookie">
+        <PasswordFieldWide label="Cookie" help="Not commonly used" />
+      </ContextField>
     </div>
   );
 }
 
 function FeedCategoriesSection({ feedID }: { feedID: number }) {
-  const { values, setFieldValue } = useFormikContext<InitialValues>();
-  const capsPayload = useMemo(() => parseCapabilitiesPayload(values.capabilities), [values.capabilities]);
+  const form = useFormContext() as any;
+  const capabilities = useStore(form.store, (s: any) => s.values.capabilities);
+  const categories = useStore(form.store, (s: any) => s.values.categories);
+
+  const capsPayload = useMemo(() => parseCapabilitiesPayload(capabilities), [capabilities]);
   const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
-  const hasCaps = Boolean(values.capabilities);
+  const hasCaps = Boolean(capabilities);
 
   const fetchCapsMutation = useMutation({
     mutationFn: () => APIClient.feeds.fetchCaps(feedID),
     onSuccess: (caps) => {
       const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
-      const selected = values.categories ?? [];
+      const selected = categories ?? [];
 
-      setFieldValue("capabilities", caps ?? null);
-      setFieldValue(
+      (form as any).setFieldValue("capabilities", caps ?? null);
+      (form as any).setFieldValue(
         "categories",
-        selected.filter((id) => nextCategories.includes(id))
+        selected.filter((id: number) => nextCategories.includes(id))
       );
     },
     onError: (error: unknown) => {
@@ -311,31 +352,31 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
   });
 
   const toggleCategory = (id: number) => {
-    const selected = values.categories ?? [];
+    const selected = categories ?? [];
     if (selected.includes(id)) {
-      setFieldValue(
+      (form as any).setFieldValue(
         "categories",
-        selected.filter((category) => category !== id)
+        selected.filter((category: number) => category !== id)
       );
       return;
     }
 
-    setFieldValue("categories", [...selected, id]);
+    (form as any).setFieldValue("categories", [...selected, id]);
   };
 
   const toggleParentCategory = (id: number, childIds: number[]) => {
-    const selected = values.categories ?? [];
+    const selected = categories ?? [];
     if (selected.includes(id)) {
-      setFieldValue(
+      (form as any).setFieldValue(
         "categories",
-        selected.filter((category) => category !== id)
+        selected.filter((category: number) => category !== id)
       );
       return;
     }
 
-    setFieldValue(
+    (form as any).setFieldValue(
       "categories",
-      [...selected.filter((category) => !childIds.includes(category)), id]
+      [...selected.filter((category: number) => !childIds.includes(category)), id]
     );
   };
 
@@ -362,7 +403,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
         <div className="px-4 pt-4 pb-2 space-y-3 overflow-y-auto">
           {categoriesTree.map((category) => {
             const childIds = category.subcategories.map((sub) => sub.id);
-            const isParentSelected = (values.categories ?? []).includes(category.id);
+            const isParentSelected = (categories ?? []).includes(category.id);
 
             return (
               <div key={category.id} className="space-y-2">
@@ -373,7 +414,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
                   <span className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      checked={(values.categories ?? []).includes(category.id)}
+                      checked={(categories ?? []).includes(category.id)}
                       onChange={() => toggleParentCategory(category.id, childIds)}
                       onClick={(event) => event.stopPropagation()}
                       className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
@@ -392,7 +433,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
                     <span className="flex items-center gap-3">
                       <input
                         type="checkbox"
-                        checked={(values.categories ?? []).includes(subCategory.id)}
+                        checked={(categories ?? []).includes(subCategory.id)}
                         onChange={() => toggleCategory(subCategory.id)}
                         onClick={(event) => event.stopPropagation()}
                         disabled={isParentSelected}

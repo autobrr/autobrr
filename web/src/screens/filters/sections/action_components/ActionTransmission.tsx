@@ -4,7 +4,8 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection, FilterWideGridGapClass } from "../_components";
-import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs/tanstack";
+import { ContextField } from "@app/lib/form";
 
 export const Transmission = ({ idx, action, clients }: ClientActionProps) => (
   <>
@@ -16,36 +17,40 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => (
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
-            action={action}
-            clients={clients}
-          />
+          <ContextField name={`actions.${idx}.client_id`}>
+            <DownloadClientSelect
+              action={action}
+              clients={clients}
+            />
+          </ContextField>
         </FilterHalfRow>
         <FilterHalfRow>
-          <TextField
-            name={`actions.${idx}.label`}
-            label="Torrent Label"
-            columns={6}
-            placeholder="eg. label1"
-          />
+          <ContextField name={`actions.${idx}.label`}>
+            <TextField
+              label="Torrent Label"
+              columns={6}
+              placeholder="eg. label1"
+            />
+          </ContextField>
         </FilterHalfRow>
       </FilterLayout>
 
-      <TextAreaAutoResize
-        name={`actions.${idx}.save_path`}
-        label="Save path"
-        columns={6}
-        placeholder="eg. /full/path/to/download_folder"
-      />
+      <ContextField name={`actions.${idx}.save_path`}>
+        <TextAreaAutoResize
+          label="Save path"
+          columns={6}
+          placeholder="eg. /full/path/to/download_folder"
+        />
+      </ContextField>
 
       <FilterLayout className="pb-6">
         <FilterHalfRow>
-          <SwitchGroup
-            name={`actions.${idx}.paused`}
-            label="Add paused"
-            description="Add torrent as paused"
-          />
+          <ContextField name={`actions.${idx}.paused`}>
+            <SwitchGroup
+              label="Add paused"
+              description="Add torrent as paused"
+            />
+          </ContextField>
         </FilterHalfRow>
       </FilterLayout>
 
@@ -54,31 +59,35 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => (
         subtitle="Configure your speed/ratio/seed time limits"
       >
         <FilterLayout>
-          <NumberField
-            name={`actions.${idx}.limit_download_speed`}
-            label="Limit download speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
-          />
-          <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
-            label="Limit upload speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
-          />
+          <ContextField name={`actions.${idx}.limit_download_speed`}>
+            <NumberField
+              label="Limit download speed (KiB/s)"
+              placeholder="Takes any number (0 is no limit)"
+            />
+          </ContextField>
+          <ContextField name={`actions.${idx}.limit_upload_speed`}>
+            <NumberField
+              label="Limit upload speed (KiB/s)"
+              placeholder="Takes any number (0 is no limit)"
+            />
+          </ContextField>
         </FilterLayout>
 
         <FilterLayout>
-          <NumberField
-            name={`actions.${idx}.limit_ratio`}
-            label="Ratio limit"
-            placeholder="Takes any number (0 is no limit)"
-            step={0.25}
-            isDecimal
-          />
-          <NumberField
-            name={`actions.${idx}.limit_seed_time`}
-            label="Seed time limit (minutes)"
-            placeholder="Takes any number (0 is no limit)"
-          />
+          <ContextField name={`actions.${idx}.limit_ratio`}>
+            <NumberField
+              label="Ratio limit"
+              placeholder="Takes any number (0 is no limit)"
+              step={0.25}
+              isDecimal
+            />
+          </ContextField>
+          <ContextField name={`actions.${idx}.limit_seed_time`}>
+            <NumberField
+              label="Seed time limit (minutes)"
+              placeholder="Takes any number (0 is no limit)"
+            />
+          </ContextField>
         </FilterLayout>
       </CollapsibleSection>
 
@@ -89,29 +98,33 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => (
         childClassName={FilterWideGridGapClass}
       >
         <FilterHalfRow>
-          <SwitchGroup
-            name={`actions.${idx}.reannounce_skip`}
-            label="Disable reannounce"
-            description="Reannounce is enabled by default. Disable if it's not needed"
-            className="pt-2 pb-4"
-          />
-          <NumberField
-            name={`actions.${idx}.reannounce_interval`}
-            label="Reannounce interval. Run every X seconds"
-            placeholder="7 is default and recommended"
-          />
+          <ContextField name={`actions.${idx}.reannounce_skip`}>
+            <SwitchGroup
+              label="Disable reannounce"
+              description="Reannounce is enabled by default. Disable if it's not needed"
+              className="pt-2 pb-4"
+            />
+          </ContextField>
+          <ContextField name={`actions.${idx}.reannounce_interval`}>
+            <NumberField
+              label="Reannounce interval. Run every X seconds"
+              placeholder="7 is default and recommended"
+            />
+          </ContextField>
         </FilterHalfRow>
         <FilterHalfRow>
-          <SwitchGroup
-            name={`actions.${idx}.reannounce_delete`}
-            label="Delete stalled"
-            description="Delete stalled torrents after Y attempts"
-            className="pt-2 pb-4"
-          />
-          <NumberField
-            name={`actions.${idx}.reannounce_max_attempts`}
-            label="Run reannounce Y times"
-          />
+          <ContextField name={`actions.${idx}.reannounce_delete`}>
+            <SwitchGroup
+              label="Delete stalled"
+              description="Delete stalled torrents after Y attempts"
+              className="pt-2 pb-4"
+            />
+          </ContextField>
+          <ContextField name={`actions.${idx}.reannounce_max_attempts`}>
+            <NumberField
+              label="Run reannounce Y times"
+            />
+          </ContextField>
         </FilterHalfRow>
       </CollapsibleSection>
     </FilterSection>

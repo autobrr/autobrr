@@ -5,13 +5,12 @@
 
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { Fragment, useMemo } from "react";
-import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
+import { useAppForm, ContextField, useFormContext, useFieldContext, useStore } from "@app/lib/form";
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
 import { PushoverSoundsQueryOptions } from "@api/queries";
@@ -21,8 +20,8 @@ import { SlideOver } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import * as common from "@components/inputs/common";
-import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import * as common from "@components/inputs/tanstack/common";
+import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs/tanstack";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
 
@@ -48,12 +47,13 @@ function FormFieldsDiscord() {
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="webhook"
-        label="Webhook URL"
-        help="Discord channel webhook url"
-        placeholder="https://discordapp.com/api/webhooks/xx/xx"
-      />
+      <ContextField name="webhook">
+        <PasswordFieldWide
+          label="Webhook URL"
+          help="Discord channel webhook url"
+          placeholder="https://discordapp.com/api/webhooks/xx/xx"
+        />
+      </ContextField>
     </div>
   );
 }
@@ -70,11 +70,12 @@ function FormFieldsNotifiarr() {
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="api_key"
-        label="API Key"
-        help="Notifiarr API Key"
-      />
+      <ContextField name="api_key">
+        <PasswordFieldWide
+          label="API Key"
+          help="Notifiarr API Key"
+        />
+      </ContextField>
     </div>
   );
 }
@@ -101,12 +102,13 @@ function FormFieldsLunaSea() {
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="webhook"
-        label="Webhook URL"
-        help="LunaSea Webhook URL"
-        placeholder="https://notify.lunasea.app/v1/custom/user/TOKEN"
-      />
+      <ContextField name="webhook">
+        <PasswordFieldWide
+          label="Webhook URL"
+          help="LunaSea Webhook URL"
+          placeholder="https://notify.lunasea.app/v1/custom/user/TOKEN"
+        />
+      </ContextField>
     </div>
   );
 }
@@ -130,33 +132,38 @@ function FormFieldsTelegram() {
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="token"
-        label="Bot token"
-        help="Bot token"
-      />
-      <PasswordFieldWide
-        name="channel"
-        label="Chat ID"
-        help="Chat ID"
-      />
-      <PasswordFieldWide
-        name="topic"
-        label="Message Thread ID"
-        help="Message Thread (topic) of a Supergroup"
-      />
-      <TextFieldWide
-        name="host"
-        label="Telegram Api Proxy"
-        help="Reverse proxy domain for api.telegram.org, only needs to be specified if the network you are using has blocked the Telegram API."
-        placeholder="http(s)://ip:port"
-      />
-      <TextFieldWide
-        name="username"
-        label="Sender"
-        help="Custom sender name to show at the top of a notification"
-        placeholder="autobrr"
-      />
+      <ContextField name="token">
+        <PasswordFieldWide
+          label="Bot token"
+          help="Bot token"
+        />
+      </ContextField>
+      <ContextField name="channel">
+        <PasswordFieldWide
+          label="Chat ID"
+          help="Chat ID"
+        />
+      </ContextField>
+      <ContextField name="topic">
+        <PasswordFieldWide
+          label="Message Thread ID"
+          help="Message Thread (topic) of a Supergroup"
+        />
+      </ContextField>
+      <ContextField name="host">
+        <TextFieldWide
+          label="Telegram Api Proxy"
+          help="Reverse proxy domain for api.telegram.org, only needs to be specified if the network you are using has blocked the Telegram API."
+          placeholder="http(s)://ip:port"
+        />
+      </ContextField>
+      <ContextField name="username">
+        <TextFieldWide
+          label="Sender"
+          help="Custom sender name to show at the top of a notification"
+          placeholder="autobrr"
+        />
+      </ContextField>
     </div>
   );
 }
@@ -187,22 +194,25 @@ function FormFieldsPushover() {
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="api_key"
-        label="API Token"
-        help="API Token"
-      />
-      <PasswordFieldWide
-        name="token"
-        label="User Key"
-        help="User Key"
-      />
-      <NumberFieldWide
-        name="priority"
-        label="Priority"
-        help="-2, -1, 0 (default), 1, or 2"
-        required={true}
-      />
+      <ContextField name="api_key">
+        <PasswordFieldWide
+          label="API Token"
+          help="API Token"
+        />
+      </ContextField>
+      <ContextField name="token">
+        <PasswordFieldWide
+          label="User Key"
+          help="User Key"
+        />
+      </ContextField>
+      <ContextField name="priority">
+        <NumberFieldWide
+          label="Priority"
+          help="-2, -1, 0 (default), 1, or 2"
+          required={true}
+        />
+      </ContextField>
     </div>
       <div className="pb-2">
         <div className="flex justify-between items-center p-4">
@@ -238,19 +248,21 @@ function FormFieldsGotify() {
         </DialogTitle>
       </div>
 
-      <TextFieldWide
-        name="host"
-        label="Gotify URL"
-        help="Gotify URL (without /message)"
-        placeholder="https://some.gotify.server.com"
-        required={true}
-      />
-      <PasswordFieldWide
-        name="token"
-        label="Application Token"
-        help="Application Token"
-        required={true}
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          label="Gotify URL"
+          help="Gotify URL (without /message)"
+          placeholder="https://some.gotify.server.com"
+          required={true}
+        />
+      </ContextField>
+      <ContextField name="token">
+        <PasswordFieldWide
+          label="Application Token"
+          help="Application Token"
+          required={true}
+        />
+      </ContextField>
     </div>
   );
 }
@@ -264,37 +276,42 @@ function FormFieldsNtfy() {
         </DialogTitle>
       </div>
 
-      <TextFieldWide
-        name="host"
-        label="NTFY URL"
-        help="NTFY URL"
-        placeholder="https://ntfy.sh/mytopic"
-        required={true}
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          label="NTFY URL"
+          help="NTFY URL"
+          placeholder="https://ntfy.sh/mytopic"
+          required={true}
+        />
+      </ContextField>
 
-      <TextFieldWide
-        name="username"
-        label="Username"
-        help="Username"
-      />
+      <ContextField name="username">
+        <TextFieldWide
+          label="Username"
+          help="Username"
+        />
+      </ContextField>
 
-      <PasswordFieldWide
-        name="password"
-        label="Password"
-        help="Password"
-      />
+      <ContextField name="password">
+        <PasswordFieldWide
+          label="Password"
+          help="Password"
+        />
+      </ContextField>
 
-      <PasswordFieldWide
-        name="token"
-        label="Access token"
-        help="Access token. Use this or Usernmae+password"
-      />
+      <ContextField name="token">
+        <PasswordFieldWide
+          label="Access token"
+          help="Access token. Use this or Usernmae+password"
+        />
+      </ContextField>
 
-      <NumberFieldWide
-        name="priority"
-        label="Priority"
-        help="Max 5, 4, 3 (default), 2, 1 Min"
-      />
+      <ContextField name="priority">
+        <NumberFieldWide
+          label="Priority"
+          help="Max 5, 4, 3 (default), 2, 1 Min"
+        />
+      </ContextField>
     </div>
   );
 }
@@ -308,23 +325,24 @@ function FormFieldsShoutrrr() {
         </DialogTitle>
       </div>
 
-      <TextFieldWide
-        name="host"
-        label="URL"
-        help="URL"
-        tooltip={
-          <div><p>See full documentation </p>
-            <ExternalLink
-              href="https://containrrr.dev/shoutrrr/services/overview/"
-              className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
-            >
-              Services
-            </ExternalLink>
-          </div>
-        }
-        placeholder="smtp://username:password@host:port/?from=fromAddress&to=recipient1"
-        required={true}
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          label="URL"
+          help="URL"
+          tooltip={
+            <div><p>See full documentation </p>
+              <ExternalLink
+                href="https://containrrr.dev/shoutrrr/services/overview/"
+                className="font-medium text-blue-500 underline underline-offset-1 hover:text-blue-400"
+              >
+                Services
+              </ExternalLink>
+            </div>
+          }
+          placeholder="smtp://username:password@host:port/?from=fromAddress&to=recipient1"
+          required={true}
+        />
+      </ContextField>
     </div>
   );
 }
@@ -341,26 +359,29 @@ function FormFieldsGenericWebhook() {
         </p>
       </div>
 
-      <PasswordFieldWide
-        name="webhook"
-        label="Webhook URL"
-        help="Webhook URL"
-        placeholder="https://example.com/webhook"
-        required={true}
-      />
-      <SelectFieldWide
-        name="method"
-        label="HTTP Method"
-        optionDefaultText="POST (default)"
-        options={ExternalFilterWebhookMethodOptions}
-        tooltip={<p>HTTP method for the webhook request. Defaults to POST.</p>}
-      />
-      <TextFieldWide
-        name="headers"
-        label="Custom Headers"
-        help="Comma-separated KEY=value pairs (e.g., Authorization=Bearer token,X-Custom=value)"
-        placeholder="Authorization=Bearer token,X-Custom-Header=value"
-      />
+      <ContextField name="webhook">
+        <PasswordFieldWide
+          label="Webhook URL"
+          help="Webhook URL"
+          placeholder="https://example.com/webhook"
+          required={true}
+        />
+      </ContextField>
+      <ContextField name="method">
+        <SelectFieldWide
+          label="HTTP Method"
+          optionDefaultText="POST (default)"
+          options={ExternalFilterWebhookMethodOptions}
+          tooltip={<p>HTTP method for the webhook request. Defaults to POST.</p>}
+        />
+      </ContextField>
+      <ContextField name="headers">
+        <TextFieldWide
+          label="Custom Headers"
+          help="Comma-separated KEY=value pairs (e.g., Authorization=Bearer token,X-Custom=value)"
+          placeholder="Authorization=Bearer token,X-Custom-Header=value"
+        />
+      </ContextField>
     </div>
   );
 }
@@ -376,11 +397,6 @@ const componentMap: componentMapType = {
   LUNASEA: <FormFieldsLunaSea />,
   WEBHOOK: <FormFieldsGenericWebhook />
 };
-
-interface NotificationAddFormValues {
-  name: string;
-  enabled: boolean;
-}
 
 export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
@@ -409,13 +425,29 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
 
   const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
-  const validate = (values: NotificationAddFormValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-    if (!values.name)
-      errors.name = "Required";
+  const form = useAppForm({
+    defaultValues: {
+      enabled: true,
+      type: "",
+      name: "",
+      webhook: "",
+      events: [] as string[],
+      username: "",
+      sound: "",
+      event_sounds: {} as Record<string, string>
+    },
+    onSubmit: async ({ value }) => onSubmit(value),
+    validators: {
+      onSubmit: ({ value }) => {
+        if (!value.name) {
+          return "Name is required";
+        }
+        return undefined;
+      }
+    }
+  });
 
-    return errors;
-  };
+  const typeValue = useStore(form.store, (s: any) => s.values.type);
 
   return (
     <Transition show={isOpen} as={Fragment}>
@@ -438,163 +470,148 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    type: "",
-                    name: "",
-                    webhook: "",
-                    events: [],
-                    username: "",
-                    sound: "",
-                    event_sounds: {}
-                  }}
-                  onSubmit={onSubmit}
-                  validate={validate}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add Notifications
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Trigger notifications on different events.
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                              </button>
-                            </div>
+                <form.AppForm>
+                  <form
+                    className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      form.handleSubmit();
+                    }}
+                  >
+                    <div className="flex-1">
+                      <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                        <div className="flex items-start justify-between space-x-3">
+                          <div className="space-y-1">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Add Notifications
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-200">
+                              Trigger notifications on different events.
+                            </p>
+                          </div>
+                          <div className="h-7 flex items-center">
+                            <button
+                              type="button"
+                              className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                              onClick={toggle}
+                            >
+                              <span className="sr-only">Close panel</span>
+                              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                            </button>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
+                      <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
+                        <ContextField name="name">
                           <TextFieldWide
-                            name="name"
                             label="Name"
                             required={true}
                           />
+                        </ContextField>
 
-                          <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label
-                                htmlFor="type"
-                                className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
-                                Type
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <Field name="type" type="select">
-                                {({
-                                  field,
-                                  form: { setFieldValue, resetForm }
-                                }: FieldProps) => (
-                                  <Select
-                                    {...field}
-                                    isClearable={true}
-                                    isSearchable={true}
-                                    components={{
-                                      Input: common.SelectInput,
-                                      Control: common.SelectControl,
-                                      Menu: common.SelectMenu,
-                                      Option: common.SelectOption,
-                                      IndicatorSeparator: common.IndicatorSeparator,
-                                      DropdownIndicator: common.DropdownIndicator
-                                    }}
-                                    placeholder="Choose a type"
-                                    styles={{
-                                      singleValue: (base) => ({
-                                        ...base,
-                                        color: "unset"
-                                      })
-                                    }}
-                                    theme={(theme) => ({
-                                      ...theme,
-                                      spacing: {
-                                        ...theme.spacing,
-                                        controlHeight: 30,
-                                        baseUnit: 2
-                                      }
-                                    })}
-                                    value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      resetForm();
-
-                                      const opt = option as SelectOption;
-                                      // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(
-                                        field.name,
-                                        opt.value ?? ""
-                                      );
-                                    }}
-                                    options={NotificationTypeOptions}
-                                  />
-                                )}
-                              </Field>
-                            </div>
+                        <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                          <div>
+                            <label
+                              htmlFor="type"
+                              className="block text-sm font-medium text-gray-900 dark:text-white"
+                            >
+                              Type
+                            </label>
                           </div>
+                          <div className="sm:col-span-2">
+                            <form.AppField name="type">
+                              {(field) => (
+                                <Select
+                                  isClearable={true}
+                                  isSearchable={true}
+                                  components={{
+                                    Input: common.SelectInput,
+                                    Control: common.SelectControl,
+                                    Menu: common.SelectMenu,
+                                    Option: common.SelectOption,
+                                    IndicatorSeparator: common.IndicatorSeparator,
+                                    DropdownIndicator: common.DropdownIndicator
+                                  }}
+                                  placeholder="Choose a type"
+                                  styles={{
+                                    singleValue: (base) => ({
+                                      ...base,
+                                      color: "unset"
+                                    })
+                                  }}
+                                  theme={(theme) => ({
+                                    ...theme,
+                                    spacing: {
+                                      ...theme.spacing,
+                                      controlHeight: 30,
+                                      baseUnit: 2
+                                    }
+                                  })}
+                                  value={field.state.value ? NotificationTypeOptions.find(o => o.value === field.state.value) ?? null : null}
+                                  onChange={(option: unknown) => {
+                                    form.reset();
 
-                          <SwitchGroupWide name="enabled" label="Enabled" />
-
-                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Global Events
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
-                              </p>
-                            </div>
-
-                            <div className="p-4 sm:grid sm:gap-4">
-                              <EventCheckBoxes />
-                            </div>
+                                    const opt = option as SelectOption;
+                                    field.handleChange(opt?.value ?? "");
+                                  }}
+                                  options={NotificationTypeOptions}
+                                />
+                              )}
+                            </form.AppField>
                           </div>
                         </div>
-                        {componentMap[values.type]}
-                      </div>
 
-                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={() => testNotification(values)}
-                          >
-                            Test
-                          </button>
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                          >
-                            Save
-                          </button>
+                        <ContextField name="enabled">
+                          <SwitchGroupWide label="Enabled" />
+                        </ContextField>
+
+                        <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                          <div className="px-4">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Global Events
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Select default events that trigger globally. These can be overridden on a per-filter basis. Leave all unchecked to use this service only for filter-specific notifications.
+                            </p>
+                          </div>
+
+                          <div className="p-4 sm:grid sm:gap-4">
+                            <EventCheckBoxes />
+                          </div>
                         </div>
                       </div>
+                      {componentMap[typeValue]}
+                    </div>
 
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+                    <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+                      <div className="space-x-3 flex justify-end">
+                        <button
+                          type="button"
+                          className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                          onClick={() => testNotification(form.state.values)}
+                        >
+                          Test
+                        </button>
+                        <button
+                          type="button"
+                          className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                          onClick={toggle}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+
+                    <DEBUG values={form.state.values} />
+                  </form>
+                </form.AppForm>
               </div>
             </TransitionChild>
           </DialogPanel>
@@ -604,39 +621,40 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-const EventCheckBox = ({ event }: { event: typeof EventOptions[number]; }) => (
-  <Field name="events">
-    {({ field, form }: FieldProps<string[]>) => (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">
-            <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
-            {event.description && <p className="text-gray-500">{event.description}</p>}
-          </span>
-          <Checkbox
-            value={field.value.includes(event.value)}
-            setValue={(checked) =>
-              form.setFieldValue('events',
-                checked
-                  ? [...field.value, event.value]
-                  : field.value.filter(e => e !== event.value)
-              )
-            }
-          />
-        </div>
+const EventCheckBox = ({ event }: { event: typeof EventOptions[number]; }) => {
+  const form = useFormContext();
+  const events = useStore(form.store, (s: any) => (s.values as any).events as string[]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm">
+          <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+          {event.description && <p className="text-gray-500">{event.description}</p>}
+        </span>
+        <Checkbox
+          value={events.includes(event.value)}
+          setValue={(checked) =>
+            (form as any).setFieldValue("events",
+              checked
+                ? [...events, event.value]
+                : events.filter((e: string) => e !== event.value)
+            )
+          }
+        />
       </div>
-    )}
-  </Field>
-);
+    </div>
+  );
+};
 
 const EventCheckBoxes = () => {
   return (
     <fieldset className="space-y-5">
       <legend className="sr-only">Notifications</legend>
       {EventOptions.map((event, idx) => (
-        <EventCheckBox 
-          key={idx} 
-          event={event} 
+        <EventCheckBox
+          key={idx}
+          event={event}
         />
       ))}
     </fieldset>
@@ -647,8 +665,8 @@ const EventSoundSelector = ({event, soundOptions}: {
   event: typeof EventOptions[number];
   soundOptions: SoundOption[];
 }) => {
-  const {values, setFieldValue} = useFormikContext<ServiceNotification>();
-  const eventSounds = values.event_sounds || {};
+  const form = useFormContext();
+  const eventSounds = useStore(form.store, (s: any) => (s.values as any).event_sounds as Record<string, string> || {});
   const currentSound = eventSounds[event.value] || "";
 
   return (
@@ -658,58 +676,53 @@ const EventSoundSelector = ({event, soundOptions}: {
       </span>
 
       <div className="sm:col-span-2">
-        <Field name={`event_sounds.${event.value}`} type="select">
-          {({field: soundField}: FieldProps) => (
-            <Select
-              {...soundField}
-              isClearable={true}
-              isSearchable={true}
-              components={{
-                Input: common.SelectInput,
-                Control: common.SelectControl,
-                Menu: common.SelectMenu,
-                Option: common.SelectOption,
-                IndicatorSeparator: common.IndicatorSeparator,
-                DropdownIndicator: common.DropdownIndicator
-              }}
-              placeholder="Default (user's default tone)"
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
-              value={soundOptions.find(o => o.value === currentSound) || null}
-              onChange={(option: unknown) => {
-                const opt = option as SoundOption | null;
-                const newEventSounds = {...eventSounds};
-                if (opt?.value) {
-                  newEventSounds[event.value] = opt.value;
-                } else {
-                  delete newEventSounds[event.value];
-                }
-                setFieldValue("event_sounds", newEventSounds);
-              }}
-              options={soundOptions}
-            />
-          )}
-        </Field>
+        <Select
+          isClearable={true}
+          isSearchable={true}
+          components={{
+            Input: common.SelectInput,
+            Control: common.SelectControl,
+            Menu: common.SelectMenu,
+            Option: common.SelectOption,
+            IndicatorSeparator: common.IndicatorSeparator,
+            DropdownIndicator: common.DropdownIndicator
+          }}
+          placeholder="Default (user's default tone)"
+          styles={{
+            singleValue: (base) => ({
+              ...base,
+              color: "unset"
+            })
+          }}
+          theme={(theme) => ({
+            ...theme,
+            spacing: {
+              ...theme.spacing,
+              controlHeight: 30,
+              baseUnit: 2
+            }
+          })}
+          value={soundOptions.find(o => o.value === currentSound) || null}
+          onChange={(option: unknown) => {
+            const opt = option as SoundOption | null;
+            const newEventSounds = {...eventSounds};
+            if (opt?.value) {
+              newEventSounds[event.value] = opt.value;
+            } else {
+              delete newEventSounds[event.value];
+            }
+            (form as any).setFieldValue("event_sounds", newEventSounds);
+          }}
+          options={soundOptions}
+        />
       </div>
     </div>
   );
 };
 
 const EventSounds = () => {
-  const { values } = useFormikContext<ServiceNotification>();
-  const apiKey = values.api_key || "";
+  const form = useFormContext();
+  const apiKey = useStore(form.store, (s: any) => (s.values as any).api_key as string || "");
 
   const canFetchCustomSounds = Boolean(apiKey && apiKey !== "<redacted>");
 
@@ -837,7 +850,9 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     >
       {(values) => (
         <div>
-          <TextFieldWide name="name" label="Name" required={true} />
+          <ContextField name="name">
+            <TextFieldWide label="Name" required={true} />
+          </ContextField>
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
@@ -850,47 +865,14 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                 </label>
               </div>
               <div className="sm:col-span-2">
-                <Field name="type" type="select">
-                  {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
-                    <Select {...field}
-                      isClearable={true}
-                      isSearchable={true}
-                      components={{
-                        Input: common.SelectInput,
-                        Control: common.SelectControl,
-                        Menu: common.SelectMenu,
-                        Option: common.SelectOption,
-                        IndicatorSeparator: common.IndicatorSeparator,
-                        DropdownIndicator: common.DropdownIndicator
-                      }}
-                      placeholder="Choose a type"
-                      styles={{
-                        singleValue: (base) => ({
-                          ...base,
-                          color: "unset"
-                        })
-                      }}
-                      theme={(theme) => ({
-                        ...theme,
-                        spacing: {
-                          ...theme.spacing,
-                          controlHeight: 30,
-                          baseUnit: 2
-                        }
-                      })}
-                      value={field?.value && NotificationTypeOptions.find(o => o.value == field?.value)}
-                      onChange={(option: unknown) => {
-                        resetForm();
-                        const opt = option as SelectOption;
-                        setFieldValue(field.name, opt.value ?? "");
-                      }}
-                      options={NotificationTypeOptions}
-                    />
-                  )}
-                </Field>
+                <ContextField name="type">
+                  <TypeSelectInSlideOver />
+                </ContextField>
               </div>
             </div>
-            <SwitchGroupWide name="enabled" label="Enabled" />
+            <ContextField name="enabled">
+              <SwitchGroupWide label="Enabled" />
+            </ContextField>
             <div className="pb-2">
               <div className="p-4">
                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
@@ -947,6 +929,52 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
         </div>
       )}
     </SlideOver>
+  );
+}
+
+/**
+ * TypeSelectInSlideOver: extracted select for the "type" field in the update form.
+ * Uses useFieldContext to get the field, and useFormContext to access form.reset().
+ */
+function TypeSelectInSlideOver() {
+  const field = useFieldContext<string>();
+  const form = useFormContext();
+
+  return (
+    <Select
+      isClearable={true}
+      isSearchable={true}
+      components={{
+        Input: common.SelectInput,
+        Control: common.SelectControl,
+        Menu: common.SelectMenu,
+        Option: common.SelectOption,
+        IndicatorSeparator: common.IndicatorSeparator,
+        DropdownIndicator: common.DropdownIndicator
+      }}
+      placeholder="Choose a type"
+      styles={{
+        singleValue: (base) => ({
+          ...base,
+          color: "unset"
+        })
+      }}
+      theme={(theme) => ({
+        ...theme,
+        spacing: {
+          ...theme.spacing,
+          controlHeight: 30,
+          baseUnit: 2
+        }
+      })}
+      value={field.state.value ? NotificationTypeOptions.find(o => o.value == field.state.value) ?? null : null}
+      onChange={(option: unknown) => {
+        form.reset();
+        const opt = option as SelectOption;
+        field.handleChange(opt?.value ?? "");
+      }}
+      options={NotificationTypeOptions}
+    />
   );
 }
 

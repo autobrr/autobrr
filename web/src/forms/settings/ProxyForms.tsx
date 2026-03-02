@@ -4,15 +4,15 @@
  */
 
 import { Fragment } from "react";
-import { Form, Formik, FormikValues } from "formik";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { useAppForm, ContextField } from "@app/lib/form";
 import { AddFormProps } from "@forms/_shared";
 import { DEBUG } from "@components/debug.tsx";
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
-import { SelectFieldBasic } from "@components/inputs/select_wide";
+import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs/tanstack";
+import { SelectFieldBasic } from "@components/inputs/tanstack/select_wide";
 import { ProxyTypeOptions } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
 import { ProxyKeys } from "@api/query_keys";
@@ -36,8 +36,8 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
     }
   });
 
-  const onSubmit = (formData: FormikValues) => {
-    createMutation.mutate(formData as ProxyCreate);
+  const onSubmit = (formData: ProxyCreate) => {
+    createMutation.mutate(formData);
   }
 
   const testMutation = useMutation({
@@ -57,6 +57,11 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
     user: "",
     pass: "",
   }
+
+  const form = useAppForm({
+    defaultValues: initialValues,
+    onSubmit: async ({ value }) => onSubmit(value),
+  });
 
   return (
     <Transition show={isOpen} as={Fragment}>
@@ -79,13 +84,14 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={initialValues}
-                  onSubmit={onSubmit}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
+                <form.AppForm>
+                  <form
+                    className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      form.handleSubmit();
+                    }}
+                  >
                       <div className="flex-1">
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
@@ -111,21 +117,22 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                         </div>
 
                         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                          <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
-                          <SwitchGroupWide name="enabled" label="Enabled" />
-                          <SelectFieldBasic
-                            name="type"
-                            label="Proxy type"
-                            options={ProxyTypeOptions}
-                            tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
-                            help="Usually SOCKS5"
-                          />
-                          <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
+                          <ContextField name="name"><TextFieldWide label="Name" defaultValue="" required={true} /></ContextField>
+                          <ContextField name="enabled"><SwitchGroupWide label="Enabled" /></ContextField>
+                          <ContextField name="type">
+                            <SelectFieldBasic
+                              label="Proxy type"
+                              options={ProxyTypeOptions}
+                              tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
+                              help="Usually SOCKS5"
+                            />
+                          </ContextField>
+                          <ContextField name="addr"><TextFieldWide label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/></ContextField>
                         </div>
 
                         <div>
-                          <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off" />
-                          <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
+                          <ContextField name="user"><TextFieldWide label="User" help="auth: username" autoComplete="off" /></ContextField>
+                          <ContextField name="pass"><PasswordFieldWide label="Pass" help="auth: password" autoComplete="off"/></ContextField>
                         </div>
                       </div>
 
@@ -135,7 +142,7 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                           <button
                             type="button"
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={() => testProxy(values)}
+                            onClick={() => testProxy(form.state.values)}
                           >
                             Test
                           </button>
@@ -155,10 +162,9 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                         </div>
                       </div>
 
-                      <DEBUG values={values}/>
-                    </Form>
-                  )}
-                </Formik>
+                      <DEBUG values={form.state.values}/>
+                  </form>
+                </form.AppForm>
               </div>
 
             </TransitionChild>
@@ -240,22 +246,23 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       {() => (
         <div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            <TextFieldWide name="name" label="Name" defaultValue="" required={true}/>
-            <SwitchGroupWide name="enabled" label="Enabled"/>
-            <SelectFieldBasic
-              name="type"
-              label="Proxy type"
-              required={true}
-              options={ProxyTypeOptions}
-              tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
-              help="Usually SOCKS5"
-            />
-            <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
+            <ContextField name="name"><TextFieldWide label="Name" defaultValue="" required={true}/></ContextField>
+            <ContextField name="enabled"><SwitchGroupWide label="Enabled"/></ContextField>
+            <ContextField name="type">
+              <SelectFieldBasic
+                label="Proxy type"
+                required={true}
+                options={ProxyTypeOptions}
+                tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
+                help="Usually SOCKS5"
+              />
+            </ContextField>
+            <ContextField name="addr"><TextFieldWide label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/></ContextField>
           </div>
 
           <div>
-            <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off"/>
-            <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
+            <ContextField name="user"><TextFieldWide label="User" help="auth: username" autoComplete="off"/></ContextField>
+            <ContextField name="pass"><PasswordFieldWide label="Pass" help="auth: password" autoComplete="off"/></ContextField>
           </div>
         </div>
       )}
