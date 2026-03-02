@@ -468,7 +468,7 @@ func (m *Migrator) migrateOldVersionTable(currentVersion int) error {
 
 func (m *Migrator) updateSchemaVersions(tx *sql.Tx, migrations []*Migration) error {
 	for _, migration := range migrations {
-		if err := m.updateSchemaVersion(tx, migration.id, migration.Name); err != nil {
+		if err := m.updateSchemaVersionTx(tx, migration.id, migration.Name); err != nil {
 			return err
 		}
 	}
@@ -605,8 +605,17 @@ func (m *Migrator) Migrate() error {
 	return nil
 }
 
-func (m *Migrator) updateSchemaVersion(tx *sql.Tx, id int, version string) error {
+func (m *Migrator) updateSchemaVersionTx(tx *sql.Tx, id int, version string) error {
 	_, err := m.squirrel.Insert(m.tableName).Columns("id", "version").Values(id, version).RunWith(tx).Exec()
+	if err != nil {
+		return errors.Wrapf(err, "error inserting migration version: %s", version)
+	}
+
+	return nil
+}
+
+func (m *Migrator) updateSchemaVersion(id int, version string) error {
+	_, err := m.squirrel.Insert(m.tableName).Columns("id", "version").Values(id, version).RunWith(m.db).Exec()
 	if err != nil {
 		return errors.Wrapf(err, "error inserting migration version: %s", version)
 	}
@@ -703,6 +712,19 @@ func (m *Migrator) migrate(migrationNumber int, migration *Migration) error {
 		return errors.New("migration cannot have both RunTx function and File path")
 	}
 
+	if migration.Run != nil {
+		m.logger.Printf("applying migration: %s from Run", migration.Name)
+		if err := migration.Run(m.db); err != nil {
+			return errors.Wrapf(err, "error executing migration: %s", migration.Name)
+		}
+
+		if err := m.updateSchemaVersion(migrationNumber, migration.Name); err != nil {
+			return errors.Wrapf(err, "error updating migration versions: %s", migration.Name)
+		}
+
+		return nil
+	}
+
 	tx, err := m.db.Begin()
 	if err != nil {
 		return errors.Wrap(err, "error could not begin transaction")
@@ -721,13 +743,14 @@ func (m *Migrator) migrate(migrationNumber int, migration *Migration) error {
 
 	//m.logger.Printf("applying migration: %s", migration.Name)
 
-	if migration.Run != nil {
-		m.logger.Printf("applying migration: %s from Run", migration.Name)
-		if err = migration.Run(m.db); err != nil {
-			return errors.Wrapf(err, "error executing migration: %s", migration.Name)
-		}
-
-	} else if migration.RunTx != nil {
+	//if migration.Run != nil {
+	//	m.logger.Printf("applying migration: %s from Run", migration.Name)
+	//	if err = migration.Run(m.db); err != nil {
+	//		return errors.Wrapf(err, "error executing migration: %s", migration.Name)
+	//	}
+	//
+	//} else
+	if migration.RunTx != nil {
 		m.logger.Printf("applying migration: %s from RunTx", migration.Name)
 		if err = migration.RunTx(tx); err != nil {
 			return errors.Wrapf(err, "error executing migration: %s", migration.Name)
@@ -747,7 +770,7 @@ func (m *Migrator) migrate(migrationNumber int, migration *Migration) error {
 		}
 	}
 
-	if err = m.updateSchemaVersion(tx, migrationNumber, migration.Name); err != nil {
+	if err = m.updateSchemaVersionTx(tx, migrationNumber, migration.Name); err != nil {
 		return errors.Wrapf(err, "error updating migration versions: %s", migration.Name)
 	}
 
