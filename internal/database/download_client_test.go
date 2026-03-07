@@ -56,10 +56,13 @@ func getMockDownloadClient() domain.DownloadClient {
 
 func getMockArrList(filterID int, clientID int32) *domain.List {
 	return &domain.List{
-		Name:     "radarr-list",
-		Type:     domain.ListTypeRadarr,
-		Enabled:  true,
-		ClientID: int(clientID),
+		Name:        "radarr-list",
+		Type:        domain.ListTypeRadarr,
+		Enabled:     true,
+		ClientID:    int(clientID),
+		Headers:     []string{},
+		TagsInclude: []string{},
+		TagsExclude: []string{},
 		Filters: []domain.ListFilter{
 			{
 				ID:   filterID,
