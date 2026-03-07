@@ -54,6 +54,21 @@ func getMockDownloadClient() domain.DownloadClient {
 	}
 }
 
+func getMockArrList(filterID int, clientID int32) *domain.List {
+	return &domain.List{
+		Name:     "radarr-list",
+		Type:     domain.ListTypeRadarr,
+		Enabled:  true,
+		ClientID: int(clientID),
+		Filters: []domain.ListFilter{
+			{
+				ID:   filterID,
+				Name: "filter",
+			},
+		},
+	}
+}
+
 func TestDownloadClientRepo_List(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
@@ -348,6 +363,90 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), mockClient.ID)
+		})
+
+		t.Run(fmt.Sprintf("Delete_Clears_Client_From_Actions [%s]", dbType), func(t *testing.T) {
+			actionRepo := NewActionRepo(log, db, repo)
+			filterRepo := NewFilterRepo(log, db)
+
+			mockClient := getMockDownloadClient()
+			err := repo.Store(context.Background(), &mockClient)
+			assert.NoError(t, err)
+
+			filter := getMockFilter()
+			err = filterRepo.Store(context.Background(), filter)
+			assert.NoError(t, err)
+
+			actionWithoutFilter := getMockAction()
+			actionWithoutFilter.ClientID = mockClient.ID
+			actionWithoutFilter.FilterID = 0
+			actionWithoutFilter.Name = "action-without-filter"
+
+			err = actionRepo.Store(context.Background(), actionWithoutFilter)
+			assert.NoError(t, err)
+
+			actionWithFilter := getMockAction()
+			actionWithFilter.ClientID = mockClient.ID
+			actionWithFilter.FilterID = filter.ID
+			actionWithFilter.Name = "action-with-filter"
+
+			err = actionRepo.Store(context.Background(), actionWithFilter)
+			assert.NoError(t, err)
+
+			err = repo.Delete(context.Background(), mockClient.ID)
+			assert.NoError(t, err)
+
+			updatedActionWithoutFilter, err := actionRepo.Get(context.Background(), &domain.GetActionRequest{Id: actionWithoutFilter.ID})
+			assert.NoError(t, err)
+			assert.False(t, updatedActionWithoutFilter.Enabled)
+			assert.Zero(t, updatedActionWithoutFilter.ClientID)
+			assert.Zero(t, updatedActionWithoutFilter.FilterID)
+
+			updatedActionWithFilter, err := actionRepo.Get(context.Background(), &domain.GetActionRequest{Id: actionWithFilter.ID})
+			assert.NoError(t, err)
+			assert.False(t, updatedActionWithFilter.Enabled)
+			assert.Zero(t, updatedActionWithFilter.ClientID)
+			assert.Equal(t, filter.ID, updatedActionWithFilter.FilterID)
+
+			_, err = repo.FindByID(context.Background(), mockClient.ID)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionWithoutFilter.ID})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionWithFilter.ID})
+			_ = filterRepo.Delete(context.Background(), filter.ID)
+		})
+
+		t.Run(fmt.Sprintf("Delete_Clears_Client_From_Lists [%s]", dbType), func(t *testing.T) {
+			filterRepo := NewFilterRepo(log, db)
+			listRepo := NewListRepo(log, db)
+
+			mockClient := getMockDownloadClient()
+			err := repo.Store(context.Background(), &mockClient)
+			assert.NoError(t, err)
+
+			filter := getMockFilter()
+			err = filterRepo.Store(context.Background(), filter)
+			assert.NoError(t, err)
+
+			list := getMockArrList(filter.ID, mockClient.ID)
+			err = listRepo.Store(context.Background(), list)
+			assert.NoError(t, err)
+
+			err = repo.Delete(context.Background(), mockClient.ID)
+			assert.NoError(t, err)
+
+			updatedList, err := listRepo.FindByID(context.Background(), list.ID)
+			assert.NoError(t, err)
+			assert.False(t, updatedList.Enabled)
+			assert.Zero(t, updatedList.ClientID)
+
+			_, err = repo.FindByID(context.Background(), mockClient.ID)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+
+			_ = listRepo.Delete(context.Background(), list.ID)
+			_ = filterRepo.Delete(context.Background(), filter.ID)
 		})
 	}
 }
