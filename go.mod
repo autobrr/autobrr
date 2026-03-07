@@ -1,8 +1,9 @@
 module github.com/autobrr/autobrr
 
-go 1.25
+go 1.25.0
 
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
+
 replace github.com/moistari/rls => github.com/autobrr/rls v0.8.0
 
 require (
@@ -12,7 +13,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/alexedwards/scs/postgresstore v0.0.0-20250417082927-ab20b3feb5e9
 	github.com/alexedwards/scs/v2 v2.9.0
-	github.com/anacrolix/torrent v1.60.0
+	github.com/anacrolix/torrent v1.61.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.3.0
 	github.com/autobrr/go-qbittorrent v1.15.0-rc1
@@ -27,14 +28,14 @@ require (
 	github.com/fergusstrange/embedded-postgres v1.33.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-andiamo/splitter v1.2.5
-	github.com/go-chi/chi/v5 v5.2.4
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
 	github.com/hashicorp/go-version v1.8.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	github.com/icholy/digest v1.1.0
-	github.com/lib/pq v1.11.1
+	github.com/lib/pq v1.11.2
 	github.com/magiconair/properties v1.8.10
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/moistari/rls v0.6.0
@@ -49,16 +50,16 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.47.0
-	golang.org/x/net v0.49.0
-	golang.org/x/oauth2 v0.34.0
+	golang.org/x/crypto v0.48.0
+	golang.org/x/net v0.51.0
+	golang.org/x/oauth2 v0.35.0
 	golang.org/x/sync v0.19.0
-	golang.org/x/term v0.39.0
-	golang.org/x/text v0.33.0
+	golang.org/x/term v0.40.0
+	golang.org/x/text v0.34.0
 	golang.org/x/time v0.14.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.44.3
+	modernc.org/sqlite v1.46.1
 )
 
 require (
@@ -68,7 +69,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
-	github.com/anacrolix/generics v0.1.0 // indirect
+	github.com/anacrolix/generics v0.1.1-0.20251125230353-15d98d46693b // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.10.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
@@ -119,13 +120,12 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
-
