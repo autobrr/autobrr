@@ -6,7 +6,6 @@ package download_client
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -322,12 +321,12 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		})
 
 	case domain.DownloadClientTypeTransmission:
-		scheme := "http"
-		if client.TLS {
-			scheme = "https"
+		clientHost, err := client.BuildLegacyHost()
+		if err != nil {
+			return nil, errors.Wrap(err, "error building Transmission host url: %v", client.Host)
 		}
 
-		transmissionURL, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+		transmissionURL, err := url.Parse(clientHost)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not parse transmission url")
 		}

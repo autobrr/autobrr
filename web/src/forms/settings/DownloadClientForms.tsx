@@ -304,7 +304,7 @@ function FormFieldsRTorrent() {
 
 function FormFieldsTransmission() {
   const {
-    values: { tls }
+    values: { port, tls }
   } = useFormikContext<InitialValues>();
 
   return (
@@ -313,7 +313,7 @@ function FormFieldsTransmission() {
         required
         name="host"
         label="Host"
-        help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
+        help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/transmission, http://domain.ltd:9091/manage/torrents"
         tooltip={
           <div>
             <p>See guides for how to connect to Transmission for various server types in our docs.</p>
@@ -326,7 +326,13 @@ function FormFieldsTransmission() {
         }
       />
 
-      <NumberFieldWide name="port" label="Port" help="Port for Transmission" />
+      {port > 0 && (
+        <NumberFieldWide
+          name="port"
+          label="Port"
+          help="Port for Transmission"
+        />
+      )}
 
       <SwitchGroupWide name="tls" label="TLS" />
 
@@ -356,12 +362,12 @@ function FormFieldsSabnzbd() {
         help="Eg. http://ip:port or https://url.com/sabnzbd"
         tooltip={
           <div>
-            <p>See our guides on how to connect to qBittorrent for various server types in our docs.</p>
+            <p>See our guides on how to connect to SABnzbd for various server types in our docs.</p>
             <br />
             <p>Dedicated servers:</p>
-            <ExternalLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent" />
+            <ExternalLink href="https://autobrr.com/configuration/download-clients/dedicated#sabnzbd" />
             <p>Shared seedbox providers:</p>
-            <ExternalLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent" />
+            <ExternalLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#sabnzbd" />
           </div>
         }
       />
@@ -861,7 +867,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: UpdateFormProps<DownloadClient>) {
+export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: UpdateFormProps<DownloadClient>) {
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
