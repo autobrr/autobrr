@@ -7,7 +7,6 @@ import { Fragment, useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Form, Formik, useFormikContext } from "formik";
 
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
@@ -24,10 +23,12 @@ import {
   RadioFieldsetWide,
   SwitchGroupWide,
   TextFieldWide
-} from "@components/inputs";
+} from "@components/inputs/tanstack";
 import { DocsLink, ExternalLink } from "@components/ExternalLink";
-import { SelectFieldBasic } from "@components/inputs/select_wide";
+import { SelectFieldBasic } from "@components/inputs/tanstack/select_wide";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
+import { useStore } from "@tanstack/react-store";
+import { useAppForm, ContextField, useFormContext } from "@app/lib/form";
 
 interface InitialValuesSettings {
   basic?: {
@@ -66,91 +67,111 @@ interface InitialValues {
 }
 
 function FormFieldsDeluge() {
-  const {
-    values: { tls }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const tls = useStore(form.store, (s: any) => s.values.tls);
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-      <TextFieldWide
-        required
-        name="host"
-        label="Host"
-        help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
-        tooltip={
-          <div>
-            <p>See guides for how to connect to Deluge for various server types in our docs.</p>
-            <br />
-            <p>Dedicated servers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#deluge" />
-            <p>Shared seedbox providers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge" />
-          </div>
-        }
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          required
+          label="Host"
+          help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd:port"
+          tooltip={
+            <div>
+              <p>See guides for how to connect to Deluge for various server types in our docs.</p>
+              <br />
+              <p>Dedicated servers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#deluge" />
+              <p>Shared seedbox providers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#deluge" />
+            </div>
+          }
+        />
+      </ContextField>
 
-      <NumberFieldWide
-        name="port"
-        label="Port"
-        help="Daemon port"
-      />
+      <ContextField name="port">
+        <NumberFieldWide
+          label="Port"
+          help="Daemon port"
+        />
+      </ContextField>
 
-      <SwitchGroupWide name="tls" label="TLS" />
+      <ContextField name="tls">
+        <SwitchGroupWide label="TLS" />
+      </ContextField>
 
       {tls && (
-        <SwitchGroupWide
-          name="tls_skip_verify"
-          label="Skip TLS verification (insecure)"
-        />
+        <ContextField name="tls_skip_verify">
+          <SwitchGroupWide
+            label="Skip TLS verification (insecure)"
+          />
+        </ContextField>
       )}
 
-      <TextFieldWide name="username" label="Username" />
-      <PasswordFieldWide name="password" label="Password" />
+      <ContextField name="username">
+        <TextFieldWide label="Username" />
+      </ContextField>
+      <ContextField name="password">
+        <PasswordFieldWide label="Password" />
+      </ContextField>
     </div>
   );
 }
 
 function FormFieldsArr() {
-  const {
-    values: { tls, settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const tls = useStore(form.store, (s: any) => s.values.tls);
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="flex flex-col space-y-4 px-1 mb-4 sm:py-0 sm:space-y-0">
-      <TextFieldWide
-        required
-        name="host"
-        label="Host"
-        help="Full url http(s)://domain.ltd and/or subdomain/subfolder"
-        tooltip={
-          <div>
-            <p>See guides for how to connect to the *arr suite for various server types in our docs.</p>
-            <br />
-            <p>Dedicated servers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated/#sonarr" />
-            <p>Shared seedbox providers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#sonarr" />
-          </div>
-        }
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          required
+          label="Host"
+          help="Full url http(s)://domain.ltd and/or subdomain/subfolder"
+          tooltip={
+            <div>
+              <p>See guides for how to connect to the *arr suite for various server types in our docs.</p>
+              <br />
+              <p>Dedicated servers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated/#sonarr" />
+              <p>Shared seedbox providers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#sonarr" />
+            </div>
+          }
+        />
+      </ContextField>
 
-      <SwitchGroupWide name="tls" label="TLS" />
+      <ContextField name="tls">
+        <SwitchGroupWide label="TLS" />
+      </ContextField>
 
       {tls && (
-        <SwitchGroupWide
-          name="tls_skip_verify"
-          label="Skip TLS verification (insecure)"
-        />
+        <ContextField name="tls_skip_verify">
+          <SwitchGroupWide
+            label="Skip TLS verification (insecure)"
+          />
+        </ContextField>
       )}
 
-      <PasswordFieldWide required name="settings.apikey" label="API key" />
+      <ContextField name="settings.apikey">
+        <PasswordFieldWide required label="API key" />
+      </ContextField>
 
-      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+      <ContextField name="settings.basic.auth">
+        <SwitchGroupWide label="Basic auth" />
+      </ContextField>
 
       {settings.basic?.auth === true && (
         <>
-          <TextFieldWide name="settings.basic.username" label="Username" />
-          <PasswordFieldWide name="settings.basic.password" label="Password" />
+          <ContextField name="settings.basic.username">
+            <TextFieldWide label="Username" />
+          </ContextField>
+          <ContextField name="settings.basic.password">
+            <PasswordFieldWide label="Password" />
+          </ContextField>
         </>
       )}
     </div>
@@ -158,55 +179,71 @@ function FormFieldsArr() {
 }
 
 function FormFieldsQbit() {
-  const {
-    values: { port, tls, settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const port = useStore(form.store, (s: any) => s.values.port);
+  const tls = useStore(form.store, (s: any) => s.values.tls);
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-      <TextFieldWide
-        required
-        name="host"
-        label="Host"
-        help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port"
-        tooltip={
-          <div>
-            <p>See guides for how to connect to qBittorrent for various server types in our docs.</p>
-            <br />
-            <p>Dedicated servers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent" />
-            <p>Shared seedbox providers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent" />
-          </div>
-        }
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          required
+          label="Host"
+          help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port"
+          tooltip={
+            <div>
+              <p>See guides for how to connect to qBittorrent for various server types in our docs.</p>
+              <br />
+              <p>Dedicated servers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent" />
+              <p>Shared seedbox providers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent" />
+            </div>
+          }
+        />
+      </ContextField>
 
       {port > 0 && (
-        <NumberFieldWide
-          name="port"
-          label="Port"
-          help="WebUI port for qBittorrent"
-        />
+        <ContextField name="port">
+          <NumberFieldWide
+            label="Port"
+            help="WebUI port for qBittorrent"
+          />
+        </ContextField>
       )}
 
-      <SwitchGroupWide name="tls" label="TLS" />
+      <ContextField name="tls">
+        <SwitchGroupWide label="TLS" />
+      </ContextField>
 
       {tls && (
-        <SwitchGroupWide
-          name="tls_skip_verify"
-          label="Skip TLS verification (insecure)"
-        />
+        <ContextField name="tls_skip_verify">
+          <SwitchGroupWide
+            label="Skip TLS verification (insecure)"
+          />
+        </ContextField>
       )}
 
-      <TextFieldWide name="username" label="Username" />
-      <PasswordFieldWide name="password" label="Password" />
+      <ContextField name="username">
+        <TextFieldWide label="Username" />
+      </ContextField>
+      <ContextField name="password">
+        <PasswordFieldWide label="Password" />
+      </ContextField>
 
-      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+      <ContextField name="settings.basic.auth">
+        <SwitchGroupWide label="Basic auth" />
+      </ContextField>
 
       {settings.basic?.auth === true && (
         <>
-          <TextFieldWide name="settings.basic.username" label="Username" />
-          <PasswordFieldWide name="settings.basic.password" label="Password" />
+          <ContextField name="settings.basic.username">
+            <TextFieldWide label="Username" />
+          </ContextField>
+          <ContextField name="settings.basic.password">
+            <PasswordFieldWide label="Password" />
+          </ContextField>
         </>
       )}
     </div>
@@ -214,36 +251,48 @@ function FormFieldsQbit() {
 }
 
 function FormFieldsPorla() {
-  const {
-    values: { tls, settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const tls = useStore(form.store, (s: any) => s.values.tls);
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-      <TextFieldWide
-        required
-        name="host"
-        label="Host"
-        help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          required
+          label="Host"
+          help="Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port"
+        />
+      </ContextField>
 
-      <SwitchGroupWide name="tls" label="TLS" />
+      <ContextField name="tls">
+        <SwitchGroupWide label="TLS" />
+      </ContextField>
 
-      <PasswordFieldWide required name="settings.apikey" label="Auth token" />
+      <ContextField name="settings.apikey">
+        <PasswordFieldWide required label="Auth token" />
+      </ContextField>
 
       {tls && (
-        <SwitchGroupWide
-          name="tls_skip_verify"
-          label="Skip TLS verification (insecure)"
-        />
+        <ContextField name="tls_skip_verify">
+          <SwitchGroupWide
+            label="Skip TLS verification (insecure)"
+          />
+        </ContextField>
       )}
 
-      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+      <ContextField name="settings.basic.auth">
+        <SwitchGroupWide label="Basic auth" />
+      </ContextField>
 
       {settings.basic?.auth === true && (
         <>
-          <TextFieldWide name="settings.basic.username" label="Username" />
-          <PasswordFieldWide name="settings.basic.password" label="Password" />
+          <ContextField name="settings.basic.username">
+            <TextFieldWide label="Username" />
+          </ContextField>
+          <ContextField name="settings.basic.password">
+            <PasswordFieldWide label="Password" />
+          </ContextField>
         </>
       )}
     </div>
@@ -251,51 +300,62 @@ function FormFieldsPorla() {
 }
 
 function FormFieldsRTorrent() {
-  const {
-    values: { tls, settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const tls = useStore(form.store, (s: any) => s.values.tls);
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-      <TextFieldWide
-        required
-        name="host"
-        label="Host"
-        help="Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2"
-        tooltip={
-          <div>
-            <p>See guides for how to connect to rTorrent for various server types in our docs.</p>
-            <br />
-            <p>Dedicated servers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent" />
-            <p>Shared seedbox providers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent" />
-          </div>
-        }
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          required
+          label="Host"
+          help="Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2"
+          tooltip={
+            <div>
+              <p>See guides for how to connect to rTorrent for various server types in our docs.</p>
+              <br />
+              <p>Dedicated servers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#rtorrent--rutorrent" />
+              <p>Shared seedbox providers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#rtorrent" />
+            </div>
+          }
+        />
+      </ContextField>
 
-      <SwitchGroupWide name="tls" label="TLS" />
+      <ContextField name="tls">
+        <SwitchGroupWide label="TLS" />
+      </ContextField>
 
       {tls && (
-        <SwitchGroupWide
-          name="tls_skip_verify"
-          label="Skip TLS verification (insecure)"
-        />
+        <ContextField name="tls_skip_verify">
+          <SwitchGroupWide
+            label="Skip TLS verification (insecure)"
+          />
+        </ContextField>
       )}
 
-      <SwitchGroupWide name="settings.auth.enabled" label="Auth" />
+      <ContextField name="settings.auth.enabled">
+        <SwitchGroupWide label="Auth" />
+      </ContextField>
 
       {settings.auth?.enabled && (
         <>
-          <SelectFieldBasic
-            name="settings.auth.type"
-            label="Auth type"
-            placeholder="Select auth type"
-            options={DownloadClientAuthType}
-            tooltip={<p>This should in most cases be Basic Auth, but some providers use Digest Auth.</p>}
-          />
-          <TextFieldWide name="settings.auth.username" label="Username" />
-          <PasswordFieldWide name="settings.auth.password" label="Password" />
+          <ContextField name="settings.auth.type">
+            <SelectFieldBasic
+              label="Auth type"
+              placeholder="Select auth type"
+              options={DownloadClientAuthType}
+              tooltip={<p>This should in most cases be Basic Auth, but some providers use Digest Auth.</p>}
+            />
+          </ContextField>
+          <ContextField name="settings.auth.username">
+            <TextFieldWide label="Username" />
+          </ContextField>
+          <ContextField name="settings.auth.password">
+            <PasswordFieldWide label="Password" />
+          </ContextField>
         </>
       )}
     </div>
@@ -303,97 +363,120 @@ function FormFieldsRTorrent() {
 }
 
 function FormFieldsTransmission() {
-  const {
-    values: { tls }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const tls = useStore(form.store, (s: any) => s.values.tls);
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-      <TextFieldWide
-        required
-        name="host"
-        label="Host"
-        help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
-        tooltip={
-          <div>
-            <p>See guides for how to connect to Transmission for various server types in our docs.</p>
-            <br />
-            <p>Dedicated servers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#transmission" />
-            <p>Shared seedbox providers:</p>
-            <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison" />
-          </div>
-        }
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          required
+          label="Host"
+          help="Eg. client.domain.ltd, domain.ltd/client, domain.ltd"
+          tooltip={
+            <div>
+              <p>See guides for how to connect to Transmission for various server types in our docs.</p>
+              <br />
+              <p>Dedicated servers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#transmission" />
+              <p>Shared seedbox providers:</p>
+              <DocsLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#transmisison" />
+            </div>
+          }
+        />
+      </ContextField>
 
-      <NumberFieldWide name="port" label="Port" help="Port for Transmission" />
+      <ContextField name="port">
+        <NumberFieldWide label="Port" help="Port for Transmission" />
+      </ContextField>
 
-      <SwitchGroupWide name="tls" label="TLS" />
+      <ContextField name="tls">
+        <SwitchGroupWide label="TLS" />
+      </ContextField>
 
       {tls && (
-        <SwitchGroupWide
-          name="tls_skip_verify"
-          label="Skip TLS verification (insecure)"
-        />
+        <ContextField name="tls_skip_verify">
+          <SwitchGroupWide
+            label="Skip TLS verification (insecure)"
+          />
+        </ContextField>
       )}
 
-      <TextFieldWide name="username" label="Username" />
-      <PasswordFieldWide name="password" label="Password" />
+      <ContextField name="username">
+        <TextFieldWide label="Username" />
+      </ContextField>
+      <ContextField name="password">
+        <PasswordFieldWide label="Password" />
+      </ContextField>
     </div>
   );
 }
 
 function FormFieldsSabnzbd() {
-  const {
-    values: { port, tls, settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const port = useStore(form.store, (s: any) => s.values.port);
+  const tls = useStore(form.store, (s: any) => s.values.tls);
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-      <TextFieldWide
-        name="host"
-        label="Host"
-        help="Eg. http://ip:port or https://url.com/sabnzbd"
-        tooltip={
-          <div>
-            <p>See our guides on how to connect to qBittorrent for various server types in our docs.</p>
-            <br />
-            <p>Dedicated servers:</p>
-            <ExternalLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent" />
-            <p>Shared seedbox providers:</p>
-            <ExternalLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent" />
-          </div>
-        }
-      />
+      <ContextField name="host">
+        <TextFieldWide
+          label="Host"
+          help="Eg. http://ip:port or https://url.com/sabnzbd"
+          tooltip={
+            <div>
+              <p>See our guides on how to connect to qBittorrent for various server types in our docs.</p>
+              <br />
+              <p>Dedicated servers:</p>
+              <ExternalLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent" />
+              <p>Shared seedbox providers:</p>
+              <ExternalLink href="https://autobrr.com/configuration/download-clients/shared-seedboxes#qbittorrent" />
+            </div>
+          }
+        />
+      </ContextField>
 
       {port > 0 && (
-        <NumberFieldWide
-          name="port"
-          label="Port"
-          help="port for SABnzbd"
-        />
+        <ContextField name="port">
+          <NumberFieldWide
+            label="Port"
+            help="port for SABnzbd"
+          />
+        </ContextField>
       )}
 
-      <SwitchGroupWide name="tls" label="TLS" />
+      <ContextField name="tls">
+        <SwitchGroupWide label="TLS" />
+      </ContextField>
 
       {tls && (
-        <SwitchGroupWide
-          name="tls_skip_verify"
-          label="Skip TLS verification (insecure)"
-        />
+        <ContextField name="tls_skip_verify">
+          <SwitchGroupWide
+            label="Skip TLS verification (insecure)"
+          />
+        </ContextField>
       )}
 
       {/*<TextFieldWide name="username" label="Username" />*/}
       {/*<PasswordFieldWide name="password" label="Password" />*/}
 
-      <PasswordFieldWide name="settings.apikey" label="API key" />
+      <ContextField name="settings.apikey">
+        <PasswordFieldWide label="API key" />
+      </ContextField>
 
-      <SwitchGroupWide name="settings.basic.auth" label="Basic auth" />
+      <ContextField name="settings.basic.auth">
+        <SwitchGroupWide label="Basic auth" />
+      </ContextField>
 
       {settings.basic?.auth === true && (
         <>
-          <TextFieldWide name="settings.basic.username" label="Username" />
-          <PasswordFieldWide name="settings.basic.password" label="Password" />
+          <ContextField name="settings.basic.username">
+            <TextFieldWide label="Username" />
+          </ContextField>
+          <ContextField name="settings.basic.password">
+            <PasswordFieldWide label="Password" />
+          </ContextField>
         </>
       )}
     </div>
@@ -420,9 +503,8 @@ export const componentMap: componentMapType = {
 };
 
 function FormFieldsRulesBasic() {
-  const {
-    values: { settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -434,32 +516,31 @@ function FormFieldsRulesBasic() {
         </p>
       </div>
 
-      <SwitchGroupWide name="settings.rules.enabled" label="Enabled" />
+      <ContextField name="settings.rules.enabled">
+        <SwitchGroupWide label="Enabled" />
+      </ContextField>
 
       {settings && settings.rules?.enabled === true && (
-        <NumberFieldWide
-          name="settings.rules.max_active_downloads"
-          label="Max active downloads"
-          tooltip={
-            <span>
-              <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
-              <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#deluge-rules" />
-              <br /><br />
-              <p>See recommendations for various server types here:</p>
-              <DocsLink href='https://autobrr.com/filters/examples#build-buffer' />
-            </span>
-          }
-        />
+        <ContextField name="settings.rules.max_active_downloads">
+          <NumberFieldWide
+            label="Max active downloads"
+            tooltip={
+              <span>
+                <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
+                <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#deluge-rules" />
+                <br /><br />
+                <p>See recommendations for various server types here:</p>
+                <DocsLink href='https://autobrr.com/filters/examples#build-buffer' />
+              </span>
+            }
+          />
+        </ContextField>
       )}
     </div>
   );
 }
 
 function FormFieldsRulesArr() {
-  // const {
-  //   values: { settings }
-  // } = useFormikContext<InitialValues>();
-
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4">
@@ -471,17 +552,20 @@ function FormFieldsRulesArr() {
         </p>
       </div>
 
-      <TextFieldWide name="settings.external_download_client" label="Client Name" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action.</p></div>} />
+      <ContextField name="settings.external_download_client">
+        <TextFieldWide label="Client Name" tooltip={<div><p>Specify what client the arr should use by default. Can be overridden per filter action.</p></div>} />
+      </ContextField>
 
-      <NumberFieldWide name="settings.external_download_client_id" label="Client ID DEPRECATED" tooltip={<div><p>DEPRECATED: Use Client name field instead.</p></div>} />
+      <ContextField name="settings.external_download_client_id">
+        <NumberFieldWide label="Client ID DEPRECATED" tooltip={<div><p>DEPRECATED: Use Client name field instead.</p></div>} />
+      </ContextField>
     </div>
   );
 }
 
 function FormFieldsRulesQbit() {
-  const {
-    values: { settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
@@ -494,50 +578,57 @@ function FormFieldsRulesQbit() {
         </p>
       </div>
 
-      <SwitchGroupWide name="settings.rules.enabled" label="Enabled" />
+      <ContextField name="settings.rules.enabled">
+        <SwitchGroupWide label="Enabled" />
+      </ContextField>
 
       {settings.rules?.enabled === true && (
         <>
-          <NumberFieldWide
-            name="settings.rules.max_active_downloads"
-            label="Max active downloads"
-            tooltip={
-              <>
-                <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
-                <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent-rules" />
-                <br /><br />
-                <p>See recommendations for various server types here:</p>
-                <DocsLink href="https://autobrr.com/filters/examples#build-buffer" />
-              </>
-            }
-          />
+          <ContextField name="settings.rules.max_active_downloads">
+            <NumberFieldWide
+              label="Max active downloads"
+              tooltip={
+                <>
+                  <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
+                  <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#qbittorrent-rules" />
+                  <br /><br />
+                  <p>See recommendations for various server types here:</p>
+                  <DocsLink href="https://autobrr.com/filters/examples#build-buffer" />
+                </>
+              }
+            />
+          </ContextField>
 
-          <SwitchGroupWide
-            name="settings.rules.ignore_slow_torrents"
-            label="Ignore slow torrents"
-          />
+          <ContextField name="settings.rules.ignore_slow_torrents">
+            <SwitchGroupWide
+              label="Ignore slow torrents"
+            />
+          </ContextField>
 
           {settings.rules?.ignore_slow_torrents === true && (
             <>
-              <SelectFieldBasic
-                name="settings.rules.ignore_slow_torrents_condition"
-                label="Ignore condition"
-                placeholder="Select ignore condition"
-                options={DownloadRuleConditionOptions}
-                tooltip={<p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p>}
-              />
-              <NumberFieldWide
-                name="settings.rules.download_speed_threshold"
-                label="Download speed threshold"
-                placeholder="in KB/s"
-                help="If download speed is below this when max active downloads is hit, download anyways. KB/s"
-              />
-              <NumberFieldWide
-                name="settings.rules.upload_speed_threshold"
-                label="Upload speed threshold"
-                placeholder="in KB/s"
-                help="If upload speed is below this when max active downloads is hit, download anyways. KB/s"
-              />
+              <ContextField name="settings.rules.ignore_slow_torrents_condition">
+                <SelectFieldBasic
+                  label="Ignore condition"
+                  placeholder="Select ignore condition"
+                  options={DownloadRuleConditionOptions}
+                  tooltip={<p>Choose whether to respect or ignore the <code className="text-blue-400">Max active downloads</code> setting before checking speed thresholds.</p>}
+                />
+              </ContextField>
+              <ContextField name="settings.rules.download_speed_threshold">
+                <NumberFieldWide
+                  label="Download speed threshold"
+                  placeholder="in KB/s"
+                  help="If download speed is below this when max active downloads is hit, download anyways. KB/s"
+                />
+              </ContextField>
+              <ContextField name="settings.rules.upload_speed_threshold">
+                <NumberFieldWide
+                  label="Upload speed threshold"
+                  placeholder="in KB/s"
+                  help="If upload speed is below this when max active downloads is hit, download anyways. KB/s"
+                />
+              </ContextField>
             </>
           )}
         </>
@@ -547,9 +638,8 @@ function FormFieldsRulesQbit() {
 }
 
 function FormFieldsRulesTransmission() {
-  const {
-    values: { settings }
-  } = useFormikContext<InitialValues>();
+  const form = useFormContext() as any;
+  const settings = useStore(form.store, (s: any) => s.values.settings);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
@@ -562,23 +652,26 @@ function FormFieldsRulesTransmission() {
         </p>
       </div>
 
-      <SwitchGroupWide name="settings.rules.enabled" label="Enabled" />
+      <ContextField name="settings.rules.enabled">
+        <SwitchGroupWide label="Enabled" />
+      </ContextField>
 
       {settings.rules?.enabled === true && (
         <>
-          <NumberFieldWide
-            name="settings.rules.max_active_downloads"
-            label="Max active downloads"
-            tooltip={
-              <>
-                <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
-                <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#transmission-rules" />
-                <br /><br />
-                <p>See recommendations for various server types here:</p>
-                <DocsLink href="https://autobrr.com/filters/examples#build-buffer" />
-              </>
-            }
-          />
+          <ContextField name="settings.rules.max_active_downloads">
+            <NumberFieldWide
+              label="Max active downloads"
+              tooltip={
+                <>
+                  <p>Limit the amount of active downloads (0 is unlimited), to give the maximum amount of bandwidth and disk for the downloads.</p>
+                  <DocsLink href="https://autobrr.com/configuration/download-clients/dedicated#transmission-rules" />
+                  <br /><br />
+                  <p>See recommendations for various server types here:</p>
+                  <DocsLink href="https://autobrr.com/filters/examples#build-buffer" />
+                </>
+              }
+            />
+          </ContextField>
         </>
       )}
     </div>
@@ -767,6 +860,13 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
     settings: {}
   };
 
+  const form = useAppForm({
+    defaultValues: initialValues,
+    onSubmit: async ({ value }) => onSubmit(value)
+  });
+
+  const formValues = useStore(form.store, (s) => s.values);
+
   return (
     <Transition show={isOpen} as={Fragment}>
       <Dialog
@@ -788,70 +888,73 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl ">
-                <Formik
-                  initialValues={initialValues}
-                  onSubmit={onSubmit}
-                >
-                  {({ handleSubmit, values }) => (
-                    <Form
-                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
-                      onSubmit={handleSubmit}
-                    >
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add client
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Add download client.
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">Close panel</span>
-                                <XMarkIcon
-                                  className="h-6 w-6"
-                                  aria-hidden="true"
-                                />
-                              </button>
-                            </div>
+                <form.AppForm>
+                  <form
+                    className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      form.handleSubmit();
+                    }}
+                  >
+                    <div className="flex-1">
+                      <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                        <div className="flex items-start justify-between space-x-3">
+                          <div className="space-y-1">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Add client
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Add download client.
+                            </p>
                           </div>
-                        </div>
-
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide required name="name" label="Name" />
-                          <SwitchGroupWide name="enabled" label="Enabled" />
-                          <RadioFieldsetWide
-                            name="type"
-                            legend="Type"
-                            options={DownloadClientTypeOptions}
-                          />
-                          <div>{componentMap[values.type]}</div>
+                          <div className="h-7 flex items-center">
+                            <button
+                              type="button"
+                              className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                              onClick={toggle}
+                            >
+                              <span className="sr-only">Close panel</span>
+                              <XMarkIcon
+                                className="h-6 w-6"
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </div>
                         </div>
                       </div>
 
-                      {rulesComponentMap[values.type]}
+                      <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                        <ContextField name="name">
+                          <TextFieldWide required label="Name" />
+                        </ContextField>
+                        <ContextField name="enabled">
+                          <SwitchGroupWide label="Enabled" />
+                        </ContextField>
+                        <ContextField name="type">
+                          <RadioFieldsetWide
+                            legend="Type"
+                            options={DownloadClientTypeOptions}
+                          />
+                        </ContextField>
+                        <div>{componentMap[formValues.type]}</div>
+                      </div>
+                    </div>
 
-                      <DownloadClientFormButtons
-                        type="CREATE"
-                        isTesting={isTesting}
-                        isSuccessfulTest={isSuccessfulTest}
-                        isErrorTest={isErrorTest}
-                        cancelFn={toggle}
-                        testFn={testClient}
-                        values={values}
-                      />
+                    {rulesComponentMap[formValues.type]}
 
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+                    <DownloadClientFormButtons
+                      type="CREATE"
+                      isTesting={isTesting}
+                      isSuccessfulTest={isSuccessfulTest}
+                      isErrorTest={isErrorTest}
+                      cancelFn={toggle}
+                      testFn={testClient}
+                      values={formValues}
+                    />
+
+                    <DEBUG values={formValues} />
+                  </form>
+                </form.AppForm>
               </div>
             </TransitionChild>
           </DialogPanel>
@@ -943,6 +1046,13 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: Update
     settings: client.settings
   };
 
+  const form = useAppForm({
+    defaultValues: initialValues,
+    onSubmit: async ({ value }) => onSubmit(value)
+  });
+
+  const formValues = useStore(form.store, (s) => s.values);
+
   return (
     <Transition show={isOpen} as={Fragment}>
       <Dialog
@@ -974,73 +1084,74 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client}: Update
               leaveTo="translate-x-full"
             >
               <div className="w-screen max-w-2xl ">
-                <Formik
-                  initialValues={initialValues}
-                  onSubmit={onSubmit}
-                >
-                  {({ handleSubmit, values }) => {
-                    return (
-                      <Form
-                        className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
-                        onSubmit={handleSubmit}
-                      >
-                        <div className="flex-1">
-                          <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                            <div className="flex items-start justify-between space-x-3">
-                              <div className="space-y-1">
-                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                  Edit client
-                                </DialogTitle>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  Edit download client settings.
-                                </p>
-                              </div>
-                              <div className="h-7 flex items-center">
-                                <button
-                                  type="button"
-                                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                                  onClick={toggle}
-                                >
-                                  <span className="sr-only">Close panel</span>
-                                  <XMarkIcon
-                                    className="h-6 w-6"
-                                    aria-hidden="true"
-                                  />
-                                </button>
-                              </div>
-                            </div>
+                <form.AppForm>
+                  <form
+                    className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      form.handleSubmit();
+                    }}
+                  >
+                    <div className="flex-1">
+                      <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                        <div className="flex items-start justify-between space-x-3">
+                          <div className="space-y-1">
+                            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                              Edit client
+                            </DialogTitle>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              Edit download client settings.
+                            </p>
                           </div>
-
-                          <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
-                            <TextFieldWide required name="name" label="Name" />
-                            <SwitchGroupWide name="enabled" label="Enabled" />
-                            <RadioFieldsetWide
-                              name="type"
-                              legend="Type"
-                              options={DownloadClientTypeOptions}
-                            />
-                            <div>{componentMap[values.type]}</div>
+                          <div className="h-7 flex items-center">
+                            <button
+                              type="button"
+                              className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                              onClick={toggle}
+                            >
+                              <span className="sr-only">Close panel</span>
+                              <XMarkIcon
+                                className="h-6 w-6"
+                                aria-hidden="true"
+                              />
+                            </button>
                           </div>
                         </div>
+                      </div>
 
-                        {rulesComponentMap[values.type]}
+                      <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
+                        <ContextField name="name">
+                          <TextFieldWide required label="Name" />
+                        </ContextField>
+                        <ContextField name="enabled">
+                          <SwitchGroupWide label="Enabled" />
+                        </ContextField>
+                        <ContextField name="type">
+                          <RadioFieldsetWide
+                            legend="Type"
+                            options={DownloadClientTypeOptions}
+                          />
+                        </ContextField>
+                        <div>{componentMap[formValues.type]}</div>
+                      </div>
+                    </div>
 
-                        <DownloadClientFormButtons
-                          type="UPDATE"
-                          toggleDeleteModal={toggleDeleteModal}
-                          isTesting={isTesting}
-                          isSuccessfulTest={isSuccessfulTest}
-                          isErrorTest={isErrorTest}
-                          cancelFn={toggle}
-                          testFn={testClient}
-                          values={values}
-                        />
+                    {rulesComponentMap[formValues.type]}
 
-                        <DEBUG values={values} />
-                      </Form>
-                    );
-                  }}
-                </Formik>
+                    <DownloadClientFormButtons
+                      type="UPDATE"
+                      toggleDeleteModal={toggleDeleteModal}
+                      isTesting={isTesting}
+                      isSuccessfulTest={isSuccessfulTest}
+                      isErrorTest={isErrorTest}
+                      cancelFn={toggle}
+                      testFn={testClient}
+                      values={formValues}
+                    />
+
+                    <DEBUG values={formValues} />
+                  </form>
+                </form.AppForm>
               </div>
             </TransitionChild>
           </DialogPanel>

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Field, FieldProps } from "formik";
 import { components } from "react-select";
 import type {
   InputProps,
@@ -15,19 +14,18 @@ import type {
 } from "react-select";
 
 import { classNames } from "@utils";
+import { useFieldContext } from "@app/lib/form";
 
 interface ErrorFieldProps {
-  name: string;
   classNames?: string;
 }
 
-export const ErrorField = ({ name, classNames }: ErrorFieldProps) => (
-  <Field name={name} subscribe={{ touched: true, error: true }}>
-    {({ meta: { touched, error } }: FieldProps) =>
-      touched && error ? <span className={classNames}>{error}</span> : null
-    }
-  </Field>
-);
+export const ErrorField = ({ classNames }: ErrorFieldProps) => {
+  const field = useFieldContext<unknown>();
+  return field.state.meta.isTouched && field.state.meta.errors.length > 0
+    ? <span className={classNames}>{field.state.meta.errors[0]}</span>
+    : null;
+};
 
 interface RequiredFieldProps {
   required?: boolean

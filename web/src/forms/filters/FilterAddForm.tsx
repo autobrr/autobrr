@@ -8,8 +8,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
-import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
 
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
@@ -17,9 +15,10 @@ import { DEBUG } from "@components/debug";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AddFormProps } from "@forms/_shared";
+import { useAppForm } from "@app/lib/form";
 
 export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
-  const inputRef = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const mutation = useMutation({
@@ -37,13 +36,18 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
 
   const handleSubmit = (data: unknown) => mutation.mutate(data as Filter);
 
-  const validate = (values: FormikValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
-    if (!values.name) {
-      errors.name = "Required";
-    }
-    return errors;
-  };
+  const form = useAppForm({
+    defaultValues: {
+      name: "",
+      enabled: false,
+      resolutions: [] as string[],
+      codecs: [] as string[],
+      sources: [] as string[],
+      containers: [] as string[],
+      origins: [] as string[]
+    },
+    onSubmit: async ({ value }) => handleSubmit(value),
+  });
 
   return (
     <Transition show={isOpen} as={Fragment}>
@@ -61,21 +65,8 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
             >
               <div className="w-screen max-w-2xl ">
 
-                <Formik
-                  initialValues={{
-                    name: "",
-                    enabled: false,
-                    resolutions: [],
-                    codecs: [],
-                    sources: [],
-                    containers: [],
-                    origins: []
-                  }}
-                  onSubmit={handleSubmit}
-                  validate={validate}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
+                <form.AppForm>
+                  <form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto" onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
                       <div className="flex-1">
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
@@ -111,28 +102,27 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                                 <span className="text-red-500"> *</span>
                               </label>
                             </div>
-                            <Field name="name">
-                              {({
-                                field,
-                                meta
-                              }: FieldProps ) => (
+                            <form.AppField name="name" validators={{ onSubmit: ({ value }) => !value ? "Required" : undefined }}>
+                              {(field) => (
                                 <div className="sm:col-span-2">
                                   <input
-                                    {...field}
                                     id="name"
                                     type="text"
                                     data-1p-ignore
                                     autoComplete="off"
                                     ref={inputRef}
+                                    value={field.state.value}
+                                    onChange={(e) => field.handleChange(e.target.value)}
+                                    onBlur={field.handleBlur}
                                     className="block w-full shadow-xs sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
                                   />
 
-                                  {meta.touched && meta.error &&
-                                    <span className="block mt-2 text-red-500">{meta.error}</span>}
+                                  {field.state.meta.isTouched && field.state.meta.errors.length > 0 &&
+                                    <span className="block mt-2 text-red-500">{field.state.meta.errors[0]}</span>}
 
                                 </div>
                               )}
-                            </Field>
+                            </form.AppField>
                           </div>
                         </div>
                       </div>
@@ -155,10 +145,9 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                           </button>
                         </div>
                       </div>
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+                      <DEBUG values={form.state.values} />
+                  </form>
+                </form.AppForm>
               </div>
             </TransitionChild>
           </DialogPanel>

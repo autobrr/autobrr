@@ -8,7 +8,8 @@ import { APIClient } from "@api/APIClient.ts";
 import { ReleaseProfileDuplicateKeys } from "@api/query_keys.ts";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast.tsx";
-import { SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { SwitchGroupWide, TextFieldWide } from "@components/inputs/tanstack";
+import { ContextField } from "@app/lib/form";
 import { SlideOver } from "@components/panels";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
@@ -69,30 +70,76 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name"/>
+          <ContextField name="name">
+            <TextFieldWide required label="Name"/>
+          </ContextField>
 
-          <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
-          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
-          <SwitchGroupWide name="title" label="Title" description="Parsed title" />
-          <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
-          <SwitchGroupWide name="year" label="Year" />
-          <SwitchGroupWide name="month" label="Month" description="For daily releases" />
-          <SwitchGroupWide name="day" label="Day" description="For daily releases" />
-          <SwitchGroupWide name="source" label="Source" />
-          <SwitchGroupWide name="resolution" label="Resolution" />
-          <SwitchGroupWide name="codec" label="Codec" />
-          <SwitchGroupWide name="container" label="Container" />
-          <SwitchGroupWide name="dynamic_range" label="Dynamic Range" />
-          <SwitchGroupWide name="audio" label="Audio" />
-          <SwitchGroupWide name="group" label="Group" description="Release group" />
-          <SwitchGroupWide name="season" label="Season" />
-          <SwitchGroupWide name="episode" label="Episode" />
-          <SwitchGroupWide name="website" label="Website/Service" description="Services such as AMZN/HULU/NF" />
-          <SwitchGroupWide name="proper" label="Proper" />
-          <SwitchGroupWide name="repack" label="Repack" />
-          <SwitchGroupWide name="edition" label="Edition" />
-          <SwitchGroupWide name="hybrid" label="Hybrid version" />
-          <SwitchGroupWide name="language" label="Language" />
+          <ContextField name="release_name">
+            <SwitchGroupWide label="Release name" description="Full release name" />
+          </ContextField>
+          <ContextField name="hash">
+            <SwitchGroupWide label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
+          </ContextField>
+          <ContextField name="title">
+            <SwitchGroupWide label="Title" description="Parsed title" />
+          </ContextField>
+          <ContextField name="sub_title">
+            <SwitchGroupWide label="Sub Title" description="Parsed Sub Title like Episode Name" />
+          </ContextField>
+          <ContextField name="year">
+            <SwitchGroupWide label="Year" />
+          </ContextField>
+          <ContextField name="month">
+            <SwitchGroupWide label="Month" description="For daily releases" />
+          </ContextField>
+          <ContextField name="day">
+            <SwitchGroupWide label="Day" description="For daily releases" />
+          </ContextField>
+          <ContextField name="source">
+            <SwitchGroupWide label="Source" />
+          </ContextField>
+          <ContextField name="resolution">
+            <SwitchGroupWide label="Resolution" />
+          </ContextField>
+          <ContextField name="codec">
+            <SwitchGroupWide label="Codec" />
+          </ContextField>
+          <ContextField name="container">
+            <SwitchGroupWide label="Container" />
+          </ContextField>
+          <ContextField name="dynamic_range">
+            <SwitchGroupWide label="Dynamic Range" />
+          </ContextField>
+          <ContextField name="audio">
+            <SwitchGroupWide label="Audio" />
+          </ContextField>
+          <ContextField name="group">
+            <SwitchGroupWide label="Group" description="Release group" />
+          </ContextField>
+          <ContextField name="season">
+            <SwitchGroupWide label="Season" />
+          </ContextField>
+          <ContextField name="episode">
+            <SwitchGroupWide label="Episode" />
+          </ContextField>
+          <ContextField name="website">
+            <SwitchGroupWide label="Website/Service" description="Services such as AMZN/HULU/NF" />
+          </ContextField>
+          <ContextField name="proper">
+            <SwitchGroupWide label="Proper" />
+          </ContextField>
+          <ContextField name="repack">
+            <SwitchGroupWide label="Repack" />
+          </ContextField>
+          <ContextField name="edition">
+            <SwitchGroupWide label="Edition" />
+          </ContextField>
+          <ContextField name="hybrid">
+            <SwitchGroupWide label="Hybrid version" />
+          </ContextField>
+          <ContextField name="language">
+            <SwitchGroupWide label="Language" />
+          </ContextField>
         </div>
       )}
     </SlideOver>
@@ -171,30 +218,76 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name"/>
+          <ContextField name="name">
+            <TextFieldWide required label="Name"/>
+          </ContextField>
 
-          <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
-          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
-          <SwitchGroupWide name="title" label="Title" description="Parsed title" />
-          <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
-          <SwitchGroupWide name="year" label="Year" />
-          <SwitchGroupWide name="month" label="Month" description="For daily releases" />
-          <SwitchGroupWide name="day" label="Day" description="For daily releases" />
-          <SwitchGroupWide name="source" label="Source" />
-          <SwitchGroupWide name="resolution" label="Resolution" />
-          <SwitchGroupWide name="codec" label="Codec" />
-          <SwitchGroupWide name="container" label="Container" />
-          <SwitchGroupWide name="dynamic_range" label="Dynamic Range (HDR,DV etc)" />
-          <SwitchGroupWide name="audio" label="Audio" />
-          <SwitchGroupWide name="group" label="Group" description="Release group" />
-          <SwitchGroupWide name="season" label="Season" />
-          <SwitchGroupWide name="episode" label="Episode" />
-          <SwitchGroupWide name="website" label="Website/Service" description="Services such as AMZN/HULU/NF" />
-          <SwitchGroupWide name="repack" label="Repack" />
-          <SwitchGroupWide name="proper" label="Proper" />
-          <SwitchGroupWide name="edition" label="Edition and Cut" />
-          <SwitchGroupWide name="hybrid" label="Hybrid version" />
-          <SwitchGroupWide name="language" label="Language and Region" />
+          <ContextField name="release_name">
+            <SwitchGroupWide label="Release name" description="Full release name" />
+          </ContextField>
+          <ContextField name="hash">
+            <SwitchGroupWide label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
+          </ContextField>
+          <ContextField name="title">
+            <SwitchGroupWide label="Title" description="Parsed title" />
+          </ContextField>
+          <ContextField name="sub_title">
+            <SwitchGroupWide label="Sub Title" description="Parsed Sub Title like Episode Name" />
+          </ContextField>
+          <ContextField name="year">
+            <SwitchGroupWide label="Year" />
+          </ContextField>
+          <ContextField name="month">
+            <SwitchGroupWide label="Month" description="For daily releases" />
+          </ContextField>
+          <ContextField name="day">
+            <SwitchGroupWide label="Day" description="For daily releases" />
+          </ContextField>
+          <ContextField name="source">
+            <SwitchGroupWide label="Source" />
+          </ContextField>
+          <ContextField name="resolution">
+            <SwitchGroupWide label="Resolution" />
+          </ContextField>
+          <ContextField name="codec">
+            <SwitchGroupWide label="Codec" />
+          </ContextField>
+          <ContextField name="container">
+            <SwitchGroupWide label="Container" />
+          </ContextField>
+          <ContextField name="dynamic_range">
+            <SwitchGroupWide label="Dynamic Range (HDR,DV etc)" />
+          </ContextField>
+          <ContextField name="audio">
+            <SwitchGroupWide label="Audio" />
+          </ContextField>
+          <ContextField name="group">
+            <SwitchGroupWide label="Group" description="Release group" />
+          </ContextField>
+          <ContextField name="season">
+            <SwitchGroupWide label="Season" />
+          </ContextField>
+          <ContextField name="episode">
+            <SwitchGroupWide label="Episode" />
+          </ContextField>
+          <ContextField name="website">
+            <SwitchGroupWide label="Website/Service" description="Services such as AMZN/HULU/NF" />
+          </ContextField>
+          <ContextField name="repack">
+            <SwitchGroupWide label="Repack" />
+          </ContextField>
+          <ContextField name="proper">
+            <SwitchGroupWide label="Proper" />
+          </ContextField>
+          <ContextField name="edition">
+            <SwitchGroupWide label="Edition and Cut" />
+          </ContextField>
+          <ContextField name="hybrid">
+            <SwitchGroupWide label="Hybrid version" />
+          </ContextField>
+          <ContextField name="language">
+            <SwitchGroupWide label="Language and Region" />
+          </ContextField>
         </div>
       )}
     </SlideOver>

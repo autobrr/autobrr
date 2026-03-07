@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useFormikContext } from "formik";
+import { useFormContext, useStore, ContextField } from "@app/lib/form";
 
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
@@ -24,74 +24,79 @@ import {
   SwitchGroup,
   TextAreaAutoResize,
   TextField
-} from "@components/inputs";
+} from "@components/inputs/tanstack";
 
-// type ValueConsumer = {
-//   values: FormikValues;
-// };
 
 const Releases = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const use_regex = useStore(form.store, (s: any) => s.values.use_regex);
+  const match_releases = useStore(form.store, (s: any) => s.values.match_releases);
+  const except_releases = useStore(form.store, (s: any) => s.values.except_releases);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.use_regex || values.match_releases !== undefined || values.except_releases !== undefined}
+      defaultOpen={use_regex || match_releases !== undefined || except_releases !== undefined}
       title="Release Names"
       subtitle="Match only certain release names and/or ignore other release names."
     >
       <FilterLayout>
         <FilterHalfRow>
-          <SwitchGroup name="use_regex" label="Use Regex" className="pt-2" />
+          <ContextField name="use_regex">
+            <SwitchGroup label="Use Regex" className="pt-2" />
+          </ContextField>
         </FilterHalfRow>
       </FilterLayout>
 
       <FilterLayout>
         <FilterHalfRow>
-          <RegexTextAreaField
-            name="match_releases"
-            label="Match releases"
-            useRegex={values.use_regex}
-            columns={6}
-            placeholder="eg. *some?movie*,*some?show*s01*"
-            tooltip={
-              <div>
-                <p>This field has full regex support (Golang flavour).</p>
-                <DocsLink href="https://autobrr.com/filters#advanced" />
-                <br />
-                <br />
-                <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
-                <br />
-                <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
-              </div>
-            }
-          />
+          <ContextField name="match_releases">
+            <RegexTextAreaField
+              label="Match releases"
+              useRegex={use_regex}
+              columns={6}
+              placeholder="eg. *some?movie*,*some?show*s01*"
+              tooltip={
+                <div>
+                  <p>This field has full regex support (Golang flavour).</p>
+                  <DocsLink href="https://autobrr.com/filters#advanced" />
+                  <br />
+                  <br />
+                  <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+                  <br />
+                  <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+                </div>
+              }
+            />
+          </ContextField>
         </FilterHalfRow>
 
         <FilterHalfRow>
-          <RegexTextAreaField
-            name="except_releases"
-            label="Except releases"
-            useRegex={values.use_regex}
-            columns={6}
-            placeholder="eg. *bad?movie*,*bad?show*s03*"
-            tooltip={
-              <div>
-                <p>This field has full regex support (Golang flavour).</p>
-                <DocsLink href="https://autobrr.com/filters#advanced" />
-                <br />
-                <br />
-                <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
-                <br />
-                <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
-              </div>
-            }
-          />
+          <ContextField name="except_releases">
+            <RegexTextAreaField
+              label="Except releases"
+              useRegex={use_regex}
+              columns={6}
+              placeholder="eg. *bad?movie*,*bad?show*s03*"
+              tooltip={
+                <div>
+                  <p>This field has full regex support (Golang flavour).</p>
+                  <DocsLink href="https://autobrr.com/filters#advanced" />
+                  <br />
+                  <br />
+                  <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+                  <br />
+                  <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+                </div>
+              }
+            />
+          </ContextField>
         </FilterHalfRow>
 
       </FilterLayout>
 
-      {values.match_releases ? (
+      {match_releases ? (
         <WarningAlert
           alert="Ask yourself:"
           text={
@@ -102,7 +107,7 @@ const Releases = () => {
           colors="text-cyan-700 bg-cyan-100 dark:bg-cyan-200 dark:text-cyan-800"
         />
       ) : null}
-      {values.except_releases ? (
+      {except_releases ? (
         <WarningAlert
           alert="Ask yourself:"
           text={
@@ -119,143 +124,160 @@ const Releases = () => {
 
 const Groups = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const match_release_groups = useStore(form.store, (s: any) => s.values.match_release_groups);
+  const except_release_groups = useStore(form.store, (s: any) => s.values.except_release_groups);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.match_release_groups !== undefined || values.except_release_groups !== undefined}
+      defaultOpen={match_release_groups !== undefined || except_release_groups !== undefined}
       title="Groups"
       subtitle="Match only certain groups and/or ignore other groups."
     >
-      <TextAreaAutoResize
-        name="match_release_groups"
-        label="Match release groups"
-        columns={6}
-        placeholder="eg. group1,group2"
-        tooltip={
-          <div>
-            <p>Comma separated list of release groups to match.</p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-          </div>
-        }
-      />
-      <TextAreaAutoResize
-        name="except_release_groups"
-        label="Except release groups"
-        columns={6}
-        placeholder="eg. badgroup1,badgroup2"
-        tooltip={
-          <div>
-            <p>Comma separated list of release groups to ignore (takes priority over Match releases).</p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-          </div>
-        }
-      />
+      <ContextField name="match_release_groups">
+        <TextAreaAutoResize
+          label="Match release groups"
+          columns={6}
+          placeholder="eg. group1,group2"
+          tooltip={
+            <div>
+              <p>Comma separated list of release groups to match.</p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="except_release_groups">
+        <TextAreaAutoResize
+          label="Except release groups"
+          columns={6}
+          placeholder="eg. badgroup1,badgroup2"
+          tooltip={
+            <div>
+              <p>Comma separated list of release groups to ignore (takes priority over Match releases).</p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+            </div>
+          }
+        />
+      </ContextField>
     </CollapsibleSection>
   );
 }
 
 const Categories = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const match_categories = useStore(form.store, (s: any) => s.values.match_categories);
+  const except_categories = useStore(form.store, (s: any) => s.values.except_categories);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.match_categories !== undefined || values.except_categories !== undefined}
+      defaultOpen={match_categories !== undefined || except_categories !== undefined}
       title="Categories"
       subtitle="Match or exclude categories (if announced)"
     >
-      <TextAreaAutoResize
-        name="match_categories"
-        label="Match categories"
-        columns={6}
-        placeholder="eg. *category*,category1"
-        tooltip={
-          <div>
-            <p>Comma separated list of categories to match.</p>
-            <DocsLink href="https://autobrr.com/filters/categories" />
-          </div>
-        }
-      />
-      <TextAreaAutoResize
-        name="except_categories"
-        label="Except categories"
-        columns={6}
-        placeholder="eg. *category*"
-        tooltip={
-          <div>
-            <p>Comma separated list of categories to ignore (takes priority over Match releases).</p>
-            <DocsLink href="https://autobrr.com/filters/categories" />
-          </div>
-        }
-      />
+      <ContextField name="match_categories">
+        <TextAreaAutoResize
+          label="Match categories"
+          columns={6}
+          placeholder="eg. *category*,category1"
+          tooltip={
+            <div>
+              <p>Comma separated list of categories to match.</p>
+              <DocsLink href="https://autobrr.com/filters/categories" />
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="except_categories">
+        <TextAreaAutoResize
+          label="Except categories"
+          columns={6}
+          placeholder="eg. *category*"
+          tooltip={
+            <div>
+              <p>Comma separated list of categories to ignore (takes priority over Match releases).</p>
+              <DocsLink href="https://autobrr.com/filters/categories" />
+            </div>
+          }
+        />
+      </ContextField>
     </CollapsibleSection>
   );
 }
 
 const Tags = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const tags = useStore(form.store, (s: any) => s.values.tags);
+  const except_tags = useStore(form.store, (s: any) => s.values.except_tags);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.tags !== undefined || values.except_tags !== undefined}
+      defaultOpen={tags !== undefined || except_tags !== undefined}
       title="Tags"
       subtitle="Match or exclude tags (if announced)"
     >
       <div className={classNames("sm:col-span-6", FilterLayoutClass, FilterTightGridGapClass)}>
-        <TextAreaAutoResize
-          name="tags"
-          label="Match tags"
-          columns={8}
-          placeholder="eg. tag1,tag2"
-          tooltip={
-            <div>
-              <p>Comma separated list of tags to match.</p>
-              <DocsLink href="https://autobrr.com/filters#advanced" />
-            </div>
-          }
-        />
-        <Select
-          name="tags_match_logic"
-          label="Match logic"
-          columns={4}
-          options={CONSTS.tagsMatchLogicOptions}
-          optionDefaultText="any"
-          tooltip={
-            <div>
-              <p>Logic used to match filter tags.</p>
-              <DocsLink href="https://autobrr.com/filters#advanced" />
-            </div>
-          }
-        />
+        <ContextField name="tags">
+          <TextAreaAutoResize
+            label="Match tags"
+            columns={8}
+            placeholder="eg. tag1,tag2"
+            tooltip={
+              <div>
+                <p>Comma separated list of tags to match.</p>
+                <DocsLink href="https://autobrr.com/filters#advanced" />
+              </div>
+            }
+          />
+        </ContextField>
+        <ContextField name="tags_match_logic">
+          <Select
+            label="Match logic"
+            columns={4}
+            options={CONSTS.tagsMatchLogicOptions}
+            optionDefaultText="any"
+            tooltip={
+              <div>
+                <p>Logic used to match filter tags.</p>
+                <DocsLink href="https://autobrr.com/filters#advanced" />
+              </div>
+            }
+          />
+        </ContextField>
       </div>
       <div className={classNames("sm:col-span-6", FilterLayoutClass, FilterTightGridGapClass)}>
-        <TextAreaAutoResize
-          name="except_tags"
-          label="Except tags"
-          columns={8}
-          placeholder="eg. tag1,tag2"
-          tooltip={
-            <div>
-              <p>Comma separated list of tags to ignore (takes priority over Match releases).</p>
-              <DocsLink href="https://autobrr.com/filters#advanced" />
-            </div>
-          }
-        />
-        <Select
-          name="except_tags_match_logic"
-          label="Except logic"
-          columns={4}
-          options={CONSTS.tagsMatchLogicOptions}
-          optionDefaultText="any"
-          tooltip={
-            <div>
-              <p>Logic used to match except tags.</p>
-              <DocsLink href="https://autobrr.com/filters#advanced" />
-            </div>
-          }
-        />
+        <ContextField name="except_tags">
+          <TextAreaAutoResize
+            label="Except tags"
+            columns={8}
+            placeholder="eg. tag1,tag2"
+            tooltip={
+              <div>
+                <p>Comma separated list of tags to ignore (takes priority over Match releases).</p>
+                <DocsLink href="https://autobrr.com/filters#advanced" />
+              </div>
+            }
+          />
+        </ContextField>
+        <ContextField name="except_tags_match_logic">
+          <Select
+            label="Except logic"
+            columns={4}
+            options={CONSTS.tagsMatchLogicOptions}
+            optionDefaultText="any"
+            tooltip={
+              <div>
+                <p>Logic used to match except tags.</p>
+                <DocsLink href="https://autobrr.com/filters#advanced" />
+              </div>
+            }
+          />
+        </ContextField>
       </div>
     </CollapsibleSection>
   );
@@ -263,147 +285,167 @@ const Tags = () => {
 
 const Uploaders = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const match_uploaders = useStore(form.store, (s: any) => s.values.match_uploaders);
+  const except_uploaders = useStore(form.store, (s: any) => s.values.except_uploaders);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.match_uploaders !== undefined || values.except_uploaders !== undefined}
+      defaultOpen={match_uploaders !== undefined || except_uploaders !== undefined}
       title="Uploaders"
       subtitle="Match or ignore uploaders (if announced)"
     >
-      <TextAreaAutoResize
-        name="match_uploaders"
-        label="Match uploaders"
-        columns={6}
-        placeholder="eg. uploader1,uploader2"
-        tooltip={
-          <div>
-            <p>Comma separated list of uploaders to match.</p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-          </div>
-        }
-      />
-      <TextAreaAutoResize
-        name="except_uploaders"
-        label="Except uploaders"
-        columns={6}
-        placeholder="eg. anonymous1,anonymous2"
-        tooltip={
-          <div>
-            <p>Comma separated list of uploaders to ignore (takes priority over Match releases).
-            </p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-          </div>
-        }
-      />
+      <ContextField name="match_uploaders">
+        <TextAreaAutoResize
+          label="Match uploaders"
+          columns={6}
+          placeholder="eg. uploader1,uploader2"
+          tooltip={
+            <div>
+              <p>Comma separated list of uploaders to match.</p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="except_uploaders">
+        <TextAreaAutoResize
+          label="Except uploaders"
+          columns={6}
+          placeholder="eg. anonymous1,anonymous2"
+          tooltip={
+            <div>
+              <p>Comma separated list of uploaders to ignore (takes priority over Match releases).
+              </p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+            </div>
+          }
+        />
+      </ContextField>
     </CollapsibleSection>
   );
 }
 
 const Language = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const match_language = useStore(form.store, (s: any) => s.values.match_language);
+  const except_language = useStore(form.store, (s: any) => s.values.except_language);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.match_language?.length > 0 || values.except_language?.length > 0}
+      defaultOpen={match_language?.length > 0 || except_language?.length > 0}
       title="Language"
       subtitle="Match or ignore languages (if announced)"
     >
-      <MultiSelect
-        name="match_language"
-        options={CONSTS.LANGUAGE_OPTIONS}
-        label="Match Language"
-        columns={6}
-      />
-      <MultiSelect
-        name="except_language"
-        options={CONSTS.LANGUAGE_OPTIONS}
-        label="Except Language"
-        columns={6}
-      />
+      <ContextField name="match_language">
+        <MultiSelect
+          options={CONSTS.LANGUAGE_OPTIONS}
+          label="Match Language"
+          columns={6}
+        />
+      </ContextField>
+      <ContextField name="except_language">
+        <MultiSelect
+          options={CONSTS.LANGUAGE_OPTIONS}
+          label="Except Language"
+          columns={6}
+        />
+      </ContextField>
     </CollapsibleSection>
   );
 }
 
 const Origins = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const origins = useStore(form.store, (s: any) => s.values.origins);
+  const except_origins = useStore(form.store, (s: any) => s.values.except_origins);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.origins?.length > 0 || values.except_origins?.length > 0}
+      defaultOpen={origins?.length > 0 || except_origins?.length > 0}
       title="Origins"
       subtitle="Match Internals, Scene, P2P, etc. (if announced)"
     >
-      <MultiSelect
-        name="origins"
-        options={CONSTS.ORIGIN_OPTIONS}
-        label="Match Origins"
-        columns={6}
-      />
-      <MultiSelect
-        name="except_origins"
-        options={CONSTS.ORIGIN_OPTIONS}
-        label="Except Origins"
-        columns={6}
-      />
+      <ContextField name="origins">
+        <MultiSelect
+          options={CONSTS.ORIGIN_OPTIONS}
+          label="Match Origins"
+          columns={6}
+        />
+      </ContextField>
+      <ContextField name="except_origins">
+        <MultiSelect
+          options={CONSTS.ORIGIN_OPTIONS}
+          label="Except Origins"
+          columns={6}
+        />
+      </ContextField>
     </CollapsibleSection>
   );
 }
 
 const Freeleech = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const freeleech = useStore(form.store, (s: any) => s.values.freeleech);
+  const freeleech_percent = useStore(form.store, (s: any) => s.values.freeleech_percent);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.freeleech || values.freeleech_percent !== undefined}
+      defaultOpen={freeleech || freeleech_percent !== undefined}
       title="Freeleech"
       subtitle="Match based off freeleech (if announced)"
     >
-      <TextField
-        name="freeleech_percent"
-        label="Freeleech percent"
-        disabled={values.freeleech}
-        tooltip={
-          <div>
-            <p>
-              Freeleech may be announced as a binary true/false value or as a
-              percentage (less likely), depending on the indexer. Use one <span className="font-bold">or</span> the other.
-              The Freeleech toggle overrides this field if it is toggled/true.
-            </p>
-            <br />
-            <p>
-              Refer to our documentation for more details:{" "}
-              <DocsLink href="https://autobrr.com/filters/freeleech" />
-            </p>
-          </div>
-        }
-        columns={6}
-        placeholder="eg. 50,75-100"
-      />
-      <FilterHalfRow>
-        <SwitchGroup
-          name="freeleech"
-          label="Freeleech"
-          className="py-0"
-          description="Cannot be used with Freeleech percent. Overrides Freeleech percent if toggled/true."
+      <ContextField name="freeleech_percent">
+        <TextField
+          label="Freeleech percent"
+          disabled={freeleech}
           tooltip={
             <div>
               <p>
-                Freeleech may be announced as a binary true/false value (more likely) or as a
-                percentage, depending on the indexer. Use one <span className="font-bold">or</span> the other.
-                This field overrides Freeleech percent if it is toggled/true.
+                Freeleech may be announced as a binary true/false value or as a
+                percentage (less likely), depending on the indexer. Use one <span className="font-bold">or</span> the other.
+                The Freeleech toggle overrides this field if it is toggled/true.
               </p>
               <br />
               <p>
-                See who uses what in the documentation:{" "}
+                Refer to our documentation for more details:{" "}
                 <DocsLink href="https://autobrr.com/filters/freeleech" />
               </p>
             </div>
           }
+          columns={6}
+          placeholder="eg. 50,75-100"
         />
+      </ContextField>
+      <FilterHalfRow>
+        <ContextField name="freeleech">
+          <SwitchGroup
+            label="Freeleech"
+            className="py-0"
+            description="Cannot be used with Freeleech percent. Overrides Freeleech percent if toggled/true."
+            tooltip={
+              <div>
+                <p>
+                  Freeleech may be announced as a binary true/false value (more likely) or as a
+                  percentage, depending on the indexer. Use one <span className="font-bold">or</span> the other.
+                  This field overrides Freeleech percent if it is toggled/true.
+                </p>
+                <br />
+                <p>
+                  See who uses what in the documentation:{" "}
+                  <DocsLink href="https://autobrr.com/filters/freeleech" />
+                </p>
+              </div>
+            }
+          />
+        </ContextField>
       </FilterHalfRow>
     </CollapsibleSection>
   );
@@ -411,18 +453,26 @@ const Freeleech = () => {
 
 const FeedSpecific = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const use_regex_description = useStore(form.store, (s: any) => s.values.use_regex_description);
+  const match_description = useStore(form.store, (s: any) => s.values.match_description);
+  const except_description = useStore(form.store, (s: any) => s.values.except_description);
+  const min_seeders = useStore(form.store, (s: any) => s.values.min_seeders);
+  const max_seeders = useStore(form.store, (s: any) => s.values.max_seeders);
+  const min_leechers = useStore(form.store, (s: any) => s.values.min_leechers);
+  const max_leechers = useStore(form.store, (s: any) => s.values.max_leechers);
 
   return (
     <CollapsibleSection
       defaultOpen={
-        values.use_regex_description ||
-        values.match_description !== undefined ||
-        values.except_description !== undefined ||
-        values.min_seeders !== undefined ||
-        values.max_seeders !== undefined ||
-        values.min_leechers !== undefined ||
-        values.max_leechers !== undefined
+        use_regex_description ||
+        match_description !== undefined ||
+        except_description !== undefined ||
+        min_seeders !== undefined ||
+        max_seeders !== undefined ||
+        min_leechers !== undefined ||
+        max_leechers !== undefined
       }
       title="RSS/Torznab/Newznab-specific"
       subtitle={
@@ -430,103 +480,114 @@ const FeedSpecific = () => {
       }
     >
       <FilterLayout>
-        <SwitchGroup
-          name="use_regex_description"
-          label="Use Regex"
-          className="col-span-12 sm:col-span-6"
-        />
+        <ContextField name="use_regex_description">
+          <SwitchGroup
+            label="Use Regex"
+            className="col-span-12 sm:col-span-6"
+          />
+        </ContextField>
       </FilterLayout>
 
-      <RegexTextAreaField
-        name="match_description"
-        label="Match description"
-        useRegex={values.use_regex_description}
-        columns={6}
-        placeholder="eg. *some?movie*,*some?show*s01*"
-        tooltip={
-          <div>
-            <p>This field has full regex support (Golang flavour).</p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-            <br />
-            <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
-            <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
-          </div>
-        }
-      />
-      <RegexTextAreaField
-        name="except_description"
-        label="Except description"
-        useRegex={values.use_regex_description}
-        columns={6}
-        placeholder="eg. *bad?movie*,*bad?show*s03*"
-        tooltip={
-          <div>
-            <p>This field has full regex support (Golang flavour).</p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-            <br />
-            <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
-            <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
-          </div>
-        }
-      />
-      <NumberField
-        name="min_seeders"
-        label="Min Seeders"
-        placeholder="Takes any number (0 is infinite)"
-        tooltip={
-          <div>
-            <p>Number of min seeders as specified by the respective unit. Only for Torznab</p>
-            <DocsLink href="https://autobrr.com/filters#rules" />
-          </div>
-        }
-      />
-      <NumberField
-        name="max_seeders"
-        label="Max Seeders"
-        placeholder="Takes any number (0 is infinite)"
-        tooltip={
-          <div>
-            <p>Number of max seeders as specified by the respective unit. Only for Torznab</p>
-            <DocsLink href="https://autobrr.com/filters#rules" />
-          </div>
-        }
-      />
-      <NumberField
-        name="min_leechers"
-        label="Min Leechers"
-        placeholder="Takes any number (0 is infinite)"
-        tooltip={
-          <div>
-            <p>Number of min leechers as specified by the respective unit. Only for Torznab</p>
-            <DocsLink href="https://autobrr.com/filters#rules" />
-          </div>
-        }
-      />
-      <NumberField
-        name="max_leechers"
-        label="Max Leechers"
-        placeholder="Takes any number (0 is infinite)"
-        tooltip={
-          <div>
-            <p>Number of max leechers as specified by the respective unit. Only for Torznab</p>
-            <DocsLink href="https://autobrr.com/filters#rules" />
-          </div>
-        }
-      />
+      <ContextField name="match_description">
+        <RegexTextAreaField
+          label="Match description"
+          useRegex={use_regex_description}
+          columns={6}
+          placeholder="eg. *some?movie*,*some?show*s01*"
+          tooltip={
+            <div>
+              <p>This field has full regex support (Golang flavour).</p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+              <br />
+              <br />
+              <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+              <br />
+              <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="except_description">
+        <RegexTextAreaField
+          label="Except description"
+          useRegex={use_regex_description}
+          columns={6}
+          placeholder="eg. *bad?movie*,*bad?show*s03*"
+          tooltip={
+            <div>
+              <p>This field has full regex support (Golang flavour).</p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+              <br />
+              <br />
+              <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+              <br />
+              <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="min_seeders">
+        <NumberField
+          label="Min Seeders"
+          placeholder="Takes any number (0 is infinite)"
+          tooltip={
+            <div>
+              <p>Number of min seeders as specified by the respective unit. Only for Torznab</p>
+              <DocsLink href="https://autobrr.com/filters#rules" />
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="max_seeders">
+        <NumberField
+          label="Max Seeders"
+          placeholder="Takes any number (0 is infinite)"
+          tooltip={
+            <div>
+              <p>Number of max seeders as specified by the respective unit. Only for Torznab</p>
+              <DocsLink href="https://autobrr.com/filters#rules" />
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="min_leechers">
+        <NumberField
+          label="Min Leechers"
+          placeholder="Takes any number (0 is infinite)"
+          tooltip={
+            <div>
+              <p>Number of min leechers as specified by the respective unit. Only for Torznab</p>
+              <DocsLink href="https://autobrr.com/filters#rules" />
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="max_leechers">
+        <NumberField
+          label="Max Leechers"
+          placeholder="Takes any number (0 is infinite)"
+          tooltip={
+            <div>
+              <p>Number of max leechers as specified by the respective unit. Only for Torznab</p>
+              <DocsLink href="https://autobrr.com/filters#rules" />
+            </div>
+          }
+        />
+      </ContextField>
     </CollapsibleSection>
   );
 }
 const RawReleaseTags = () => {
 
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const use_regex_release_tags = useStore(form.store, (s: any) => s.values.use_regex_release_tags);
+  const match_release_tags = useStore(form.store, (s: any) => s.values.match_release_tags);
+  const except_release_tags = useStore(form.store, (s: any) => s.values.except_release_tags);
 
   return (
     <CollapsibleSection
-      defaultOpen={values.use_regex_release_tags || values.match_release_tags !== undefined || values.except_release_tags !== undefined}
+      defaultOpen={use_regex_release_tags || match_release_tags !== undefined || except_release_tags !== undefined}
       title="Raw Release Tags"
       subtitle={
         <>
@@ -542,49 +603,52 @@ const RawReleaseTags = () => {
       />
 
       <FilterLayout>
-        <SwitchGroup
-          name="use_regex_release_tags"
-          label="Use Regex"
-          className="col-span-12 sm:col-span-6"
-        />
+        <ContextField name="use_regex_release_tags">
+          <SwitchGroup
+            label="Use Regex"
+            className="col-span-12 sm:col-span-6"
+          />
+        </ContextField>
       </FilterLayout>
 
-      <RegexField
-        name="match_release_tags"
-        label="Match release tags"
-        useRegex={values.use_regex_release_tags}
-        columns={6}
-        placeholder="eg. *mkv*,*foreign*"
-        tooltip={
-          <div>
-            <p>This field has full regex support (Golang flavour).</p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-            <br />
-            <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
-            <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
-          </div>
-        }
-      />
-      <RegexField
-        name="except_release_tags"
-        label="Except release tags"
-        useRegex={values.use_regex_release_tags}
-        columns={6}
-        placeholder="eg. *mkv*,*foreign*"
-        tooltip={
-          <div>
-            <p>This field has full regex support (Golang flavour).</p>
-            <DocsLink href="https://autobrr.com/filters#advanced" />
-            <br />
-            <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
-            <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
-          </div>
-        }
-      />
+      <ContextField name="match_release_tags">
+        <RegexField
+          label="Match release tags"
+          useRegex={use_regex_release_tags}
+          columns={6}
+          placeholder="eg. *mkv*,*foreign*"
+          tooltip={
+            <div>
+              <p>This field has full regex support (Golang flavour).</p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+              <br />
+              <br />
+              <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+              <br />
+              <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            </div>
+          }
+        />
+      </ContextField>
+      <ContextField name="except_release_tags">
+        <RegexField
+          label="Except release tags"
+          useRegex={use_regex_release_tags}
+          columns={6}
+          placeholder="eg. *mkv*,*foreign*"
+          tooltip={
+            <div>
+              <p>This field has full regex support (Golang flavour).</p>
+              <DocsLink href="https://autobrr.com/filters#advanced" />
+              <br />
+              <br />
+              <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+              <br />
+              <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            </div>
+          }
+        />
+      </ContextField>
     </CollapsibleSection>
   );
 }
