@@ -80,8 +80,9 @@ type Release struct {
 	TorrentName                        string                `json:"name"`            // full release name
 	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
 	Size                               uint64                `json:"size"`
-	Title                              string                `json:"title"`     // Parsed title
-	SubTitle                           string                `json:"sub_title"` // Parsed secondary title for shows e.g. episode name
+	Title                              string                `json:"title"`            // Parsed title
+	TitleNormalized                    string                `json:"title_normalized"` // Parsed title
+	SubTitle                           string                `json:"sub_title"`        // Parsed secondary title for shows e.g. episode name
 	Description                        string                `json:"-"`
 	Category                           string                `json:"category"`
 	Categories                         []string              `json:"categories,omitempty"`
@@ -174,7 +175,7 @@ func NewNormalizer() transform.Transformer {
 		norm.NFD,
 		rls.NewCollapser(
 			true, true,
-			"`"+`':;~!@#%^*=()[]{}<>/?|\",`, " \t\r\n\f._",
+			"`"+`':;~!@#%^*=()[]{}<>/?|\",`, " \t\r\n\f._-",
 			func(r, prev, next rune) rune {
 				switch {
 				case r == '-' && unicode.IsSpace(prev):
@@ -196,7 +197,7 @@ func NewNormalizer() transform.Transformer {
 func (r *Release) NormalizedTitle() string {
 	var v []string
 
-	v = append(v, r.Title)
+	v = append(v, MustNormalize(r.Title))
 
 	if r.Year > 0 && r.Month > 0 && r.Day > 0 {
 		v = append(v, fmt.Sprintf("%d %d %d", r.Year, r.Month, r.Day))
@@ -682,6 +683,7 @@ func (r *Release) ParseString(title string) {
 
 	if r.Title == "" {
 		r.Title = rel.Title
+		r.TitleNormalized = MustNormalize(r.Title)
 	}
 	r.SubTitle = rel.Subtitle
 
