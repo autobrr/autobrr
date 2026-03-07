@@ -119,6 +119,11 @@ sessionSecret = "secret-session-key"
 # Disable Built In Login Form (only works when using external auth)
 #oidcDisableBuiltInLogin = false
 
+# Disable authentication entirely
+#
+# Do not use unless your instance is behind a secure proxy/firewall!
+#disableAuth = false
+
 # Metrics
 #
 # Enable metrics endpoint

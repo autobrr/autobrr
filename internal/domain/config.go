@@ -40,6 +40,7 @@ type Config struct {
 	OIDCRedirectURL         string `toml:"oidcRedirectUrl"`
 	OIDCScopes              string `toml:"oidcScopes"`
 	OIDCDisableBuiltInLogin bool   `toml:"oidcDisableBuiltInLogin"`
+	DisableAuth             bool   `toml:"disableAuth"`
 	MetricsEnabled          bool   `toml:"metricsEnabled"`
 	MetricsHost             string `toml:"metricsHost"`
 	MetricsPort             int    `toml:"metricsPort"`
