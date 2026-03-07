@@ -439,10 +439,21 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 			err = repo.Delete(context.Background(), mockClient.ID)
 			assert.NoError(t, err)
 
-			updatedList, err := listRepo.FindByID(context.Background(), list.ID)
+			lists, err := listRepo.List(context.Background())
 			assert.NoError(t, err)
-			assert.False(t, updatedList.Enabled)
-			assert.Zero(t, updatedList.ClientID)
+
+			var updatedList *domain.List
+			for _, existingList := range lists {
+				if existingList.ID == list.ID {
+					updatedList = existingList
+					break
+				}
+			}
+
+			if assert.NotNil(t, updatedList) {
+				assert.False(t, updatedList.Enabled)
+				assert.Zero(t, updatedList.ClientID)
+			}
 
 			_, err = repo.FindByID(context.Background(), mockClient.ID)
 			assert.Error(t, err)
