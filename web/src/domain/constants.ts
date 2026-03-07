@@ -316,6 +316,12 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     description: "Add nzbs directly to SABnzbd",
     value: "SABNZBD",
     type: "nzb"
+  },
+  {
+    label: "NZBGet",
+    description: "Add nzbs directly to NZBGet",
+    value: "NZBGET",
+    type: "nzb"
   }
 ];
 
@@ -335,7 +341,8 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
   { label: "Whisparr", description: "Send to Whisparr and let it decide", value: "WHISPARR" },
   { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
-  { label: "SABnzbd", description: "Add to SABnzbd", value: "SABNZBD" }
+  { label: "SABnzbd", description: "Add to SABnzbd", value: "SABNZBD" },
+  { label: "NZBGet", description: "Add to NZBGet", value: "NZBGET" }
 ];
 
 export const ActionTypeNameMap: Record<ActionType, string> = {
@@ -354,7 +361,8 @@ export const ActionTypeNameMap: Record<ActionType, string> = {
   "LIDARR": "Lidarr",
   "WHISPARR": "Whisparr",
   "READARR": "Readarr",
-  "SABNZBD": "SABnzbd"
+  "SABNZBD": "SABnzbd",
+  "NZBGET": "NZBGet"
 } as const;
 
 export const DOWNLOAD_CLIENTS = [
@@ -369,7 +377,8 @@ export const DOWNLOAD_CLIENTS = [
   "LIDARR",
   "WHISPARR",
   "READARR",
-  "SABNZBD"
+  "SABNZBD",
+  "NZBGET"
 ];
 
 export const ActionContentLayoutOptions: SelectGenericOption<ActionContentLayout>[] = [

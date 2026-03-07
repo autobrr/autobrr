@@ -197,6 +197,7 @@ const (
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
 	DownloadClientTypeSabnzbd      DownloadClientType = "SABNZBD"
+	DownloadClientTypeNzbget       DownloadClientType = "NZBGET"
 )
 
 // Validate basic validation of client

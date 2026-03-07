@@ -36,6 +36,34 @@ export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => (
   </FilterSection>
 );
 
+export const NZBGet = ({ idx, action, clients }: ClientActionProps) => (
+  <FilterSection
+    title="Instance"
+    subtitle={
+      <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
+    }
+  >
+    <FilterLayout>
+      <FilterHalfRow>
+        <DownloadClientSelect
+          name={`actions.${idx}.client_id`}
+          action={action}
+          clients={clients}
+        />
+      </FilterHalfRow>
+      <FilterHalfRow>
+        <TextField
+          name={`actions.${idx}.category`}
+          label="Category"
+          columns={6}
+          placeholder="eg. category"
+          tooltip={<p>Category must exist already.</p>}
+        />
+      </FilterHalfRow>
+    </FilterLayout>
+  </FilterSection>
+);
+
 export const Test = () => (
   <WarningAlert
     alert="Heads up!"

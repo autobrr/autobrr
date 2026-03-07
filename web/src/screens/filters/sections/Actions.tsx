@@ -28,6 +28,7 @@ import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens
 import {
   Arr,
   Deluge, Exec,
+  NZBGet,
   Porla,
   QBittorrent,
   RTorrent,
@@ -169,6 +170,8 @@ const TypeForm = (props: ClientActionProps) => {
   // nzb
   case "SABNZBD":
     return <SABnzbd {...props} />;
+  case "NZBGET":
+    return <NZBGet {...props} />;
   // autobrr actions
   case "TEST":
     return <Test />;
