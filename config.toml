@@ -141,4 +141,4 @@ sessionSecret = "secret-session-key"
 
 # Custom definitions
 #
-#customDefinitions = "test/definitions"
+customDefinitions = "test/definitions"

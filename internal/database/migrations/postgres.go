@@ -102,6 +102,8 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("78_irc_skip_tls_verify.sql")
 	migrate.AddFileMigration("79_feeds_change_capabilities_to_json.sql")
 	migrate.AddFileMigration("80_feed_add_tls_skip_verify.sql")
+	migrate.AddFileMigration("81_add_filter_max_downloads_interval.sql")
+	migrate.AddFileMigration("82_add_filter_max_downloads_window_type.sql")
 
 	return migrate
 }
