@@ -51,6 +51,7 @@ const MaxDownloadsIndicator = () => {
   // Format the unit to be more readable
   const formatUnit = (unitValue: string, count: number) => {
     const unitMap: Record<string, string> = {
+      "MINUTE": "minute",
       "HOUR": "hour",
       "DAY": "day",
       "WEEK": "week",
