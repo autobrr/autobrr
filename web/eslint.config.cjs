@@ -1,50 +1,59 @@
-const {
-    defineConfig,
-    globalIgnores,
-} = require("eslint/config");
-
+const { defineConfig, globalIgnores } = require("eslint/config");
+const js = require("@eslint/js");
+const tseslint = require("@typescript-eslint/eslint-plugin");
+const reactHooks = require("eslint-plugin-react-hooks");
+const reactRefreshModule = require("eslint-plugin-react-refresh");
 const globals = require("globals");
 
-const {
-    fixupConfigRules,
-} = require("@eslint/compat");
+const reactRefresh = reactRefreshModule.default ?? reactRefreshModule;
+const sourceFiles = ["src/**/*.{ts,tsx}"];
+const tsFiles = ["**/*.{ts,tsx}"];
+const nodeFiles = ["eslint.config.cjs", "vite.config.ts", "tailwind.config.ts"];
 
-const tsParser = require("@typescript-eslint/parser");
-const reactRefresh = require("eslint-plugin-react-refresh");
-const js = require("@eslint/js");
-
-const {
-    FlatCompat,
-} = require("@eslint/eslintrc");
-
-const compat = new FlatCompat({
-    baseDirectory: __dirname,
-    recommendedConfig: js.configs.recommended,
-    allConfig: js.configs.all
+const withFiles = (config, files) => ({
+  ...config,
+  files,
 });
 
-module.exports = defineConfig([{
+module.exports = defineConfig([
+  globalIgnores(["dist"]),
+  withFiles(js.configs.recommended, ["eslint.config.cjs"]),
+  ...tseslint.configs["flat/recommended"].map((config) => withFiles(config, tsFiles)),
+  {
+    files: sourceFiles,
     languageOptions: {
-        globals: {
-            ...globals.browser,
-        },
-
-        parser: tsParser,
+      globals: {
+        ...globals.browser,
+      },
     },
-
-    extends: fixupConfigRules(compat.extends(
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
-        "plugin:react-hooks/recommended",
-    )),
-
+  },
+  {
+    files: nodeFiles,
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
+    files: sourceFiles,
     plugins: {
-        "react-refresh": reactRefresh,
+      "react-hooks": reactHooks,
     },
-
     rules: {
-        "react-refresh/only-export-components": ["warn", {
-            allowConstantExport: true,
-        }],
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
     },
-}, globalIgnores(["**/dist", "**/.eslintrc.cjs"])]);
+  },
+  {
+    ...reactRefresh.configs.vite,
+    files: sourceFiles,
+    rules: {
+      ...reactRefresh.configs.vite.rules,
+      "react-refresh/only-export-components": [
+        "warn",
+        { allowConstantExport: true },
+      ],
+    },
+  },
+]);

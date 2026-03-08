@@ -46,17 +46,12 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      # Runs the ESlint code analysis
+      # Runs the ESLint code analysis and writes SARIF output
       - name: Run ESLint
-        continue-on-error: true
         run: SARIF_ESLINT_EMBED=true pnpm run lint:ci
         working-directory: web
 
-      - name: Replace React trash
-        run: sed -i 's$Please see details in message$https://reactjs.org/is-broken-sarif-trash/$g' results.sarif
-
-      - name: Anyone home?
-        # eslint exits 1 if it finds anything to report
+      - name: Inspect SARIF
         run: cat results.sarif
 
       # Uploads results.sarif to GitHub repository using the upload-sarif action
