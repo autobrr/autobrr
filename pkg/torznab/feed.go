@@ -43,16 +43,29 @@ type ProwlarrIndexer struct {
 	ID   string `xml:"id,attr"`
 }
 
+type JackettIndexer struct {
+	Text string `xml:",chardata"`
+	ID   string `xml:"id,attr"`
+}
+
 type Attributes []ItemAttr
+
+type Enclosure struct {
+	URL    string `xml:"url,attr"`
+	Length string `xml:"length,attr"`
+	Type   string `xml:"type,attr"`
+}
 
 type FeedItem struct {
 	Title           string           `xml:"title,omitempty"`
 	GUID            string           `xml:"guid,omitempty"`
 	PubDate         Time             `xml:"pubDate,omitempty"`
-	Prowlarrindexer *ProwlarrIndexer `xml:"prowlarrindexer,omitempty"` // TODO handle jackett variant
+	ProwlarrIndexer *ProwlarrIndexer `xml:"prowlarrindexer,omitempty"`
+	JackettIndexer  *JackettIndexer  `xml:"jackettindexer,omitempty"`
 	Comments        string           `xml:"comments"`
 	Size            int64            `xml:"size"`
 	Link            string           `xml:"link"`
+	Enclosure       *Enclosure       `xml:"enclosure,omitempty"`
 	Category        []int            `xml:"category,omitempty"`
 	Categories      Categories
 	Files           int
