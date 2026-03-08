@@ -83,6 +83,9 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeSabnzbd:
 		rejections, err = s.sabnzbd(ctx, action, *release)
 
+	case domain.ActionTypeNzbget:
+		rejections, err = s.nzbget(ctx, action, *release)
+
 	default:
 		return nil, errors.New("unsupported action type: %s", action.Type)
 	}

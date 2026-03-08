@@ -21,6 +21,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/porla"
+	"github.com/autobrr/autobrr/pkg/nzbget"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
 	"github.com/autobrr/autobrr/pkg/whisparr"
@@ -438,6 +439,13 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Log:       nil,
 			BasicUser: client.Settings.Auth.Username,
 			BasicPass: client.Settings.Auth.Password,
+		})
+
+	case domain.DownloadClientTypeNzbget:
+		client.Client = nzbget.New(nzbget.Options{
+			Host:     client.Host,
+			Username: client.Username,
+			Password: client.Password,
 		})
 	}
 
