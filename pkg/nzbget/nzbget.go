@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -79,7 +80,12 @@ func (c *Client) call(ctx context.Context, method string, params []interface{}, 
 		return errors.Wrap(err, "could not marshal rpc request")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.host+"/jsonrpc", bytes.NewReader(body))
+	endpoint, err := url.JoinPath(c.host, "/jsonrpc")
+	if err != nil {
+		return errors.Wrap(err, "could not build nzbget endpoint url")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return errors.Wrap(err, "could not build request")
 	}
@@ -94,7 +100,7 @@ func (c *Client) call(ctx context.Context, method string, params []interface{}, 
 	if err != nil {
 		return errors.Wrap(err, "could not make request to nzbget")
 	}
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	if res.StatusCode != http.StatusOK {
 		return errors.New("nzbget returned status %d", res.StatusCode)
