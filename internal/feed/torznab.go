@@ -146,6 +146,12 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 			rls.DownloadURL = ""
 		}
 
+		if item.Enclosure != nil {
+			if item.Enclosure.Type == "application/x-bittorrent" {
+				rls.DownloadURL = item.Enclosure.URL
+			}
+		}
+
 		rls.ParseString(item.Title)
 		rls.Size = uint64(item.Size)
 		rls.Seeders = item.Seeders
