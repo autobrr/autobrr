@@ -63,6 +63,9 @@
     "zod-formik-adapter": "^2.0.0"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.0.3",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
     "@microsoft/eslint-formatter-sarif": "^2.1.0",
     "@rollup/wasm-node": "^4.59.0",
     "@types/node": "^25.3.3",
@@ -77,6 +80,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "eslint-watch": "^8.0.0",
+    "globals": "^17.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
