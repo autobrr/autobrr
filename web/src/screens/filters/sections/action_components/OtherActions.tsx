@@ -5,7 +5,8 @@
 
 import { WarningAlert } from "@components/alerts";
 import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
-import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs/tanstack";
+import { ContextField } from "@app/lib/form";
 
 
 export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => (
@@ -17,20 +18,22 @@ export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => (
   >
     <FilterLayout>
       <FilterHalfRow>
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
+        <ContextField name={`actions.${idx}.client_id`}>
+          <DownloadClientSelect
+            action={action}
+            clients={clients}
+          />
+        </ContextField>
       </FilterHalfRow>
       <FilterHalfRow>
-        <TextField
-          name={`actions.${idx}.category`}
-          label="Category"
-          columns={6}
-          placeholder="eg. category"
-          tooltip={<p>Category must exist already.</p>}
-        />
+        <ContextField name={`actions.${idx}.category`}>
+          <TextField
+            label="Category"
+            columns={6}
+            placeholder="eg. category"
+            tooltip={<p>Category must exist already.</p>}
+          />
+        </ContextField>
       </FilterHalfRow>
     </FilterLayout>
   </FilterSection>
@@ -51,17 +54,19 @@ export const Exec = ({ idx }: ClientActionProps) => (
     subtitle="Specify the executable and its arguments to be executed upon filter match. Use an absolute path."
   >
     <FilterLayout>
-      <TextField
-        name={`actions.${idx}.exec_cmd`}
-        label="Path to Executable"
-        placeholder="Path to program eg. /bin/test"
-      />
+      <ContextField name={`actions.${idx}.exec_cmd`}>
+        <TextField
+          label="Path to Executable"
+          placeholder="Path to program eg. /bin/test"
+        />
+      </ContextField>
 
-      <TextAreaAutoResize
-        name={`actions.${idx}.exec_args`}
-        label="Arguments"
-        placeholder="Arguments eg. --test"
-      />
+      <ContextField name={`actions.${idx}.exec_args`}>
+        <TextAreaAutoResize
+          label="Arguments"
+          placeholder="Arguments eg. --test"
+        />
+      </ContextField>
     </FilterLayout>
 
   </FilterSection>
@@ -73,11 +78,12 @@ export const WatchFolder = ({ idx }: ClientActionProps) => (
     subtitle="Point to where autobrr should save the files it fetches. Use an absolute path."
   >
     <FilterLayout>
-      <TextAreaAutoResize
-        name={`actions.${idx}.watch_folder`}
-        label="Watch directory"
-        placeholder="Watch directory eg. /home/user/rwatch"
-      />
+      <ContextField name={`actions.${idx}.watch_folder`}>
+        <TextAreaAutoResize
+          label="Watch directory"
+          placeholder="Watch directory eg. /home/user/rwatch"
+        />
+      </ContextField>
     </FilterLayout>
   </FilterSection>
 );
@@ -88,21 +94,23 @@ export const WebHook = ({ idx }: ClientActionProps) => (
     subtitle="Specify the payload to be sent to the desired endpoint upon filter match."
   >
     <FilterLayout>
-      <TextField
-        name={`actions.${idx}.webhook_host`}
-        label="Endpoint"
-        columns={6}
-        placeholder="Host eg. http://localhost/webhook"
-        tooltip={
-          <p>URL or IP to your API. Pass params and set API tokens etc.</p>
-        }
-      />
+      <ContextField name={`actions.${idx}.webhook_host`}>
+        <TextField
+          label="Endpoint"
+          columns={6}
+          placeholder="Host eg. http://localhost/webhook"
+          tooltip={
+            <p>URL or IP to your API. Pass params and set API tokens etc.</p>
+          }
+        />
+      </ContextField>
     </FilterLayout>
-    <TextAreaAutoResize
-      name={`actions.${idx}.webhook_data`}
-      label="Payload (json)"
-      placeholder={"Request data: { \"key\": \"value\" }"}
-    />
+    <ContextField name={`actions.${idx}.webhook_data`}>
+      <TextAreaAutoResize
+        label="Payload (json)"
+        placeholder={"Request data: { \"key\": \"value\" }"}
+      />
+    </ContextField>
   </FilterSection>
 );
 
@@ -115,36 +123,39 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => (
   >
     <FilterLayout>
       <FilterHalfRow>
-        <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
-          action={action}
-          clients={clients}
-        />
+        <ContextField name={`actions.${idx}.client_id`}>
+          <DownloadClientSelect
+            action={action}
+            clients={clients}
+          />
+        </ContextField>
       </FilterHalfRow>
 
       <FilterHalfRow>
         <div className="">
-          <TextField
-            name={`actions.${idx}.external_download_client`}
-            label="Override download client name for arr"
-            tooltip={
-              <p>
-                Override Download client name from the one set in Clients. Useful if you
-                have multiple clients inside the arr.
-              </p>
-            }
-          />
-          <NumberField
-            name={`actions.${idx}.external_download_client_id`}
-            label="Override download client id for arr DEPRECATED"
-            className="mt-4"
-            tooltip={
-              <p>
-                Override Download client Id from the one set in Clients. Useful if you
-                have multiple clients inside the arr.
-              </p>
-            }
-          />
+          <ContextField name={`actions.${idx}.external_download_client`}>
+            <TextField
+              label="Override download client name for arr"
+              tooltip={
+                <p>
+                  Override Download client name from the one set in Clients. Useful if you
+                  have multiple clients inside the arr.
+                </p>
+              }
+            />
+          </ContextField>
+          <ContextField name={`actions.${idx}.external_download_client_id`}>
+            <NumberField
+              label="Override download client id for arr DEPRECATED"
+              className="mt-4"
+              tooltip={
+                <p>
+                  Override Download client Id from the one set in Clients. Useful if you
+                  have multiple clients inside the arr.
+                </p>
+              }
+            />
+          </ContextField>
         </div>
       </FilterHalfRow>
     </FilterLayout>

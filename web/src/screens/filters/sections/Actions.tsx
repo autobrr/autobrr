@@ -5,8 +5,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Field, FieldArray, useFormikContext } from "formik";
-import type { FieldProps, FieldArrayRenderProps } from "formik";
 import { ChevronRightIcon, BoltIcon } from "@heroicons/react/24/solid";
 
 import { classNames } from "@utils";
@@ -14,7 +12,8 @@ import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
 import { ActionTypeNameMap, ActionTypeOptions, DOWNLOAD_CLIENTS } from "@domain/constants";
 
-import { Select, TextField } from "@components/inputs";
+import { useFormContext, useStore, ContextField } from "@app/lib/form";
+import { Select, TextField } from "@components/inputs/tanstack";
 import { DeleteModal } from "@components/modals";
 import { EmptyListState } from "@components/emptystates";
 import { toast } from "@components/hot-toast";
@@ -35,13 +34,12 @@ import {
   Transmission, WatchFolder, WebHook
 } from "@screens/filters/sections/action_components";
 
-// interface FilterActionsProps {
-//   filter: Filter;
-//   values: FormikValues;
-// }
 
 export function Actions() {
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+
+  const actions = useStore(form.store, (s: any) => s.values.actions) as Action[];
+  const filterId = useStore(form.store, (s: any) => s.values.id);
 
   const { data } = useQuery(DownloadClientsQueryOptions());
 
@@ -71,7 +69,7 @@ export function Actions() {
     reannounce_delete: false,
     reannounce_interval: 7,
     reannounce_max_attempts: 25,
-    filter_id: values.id,
+    filter_id: filterId,
     webhook_host: "",
     webhook_type: "",
     webhook_method: "",
@@ -82,57 +80,61 @@ export function Actions() {
     client_id: 0
   };
 
+  const pushAction = () => {
+    (form as any).pushFieldValue("actions", newAction);
+  };
+
+  const removeAction = (index: number) => {
+    (form as any).removeFieldValue("actions", index);
+  };
+
   return (
     <div className="mt-5">
-      <FieldArray name="actions">
-        {({ remove, push }: FieldArrayRenderProps) => (
-          <>
-            <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-              <TitleSubtitle
-                className="ml-4 mt-4"
-                title="Actions"
-                subtitle="Add to download clients or run custom commands."
+      <>
+        <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
+          <TitleSubtitle
+            className="ml-4 mt-4"
+            title="Actions"
+            subtitle="Add to download clients or run custom commands."
+          />
+          <div className="ml-4 mt-4 shrink-0">
+            <button
+              type="button"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              onClick={pushAction}
+            >
+              <BoltIcon
+                className="w-5 h-5 mr-1"
+                aria-hidden="true"
               />
-              <div className="ml-4 mt-4 shrink-0">
-                <button
-                  type="button"
-                  className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => push(newAction)}
-                >
-                  <BoltIcon
-                    className="w-5 h-5 mr-1"
-                    aria-hidden="true"
-                  />
-                  Add new
-                </button>
-              </div>
-            </div>
+              Add new
+            </button>
+          </div>
+        </div>
 
-            {values.actions.length > 0 ? (
-              <ul className="rounded-md">
-                {values.actions.map((action: Action, index: number) => (
-                  <FilterActionsItem
-                    key={action.id}
-                    action={action}
-                    clients={data ?? []}
-                    idx={index}
-                    initialEdit={values.actions.length === 1}
-                    remove={remove}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <EmptyListState text="No actions yet!" />
-            )}
-          </>
+        {actions.length > 0 ? (
+          <ul className="rounded-md">
+            {actions.map((action: Action, index: number) => (
+              <FilterActionsItem
+                key={action.id}
+                action={action}
+                clients={data ?? []}
+                idx={index}
+                initialEdit={actions.length === 1}
+                remove={removeAction}
+              />
+            ))}
+          </ul>
+        ) : (
+          <EmptyListState text="No actions yet!" />
         )}
-      </FieldArray>
+      </>
     </div>
   );
 }
 
 const TypeForm = (props: ClientActionProps) => {
-  const { setFieldValue } = useFormikContext();
+  const form = useFormContext();
   const [prevActionType, setPrevActionType] = useState<string | null>(null);
 
   const { action, idx } = props;
@@ -140,11 +142,11 @@ const TypeForm = (props: ClientActionProps) => {
   useEffect(() => {
     if (prevActionType !== null && prevActionType !== action.type && DOWNLOAD_CLIENTS.includes(action.type)) {
       // Reset the client_id field value
-      setFieldValue(`actions.${idx}.client_id`, 0);
+      (form as any).setFieldValue(`actions[${idx}].client_id`, 0);
     }
 
     setPrevActionType(action.type);
-  }, [action.type, idx, prevActionType, setFieldValue]);
+  }, [action.type, idx, prevActionType, form]);
 
   switch (action.type) {
   // torrent clients
@@ -189,14 +191,17 @@ interface FilterActionsItemProps {
   clients: DownloadClient[];
   idx: number;
   initialEdit: boolean;
-  remove: <T>(index: number) => T | undefined;
+  remove: (index: number) => void;
 }
 
 function FilterActionsItem({ action, clients, idx, initialEdit, remove }: FilterActionsItemProps) {
+  const form = useFormContext();
   const cancelButtonRef = useRef(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
+
+  const actionEnabled = useStore(form.store, (s: any) => s.values.actions?.[idx]?.enabled);
 
   const removeMutation = useMutation({
     mutationFn: (id: number) => APIClient.actions.delete(id),
@@ -211,7 +216,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
     }
   });
 
-  const removeAction = (id: number) => {
+  const removeActionHandler = (id: number) => {
     removeMutation.mutate(id);
   };
 
@@ -225,20 +230,12 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
           "flex items-center transition px-2 sm:px-6 rounded-md my-1 border border-gray-150 dark:border-gray-750 hover:bg-gray-200 dark:hover:bg-gray-850"
         )}
       >
-        <Field name={`actions.${idx}.enabled`} type="checkbox">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
-            <Checkbox
-              {...field}
-              value={!!field.checked}
-              setValue={(value: boolean) => {
-                setFieldValue(field.name, value);
-              }}
-            />
-          )}
-        </Field>
+        <Checkbox
+          value={!!actionEnabled}
+          setValue={(value: boolean) => {
+            (form as any).setFieldValue(`actions[${idx}].enabled`, value);
+          }}
+        />
 
         <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
@@ -271,7 +268,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             isLoading={removeMutation.isPending}
             buttonRef={cancelButtonRef}
             toggle={toggleDeleteModal}
-            deleteAction={() => removeAction(action.id)}
+            deleteAction={() => removeActionHandler(action.id)}
             title="Remove filter action"
             text="Are you sure you want to remove this action? This action cannot be undone."
           />
@@ -283,17 +280,20 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             >
               <FilterLayout>
                 <FilterHalfRow>
-                  <Select
-                    name={`actions.${idx}.type`}
-                    label="Action type"
-                    optionDefaultText="Select type"
-                    options={ActionTypeOptions}
-                    tooltip={<div><p>Select the action type for this action.</p></div>}
-                  />
+                  <ContextField name={`actions[${idx}].type`}>
+                    <Select
+                      label="Action type"
+                      optionDefaultText="Select type"
+                      options={ActionTypeOptions}
+                      tooltip={<div><p>Select the action type for this action.</p></div>}
+                    />
+                  </ContextField>
                 </FilterHalfRow>
 
                 <FilterHalfRow>
-                  <TextField name={`actions.${idx}.name`} label="Name" />
+                  <ContextField name={`actions[${idx}].name`}>
+                    <TextField label="Name" />
+                  </ContextField>
                 </FilterHalfRow>
               </FilterLayout>
             </FilterSection>

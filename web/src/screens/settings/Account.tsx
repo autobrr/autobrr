@@ -4,17 +4,17 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { Form, Formik } from "formik";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
-import { PasswordField, TextField } from "@components/inputs";
+import { PasswordField, TextField } from "@components/inputs/tanstack";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
+import { useAppForm, useStore } from "@app/lib/form";
 
 const AccountSettings = () => {
   const auth = AuthContext.get();
@@ -31,28 +31,8 @@ const AccountSettings = () => {
   );
 };
 
-interface InputValues {
-  username: string;
-  newUsername: string;
-  oldPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
 function Credentials() {
   const username = AuthContext.useSelector((s) => s.username);
-
-  const validate = (values: InputValues) => {
-    const errors: Record<string, string> = {};
-
-    if (!values.username)
-      errors.username = "Required";
-
-    if (values.newPassword !== values.confirmPassword)
-      errors.confirmPassword = "Passwords don't match!";
-
-    return errors;
-  };
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
@@ -77,6 +57,26 @@ function Credentials() {
     }
   });
 
+  const form = useAppForm({
+    defaultValues: {
+      username: username,
+      newUsername: "",
+      oldPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    },
+    onSubmit: async ({ value }) => {
+      updateUserMutation.mutate({
+        username_current: value.username,
+        username_new: value.newUsername,
+        password_current: value.oldPassword,
+        password_new: value.newPassword,
+      });
+    },
+  });
+
+  const newPassword = useStore(form.store, (s) => s.values.newPassword);
+
   const separatorClass = "mb-6";
 
   return (
@@ -86,58 +86,55 @@ function Credentials() {
       noLeftPadding
     >
       <div className="px-2 pb-0 sm:pb-6 bg-white dark:bg-gray-800">
-        <Formik
-          initialValues={{
-            username: username,
-            newUsername: "",
-            oldPassword: "",
-            newPassword: "",
-            confirmPassword: ""
-          }}
-          onSubmit={(data) => {
-            updateUserMutation.mutate({
-              username_current: data.username,
-              username_new: data.newUsername,
-              password_current: data.oldPassword,
-              password_new: data.newPassword,
-            });
-          }}
-          validate={validate}
-        >
-          {({ values }) => (
-            <Form>
+        <form.AppForm>
+          <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
               <div className="flex flex-col sm:grid sm:grid-cols-2 gap-x-10 pt-2">
                 <div className={separatorClass}>
-                  <TextField name="username" label="Current Username" autoComplete="username" disabled />
+                  <form.AppField name="username">
+                    {() => <TextField label="Current Username" autoComplete="username" disabled />}
+                  </form.AppField>
                 </div>
                 <div className={separatorClass}>
-                  <TextField name="newUsername" label="New Username" tooltip={
-                    <div>
-                      <p>Optional</p>
-                    </div>
-                  } />
+                  <form.AppField name="newUsername">
+                    {() => <TextField label="New Username" tooltip={
+                      <div>
+                        <p>Optional</p>
+                      </div>
+                    } />}
+                  </form.AppField>
                 </div>
 
                 <hr className="col-span-2 mb-6 border-t border-gray-300 dark:border-gray-750" />
 
                 <div className={separatorClass}>
-                  <PasswordField name="oldPassword" placeholder="Required" label="Current Password" autoComplete="current-password" required tooltip={
-                    <div>
-                      <p>Required if updating credentials</p>
-                    </div>
-                  } />
+                  <form.AppField name="oldPassword">
+                    {() => <PasswordField placeholder="Required" label="Current Password" autoComplete="current-password" required tooltip={
+                      <div>
+                        <p>Required if updating credentials</p>
+                      </div>
+                    } />}
+                  </form.AppField>
                 </div>
                 <div>
                   <div className={separatorClass}>
-                    <PasswordField name="newPassword" label="New Password" autoComplete="new-password" tooltip={
-                      <div>
-                        <p>Optional</p>
-                      </div>
-                    } />
+                    <form.AppField name="newPassword">
+                      {() => <PasswordField label="New Password" autoComplete="new-password" tooltip={
+                        <div>
+                          <p>Optional</p>
+                        </div>
+                      } />}
+                    </form.AppField>
                   </div>
-                  {values.newPassword && (
+                  {newPassword && (
                     <div className={separatorClass}>
-                      <PasswordField name="confirmPassword" label="Confirm New Password" autoComplete="new-password" />
+                      <form.AppField name="confirmPassword" validators={{
+                        onSubmit: ({ value, fieldApi }) => {
+                          if (fieldApi.form.getFieldValue("newPassword") && value !== fieldApi.form.getFieldValue("newPassword")) return "Passwords don't match!";
+                          return undefined;
+                        }
+                      }}>
+                        {() => <PasswordField label="Confirm New Password" autoComplete="new-password" />}
+                      </form.AppField>
                     </div>
                   )}
                 </div>
@@ -151,9 +148,8 @@ function Credentials() {
                   Save
                 </button>
               </div>
-            </Form>
-          )}
-        </Formik>
+          </form>
+        </form.AppForm>
       </div>
     </Section>
   );

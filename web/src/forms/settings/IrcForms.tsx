@@ -5,9 +5,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import type { FieldProps } from "formik";
-import type { FieldArrayRenderProps } from "formik";
-import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Select from "react-select";
 import { DialogTitle } from "@headlessui/react";
@@ -15,91 +12,90 @@ import { DialogTitle } from "@headlessui/react";
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
 import { IrcKeys } from "@api/query_keys";
-import { NumberFieldWide, PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, SwitchButton, TextFieldWide } from "@components/inputs/tanstack";
 import { SlideOver } from "@components/panels";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import * as common from "@components/inputs/common";
+import * as common from "@components/inputs/tanstack/common";
 import { classNames } from "@utils";
 import { ProxiesQueryOptions } from "@api/queries";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
+import { ContextField, useFormContext, useFieldContext, useStore } from "@app/lib/form";
 
-interface ChannelsFieldArrayProps {
-  channels: IrcChannel[];
-}
+const ChannelsFieldArray = () => {
+  const form = useFormContext();
+  const currentChannels = useStore(form.store, (s: any) => s.values.channels) as IrcChannel[];
 
-const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => (
-  <div className="px-4">
-    <FieldArray name="channels">
-      {({ remove, push }: FieldArrayRenderProps) => (
-        <div className="flex flex-col space-y-2">
-          {channels && channels.length > 0 ? (
-              channels.map((_, index) => (
-                <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
-                  <div className="flex gap-2">
-                    <Field name={`channels.${index}.name`}>
-                      {({ field, meta }: FieldProps) => (
-                        <input
-                          {...field}
-                          type="text"
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          className={classNames(
-                            meta.touched && meta.error
-                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
-                          )}
-                        />
-                      )}
-                    </Field>
+  return (
+    <div className="px-4">
+      <div className="flex flex-col space-y-2">
+        {currentChannels && currentChannels.length > 0 ? (
+          currentChannels.map((channel, index) => (
+            <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={channel.name ?? ""}
+                  onChange={(e) => {
+                    const newChannels = [...currentChannels];
+                    newChannels[index] = { ...newChannels[index], name: e.target.value };
+                    (form as any).setFieldValue("channels", newChannels);
+                  }}
+                  className={classNames(
+                    "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                    "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                  )}
+                />
 
-                    <Field name={`channels.${index}.password`}>
-                      {({ field, meta }: FieldProps) => (
-                        <input
-                          {...field}
-                          type="text"
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          placeholder="Channel password"
-                          className={classNames(
-                            meta.touched && meta.error
-                              ? "border-red-500 focus:ring-red-500 focus:border-red-500"
-                              : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
-                            "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
-                          )}
-                        />
-                      )}
-                    </Field>
-                  </div>
+                <input
+                  type="text"
+                  value={channel.password ?? ""}
+                  onChange={(e) => {
+                    const newChannels = [...currentChannels];
+                    newChannels[index] = { ...newChannels[index], password: e.target.value };
+                    (form as any).setFieldValue("channels", newChannels);
+                  }}
+                  placeholder="Channel password"
+                  className={classNames(
+                    "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                    "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100"
+                  )}
+                />
+              </div>
 
-                  <button
-                    type="button"
-                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                    onClick={() => remove(index)}
-                  >
-                    <span className="sr-only">Remove</span>
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                  </button>
-                </div>
-              ))
-          ) : (
-            <span className="text-center text-sm text-grey-darker dark:text-white">
-              No channels!
-            </span>
-          )}
-          <button
-            type="button"
-            className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center"
-            onClick={() => push({ name: "", password: "" })}
-          >
-            Add Channel
-          </button>
-        </div>
-      )}
-    </FieldArray>
-  </div>
-);
+              <button
+                type="button"
+                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                onClick={() => {
+                  const newChannels = currentChannels.filter((_, i) => i !== index);
+                  (form as any).setFieldValue("channels", newChannels);
+                }}
+              >
+                <span className="sr-only">Remove</span>
+                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
+          ))
+        ) : (
+          <span className="text-center text-sm text-grey-darker dark:text-white">
+            No channels!
+          </span>
+        )}
+        <button
+          type="button"
+          className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center"
+          onClick={() => {
+            const newChannels = [...currentChannels, { name: "", password: "" }];
+            (form as any).setFieldValue("channels", newChannels);
+          }}
+        >
+          Add Channel
+        </button>
+      </div>
+    </div>
+  );
+};
+
 interface IrcNetworkAddFormValues {
     name: string;
     enabled: boolean;
@@ -155,58 +151,72 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
       toggle={toggle}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      validate={validateNetwork}
     >
       {(values) => (
         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
           <div className="flex justify-center dark:bg-red-300 text-sm font-bold text-center p-4 py-8 dark:text-red-800"><span className="flex"><ExclamationTriangleIcon className="mr-2 h-6 w-6" /> ADD NETWORKS VIA INDEXERS! ONLY USE THIS IF YOU DELETED NETWORKS</span></div>
 
-          <TextFieldWide
-            name="name"
-            label="Name"
-            placeholder="Name"
-            required={true}
-          />
+          <ContextField name="name">
+            <TextFieldWide
+              label="Name"
+              placeholder="Name"
+              required={true}
+            />
+          </ContextField>
 
-          <SwitchGroupWide name="enabled" label="Enabled" />
-          <TextFieldWide
-            name="server"
-            label="Server"
-            placeholder="Address: Eg irc.server.net"
-            required={true}
-          />
-          <NumberFieldWide
-            name="port"
-            label="Port"
-            placeholder="Eg 6667"
-            required={true}
-          />
-          <SwitchGroupWide name="tls" label="TLS" />
+          <ContextField name="enabled">
+            <SwitchGroupWide label="Enabled" />
+          </ContextField>
+          <ContextField name="server">
+            <TextFieldWide
+              label="Server"
+              placeholder="Address: Eg irc.server.net"
+              required={true}
+            />
+          </ContextField>
+          <ContextField name="port">
+            <NumberFieldWide
+              label="Port"
+              placeholder="Eg 6667"
+              required={true}
+            />
+          </ContextField>
+          <ContextField name="tls">
+            <SwitchGroupWide label="TLS" />
+          </ContextField>
           {values.tls && (
-            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)"/>
+            <ContextField name="tls_skip_verify">
+              <SwitchGroupWide label="Skip TLS verification (insecure)"/>
+            </ContextField>
           )}
-          <PasswordFieldWide
-            name="pass"
-            label="Password"
-            help="Network password"
-          />
-          <TextFieldWide
-            name="nick"
-            label="Nick"
-            placeholder="bot nick"
-            required={true}
-          />
-          <TextFieldWide
-            name="auth.account"
-            label="Auth Account"
-            placeholder="Auth Account"
-            required={true}
-          />
-          <PasswordFieldWide
-            name="auth.password"
-            label="Auth Password"
-          />
-          <PasswordFieldWide name="invite_command" label="Invite command" />
+          <ContextField name="pass">
+            <PasswordFieldWide
+              label="Password"
+              help="Network password"
+            />
+          </ContextField>
+          <ContextField name="nick">
+            <TextFieldWide
+              label="Nick"
+              placeholder="bot nick"
+              required={true}
+            />
+          </ContextField>
+          <ContextField name="auth.account">
+            <TextFieldWide
+              label="Auth Account"
+              placeholder="Auth Account"
+              required={true}
+            />
+          </ContextField>
+          <ContextField name="auth.password">
+            <PasswordFieldWide
+              label="Auth Password"
+            />
+          </ContextField>
+          <ContextField name="invite_command">
+            <PasswordFieldWide label="Invite command" />
+          </ContextField>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
@@ -216,35 +226,13 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
               </p>
             </div>
 
-            <ChannelsFieldArray channels={values.channels} />
+            <ChannelsFieldArray />
           </div>
         </div>
       )}
     </SlideOver>
   );
 }
-
-const validateNetwork = (values: FormikValues) => {
-  const errors = {} as FormikErrors<FormikValues>;
-
-  if (!values.name) {
-    errors.name = "Required";
-  }
-
-  if (!values.server) {
-    errors.server = "Required";
-  }
-
-  if (!values.port) {
-    errors.port = "Required";
-  }
-
-  if (!values.nick) {
-    errors.nick = "Required";
-  }
-
-  return errors;
-};
 
 interface IrcNetworkUpdateFormValues {
     id: number;
@@ -330,59 +318,74 @@ export function IrcNetworkUpdateForm({
       onSubmit={onSubmit}
       deleteAction={deleteAction}
       initialValues={initialValues}
-      validate={validateNetwork}
     >
       {(values) => (
         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-          <TextFieldWide
-            name="name"
-            label="Name"
-            placeholder="Name"
-            required={true}
-          />
-
-          <SwitchGroupWide name="enabled" label="Enabled"/>
-          <TextFieldWide
-            name="server"
-            label="Server"
-            placeholder="Address: Eg irc.server.net"
-            required={true}
-          />
-          <NumberFieldWide
-            name="port"
-            label="Port"
-            placeholder="Eg 6667"
-            required={true}
-          />
-
-          <SwitchGroupWide name="tls" label="TLS"/>
-          {values.tls && (
-            <SwitchGroupWide name="tls_skip_verify" label="Skip TLS verification (insecure)"/>
-          )}
-
-          <PasswordFieldWide
-            name="pass"
-            label="Password"
-            help="Network password, not commonly used."
-          />
-
-          <TextFieldWide
-            name="nick"
-            label="Nick"
-            placeholder="nick"
-            required={true}
-          />
-
-          <SwitchGroupWide name="use_bouncer" label="Bouncer (BNC)"/>
-          {values.use_bouncer && (
+          <ContextField name="name">
             <TextFieldWide
-              name="bouncer_addr"
-              label="Bouncer address"
-              help="Address: Eg bouncer.server.net:6697"
+              label="Name"
+              placeholder="Name"
+              required={true}
             />
+          </ContextField>
+
+          <ContextField name="enabled">
+            <SwitchGroupWide label="Enabled"/>
+          </ContextField>
+          <ContextField name="server">
+            <TextFieldWide
+              label="Server"
+              placeholder="Address: Eg irc.server.net"
+              required={true}
+            />
+          </ContextField>
+          <ContextField name="port">
+            <NumberFieldWide
+              label="Port"
+              placeholder="Eg 6667"
+              required={true}
+            />
+          </ContextField>
+
+          <ContextField name="tls">
+            <SwitchGroupWide label="TLS"/>
+          </ContextField>
+          {values.tls && (
+            <ContextField name="tls_skip_verify">
+              <SwitchGroupWide label="Skip TLS verification (insecure)"/>
+            </ContextField>
           )}
 
-          <SwitchGroupWide name="bot_mode" label="IRCv3 Bot Mode"/>
+          <ContextField name="pass">
+            <PasswordFieldWide
+              label="Password"
+              help="Network password, not commonly used."
+            />
+          </ContextField>
+
+          <ContextField name="nick">
+            <TextFieldWide
+              label="Nick"
+              placeholder="nick"
+              required={true}
+            />
+          </ContextField>
+
+          <ContextField name="use_bouncer">
+            <SwitchGroupWide label="Bouncer (BNC)"/>
+          </ContextField>
+          {values.use_bouncer && (
+            <ContextField name="bouncer_addr">
+              <TextFieldWide
+                label="Bouncer address"
+                help="Address: Eg bouncer.server.net:6697"
+              />
+            </ContextField>
+          )}
+
+          <ContextField name="bot_mode">
+            <SwitchGroupWide label="IRCv3 Bot Mode"/>
+          </ContextField>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
             <div className="flex justify-between px-4">
@@ -394,7 +397,9 @@ export function IrcNetworkUpdateForm({
                   Set a proxy to be used for connecting to the irc server.
                 </p>
               </div>
-              <SwitchButton name="use_proxy"/>
+              <ContextField name="use_proxy">
+                <SwitchButton />
+              </ContextField>
             </div>
 
             {values.use_proxy === true && (
@@ -423,21 +428,25 @@ export function IrcNetworkUpdateForm({
               options={IrcAuthMechanismTypeOptions}
             />
 
-            <TextFieldWide
-              name="auth.account"
-              label="Account"
-              placeholder="Auth Account"
-              help="NickServ / SASL account. For grouped nicks try the main."
-            />
+            <ContextField name="auth.account">
+              <TextFieldWide
+                label="Account"
+                placeholder="Auth Account"
+                help="NickServ / SASL account. For grouped nicks try the main."
+              />
+            </ContextField>
 
-            <PasswordFieldWide
-              name="auth.password"
-              label="Password"
-              help="NickServ / SASL password."
-            />
+            <ContextField name="auth.password">
+              <PasswordFieldWide
+                label="Password"
+                help="NickServ / SASL password."
+              />
+            </ContextField>
           </div>
 
-          <PasswordFieldWide name="invite_command" label="Invite command"/>
+          <ContextField name="invite_command">
+            <PasswordFieldWide label="Invite command"/>
+          </ContextField>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
@@ -447,7 +456,7 @@ export function IrcNetworkUpdateForm({
               </p>
             </div>
 
-            <ChannelsFieldArray channels={values.channels}/>
+            <ChannelsFieldArray />
           </div>
         </div>
       )}
@@ -474,53 +483,59 @@ export function SelectField<T>({ name, label, options, placeholder }: SelectFiel
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
-          {({
-              field,
-              form: { setFieldValue }
-            }: FieldProps) => (
-            <Select
-              {...field}
-              id={name}
-              isClearable={true}
-              isSearchable={true}
-              components={{
-                Input: common.SelectInput,
-                Control: common.SelectControl,
-                Menu: common.SelectMenu,
-                Option: common.SelectOption,
-                IndicatorSeparator: common.IndicatorSeparator,
-                DropdownIndicator: common.DropdownIndicator
-              }}
-              placeholder={placeholder ?? "Choose a type"}
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
-              value={field?.value && options.find(o => o.value == field?.value)}
-              onChange={(newValue: unknown) => {
-                if (newValue) {
-                  setFieldValue(field.name, (newValue as { value: number }).value);
-                }
-                else {
-                  setFieldValue(field.name, 0)
-                }
-              }}
-              options={options}
-            />
-          )}
-        </Field>
+        <ContextField name={name}>
+          <SelectFieldInner<T>
+            name={name}
+            options={options}
+            placeholder={placeholder}
+          />
+        </ContextField>
       </div>
     </div>
+  );
+}
+
+function SelectFieldInner<T>({ name, options, placeholder }: { name: string; options: OptionBasicTyped<T>[]; placeholder?: string }) {
+  const field = useFieldContext<T>();
+
+  return (
+    <Select
+      id={name}
+      isClearable={true}
+      isSearchable={true}
+      components={{
+        Input: common.SelectInput,
+        Control: common.SelectControl,
+        Menu: common.SelectMenu,
+        Option: common.SelectOption,
+        IndicatorSeparator: common.IndicatorSeparator,
+        DropdownIndicator: common.DropdownIndicator
+      }}
+      placeholder={placeholder ?? "Choose a type"}
+      styles={{
+        singleValue: (base) => ({
+          ...base,
+          color: "unset"
+        })
+      }}
+      theme={(theme) => ({
+        ...theme,
+        spacing: {
+          ...theme.spacing,
+          controlHeight: 30,
+          baseUnit: 2
+        }
+      })}
+      value={field.state.value && options.find(o => o.value == field.state.value)}
+      onChange={(newValue: unknown) => {
+        if (newValue) {
+          field.handleChange((newValue as { value: T }).value);
+        }
+        else {
+          field.handleChange(0 as T);
+        }
+      }}
+      options={options}
+    />
   );
 }
