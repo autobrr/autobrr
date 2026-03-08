@@ -23,7 +23,6 @@ irc:
   server: irc.aura4k.net
   port: 6697
   tls: true
-  pass: "{{ .pass }}"
   channels:
     - "#AURA4K"
   announcers:
