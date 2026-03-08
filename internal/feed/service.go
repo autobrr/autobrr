@@ -271,6 +271,21 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 		}
 	}
 
+	if feed.ID > 0 {
+		existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+		if err != nil {
+			s.log.Error().Err(err).Msg("could not find feed")
+			return err
+		}
+
+		if domain.IsRedactedString(feed.ApiKey) {
+			feed.ApiKey = existingFeed.ApiKey
+		}
+		if domain.IsRedactedString(feed.Cookie) {
+			feed.Cookie = existingFeed.Cookie
+		}
+	}
+
 	// test feeds
 	switch feed.Type {
 	case string(domain.FeedTypeTorznab):
