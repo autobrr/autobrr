@@ -106,6 +106,7 @@ type FeedDownloadType string
 const (
 	FeedDownloadTypeMagnet  FeedDownloadType = "MAGNET"
 	FeedDownloadTypeTorrent FeedDownloadType = "TORRENT"
+	FeedDownloadTypeNzb     FeedDownloadType = "NZB"
 )
 
 type FeedCacheItem struct {
