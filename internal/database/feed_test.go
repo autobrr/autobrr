@@ -427,7 +427,6 @@ func TestFeedRepo_UpdateLastRunWithData(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, updatedFeed)
 			assert.True(t, updatedFeed[0].LastRun.After(time.Now().Add(-1*time.Minute)))
-			assert.Equal(t, "newData", updatedFeed[0].LastRunData)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), feedMockData.ID)
