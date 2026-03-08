@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --color",
-    "lint:ci": "eslint src/ --ext .js,.jsx,.ts,.tsx --format=@microsoft/eslint-formatter-sarif --fix > ../results.sarif || true",
+    "lint:ci": "eslint src/ --ext .js,.jsx,.ts,.tsx --format=@microsoft/eslint-formatter-sarif > ../results.sarif || true",
     "preview": "vite preview",
     "lint:watch": "pnpm run lint -- --watch"
   },
@@ -63,7 +63,7 @@
     "zod-formik-adapter": "^2.0.0"
   },
   "devDependencies": {
-    "@microsoft/eslint-formatter-sarif": "^3.1.0",
+    "@microsoft/eslint-formatter-sarif": "^2.1.0",
     "@rollup/wasm-node": "^4.59.0",
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",

@@ -48,7 +48,7 @@ jobs:
 
       # Runs the ESlint code analysis
       - name: Run ESLint
-        # eslint exits 1 if it finds anything to report
+        continue-on-error: true
         run: SARIF_ESLINT_EMBED=true pnpm run lint:ci
         working-directory: web
 
