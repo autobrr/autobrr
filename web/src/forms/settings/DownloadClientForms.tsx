@@ -400,6 +400,21 @@ function FormFieldsSabnzbd() {
   );
 }
 
+function FormFieldsNzbget() {
+  return (
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        name="host"
+        label="Host"
+        help="Eg. http://localhost:6789"
+      />
+
+      <TextFieldWide name="username" label="Username" />
+      <PasswordFieldWide name="password" label="Password" />
+    </div>
+  );
+}
+
 export interface componentMapType {
   [key: string]: ReactElement;
 }
@@ -416,7 +431,8 @@ export const componentMap: componentMapType = {
   LIDARR: <FormFieldsArr />,
   WHISPARR: <FormFieldsArr />,
   READARR: <FormFieldsArr />,
-  SABNZBD: <FormFieldsSabnzbd />
+  SABNZBD: <FormFieldsSabnzbd />,
+  NZBGET: <FormFieldsNzbget />
 };
 
 function FormFieldsRulesBasic() {
