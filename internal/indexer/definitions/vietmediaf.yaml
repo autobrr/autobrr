@@ -1,0 +1,96 @@
+---
+#id: VietMediaF
+name: VietMediaF
+identifier: vietmediaf
+description: VietMediaF is a Vietnamese Private Tracker powered by UNIT3D.
+language: vi-vn
+urls:
+  - https://tracker.vietmediaf.store/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile > Settings > Security, copy RSS Key (RID)"
+
+irc:
+  network: Libera.Chat
+  server: irc.libera.chat
+  port: 6697
+  tls: true
+  channels:
+    - "#vietmediaf"
+  announcers:
+    - VietMediaF
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: "Your registered nick on Libera.Chat (must be different from bot nick VietMediaF)"
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: "Your NickServ username on Libera.Chat"
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: "Your NickServ password on Libera.Chat"
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: "Category [Movie] Type [WEB-DL] Name [Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [3.38 GB] Uploader [Anonymous] Url [https://tracker.vietmediaf.store/torrents/download/123]"
+          expect:
+            category: Movie
+            releaseTags: WEB-DL
+            torrentName: "Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO"
+            resolution: 1080p
+            freeleechPercent: "0%"
+            internal: "No"
+            tags: "No"
+            torrentSize: "3.38 GB"
+            uploader: Anonymous
+            baseUrl: "https://tracker.vietmediaf.store/"
+            torrentId: "123"
+        - line: "Category [Music] Type [FLAC] Name [Artist - Album 2024 WEB FLAC] Freeleech [100%] Internal [Yes] Double Upload [No] Size [500 MB] Uploader [Bitcy] Url [https://tracker.vietmediaf.store/torrents/download/456]"
+          expect:
+            category: Music
+            releaseTags: FLAC
+            torrentName: "Artist - Album 2024 WEB FLAC"
+            resolution: ""
+            freeleechPercent: "100%"
+            internal: "Yes"
+            tags: "No"
+            torrentSize: "500 MB"
+            uploader: Bitcy
+            baseUrl: "https://tracker.vietmediaf.store/"
+            torrentId: "456"
+        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] ?(?:Resolution \[(.*)\] )?Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/(.+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - resolution
+          - freeleechPercent
+          - internal
+          - tags
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
