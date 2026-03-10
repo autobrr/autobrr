@@ -634,6 +634,8 @@ interface NumberFieldProps {
   required?: boolean;
   min?: number;
   max?: number;
+  hidden?: boolean;
+  columns?: number;
   tooltip?: React.JSX.Element;
   className?: string;
   isDecimal?: boolean;
@@ -646,13 +648,22 @@ export const NumberField = ({
   step,
   min,
   max,
+  hidden,
+  columns = 6,
   tooltip,
   disabled,
   required,
   isDecimal,
   className = ""
 }: NumberFieldProps) => (
-  <div className={classNames(className, "col-span-12 sm:col-span-6")}>
+    <div
+    className={classNames(
+      className,
+      "col-span-12",
+      hidden ? "hidden" : "",
+      columns ? `sm:col-span-${columns}` : ""
+    )}
+  >
     <label
       htmlFor={name}
       className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide"

@@ -153,7 +153,7 @@ sessionSecret = "{{ .sessionSecret }}"
 
 # Custom definitions
 #
-#customDefinitions = "test/definitions"
+customDefinitions = "test/definitions"
 `
 
 func (c *AppConfig) writeConfig(configPath string, configFile string) error {
