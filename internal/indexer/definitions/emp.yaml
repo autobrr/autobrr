@@ -5,7 +5,6 @@ identifier: emp
 description: Empornium (EMP) is a private torrent tracker for XXX
 language: en-us
 urls:
-  - https://www.empornium.is/
   - https://www.empornium.sx/
 privacy: private
 protocol: torrent
@@ -58,13 +57,13 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 'Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.is/torrents.php?torrentid=000000'
+        - line: 'Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.sx/torrents.php?torrentid=000000'
           expect:
             torrentName: Some long funny title
             torrentSize: 2.54 GiB
             uploader: uploader1
             tags: tag1,tag2
-            baseUrl: https://www.empornium.is/
+            baseUrl: https://www.empornium.sx/
             torrentId: "000000"
         pattern: '(.*) - Size: (.+) - Uploader: (.+) - Tags: (.*) - (https:\/\/.*\/)torrents\.php\?torrentid=(\d+)'
         vars:
