@@ -77,7 +77,7 @@ irc:
             uploader: Bitcy
             baseUrl: "https://tracker.vietmediaf.store/"
             torrentId: "456"
-        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] ?(?:Resolution \[(.*)\] )?Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/(.+)\]'
+        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] ?(?:Resolution \[(.*)\] )?Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/download\/(.+)\]'
         vars:
           - category
           - releaseTags
