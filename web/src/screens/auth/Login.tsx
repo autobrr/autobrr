@@ -95,7 +95,7 @@ export const Login = () => {
                 // If validation succeeds, set the user as logged in
                 setAuth({
                     isLoggedIn: true,
-                    username: response.username || 'unknown',
+                    username: response.username,
                     authMethod: response.auth_method || (oidcConfig?.enabled ? 'oidc' : 'password'),
                     profilePicture: response.profile_picture,
                 });
