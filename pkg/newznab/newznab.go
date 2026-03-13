@@ -258,10 +258,6 @@ func (c *Client) GetFeed(ctx context.Context) (*Feed, error) {
 		for _, item := range response.Channel.Items {
 			item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
 		}
-	} else {
-		for _, item := range response.Channel.Items {
-			item.MapCategoriesFromAttr()
-		}
 	}
 
 	return &response, nil
@@ -397,10 +393,6 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 	if c.Capabilities != nil {
 		for _, item := range res.Channel.Items {
 			item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
-		}
-	} else {
-		for _, item := range res.Channel.Items {
-			item.MapCategoriesFromAttr()
 		}
 	}
 
