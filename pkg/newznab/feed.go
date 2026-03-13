@@ -6,6 +6,7 @@ package newznab
 import (
 	"encoding/xml"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -37,20 +38,39 @@ type Response struct {
 	} `xml:"channel"`
 }
 
+type ProwlarrIndexer struct {
+	Text string `xml:",chardata"`
+	ID   string `xml:"id,attr"`
+}
+
+type JackettIndexer struct {
+	Text string `xml:",chardata"`
+	ID   string `xml:"id,attr"`
+}
+
 type FeedItem struct {
-	Title           string `xml:"title,omitempty"`
-	GUID            string `xml:"guid,omitempty"`
-	PubDate         Time   `xml:"pubDate,omitempty"`
-	Prowlarrindexer struct {
-		Text string `xml:",chardata"`
-		ID   string `xml:"id,attr"`
-	} `xml:"prowlarrindexer,omitempty"`
-	Comments   string     `xml:"comments"`
-	Size       string     `xml:"size"`
-	Link       string     `xml:"link"`
-	Enclosure  *Enclosure `xml:"enclosure,omitempty"`
-	Category   []string   `xml:"category,omitempty"`
-	Categories Categories
+	Title           string           `xml:"title,omitempty"`
+	GUID            string           `xml:"guid,omitempty"`
+	PubDate         Time             `xml:"pubDate,omitempty"`
+	ProwlarrIndexer *ProwlarrIndexer `xml:"prowlarrindexer,omitempty"`
+	JackettIndexer  *JackettIndexer  `xml:"jackettindexer,omitempty"`
+	Comments        int              `xml:"comments"`
+	Size            uint64           `xml:"size"`
+	Link            string           `xml:"link"`
+	Enclosure       *Enclosure       `xml:"enclosure,omitempty"`
+	Category        []string         `xml:"category,omitempty"`
+	Categories      Categories       `xml:"-"`
+	Files           int              `xml:"files,omitempty"`
+	Genres          []string         `xml:"genre,omitempty"`
+	Password        bool             `xml:"password,omitempty"`
+	HasNFO          bool             `xml:"nfo,omitempty"`
+	NFOUrl          string           `xml:"info,omitempty"`
+	UsenetDate      Time             `xml:"usenetdate,omitempty"`
+	Grabs           int              `xml:"-"`
+
+	Poster string `xml:"poster,omitempty"`
+	Group  string `xml:"group,omitempty"`
+	Team   string `xml:"team,omitempty"`
 
 	// attributes
 	TvdbId string `xml:"tvdb,omitempty"`
@@ -58,7 +78,40 @@ type FeedItem struct {
 	ImdbId string `xml:"imdb,omitempty"`
 	TmdbId string `xml:"tmdb,omitempty"`
 
+	Season     int    `xml:""`
+	Episode    int    `xml:""`
+	Video      string `xml:""`
+	Audio      string `xml:""`
+	Resolution string `xml:""`
+	Framerate  string `xml:""`
+
+	BookTitle   string `xml:"-"`
+	Author      string `xml:"-"`
+	Pages       int    `xml:"-"`
+	PublishDate Time   `xml:"-"`
+
 	Attributes []ItemAttr `xml:"attr"`
+}
+
+func (f *FeedItem) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	// Create a type alias to avoid infinite recursion
+	type Alias FeedItem
+
+	// Create an auxiliary struct that embeds the alias
+	aux := &struct {
+		*Alias
+	}{
+		Alias: (*Alias)(f),
+	}
+
+	// Decode into the auxiliary struct
+	if err := d.DecodeElement(aux, &start); err != nil {
+		return err
+	}
+
+	f.parseAttributes()
+
+	return nil
 }
 
 type ItemAttr struct {
@@ -68,27 +121,8 @@ type ItemAttr struct {
 
 type Enclosure struct {
 	Url    string `xml:"url,attr"`
-	Length string `xml:"length,attr"`
+	Length uint64 `xml:"length,attr"`
 	Type   string `xml:"type,attr"`
-}
-
-func (f *FeedItem) MapCategoriesFromAttr() {
-	for _, attr := range f.Attributes {
-		if attr.Name == "category" {
-			catId, err := strconv.Atoi(attr.Value)
-			if err != nil {
-				continue
-			}
-
-			if catId > 0 && catId < 10000 {
-				f.Categories = append(f.Categories, ParentCategory(Category{ID: catId}))
-			}
-		} else if attr.Name == "size" {
-			if f.Size == "" && attr.Value != "" {
-				f.Size = attr.Value
-			}
-		}
-	}
 }
 
 func (f *FeedItem) MapCustomCategoriesFromAttr(categories []Category) {
@@ -113,6 +147,67 @@ func (f *FeedItem) MapCustomCategoriesFromAttr(categories []Category) {
 					}
 				}
 			}
+		}
+	}
+}
+
+func (f *FeedItem) parseAttributes() {
+	for _, attr := range f.Attributes {
+		switch attr.Name {
+		//case "category":
+		//	f.Category = append(f.Category, attr.Value)
+		case "grabs":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Grabs = int(parsedInt)
+				break
+			}
+		case "files":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Files = int(parsedInt)
+				break
+			}
+		case "imdb":
+			if f.ImdbId == "" {
+				if !strings.HasPrefix(attr.Value, "tt") {
+					f.ImdbId = "tt" + attr.Value
+				} else {
+					f.ImdbId = attr.Value
+				}
+				break
+			}
+		case "tvdb":
+			if f.TvdbId == "" {
+				f.TvdbId = attr.Value
+				break
+			}
+		case "tmdb":
+			if f.TmdbId == "" {
+				f.TmdbId = attr.Value
+				break
+			}
+		case "genre":
+			f.Genres = strings.Split(attr.Value, ",")
+
+		case "season":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Season = int(parsedInt)
+				break
+			}
+		case "episode":
+			if parsedInt, err := strconv.ParseInt(attr.Value, 0, 32); err == nil {
+				f.Episode = int(parsedInt)
+				break
+			}
+		case "author":
+			f.Author = attr.Value
+			break
+
+		case "nfo":
+			f.HasNFO = attr.Value == "1"
+			break
+		case "info":
+			f.NFOUrl = attr.Value
+			break
 		}
 	}
 }
