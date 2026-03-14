@@ -1,0 +1,62 @@
+id: rotorrent
+name: RoTorrent
+description: RoTorrent - Romanian Private Tracker
+language: ro
+privacy: private
+protocol: torrent
+urls:
+  - https://rotorrent.info
+irc:
+  network: p2p-network.net
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#Rotorrent.info"
+  announcers:
+    - RotBot
+
+parse:
+  type: line
+  lines:
+    - test:
+        - "0:1:0:0:4942:6598346281:1773517762:1457783|PRODUS IN ROMANIA/2160p||Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB|BAD"
+      pattern: "\\d+:(\\d+):(\\d+):(\\d+):(\\d+):\\d+:\\d+:\\d+\\|([^/]*)/?([^|]*)\\|([^|]*)\\|([^|]+)\\|(.+)"
+      vars:
+        - categoryId
+        - freeleech
+        - origin
+        - torrentId
+        - type
+        - resolution
+        - year
+        - torrentName
+        - uploader
+
+  match:
+    torrentUrl: "https://rotorrent.info/torrents/{{ .torrentId }}"
+
+categories:
+  - id: 1
+    name: Movies
+  - id: 2
+    name: TV
+  - id: 3
+    name: Music
+  - id: 4
+    name: Games
+  - id: 5
+    name: XXX
+  - id: 6
+    name: Video
+  - id: 7
+    name: Other
+
+settings:
+  - name: apikey
+    label: API Key
+    description: "Your API key from https://rotorrent.info/me/apikeys"
+    type: secret
+
+download:
+  url: "https://rotorrent.info/torrents/download/{{ .torrentId }}?api_token={{ .Settings.apikey }}"
