@@ -1,11 +1,24 @@
-id: rotorrent
+---
+# id: rotorrent
 name: RoTorrent
-description: RoTorrent - Romanian Private Tracker
+identifier: rotorrent
+description: RoTorrent (ROT) is a ROMANIAN private torrent tracker for MOVIES / TV / GENERAL
 language: ro
-privacy: private
-protocol: torrent
 urls:
   - https://rotorrent.info
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to My Settings > Settings -> RSS Key, and copy your RSS Key"
+
 irc:
   network: p2p-network.net
   server: irc.p2p-network.net
@@ -15,48 +28,138 @@ irc:
     - "#Rotorrent.info"
   announcers:
     - RotBot
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_autobrr
 
-parse:
-  type: line
-  lines:
-    - test:
-        - "0:1:0:0:4942:6598346281:1773517762:1457783|PRODUS IN ROMANIA/2160p||Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB|BAD"
-      pattern: "\\d+:(\\d+):(\\d+):(\\d+):(\\d+):\\d+:\\d+:\\d+\\|([^/]*)/?([^|]*)\\|([^|]*)\\|([^|]+)\\|(.+)"
-      vars:
-        - categoryId
-        - freeleech
-        - origin
-        - torrentId
-        - type
-        - resolution
-        - year
-        - torrentName
-        - uploader
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
 
-  match:
-    torrentUrl: "https://rotorrent.info/torrents/{{ .torrentId }}"
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
 
-categories:
-  - id: 1
-    name: Movies
-  - id: 2
-    name: TV
-  - id: 3
-    name: Music
-  - id: 4
-    name: Games
-  - id: 5
-    name: XXX
-  - id: 6
-    name: Video
-  - id: 7
-    name: Other
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: 0:1:1:0:1873:21210147233:1769458612:63|Encode/1080p|1995|Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek|uploader1
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 1
+            leechTypeEnum: 1
+            originEnum: 0
+            torrentId: "1873"
+            torrentSizeBytes: "21210147233"
+            uploadedDate: "1769458612"
+            tmdb: "63"
+            releaseTags: Encode/1080p
+            year: "1995"
+            torrentName: Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek
+            uploader: uploader1
+        - line: 0:1:0:0:4942:6598346281:1773517762:1457783|PRODUS IN ROMANIA/2160p||Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB|BAD
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 1
+            leechTypeEnum: 0
+            originEnum: 0
+            torrentId: "4942"
+            torrentSizeBytes: "6598346281"
+            uploadedDate: "1773517762"
+            tmdb: "1457783"
+            releaseTags: PRODUS IN ROMANIA/2160p
+            year: ""
+            torrentName: Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB
+            uploader: BAD
+        # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
+        pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\d+):(\d+)\|(.*)\|(\d+)?\|(.+)\|(.+)'
+        vars:
+          - announceTypeEnum
+          - categoryEnum
+          - leechTypeEnum
+          - originEnum
+          - torrentId
+          - torrentSizeBytes
+          - uploadedDate
+          - tmdb
+          - releaseTags
+          - year
+          - torrentName
+          - uploader
 
-settings:
-  - name: apikey
-    label: API Key
-    description: "Your API key from https://rotorrent.info/me/apikeys"
-    type: secret
+    mappings:
+      announceTypeEnum:
+        "0":
+          announceType: NEW
+        "1":
+          announceType: PROMO
+        "2":
+          announceType: RESURRECTED
 
-download:
-  url: "https://rotorrent.info/torrents/download/{{ .torrentId }}?api_token={{ .Settings.apikey }}"
+      categoryEnum:
+        "1":
+          category: "Movies"
+        "2":
+          category: "TV"
+        "3":
+          category: Music
+        "4":
+          category: Games
+        "5":
+          category: XXX
+        "6":
+          category: Video
+        "7":
+          category: Other
+
+      leechTypeEnum:
+        "0": # Normal
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+        "1": # 100% FL
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 1
+        "2": # 75% FL
+          downloadVolumeFactor: 0.75
+          uploadVolumeFactor: 1
+        "3": # 50% FL
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 1
+        "4": # 25% FL
+          downloadVolumeFactor: 0.25
+          uploadVolumeFactor: 1
+        "5": # Normal leech with Double up
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 2
+        "6": # 100% FL with Double up
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 2
+        "7": # 75% FL with Double up
+          downloadVolumeFactor: 0.75
+          uploadVolumeFactor: 2
+        "8": # 50% FL with Double up
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 2
+        "9": # 25% FL with Double up
+          downloadVolumeFactor: 0.25
+          uploadVolumeFactor: 2
+
+      originEnum:
+        "0":
+          origin: ""
+        "1":
+          origin: "INTERNAL"
+        "2":
+          origin: "INTERNAL" # PERSONAL RIP
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
