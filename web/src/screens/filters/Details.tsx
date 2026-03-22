@@ -11,6 +11,8 @@ import type { FormikErrors, FormikValues } from "formik";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 
 import { APIClient } from "@api/APIClient";
 import { FilterByIdQueryOptions } from "@api/queries";
@@ -33,13 +35,13 @@ interface tabType {
 }
 
 const tabs: tabType[] = [
-  { name: "General", href: "/filters/$filterId", exact: true },
-  { name: "Movies and TV", href: "/filters/$filterId/movies-tv" },
-  { name: "Music", href: "/filters/$filterId/music" },
-  { name: "Advanced", href: "/filters/$filterId/advanced" },
-  { name: "External", href: "/filters/$filterId/external" },
-  { name: "Actions", href: "/filters/$filterId/actions" },
-  { name: "Notifications", href: "/filters/$filterId/notifications", newFeature: true }
+  { name: "details.tabs.general", href: "/filters/$filterId", exact: true },
+  { name: "details.tabs.moviesTv", href: "/filters/$filterId/movies-tv" },
+  { name: "details.tabs.music", href: "/filters/$filterId/music" },
+  { name: "details.tabs.advanced", href: "/filters/$filterId/advanced" },
+  { name: "details.tabs.external", href: "/filters/$filterId/external" },
+  { name: "details.tabs.actions", href: "/filters/$filterId/actions" },
+  { name: "details.tabs.notifications", href: "/filters/$filterId/notifications", newFeature: true }
 ];
 
 export interface NavLinkProps {
@@ -47,6 +49,7 @@ export interface NavLinkProps {
 }
 
 function TabNavLink({ item }: NavLinkProps) {
+  const { t } = useTranslation("filters");
   // const location = useLocation();
   // const splitLocation = location.pathname.split("/");
 
@@ -81,10 +84,10 @@ function TabNavLink({ item }: NavLinkProps) {
                 )
               }
             >
-              {item.name}
+              {t(item.name)}
             </span>
             {item.newFeature &&
-              <span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-400/10 dark:text-green-400">NEW</span>
+              <span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-400/10 dark:text-green-400">{t("details.tabs.new")}</span>
             }
           </span>
         )
@@ -102,6 +105,7 @@ interface FormButtonsGroupProps {
 }
 
 const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButtonsGroupProps) => {
+  const { t } = useTranslation("filters");
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const cancelModalButtonRef = useRef(null);
@@ -114,8 +118,8 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteAction}
-        title={`Remove filter: ${values.name}`}
-        text="Are you sure you want to remove this filter? This action cannot be undone."
+        title={t("details.removeTitle", { name: values.name })}
+        text={t("details.removeText")}
       />
 
       <div className="px-0.5 mt-8 flex flex-col-reverse sm:flex-row flex-wrap-reverse justify-between">
@@ -124,7 +128,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
           className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
           onClick={toggleDeleteModal}
         >
-          Delete Filter
+          {t("details.delete")}
         </button>
 
         <div className="flex justify-between mb-4 sm:mb-0">
@@ -136,16 +140,16 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
               e.preventDefault();
               reset();
 
-              toast.custom((t) => <Toast type="success" body="Reset all filter values." t={t} />);
+              toast.custom((toastInstance) => <Toast type="success" body={t("details.resetSuccess")} t={toastInstance} />);
             }}
           >
-            Reset form values
+            {t("details.reset")}
           </button>
           <button
             type="submit"
             className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            Save
+            {t("details.save")}
           </button>
         </div>
       </div>
@@ -173,19 +177,17 @@ const ResolveKV = (obj: unknown, depth: string[] = []) => {
 const FormatFormikErrorObject = (obj: FormikErrors<unknown>) => "\n" + ResolveKV(obj).join("\n");
 
 const FormErrorNotification = () => {
+  const { t } = useTranslation("filters");
   const { isValid, isValidating, isSubmitting, errors } = useFormikContext();
 
   useEffect(() => {
     if (!isValid && !isValidating && isSubmitting) {
-      console.log("Formik error object: ", errors);
-
       const formattedErrors = FormatFormikErrorObject(errors);
-      console.log("--> Formatted Errors: ", formattedErrors);
 
       toast.custom((t) => (
         <Toast
           type="error"
-          body={`Validation error${formattedErrors.length > 1 ? "s" : ""}: ${formattedErrors}`}
+          body={`${formattedErrors.length > 1 ? t("details.validationErrors") : t("details.validationError")}: ${formattedErrors}`}
           t={t}
         />
       ));
@@ -226,7 +228,7 @@ const actionSchema = z.object({
   if (DOWNLOAD_CLIENTS.includes(value.type)) {
     if (!value.client_id) {
       ctx.addIssue({
-        message: "Must select client",
+        message: i18n.t("filters:details.mustSelectClient"),
         code: "custom",
         path: ["client_id"]
       });

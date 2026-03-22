@@ -7,6 +7,7 @@ import * as React from "react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CellContext } from "@tanstack/react-table";
+import { useTranslation } from "react-i18next";
 import { ArrowPathIcon, CheckIcon } from "@heroicons/react/24/solid";
 import {
   ClockIcon,
@@ -25,29 +26,32 @@ import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-export const NameCell = (props: CellContext<Release, unknown>) => (
-  <div
-    className={classNames(
-      "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-      "max-w-[82px] sm:max-w-[130px] md:max-w-[260px] lg:max-w-[500px] xl:max-w-[760px]"
-    )}
-  >
-    <div className="flex flex-col truncate">
-      <span className="truncate">
-        {String(props.cell.getValue())}
-      </span>
-      <div className="text-xs truncate">
-        <span className="text-xs text-gray-500 dark:text-gray-400">Category:</span> {props.row.original.category}
-        <span
-          className="text-xs text-gray-500 dark:text-gray-400"> Size:</span> {humanFileSize(props.row.original.size)}
-        <span
-          className="text-xs text-gray-500 dark:text-gray-400"> Misc:</span> {`${props.row.original.resolution} ${props.row.original.source} ${props.row.original.codec ?? ""} ${props.row.original.container}`}
+export const NameCell = (props: CellContext<Release, unknown>) => {
+  const { t } = useTranslation("common");
+
+  return (
+    <div
+      className={classNames(
+        "flex justify-between items-center py-2 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
+        "max-w-[82px] sm:max-w-[130px] md:max-w-[260px] lg:max-w-[500px] xl:max-w-[760px]"
+      )}
+    >
+      <div className="flex flex-col truncate">
+        <span className="truncate">
+          {String(props.cell.getValue())}
+        </span>
+        <div className="text-xs truncate">
+          <span className="text-xs text-gray-500 dark:text-gray-400">{t("releaseTable.labels.category")}:</span> {props.row.original.category}
+          <span className="text-xs text-gray-500 dark:text-gray-400"> {t("releaseTable.labels.size")}:</span> {humanFileSize(props.row.original.size)}
+          <span className="text-xs text-gray-500 dark:text-gray-400"> {t("releaseTable.labels.misc")}:</span> {`${props.row.original.resolution} ${props.row.original.source} ${props.row.original.codec ?? ""} ${props.row.original.container}`}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export const LinksCell = (props: CellContext<Release, unknown>) => {
+  const { t } = useTranslation("common");
   return (
     <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
       <div>
@@ -56,37 +60,37 @@ export const LinksCell = (props: CellContext<Release, unknown>) => {
           label={<DocumentTextIcon
             className="h-5 w-5 cursor-pointer text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600"
             aria-hidden={true}/>}
-          title="Details"
+          title={t("releaseTable.details")}
         >
           <div className="mb-1">
-            <CellLine title="Release">{props.row.original.name}</CellLine>
-            <CellLine title="Indexer">{props.row.original.indexer.identifier}</CellLine>
-            <CellLine title="Protocol">{props.row.original.protocol}</CellLine>
-            <CellLine title="Implementation">{props.row.original.implementation}</CellLine>
-            <CellLine title="Announce Type">{props.row.original.announce_type}</CellLine>
-            <CellLine title="Category">{props.row.original.category}</CellLine>
-            <CellLine title="Uploader">{props.row.original.uploader}</CellLine>
-            <CellLine title="Size">{humanFileSize(props.row.original.size)}</CellLine>
-            <CellLine title="Title">{props.row.original.title}</CellLine>
-            {props.row.original.year > 0 && <CellLine title="Year">{props.row.original.year.toString()}</CellLine>}
+            <CellLine title={t("releaseTable.fields.release")}>{props.row.original.name}</CellLine>
+            <CellLine title={t("releaseTable.fields.indexer")}>{props.row.original.indexer.identifier}</CellLine>
+            <CellLine title={t("releaseTable.fields.protocol")}>{props.row.original.protocol}</CellLine>
+            <CellLine title={t("releaseTable.fields.implementation")}>{props.row.original.implementation}</CellLine>
+            <CellLine title={t("releaseTable.fields.announceType")}>{props.row.original.announce_type}</CellLine>
+            <CellLine title={t("releaseTable.fields.category")}>{props.row.original.category}</CellLine>
+            <CellLine title={t("releaseTable.fields.uploader")}>{props.row.original.uploader}</CellLine>
+            <CellLine title={t("releaseTable.fields.size")}>{humanFileSize(props.row.original.size)}</CellLine>
+            <CellLine title={t("releaseTable.fields.title")}>{props.row.original.title}</CellLine>
+            {props.row.original.year > 0 && <CellLine title={t("releaseTable.fields.year")}>{props.row.original.year.toString()}</CellLine>}
             {props.row.original.season > 0 &&
-                <CellLine title="Season">{props.row.original.season.toString()}</CellLine>}
+                <CellLine title={t("releaseTable.fields.season")}>{props.row.original.season.toString()}</CellLine>}
             {props.row.original.episode > 0 &&
-                <CellLine title="Episode">{props.row.original.episode.toString()}</CellLine>}
-            <CellLine title="Resolution">{props.row.original.resolution}</CellLine>
-            <CellLine title="Source">{props.row.original.source}</CellLine>
-            <CellLine title="Codec">{props.row.original.codec}</CellLine>
-            <CellLine title="HDR">{props.row.original.hdr}</CellLine>
-            <CellLine title="Group">{props.row.original.group}</CellLine>
-            <CellLine title="Container">{props.row.original.container}</CellLine>
-            <CellLine title="Origin">{props.row.original.origin}</CellLine>
+                <CellLine title={t("releaseTable.fields.episode")}>{props.row.original.episode.toString()}</CellLine>}
+            <CellLine title={t("releaseTable.fields.resolution")}>{props.row.original.resolution}</CellLine>
+            <CellLine title={t("releaseTable.fields.source")}>{props.row.original.source}</CellLine>
+            <CellLine title={t("releaseTable.fields.codec")}>{props.row.original.codec}</CellLine>
+            <CellLine title={t("releaseTable.fields.hdr")}>{props.row.original.hdr}</CellLine>
+            <CellLine title={t("releaseTable.fields.group")}>{props.row.original.group}</CellLine>
+            <CellLine title={t("releaseTable.fields.container")}>{props.row.original.container}</CellLine>
+            <CellLine title={t("releaseTable.fields.origin")}>{props.row.original.origin}</CellLine>
           </div>
         </Tooltip>
       </div>
       {props.row.original.download_url && (
         <ExternalLink href={props.row.original.download_url}>
           <ArrowDownTrayIcon
-            title="Download torrent file"
+            title={t("releaseTable.downloadTorrent")}
             className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600"
             aria-hidden="true"
           />
@@ -95,7 +99,7 @@ export const LinksCell = (props: CellContext<Release, unknown>) => {
       {props.row.original.info_url && (
         <ExternalLink href={props.row.original.info_url}>
           <ArrowTopRightOnSquareIcon
-            title="Visit torrentinfo url"
+            title={t("releaseTable.visitTorrentInfo")}
             className="h-5 w-5 hover:text-blue-500 dark:hover:text-blue-600"
             aria-hidden="true"
           />
@@ -159,6 +163,7 @@ interface RetryAction {
 }
 
 const RetryActionButton = ({ status }: RetryActionButtonProps) => {
+  const { t } = useTranslation("common");
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -168,19 +173,18 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((t) => (
-        <Toast type="success" body={`${status?.action} replayed`} t={t} />
+        <Toast type="success" body={t("releaseTable.actionReplayed", { action: status?.action })} t={t} />
       ));
     }
   });
 
   const replayAction = () => {
-    console.log("replay action");
     mutation.mutate({ releaseId: status.release_id,actionId: status.id });
   };
 
   return (
     <button className="flex items-center px-1.5 py-1 ml-2 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
-      <span className="mr-1.5">Retry</span>
+      <span className="mr-1.5">{t("releaseTable.retry")}</span>
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon className="h-4 w-4" />
@@ -195,17 +199,17 @@ interface StatusCellMapEntry {
     textFormatter: (status: ReleaseActionStatus) => React.ReactElement;
 }
 
-const StatusCellMap: Record<string, StatusCellMapEntry> = {
+const getStatusCellMap = (t: (key: string, options?: Record<string, unknown>) => string): Record<string, StatusCellMapEntry> => ({
   "PUSH_ERROR": {
     colors: "bg-red-100 text-red-800 hover:bg-red-275",
     icon: <XMarkIcon className="h-5 w-5" aria-hidden="true" />,
     textFormatter: (status: ReleaseActionStatus) => (
       <>
         <span>
-        Action
+          {t("releaseTable.action")}
           {" "}
           <span className="font-bold underline underline-offset-2 decoration-2 decoration-red-500">
-          error
+            {t("releaseTable.status.error")}
           </span>
           {": "}
           {status.action}
@@ -222,12 +226,12 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     textFormatter: (status: ReleaseActionStatus) => (
       <>
         <span>
-        Action
+          {t("releaseTable.action")}
           {" "}
           <span
             className="font-bold underline underline-offset-2 decoration-2 decoration-sky-500"
           >
-          rejected
+            {t("releaseTable.status.rejected")}
           </span>
           {": "}
           {status.action}
@@ -244,10 +248,10 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     textFormatter: (status: ReleaseActionStatus) => (
       <>
         <span>
-          Action
+          {t("releaseTable.action")}
           {" "}
           <span className="font-bold underline underline-offset-2 decoration-2 decoration-green-500">
-          approved
+            {t("releaseTable.status.approved")}
           </span>
           {": "}
           {status.action}
@@ -264,10 +268,10 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
     textFormatter: (status: ReleaseActionStatus) => (
       <>
         <span>
-          Action
+          {t("releaseTable.action")}
           {" "}
           <span className="font-bold underline underline-offset-2 decoration-2 decoration-yellow-500">
-          pending
+            {t("releaseTable.status.pending")}
           </span>
           {": "}
           {status.action}
@@ -278,7 +282,7 @@ const StatusCellMap: Record<string, StatusCellMapEntry> = {
       </>
     )
   }
-};
+});
 
 const CellLine = ({ title, children }: { title: string; children?: string; }) => {
   if (!children)
@@ -292,35 +296,39 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
   );
 };
 
-export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => (
-  <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-    {row.original.action_status.map((v, idx) => (
-      <div
-        key={idx}
-        className={classNames(
-          StatusCellMap[v.status].colors,
-          "mr-1 inline-flex items-center rounded-sm text-xs cursor-pointer"
-        )}
-      >
-        <Tooltip
-          requiresClick
-          label={StatusCellMap[v.status].icon}
-          title={StatusCellMap[v.status].textFormatter(v)}
-        >
-          <div className="mb-1">
-            <CellLine title="Type">{v.type}</CellLine>
-            <CellLine title="Client">{v.client}</CellLine>
-            <CellLine title="Filter">{v.filter}</CellLine>
-            <CellLine title="Time">{simplifyDate(v.timestamp)}</CellLine>
-            {v.rejections.length ? (
-              <CellLine title="Rejected">
-                {v.rejections.toString()}
-              </CellLine>
-            ) : null}
-          </div>
-        </Tooltip>
-      </div>
-    ))}
-  </div>
-);
+export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => {
+  const { t } = useTranslation("common");
+  const statusCellMap = getStatusCellMap(t);
 
+  return (
+    <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
+      {row.original.action_status.map((v, idx) => (
+        <div
+          key={idx}
+          className={classNames(
+            statusCellMap[v.status].colors,
+            "mr-1 inline-flex items-center rounded-sm text-xs cursor-pointer"
+          )}
+        >
+          <Tooltip
+            requiresClick
+            label={statusCellMap[v.status].icon}
+            title={statusCellMap[v.status].textFormatter(v)}
+          >
+            <div className="mb-1">
+              <CellLine title={t("releaseTable.fields.type")}>{v.type}</CellLine>
+              <CellLine title={t("releaseTable.fields.client")}>{v.client}</CellLine>
+              <CellLine title={t("releaseTable.fields.filter")}>{v.filter}</CellLine>
+              <CellLine title={t("releaseTable.fields.time")}>{simplifyDate(v.timestamp)}</CellLine>
+              {v.rejections.length ? (
+                <CellLine title={t("releaseTable.fields.rejected")}>
+                  {v.rejections.toString()}
+                </CellLine>
+              ) : null}
+            </div>
+          </Tooltip>
+        </div>
+      ))}
+    </div>
+  );
+};

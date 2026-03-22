@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Field as FormikField, type FieldProps } from "formik";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
@@ -16,20 +17,22 @@ import { DurationFieldWide, SwitchGroupWide, TextFieldWide } from "@components/i
 import { SlideOver } from "@components/panels";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 import { classNames } from "@utils";
-import { PushStatusOptions } from "@domain/constants";
+import { getPushStatusOptions } from "@domain/constants";
 
 export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
+  const { t } = useTranslation(["options", "settings"]);
+  const pushStatusOptions = getPushStatusOptions(t);
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
     mutationFn: (job: ReleaseCleanupJob) => APIClient.release.cleanupJobs.store(job),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.lists()});
-      toast.custom((t) => <Toast type="success" body="Cleanup job created" t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("settings:forms.cleanupJob.created")} t={toastInstance}/>);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Job could not be created" t={t}/>);
+      toast.custom((toastInstance) => <Toast type="error" body={t("settings:forms.cleanupJob.createFailed")} t={toastInstance}/>);
     }
   });
 
@@ -56,7 +59,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
   return (
     <SlideOver
       type="CREATE"
-      title="Cleanup Job"
+      title={t("settings:forms.cleanupJob.title")}
       isOpen={isOpen}
       toggle={toggle}
       onSubmit={onSubmit}
@@ -64,24 +67,24 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup"/>
+          <TextFieldWide required name="name" label={t("settings:releases.name")} placeholder={t("settings:forms.cleanupJob.namePlaceholder")}/>
 
-          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job"/>
+          <SwitchGroupWide name="enabled" label={t("settings:releases.enabled")} description={t("settings:forms.cleanupJob.enableDesc")}/>
 
           <TextFieldWide
             required
             name="schedule"
-            label="Schedule (Cron)"
-            placeholder="0 3 * * *"
-            help="Cron expression. Examples: '0 3 * * *' = daily 3 AM, '0 */6 * * *' = every 6 hours"
+            label={t("settings:forms.cleanupJob.schedule")}
+            placeholder={t("settings:forms.cleanupJob.schedulePlaceholder")}
+            help={t("settings:forms.cleanupJob.scheduleHelp")}
           />
 
           <DurationFieldWide
             required
             name="older_than"
-            label="Older than"
-            placeholder="30"
-            help="Delete releases older than this duration"
+            label={t("settings:forms.cleanupJob.olderThan")}
+            placeholder={t("settings:forms.cleanupJob.olderThanPlaceholder")}
+            help={t("settings:forms.cleanupJob.olderThanHelp")}
             defaultValue={30}
             defaultUnit="days"
             units={["hours", "days", "weeks", "months", "years"]}
@@ -90,7 +93,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
 
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
-              Indexers (Optional)
+              {t("settings:forms.cleanupJob.indexersOptional")}
             </label>
             <div className="col-span-2">
               <FormikField name="indexers">
@@ -125,14 +128,14 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
                 )}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Leave empty to apply to all indexers
+                {t("settings:forms.cleanupJob.leaveEmptyIndexers")}
               </p>
             </div>
           </div>
 
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
-              Statuses (Optional)
+              {t("settings:forms.cleanupJob.statusesOptional")}
             </label>
             <div className="col-span-2">
               <FormikField name="statuses">
@@ -144,7 +147,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
                     }}
                   >
                     <RMSC
-                      options={PushStatusOptions}
+                      options={pushStatusOptions}
                       value={
                         !field.value || field.value === ''
                           ? []
@@ -152,7 +155,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
                             .split(',')
                             .filter(Boolean)
                             .map((v: string) => {
-                              const option = PushStatusOptions.find(opt => opt.value === v);
+                              const option = pushStatusOptions.find(opt => opt.value === v);
                               return option ? {value: option.value, label: option.label} : null;
                             })
                             .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
@@ -167,7 +170,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
                 )}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Leave empty to apply to all statuses
+                {t("settings:forms.cleanupJob.leaveEmptyStatuses")}
               </p>
             </div>
           </div>
@@ -178,17 +181,19 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
 }
 
 export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProps<ReleaseCleanupJob>) {
+  const { t } = useTranslation(["options", "settings"]);
+  const pushStatusOptions = getPushStatusOptions(t);
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
     mutationFn: (job: ReleaseCleanupJob) => APIClient.release.cleanupJobs.update(job),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.lists()});
-      toast.custom((t) => <Toast type="success" body="Job updated" t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("settings:forms.cleanupJob.updated")} t={toastInstance}/>);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Job could not be updated" t={t}/>);
+      toast.custom((toastInstance) => <Toast type="error" body={t("settings:forms.cleanupJob.updateFailed")} t={toastInstance}/>);
     }
   });
 
@@ -199,7 +204,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.lists()});
       queryClient.invalidateQueries({queryKey: ReleaseKeys.cleanupJobs.detail(job.id)});
-      toast.custom((t) => <Toast type="success" body={`${job.name} deleted`} t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("settings:forms.cleanupJob.deleted", { name: job.name })} t={toastInstance}/>);
       toggle();
     },
   });
@@ -236,7 +241,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
   return (
     <SlideOver
       type="UPDATE"
-      title="Cleanup Job"
+      title={t("settings:forms.cleanupJob.title")}
       isOpen={isOpen}
       toggle={toggle}
       deleteAction={onDelete}
@@ -246,24 +251,24 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
           {/* Same fields as AddForm */}
-          <TextFieldWide required name="name" label="Name" placeholder="Weekly Cleanup"/>
+          <TextFieldWide required name="name" label={t("settings:releases.name")} placeholder={t("settings:forms.cleanupJob.namePlaceholder")}/>
 
-          <SwitchGroupWide name="enabled" label="Enabled" description="Enable this cleanup job"/>
+          <SwitchGroupWide name="enabled" label={t("settings:releases.enabled")} description={t("settings:forms.cleanupJob.enableDesc")}/>
 
           <TextFieldWide
             required
             name="schedule"
-            label="Schedule (Cron)"
-            placeholder="0 3 * * *"
-            help="Cron expression. Examples: '0 3 * * *' = daily 3 AM, '0 */6 * * *' = every 6 hours"
+            label={t("settings:forms.cleanupJob.schedule")}
+            placeholder={t("settings:forms.cleanupJob.schedulePlaceholder")}
+            help={t("settings:forms.cleanupJob.scheduleHelp")}
           />
 
           <DurationFieldWide
             required
             name="older_than"
-            label="Older than"
-            placeholder="30"
-            help="Delete releases older than this duration"
+            label={t("settings:forms.cleanupJob.olderThan")}
+            placeholder={t("settings:forms.cleanupJob.olderThanPlaceholder")}
+            help={t("settings:forms.cleanupJob.olderThanHelp")}
             defaultValue={30}
             defaultUnit="days"
             units={["hours", "days", "weeks", "months", "years"]}
@@ -272,7 +277,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
 
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
-              Indexers (Optional)
+              {t("settings:forms.cleanupJob.indexersOptional")}
             </label>
             <div className="col-span-2">
               <FormikField name="indexers">
@@ -309,14 +314,14 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
                 }}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Leave empty to apply to all indexers
+                {t("settings:forms.cleanupJob.leaveEmptyIndexers")}
               </p>
             </div>
           </div>
 
           <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 px-4 sm:px-6">
             <label className="text-sm font-medium text-gray-900 dark:text-white">
-              Statuses (Optional)
+              {t("settings:forms.cleanupJob.statusesOptional")}
             </label>
             <div className="col-span-2">
               <FormikField name="statuses">
@@ -327,7 +332,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
                       .split(',')
                       .filter(Boolean)
                       .map((v: string) => {
-                        const option = PushStatusOptions.find(opt => opt.value === v);
+                        const option = pushStatusOptions.find(opt => opt.value === v);
                         return option ? {value: option.value, label: option.label} : null;
                       })
                       .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
@@ -340,7 +345,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
                       }}
                     >
                       <RMSC
-                        options={PushStatusOptions}
+                        options={pushStatusOptions}
                         value={computedValue}
                         onChange={(selected: { value: string; label: string }[]) => {
                           const statusString = selected.map(s => s.value).join(',');
@@ -353,7 +358,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
                 }}
               </FormikField>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Leave empty to apply to all statuses
+                {t("settings:forms.cleanupJob.leaveEmptyStatuses")}
               </p>
             </div>
           </div>
@@ -362,17 +367,17 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
           {job.last_run !== "0001-01-01T00:00:00Z" && (
             <div className="py-4 sm:py-5 px-4 sm:px-6">
               <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                Execution History
+                {t("settings:forms.cleanupJob.executionHistory")}
               </h3>
               <dl className="space-y-2">
                 <div className="flex justify-between">
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Last Run:</dt>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">{t("settings:forms.cleanupJob.lastRun")}</dt>
                   <dd className="text-sm text-gray-900 dark:text-white">
                     {format(new Date(job.last_run), "MMM d, yyyy HH:mm:ss")}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-sm text-gray-500 dark:text-gray-400">Status:</dt>
+                  <dt className="text-sm text-gray-500 dark:text-gray-400">{t("settings:forms.cleanupJob.status")}</dt>
                   <dd>
                     <span className={classNames(
                       "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium",

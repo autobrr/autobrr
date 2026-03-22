@@ -4,6 +4,7 @@
  */
 
 import { MultiSelectOption } from "@components/inputs/select";
+import type { TFunction } from "i18next";
 
 export const AnnounceTypeOptions: MultiSelectOption[] = [
   {
@@ -26,6 +27,14 @@ export const AnnounceTypeOptions: MultiSelectOption[] = [
     label: "Resurrected",
     value: "RESURRECTED"
   }
+];
+
+export const getAnnounceTypeOptions = (t: TFunction): MultiSelectOption[] => [
+  { label: t("options:announceType.NEW"), value: "NEW" },
+  { label: t("options:announceType.CHECKED"), value: "CHECKED" },
+  { label: t("options:announceType.PROMO"), value: "PROMO" },
+  { label: t("options:announceType.PROMO_GP"), value: "PROMO_GP" },
+  { label: t("options:announceType.RESURRECTED"), value: "RESURRECTED" }
 ];
 
 export const resolutions = [
@@ -325,6 +334,76 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
   }
 ];
 
+export const getDownloadClientTypeOptions = (t: TFunction): RadioFieldsetOption[] => [
+  {
+    label: t("options:downloadClient.QBITTORRENT.label"),
+    description: t("options:downloadClient.QBITTORRENT.description"),
+    value: "QBITTORRENT"
+  },
+  {
+    label: t("options:downloadClient.DELUGE_V1.label"),
+    description: t("options:downloadClient.DELUGE_V1.description"),
+    value: "DELUGE_V1"
+  },
+  {
+    label: t("options:downloadClient.DELUGE_V2.label"),
+    description: t("options:downloadClient.DELUGE_V2.description"),
+    value: "DELUGE_V2"
+  },
+  {
+    label: t("options:downloadClient.RTORRENT.label"),
+    description: t("options:downloadClient.RTORRENT.description"),
+    value: "RTORRENT"
+  },
+  {
+    label: t("options:downloadClient.TRANSMISSION.label"),
+    description: t("options:downloadClient.TRANSMISSION.description"),
+    value: "TRANSMISSION"
+  },
+  {
+    label: t("options:downloadClient.PORLA.label"),
+    description: t("options:downloadClient.PORLA.description"),
+    value: "PORLA"
+  },
+  {
+    label: t("options:downloadClient.RADARR.label"),
+    description: t("options:downloadClient.RADARR.description"),
+    value: "RADARR"
+  },
+  {
+    label: t("options:downloadClient.SONARR.label"),
+    description: t("options:downloadClient.SONARR.description"),
+    value: "SONARR"
+  },
+  {
+    label: t("options:downloadClient.LIDARR.label"),
+    description: t("options:downloadClient.LIDARR.description"),
+    value: "LIDARR"
+  },
+  {
+    label: t("options:downloadClient.WHISPARR.label"),
+    description: t("options:downloadClient.WHISPARR.description"),
+    value: "WHISPARR"
+  },
+  {
+    label: t("options:downloadClient.READARR.label"),
+    description: t("options:downloadClient.READARR.description"),
+    value: "READARR"
+  },
+  {
+    label: t("options:downloadClient.SABNZBD.label"),
+    description: t("options:downloadClient.SABNZBD.description"),
+    value: "SABNZBD",
+    type: "nzb"
+  },
+  {
+    label: t("options:downloadClient.NZBGET.label"),
+    description: t("options:downloadClient.NZBGET.description"),
+    value: "NZBGET",
+    type: "nzb"
+  }
+];
+
 export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Test", description: "A simple action to test a filter.", value: "TEST" },
   { label: "Watch dir", description: "Add filtered torrents to a watch directory", value: "WATCH_FOLDER" },
@@ -343,6 +422,26 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
   { label: "SABnzbd", description: "Add to SABnzbd", value: "SABNZBD" },
   { label: "NZBGet", description: "Add to NZBGet", value: "NZBGET" }
+];
+
+export const getActionTypeOptions = (t: TFunction): RadioFieldsetOption[] => [
+  { label: t("options:actionType.TEST.label"), description: t("options:actionType.TEST.description"), value: "TEST" },
+  { label: t("options:actionType.WATCH_FOLDER.label"), description: t("options:actionType.WATCH_FOLDER.description"), value: "WATCH_FOLDER" },
+  { label: t("options:actionType.WEBHOOK.label"), description: t("options:actionType.WEBHOOK.description"), value: "WEBHOOK" },
+  { label: t("options:actionType.EXEC.label"), description: t("options:actionType.EXEC.description"), value: "EXEC" },
+  { label: t("options:actionType.QBITTORRENT.label"), description: t("options:actionType.QBITTORRENT.description"), value: "QBITTORRENT" },
+  { label: t("options:actionType.DELUGE_V1.label"), description: t("options:actionType.DELUGE_V1.description"), value: "DELUGE_V1" },
+  { label: t("options:actionType.DELUGE_V2.label"), description: t("options:actionType.DELUGE_V2.description"), value: "DELUGE_V2" },
+  { label: t("options:actionType.RTORRENT.label"), description: t("options:actionType.RTORRENT.description"), value: "RTORRENT" },
+  { label: t("options:actionType.TRANSMISSION.label"), description: t("options:actionType.TRANSMISSION.description"), value: "TRANSMISSION" },
+  { label: t("options:actionType.PORLA.label"), description: t("options:actionType.PORLA.description"), value: "PORLA" },
+  { label: t("options:actionType.RADARR.label"), description: t("options:actionType.RADARR.description"), value: "RADARR" },
+  { label: t("options:actionType.SONARR.label"), description: t("options:actionType.SONARR.description"), value: "SONARR" },
+  { label: t("options:actionType.LIDARR.label"), description: t("options:actionType.LIDARR.description"), value: "LIDARR" },
+  { label: t("options:actionType.WHISPARR.label"), description: t("options:actionType.WHISPARR.description"), value: "WHISPARR" },
+  { label: t("options:actionType.READARR.label"), description: t("options:actionType.READARR.description"), value: "READARR" },
+  { label: t("options:actionType.SABNZBD.label"), description: t("options:actionType.SABNZBD.description"), value: "SABNZBD" },
+  { label: t("options:actionType.NZBGET.label"), description: t("options:actionType.NZBGET.description"), value: "NZBGET" }
 ];
 
 export const ActionTypeNameMap: Record<ActionType, string> = {
@@ -364,6 +463,26 @@ export const ActionTypeNameMap: Record<ActionType, string> = {
   "SABNZBD": "SABnzbd",
   "NZBGET": "NZBGet"
 } as const;
+
+export const getActionTypeNameMap = (t: TFunction): Record<ActionType, string> => ({
+  "TEST": t("options:actionType.TEST.label"),
+  "WATCH_FOLDER": t("options:actionType.WATCH_FOLDER.label"),
+  "WEBHOOK": t("options:actionType.WEBHOOK.label"),
+  "EXEC": t("options:actionType.EXEC.label"),
+  "DELUGE_V1": t("options:actionType.DELUGE_V1.label"),
+  "DELUGE_V2": t("options:actionType.DELUGE_V2.label"),
+  "QBITTORRENT": t("options:actionType.QBITTORRENT.label"),
+  "RTORRENT": t("options:actionType.RTORRENT.label"),
+  "TRANSMISSION": t("options:actionType.TRANSMISSION.label"),
+  "PORLA": t("options:actionType.PORLA.label"),
+  "RADARR": t("options:actionType.RADARR.label"),
+  "SONARR": t("options:actionType.SONARR.label"),
+  "LIDARR": t("options:actionType.LIDARR.label"),
+  "WHISPARR": t("options:actionType.WHISPARR.label"),
+  "READARR": t("options:actionType.READARR.label"),
+  "SABNZBD": t("options:actionType.SABNZBD.label"),
+  "NZBGET": t("options:actionType.NZBGET.label")
+});
 
 export const DOWNLOAD_CLIENTS = [
   "QBITTORRENT",
@@ -425,6 +544,13 @@ export const PushStatusOptions: OptionBasic[] = [
     label: "Error",
     value: "PUSH_ERROR"
   }
+];
+
+export const getPushStatusOptions = (t: TFunction): OptionBasic[] => [
+  { label: t("options:pushStatus.PUSH_REJECTED"), value: "PUSH_REJECTED" },
+  { label: t("options:pushStatus.PUSH_APPROVED"), value: "PUSH_APPROVED" },
+  { label: t("options:pushStatus.PENDING"), value: "PENDING" },
+  { label: t("options:pushStatus.PUSH_ERROR"), value: "PUSH_ERROR" }
 ];
 
 export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
@@ -525,6 +651,18 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
     label: "Webhook",
     value: "WEBHOOK"
   },
+];
+
+export const getNotificationTypeOptions = (t: TFunction): OptionBasicTyped<NotificationType>[] => [
+  { label: t("options:notificationType.DISCORD"), value: "DISCORD" },
+  { label: t("options:notificationType.GOTIFY"), value: "GOTIFY" },
+  { label: t("options:notificationType.LUNASEA"), value: "LUNASEA" },
+  { label: t("options:notificationType.NOTIFIARR"), value: "NOTIFIARR" },
+  { label: t("options:notificationType.NTFY"), value: "NTFY" },
+  { label: t("options:notificationType.PUSHOVER"), value: "PUSHOVER" },
+  { label: t("options:notificationType.SHOUTRRR"), value: "SHOUTRRR" },
+  { label: t("options:notificationType.TELEGRAM"), value: "TELEGRAM" },
+  { label: t("options:notificationType.WEBHOOK"), value: "WEBHOOK" }
 ];
 
 export const IrcAuthMechanismTypeOptions: OptionBasicTyped<IrcAuthMechanism>[] = [
@@ -646,6 +784,44 @@ export const EventOptions: SelectOption[] = [
     label: "New Release",
     value: "RELEASE_NEW",
     description: "On new release from indexer (before filtering)"
+  }
+];
+
+export const getEventOptions = (t: TFunction): SelectOption[] => [
+  {
+    label: t("options:event.PUSH_REJECTED.label"),
+    value: "PUSH_REJECTED",
+    description: t("options:event.PUSH_REJECTED.description")
+  },
+  {
+    label: t("options:event.PUSH_APPROVED.label"),
+    value: "PUSH_APPROVED",
+    description: t("options:event.PUSH_APPROVED.description")
+  },
+  {
+    label: t("options:event.PUSH_ERROR.label"),
+    value: "PUSH_ERROR",
+    description: t("options:event.PUSH_ERROR.description")
+  },
+  {
+    label: t("options:event.IRC_DISCONNECTED.label"),
+    value: "IRC_DISCONNECTED",
+    description: t("options:event.IRC_DISCONNECTED.description")
+  },
+  {
+    label: t("options:event.IRC_RECONNECTED.label"),
+    value: "IRC_RECONNECTED",
+    description: t("options:event.IRC_RECONNECTED.description")
+  },
+  {
+    label: t("options:event.APP_UPDATE_AVAILABLE.label"),
+    value: "APP_UPDATE_AVAILABLE",
+    description: t("options:event.APP_UPDATE_AVAILABLE.description")
+  },
+  {
+    label: t("options:event.RELEASE_NEW.label"),
+    value: "RELEASE_NEW",
+    description: t("options:event.RELEASE_NEW.description")
   }
 ];
 

@@ -8,6 +8,7 @@ import { Form, Formik } from "formik";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { Section } from "./_components";
@@ -17,12 +18,13 @@ import Toast from "@components/notifications/Toast";
 import { AuthContext } from "@utils/Context";
 
 const AccountSettings = () => {
+  const { t } = useTranslation("settings");
   const auth = AuthContext.get();
 
   return (
     <Section
-      title="Account"
-      description="Manage account settings."
+      title={t("account.title")}
+      description={t("account.description")}
     >
       <div className="py-0.5">
         {auth.authMethod === 'oidc' ? <OIDCAccount /> : <Credentials />}
@@ -40,16 +42,17 @@ interface InputValues {
 }
 
 function Credentials() {
+  const { t } = useTranslation("settings");
   const username = AuthContext.useSelector((s) => s.username);
 
   const validate = (values: InputValues) => {
     const errors: Record<string, string> = {};
 
     if (!values.username)
-      errors.username = "Required";
+      errors.username = t("account.required");
 
     if (values.newPassword !== values.confirmPassword)
-      errors.confirmPassword = "Passwords don't match!";
+      errors.confirmPassword = t("account.passwordsDoNotMatch");
 
     return errors;
   };
@@ -60,7 +63,7 @@ function Credentials() {
       AuthContext.reset();
 
       toast.custom((t) => (
-        <Toast type="success" body="User updated successfully. Please sign in again!" t={t} />
+        <Toast type="success" body={t("account.updateSuccess")} t={t} />
       ));
     }
   });
@@ -69,7 +72,7 @@ function Credentials() {
     mutationFn: (data: UserUpdate) => APIClient.auth.updateUser(data),
     onError: () => {
       toast.custom((t) => (
-        <Toast type="error" body="Error updating credentials. Did you provide the correct current password?" t={t} />
+        <Toast type="error" body={t("account.updateError")} t={t} />
       ));
     },
     onSuccess: () => {
@@ -81,8 +84,8 @@ function Credentials() {
 
   return (
     <Section
-      title="Change credentials"
-      description="The username and password can be changed either separately or simultaneously. Note that you will be logged out after changing credentials."
+      title={t("account.changeCredentialsTitle")}
+      description={t("account.changeCredentialsDescription")}
       noLeftPadding
     >
       <div className="px-2 pb-0 sm:pb-6 bg-white dark:bg-gray-800">
@@ -108,12 +111,12 @@ function Credentials() {
             <Form>
               <div className="flex flex-col sm:grid sm:grid-cols-2 gap-x-10 pt-2">
                 <div className={separatorClass}>
-                  <TextField name="username" label="Current Username" autoComplete="username" disabled />
+                  <TextField name="username" label={t("account.currentUsername")} autoComplete="username" disabled />
                 </div>
                 <div className={separatorClass}>
-                  <TextField name="newUsername" label="New Username" tooltip={
+                  <TextField name="newUsername" label={t("account.newUsername")} tooltip={
                     <div>
-                      <p>Optional</p>
+                      <p>{t("account.optional")}</p>
                     </div>
                   } />
                 </div>
@@ -121,23 +124,23 @@ function Credentials() {
                 <hr className="col-span-2 mb-6 border-t border-gray-300 dark:border-gray-750" />
 
                 <div className={separatorClass}>
-                  <PasswordField name="oldPassword" placeholder="Required" label="Current Password" autoComplete="current-password" required tooltip={
+                  <PasswordField name="oldPassword" placeholder={t("account.required")} label={t("account.currentPassword")} autoComplete="current-password" required tooltip={
                     <div>
-                      <p>Required if updating credentials</p>
+                      <p>{t("account.requiredIfUpdatingCredentials")}</p>
                     </div>
                   } />
                 </div>
                 <div>
                   <div className={separatorClass}>
-                    <PasswordField name="newPassword" label="New Password" autoComplete="new-password" tooltip={
+                    <PasswordField name="newPassword" label={t("account.newPassword")} autoComplete="new-password" tooltip={
                       <div>
-                        <p>Optional</p>
+                        <p>{t("account.optional")}</p>
                       </div>
                     } />
                   </div>
                   {values.newPassword && (
                     <div className={separatorClass}>
-                      <PasswordField name="confirmPassword" label="Confirm New Password" autoComplete="new-password" />
+                      <PasswordField name="confirmPassword" label={t("account.confirmNewPassword")} autoComplete="new-password" />
                     </div>
                   )}
                 </div>
@@ -148,7 +151,7 @@ function Credentials() {
                   className="mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                 >
                   <UserIcon className="w-4 h-4 mr-1" />
-                  Save
+                  {t("account.save")}
                 </button>
               </div>
             </Form>
@@ -160,18 +163,19 @@ function Credentials() {
 }
 
 function OIDCAccount() {
+  const { t } = useTranslation("settings");
   const auth = AuthContext.get();
   
   // Helper function to format the issuer URL for display
   const getFormattedIssuerName = () => {
-    if (!auth.issuerUrl) return "your identity provider";
+    if (!auth.issuerUrl) return t("account.identityProvider");
     
     try {
       const url = new URL(auth.issuerUrl);
       // Return domain name without 'www.'
       return url.hostname.replace(/^www\./i, '');
     } catch {
-      return "your identity provider";
+      return t("account.identityProvider");
     }
   };
   
@@ -179,12 +183,12 @@ function OIDCAccount() {
     <Section
       titleElement={
         <div className="flex items-center space-x-2">
-          <span className="text-gray-700 dark:text-gray-300 font-bold">OpenID Connect Account</span>
+          <span className="text-gray-700 dark:text-gray-300 font-bold">{t("account.oidcTitle")}</span>
           <FontAwesomeIcon icon={faOpenid} className="h-5 w-5 text-gray-500 dark:text-gray-400" />
         </div>
       }
-      title="OpenID Connect Account"
-      description="Your account credentials are managed by your OpenID Connect provider. To change your username, please visit your provider's settings page and log in again."
+      title={t("account.oidcTitle")}
+      description={t("account.oidcDescription")}
       noLeftPadding
     >
       <div className="px-4 py-5 sm:p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 transition duration-150">
@@ -213,7 +217,7 @@ function OIDCAccount() {
             </h3>
             <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
               <FontAwesomeIcon icon={faOpenid} className="mr-1.5 h-4 w-4 flex-shrink-0" />
-              <p>Authenticated via OpenID Connect</p>
+              <p>{t("account.authenticatedViaOidc")}</p>
             </div>
             {auth.issuerUrl && (
               <div className="mt-2">

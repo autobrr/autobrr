@@ -6,6 +6,7 @@
 import { Fragment, JSX, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Select from "react-select";
+import { useTranslation } from "react-i18next";
 import {
   Field,
   FieldProps,
@@ -76,6 +77,7 @@ interface AddFormProps {
 }
 
 export function ListAddForm({ isOpen, toggle }: AddFormProps) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
   const { data: clients } = useQuery(DownloadClientsQueryOptions());
@@ -87,11 +89,11 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body="List added!" t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.list.added")} t={toastInstance}/>);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="List could not be added" t={t}/>);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.list.addFailed")} t={toastInstance}/>);
     }
   });
 
@@ -100,7 +102,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
   const validate = (values: ListAddFormValues) => {
     const errors = {} as FormikErrors<FormikValues>;
     if (!values.name)
-      errors.name = "Required";
+      errors.name = t("forms.list.required");
 
     return errors;
   };
@@ -155,10 +157,10 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add List
+                                {t("forms.list.addTitle")}
                               </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Auto update filters from lists and arrs.
+                                {t("forms.list.description")}
                               </p>
                             </div>
                             <div className="h-7 flex items-center">
@@ -167,7 +169,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                                 className="cursor-pointer bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
-                                <span className="sr-only">Close panel</span>
+                                <span className="sr-only">{t("forms.list.closePanel")}</span>
                                 <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
                               </button>
                             </div>
@@ -177,7 +179,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
                           <TextFieldWide
                             name="name"
-                            label="Name"
+                            label={t("forms.list.name")}
                             required={true}
                           />
 
@@ -185,7 +187,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             <div>
                               <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white"
                               >
-                                Type
+                                {t("forms.list.type")}
                               </label>
                             </div>
                             <div className="sm:col-span-2">
@@ -206,7 +208,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                                       IndicatorSeparator: common.IndicatorSeparator,
                                       DropdownIndicator: common.DropdownIndicator
                                     }}
-                                    placeholder="Choose a type"
+                                    placeholder={t("forms.list.chooseType")}
                                     styles={{
                                       singleValue: (base) => ({
                                         ...base,
@@ -233,7 +235,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             </div>
                           </div>
 
-                          <SwitchGroupWide name="enabled" label="Enabled"/>
+                          <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
                         </div>
 
                         <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
@@ -242,16 +244,16 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
                             <div className="px-4">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Filters
+                                {t("forms.list.filters")}
                               </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Select filters to update for this list.
+                                {t("forms.list.filtersDescription")}
                               </p>
                             </div>
 
                             <ListFilterMultiSelectField
                               name="filters"
-                              label="Filters"
+                              label={t("forms.list.filters")}
                               required={true}
                               options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
                             />
@@ -267,7 +269,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
                             className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
-                            Cancel
+                            {t("forms.list.cancel")}
                           </button>
                           <SubmitButton isPending={createMutation.isPending} isError={createMutation.isError} isSuccess={createMutation.isSuccess} />
                         </div>
@@ -293,6 +295,7 @@ interface UpdateFormProps<T> {
 }
 
 export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) {
+  const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
@@ -306,7 +309,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${data.name} was updated successfully`} t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.list.updated", { name: data.name })} t={toastInstance}/>);
 
       sleep(1500);
       toggle();
@@ -320,7 +323,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`${data.name} was deleted.`} t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.list.deleted", { name: data.name })} t={toastInstance}/>);
     }
   });
 
@@ -342,8 +345,8 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
             toggle={toggleDeleteModal}
             buttonRef={cancelModalButtonRef}
             deleteAction={deleteAction}
-            title={`Remove ${data.name}`}
-            text={`Are you sure you want to remove this ${data.name}? This action cannot be undone.`}
+            title={t("forms.list.removeTitle", { name: data.name })}
+            text={t("forms.list.removeText", { name: data.name })}
           />
         )}
         <div className="absolute inset-0 overflow-hidden">
@@ -388,10 +391,10 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Update List
+                                {t("forms.list.updateTitle")}
                               </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Auto update filters from lists and arrs.
+                                {t("forms.list.description")}
                               </p>
                             </div>
                             <div className="h-7 flex items-center">
@@ -400,7 +403,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                                 className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
-                                <span className="sr-only">Close panel</span>
+                                <span className="sr-only">{t("forms.list.closePanel")}</span>
                                 <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
                               </button>
                             </div>
@@ -409,11 +412,11 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 
                         <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
 
-                          <TextFieldWide name="name" label="Name" required={true}/>
+                          <TextFieldWide name="name" label={t("forms.list.name")} required={true}/>
 
-                          <TextFieldWide name="type" label="Type" required={true} disabled={true} />
+                          <TextFieldWide name="type" label={t("forms.list.type")} required={true} disabled={true} />
 
-                          <SwitchGroupWide name="enabled" label="Enabled"/>
+                          <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
 
                           <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
                             <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
@@ -423,16 +426,16 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
                               <div className="px-4">
                                 <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                  Filters
+                                  {t("forms.list.filters")}
                                 </DialogTitle>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  Select filters to update for this list.
+                                  {t("forms.list.filtersDescription")}
                                 </p>
                               </div>
 
                               <ListFilterMultiSelectField
                                 name="filters"
-                                label="Filters"
+                                label={t("forms.list.filters")}
                                 required={true}
                                 options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
                               />
@@ -450,7 +453,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                             className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                             onClick={toggleDeleteModal}
                           >
-                            Remove
+                            {t("forms.list.remove")}
                           </button>
                           <div className="flex space-x-3">
                           <button
@@ -458,7 +461,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
                             className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
-                            Cancel
+                            {t("forms.list.cancel")}
                           </button>
                           <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
                           </div>
@@ -485,6 +488,7 @@ interface SubmitButtonProps {
 }
 
 const SubmitButton = (props: SubmitButtonProps) => {
+  const { t } = useTranslation("settings");
   return (
     <button
       type="submit"
@@ -521,10 +525,10 @@ const SubmitButton = (props: SubmitButtonProps) => {
             ></path>
           </svg>
 
-          <span className="pl-2">Saving..</span>
+          <span className="pl-2">{t("forms.list.saving")}</span>
         </>
       ) : (
-        <span>Save</span>
+        <span>{t("forms.list.save")}</span>
       )}
     </button>
   );
@@ -581,15 +585,16 @@ const ListTypeForm = (props: ListTypeFormProps) => {
 }
 
 const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
+  const { t } = useTranslation("settings");
   switch (props.listType) {
     case "RADARR":
     case "SONARR":
       return (
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
-          <SwitchGroupWide name="include_alternate_titles" label="Include Alternate Titles" description="Include alternate titles in the filter." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
+          <SwitchGroupWide name="include_unmonitored" label={t("forms.list.includeUnmonitored")} description={t("forms.list.includeUnmonitoredDesc")} />
+          <SwitchGroupWide name="include_alternate_titles" label={t("forms.list.includeAlternateTitles")} description={t("forms.list.includeAlternateTitlesDesc")} />
         </fieldset>
       );
     case "LIDARR":
@@ -597,21 +602,22 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
     case "READARR":
       return (
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="include_unmonitored" label="Include Unmonitored" description="By default only monitored titles are filtered." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="include_unmonitored" label={t("forms.list.includeUnmonitored")} description={t("forms.list.includeUnmonitoredDesc")} />
         </fieldset>
       );
     case "PLAINTEXT":
       return (
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label={t("forms.list.skipCleanSanitize")} description={t("forms.list.skipCleanSanitizeDesc")} />
         </fieldset>
       );
   }
 }
 
 function ListTypeArr({ listType, clients }: ListTypeFormProps) {
+  const { t } = useTranslation("settings");
   const { values } = useFormikContext<List>();
 
   useEffect(() => {
@@ -623,10 +629,10 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-          Source
+          {t("forms.list.source")}
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Update filters from titles in Radarr, Sonarr, Lidarr, Readarr, or Whisparr.
+          {t("forms.list.arrSourceDescription")}
         </p>
       </div>
 
@@ -638,12 +644,12 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 
       {values.client_id > 0 && (values.type === "RADARR" || values.type == "SONARR") && (
         <>
-          <ListArrTagsMultiSelectField name="tags_included" label="Tags Included" options={arrTagsQuery.data?.map(f => ({
+          <ListArrTagsMultiSelectField name="tags_included" label={t("forms.list.tagsIncluded")} options={arrTagsQuery.data?.map(f => ({
             value: f.label,
             label: f.label
           })) ?? []}/>
 
-          <ListArrTagsMultiSelectField name="tags_excluded" label="Tags Excluded" options={arrTagsQuery.data?.map(f => ({
+          <ListArrTagsMultiSelectField name="tags_excluded" label={t("forms.list.tagsExcluded")} options={arrTagsQuery.data?.map(f => ({
             value: f.label,
             label: f.label
           })) ?? []}/>
@@ -658,38 +664,39 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 }
 
 function ListTypeTrakt() {
+  const { t } = useTranslation("settings");
   const { values } = useFormikContext<List>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-          Source list
+          {t("forms.list.sourceList")}
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Use a Trakt list or one of the default autobrr hosted lists.
+          {t("forms.list.traktSourceDescription")}
         </p>
       </div>
 
       <SelectFieldCreatable
         name="url"
-        label="List URL"
-        help="Default Trakt lists. Override with your own."
+        label={t("forms.list.listUrl")}
+        help={t("forms.list.traktHelp")}
         options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
 
       {!values.url.startsWith("https://api.autobrr.com/") && (
         <PasswordFieldWide
           name="api_key"
-          label="API Key"
-          help="Trakt API Key. Required for private lists."
+          label={t("forms.list.traktApiKey")}
+          help={t("forms.list.traktApiKeyHelp")}
         />
       )}
 
       <div className="space-y-1">
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
         </fieldset>
       </div>
     </div>
@@ -697,27 +704,28 @@ function ListTypeTrakt() {
 }
 
 function ListTypeAniList() {
+  const { t } = useTranslation("settings");
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-          Source list
+          {t("forms.list.sourceList")}
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Use an AniList list from one of the default autobrr hosted lists.
+          {t("forms.list.anilistSourceDescription")}
         </p>
       </div>
 
       <SelectFieldBasic
         name="url"
-        label="List URL"
+        label={t("forms.list.listUrl")}
         options={ListsAniListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
 
       <div className="space-y-1">
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
         </fieldset>
       </div>
     </div>
@@ -725,29 +733,30 @@ function ListTypeAniList() {
 }
 
 function ListTypePlainText() {
+  const { t } = useTranslation("settings");
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-          Source list
+          {t("forms.list.sourceList")}
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Use a plain text list with one item per line.
+          {t("forms.list.plaintextSourceDescription")}
         </p>
       </div>
 
       <TextFieldWide
         name="url"
-        label="List URL"
-        help="URL to a plain text file with one item per line"
-        placeholder="https://example.com/list.txt"
+        label={t("forms.list.listUrl")}
+        help={t("forms.list.plaintextUrlHelp")}
+        placeholder={t("forms.list.plaintextUrlPlaceholder")}
         tooltip={
             <div>
-                <p>Plaintext list can read from both http urls and local files on disk.</p>
+                <p>{t("forms.list.plaintextTooltip1")}</p>
                 <br />
-                <p>Remote: https://service.com/file.txt</p>
+                <p>{t("forms.list.plaintextTooltipRemote")}</p>
                 <br />
-                <p>Local: file:///home/username/file.txt</p>
+                <p>{t("forms.list.plaintextTooltipLocal")}</p>
                 <DocsLink href="https://autobrr.com/filters/lists" />
             </div>
         }
@@ -755,14 +764,14 @@ function ListTypePlainText() {
 
       <div className="space-y-1">
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
         </fieldset>
       </div>
       <div className="space-y-1">
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="skip_clean_sanitize" label="Bypass the cleanup and sanitization and use the list as-is" description="By default, titles are automatically sanitized and checked for unusual characters." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="skip_clean_sanitize" label={t("forms.list.skipCleanSanitize")} description={t("forms.list.skipCleanSanitizeDesc")} />
         </fieldset>
       </div>
     </div>
@@ -770,45 +779,47 @@ function ListTypePlainText() {
 }
 
 function ListTypeSteam() {
+  const { t } = useTranslation("settings");
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-          Source list
+          {t("forms.list.sourceList")}
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Follow Steam wishlists.
+          {t("forms.list.steamSourceDescription")}
         </p>
       </div>
 
-      <TextFieldWide name="url" label="URL" help={"Steam Wishlist URL"} placeholder="https://store.steampowered.com/wishlist/id/USERNAME/wishlistdata"/>
+      <TextFieldWide name="url" label={t("forms.list.url")} help={t("forms.list.steamUrlHelp")} placeholder={t("forms.list.steamUrlPlaceholder")}/>
     </div>
   )
 }
 
 function ListTypeMetacritic() {
+  const { t } = useTranslation("settings");
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-          Source list
+          {t("forms.list.sourceList")}
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Use a Metacritic list or one of the default autobrr hosted lists.
+          {t("forms.list.metacriticSourceDescription")}
         </p>
       </div>
 
       <SelectFieldCreatable
         name="url"
-        label="List URL"
-        help="Metacritic lists. Override with your own."
+        label={t("forms.list.listUrl")}
+        help={t("forms.list.metacriticHelp")}
         options={ListsMetacriticOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
 
       <div className="space-y-1">
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
         </fieldset>
       </div>
     </div>
@@ -816,6 +827,7 @@ function ListTypeMetacritic() {
 }
 
 function ListTypeMDBList() {
+    const { t } = useTranslation("settings");
     const { values, setFieldValue } = useFormikContext<List>();
 
     useEffect(() => {
@@ -829,25 +841,25 @@ function ListTypeMDBList() {
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
         <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-          Source list
+          {t("forms.list.sourceList")}
         </DialogTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Use a MDBList list or one of the default autobrr hosted lists.
+          {t("forms.list.mdblistSourceDescription")}
         </p>
       </div>
 
       <SelectFieldCreatable
         name="url"
-        label="List URL"
-        help="MDBLists.com lists. Override with your own."
+        label={t("forms.list.listUrl")}
+        help={t("forms.list.mdblistHelp")}
         options={ListsMDBListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
       />
 
       <div className="space-y-1">
         <fieldset>
-          <legend className="sr-only">Settings</legend>
-          <SwitchGroupWide name="match_release" label="Match Release" description="Use Match Releases field. Uses Movies/Shows field by default." />
-          <SwitchGroupWide name="include_year" label="Include Year" description="Include the release year in the filter for movies. It requires Match Releases enabled. Example: Movie?Title?2024*" />
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
+          <SwitchGroupWide name="include_year" label={t("forms.list.includeYear")} description={t("forms.list.includeYearDesc")} />
         </fieldset>
       </div>
     </div>
@@ -861,6 +873,7 @@ interface DownloadClientSelectProps {
 }
 
 function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClientSelectProps) {
+  const { t } = useTranslation("settings");
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -869,7 +882,7 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
           className="block ml-px text-sm font-medium text-gray-900 dark:text-white"
         >
           <div className="flex">
-            Select Client
+            {t("forms.list.selectClient")}
           </div>
         </label>
       </div>
@@ -895,7 +908,7 @@ function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClien
                     <span className="block truncate">
                       {field.value
                         ? clients.find((c) => c.id === field.value)?.name
-                        : "Choose a client"}
+                        : t("forms.list.chooseClient")}
                     </span>
                       <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <ChevronUpDownIcon
@@ -982,6 +995,7 @@ export interface ListMultiSelectFieldProps {
 }
 
 export function ListArrTagsMultiSelectField({ name, label, help, tooltip, options }: ListMultiSelectFieldProps) {
+  const { t } = useTranslation("settings");
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -1006,6 +1020,13 @@ export function ListArrTagsMultiSelectField({ name, label, help, tooltip, option
               <RMSC
                 {...field}
                 options={options}
+                overrideStrings={{
+                  selectSomeItems: t("forms.list.selectSomeItems"),
+                  allItemsAreSelected: t("forms.list.allItemsSelected"),
+                  selectAll: t("forms.list.selectAll"),
+                  search: t("forms.list.search"),
+                  noOptions: t("forms.list.noOptions")
+                }}
                 // disabled={disabled}
                 labelledBy={name}
                 // isCreatable={creatable}

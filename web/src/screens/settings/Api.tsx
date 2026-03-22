@@ -6,6 +6,7 @@
 import { useRef } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { TrashIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 import { KeyField } from "@components/fields/text";
 import { DeleteModal } from "@components/modals";
@@ -23,14 +24,15 @@ import { PlusIcon } from "@heroicons/react/24/solid";
 
 
 function APISettings() {
+  const { t } = useTranslation("settings");
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
   const apikeysQuery = useSuspenseQuery(ApikeysQueryOptions())
 
   return (
     <Section
-      title="API keys"
-      description="Manage your autobrr API keys here."
+      title={t("forms.apiKey.listTitle")}
+      description={t("forms.apiKey.listDescription")}
       rightSide={
         <button
           type="button"
@@ -38,7 +40,7 @@ function APISettings() {
           onClick={toggleAddForm}
         >
           <PlusIcon className="h-5 w-5 mr-1" />
-          Add new
+          {t("forms.apiKey.addNew")}
         </button>
       }
     >
@@ -48,10 +50,10 @@ function APISettings() {
         <ul className="min-w-full relative">
           <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
             <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Name
+              {t("forms.apiKey.name")}
             </div>
             <div className="col-span-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Key
+              {t("forms.apiKey.key")}
             </div>
           </li>
 
@@ -59,10 +61,10 @@ function APISettings() {
         </ul>
       ) : (
         <EmptySimple
-          title="No API keys"
+          title={t("forms.apiKey.noItems")}
           subtitle=""
           buttonAction={toggleAddForm}
-          buttonText="Create API key"
+          buttonText={t("forms.apiKey.createCta")}
         />
       )}
     </Section>
@@ -74,6 +76,7 @@ interface ApiKeyItemProps {
 }
 
 function APIListItem({ apikey }: ApiKeyItemProps) {
+  const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
@@ -88,7 +91,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
       toast.custom((t) => (
         <Toast
           type="success"
-          body={`API key ${apikey?.name} was deleted`}
+          body={t("forms.apiKey.deleted", { name: apikey?.name })}
           t={t}
         />
       ));
@@ -106,8 +109,8 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
           deleteMutation.mutate(apikey.key);
           toggleDeleteModal();
         }}
-        title={`Remove API key: ${apikey.name}`}
-        text="Are you sure you want to remove this API key? This action cannot be undone."
+        title={t("forms.apiKey.removeTitle", { name: apikey.name })}
+        text={t("forms.apiKey.removeText")}
       />
 
       <div className="sm:grid grid-cols-12 gap-4 items-center py-2">
@@ -121,7 +124,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
                   "sm:hidden font-medium group rounded-md items-center px-2 py-2 text-sm"
                 )}
                 onClick={toggleDeleteModal}
-                title="Delete key"
+                title={t("forms.apiKey.deleteKey")}
               >
                 <TrashIcon
                   className="text-red-500 w-5 h-5"
@@ -142,7 +145,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
               "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
             )}
             onClick={toggleDeleteModal}
-            title="Delete key"
+            title={t("forms.apiKey.deleteKey")}
           >
             <TrashIcon className="text-red-500 w-5 h-5" aria-hidden="true" />
           </button>

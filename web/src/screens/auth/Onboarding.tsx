@@ -6,6 +6,7 @@
 import { Form, Formik } from "formik";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { TextField, PasswordField } from "@components/inputs";
@@ -21,20 +22,21 @@ interface InputValues {
 }
 
 export const Onboarding = () => {
+  const { t } = useTranslation("auth");
   const validate = (values: InputValues) => {
     const obj: Record<string, string> = {};
 
     if (!values.username)
-      obj.username = "Required";
+      obj.username = t("errors.required");
 
     if (!values.password1)
-      obj.password1 = "Required";
+      obj.password1 = t("errors.required");
 
     if (!values.password2)
-      obj.password2 = "Required";
+      obj.password2 = t("errors.required");
 
     if (values.password1 !== values.password2)
-      obj.password2 = "Passwords don't match!";
+      obj.password2 = t("errors.passwordsDoNotMatch");
 
     return obj;
   };
@@ -79,16 +81,16 @@ export const Onboarding = () => {
           >
             <Form>
               <div className="space-y-6">
-                <TextField name="username" label="Username" columns={6} autoComplete="username" />
-                <PasswordField name="password1" label="Password" columns={6} autoComplete="current-password" />
-                <PasswordField name="password2" label="Confirm password" columns={6} autoComplete="current-password" />
+                <TextField name="username" label={t("username")} columns={6} autoComplete="username" />
+                <PasswordField name="password1" label={t("password")} columns={6} autoComplete="current-password" />
+                <PasswordField name="password2" label={t("confirmPassword")} columns={6} autoComplete="current-password" />
               </div>
               <button
                 type="submit"
                 className="mt-6 w-full flex items-center justify-center py-2 px-4 border border-transparent transition rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
               >
                 <UserPlusIcon className="w-4 h-4 mr-1.5" />
-                Create account
+                {t("createAccount")}
               </button>
             </Form>
           </Formik>
