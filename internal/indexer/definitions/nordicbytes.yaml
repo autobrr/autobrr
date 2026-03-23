@@ -20,10 +20,10 @@ settings:
     help: "Click the cog icon in the top right corner, RSS key is located in the sidebar."
 
 irc:
-  network: NordicBytes
-  server: irc.nordicbytes.org
-  port: 6667
-  tls: false
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
   channels:
     - "#nordicbytes"
   announcers:
