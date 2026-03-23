@@ -123,15 +123,18 @@ func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, 
 		rls.TorrentName = item.Title
 		rls.InfoURL = item.GUID
 
-		// parse size bytes string
-		rls.ParseSizeBytesString(item.Size)
-
 		rls.ParseString(item.Title)
+		rls.Size = item.Size
 
-		if item.Enclosure != nil {
-			if item.Enclosure.Type == "application/x-nzb" {
-				rls.DownloadURL = item.Enclosure.Url
+		if item.Enclosure != nil && item.Enclosure.Type == "application/x-nzb" {
+			rls.DownloadURL = item.Enclosure.Url
+			if rls.Size == 0 && item.Enclosure.Length > item.Size {
+				rls.Size = item.Enclosure.Length
 			}
+		}
+
+		if len(item.Categories) == 1 {
+			rls.Category = item.Categories[0].Name
 		}
 
 		// map newznab categories ID and Name into rls.Categories
