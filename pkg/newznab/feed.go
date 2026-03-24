@@ -54,7 +54,7 @@ type FeedItem struct {
 	PubDate         Time             `xml:"pubDate,omitempty"`
 	ProwlarrIndexer *ProwlarrIndexer `xml:"prowlarrindexer,omitempty"`
 	JackettIndexer  *JackettIndexer  `xml:"jackettindexer,omitempty"`
-	Comments        int              `xml:"comments"`
+	Comments        string           `xml:"comments"`
 	Size            uint64           `xml:"size"`
 	Link            string           `xml:"link"`
 	Enclosure       *Enclosure       `xml:"enclosure,omitempty"`
