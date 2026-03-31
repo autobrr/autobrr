@@ -1,0 +1,61 @@
+---
+#id: Samaritano
+name: Samaritano
+identifier: samaritano
+description: Samaritano (SAM) is a Brazilian general private torrent tracker focused on movies, TV shows, 
+language: pt-BR
+urls:
+  - https://samaritano.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to My Settings > Settings -> RSS Key, and copy your RSS Key (RID)"
+
+irc:
+  network: SamaritanoNet
+  server: irc.samaritano.cc
+  port: 6667
+  tls: false
+  channels:
+    - "#samaritano"
+  announcers:
+    - Overlord
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - pattern: '\[(?P<category>.+?)\] \[(?P<type>.+?)\] \[(?P<torrentName>.+?)\] \[TORRENT ID: (?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\](?: \[tmdb-(?P<tags>\d+)\])?'
+        vars:
+          - category
+          - type
+          - torrentName
+          - torrentId
+          - torrentSize
+          - tags
+    match:
+        torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
