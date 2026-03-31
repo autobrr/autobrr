@@ -52,7 +52,7 @@ irc:
       - tests:
         - line: "[RMC] New Movie - Type: [Bluray Encode] Name: [Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER] Size: [1.13 GiB] Uploader: [Hitchcock] Url: [https://retro-movies.club/torrents/2506]"
           expect:
-            category: Movies
+            category: Movie
             releaseTags: Bluray Encode
             torrentName: "Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER"
             torrentSize: 1.13 GiB
