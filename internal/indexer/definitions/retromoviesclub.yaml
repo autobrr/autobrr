@@ -57,7 +57,7 @@ irc:
             torrentName: "Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER"
             torrentSize: 1.13 GiB
             uploader: Hitchcock
-            baseUrl: https://fearnopeer.com/
+            baseUrl: https://retro-movies.club/
             torrentId: "2506"
         pattern: '\[RMC\] New (Movie) - Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
         vars:
