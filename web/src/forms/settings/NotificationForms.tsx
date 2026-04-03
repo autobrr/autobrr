@@ -664,6 +664,7 @@ const EventSoundSelector = ({event, soundOptions}: {
   event: NotificationEventOption;
   soundOptions: SoundOption[];
 }) => {
+  const { t } = useTranslation(["options", "settings"]);
   const {values, setFieldValue} = useFormikContext<ServiceNotification>();
   const eventSounds = values.event_sounds || {};
   const currentSound = eventSounds[event.value] || "";

@@ -506,13 +506,13 @@ function DeleteReleases() {
       APIClient.release.delete(params),
     onSuccess: () => {
       if (parsedDuration === 0) {
-        toast.custom((t) => (
-          <Toast type="success" body={t("settings:releases.allDeleted")} t={t}/>
+        toast.custom((tst) => (
+          <Toast type="success" body={t("settings:releases.allDeleted")} t={tst}/>
         ));
       } else {
-        toast.custom((t) => (
+        toast.custom((tst) => (
           <Toast type="success" body={t("settings:releases.olderThanDeleted", { duration: getDurationLabel(parsedDuration ?? 0, t) })}
-                 t={t}/>
+                 t={tst}/>
         ));
       }
 
@@ -600,11 +600,11 @@ function DeleteReleases() {
             type="button"
             onClick={() => {
               if (parsedDuration === undefined || isNaN(parsedDuration)) {
-                toast.custom((t) => (
+                toast.custom((tst) => (
                   <Toast
                     type="error"
                     body={t("releases.invalidAgeExample")}
-                    t={t}
+                    t={tst}
                   />
                 ));
               } else {

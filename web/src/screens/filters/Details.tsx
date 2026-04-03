@@ -184,11 +184,11 @@ const FormErrorNotification = () => {
     if (!isValid && !isValidating && isSubmitting) {
       const formattedErrors = FormatFormikErrorObject(errors);
 
-      toast.custom((t) => (
+      toast.custom((tst) => (
         <Toast
           type="error"
           body={`${formattedErrors.length > 1 ? t("details.validationErrors") : t("details.validationError")}: ${formattedErrors}`}
-          t={t}
+          t={tst}
         />
       ));
     }

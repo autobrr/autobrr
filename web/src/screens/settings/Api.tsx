@@ -88,11 +88,11 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
       queryClient.invalidateQueries({ queryKey: ApiKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ApiKeys.detail(apikey.key) });
 
-      toast.custom((t) => (
+      toast.custom((tst) => (
         <Toast
           type="success"
           body={t("forms.apiKey.deleted", { name: apikey?.name })}
-          t={t}
+          t={tst}
         />
       ));
     }

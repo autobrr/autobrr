@@ -215,8 +215,8 @@ function FilterActionsItem({ action, actionTypeOptions, clients, idx, initialEdi
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       // queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
 
-      toast.custom((t) => (
-        <Toast type="success" body={t("filters:actionsSection.deleted", { name: action?.name })} t={t} />
+      toast.custom((tst) => (
+        <Toast type="success" body={t("filters:actionsSection.deleted", { name: action?.name })} t={tst} />
       ));
     }
   });

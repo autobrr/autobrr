@@ -62,8 +62,8 @@ function Credentials() {
     onSuccess: () => {
       AuthContext.reset();
 
-      toast.custom((t) => (
-        <Toast type="success" body={t("account.updateSuccess")} t={t} />
+      toast.custom((tst) => (
+        <Toast type="success" body={t("account.updateSuccess")} t={tst} />
       ));
     }
   });
@@ -71,8 +71,8 @@ function Credentials() {
   const updateUserMutation = useMutation({
     mutationFn: (data: UserUpdate) => APIClient.auth.updateUser(data),
     onError: () => {
-      toast.custom((t) => (
-        <Toast type="error" body={t("account.updateError")} t={t} />
+      toast.custom((tst) => (
+        <Toast type="error" body={t("account.updateError")} t={tst} />
       ));
     },
     onSuccess: () => {

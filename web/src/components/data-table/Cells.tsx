@@ -172,8 +172,8 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
-      toast.custom((t) => (
-        <Toast type="success" body={t("releaseTable.actionReplayed", { action: status?.action })} t={t} />
+      toast.custom((tst) => (
+        <Toast type="success" body={t("releaseTable.actionReplayed", { action: status?.action })} t={tst} />
       ));
     }
   });
