@@ -1,0 +1,74 @@
+---
+name: Retro Movies Club
+identifier: rmc
+description: Retro Movies Club (RMC) is a private torrent tracker for Movies released prior to the year 2001
+language: en-us
+urls:
+  - https://retro-movies.club
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  channels:
+    - "#rmcannounce"
+  announcers:
+    - RMCAnn
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: "[RMC] New Movie - Type: [Bluray Encode] Name: [Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER] Size: [1.13 GiB] Uploader: [Hitchcock] Url: [https://retro-movies.club/torrents/2506]"
+          expect:
+            category: Movie
+            releaseTags: Bluray Encode
+            torrentName: "Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER"
+            torrentSize: 1.13 GiB
+            uploader: Hitchcock
+            baseUrl: https://retro-movies.club/
+            torrentId: "2506"
+        pattern: '\[RMC\] New (Movie) - Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
