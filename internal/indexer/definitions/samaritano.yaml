@@ -57,5 +57,7 @@ irc:
           - torrentId
           - torrentSize
           - tags
+
     match:
-        torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
