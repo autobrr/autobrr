@@ -446,7 +446,7 @@
       "savePathPlaceholder": "z.B. /vollständiger/pfad/zum/download_ordner",
       "numberNoLimit": "Beliebige Zahl (0 ist kein Limit)",
       "limitsTitle": "Limits",
-      "limitsSubtitle": "Geschwindigkeits-/Verhältnis-/Seedzeit-Limits konfigurieren",
+      "limitsSubtitle": "Geschwindigkeits-/Ratio-/Seedzeit-Limits konfigurieren",
       "limitDownloadKib": "Downloadgeschwindigkeit begrenzen (KiB/s)",
       "limitUploadKib": "Uploadgeschwindigkeit begrenzen (KiB/s)",
       "limitDownloadKb": "Downloadgeschwindigkeit begrenzen (KB/s)",
