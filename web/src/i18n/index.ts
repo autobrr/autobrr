@@ -11,8 +11,13 @@ import commonZhCN from "./locales/zh-CN/common.json";
 import optionsZhCN from "./locales/zh-CN/options.json";
 import settingsZhCN from "./locales/zh-CN/settings.json";
 import filtersZhCN from "./locales/zh-CN/filters.json";
+import authEs from "./locales/es/auth.json";
+import commonEs from "./locales/es/common.json";
+import optionsEs from "./locales/es/options.json";
+import settingsEs from "./locales/es/settings.json";
+import filtersEs from "./locales/es/filters.json";
 
-export const supportedLanguages = ["en", "zh-CN"] as const;
+export const supportedLanguages = ["en", "zh-CN", "es"] as const;
 export type Language = (typeof supportedLanguages)[number];
 
 export const getInitialLanguage = (): Language => {
@@ -36,6 +41,10 @@ export const getInitialLanguage = (): Language => {
     return "zh-CN";
   }
 
+  if (window.navigator.language.toLowerCase().startsWith("es")) {
+    return "es";
+  }
+
   return "en";
 };
 
@@ -54,6 +63,13 @@ void i18n.use(initReactI18next).init({
       options: optionsZhCN,
       settings: settingsZhCN,
       filters: filtersZhCN
+    },
+    es: {
+      common: commonEs,
+      auth: authEs,
+      options: optionsEs,
+      settings: settingsEs,
+      filters: filtersEs
     }
   },
   lng: getInitialLanguage(),

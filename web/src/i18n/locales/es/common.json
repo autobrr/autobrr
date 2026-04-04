@@ -1,0 +1,229 @@
+{
+  "appName": "autobrr",
+  "nav": {
+    "dashboard": "Panel",
+    "filters": "Filtros",
+    "releases": "Lanzamientos",
+    "settings": "Configuración",
+    "logs": "Registros",
+    "docs": "Documentación"
+  },
+  "userMenu": {
+    "account": "Cuenta",
+    "settings": "Configuración",
+    "logout": "Cerrar sesión"
+  },
+  "forms": {
+    "chooseOption": "Elige una opción"
+  },
+  "input": {
+    "invalidRegex": "Regex inválida"
+  },
+  "keyField": {
+    "show": "Mostrar",
+    "copyToClipboard": "Copiar al portapapeles",
+    "copySuccess": "¡Clave API copiada al portapapeles!",
+    "copyFailed": "Error al copiar la clave API."
+  },
+  "modal": {
+    "remove": "Eliminar",
+    "cancel": "Cancelar",
+    "forceRun": "Forzar ejecución",
+    "confirmationPhrase": "Entiendo",
+    "forceRunPlaceholder": "Escribe '{{phrase}}' para habilitar el botón"
+  },
+  "header": {
+    "logoutSuccess": "Has cerrado sesión. ¡Adiós!",
+    "openMainMenu": "Abrir menú principal",
+    "newUpdateAvailable": "¡Nueva actualización disponible!",
+    "listRefreshFailed": "¡Error al actualizar la lista!",
+    "multipleListRefreshesFailed": "¡Múltiples actualizaciones de lista fallaron!"
+  },
+  "logs": {
+    "title": "Registros",
+    "filterPlaceholder": "Introduce un patrón regex para filtrar registros...",
+    "clearTitle": "Limpiar registros de la vista",
+    "cleared": "Registros limpiados de la vista.",
+    "filesTitle": "Archivos de registro",
+    "filesDescription": "Descargar archivos de registro antiguos.",
+    "columns": {
+      "name": "Nombre",
+      "lastModified": "Última modificación",
+      "size": "Tamaño"
+    },
+    "noOldFiles": "No hay archivos de registro antiguos",
+    "sanitizing": "El archivo de registro se está limpiando. Por favor espera...",
+    "sanitizingShort": "Limpiando registro...",
+    "downloadFile": "Descargar archivo",
+    "options": {
+      "scrollOnNewMessage": "Desplazar al final con nuevo mensaje",
+      "indentLogLines": "Indentar líneas de registro",
+      "indentLogLinesDescription": "Indentar cada línea de registro según su posición inicial respectiva.",
+      "hideWrappedText": "Ocultar texto ajustado",
+      "hideWrappedTextDescription": "Oculta el texto que debería estar ajustado."
+    }
+  },
+  "releaseTable": {
+    "noResults": "Sin resultados",
+    "error": "Error",
+    "details": "Detalles",
+    "downloadTorrent": "Descargar archivo torrent",
+    "visitTorrentInfo": "Visitar URL de información del torrent",
+    "actionReplayed": "{{action}} reproducida",
+    "retry": "Reintentar",
+    "action": "Acción",
+    "labels": {
+      "category": "Categoría",
+      "size": "Tamaño",
+      "misc": "Varios"
+    },
+    "columns": {
+      "age": "Antigüedad",
+      "release": "Lanzamiento",
+      "links": "Enlaces",
+      "actions": "Acciones",
+      "indexer": "Indexador"
+    },
+    "status": {
+      "error": "error",
+      "rejected": "rechazado",
+      "approved": "aprobado",
+      "pending": "pendiente"
+    },
+    "fields": {
+      "release": "Lanzamiento",
+      "indexer": "Indexador",
+      "protocol": "Protocolo",
+      "implementation": "Implementación",
+      "announceType": "Tipo de anuncio",
+      "category": "Categoría",
+      "uploader": "Subidor",
+      "size": "Tamaño",
+      "title": "Título",
+      "year": "Año",
+      "season": "Temporada",
+      "episode": "Episodio",
+      "resolution": "Resolución",
+      "source": "Fuente",
+      "codec": "Códec",
+      "hdr": "HDR",
+      "group": "Grupo",
+      "container": "Contenedor",
+      "origin": "Origen",
+      "type": "Tipo",
+      "client": "Cliente",
+      "filter": "Filtro",
+      "time": "Hora",
+      "rejected": "Rechazado"
+    },
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "prev": "Ant",
+    "first": "Primero",
+    "last": "Último",
+    "itemsPerPage": "Elementos por página",
+    "entries": "{{count}} entradas",
+    "pageOf": "Página {{page}} de {{total}}",
+    "pagination": "Paginación",
+    "toggleView": "Cambiar vista",
+    "goIncognito": "Modo incógnito"
+  },
+  "releaseSearch": {
+    "title": "Lanzamientos",
+    "descriptionPrefix": "El motor de búsqueda usa un motor especial de coincidencia de patrones para filtrar resultados. Por favor",
+    "clickHere": "haz clic aquí",
+    "descriptionSuffix": "para obtener consejos sobre cómo obtener resultados relevantes.",
+    "searchTips": "Consejos de búsqueda",
+    "wildcardIntro": "Puedes usar <strong>2</strong> <highlight>caracteres comodín</highlight> especiales para la coincidencia de patrones.",
+    "percentRule": "- Porcentaje (<code1 />) - para coincidir con cualquier <italic>secuencia</italic> de caracteres (equivalente a <code2 /> en Regex)",
+    "underscoreRule": "- Guion bajo (<code1 />) - para coincidir con cualquier carácter <italic>individual</italic> (equivalente a <code2 /> en Regex)",
+    "keywordFaceting": "Además, autobrr soporta <highlight>filtrado por palabras clave</highlight>.",
+    "supportedKeywords": "Las palabras clave soportadas son: <category>category</category>, <codec>codec</codec>, <episode>episode</episode>, <filter>filter</filter>, <group>group</group>, <hdr>hdr</hdr>, <resolution>resolution</resolution>, <season>season</season>, <source>source</source>, <title>title</title> y <year>year</year>.",
+    "examples": "Ejemplos:",
+    "exampleYearResolution": "todos los 1080p del año 2022",
+    "exampleGroupHdr": "todos los lanzamientos Dolby Vision de un grupo específico, ej. Framestor",
+    "exampleMovieTitle": "todos los lanzamientos que comienzan con \"Movie Title\" en 1080p",
+    "exampleShowEpisode": "todos los lanzamientos que comienzan con \"The Show\" relacionados con S05E03",
+    "exampleCollectionSpace": "todos los lanzamientos que contienen \"collection hd\" - en el mismo orden - ¡y con un espacio!",
+    "exampleCollectionWildcard": "todos los lanzamientos que contienen \"collection\" Y \"hd\" - en el mismo orden - pero con un carácter comodín entre ellos, ej. un espacio O un punto O cualquier otro carácter",
+    "docsPrefix": "Como siempre, consulta nuestra",
+    "docsLink": "Uso de la función de búsqueda",
+    "docsSuffix": "página de documentación para mantenerte al día con los últimos ejemplos e información."
+  },
+  "releaseFilters": {
+    "all": "Todos",
+    "searchPlaceholder": "Buscar lanzamientos...",
+    "indexer": "Indexador",
+    "indexersCount": "{{count}} indexadores",
+    "clearSelection": "Limpiar selección",
+    "pushStatus": "Estado de envío"
+  },
+  "activityTable": {
+    "title": "Actividad reciente",
+    "loading": "Cargando...",
+    "noRecentActivity": "Sin actividad reciente",
+    "columns": {
+      "age": "Antigüedad",
+      "release": "Lanzamiento",
+      "actions": "Acciones",
+      "indexer": "Indexador"
+    }
+  },
+  "dashboardStats": {
+    "title": "Estadísticas",
+    "filteredReleases": "Lanzamientos filtrados",
+    "approvedPushes": "Envíos aprobados",
+    "rejectedPushes": "Envíos rechazados",
+    "erroredPushes": "Envíos con error"
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "toggleLightToDark": "Modo claro (clic para oscuro)",
+    "toggleDarkToSystem": "Modo oscuro (clic para sistema)",
+    "toggleSystemToLight": "Modo sistema (clic para claro)"
+  },
+  "language": {
+    "label": "Idioma",
+    "english": "English",
+    "simplifiedChinese": "简体中文",
+    "spanish": "Español"
+  },
+  "toast": {
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "close": "Cerrar"
+  },
+  "warning": {
+    "defaultTitle": "¡Advertencia!",
+    "srOnly": "Información"
+  },
+  "errorPage": {
+    "unrecoverable": "¡Encontramos un error irrecuperable!",
+    "offline": "¡La conexión a Autobrr falló! Verifica el estado de la aplicación y tu conectividad.",
+    "reportPrefix": "Por favor considera reportar este error en nuestra",
+    "github": "página de GitHub",
+    "discord": "nuestro canal oficial de Discord",
+    "reportMiddle": "o en",
+    "recoveryHint": "Puedes intentar restablecer el estado de la página usando el botón proporcionado a continuación o reiniciar tu aplicación autobrr. Sin embargo, esto no garantiza solucionar el error.",
+    "reset": "Restablecer estado de la página"
+  },
+  "notFound": {
+    "status404": "404 Página no encontrada",
+    "title": "¡Ups, parece que hubo demasiado brr!",
+    "bugPrefix": "En caso de que pienses que esto es un error en vez de demasiado brr,",
+    "reportPrefix": "no dudes en reportarlo en nuestra",
+    "github": "página de GitHub",
+    "discord": "nuestro canal oficial de Discord",
+    "reportMiddle": "o en",
+    "backOnTrack": "De lo contrario, ¡déjanos ayudarte a volver al camino para más brr!",
+    "backToDashboard": "Volver al Panel",
+    "filterStatus404": "Estado 404",
+    "filterTitlePrefix": "Filtro con id",
+    "filterTitleSuffix": "¡no encontrado!",
+    "backToFilters": "Volver a filtros"
+  }
+}
