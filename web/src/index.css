@@ -177,16 +177,15 @@ html.dark .rmsc {
   width: 20px;
   height: 20px;
   animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
 }
 
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .sanitizing-text {
@@ -197,4 +196,3 @@ html.dark .rmsc {
 .logFilesItem .iconHeight {
   height: 20px;
 }
-

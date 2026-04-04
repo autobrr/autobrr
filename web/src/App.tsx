@@ -8,6 +8,7 @@ import { RouterProvider } from "@tanstack/react-router"
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@components/hot-toast";
 import { Router } from "@app/routes";
+import i18n from "@app/i18n";
 import { routerBasePath } from "@utils";
 import { queryClient } from "@api/QueryClient";
 import { SettingsContext, isDarkTheme } from "@utils/Context";
@@ -20,6 +21,8 @@ declare module '@tanstack/react-router' {
 }
 
 export function App() {
+  const settings = SettingsContext.useValue();
+
   useEffect(() => {
     const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleThemeChange = () => {
@@ -34,6 +37,11 @@ export function App() {
     themeMediaQuery.addEventListener("change", handleThemeChange);
     return () => themeMediaQuery.removeEventListener("change", handleThemeChange);
   }, []);
+
+  useEffect(() => {
+    void i18n.changeLanguage(settings.language);
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
 
   return (
     <QueryClientProvider client={queryClient}>

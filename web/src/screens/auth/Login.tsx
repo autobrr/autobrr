@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { RocketLaunchIcon } from "@heroicons/react/24/outline";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import toast from "@components/hot-toast";
@@ -36,6 +37,7 @@ type ValidateResponse = {
 }
 
 export const Login = () => {
+    const { t } = useTranslation("auth");
     const [auth, setAuth] = AuthContext.use();
     const queryErrorResetBoundary = useQueryErrorResetBoundary()
     const router = useRouter()
@@ -73,8 +75,6 @@ export const Login = () => {
             remember_me: true
         },
         onSubmit: (data) => {
-            console.log("submit form", data)
-
             loginMutation.mutate(data.value)
         }
     });
@@ -102,8 +102,8 @@ export const Login = () => {
                 router.invalidate();
             }).catch((error) => {
                 // If validation fails, show an error
-                toast.custom((t) => (
-                    <Toast type="error" body={error.message || "OIDC authentication failed"} t={t}/>
+                toast.custom((toastInstance) => (
+                    <Toast type="error" body={error.message || t("errors.oidcFailed")} t={toastInstance}/>
                 ));
             });
         }
@@ -121,8 +121,8 @@ export const Login = () => {
             router.invalidate()
         },
         onError: (error) => {
-            toast.custom((t) => (
-                <Toast type="error" body={error.message || "An error occurred!"} t={t}/>
+            toast.custom((toastInstance) => (
+                <Toast type="error" body={error.message || t("errors.generic")} t={toastInstance}/>
             ));
         }
     });
@@ -146,7 +146,7 @@ export const Login = () => {
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <Logo className="mx-auto h-12 w-auto"/>
                 <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-200">
-                    autobrr
+                    {t("title")}
                 </h2>
             </div>
 
@@ -165,7 +165,7 @@ export const Login = () => {
                                     <form.Field
                                         name="username"
                                         validators={{
-                                            onChange: ({value}) => !value ? 'Username is required' : undefined,
+                                            onChange: ({value}) => !value ? t("errors.usernameRequired") : undefined,
                                         }}
                                         children={({state, handleChange, handleBlur}) => {
                                             return (
@@ -175,7 +175,7 @@ export const Login = () => {
                                                             htmlFor="username"
                                                             className="block ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide"
                                                         >
-                                                            Username
+                                                            {t("username")}
                                                         </label>
                                                     </div>
                                                     <div className="">
@@ -204,7 +204,7 @@ export const Login = () => {
                                     <form.Field
                                         name="password"
                                         validators={{
-                                            onChange: ({value}) => !value ? 'Password is required' : undefined,
+                                            onChange: ({value}) => !value ? t("errors.passwordRequired") : undefined,
                                         }}
                                         children={({name, state, handleChange, handleBlur }) => (
 
@@ -214,7 +214,7 @@ export const Login = () => {
                                             htmlFor={name}
                                         className="block ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide"
                                     >
-                                        Password
+                                        {t("password")}
                                     </label>
                                 </div>
                                 <div className="sm:col-span-2 relative">
@@ -244,7 +244,7 @@ export const Login = () => {
                                                                 <path d="M3 8L6 11L11 3.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
                                                             </svg>
                                                         </Checkbox>
-                                                        <Label className="text-sm text-gray-700 dark:text-gray-200">Remember me</Label>
+                                                        <Label className="text-sm text-gray-700 dark:text-gray-200">{t("rememberMe")}</Label>
                                                     </Field>
                                                 )}
                                             />
@@ -252,13 +252,13 @@ export const Login = () => {
                                                 <Tooltip
                                                     label={
                                                         <div className="flex flex-row items-center cursor-pointer text-gray-700 dark:text-gray-200">
-                                                            Forgot password? <svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72">
+                                                            {t("forgotPassword")} <svg className="ml-1 w-3 h-3 text-gray-500 dark:text-gray-400 fill-current" viewBox="0 0 72 72">
                                                             <path d="M32 2C15.432 2 2 15.432 2 32s13.432 30 30 30s30-13.432 30-30S48.568 2 32 2m5 49.75H27v-24h10v24m-5-29.5a5 5 0 1 1 0-10a5 5 0 0 1 0 10"/>
                                                         </svg>
                                                         </div>
                                                     }
                                                 >
-                                                    <p className="py-1">Reset via terminal: <code>autobrrctl --config /home/username/.config/autobrr change-password $USERNAME</code></p>
+                                                    <p className="py-1">{t("forgotPasswordHelp")} <code>autobrrctl --config /home/username/.config/autobrr change-password $USERNAME</code></p>
                                                 </Tooltip>
                                             </div>
                                         </div>
@@ -269,7 +269,7 @@ export const Login = () => {
                                         className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     >
                                         <RocketLaunchIcon className="w-4 h-4 mr-1.5"/>
-                                        Sign in
+                                        {t("signIn")}
                                     </button>
                                 </form>
 
@@ -279,7 +279,7 @@ export const Login = () => {
                                             <div className="w-full border-t border-gray-200 dark:border-gray-700"/>
                                         </div>
                                         <div className="relative flex justify-center text-sm">
-                                            <span className="bg-white dark:bg-gray-800 px-6 text-gray-900 dark:text-gray-200">Or continue with</span>
+                                            <span className="bg-white dark:bg-gray-800 px-6 text-gray-900 dark:text-gray-200">{t("continueWith")}</span>
                                         </div>
                                     </div>
                                 )}
@@ -295,7 +295,7 @@ export const Login = () => {
                                     className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
                                     <FontAwesomeIcon icon={faOpenid} className="h-5 w-5"/>
-                                    <span>OpenID Connect</span>
+                                    <span>{t("openidConnect")}</span>
                                 </button>
                             </div>
                         )}

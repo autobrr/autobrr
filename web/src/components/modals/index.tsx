@@ -7,6 +7,7 @@
 import { FC, Fragment, MutableRefObject, useState } from "react";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
 
 import { RingResizeSpinner } from "@components/Icons";
 
@@ -55,39 +56,43 @@ const ModalUpper = ({ title, text }: ModalUpperProps) => (
   </div>
 );
 
-const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps) => (
-  <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-    {isLoading ? (
-      <RingResizeSpinner className="text-blue-500 size-6" />
-    ) : (
-      <>
-        <button
-          type="button"
-          className="w-full inline-flex justify-center cursor-pointer rounded-md border border-transparent shadow-xs px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-          onClick={(e) => {
-            e.preventDefault();
-            if (isOpen) {
-              deleteAction?.();
+const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps) => {
+  const { t } = useTranslation("common");
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+      {isLoading ? (
+        <RingResizeSpinner className="text-blue-500 size-6" />
+      ) : (
+        <>
+          <button
+            type="button"
+            className="w-full inline-flex justify-center cursor-pointer rounded-md border border-transparent shadow-xs px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+            onClick={(e) => {
+              e.preventDefault();
+              if (isOpen) {
+                deleteAction?.();
+                toggle();
+              }
+            }}
+          >
+            {t("modal.remove")}
+          </button>
+          <button
+            type="button"
+            className="mt-3 w-full inline-flex justify-center cursor-pointer rounded-md border border-gray-300 dark:border-gray-600 shadow-xs px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+            onClick={(e) => {
+              e.preventDefault();
               toggle();
-            }
-          }}
-        >
-          Remove
-        </button>
-        <button
-          type="button"
-          className="mt-3 w-full inline-flex justify-center cursor-pointer rounded-md border border-gray-300 dark:border-gray-600 shadow-xs px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-          onClick={(e) => {
-            e.preventDefault();
-            toggle();
-          }}
-        >
-          Cancel
-        </button>
-      </>
-    )}
-  </div>
-);
+            }}
+          >
+            {t("modal.cancel")}
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
 
 export const DeleteModal: FC<DeleteModalProps> = (props: DeleteModalProps) => (
   <Transition show={props.isOpen} as={Fragment}>
@@ -123,8 +128,10 @@ export const DeleteModal: FC<DeleteModalProps> = (props: DeleteModalProps) => (
 );
 
 export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps) => {
+  const { t } = useTranslation("common");
   const [inputValue, setInputValue] = useState("");
-  const isInputCorrect = inputValue.trim().toLowerCase() === "i understand";
+  const confirmationPhrase = t("modal.confirmationPhrase");
+  const isInputCorrect = inputValue.trim().toLowerCase() === confirmationPhrase.toLowerCase();
 
   // A function to reset the input and handle any necessary cleanup
   const resetAndClose = () => {
@@ -184,7 +191,7 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
                   type="text"
                   data-autofocus
                   className="w-96 shadow-xs sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-400 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 dark:text-gray-100"
-                  placeholder="Type 'I understand' to enable the button"
+                  placeholder={t("modal.forceRunPlaceholder", { phrase: confirmationPhrase })}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => {
@@ -208,14 +215,14 @@ export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps)
                       } text-base font-medium focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm`}
                       onClick={handleForceRun}
                     >
-                      Force Run
+                      {t("modal.forceRun")}
                     </button>
                     <button
                       type="button"
                       className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-xs px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={handleCancel}
                     >
-                      Cancel
+                      {t("modal.cancel")}
                     </button>
                   </>
                 )}
