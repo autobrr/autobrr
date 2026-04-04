@@ -4,7 +4,7 @@
     "CHECKED": "Geprüft",
     "PROMO": "Promo",
     "PROMO_GP": "Promo GP",
-    "RESURRECTED": "Wiederhergestellt"
+    "RESURRECTED": "Wiederbelebt"
   },
   "downloadClient": {
     "QBITTORRENT": {
@@ -66,8 +66,8 @@
       "description": "Eine einfache Aktion zum Testen eines Filters."
     },
     "WATCH_FOLDER": {
-      "label": "Watch-Verzeichnis",
-      "description": "Gefilterte Torrents in ein Watch-Verzeichnis hinzufügen"
+      "label": "Watchverzeichnis",
+      "description": "Gefilterte Torrents in ein Watchverzeichnis hinzufügen"
     },
     "WEBHOOK": {
       "label": "Webhook",
@@ -75,7 +75,7 @@
     },
     "EXEC": {
       "label": "Exec",
-      "description": "Benutzerdefinierten Befehl nach Filter-Treffer ausführen"
+      "description": "Benutzerdefinierten Befehl nach Filterertreffer ausführen"
     },
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -150,15 +150,15 @@
   "event": {
     "PUSH_REJECTED": {
       "label": "Push Abgelehnt",
-      "description": "Beim Push abgelehnt für die ARRs oder den Download-Client"
+      "description": "Beim Push abgelehnt für die ARRs oder den Downloadclient"
     },
     "PUSH_APPROVED": {
       "label": "Push Angenommen",
-      "description": "Beim Push angenommen für die ARRs oder den Download-Client"
+      "description": "Beim Push angenommen für die ARRs oder den Downloadclient"
     },
     "PUSH_ERROR": {
       "label": "Push Fehler",
-      "description": "Beim Push-Fehler für die ARRs oder den Download-Client"
+      "description": "Beim Pushfehler für die ARRs oder den Downloadclient"
     },
     "IRC_DISCONNECTED": {
       "label": "IRC Getrennt",

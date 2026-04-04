@@ -36,12 +36,12 @@
     "logoutSuccess": "Du wurdest abgemeldet. Auf Wiedersehen!",
     "openMainMenu": "Hauptmenü öffnen",
     "newUpdateAvailable": "Neues Update verfügbar!",
-    "listRefreshFailed": "Listen-Aktualisierung fehlgeschlagen!",
-    "multipleListRefreshesFailed": "Mehrere Listen-Aktualisierungen fehlgeschlagen!"
+    "listRefreshFailed": "Listenaktualisierung fehlgeschlagen!",
+    "multipleListRefreshesFailed": "Mehrere Listenaktualisierungen fehlgeschlagen!"
   },
   "logs": {
     "title": "Protokolle",
-    "filterPlaceholder": "Regex-Muster zum Filtern von Protokollen eingeben...",
+    "filterPlaceholder": "Regex-Ausdruck zum Filtern von Protokollen eingeben...",
     "clearTitle": "Protokolle aus Ansicht löschen",
     "cleared": "Protokolle aus Ansicht gelöscht.",
     "filesTitle": "Protokolldateien",
@@ -67,8 +67,8 @@
     "noResults": "Keine Ergebnisse",
     "error": "Fehler",
     "details": "Details",
-    "downloadTorrent": "Torrent-Datei herunterladen",
-    "visitTorrentInfo": "Torrentinfo-URL besuchen",
+    "downloadTorrent": "Torrentdatei herunterladen",
+    "visitTorrentInfo": "Torrentinfoseite besuchen",
     "actionReplayed": "{{action}} wiederholt",
     "retry": "Wiederholen",
     "action": "Aktion",
@@ -85,10 +85,10 @@
       "indexer": "Indexer"
     },
     "status": {
-      "error": "fehler",
-      "rejected": "abgelehnt",
-      "approved": "angenommen",
-      "pending": "ausstehend"
+      "error": "Fehler",
+      "rejected": "Abgelehnt",
+      "approved": "Angenommen",
+      "pending": "Ausstehend"
     },
     "fields": {
       "release": "Release",
@@ -118,7 +118,7 @@
     },
     "previous": "Zurück",
     "next": "Weiter",
-    "prev": "Vor.",
+    "prev": "Vorherige",
     "first": "Erste",
     "last": "Letzte",
     "itemsPerPage": "Einträge pro Seite",
@@ -126,18 +126,18 @@
     "pageOf": "Seite {{page}} von {{total}}",
     "pagination": "Seitennavigation",
     "toggleView": "Ansicht wechseln",
-    "goIncognito": "Inkognito-Modus"
+    "goIncognito": "Inkognitomodus"
   },
   "releaseSearch": {
     "title": "Releases",
-    "descriptionPrefix": "Die Suchmaschine verwendet eine spezielle Mustererkennungs-Engine zum Filtern von Ergebnissen. Bitte",
+    "descriptionPrefix": "Die Suchmaschine verwendet eine spezielles Mustererkennungssystem zum Filtern von Ergebnissen. Bitte",
     "clickHere": "hier klicken",
     "descriptionSuffix": "für Tipps zum Abrufen relevanter Ergebnisse.",
     "searchTips": "Suchtipps",
     "wildcardIntro": "Du kannst <strong>2</strong> spezielle <highlight>Platzhalterzeichen</highlight> für die Mustererkennung verwenden.",
     "percentRule": "- Prozent (<code1 />) – für das Treffen einer beliebigen <italic>Zeichenfolge</italic> (entspricht <code2 /> in Regex)",
     "underscoreRule": "- Unterstrich (<code1 />) – für das Treffen eines einzelnen <italic>Zeichens</italic> (entspricht <code2 /> in Regex)",
-    "keywordFaceting": "Darüber hinaus unterstützt autobrr <highlight>Keyword-Facettierung</highlight>.",
+    "keywordFaceting": "Darüber hinaus unterstützt autobrr <highlight>Keywordfacettierung</highlight>.",
     "supportedKeywords": "Die unterstützten Schlüsselwörter sind: <category>category</category>, <codec>codec</codec>, <episode>episode</episode>, <filter>filter</filter>, <group>group</group>, <hdr>hdr</hdr>, <resolution>resolution</resolution>, <season>season</season>, <source>source</source>, <title>title</title> und <year>year</year>.",
     "examples": "Beispiele:",
     "exampleYearResolution": "alle 1080p aus dem Jahr 2022",
@@ -156,7 +156,7 @@
     "indexer": "Indexer",
     "indexersCount": "{{count}} Indexer",
     "clearSelection": "Auswahl aufheben",
-    "pushStatus": "Push-Status"
+    "pushStatus": "Pushstatus"
   },
   "activityTable": {
     "title": "Letzte Aktivität",
@@ -205,10 +205,10 @@
     "unrecoverable": "Ein nicht behebbarer Fehler ist aufgetreten!",
     "offline": "Verbindung zu Autobrr fehlgeschlagen! Überprüfe den Anwendungsstatus und deine Netzwerkverbindung.",
     "reportPrefix": "Bitte erwäge, diesen Fehler auf unserer",
-    "github": "GitHub-Seite",
-    "discord": "unserem offiziellen Discord-Kanal",
+    "github": "GitHub Seite",
+    "discord": "unserem offiziellen Discord Kanal",
     "reportMiddle": "oder auf",
-    "recoveryHint": "Du kannst versuchen, den Seitenstatus mit dem untenstehenden Button zurückzusetzen oder deine autobrr-Anwendung neu zu starten. Dies ist jedoch keine Garantie für eine Behebung des Fehlers.",
+    "recoveryHint": "Du kannst versuchen, den Seitenstatus mit dem untenstehenden Button zurückzusetzen oder deine autobrr Instanz neu zu starten. Dies ist jedoch keine Garantie für eine Behebung des Fehlers.",
     "reset": "Seitenstatus zurücksetzen"
   },
   "notFound": {
@@ -216,8 +216,8 @@
     "title": "Ups, da war wohl etwas zu viel brr!",
     "bugPrefix": "Falls du denkst, dass dies eher ein Bug als zu viel brr ist,",
     "reportPrefix": "kannst du dies gerne auf unserer",
-    "github": "GitHub-Seite",
-    "discord": "unserem offiziellen Discord-Kanal",
+    "github": "GitHub Seite",
+    "discord": "unserem offiziellen Discord Kanal",
     "reportMiddle": "oder auf",
     "backOnTrack": "Lass uns dir andernfalls helfen, wieder auf Kurs für mehr brr zu kommen!",
     "backToDashboard": "Zurück zum Dashboard",
