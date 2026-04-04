@@ -318,12 +318,12 @@
       "containersTooltip": "Filtert Releases, die einen der ausgewählten Container enthalten.",
       "matchHdr": "HDR filtern",
       "matchHdrTooltip": "Filtert Releases, die eine der ausgewählten HDR-Bezeichnungen enthalten.",
-      "exceptHdr": "HDR ignorieren",
-      "exceptHdrTooltip": "Filtert keine Releases, die eine der ausgewählten HDR-Bezeichnungen enthalten (hat Vorrang vor HDR filtern).",
+      "exceptHdr": "HDR ausschließen",
+      "exceptHdrTooltip": "Schließt Releases aus, die eine der ausgewählten HDR-Bezeichnungen enthalten (hat Vorrang vor HDR filtern).",
       "matchOther": "Sonstiges filtern",
       "matchOtherTooltip": "Filtert Releases, die eine der ausgewählten Bezeichnungen enthalten.",
-      "exceptOther": "Sonstiges ignorieren",
-      "exceptOtherTooltip": "Filtert keine Releases, die eine der ausgewählten sonstigen Bezeichnungen enthalten (hat Vorrang vor Sonstiges filtern)."
+      "exceptOther": "Sonstiges ausschließen",
+      "exceptOtherTooltip": "Schließt Releases aus, die eine der ausgewählten sonstigen Bezeichnungen enthalten (hat Vorrang vor Sonstiges filtern)."
     }
   },
   "music": {
@@ -335,9 +335,9 @@
     "matchRecordLabels": "Plattenlabels filtern",
     "matchRecordLabelsPlaceholder": "z.B. Anjunabeats, Armada",
     "matchRecordLabelsTooltip": "Durch Komma getrennte Liste von Plattenlabels zum filtern. Nur Orpheus und Redacted unterstützen dies.",
-    "exceptRecordLabels": "Plattenlabels ignorieren",
+    "exceptRecordLabels": "Plattenlabels ausschließen",
     "exceptRecordLabelsPlaceholder": "z.B. Anjunadeep, Armind",
-    "exceptRecordLabelsTooltip": "Durch Komma getrennte Liste von Plattenlabels zum Ignorieren (hat Vorrang vor Plattenlabels filtern). Nur Orpheus und Redacted unterstützen dies.",
+    "exceptRecordLabelsTooltip": "Durch Komma getrennte Liste von Plattenlabels die ausgeschlossen werden (hat Vorrang vor Plattenlabels filtern). Nur Orpheus und Redacted unterstützen dies.",
     "releaseDetails": {
       "title": "Releasedetails",
       "subtitle": "Typ (Album, Single, EP usw.) und Erscheinungsjahr (wenn angekündigt)",
@@ -365,8 +365,8 @@
       "logScoreTooltip": "Logpunktzahlen gehen von 0 bis 100. Wird von Perfect FLAC überschrieben.",
       "or": "ODER",
       "perfectFlac": "Perfect FLAC",
-      "perfectFlacDescription": "Alle Optionen zu Qualität, Quelle, Format und Cue/Log/Log-Punktzahl überschreiben.",
-      "perfectFlacTooltip": "Alle Optionen zu Qualität, Quelle, Format und CUE/LOG/LOG-Punktzahl überschreiben.",
+      "perfectFlacDescription": "Alle Optionen zu Qualität, Quelle, Format und CUE/Log/Log-Punktzahl überschreiben.",
+      "perfectFlacTooltip": "Alle Optionen zu Qualität, Quelle, Format und CUE/Log/Log-Punktzahl überschreiben.",
       "perfectFlacHint": "Dies ist in 90% der Fälle die richtige Wahl (anstelle der obigen Optionen)."
     }
   },
@@ -451,7 +451,7 @@
       "limitUploadKib": "Uploadgeschwindigkeit begrenzen (KiB/s)",
       "limitDownloadKb": "Downloadgeschwindigkeit begrenzen (KB/s)",
       "limitUploadKb": "Uploadgeschwindigkeit begrenzen (KB/s)",
-      "ratioLimit": "Verhältnislimit",
+      "ratioLimit": "Ratiobegrenzung",
       "seedTimeMinutes": "Seedzeitlimit (Minuten)",
       "addPaused": "Angehalten hinzufügen",
       "addPausedDescription": "Torrent als angehalten hinzufügen",
