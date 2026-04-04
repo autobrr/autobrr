@@ -15,6 +15,7 @@
     "fetchFailed": "获取过滤器数据失败。",
     "deleted": "过滤器 {{name}} 已删除",
     "duplicated": "过滤器 {{name}} 已复制",
+    "updated": "{{name}} 更新成功",
     "removeTitle": "移除过滤器：{{name}}",
     "removeText": "确定要移除此过滤器吗？此操作无法撤销。",
     "edit": "编辑",

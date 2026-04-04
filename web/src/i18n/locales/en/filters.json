@@ -15,6 +15,7 @@
     "fetchFailed": "Failed to get filter data.",
     "deleted": "Filter {{name}} was deleted",
     "duplicated": "Filter {{name}} duplicated",
+    "updated": "{{name}} was updated successfully",
     "removeTitle": "Remove filter: {{name}}",
     "removeText": "Are you sure you want to remove this filter? This action cannot be undone.",
     "edit": "Edit",

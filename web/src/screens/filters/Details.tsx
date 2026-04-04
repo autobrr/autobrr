@@ -323,6 +323,7 @@ const schema = z.object({
 });
 
 export const FilterDetails = () => {
+  const { t } = useTranslation("filters");
   const navigate = useNavigate();
 
   const filterGetByIdRoute = getRouteApi("/auth/authenticated-routes/filters/$filterId");
@@ -343,8 +344,8 @@ export const FilterDetails = () => {
         }
       });
 
-      toast.custom((t) => (
-        <Toast type="success" body={`${newFilter.name} was updated successfully`} t={t} />
+      toast.custom((tst) => (
+        <Toast type="success" body={t("list.updated", {name: newFilter.name})} t={tst} />
       ));
     }
   });
@@ -356,8 +357,8 @@ export const FilterDetails = () => {
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
       queryClient.removeQueries({ queryKey: FilterKeys.detail(params.filterId) });
 
-      toast.custom((t) => (
-        <Toast type="success" body={`${filter?.name} was deleted`} t={t} />
+      toast.custom((tst) => (
+        <Toast type="success" body={t("list.deleted", {name: filter?.name})} t={tst} />
       ));
 
       // redirect
