@@ -75,7 +75,7 @@
     },
     "EXEC": {
       "label": "Exec",
-      "description": "Benutzerdefinierten Befehl nach Filterertreffer ausführen"
+      "description": "Benutzerdefinierten Befehl nach Filtertreffer ausführen"
     },
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -150,15 +150,15 @@
   "event": {
     "PUSH_REJECTED": {
       "label": "Push Abgelehnt",
-      "description": "Beim Push abgelehnt für die ARRs oder den Downloadclient"
+      "description": "Bei abgelehnten Pushes an die ARRs oder den Downloadclient"
     },
     "PUSH_APPROVED": {
       "label": "Push Angenommen",
-      "description": "Beim Push angenommen für die ARRs oder den Downloadclient"
+      "description": "Bei angenommen Pushes an die ARRs oder den Downloadclient"
     },
     "PUSH_ERROR": {
       "label": "Push Fehler",
-      "description": "Beim Pushfehler für die ARRs oder den Downloadclient"
+      "description": "Bei Fehlern beim Pushen an die ARRs oder den Downloadclient"
     },
     "IRC_DISCONNECTED": {
       "label": "IRC Getrennt",
@@ -173,7 +173,7 @@
       "description": "Über Updates benachrichtigt werden"
     },
     "RELEASE_NEW": {
-      "label": "Neues Release",
+      "label": "Neuer Release",
       "description": "Bei neuem Release vom Indexer (vor dem Filtern)"
     }
   }

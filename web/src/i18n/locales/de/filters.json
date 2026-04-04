@@ -174,10 +174,10 @@
     },
     "releases": {
       "title": "Releasenamen",
-      "subtitle": "Nur bestimmte Releasenamen filtern und/oder andere ignorieren.",
+      "subtitle": "Nur bestimmte Releasenamen filtern und/oder andere ausschließen.",
       "match": "Releases filtern",
       "matchPlaceholder": "z.B. *some?movie*,*some?show*s01*",
-      "except": "Releases ignorieren",
+      "except": "Releases ausschließen",
       "exceptPlaceholder": "z.B. *bad?movie*,*bad?show*s03*",
       "alert": "Frage dich selbst:",
       "matchWarning": "Hast du einen guten Grund, Releases zu filtern anstelle eines anderen Tabs zu verwenden?",
@@ -185,61 +185,61 @@
     },
     "groups": {
       "title": "Gruppen",
-      "subtitle": "Nur bestimmte Gruppen filtern und/oder andere ignorieren.",
+      "subtitle": "Nur bestimmte Gruppen filtern und/oder andere ausschließen.",
       "match": "Releasegruppen filtern",
       "matchPlaceholder": "z.B. gruppe1,gruppe2",
       "matchTooltip": "Durch Komma getrennte Liste von Releasegruppen zum Filtern.",
-      "except": "Releasegruppen ignorieren",
+      "except": "Releasegruppen ausschließen",
       "exceptPlaceholder": "z.B. schlechtegruppe1,schlechtegruppe2",
-      "exceptTooltip": "Durch Komma getrennte Liste von Releasegruppen zum Ignorieren (hat Vorrang vor Releases filtern)."
+      "exceptTooltip": "Durch Komma getrennte Liste von Releasegruppen die ausgeschlossen werden (hat Vorrang vor Releasegruppen filtern)."
     },
     "categories": {
       "title": "Kategorien",
-      "subtitle": "Kategorien filtern oder ignorieren (wenn angekündigt)",
+      "subtitle": "Kategorien filtern oder ausschließen (wenn angekündigt)",
       "match": "Kategorien filtern",
       "matchPlaceholder": "z.B. *kategorie*,kategorie1",
       "matchTooltip": "Durch Komma getrennte Liste von Kategorien zum Filtern.",
-      "except": "Kategorien ignorieren",
+      "except": "Kategorien ausschließen",
       "exceptPlaceholder": "z.B. *kategorie*",
-      "exceptTooltip": "Durch Komma getrennte Liste von Kategorien zum Ignorieren (hat Vorrang vor Releases filtern)."
+      "exceptTooltip": "Durch Komma getrennte Liste von Kategorien die ausgeschlossen werden (hat Vorrang vor Kategorien filtern)."
     },
     "tags": {
       "title": "Tags",
-      "subtitle": "Tags filtern oder ignorieren (wenn angekündigt)",
+      "subtitle": "Tags filtern oder ausschließen (wenn angekündigt)",
       "match": "Tags filtern",
       "matchPlaceholder": "z.B. tag1,tag2",
       "matchTooltip": "Durch Komma getrennte Liste von Tags zum Filtern.",
-      "matchLogic": "Trefferlogik",
+      "matchLogic": "Filterlogik",
       "matchLogicDefault": "beliebig",
-      "matchLogicTooltip": "Logik zum Filtern von Filtertags.",
-      "except": "Tags ignorieren",
+      "matchLogicTooltip": "Logik zum Filtern von Tags.",
+      "except": "Tags ausschließen",
       "exceptPlaceholder": "z.B. tag1,tag2",
-      "exceptTooltip": "Durch Komma getrennte Liste von Tags zum Ignorieren (hat Vorrang vor Releases filtern).",
+      "exceptTooltip": "Durch Komma getrennte Liste von Tags die ausgeschlossen werden (hat Vorrang vor Tags filtern).",
       "exceptLogic": "Ausschlusslogik",
       "exceptLogicDefault": "beliebig",
       "exceptLogicTooltip": "Logik zum Filtern von ausgeschlossenen Tags."
     },
     "uploaders": {
       "title": "Uploader",
-      "subtitle": "Uploader filtern oder ignorieren (wenn angekündigt)",
+      "subtitle": "Uploader filtern oder ausschließen (wenn angekündigt)",
       "match": "Uploader filtern",
       "matchPlaceholder": "z.B. uploader1,uploader2",
       "matchTooltip": "Durch Komma getrennte Liste von Uploadern zum Filtern.",
-      "except": "Uploader ignorieren",
+      "except": "Uploader ausschließen",
       "exceptPlaceholder": "z.B. anonym1,anonym2",
-      "exceptTooltip": "Durch Komma getrennte Liste von Uploadern zum Ignorieren (hat Vorrang vor Releases filtern)."
+      "exceptTooltip": "Durch Komma getrennte Liste von Uploadern die ausgeschlossen werden (hat Vorrang vor Uploader filtern)."
     },
     "language": {
       "title": "Sprache",
-      "subtitle": "Sprachen filtern oder ignorieren (wenn angekündigt)",
+      "subtitle": "Sprachen filtern oder ausschließen (wenn angekündigt)",
       "match": "Sprache filtern",
-      "except": "Sprache ignorieren"
+      "except": "Sprache ausschließen"
     },
     "origins": {
       "title": "Herkunft",
       "subtitle": "Internals, Scene, P2P usw. filtern (wenn angekündigt)",
       "match": "Herkunft filtern",
-      "except": "Herkunft ignorieren"
+      "except": "Herkunft ausschließen"
     },
     "freeleech": {
       "title": "Freeleech",
@@ -260,7 +260,7 @@
       "subtitle": "Diese Optionen gelten nur für Feeds wie RSS, Torznab und Newznab",
       "matchDescription": "Beschreibung filtern",
       "matchDescriptionPlaceholder": "z.B. *some?movie*,*some?show*s01*",
-      "exceptDescription": "Beschreibung ignorieren",
+      "exceptDescription": "Beschreibung ausschließen",
       "exceptDescriptionPlaceholder": "z.B. *bad?movie*,*bad?show*s03*",
       "minSeeders": "Min. Seeder",
       "maxSeeders": "Max. Seeder",
@@ -275,7 +275,7 @@
       "subtitleSuffix": "Dies ist der rohe releaseTags-String aus der Ankündigung.",
       "warning": "Dies ist möglicherweise nicht das, was du denkst. Für sehr fortgeschrittene Benutzer, die wissen, wie Dinge geparst werden.",
       "match": "Releasetags filtern",
-      "except": "Releasetags ignorieren",
+      "except": "Releasetags ausschließen",
       "placeholder": "z.B. *mkv*,*foreign*"
     }
   },
@@ -288,10 +288,10 @@
     "yearsTooltip": "Dieses Feld nimmt einen Jahresbereich und/oder durch Komma getrennte Einzeljahre.",
     "seasonEpisode": {
       "title": "Staffeln, Folgen und Datum",
-      "subtitle": "Staffel-, Folgen-, Jahr-, Monats- und Tagstreffer-Einschränkungen festlegen.",
+      "subtitle": "Staffel-, Folgen-, Jahr-, Monats- und Tagfilter-Einschränkungen festlegen.",
       "seasons": "Staffeln",
       "seasonsPlaceholder": "z.B. 1,3,2-6",
-      "seasonsTooltip": "Dokumentation für Informationen zum ausschließlichen Abrufen von Staffelpaketen:",
+      "seasonsTooltip": "Dokumentation für Informationen zum ausschließlichen Abrufen von ganzen Staffeln:",
       "episodes": "Folgen",
       "episodesPlaceholder": "z.B. 2,4,10-20",
       "episodesTooltip": "Dokumentation für Informationen zum ausschließlichen Abrufen von Folgen:",
@@ -307,7 +307,7 @@
     },
     "quality": {
       "title": "Qualität",
-      "subtitle": "Auflösung, Quelle, Codec und verwandte Treffereinschränkungen festlegen.",
+      "subtitle": "Auflösung, Quelle, Codec und verwandte Filtereinschränkungen festlegen.",
       "resolutions": "Auflösungen",
       "resolutionsTooltip": "Filtert Releases, die eine der ausgewählten Auflösungen enthalten.",
       "sources": "Quellen",
@@ -427,8 +427,8 @@
       "retryDelaySeconds": "Wiederholungsverzögerung in Sekunden"
     },
     "payload": {
-      "title": "Nutzdaten",
-      "subtitle": "JSON-Nutzdaten angeben",
+      "title": "Payload",
+      "subtitle": "JSON-Payload angeben",
       "data": "Daten (JSON)",
       "dataPlaceholder": "Anfragedaten: { \"key\": \"value\" }"
     }
@@ -491,7 +491,7 @@
       "endpoint": "Endpunkt",
       "endpointPlaceholder": "Host z.B. http://localhost/webhook",
       "endpointTooltip": "URL oder IP zu deiner API. Parameter übergeben und API-Token usw. festlegen.",
-      "payload": "Nutzdaten (JSON)",
+      "payload": "Payload (JSON)",
       "payloadPlaceholder": "Anfragedaten: { \"key\": \"value\" }"
     },
     "arr": {
