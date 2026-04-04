@@ -1,0 +1,229 @@
+{
+  "appName": "autobrr",
+  "nav": {
+    "dashboard": "Dashboard",
+    "filters": "Filter",
+    "releases": "Releases",
+    "settings": "Einstellungen",
+    "logs": "Protokolle",
+    "docs": "Dokumentation"
+  },
+  "userMenu": {
+    "account": "Konto",
+    "settings": "Einstellungen",
+    "logout": "Abmelden"
+  },
+  "forms": {
+    "chooseOption": "Option wählen"
+  },
+  "input": {
+    "invalidRegex": "Ungültiger regulärer Ausdruck"
+  },
+  "keyField": {
+    "show": "Anzeigen",
+    "copyToClipboard": "In Zwischenablage kopieren",
+    "copySuccess": "API-Schlüssel in Zwischenablage kopiert!",
+    "copyFailed": "API-Schlüssel konnte nicht kopiert werden."
+  },
+  "modal": {
+    "remove": "Entfernen",
+    "cancel": "Abbrechen",
+    "forceRun": "Erzwingen",
+    "confirmationPhrase": "Ich verstehe",
+    "forceRunPlaceholder": "Tippe '{{phrase}}' um den Button zu aktivieren"
+  },
+  "header": {
+    "logoutSuccess": "Du wurdest abgemeldet. Auf Wiedersehen!",
+    "openMainMenu": "Hauptmenü öffnen",
+    "newUpdateAvailable": "Neues Update verfügbar!",
+    "listRefreshFailed": "Listen-Aktualisierung fehlgeschlagen!",
+    "multipleListRefreshesFailed": "Mehrere Listen-Aktualisierungen fehlgeschlagen!"
+  },
+  "logs": {
+    "title": "Protokolle",
+    "filterPlaceholder": "Regex-Muster zum Filtern von Protokollen eingeben...",
+    "clearTitle": "Protokolle aus Ansicht löschen",
+    "cleared": "Protokolle aus Ansicht gelöscht.",
+    "filesTitle": "Protokolldateien",
+    "filesDescription": "Alte Protokolldateien herunterladen.",
+    "columns": {
+      "name": "Name",
+      "lastModified": "Zuletzt geändert",
+      "size": "Größe"
+    },
+    "noOldFiles": "Keine alten Protokolldateien",
+    "sanitizing": "Protokolldatei wird bereinigt. Bitte warten...",
+    "sanitizingShort": "Protokoll wird bereinigt...",
+    "downloadFile": "Datei herunterladen",
+    "options": {
+      "scrollOnNewMessage": "Bei neuer Nachricht nach unten scrollen",
+      "indentLogLines": "Protokollzeilen einrücken",
+      "indentLogLinesDescription": "Jede Protokollzeile entsprechend ihrer Startposition einrücken.",
+      "hideWrappedText": "Umgebrochenen Text ausblenden",
+      "hideWrappedTextDescription": "Blendet Text aus, der für den Umbruch vorgesehen ist."
+    }
+  },
+  "releaseTable": {
+    "noResults": "Keine Ergebnisse",
+    "error": "Fehler",
+    "details": "Details",
+    "downloadTorrent": "Torrent-Datei herunterladen",
+    "visitTorrentInfo": "Torrentinfo-URL besuchen",
+    "actionReplayed": "{{action}} wiederholt",
+    "retry": "Wiederholen",
+    "action": "Aktion",
+    "labels": {
+      "category": "Kategorie",
+      "size": "Größe",
+      "misc": "Sonstiges"
+    },
+    "columns": {
+      "age": "Alter",
+      "release": "Release",
+      "links": "Links",
+      "actions": "Aktionen",
+      "indexer": "Indexer"
+    },
+    "status": {
+      "error": "fehler",
+      "rejected": "abgelehnt",
+      "approved": "angenommen",
+      "pending": "ausstehend"
+    },
+    "fields": {
+      "release": "Release",
+      "indexer": "Indexer",
+      "protocol": "Protokoll",
+      "implementation": "Implementierung",
+      "announceType": "Ankündigungstyp",
+      "category": "Kategorie",
+      "uploader": "Uploader",
+      "size": "Größe",
+      "title": "Titel",
+      "year": "Jahr",
+      "season": "Staffel",
+      "episode": "Folge",
+      "resolution": "Auflösung",
+      "source": "Quelle",
+      "codec": "Codec",
+      "hdr": "HDR",
+      "group": "Gruppe",
+      "container": "Container",
+      "origin": "Herkunft",
+      "type": "Typ",
+      "client": "Client",
+      "filter": "Filter",
+      "time": "Zeit",
+      "rejected": "Abgelehnt"
+    },
+    "previous": "Zurück",
+    "next": "Weiter",
+    "prev": "Vor.",
+    "first": "Erste",
+    "last": "Letzte",
+    "itemsPerPage": "Einträge pro Seite",
+    "entries": "{{count}} Einträge",
+    "pageOf": "Seite {{page}} von {{total}}",
+    "pagination": "Seitennavigation",
+    "toggleView": "Ansicht wechseln",
+    "goIncognito": "Inkognito-Modus"
+  },
+  "releaseSearch": {
+    "title": "Releases",
+    "descriptionPrefix": "Die Suchmaschine verwendet eine spezielle Mustererkennungs-Engine zum Filtern von Ergebnissen. Bitte",
+    "clickHere": "hier klicken",
+    "descriptionSuffix": "für Tipps zum Abrufen relevanter Ergebnisse.",
+    "searchTips": "Suchtipps",
+    "wildcardIntro": "Du kannst <strong>2</strong> spezielle <highlight>Platzhalterzeichen</highlight> für die Mustererkennung verwenden.",
+    "percentRule": "- Prozent (<code1 />) – für das Treffen einer beliebigen <italic>Zeichenfolge</italic> (entspricht <code2 /> in Regex)",
+    "underscoreRule": "- Unterstrich (<code1 />) – für das Treffen eines einzelnen <italic>Zeichens</italic> (entspricht <code2 /> in Regex)",
+    "keywordFaceting": "Darüber hinaus unterstützt autobrr <highlight>Keyword-Facettierung</highlight>.",
+    "supportedKeywords": "Die unterstützten Schlüsselwörter sind: <category>category</category>, <codec>codec</codec>, <episode>episode</episode>, <filter>filter</filter>, <group>group</group>, <hdr>hdr</hdr>, <resolution>resolution</resolution>, <season>season</season>, <source>source</source>, <title>title</title> und <year>year</year>.",
+    "examples": "Beispiele:",
+    "exampleYearResolution": "alle 1080p aus dem Jahr 2022",
+    "exampleGroupHdr": "alle Dolby Vision Releases einer bestimmten Gruppe, z.B. Framestor",
+    "exampleMovieTitle": "alle Releases, die mit \"Filmtitel\" in 1080p beginnen",
+    "exampleShowEpisode": "alle Releases, die mit \"Die Serie\" beginnen und sich auf S05E03 beziehen",
+    "exampleCollectionSpace": "alle Releases, die \"collection hd\" enthalten – in derselben Reihenfolge – und mit einem Leerzeichen!",
+    "exampleCollectionWildcard": "alle Releases, die \"collection\" UND \"hd\" enthalten – in derselben Reihenfolge – aber mit einem Platzhalterzeichen dazwischen, z.B. einem Leerzeichen, Punkt oder einem anderen Zeichen",
+    "docsPrefix": "Wie immer empfehlen wir, unsere",
+    "docsLink": "Suchdokumentation",
+    "docsSuffix": "für aktuelle Beispiele und Informationen zu besuchen."
+  },
+  "releaseFilters": {
+    "all": "Alle",
+    "searchPlaceholder": "Releases suchen...",
+    "indexer": "Indexer",
+    "indexersCount": "{{count}} Indexer",
+    "clearSelection": "Auswahl aufheben",
+    "pushStatus": "Push-Status"
+  },
+  "activityTable": {
+    "title": "Letzte Aktivität",
+    "loading": "Laden...",
+    "noRecentActivity": "Keine letzte Aktivität",
+    "columns": {
+      "age": "Alter",
+      "release": "Release",
+      "actions": "Aktionen",
+      "indexer": "Indexer"
+    }
+  },
+  "dashboardStats": {
+    "title": "Statistiken",
+    "filteredReleases": "Gefilterte Releases",
+    "approvedPushes": "Angenommene Pushes",
+    "rejectedPushes": "Abgelehnte Pushes",
+    "erroredPushes": "Fehlerhafte Pushes"
+  },
+  "theme": {
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System",
+    "toggleLightToDark": "Heller Modus (klicken für dunkel)",
+    "toggleDarkToSystem": "Dunkler Modus (klicken für System)",
+    "toggleSystemToLight": "Systemmodus (klicken für hell)"
+  },
+  "language": {
+    "label": "Sprache",
+    "english": "Englisch",
+    "simplifiedChinese": "Vereinfachtes Chinesisch",
+    "german": "Deutsch"
+  },
+  "toast": {
+    "success": "Erfolg",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "info": "Info",
+    "close": "Schließen"
+  },
+  "warning": {
+    "defaultTitle": "Warnung!",
+    "srOnly": "Info"
+  },
+  "errorPage": {
+    "unrecoverable": "Ein nicht behebbarer Fehler ist aufgetreten!",
+    "offline": "Verbindung zu Autobrr fehlgeschlagen! Überprüfe den Anwendungsstatus und deine Netzwerkverbindung.",
+    "reportPrefix": "Bitte erwäge, diesen Fehler auf unserer",
+    "github": "GitHub-Seite",
+    "discord": "unserem offiziellen Discord-Kanal",
+    "reportMiddle": "oder auf",
+    "recoveryHint": "Du kannst versuchen, den Seitenstatus mit dem untenstehenden Button zurückzusetzen oder deine autobrr-Anwendung neu zu starten. Dies ist jedoch keine Garantie für eine Behebung des Fehlers.",
+    "reset": "Seitenstatus zurücksetzen"
+  },
+  "notFound": {
+    "status404": "404 Seite nicht gefunden",
+    "title": "Ups, da war wohl etwas zu viel brr!",
+    "bugPrefix": "Falls du denkst, dass dies eher ein Bug als zu viel brr ist,",
+    "reportPrefix": "kannst du dies gerne auf unserer",
+    "github": "GitHub-Seite",
+    "discord": "unserem offiziellen Discord-Kanal",
+    "reportMiddle": "oder auf",
+    "backOnTrack": "Lass uns dir andernfalls helfen, wieder auf Kurs für mehr brr zu kommen!",
+    "backToDashboard": "Zurück zum Dashboard",
+    "filterStatus404": "Status 404",
+    "filterTitlePrefix": "Filter mit ID",
+    "filterTitleSuffix": "nicht gefunden!",
+    "backToFilters": "Zurück zu den Filtern"
+  }
+}
