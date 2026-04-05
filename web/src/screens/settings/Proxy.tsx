@@ -66,15 +66,15 @@ function ListItem({ proxy }: ListItemProps) {
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
           <Checkbox value={proxy.enabled ?? false} setValue={onToggleMutation} />
         </div>
-        <div className="col-span-7 pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
+        <div className="col-span-7 pl-6 sm:pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
           {proxy.name}
         </div>
         <div className="hidden md:block col-span-2 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate">
           {proxy.type}
         </div>
-        <div className="col-span-2 flex first-letter:px-6 py-3 whitespace-nowrap justify-end text-sm font-medium">
+        <div className="col-span-3 sm:col-span-2 flex first-letter:px-6 py-3 whitespace-nowrap justify-end text-sm font-medium">
           <span
-            className="col-span-2 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
+            className="col-span-3 sm:col-span-2 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
             onClick={toggleUpdate}
           >
             {t("listScreens.common.edit")}
@@ -121,7 +121,7 @@ function ProxySettings() {
                 {/*<span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>*/}
               </div>
               <div
-                className="col-span-7 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="col-span-7 pl-6 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 // onClick={() => sortedIndexers.requestSort("name")}
               >
                 {t("listScreens.common.name")}
