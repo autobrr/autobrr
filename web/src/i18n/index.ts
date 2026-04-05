@@ -16,8 +16,13 @@ import commonRu from "./locales/ru/common.json";
 import optionsRu from "./locales/ru/options.json";
 import settingsRu from "./locales/ru/settings.json";
 import filtersRu from "./locales/ru/filters.json";
+import authDe from "./locales/de/auth.json";
+import commonDe from "./locales/de/common.json";
+import optionsDe from "./locales/de/options.json";
+import settingsDe from "./locales/de/settings.json";
+import filtersDe from "./locales/de/filters.json";
 
-export const supportedLanguages = ["en", "zh-CN", "ru"] as const;
+export const supportedLanguages = ["en", "zh-CN", "ru", "de"] as const;
 export type Language = (typeof supportedLanguages)[number];
 
 export const getInitialLanguage = (): Language => {
@@ -41,8 +46,12 @@ export const getInitialLanguage = (): Language => {
     return "zh-CN";
   }
 
-   if (window.navigator.language.toLowerCase().startsWith("ru")) {
+  if (window.navigator.language.toLowerCase().startsWith("ru")) {
     return "ru";
+  }
+  
+  if (window.navigator.language.toLowerCase().startsWith("de")) {
+    return "de";
   }
 
   return "en";
@@ -70,6 +79,13 @@ void i18n.use(initReactI18next).init({
       options: optionsRu,
       settings: settingsRu,
       filters: filtersRu
+    },
+    de: {
+      common: commonDe,
+      auth: authDe,
+      options: optionsDe,
+      settings: settingsDe,
+      filters: filtersDe
     }
   },
   lng: getInitialLanguage(),

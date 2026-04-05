@@ -188,7 +188,8 @@
     "label": "Language",
     "english": "English",
     "simplifiedChinese": "Simplified Chinese",
-    "russian": "Russian"
+    "russian": "Russian",
+    "german": "German"
   },
   "toast": {
     "success": "Success",

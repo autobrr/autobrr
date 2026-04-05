@@ -14,7 +14,10 @@ import { App } from "./App";
 import { InitializeGlobalContext } from "./utils/Context";
 
 declare global {
-    interface Window { APP: APP; }
+    interface Window {
+      APP: APP;
+      Buffer: typeof Buffer;
+    }
 }
 
 window.APP = window.APP || {};
