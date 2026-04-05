@@ -11,13 +11,18 @@ import commonZhCN from "./locales/zh-CN/common.json";
 import optionsZhCN from "./locales/zh-CN/options.json";
 import settingsZhCN from "./locales/zh-CN/settings.json";
 import filtersZhCN from "./locales/zh-CN/filters.json";
+import authDe from "./locales/de/auth.json";
+import commonDe from "./locales/de/common.json";
+import optionsDe from "./locales/de/options.json";
+import settingsDe from "./locales/de/settings.json";
+import filtersDe from "./locales/de/filters.json";
 import authEs from "./locales/es/auth.json";
 import commonEs from "./locales/es/common.json";
 import optionsEs from "./locales/es/options.json";
 import settingsEs from "./locales/es/settings.json";
 import filtersEs from "./locales/es/filters.json";
 
-export const supportedLanguages = ["en", "zh-CN", "es"] as const;
+export const supportedLanguages = ["en", "zh-CN", "de", "es"] as const;
 export type Language = (typeof supportedLanguages)[number];
 
 export const getInitialLanguage = (): Language => {
@@ -37,11 +42,20 @@ export const getInitialLanguage = (): Language => {
     }
   }
 
-  if (window.navigator.language.toLowerCase().startsWith("zh")) {
+  const lang = window.navigator.language.toLowerCase();
+  if (lang.startsWith("zh")) {
     return "zh-CN";
   }
 
-  if (window.navigator.language.toLowerCase().startsWith("es")) {
+  if (lang.startsWith("fr")) {
+    return "fr";
+  }
+
+  if (lang.startsWith("de")) {
+    return "de";
+  }
+
+  if (lang.startsWith("es")) {
     return "es";
   }
 
@@ -63,6 +77,13 @@ void i18n.use(initReactI18next).init({
       options: optionsZhCN,
       settings: settingsZhCN,
       filters: filtersZhCN
+    },
+    de: {
+      common: commonDe,
+      auth: authDe,
+      options: optionsDe,
+      settings: settingsDe,
+      filters: filtersDe
     },
     es: {
       common: commonEs,

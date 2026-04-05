@@ -8,7 +8,7 @@ import { newRidgeState } from "react-ridge-state";
 import { getInitialLanguage } from "@app/i18n";
 
 export type Theme = "light" | "dark" | "system";
-export type Language = "en" | "zh-CN" | "es";
+export type Language = "en" | "de" | "es" | "zh-CN";
 
 interface SettingsType {
   debug: boolean;
