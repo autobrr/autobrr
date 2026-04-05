@@ -446,7 +446,7 @@
       "savePathPlaceholder": "например, /full/path/to/download_folder",
       "numberNoLimit": "Принимает любое число (0 = без лимита)",
       "limitsTitle": "Лимиты",
-      "limitsSubtitle": "Настройте лимиты скорости/ratio/времени сидирования",
+      "limitsSubtitle": "Настройте лимиты скорости/ратио/времени сидирования",
       "limitDownloadKib": "Лимит скорости скачивания (KiB/s)",
       "limitUploadKib": "Лимит скорости отдачи (KiB/s)",
       "limitDownloadKb": "Лимит скорости скачивания (KB/s)",
