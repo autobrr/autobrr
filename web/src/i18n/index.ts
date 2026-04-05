@@ -47,10 +47,6 @@ export const getInitialLanguage = (): Language => {
     return "zh-CN";
   }
 
-  if (lang.startsWith("fr")) {
-    return "fr";
-  }
-
   if (lang.startsWith("de")) {
     return "de";
   }
