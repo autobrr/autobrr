@@ -388,7 +388,7 @@
     "remove": "Удалить внешний",
     "close": "Закрыть",
     "types": {
-      "EXEC": "Exec",
+      "EXEC": "Выполнение",
       "WEBHOOK": "Webhook"
     },
     "onErrorOptions": {
