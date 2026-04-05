@@ -188,7 +188,8 @@
     "label": "Sprache",
     "english": "Englisch",
     "simplifiedChinese": "Vereinfachtes Chinesisch",
-    "german": "Deutsch"
+    "german": "Deutsch",
+    "french": "Französisch"
   },
   "toast": {
     "success": "Erfolg",
