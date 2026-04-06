@@ -258,7 +258,7 @@ func (h *Handler) Run() (err error) {
 
 			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
 			if !ok {
-				return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
+				return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
 			}
 
 			client.DialContext = proxyContextDialer.DialContext

@@ -78,9 +78,6 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	// Send CONNECT request with additional headers for better compatibility
 	connectReq := fmt.Sprintf("CONNECT %s HTTP/1.1\r\n", addr)
 	connectReq += fmt.Sprintf("Host: %s\r\n", addr)
-	connectReq += "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\n"
-	connectReq += "Proxy-Connection: Keep-Alive\r\n"
-	connectReq += "Connection: Keep-Alive\r\n"
 
 	// Add proxy authentication if provided
 	if d.proxyURL.User != nil {
