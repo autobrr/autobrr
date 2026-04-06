@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -910,6 +911,21 @@ func (h *Handler) sendConnectCommands(msg string) error {
 
 		// if there's an extra , (comma) the command will be empty so lets skip that
 		if cmd == "" {
+			continue
+		}
+
+		if strings.HasPrefix(cmd, "/sleep") {
+			parts := strings.SplitN(cmd, " ", 2)
+			if len(parts) < 2 {
+				h.log.Warn().Msgf("sleep command missing duration: %s", cmd)
+				continue
+			}
+			secs, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+			if err != nil {
+				h.log.Error().Err(err).Msgf("error parsing sleep command: %s", cmd)
+				continue
+			}
+			time.Sleep(time.Duration(secs) * time.Second)
 			continue
 		}
 
