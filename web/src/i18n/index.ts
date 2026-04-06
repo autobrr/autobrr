@@ -11,6 +11,11 @@ import commonZhCN from "./locales/zh-CN/common.json";
 import optionsZhCN from "./locales/zh-CN/options.json";
 import settingsZhCN from "./locales/zh-CN/settings.json";
 import filtersZhCN from "./locales/zh-CN/filters.json";
+import authRu from "./locales/ru/auth.json";
+import commonRu from "./locales/ru/common.json";
+import optionsRu from "./locales/ru/options.json";
+import settingsRu from "./locales/ru/settings.json";
+import filtersRu from "./locales/ru/filters.json";
 import authDe from "./locales/de/auth.json";
 import commonDe from "./locales/de/common.json";
 import optionsDe from "./locales/de/options.json";
@@ -22,7 +27,7 @@ import optionsFr from "./locales/fr/options.json";
 import settingsFr from "./locales/fr/settings.json";
 import filtersFr from "./locales/fr/filters.json";
 
-export const supportedLanguages = ["en", "de", "fr", "zh-CN"] as const;
+export const supportedLanguages = ["en", "de", "fr", "ru", "zh-CN"] as const;
 export type Language = (typeof supportedLanguages)[number];
 
 export const getInitialLanguage = (): Language => {
@@ -50,6 +55,10 @@ export const getInitialLanguage = (): Language => {
     return "fr";
   }
 
+  if (lang.startsWith("ru")) {
+    return "ru";
+  }
+  
   if (lang.startsWith("de")) {
     return "de";
   }
@@ -72,6 +81,13 @@ void i18n.use(initReactI18next).init({
       options: optionsZhCN,
       settings: settingsZhCN,
       filters: filtersZhCN
+    },
+    ru: {
+      common: commonRu,
+      auth: authRu,
+      options: optionsRu,
+      settings: settingsRu,
+      filters: filtersRu
     },
     de: {
       common: commonDe,

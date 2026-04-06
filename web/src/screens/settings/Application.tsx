@@ -192,6 +192,7 @@ function ApplicationSettings() {
             <option value="en">{t("common:language.english")}</option>
             <option value="de">{t("common:language.german")}</option>
             <option value="fr">{t("common:language.french")}</option>
+            <option value="ru">{t("common:language.russian")}</option>
             <option value="zh-CN">{t("common:language.simplifiedChinese")}</option>
           </select>
           </div>
