@@ -26,8 +26,13 @@ import commonFr from "./locales/fr/common.json";
 import optionsFr from "./locales/fr/options.json";
 import settingsFr from "./locales/fr/settings.json";
 import filtersFr from "./locales/fr/filters.json";
+import authEs from "./locales/es/auth.json";
+import commonEs from "./locales/es/common.json";
+import optionsEs from "./locales/es/options.json";
+import settingsEs from "./locales/es/settings.json";
+import filtersEs from "./locales/es/filters.json";
 
-export const supportedLanguages = ["en", "de", "fr", "ru", "zh-CN"] as const;
+export const supportedLanguages = ["en", "de", "es", "fr", "ru", "zh-CN"] as const;
 export type Language = (typeof supportedLanguages)[number];
 
 export const getInitialLanguage = (): Language => {
@@ -61,6 +66,10 @@ export const getInitialLanguage = (): Language => {
   
   if (lang.startsWith("de")) {
     return "de";
+  }
+
+  if (lang.startsWith("es")) {
+    return "es";
   }
 
   return "en";
@@ -102,6 +111,13 @@ void i18n.use(initReactI18next).init({
       options: optionsFr,
       settings: settingsFr,
       filters: filtersFr
+    },
+    es: {
+      common: commonEs,
+      auth: authEs,
+      options: optionsEs,
+      settings: settingsEs,
+      filters: filtersEs
     }
   },
   lng: getInitialLanguage(),
