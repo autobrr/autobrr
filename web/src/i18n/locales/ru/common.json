@@ -1,0 +1,232 @@
+{
+  "appName": "autobrr",
+  "nav": {
+    "dashboard": "Дашборд",
+    "filters": "Фильтры",
+    "releases": "Релизы",
+    "settings": "Настройки",
+    "logs": "Логи",
+    "docs": "Документация"
+  },
+  "userMenu": {
+    "account": "Аккаунт",
+    "settings": "Настройки",
+    "logout": "Выйти"
+  },
+  "forms": {
+    "chooseOption": "Выберите опцию"
+  },
+  "input": {
+    "invalidRegex": "Неверное регулярное выражение"
+  },
+  "keyField": {
+    "show": "Показать",
+    "copyToClipboard": "Скопировать",
+    "copySuccess": "API-ключ скопирован!",
+    "copyFailed": "Не удалось скопировать API-ключ."
+  },
+  "modal": {
+    "remove": "Удалить",
+    "cancel": "Отмена",
+    "forceRun": "Принудительный запуск",
+    "confirmationPhrase": "Я понимаю",
+    "forceRunPlaceholder": "Введите '{{phrase}}' для активации кнопки"
+  },
+  "header": {
+    "logoutSuccess": "Вы вышли из системы. До свидания!",
+    "openMainMenu": "Открыть главное меню",
+    "newUpdateAvailable": "Доступно новое обновление!",
+    "listRefreshFailed": "Ошибка обновления списка!",
+    "multipleListRefreshesFailed": "Ошибка обновления нескольких списков!"
+  },
+  "logs": {
+    "title": "Логи",
+    "filterPlaceholder": "Введите регулярное выражение для фильтрации логов...",
+    "clearTitle": "Очистить логи с экрана",
+    "cleared": "Логи очищены.",
+    "filesTitle": "Файлы логов",
+    "filesDescription": "Скачать старые файлы логов.",
+    "columns": {
+      "name": "Имя",
+      "lastModified": "Последнее изменение",
+      "size": "Размер"
+    },
+    "noOldFiles": "Нет старых файлов логов",
+    "sanitizing": "Файл логов очищается от приватных данных. Пожалуйста, подождите...",
+    "sanitizingShort": "Очистка лога...",
+    "downloadFile": "Скачать файл",
+    "options": {
+      "scrollOnNewMessage": "Прокручивать вниз при новом сообщении",
+      "indentLogLines": "Делать отступы в строках логов",
+      "indentLogLinesDescription": "Делать отступ для каждой строки лога в соответствии с её начальной позицией.",
+      "hideWrappedText": "Скрывать перенесенный текст",
+      "hideWrappedTextDescription": "Скрывает текст, который должен быть перенесен на новую строку."
+    }
+  },
+  "releaseTable": {
+    "noResults": "Нет результатов",
+    "error": "Ошибка",
+    "details": "Детали",
+    "downloadTorrent": "Скачать торрент-файл",
+    "visitTorrentInfo": "Перейти на страницу торрента",
+    "actionReplayed": "{{action}} выполнено повторно",
+    "retry": "Повторить",
+    "action": "Действие",
+    "labels": {
+      "category": "Категория",
+      "size": "Размер",
+      "misc": "Разное"
+    },
+    "columns": {
+      "age": "Возраст",
+      "release": "Релиз",
+      "links": "Ссылки",
+      "actions": "Действия",
+      "indexer": "Индексатор"
+    },
+    "status": {
+      "error": "ошибка",
+      "rejected": "отклонено",
+      "approved": "одобрено",
+      "pending": "в ожидании"
+    },
+    "fields": {
+      "release": "Релиз",
+      "indexer": "Индексатор",
+      "protocol": "Протокол",
+      "implementation": "Имплементация",
+      "announceType": "Тип анонса",
+      "category": "Категория",
+      "uploader": "Аплоадер",
+      "size": "Размер",
+      "title": "Название",
+      "year": "Год",
+      "season": "Сезон",
+      "episode": "Эпизод",
+      "resolution": "Разрешение",
+      "source": "Источник",
+      "codec": "Кодек",
+      "hdr": "HDR",
+      "group": "Релиз-группа",
+      "container": "Контейнер",
+      "origin": "Происхождение",
+      "type": "Тип",
+      "client": "Клиент",
+      "filter": "Фильтр",
+      "time": "Время",
+      "rejected": "Причина отказа"
+    },
+    "previous": "Назад",
+    "next": "Вперед",
+    "prev": "Пред",
+    "first": "Первая",
+    "last": "Последняя",
+    "itemsPerPage": "Элементов на странице",
+    "entries": "{{count}} записей",
+    "pageOf": "Страница {{page}} из {{total}}",
+    "pagination": "Пагинация",
+    "toggleView": "Переключить вид",
+    "goIncognito": "Режим инкогнито"
+  },
+  "releaseSearch": {
+    "title": "Релизы",
+    "descriptionPrefix": "Поисковая система использует специальный движок сопоставления шаблонов для фильтрации результатов. Пожалуйста,",
+    "clickHere": "нажмите здесь",
+    "descriptionSuffix": ", чтобы получить советы по эффективному поиску.",
+    "searchTips": "Советы по поиску",
+    "wildcardIntro": "Вы можете использовать <strong>2</strong> специальных <highlight>символа подстановки (wildcards)</highlight> для поиска по шаблону.",
+    "percentRule": "- Знак процента (<code1 />) — для совпадения с любой <italic>последовательностью</italic> символов (эквивалентно <code2 /> в Regex)",
+    "underscoreRule": "- Подчеркивание (<code1 />) — для совпадения с любым <italic>одним</italic> символом (эквивалентно <code2 /> в Regex)",
+    "keywordFaceting": "Кроме того, autobrr поддерживает <highlight>фасетный поиск по ключевым словам</highlight>.",
+    "supportedKeywords": "Поддерживаемые ключевые слова: <category>category</category>, <codec>codec</codec>, <episode>episode</episode>, <filter>filter</filter>, <group>group</group>, <hdr>hdr</hdr>, <resolution>resolution</resolution>, <season>season</season>, <source>source</source>, <title>title</title> и <year>year</year>.",
+    "examples": "Примеры:",
+    "exampleYearResolution": "все релизы 1080p за 2022 год",
+    "exampleGroupHdr": "все релизы с Dolby Vision от определенной группы, например Framestor",
+    "exampleMovieTitle": "все релизы, начинающиеся с \"Movie Title\" в 1080p",
+    "exampleShowEpisode": "все релизы, начинающиеся с \"The Show\", относящиеся к S05E03",
+    "exampleCollectionSpace": "все релизы, содержащие \"collection hd\" — в таком же порядке — и с пробелом!",
+    "exampleCollectionWildcard": "все релизы, содержащие \"collection\" И \"hd\" — в таком же порядке — но с любым символом между ними, например пробелом, точкой или другим",
+    "docsPrefix": "Как всегда, обращайтесь к нашей",
+    "docsLink": "документации по функции поиска",
+    "docsSuffix": ", чтобы быть в курсе последних примеров и информации."
+  },
+  "releaseFilters": {
+    "all": "Все",
+    "searchPlaceholder": "Поиск релизов...",
+    "indexer": "Индексатор",
+    "indexersCount": "Индексаторов: {{count}}",
+    "clearSelection": "Очистить выбор",
+    "pushStatus": "Статус отправки"
+  },
+  "activityTable": {
+    "title": "Последняя активность",
+    "loading": "Загрузка...",
+    "noRecentActivity": "Нет недавней активности",
+    "columns": {
+      "age": "Возраст",
+      "release": "Релиз",
+      "actions": "Действия",
+      "indexer": "Индексатор"
+    }
+  },
+  "dashboardStats": {
+    "title": "Статистика",
+    "filteredReleases": "Отфильтрованные релизы",
+    "approvedPushes": "Одобренные отправки",
+    "rejectedPushes": "Отклоненные отправки",
+    "erroredPushes": "Отправки с ошибкой"
+  },
+  "theme": {
+    "light": "Светлая",
+    "dark": "Темная",
+    "system": "Системная",
+    "toggleLightToDark": "Светлая тема (нажмите для темной)",
+    "toggleDarkToSystem": "Темная тема (нажмите для системной)",
+    "toggleSystemToLight": "Системная тема (нажмите для светлой)"
+  },
+  "language": {
+    "label": "Язык",
+    "english": "English",
+    "simplifiedChinese": "简体中文",
+    "german": "Немецкий",
+    "french": "Французский",
+    "russian": "Русский",
+    "spanish": "Испанский"
+  },
+  "toast": {
+    "success": "Успешно",
+    "error": "Ошибка",
+    "warning": "Предупреждение",
+    "info": "Информация",
+    "close": "Закрыть"
+  },
+  "warning": {
+    "defaultTitle": "Предупреждение!",
+    "srOnly": "Информация"
+  },
+  "errorPage": {
+    "unrecoverable": "Произошла критическая ошибка!",
+    "offline": "Связь с Autobrr потеряна! Проверьте состояние приложения и подключение к сети.",
+    "reportPrefix": "Пожалуйста, сообщите об этой ошибке на нашей",
+    "github": "странице GitHub",
+    "discord": "или в официальном канале Discord",
+    "reportMiddle": "или",
+    "recoveryHint": "Вы можете попытаться сбросить состояние страницы с помощью кнопки ниже или перезапустить приложение autobrr. Однако это не гарантирует исправление ошибки.",
+    "reset": "Сбросить состояние страницы"
+  },
+  "notFound": {
+    "status404": "404 Страница не найдена",
+    "title": "Ой, кажется, здесь слишком много brr!",
+    "bugPrefix": "Если вы считаете, что это баг, а не переизбыток brr,",
+    "reportPrefix": "не стесняйтесь сообщить об этом на нашей",
+    "github": "странице GitHub",
+    "discord": "в нашем официальном канале Discord",
+    "reportMiddle": "или",
+    "backOnTrack": "В противном случае, позвольте нам помочь вам вернуться в строй для новых brr!",
+    "backToDashboard": "Вернуться на Дашборд",
+    "filterStatus404": "Статус 404",
+    "filterTitlePrefix": "Фильтр с id",
+    "filterTitleSuffix": "не найден!",
+    "backToFilters": "Вернуться к фильтрам"
+  }
+}

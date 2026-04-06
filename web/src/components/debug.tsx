@@ -13,7 +13,7 @@ interface DebugProps {
 export const DEBUG: FC<DebugProps> = ({ values }) => {
   const settings = SettingsContext.useValue();
 
-  if (process.env.NODE_ENV !== "development" || !settings.debug) {
+  if (!import.meta.env.DEV || !settings.debug) {
     return null;
   }
 
@@ -25,7 +25,7 @@ export const DEBUG: FC<DebugProps> = ({ values }) => {
 };
 
 export function LogDebug(...data: any[]): void {
-  if (process.env.NODE_ENV !== "development") {
+  if (!import.meta.env.DEV) {
     return;
   }
 

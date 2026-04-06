@@ -8,6 +8,7 @@ import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
+import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 
@@ -19,6 +20,7 @@ import { AuthContext, SettingsContext, isDarkTheme } from "@utils/Context";
 import type { Theme } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
+  const { t } = useTranslation("common");
   const [settings, setSettings] = SettingsContext.use();
   const auth = AuthContext.get();
 
@@ -35,9 +37,9 @@ export const RightNav = (props: RightNavProps) => {
   };
 
   const themeLabels: Record<Theme, string> = {
-    light: "Light mode (click for dark)",
-    dark: "Dark mode (click for system)",
-    system: "System mode (click for light)"
+    light: t("theme.toggleLightToDark"),
+    dark: t("theme.toggleDarkToSystem"),
+    system: t("theme.toggleSystemToLight")
   };
 
   const toggleTheme = () => {
@@ -131,7 +133,7 @@ export const RightNav = (props: RightNavProps) => {
                           className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
                           aria-hidden="true"
                         />
-                        Account
+                        {t("userMenu.account")}
                       </Link>
                     )}
                   </MenuItem>
@@ -150,7 +152,7 @@ export const RightNav = (props: RightNavProps) => {
                           className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
                           aria-hidden="true"
                         />
-                        Settings
+                        {t("userMenu.settings")}
                       </Link>
                     )}
                   </MenuItem>
@@ -172,7 +174,7 @@ export const RightNav = (props: RightNavProps) => {
                           className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
                           aria-hidden="true"
                         />
-                        Log out
+                        {t("userMenu.logout")}
                       </button>
                     )}
                   </MenuItem>

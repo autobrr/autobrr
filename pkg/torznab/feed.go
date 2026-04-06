@@ -63,7 +63,7 @@ type FeedItem struct {
 	ProwlarrIndexer *ProwlarrIndexer `xml:"prowlarrindexer,omitempty"`
 	JackettIndexer  *JackettIndexer  `xml:"jackettindexer,omitempty"`
 	Comments        string           `xml:"comments"`
-	Size            int64            `xml:"size"`
+	Size            uint64           `xml:"size"`
 	Link            string           `xml:"link"`
 	Enclosure       *Enclosure       `xml:"enclosure,omitempty"`
 	Category        []int            `xml:"category,omitempty"`

@@ -1,0 +1,232 @@
+{
+  "appName": "autobrr",
+  "nav": {
+    "dashboard": "仪表盘",
+    "filters": "过滤器",
+    "releases": "发布",
+    "settings": "设置",
+    "logs": "日志",
+    "docs": "文档"
+  },
+  "userMenu": {
+    "account": "账户",
+    "settings": "设置",
+    "logout": "退出登录"
+  },
+  "forms": {
+    "chooseOption": "请选择一个选项"
+  },
+  "input": {
+    "invalidRegex": "无效的正则表达式"
+  },
+  "keyField": {
+    "show": "显示",
+    "copyToClipboard": "复制到剪贴板",
+    "copySuccess": "API 密钥已复制到剪贴板！",
+    "copyFailed": "复制 API 密钥失败。"
+  },
+  "modal": {
+    "remove": "移除",
+    "cancel": "取消",
+    "forceRun": "强制运行",
+    "confirmationPhrase": "我已了解",
+    "forceRunPlaceholder": "输入“{{phrase}}”以启用按钮"
+  },
+  "header": {
+    "logoutSuccess": "你已退出登录。再见！",
+    "openMainMenu": "打开主菜单",
+    "newUpdateAvailable": "发现新版本更新！",
+    "listRefreshFailed": "列表刷新失败！",
+    "multipleListRefreshesFailed": "多个列表刷新失败！"
+  },
+  "logs": {
+    "title": "日志",
+    "filterPlaceholder": "输入正则表达式以筛选日志...",
+    "clearTitle": "从当前视图清空日志",
+    "cleared": "日志已从当前视图清空。",
+    "filesTitle": "日志文件",
+    "filesDescription": "下载旧日志文件。",
+    "columns": {
+      "name": "名称",
+      "lastModified": "最后修改时间",
+      "size": "大小"
+    },
+    "noOldFiles": "没有旧日志文件",
+    "sanitizing": "日志文件正在清洗处理中，请稍候...",
+    "sanitizingShort": "正在处理日志...",
+    "downloadFile": "下载文件",
+    "options": {
+      "scrollOnNewMessage": "收到新消息时滚动到底部",
+      "indentLogLines": "缩进日志行",
+      "indentLogLinesDescription": "根据各自的起始位置缩进每一行日志。",
+      "hideWrappedText": "隐藏换行文本",
+      "hideWrappedTextDescription": "隐藏原本会自动换行显示的文本。"
+    }
+  },
+  "releaseTable": {
+    "noResults": "没有结果",
+    "error": "错误",
+    "details": "详情",
+    "downloadTorrent": "下载种子文件",
+    "visitTorrentInfo": "访问种子详情页",
+    "actionReplayed": "{{action}} 已重试执行",
+    "retry": "重试",
+    "action": "动作",
+    "labels": {
+      "category": "分类",
+      "size": "大小",
+      "misc": "其他"
+    },
+    "columns": {
+      "age": "时间",
+      "release": "发布",
+      "links": "链接",
+      "actions": "动作",
+      "indexer": "索引器"
+    },
+    "status": {
+      "error": "错误",
+      "rejected": "拒绝",
+      "approved": "通过",
+      "pending": "等待中"
+    },
+    "fields": {
+      "release": "发布",
+      "indexer": "索引器",
+      "protocol": "协议",
+      "implementation": "实现",
+      "announceType": "通告类型",
+      "category": "分类",
+      "uploader": "上传者",
+      "size": "大小",
+      "title": "标题",
+      "year": "年份",
+      "season": "季",
+      "episode": "集",
+      "resolution": "分辨率",
+      "source": "来源",
+      "codec": "编码",
+      "hdr": "HDR",
+      "group": "小组",
+      "container": "容器",
+      "origin": "来源站点",
+      "type": "类型",
+      "client": "客户端",
+      "filter": "过滤器",
+      "time": "时间",
+      "rejected": "拒绝原因"
+    },
+    "previous": "上一页",
+    "next": "下一页",
+    "prev": "上一页",
+    "first": "第一页",
+    "last": "最后一页",
+    "itemsPerPage": "每页条数",
+    "entries": "{{count}} 条",
+    "pageOf": "第 {{page}} 页，共 {{total}} 页",
+    "pagination": "分页",
+    "toggleView": "切换视图",
+    "goIncognito": "进入匿名模式"
+  },
+  "releaseSearch": {
+    "title": "发布",
+    "descriptionPrefix": "搜索引擎使用了一套特殊的模式匹配机制来过滤结果。请",
+    "clickHere": "点击这里",
+    "descriptionSuffix": "查看一些帮助你得到更相关结果的搜索提示。",
+    "searchTips": "搜索提示",
+    "wildcardIntro": "你可以使用 <strong>2</strong> 个特殊的 <highlight>通配符</highlight> 来进行模式匹配。",
+    "percentRule": "- 百分号（<code1 />）用于匹配任意<italic>字符序列</italic>（等价于正则中的 <code2 />）",
+    "underscoreRule": "- 下划线（<code1 />）用于匹配任意<italic>单个</italic>字符（等价于正则中的 <code2 />）",
+    "keywordFaceting": "此外，autobrr 还支持 <highlight>关键字分面搜索</highlight>。",
+    "supportedKeywords": "支持的关键字包括：<category>category</category>、<codec>codec</codec>、<episode>episode</episode>、<filter>filter</filter>、<group>group</group>、<hdr>hdr</hdr>、<resolution>resolution</resolution>、<season>season</season>、<source>source</source>、<title>title</title> 和 <year>year</year>。",
+    "examples": "示例：",
+    "exampleYearResolution": "匹配 2022 年的所有 1080p 发布",
+    "exampleGroupHdr": "匹配某个小组发布的所有 Dolby Vision 资源，例如 Framestor",
+    "exampleMovieTitle": "匹配所有以 “Movie Title” 开头且分辨率为 1080p 的发布",
+    "exampleShowEpisode": "匹配所有以 “The Show” 开头且对应 S05E03 的发布",
+    "exampleCollectionSpace": "匹配所有包含 “collection hd” 且顺序一致、并且中间是空格的发布",
+    "exampleCollectionWildcard": "匹配所有同时包含 “collection” 和 “hd” 且顺序一致，但两者之间可以有通配字符的发布，例如空格、点号或其他任意字符",
+    "docsPrefix": "和往常一样，请参考我们的",
+    "docsLink": "搜索功能使用说明",
+    "docsSuffix": "文档页面，以获取最新的示例和说明。"
+  },
+  "releaseFilters": {
+    "all": "全部",
+    "searchPlaceholder": "搜索发布...",
+    "indexer": "索引器",
+    "indexersCount": "{{count}} 个索引器",
+    "clearSelection": "清除选择",
+    "pushStatus": "推送状态"
+  },
+  "activityTable": {
+    "title": "最近活动",
+    "loading": "加载中...",
+    "noRecentActivity": "暂无最近活动",
+    "columns": {
+      "age": "时间",
+      "release": "发布",
+      "actions": "动作",
+      "indexer": "索引器"
+    }
+  },
+  "dashboardStats": {
+    "title": "统计",
+    "filteredReleases": "已过滤的发布",
+    "approvedPushes": "已通过推送",
+    "rejectedPushes": "已拒绝推送",
+    "erroredPushes": "出错的推送"
+  },
+  "theme": {
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统",
+    "toggleLightToDark": "浅色模式（点击切换到深色）",
+    "toggleDarkToSystem": "深色模式（点击切换到跟随系统）",
+    "toggleSystemToLight": "跟随系统（点击切换到浅色）"
+  },
+  "language": {
+    "label": "语言",
+    "english": "English",
+    "simplifiedChinese": "简体中文",
+    "german": "德语",
+    "french": "法语",
+    "russian": "Русский",
+    "spanish": "Español"
+  },
+  "toast": {
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告",
+    "info": "提示",
+    "close": "关闭"
+  },
+  "warning": {
+    "defaultTitle": "警告！",
+    "srOnly": "提示"
+  },
+  "errorPage": {
+    "unrecoverable": "捕获到一个无法恢复的错误！",
+    "offline": "无法连接到 Autobrr。请检查应用状态和网络连接。",
+    "reportPrefix": "如果你愿意，请将这个错误反馈到我们的",
+    "github": "GitHub 页面",
+    "discord": "官方 Discord 频道",
+    "reportMiddle": "或",
+    "recoveryHint": "你可以尝试使用下面的按钮重置页面状态，或者重启 autobrr 应用。但这不能保证一定修复该错误。",
+    "reset": "重置页面状态"
+  },
+  "notFound": {
+    "status404": "404 页面未找到",
+    "title": "糟糕，看起来有点 brr 过头了！",
+    "bugPrefix": "如果你觉得这更像是一个 bug，而不是 brr 太多，",
+    "reportPrefix": "欢迎反馈到我们的",
+    "github": "GitHub 页面",
+    "discord": "官方 Discord 频道",
+    "reportMiddle": "或",
+    "backOnTrack": "否则，就让我们帮你回到正轨，继续愉快地 brr 吧！",
+    "backToDashboard": "返回仪表盘",
+    "filterStatus404": "状态 404",
+    "filterTitlePrefix": "未找到 ID 为",
+    "filterTitleSuffix": "的过滤器！",
+    "backToFilters": "返回过滤器"
+  }
+}

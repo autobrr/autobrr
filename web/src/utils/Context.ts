@@ -5,12 +5,15 @@
 
 import type { StateWithValue } from "react-ridge-state";
 import { newRidgeState } from "react-ridge-state";
+import { getInitialLanguage } from "@app/i18n";
 
 export type Theme = "light" | "dark" | "system";
+export type Language = "en" | "de" | "fr" | "es" | "ru" | "zh-CN";
 
 interface SettingsType {
   debug: boolean;
   theme: Theme;
+  language: Language;
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
   hideWrappedText: boolean;
@@ -50,6 +53,7 @@ const AuthContextDefaults: AuthInfo = {
 const SettingsContextDefaults: SettingsType = {
   debug: false,
   theme: "system",
+  language: getInitialLanguage(),
   scrollOnNewLog: false,
   indentLogLines: false,
   hideWrappedText: false,

@@ -1,0 +1,232 @@
+{
+  "appName": "autobrr",
+  "nav": {
+    "dashboard": "Dashboard",
+    "filters": "Filters",
+    "releases": "Releases",
+    "settings": "Settings",
+    "logs": "Logs",
+    "docs": "Docs"
+  },
+  "userMenu": {
+    "account": "Account",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "forms": {
+    "chooseOption": "Choose an option"
+  },
+  "input": {
+    "invalidRegex": "Invalid regex"
+  },
+  "keyField": {
+    "show": "Show",
+    "copyToClipboard": "Copy to clipboard",
+    "copySuccess": "API key copied to clipboard!",
+    "copyFailed": "Failed to copy API key."
+  },
+  "modal": {
+    "remove": "Remove",
+    "cancel": "Cancel",
+    "forceRun": "Force Run",
+    "confirmationPhrase": "I understand",
+    "forceRunPlaceholder": "Type '{{phrase}}' to enable the button"
+  },
+  "header": {
+    "logoutSuccess": "You have been logged out. Goodbye!",
+    "openMainMenu": "Open main menu",
+    "newUpdateAvailable": "New update available!",
+    "listRefreshFailed": "List refresh failed!",
+    "multipleListRefreshesFailed": "Multiple list refreshes failed!"
+  },
+  "logs": {
+    "title": "Logs",
+    "filterPlaceholder": "Enter a regex pattern to filter logs by...",
+    "clearTitle": "Clear logs from view",
+    "cleared": "Logs cleared from view.",
+    "filesTitle": "Log files",
+    "filesDescription": "Download old log files.",
+    "columns": {
+      "name": "Name",
+      "lastModified": "Last modified",
+      "size": "Size"
+    },
+    "noOldFiles": "No old log files",
+    "sanitizing": "Log file is being sanitized. Please wait...",
+    "sanitizingShort": "Sanitizing log...",
+    "downloadFile": "Download file",
+    "options": {
+      "scrollOnNewMessage": "Scroll to bottom on new message",
+      "indentLogLines": "Indent log lines",
+      "indentLogLinesDescription": "Indent each log line according to their respective starting position.",
+      "hideWrappedText": "Hide wrapped text",
+      "hideWrappedTextDescription": "Hides text that is meant to be wrapped."
+    }
+  },
+  "releaseTable": {
+    "noResults": "No results",
+    "error": "Error",
+    "details": "Details",
+    "downloadTorrent": "Download torrent file",
+    "visitTorrentInfo": "Visit torrentinfo URL",
+    "actionReplayed": "{{action}} replayed",
+    "retry": "Retry",
+    "action": "Action",
+    "labels": {
+      "category": "Category",
+      "size": "Size",
+      "misc": "Misc"
+    },
+    "columns": {
+      "age": "Age",
+      "release": "Release",
+      "links": "Links",
+      "actions": "Actions",
+      "indexer": "Indexer"
+    },
+    "status": {
+      "error": "error",
+      "rejected": "rejected",
+      "approved": "approved",
+      "pending": "pending"
+    },
+    "fields": {
+      "release": "Release",
+      "indexer": "Indexer",
+      "protocol": "Protocol",
+      "implementation": "Implementation",
+      "announceType": "Announce Type",
+      "category": "Category",
+      "uploader": "Uploader",
+      "size": "Size",
+      "title": "Title",
+      "year": "Year",
+      "season": "Season",
+      "episode": "Episode",
+      "resolution": "Resolution",
+      "source": "Source",
+      "codec": "Codec",
+      "hdr": "HDR",
+      "group": "Group",
+      "container": "Container",
+      "origin": "Origin",
+      "type": "Type",
+      "client": "Client",
+      "filter": "Filter",
+      "time": "Time",
+      "rejected": "Rejected"
+    },
+    "previous": "Previous",
+    "next": "Next",
+    "prev": "Prev",
+    "first": "First",
+    "last": "Last",
+    "itemsPerPage": "Items Per Page",
+    "entries": "{{count}} entries",
+    "pageOf": "Page {{page}} of {{total}}",
+    "pagination": "Pagination",
+    "toggleView": "Toggle view",
+    "goIncognito": "Go incognito"
+  },
+  "releaseSearch": {
+    "title": "Releases",
+    "descriptionPrefix": "The search engine uses a special pattern-matching engine to filter out results. Please",
+    "clickHere": "click here",
+    "descriptionSuffix": "to get tips on how to get relevant results.",
+    "searchTips": "Search tips",
+    "wildcardIntro": "You can use <strong>2</strong> special <highlight>wildcard characters</highlight> for the purpose of pattern matching.",
+    "percentRule": "- Percent (<code1 />) - for matching any <italic>sequence</italic> of characters (equivalent to <code2 /> in Regex)",
+    "underscoreRule": "- Underscore (<code1 />) - for matching any <italic>single</italic> character (equivalent to <code2 /> in Regex)",
+    "keywordFaceting": "Additionally, autobrr supports <highlight>keyword faceting</highlight>.",
+    "supportedKeywords": "The supported keywords are: <category>category</category>, <codec>codec</codec>, <episode>episode</episode>, <filter>filter</filter>, <group>group</group>, <hdr>hdr</hdr>, <resolution>resolution</resolution>, <season>season</season>, <source>source</source>, <title>title</title> and <year>year</year>.",
+    "examples": "Examples:",
+    "exampleYearResolution": "all 1080p from the year 2022",
+    "exampleGroupHdr": "all Dolby Vision releases by a certain group, e.g. Framestor",
+    "exampleMovieTitle": "all releases starting with \"Movie Title\" in 1080p",
+    "exampleShowEpisode": "all releases starting with \"The Show\" related to S05E03",
+    "exampleCollectionSpace": "all releases containing \"collection hd\" - in the same order - and with a space!",
+    "exampleCollectionWildcard": "all releases containing \"collection\" AND \"hd\" - in the same order - but with a wildcard character in between, e.g. a space OR a dot OR any other character",
+    "docsPrefix": "As always, please refer to our",
+    "docsLink": "Search function usage",
+    "docsSuffix": "documentation page to keep up with the latest examples and information."
+  },
+  "releaseFilters": {
+    "all": "All",
+    "searchPlaceholder": "Search releases...",
+    "indexer": "Indexer",
+    "indexersCount": "{{count}} indexers",
+    "clearSelection": "Clear selection",
+    "pushStatus": "Push status"
+  },
+  "activityTable": {
+    "title": "Recent activity",
+    "loading": "Loading...",
+    "noRecentActivity": "No recent activity",
+    "columns": {
+      "age": "Age",
+      "release": "Release",
+      "actions": "Actions",
+      "indexer": "Indexer"
+    }
+  },
+  "dashboardStats": {
+    "title": "Stats",
+    "filteredReleases": "Filtered Releases",
+    "approvedPushes": "Approved Pushes",
+    "rejectedPushes": "Rejected Pushes",
+    "erroredPushes": "Errored Pushes"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "toggleLightToDark": "Light mode (click for dark)",
+    "toggleDarkToSystem": "Dark mode (click for system)",
+    "toggleSystemToLight": "System mode (click for light)"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "simplifiedChinese": "Simplified Chinese",
+    "german": "German",
+    "french": "French",
+    "russian": "Russian",
+    "spanish": "Spanish"
+  },
+  "toast": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info",
+    "close": "Close"
+  },
+  "warning": {
+    "defaultTitle": "Warning!",
+    "srOnly": "Info"
+  },
+  "errorPage": {
+    "unrecoverable": "We caught an unrecoverable error!",
+    "offline": "Connection to Autobrr failed! Check the application state and verify your connectivity.",
+    "reportPrefix": "Please consider reporting this error to our",
+    "github": "GitHub page",
+    "discord": "our official Discord channel",
+    "reportMiddle": "or to",
+    "recoveryHint": "You can try resetting the page state using the button provided below or restarting your autobrr application. However, this is not guaranteed to fix the error.",
+    "reset": "Reset page state"
+  },
+  "notFound": {
+    "status404": "404 Page not found",
+    "title": "Oops, looks like there was a little too much brr!",
+    "bugPrefix": "In case you think this is a bug rather than too much brr,",
+    "reportPrefix": "feel free to report this to our",
+    "github": "GitHub page",
+    "discord": "our official Discord channel",
+    "reportMiddle": "or to",
+    "backOnTrack": "Otherwise, let us help you to get you back on track for more brr!",
+    "backToDashboard": "Back to Dashboard",
+    "filterStatus404": "Status 404",
+    "filterTitlePrefix": "Filter with id",
+    "filterTitleSuffix": "not found!",
+    "backToFilters": "Back to filters"
+  }
+}

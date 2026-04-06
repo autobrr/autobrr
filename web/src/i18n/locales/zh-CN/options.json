@@ -1,0 +1,180 @@
+{
+  "announceType": {
+    "NEW": "新发布",
+    "CHECKED": "已检查",
+    "PROMO": "促销",
+    "PROMO_GP": "促销 GP",
+    "RESURRECTED": "复活"
+  },
+  "downloadClient": {
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "直接添加种子到 qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "直接添加种子到 Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge 2",
+      "description": "直接添加种子到 Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "直接添加种子到 rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "直接添加种子到 Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "直接添加种子到 Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "发送到 Radarr，由它决定如何处理"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "发送到 Sonarr，由它决定如何处理"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "发送到 Lidarr，由它决定如何处理"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "发送到 Whisparr，由它决定如何处理"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "发送到 Readarr，由它决定如何处理"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "直接添加 nzb 到 SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "直接添加 nzb 到 NZBGet"
+    }
+  },
+  "actionType": {
+    "TEST": {
+      "label": "测试",
+      "description": "用于测试过滤器的简单动作。"
+    },
+    "WATCH_FOLDER": {
+      "label": "监视目录",
+      "description": "将过滤后的种子添加到监视目录"
+    },
+    "WEBHOOK": {
+      "label": "Webhook",
+      "description": "运行 webhook"
+    },
+    "EXEC": {
+      "label": "Exec",
+      "description": "在过滤器命中后运行自定义命令"
+    },
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "直接添加种子到 qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "直接添加种子到 Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge v2",
+      "description": "直接添加种子到 Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "直接添加种子到 rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "直接添加种子到 Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "直接添加种子到 Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "发送到 Radarr，由它决定如何处理"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "发送到 Sonarr，由它决定如何处理"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "发送到 Lidarr，由它决定如何处理"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "发送到 Whisparr，由它决定如何处理"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "发送到 Readarr，由它决定如何处理"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "添加到 SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "添加到 NZBGet"
+    }
+  },
+  "pushStatus": {
+    "PUSH_REJECTED": "已拒绝",
+    "PUSH_APPROVED": "已批准",
+    "PENDING": "待处理",
+    "PUSH_ERROR": "错误"
+  },
+  "notificationType": {
+    "DISCORD": "Discord",
+    "GOTIFY": "Gotify",
+    "LUNASEA": "LunaSea",
+    "NOTIFIARR": "Notifiarr",
+    "NTFY": "Ntfy",
+    "PUSHOVER": "Pushover",
+    "SHOUTRRR": "Shoutrrr",
+    "TELEGRAM": "Telegram",
+    "WEBHOOK": "Webhook"
+  },
+  "event": {
+    "PUSH_REJECTED": {
+      "label": "推送被拒绝",
+      "description": "当 arr 或下载客户端下载时推送被拒绝"
+    },
+    "PUSH_APPROVED": {
+      "label": "推送已批准",
+      "description": "当 arr 或下载客户端推送被批准"
+    },
+    "PUSH_ERROR": {
+      "label": "推送错误",
+      "description": "当 arr 或下载客户端推送时发生错误"
+    },
+    "IRC_DISCONNECTED": {
+      "label": "IRC 已断开",
+      "description": "意外从 IRC 网络断开连接"
+    },
+    "IRC_RECONNECTED": {
+      "label": "IRC 已重连",
+      "description": "出错后重新连接到 IRC 网络"
+    },
+    "APP_UPDATE_AVAILABLE": {
+      "label": "发现新更新",
+      "description": "在有更新时通知"
+    },
+    "RELEASE_NEW": {
+      "label": "新发布",
+      "description": "当索引器有新发布时通知（过滤前）"
+    }
+  }
+}

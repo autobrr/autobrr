@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch, useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
   useReactTable,
   getCoreRowModel,
@@ -42,7 +43,9 @@ declare module '@tanstack/react-table' {
   }
 }
 
-const EmptyReleaseList = () => (
+const EmptyReleaseList = () => {
+  const { t } = useTranslation("common");
+  return (
   <div
     className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
     <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
@@ -57,10 +60,11 @@ const EmptyReleaseList = () => (
       </thead>
     </table>
     <div className="flex items-center justify-center py-52">
-      <EmptyListState text="No results"/>
+      <EmptyListState text={t("releaseTable.noResults")}/>
     </div>
   </div>
-);
+  );
+};
 
 function Filter({ column }: { column: Column<Release, unknown> }) {
   const { filterVariant } = column.columnDef.meta ?? {}
@@ -81,6 +85,7 @@ function Filter({ column }: { column: Column<Release, unknown> }) {
 }
 
 export const ReleaseTable = () => {
+  const { t } = useTranslation("common");
   const search = useSearch({
     from: "/auth/authenticated-routes/releases" as const,
   });
@@ -146,12 +151,12 @@ export const ReleaseTable = () => {
 
   const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
     {
-      header: "Age",
+      header: t("releaseTable.columns.age"),
       accessorKey: "timestamp",
       cell: AgeCell
     },
     {
-      header: "Release",
+      header: t("releaseTable.columns.release"),
       accessorKey: "name",
       cell: NameCell,
       meta: {
@@ -159,13 +164,13 @@ export const ReleaseTable = () => {
       },
     },
     {
-      header: "Links",
+      header: t("releaseTable.columns.links"),
       accessorFn: (row) => ({ download_url: row.download_url, info_url: row.info_url }),
       id: "links",
       cell: LinksCell
     },
     {
-      header: "Actions",
+      header: t("releaseTable.columns.actions"),
       accessorKey: "action_status",
       cell: ReleaseStatusCell,
       meta: {
@@ -173,14 +178,14 @@ export const ReleaseTable = () => {
       },
     },
     {
-      header: "Indexer",
+      header: t("releaseTable.columns.indexer"),
       accessorKey: "indexer.identifier",
       cell: IndexerCell,
       meta: {
         filterVariant: 'indexerSelect',
       },
     }
-  ], []);
+  ], [t]);
 
   const {
     isLoading,
@@ -265,7 +270,7 @@ export const ReleaseTable = () => {
   // }))
 
   if (error) {
-    return <p>Error</p>;
+    return <p>{t("releaseTable.error")}</p>;
   }
 
   if (isLoading) {
@@ -373,17 +378,19 @@ export const ReleaseTable = () => {
               {/* Pagination */}
               <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between flex-1 sm:hidden">
-                  <TableButton onClick={() => tableInstance.previousPage()} disabled={!tableInstance.getCanPreviousPage()}>Previous</TableButton>
-                  <TableButton onClick={() => tableInstance.nextPage()} disabled={!tableInstance.getCanNextPage()}>Next</TableButton>
+                  <TableButton onClick={() => tableInstance.previousPage()} disabled={!tableInstance.getCanPreviousPage()}>{t("releaseTable.previous")}</TableButton>
+                  <TableButton onClick={() => tableInstance.nextPage()} disabled={!tableInstance.getCanNextPage()}>{t("releaseTable.next")}</TableButton>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div className="flex items-baseline gap-x-2">
                   <span className="text-sm text-gray-700 dark:text-gray-500">
-                  Page <span className="font-medium">{tableInstance.getState().pagination.pageIndex + 1}</span> of <span
-                    className="font-medium">{tableInstance.getPageCount()}</span>
+                  {t("releaseTable.pageOf", {
+                    page: tableInstance.getState().pagination.pageIndex + 1,
+                    total: tableInstance.getPageCount()
+                  })}
                   </span>
                     <label>
-                      <span className="sr-only bg-gray-700">Items Per Page</span>
+                      <span className="sr-only bg-gray-700">{t("releaseTable.itemsPerPage")}</span>
                       <select
                         className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-xs cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50"
                         value={tableInstance.getState().pagination.pageSize}
@@ -393,20 +400,20 @@ export const ReleaseTable = () => {
                       >
                         {[5, 10, 20, 50].map(pageSize => (
                           <option key={pageSize} value={pageSize}>
-                            {pageSize} entries
+                            {t("releaseTable.entries", { count: pageSize })}
                           </option>
                         ))}
                       </select>
                     </label>
                   </div>
                   <div>
-                    <nav className="inline-flex -space-x-px rounded-md shadow-xs" aria-label="Pagination">
+                    <nav className="inline-flex -space-x-px rounded-md shadow-xs" aria-label={t("releaseTable.pagination")}>
                       <TablePageButton
                         className="rounded-l-md"
                         onClick={() => tableInstance.firstPage()}
                         disabled={!tableInstance.getCanPreviousPage()}
                       >
-                        <span className="sr-only">First</span>
+                        <span className="sr-only">{t("releaseTable.first")}</span>
                         <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true"/>
                       </TablePageButton>
                       <TablePageButton
@@ -415,13 +422,13 @@ export const ReleaseTable = () => {
                         disabled={!tableInstance.getCanPreviousPage()}
                       >
                         <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true"/>
-                        <span>Prev</span>
+                        <span>{t("releaseTable.prev")}</span>
                       </TablePageButton>
                       <TablePageButton
-                        className="pl-2 pr-1"
-                        onClick={() => tableInstance.nextPage()}
-                        disabled={!tableInstance.getCanNextPage()}>
-                        <span>Next</span>
+                      className="pl-2 pr-1"
+                      onClick={() => tableInstance.nextPage()}
+                      disabled={!tableInstance.getCanNextPage()}>
+                        <span>{t("releaseTable.next")}</span>
                         <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true"/>
                       </TablePageButton>
                       <TablePageButton
@@ -430,7 +437,7 @@ export const ReleaseTable = () => {
                         disabled={!tableInstance.getCanNextPage()}
                       >
                         <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true"/>
-                        <span className="sr-only">Last</span>
+                        <span className="sr-only">{t("releaseTable.last")}</span>
                       </TablePageButton>
                     </nav>
                   </div>
@@ -441,8 +448,8 @@ export const ReleaseTable = () => {
                 <button
                   onClick={toggleReleaseNames}
                   className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
-                  aria-label="Toggle view"
-                  title="Go incognito"
+                  aria-label={t("releaseTable.toggleView")}
+                  title={t("releaseTable.goIncognito")}
                 >
                   {settings.incognitoMode ? (
                     <EyeIcon className="h-4 w-4"/>

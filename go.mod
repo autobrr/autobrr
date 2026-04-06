@@ -15,7 +15,7 @@ require (
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/anacrolix/torrent v1.61.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/autobrr/go-deluge v1.3.0
+	github.com/autobrr/go-deluge v1.4.0
 	github.com/autobrr/go-qbittorrent v1.15.0-rc1
 	github.com/autobrr/go-rtorrent v1.12.0
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -24,18 +24,18 @@ require (
 	github.com/coreos/go-oidc/v3 v3.17.0
 	github.com/dcarbone/zadapters/zstdlog v1.1.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/ergochat/irc-go v0.5.0
-	github.com/fergusstrange/embedded-postgres v1.33.0
+	github.com/ergochat/irc-go v0.6.0
+	github.com/fergusstrange/embedded-postgres v1.34.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/go-andiamo/splitter v1.2.5
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
 	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
-	github.com/hashicorp/go-version v1.8.0
+	github.com/hashicorp/go-version v1.9.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	github.com/icholy/digest v1.1.0
-	github.com/lib/pq v1.11.2
+	github.com/lib/pq v1.12.2
 	github.com/magiconair/properties v1.8.10
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/moistari/rls v0.6.0
@@ -44,22 +44,22 @@ require (
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.11.1
-	github.com/rs/zerolog v1.34.0
-	github.com/sasha-s/go-deadlock v0.3.6
+	github.com/rs/zerolog v1.35.0
+	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.48.0
-	golang.org/x/net v0.51.0
-	golang.org/x/oauth2 v0.35.0
-	golang.org/x/sync v0.19.0
-	golang.org/x/term v0.40.0
-	golang.org/x/text v0.34.0
-	golang.org/x/time v0.14.0
+	golang.org/x/crypto v0.49.0
+	golang.org/x/net v0.52.0
+	golang.org/x/oauth2 v0.36.0
+	golang.org/x/sync v0.20.0
+	golang.org/x/term v0.41.0
+	golang.org/x/text v0.35.0
+	golang.org/x/time v0.15.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.46.1
+	modernc.org/sqlite v1.48.1
 )
 
 require (
@@ -88,7 +88,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -121,11 +121,11 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20251113190631-e25ba8c21ef6 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
-	modernc.org/libc v1.67.6 // indirect
+	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )

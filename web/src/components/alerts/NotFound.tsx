@@ -4,52 +4,55 @@
  */
 
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { ExternalLink } from "@components/ExternalLink";
 
 import Logo from "@app/logo.svg?react";
 
 export const NotFound = () => {
+  const { t } = useTranslation("common");
+
   return (
     <div className="min-h-screen flex flex-col justify-center ">
       <div className="flex justify-center">
         <Logo className="h-24 sm:h-48"/>
       </div>
       <h2 className="text-2xl text-center font-bold text-gray-900 dark:text-gray-200 my-8 px-2">
-        404 Page not found
+        {t("notFound.status404")}
       </h2>
       <h1 className="text-3xl text-center font-bold text-gray-900 dark:text-gray-200 my-8 px-2">
-        Oops, looks like there was a little too much brr!
+        {t("notFound.title")}
       </h1>
       <h3 className="text-xl text-center text-gray-700 dark:text-gray-400 mb-1 px-2">
-        In case you think this is a bug rather than too much brr,
+        {t("notFound.bugPrefix")}
       </h3>
       <h3 className="text-xl text-center text-gray-700 dark:text-gray-400 mb-1 px-2">
-        feel free to report this to our
+        {t("notFound.reportPrefix")}
         {" "}
         <ExternalLink
           href="https://github.com/autobrr/autobrr"
           className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
         >
-          GitHub page
+          {t("notFound.github")}
         </ExternalLink>
-        {" or to "}
+        {" "}{t("notFound.reportMiddle")}{" "}
         <ExternalLink
           href="https://discord.autobrr.com"
           className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
         >
-          our official Discord channel
+          {t("notFound.discord")}
         </ExternalLink>
         .
       </h3>
       <h3 className="text-xl text-center leading-6 text-gray-700 dark:text-gray-400 mb-8 px-2">
-        Otherwise, let us help you to get you back on track for more brr!
+        {t("notFound.backOnTrack")}
       </h3>
       <div className="flex justify-center">
         <Link to="/">
           <button
             className="w-48 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
           >
-            Back to Dashboard
+            {t("notFound.backToDashboard")}
           </button>
         </Link>
       </div>
