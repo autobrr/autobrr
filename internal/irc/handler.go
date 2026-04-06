@@ -925,6 +925,7 @@ func (h *Handler) sendConnectCommands(msg string) error {
 				h.log.Error().Err(err).Msgf("error parsing sleep command: %s", cmd)
 				continue
 			}
+			h.log.Debug().Msgf("sleeping for %d seconds: %s", secs, cmd)
 			time.Sleep(time.Duration(secs) * time.Second)
 			continue
 		}
