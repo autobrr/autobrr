@@ -29,7 +29,8 @@ type oidcService interface {
 	VerifyIDToken(ctx context.Context, idToken string) (*oidc.IDToken, error)
 	GetEndpoint() oauth2.Endpoint
 	OAuthExchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error)
-	OauthAuthCodeURL(state string) string
+	OauthAuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string
+	SupportsPKCE() bool
 }
 
 type OIDCConfig struct {
@@ -103,7 +104,7 @@ func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	h.log.Debug().Bool("enabled", config.Enabled).Str("authorization_url", config.AuthorizationURL).Str("state", config.State).Msg("returning OIDC config")
 
 	// Only set state cookie if user is not already authenticated
-	h.SetStateCookie(w, r, config.State)
+	h.SetStateCookie(w, r, config.State, config.PKCEVerifier)
 
 	h.encoder.StatusResponse(w, http.StatusOK, config)
 }
@@ -129,6 +130,10 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	// Clear the state from session after successful validation
 	h.sessionManager.Remove(r.Context(), "oidc_state")
 
+	// Retrieve and clear the PKCE verifier stored during the authorization request
+	pkceVerifier := h.sessionManager.GetString(r.Context(), "oidc_pkce_verifier")
+	h.sessionManager.Remove(r.Context(), "oidc_pkce_verifier")
+
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		h.log.Error().Msg("authorization code is missing from callback request")
@@ -136,7 +141,12 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oauth2Token, err := h.oidcService.OAuthExchange(r.Context(), code)
+	var exchangeOpts []oauth2.AuthCodeOption
+	if pkceVerifier != "" {
+		exchangeOpts = append(exchangeOpts, oauth2.VerifierOption(pkceVerifier))
+	}
+
+	oauth2Token, err := h.oidcService.OAuthExchange(r.Context(), code, exchangeOpts...)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to exchange token"))
@@ -277,13 +287,21 @@ type GetConfigResponse struct {
 	Enabled             bool   `json:"enabled"`
 	AuthorizationURL    string `json:"authorizationUrl"`
 	State               string `json:"state"`
+	PKCEVerifier        string `json:"pkceVerifier"`
 	DisableBuiltInLogin bool   `json:"disableBuiltInLogin"`
 	IssuerURL           string `json:"issuerUrl"`
 }
 
 func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 	state := generateRandomState()
-	authURL := h.oidcService.OauthAuthCodeURL(state)
+
+	var authURL, verifier string
+	if h.oidcService.SupportsPKCE() {
+		verifier = oauth2.GenerateVerifier()
+		authURL = h.oidcService.OauthAuthCodeURL(state, oauth2.S256ChallengeOption(verifier))
+	} else {
+		authURL = h.oidcService.OauthAuthCodeURL(state)
+	}
 
 	h.log.Debug().Bool("enabled", h.oidcConfig.Enabled).Str("authorization_url", authURL).Str("state", state).Bool("disable_built_in_login", h.oidcConfig.DisableBuiltInLogin).Str("issuer_url", h.oidcConfig.Issuer).Msg("returning OIDC oidcConfig response")
 
@@ -291,6 +309,7 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 		Enabled:             h.oidcConfig.Enabled,
 		AuthorizationURL:    authURL,
 		State:               state,
+		PKCEVerifier:        verifier,
 		DisableBuiltInLogin: h.oidcConfig.DisableBuiltInLogin,
 		IssuerURL:           h.oidcConfig.Issuer,
 	}
@@ -299,9 +318,10 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 // SetStateCookie sets a secure cookie containing the OIDC state parameter.
 // The state parameter is verified when the OAuth provider redirects back to our callback.
 // Short expiration ensures the authentication flow must be completed in a reasonable timeframe.
-func (h *OIDCHandler) SetStateCookie(_ http.ResponseWriter, r *http.Request, state string) {
-	// Store the state in the session for later validation
+func (h *OIDCHandler) SetStateCookie(_ http.ResponseWriter, r *http.Request, state, pkceVerifier string) {
+	// Store the state and PKCE verifier in the session for later validation
 	h.sessionManager.Put(r.Context(), "oidc_state", state)
+	h.sessionManager.Put(r.Context(), "oidc_pkce_verifier", pkceVerifier)
 
-	h.log.Debug().Str("state", state).Msg("stored OIDC state in session")
+	h.log.Debug().Str("state", state).Msg("stored OIDC state and PKCE verifier in session")
 }

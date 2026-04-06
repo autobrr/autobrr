@@ -219,13 +219,27 @@ func (s *OIDCService) OAuthExchange(ctx context.Context, code string, opts ...oa
 	return s.oauthConfig.Exchange(ctx, code, opts...)
 }
 
-func (s *OIDCService) OauthAuthCodeURL(state string) string {
-	return s.oauthConfig.AuthCodeURL(state)
+func (s *OIDCService) OauthAuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
+	return s.oauthConfig.AuthCodeURL(state, opts...)
 }
 
 type Claims struct {
-	AuthURL  string `json:"authorization_endpoint"`
-	TokenURL string `json:"token_endpoint"`
-	JWKSURL  string `json:"jwks_uri"`
-	UserURL  string `json:"userinfo_endpoint"`
+	AuthURL        string   `json:"authorization_endpoint"`
+	TokenURL       string   `json:"token_endpoint"`
+	JWKSURL        string   `json:"jwks_uri"`
+	UserURL        string   `json:"userinfo_endpoint"`
+	CodeChallenges []string `json:"code_challenge_methods_supported"`
+}
+
+func (s *OIDCService) SupportsPKCE() bool {
+	var claims Claims
+	if err := s.provider.Claims(&claims); err != nil {
+		return false
+	}
+	for _, method := range claims.CodeChallenges {
+		if method == "S256" {
+			return true
+		}
+	}
+	return false
 }
