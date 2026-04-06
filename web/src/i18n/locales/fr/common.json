@@ -22,7 +22,7 @@
   "keyField": {
     "show": "Afficher",
     "copyToClipboard": "Copier dans le presse-papiers",
-    "copySuccess": "Clé API copiée dans le presse-papiers !",
+    "copySuccess": "Clé API copiée dans le presse-papiers!",
     "copyFailed": "Échec de la copie de la clé API."
   },
   "modal": {
@@ -33,15 +33,15 @@
     "forceRunPlaceholder": "Tape '{{phrase}}' pour activer le bouton"
   },
   "header": {
-    "logoutSuccess": "Tu as été déconnecté. Au revoir !",
+    "logoutSuccess": "Tu as été déconnecté. Au revoir!",
     "openMainMenu": "Ouvrir le menu principal",
-    "newUpdateAvailable": "Nouvelle mise à jour disponible !",
-    "listRefreshFailed": "Échec de l'actualisation de la liste !",
-    "multipleListRefreshesFailed": "Plusieurs actualisations de listes ont échoué !"
+    "newUpdateAvailable": "Nouvelle mise à jour disponible!",
+    "listRefreshFailed": "Échec de l'actualisation de la liste!",
+    "multipleListRefreshesFailed": "Plusieurs actualisations de listes ont échoué!"
   },
   "logs": {
     "title": "Journaux",
-    "filterPlaceholder": "Entrer un motif regex pour filtrer les journaux...",
+    "filterPlaceholder": "Saisissez une expression régulière pour filtrer les journaux par...",
     "clearTitle": "Effacer les journaux de la vue",
     "cleared": "Journaux effacés de la vue.",
     "filesTitle": "Fichiers journaux",
@@ -52,8 +52,8 @@
       "size": "Taille"
     },
     "noOldFiles": "Aucun ancien fichier journal",
-    "sanitizing": "Le fichier journal est en cours d'assainissement. Veuillez patienter...",
-    "sanitizingShort": "Assainissement du journal...",
+    "sanitizing": "Le fichier journal est en cours de nettoyage. Veuillez patienter...",
+    "sanitizingShort": "Nettoyage du journal...",
     "downloadFile": "Télécharger le fichier",
     "options": {
       "scrollOnNewMessage": "Défiler vers le bas lors d'un nouveau message",
@@ -97,7 +97,7 @@
       "implementation": "Implémentation",
       "announceType": "Type d'annonce",
       "category": "Catégorie",
-      "uploader": "Téléverseur",
+      "uploader": "Uploadeur",
       "size": "Taille",
       "title": "Titre",
       "year": "Année",
@@ -199,12 +199,12 @@
     "close": "Fermer"
   },
   "warning": {
-    "defaultTitle": "Avertissement !",
+    "defaultTitle": "Avertissement!",
     "srOnly": "Info"
   },
   "errorPage": {
-    "unrecoverable": "Une erreur irrécupérable s'est produite !",
-    "offline": "La connexion à Autobrr a échoué ! Vérifie l'état de l'application et ta connectivité.",
+    "unrecoverable": "Une erreur irrécupérable s'est produite!",
+    "offline": "La connexion à Autobrr a échoué! Vérifie l'état de l'application et ta connectivité.",
     "reportPrefix": "Pense à signaler cette erreur sur notre",
     "github": "page GitHub",
     "discord": "canal Discord officiel",
@@ -214,17 +214,17 @@
   },
   "notFound": {
     "status404": "404 Page introuvable",
-    "title": "Oups, il y a eu un peu trop de brr !",
+    "title": "Oups, il y a eu un peu trop de brr!",
     "bugPrefix": "Si tu penses que c'est un bug plutôt que trop de brr,",
     "reportPrefix": "n'hésite pas à le signaler sur notre",
     "github": "page GitHub",
     "discord": "canal Discord officiel",
     "reportMiddle": "ou sur",
-    "backOnTrack": "Sinon, laisse-nous t'aider à te remettre sur la bonne voie pour plus de brr !",
+    "backOnTrack": "Sinon, laisse-nous t'aider à te remettre sur la bonne voie pour plus de brr!",
     "backToDashboard": "Retour au tableau de bord",
     "filterStatus404": "Statut 404",
     "filterTitlePrefix": "Filtre avec l'id",
-    "filterTitleSuffix": "introuvable !",
+    "filterTitleSuffix": "introuvable!",
     "backToFilters": "Retour aux filtres"
   }
 }

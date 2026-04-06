@@ -162,7 +162,7 @@
     },
     "IRC_DISCONNECTED": {
       "label": "IRC déconnecté",
-      "description": "Déconnecté inopinément du réseau IRC"
+      "description": "Déconnexion inattendue du réseau IRC"
     },
     "IRC_RECONNECTED": {
       "label": "IRC reconnecté",
