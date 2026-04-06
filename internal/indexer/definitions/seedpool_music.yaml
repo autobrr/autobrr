@@ -93,7 +93,7 @@ irc:
             torrentSize: 459.02 MiB
             origin: ""
             freeleech: ""
-        pattern: '^【 (?:(.*?)? )?(\w+) 】 (.*?) (?:〔(\w+)?.*?〕 )?჻ (.*?)@(https:\/\/.*?\/)torrents/(\d+) ჻ (.*?)(?: ჻ (iNTERNAL))?(?: ჻ (★))?\s*$'
+        pattern: '^【 (?:(.*?)? )?(\w+) 】 (.*?) (?:〔(\w+)?.*?〕 )?჻   (.*?)@(https:\/\/.*?\/)torrents/(\d+) ჻ (.*?)(?: ჻ (iNTERNAL))?(?: ჻ (★))?\s*$'
         vars:
           - tags
           - category
