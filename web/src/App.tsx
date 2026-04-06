@@ -8,9 +8,10 @@ import { RouterProvider } from "@tanstack/react-router"
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@components/hot-toast";
 import { Router } from "@app/routes";
+import i18n from "@app/i18n";
 import { routerBasePath } from "@utils";
 import { queryClient } from "@api/QueryClient";
-import { SettingsContext } from "@utils/Context";
+import { SettingsContext, isDarkTheme } from "@utils/Context";
 import { Portal } from "@components/portal";
 
 declare module '@tanstack/react-router' {
@@ -20,17 +21,27 @@ declare module '@tanstack/react-router' {
 }
 
 export function App() {
-  const [ , setSettings] = SettingsContext.use();
+  const settings = SettingsContext.useValue();
 
   useEffect(() => {
-    const themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleThemeChange = (e: MediaQueryListEvent) => {
-      setSettings(prevState => ({ ...prevState, darkTheme: e.matches }));
+    const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleThemeChange = () => {
+      const settings = SettingsContext.get();
+      if (settings.theme === "system") {
+        // Re-apply theme when OS preference changes
+        const dark = isDarkTheme("system");
+        document.documentElement.classList.toggle("dark", dark);
+      }
     };
 
-    themeMediaQuery.addEventListener('change', handleThemeChange);
-    return () => themeMediaQuery.removeEventListener('change', handleThemeChange);
-  }, [setSettings]);
+    themeMediaQuery.addEventListener("change", handleThemeChange);
+    return () => themeMediaQuery.removeEventListener("change", handleThemeChange);
+  }, []);
+
+  useEffect(() => {
+    void i18n.changeLanguage(settings.language);
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
 
   return (
     <QueryClientProvider client={queryClient}>

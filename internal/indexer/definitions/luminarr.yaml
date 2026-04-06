@@ -79,11 +79,11 @@ irc:
             year:
             torrentName: Central Intelligence 2016 UNRATED 2160p MA WEB-DL DD+ 5.1 H.265-HHWEB
             uploader: uploader2
-        - line: 0:1:1:0:1849:33432711823:1769444162:289727|Remux/1080p|2014|The Rewrite 2014 1080p BluRay REMUX AVC DTS-HD MA 5.1-SilentRogue|uploader3
+        - line: 1:1:6:0:1849:33432711823:1769444162:289727|Remux/1080p|2014|The Rewrite 2014 1080p BluRay REMUX AVC DTS-HD MA 5.1-SilentRogue|uploader3
           expect:
-            announceTypeEnum: 0
+            announceTypeEnum: 1
             categoryEnum: 1
-            leechTypeEnum: 1
+            leechTypeEnum: 6
             originEnum: 0
             torrentId: "1849"
             torrentSizeBytes: "33432711823"
@@ -93,9 +93,9 @@ irc:
             year: "2014"
             torrentName: The Rewrite 2014 1080p BluRay REMUX AVC DTS-HD MA 5.1-SilentRogue
             uploader: uploader3
-        - line: 0:1:1:0:1881:76425179845:1769461400:414|Remux/2160p||Batman Forever 1995 Hybrid 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-FraMeSToR|uploader4
+        - line: 2:1:1:0:1881:76425179845:1769461400:414|Remux/2160p||Batman Forever 1995 Hybrid 2160p UHD BluRay REMUX DV HDR HEVC TrueHD 7.1 Atmos-FraMeSToR|uploader4
           expect:
-            announceTypeEnum: 0
+            announceTypeEnum: 2
             categoryEnum: 1
             leechTypeEnum: 1
             originEnum: 0
@@ -127,6 +127,10 @@ irc:
       announceTypeEnum:
         "0":
           announceType: NEW
+        "1":
+          announceType: PROMO
+        "2":
+          announceType: RESURRECTED
 
       categoryEnum:
         "1":
@@ -163,7 +167,7 @@ irc:
           uploadVolumeFactor: 2
         "6": # 100% FL with Double up
           downloadVolumeFactor: 0
-          uploadVolumeFactor: 1
+          uploadVolumeFactor: 2
         "7": # 75% FL with Double up
           downloadVolumeFactor: 0.75
           uploadVolumeFactor: 2

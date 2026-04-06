@@ -5,6 +5,7 @@ package feed
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"math"
 	"net/http"
@@ -143,11 +144,14 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
-			rls.DownloadURL = item.Link
-		} 
-		
+		}
+
+		if item.Enclosure != nil && item.Enclosure.Type == "application/x-bittorrent" {
+			rls.DownloadURL = item.Enclosure.URL
+		}
+
 		rls.ParseString(item.Title)
-		rls.Size = uint64(item.Size)
+		rls.Size = item.Size
 		rls.Seeders = item.Seeders
 		rls.Leechers = item.Leechers
 		rls.Uploader = item.Author
@@ -237,6 +241,12 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not get proxy client")
+		}
+
+		if j.Feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
 		}
 
 		j.Client.WithHTTPClient(proxyClient)

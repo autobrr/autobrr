@@ -55,8 +55,9 @@ type Config struct {
 	ApiKey  string
 	Timeout time.Duration
 
-	UseBasicAuth bool
-	BasicAuth    BasicAuth
+	UseBasicAuth  bool
+	BasicAuth     BasicAuth
+	TLSSkipVerify bool
 
 	Log *log.Logger
 }
@@ -67,9 +68,13 @@ type Capabilities struct {
 }
 
 func NewClient(config Config) *Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
 	httpClient := &http.Client{
 		Timeout:   time.Second * DefaultTimeout,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
 	if config.Timeout > 0 {
@@ -253,10 +258,6 @@ func (c *Client) GetFeed(ctx context.Context) (*Feed, error) {
 		for _, item := range response.Channel.Items {
 			item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
 		}
-	} else {
-		for _, item := range response.Channel.Items {
-			item.MapCategoriesFromAttr()
-		}
 	}
 
 	return &response, nil
@@ -378,9 +379,11 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 		params.Set("limit", strconv.Itoa(c.Capabilities.Limits.Max))
 	}
 
+	cats := make([]string, 0)
 	for _, cat := range categories {
-		params.Add("cat", strconv.Itoa(cat))
+		cats = append(cats, strconv.Itoa(cat))
 	}
+	params.Add("cat", strings.Join(cats, ","))
 
 	res, err := c.get(ctx, params)
 	if err != nil {
@@ -390,10 +393,6 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 	if c.Capabilities != nil {
 		for _, item := range res.Channel.Items {
 			item.MapCustomCategoriesFromAttr(c.Capabilities.Categories.Categories)
-		}
-	} else {
-		for _, item := range res.Channel.Items {
-			item.MapCategoriesFromAttr()
 		}
 	}
 

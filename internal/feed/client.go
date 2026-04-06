@@ -22,10 +22,14 @@ type RSSParser struct {
 }
 
 // NewFeedParser wraps the gofeed.Parser using our own http client for full control
-func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
+func NewFeedParser(timeout time.Duration, cookie string, tlsSkipVerify bool) *RSSParser {
+	transport := sharedhttp.Transport
+	if tlsSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
 	httpClient := &http.Client{
 		Timeout:   time.Second * 60,
-		Transport: sharedhttp.TransportTLSInsecure,
+		Transport: transport,
 	}
 
 	if cookie != "" {

@@ -53,8 +53,9 @@ type Config struct {
 	ApiKey  string
 	Timeout time.Duration
 
-	UseBasicAuth bool
-	BasicAuth    BasicAuth
+	UseBasicAuth  bool
+	BasicAuth     BasicAuth
+	TLSSkipVerify bool
 
 	Log *log.Logger
 }
@@ -65,9 +66,13 @@ type Capabilities struct {
 }
 
 func NewClient(config Config) *Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
 	httpClient := &http.Client{
 		Timeout:   config.Timeout,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
 	c := &Client{
@@ -296,9 +301,11 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 		params.Set("limit", strconv.Itoa(c.Capabilities.Limits.Max))
 	}
 
+	cats := make([]string, 0)
 	for _, cat := range categories {
-		params.Add("cat", strconv.Itoa(cat))
+		cats = append(cats, strconv.Itoa(cat))
 	}
+	params.Add("cat", strings.Join(cats, ","))
 
 	res, err := c.get(ctx, params)
 	if err != nil {

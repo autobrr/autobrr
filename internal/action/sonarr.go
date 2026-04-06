@@ -27,9 +27,12 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(*sonarr.Client)
+	arr, ok := client.Client.(*sonarr.Client)
+	if !ok {
+		return nil, errors.New("invalid client type")
+	}
 
-	r := sonarr.Release{
+	r := sonarr.ReleasePushRequest{
 		Title:            release.TorrentName,
 		InfoUrl:          release.InfoURL,
 		DownloadUrl:      release.DownloadURL,
@@ -50,6 +53,12 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 	if action.ExternalDownloadClient != "" {
 		r.DownloadClient = action.ExternalDownloadClient
 	}
+
+	indexerFlags := sonarr.BuildIndexerFlags(sonarr.ReleaseMeta{
+		FreeleechPercent: release.FreeleechPercent,
+		Origin:           release.Origin,
+	})
+	r.IndexerFlags = int(indexerFlags)
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {

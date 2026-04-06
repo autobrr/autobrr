@@ -17,6 +17,7 @@ interface Feed {
   capabilities: FeedCaps | null;
   api_key: string;
   cookie: string;
+  tls_skip_verify: boolean;
   last_run: string;
   last_run_data: string;
   next_run: string;
@@ -30,7 +31,7 @@ interface FeedSettings {
   // download_type: string;
 }
 
-type FeedDownloadType = "MAGNET" | "TORRENT";
+type FeedDownloadType = "MAGNET" | "TORRENT" | "NZB";
 
 type FeedType = "TORZNAB" | "NEWZNAB" | "RSS";
 
@@ -42,6 +43,7 @@ interface FeedCreate {
   interval: number;
   timeout: number;
   api_key?: string;
+  tls_skip_verify?: boolean;
   indexer_id: number;
   categories?: number[];
   capabilities?: FeedCaps | null;
