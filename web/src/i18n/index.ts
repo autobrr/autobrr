@@ -21,8 +21,13 @@ import commonDe from "./locales/de/common.json";
 import optionsDe from "./locales/de/options.json";
 import settingsDe from "./locales/de/settings.json";
 import filtersDe from "./locales/de/filters.json";
+import authFr from "./locales/fr/auth.json";
+import commonFr from "./locales/fr/common.json";
+import optionsFr from "./locales/fr/options.json";
+import settingsFr from "./locales/fr/settings.json";
+import filtersFr from "./locales/fr/filters.json";
 
-export const supportedLanguages = ["en", "zh-CN", "ru", "de"] as const;
+export const supportedLanguages = ["en", "de", "fr", "ru", "zh-CN"] as const;
 export type Language = (typeof supportedLanguages)[number];
 
 export const getInitialLanguage = (): Language => {
@@ -42,15 +47,19 @@ export const getInitialLanguage = (): Language => {
     }
   }
 
-  if (window.navigator.language.toLowerCase().startsWith("zh")) {
+  const lang = window.navigator.language.toLowerCase();
+  if (lang.startsWith("zh")) {
     return "zh-CN";
   }
+  if (lang.startsWith("fr")) {
+    return "fr";
+  }
 
-  if (window.navigator.language.toLowerCase().startsWith("ru")) {
+  if (lang.startsWith("ru")) {
     return "ru";
   }
   
-  if (window.navigator.language.toLowerCase().startsWith("de")) {
+  if (lang.startsWith("de")) {
     return "de";
   }
 
@@ -86,6 +95,13 @@ void i18n.use(initReactI18next).init({
       options: optionsDe,
       settings: settingsDe,
       filters: filtersDe
+    },
+    fr: {
+      common: commonFr,
+      auth: authFr,
+      options: optionsFr,
+      settings: settingsFr,
+      filters: filtersFr
     }
   },
   lng: getInitialLanguage(),
