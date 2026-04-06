@@ -136,7 +136,23 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	}
 
 	for _, e := range item.Enclosures {
+		if e.Type == "application/x-nzb" {
+			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType != "" && j.Feed.Settings.DownloadType != domain.FeedDownloadTypeNzb {
+				continue
+			}
+			if e.URL != "" {
+				rls.DownloadURL = e.URL
+			}
+			if e.Length != "" && e.Length != "1" {
+				rls.ParseSizeBytesString(e.Length)
+			}
+			rls.Protocol = domain.ReleaseProtocolNzb
+			break
+		}
 		if e.Type == "application/x-bittorrent" {
+			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeNzb {
+				continue
+			}
 			if e.URL != "" {
 				rls.DownloadURL = e.URL
 			}
@@ -150,9 +166,13 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 					rls.DownloadURL = ""
 				}
 			}
-			// exit the loop to avoid processing any others.
 			break
 		}
+	}
+
+	// If download type is explicitly set to NZB, override protocol
+	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeNzb {
+		rls.Protocol = domain.ReleaseProtocolNzb
 	}
 
 	if rls.DownloadURL == "" && item.Link != "" {

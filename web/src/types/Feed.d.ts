@@ -31,7 +31,7 @@ interface FeedSettings {
   // download_type: string;
 }
 
-type FeedDownloadType = "MAGNET" | "TORRENT";
+type FeedDownloadType = "MAGNET" | "TORRENT" | "NZB";
 
 type FeedType = "TORZNAB" | "NEWZNAB" | "RSS";
 
