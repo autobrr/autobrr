@@ -17,7 +17,7 @@
     "save": "Lagre"
   },
   "nav": {
-    "application": "Program",
+    "application": "Applikasjon",
     "logs": "Logger",
     "indexers": "Indekserere",
     "irc": "IRC",
@@ -31,15 +31,15 @@
     "account": "Konto"
   },
   "application": {
-    "title": "Program",
-    "description": "Programinnstillinger. Endre i config.toml og start på nytt for at endringene skal tre i kraft.",
+    "title": "Applikasjon",
+    "description": "Applikasjoninnstillinger. Endre i config.toml og start på nytt for at endringene skal tre i kraft.",
     "host": "Vert",
     "port": "Port",
     "baseUrl": "Basis-URL",
     "version": "Versjon",
     "commit": "Commit",
     "buildDate": "Byggedato",
-    "application": "Program",
+    "application": "Applikasjon",
     "configPath": "Konfigurasjonssti",
     "database": "Database",
     "webuiDebugMode": "WebUI-feilsøkingsmodus",
