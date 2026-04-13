@@ -187,10 +187,11 @@
   "language": {
     "label": "Language",
     "english": "English",
-    "simplifiedChinese": "Simplified Chinese",
-    "german": "German",
     "french": "French",
+    "german": "German",
+    "norwegian": "Norwegian",
     "russian": "Russian",
+    "simplifiedChinese": "Simplified Chinese",
     "spanish": "Spanish"
   },
   "toast": {
