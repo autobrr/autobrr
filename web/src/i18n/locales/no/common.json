@@ -187,12 +187,12 @@
   "language": {
     "label": "Språk",
     "english": "English",
-    "simplifiedChinese": "简体中文",
-    "german": "Deutsch",
     "french": "Français",
+    "german": "Deutsch",
+    "norwegian": "Norsk",
     "russian": "Русский",
-    "spanish": "Español",
-    "norwegian": "Norsk"
+    "simplifiedChinese": "简体中文",    
+    "spanish": "Español"
   },
   "toast": {
     "success": "Suksess",
