@@ -50,7 +50,7 @@
     },
     "indexerFilter": {
       "label": "Indekserer",
-      "all": "Alle indekserere"
+      "all": "Alle indeksere"
     }
   },
   "details": {
@@ -410,7 +410,7 @@
       "subtitle": "Spesifiser din forespørselsdestinasjon (endpoint), headere og forventet returstatus",
       "endpoint": "Endepunkt (Endpoint)",
       "endpointPlaceholder": "Vert f.eks. http://localhost/webhook",
-      "endpointTooltip": "URL eller IP til API-et ditt. Send med parametere og sett API-tokens osv.",
+      "endpointTooltip": "URL eller IP til din API. Send med parametere og sett API-tokens osv.",
       "httpMethod": "HTTP-metode",
       "httpMethodDefault": "Velg HTTP-metode",
       "httpMethodTooltip": "Velg HTTP-metoden for denne webhooken. Standard er POST",
