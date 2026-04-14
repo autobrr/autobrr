@@ -23,12 +23,12 @@
     "show": "Vis",
     "copyToClipboard": "Kopier til utklippstavle",
     "copySuccess": "API-nøkkel kopiert til utklippstavlen!",
-    "copyFailed": "Klarte ikke å kopiere API-nøkkel."
+    "copyFailed": "API-nøkkel kopiering feilet!"
   },
   "modal": {
     "remove": "Fjern",
     "cancel": "Avbryt",
-    "forceRun": "Tving kjøring",
+    "forceRun": "Tving igang",
     "confirmationPhrase": "Jeg forstår",
     "forceRunPlaceholder": "Skriv '{{phrase}}' for å aktivere knappen"
   },
@@ -53,7 +53,7 @@
     },
     "noOldFiles": "Ingen gamle loggfiler",
     "sanitizing": "Loggfilen blir rensket. Vennligst vent...",
-    "sanitizingShort": "Rensker logg...",
+    "sanitizingShort": "Forbereder logg...",
     "downloadFile": "Last ned fil",
     "options": {
       "scrollOnNewMessage": "Rull til bunnen ved ny melding",
@@ -82,7 +82,7 @@
       "release": "Utgivelse",
       "links": "Lenker",
       "actions": "Handlinger",
-      "indexer": "Indekserer"
+      "indexer": "Indexer"
     },
     "status": {
       "error": "feil",
@@ -92,12 +92,12 @@
     },
     "fields": {
       "release": "Utgivelse",
-      "indexer": "Indekserer",
+      "indexer": "Indexer",
       "protocol": "Protokoll",
       "implementation": "Implementasjon",
       "announceType": "Annonseringstype",
       "category": "Kategori",
-      "uploader": "Opplaster",
+      "uploader": "Lastet opp av",
       "size": "Størrelse",
       "title": "Tittel",
       "year": "År",
@@ -153,7 +153,7 @@
   "releaseFilters": {
     "all": "Alle",
     "searchPlaceholder": "Søk i utgivelser...",
-    "indexer": "Indekserer",
+    "indexer": "Indexer",
     "indexersCount": "{{count}} indekserere",
     "clearSelection": "Fjern valg",
     "pushStatus": "Push-status"
@@ -166,7 +166,7 @@
       "age": "Alder",
       "release": "Utgivelse",
       "actions": "Handlinger",
-      "indexer": "Indekserer"
+      "indexer": "Indexer"
     }
   },
   "dashboardStats": {
