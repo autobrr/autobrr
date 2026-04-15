@@ -691,7 +691,7 @@
       "accountHelp": "NickServ- / SASL-konto. For grupperte nick, prøv hovedkontoen.",
       "passwordSaslHelp": "NickServ- / SASL-passord.",
       "chooseType": "Velg en type"
-    }
+    },
     "indexer": {
       "title": "Indekserer",
       "addTitle": "Legg til indekserer",
