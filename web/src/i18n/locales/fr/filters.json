@@ -191,7 +191,7 @@
       "matchTooltip": "Liste de groupes de release séparés par des virgules à faire correspondre.",
       "except": "Exclure les groupes de release",
       "exceptPlaceholder": "ex. mauvaisgroupe1,mauvaisgroupe2",
-      "exceptTooltip": "Liste de groupes de release séparés par des virgules à ignorer (prioritaire sur Correspondre aux releases)."
+      "exceptTooltip": "Liste de groupes de release séparés par des virgules à ignorer (prioritaire sur Correspondre aux groupes de release)."
     },
     "categories": {
       "title": "Catégories",
@@ -201,7 +201,7 @@
       "matchTooltip": "Liste de catégories séparées par des virgules à faire correspondre.",
       "except": "Exclure les catégories",
       "exceptPlaceholder": "ex. *catégorie*",
-      "exceptTooltip": "Liste de catégories séparées par des virgules à ignorer (prioritaire sur Correspondre aux releases)."
+      "exceptTooltip": "Liste de catégories séparées par des virgules à ignorer (prioritaire sur Correspondre aux catégories)."
     },
     "tags": {
       "title": "Tags",
@@ -214,7 +214,7 @@
       "matchLogicTooltip": "Logique utilisée pour faire correspondre les tags du filtre.",
       "except": "Exclure les tags",
       "exceptPlaceholder": "ex. tag1,tag2",
-      "exceptTooltip": "Liste de tags séparés par des virgules à ignorer (prioritaire sur Correspondre aux releases).",
+      "exceptTooltip": "Liste de tags séparés par des virgules à ignorer (prioritaire sur Correspondre aux tags).",
       "exceptLogic": "Logique d'exclusion",
       "exceptLogicDefault": "n'importe lequel",
       "exceptLogicTooltip": "Logique utilisée pour les tags exclus."
@@ -227,7 +227,7 @@
       "matchTooltip": "Liste de téléverseurs séparés par des virgules à faire correspondre.",
       "except": "Exclure les téléverseurs",
       "exceptPlaceholder": "ex. anonyme1,anonyme2",
-      "exceptTooltip": "Liste de téléverseurs séparés par des virgules à ignorer (prioritaire sur Correspondre aux releases)."
+      "exceptTooltip": "Liste de téléverseurs séparés par des virgules à ignorer (prioritaire sur Correspondre aux téléverseurs)."
     },
     "language": {
       "title": "Langue",
@@ -298,10 +298,10 @@
       "dailyShows": "Émissions quotidiennes",
       "months": "Mois",
       "monthsPlaceholder": "ex. 4,2-9",
-      "monthsTooltip": "Ce champ accepte une plage d'années et/ou des mois séparés par des virgules.",
+      "monthsTooltip": "Ce champ accepte une plage de mois et/ou des mois séparés par des virgules.",
       "days": "Jours",
       "daysPlaceholder": "ex. 1,15-30",
-      "daysTooltip": "Ce champ accepte une plage d'années et/ou des jours séparés par des virgules.",
+      "daysTooltip": "Ce champ accepte une plage de jours et/ou des jours séparés par des virgules.",
       "smartEpisode": "Épisode intelligent",
       "smartEpisodeDescription": "Ne pas correspondre aux épisodes plus anciens que le dernier correspondant."
     },
