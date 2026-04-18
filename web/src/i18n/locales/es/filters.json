@@ -191,7 +191,7 @@
       "matchTooltip": "Lista separada por comas de grupos de lanzamiento a coincidir.",
       "except": "Excepto grupos de lanzamiento",
       "exceptPlaceholder": "ej. malgrupo1,malgrupo2",
-      "exceptTooltip": "Lista separada por comas de grupos de lanzamiento a ignorar (tiene prioridad sobre Coincidir lanzamientos)."
+      "exceptTooltip": "Lista separada por comas de grupos de lanzamiento a ignorar (tiene prioridad sobre Coincidir grupos de lanzamiento)."
     },
     "categories": {
       "title": "Categorías",
@@ -201,7 +201,7 @@
       "matchTooltip": "Lista separada por comas de categorías a coincidir.",
       "except": "Excepto categorías",
       "exceptPlaceholder": "ej. *categoría*",
-      "exceptTooltip": "Lista separada por comas de categorías a ignorar (tiene prioridad sobre Coincidir lanzamientos)."
+      "exceptTooltip": "Lista separada por comas de categorías a ignorar (tiene prioridad sobre Coincidir categorías)."
     },
     "tags": {
       "title": "Etiquetas",
@@ -214,7 +214,7 @@
       "matchLogicTooltip": "Lógica usada para coincidir etiquetas del filtro.",
       "except": "Excepto etiquetas",
       "exceptPlaceholder": "ej. etiqueta1,etiqueta2",
-      "exceptTooltip": "Lista separada por comas de etiquetas a ignorar (tiene prioridad sobre Coincidir lanzamientos).",
+      "exceptTooltip": "Lista separada por comas de etiquetas a ignorar (tiene prioridad sobre Coincidir etiquetas).",
       "exceptLogic": "Lógica de excepción",
       "exceptLogicDefault": "cualquiera",
       "exceptLogicTooltip": "Lógica usada para coincidir etiquetas de excepción."
@@ -227,7 +227,7 @@
       "matchTooltip": "Lista separada por comas de subidores a coincidir.",
       "except": "Excepto subidores",
       "exceptPlaceholder": "ej. anonimo1,anonimo2",
-      "exceptTooltip": "Lista separada por comas de subidores a ignorar (tiene prioridad sobre Coincidir lanzamientos)."
+      "exceptTooltip": "Lista separada por comas de subidores a ignorar (tiene prioridad sobre Coincidir subidores)."
     },
     "language": {
       "title": "Idioma",
@@ -298,10 +298,10 @@
       "dailyShows": "Series diarias",
       "months": "Meses",
       "monthsPlaceholder": "ej. 4,2-9",
-      "monthsTooltip": "Este campo acepta un rango de años y/o meses individuales separados por comas.",
+      "monthsTooltip": "Este campo acepta un rango de meses y/o meses individuales separados por comas.",
       "days": "Días",
       "daysPlaceholder": "ej. 1,15-30",
-      "daysTooltip": "Este campo acepta un rango de años y/o días individuales separados por comas.",
+      "daysTooltip": "Este campo acepta un rango de días y/o días individuales separados por comas.",
       "smartEpisode": "Episodio inteligente",
       "smartEpisodeDescription": "No coincidir con episodios más antiguos que el último coincidente."
     },
