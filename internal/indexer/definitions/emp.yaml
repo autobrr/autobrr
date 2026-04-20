@@ -5,6 +5,7 @@ identifier: emp
 description: Empornium (EMP) is a private torrent tracker for XXX
 language: en-us
 urls:
+  - https://emparadise.rs
   - https://www.empornium.sx/
 privacy: private
 protocol: torrent
