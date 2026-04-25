@@ -5,6 +5,7 @@
 
 import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from "react-i18next";
 import {
   Listbox,
   ListboxButton,
@@ -93,6 +94,7 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
 };
 
 export function Filters() {
+  const { t } = useTranslation("filters");
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
   const toggleCreateFilter = () => {
     setCreateFilterIsOpen(!createFilterIsOpen);
@@ -109,7 +111,7 @@ export function Filters() {
       />
 
       <div className="flex justify-between items-center flex-row flex-wrap my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-black dark:text-white">Filters</h1>
+        <h1 className="text-3xl font-bold text-black dark:text-white">{t("list.title")}</h1>
         <Menu as="div" className="relative">
           {({ open }) => (
             <>
@@ -123,7 +125,7 @@ export function Filters() {
                 }}
               >
                 <PlusIcon className="h-5 w-5 mr-1" />
-                Create Filter
+                {t("list.create")}
               </button>
               <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-xs text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
                 <ChevronDownIcon className="h-5 w-5" />
@@ -150,7 +152,7 @@ export function Filters() {
                         onClick={() => setShowImportModal(true)}
                       >
                         <ArrowUpOnSquareIcon className="mr-1 w-4 h-4" />
-                        <span>Import filter</span>
+                        <span>{t("list.import")}</span>
                       </button>
                     )}
                   </MenuItem>
@@ -189,6 +191,7 @@ function filteredData(data: Filter[], status: string) {
 }
 
 function FilterList({ toggleCreateFilter }: any) {
+  const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
   const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
@@ -204,7 +207,7 @@ function FilterList({ toggleCreateFilter }: any) {
 
   if (filtersError) {
     // TODO: Better error handling
-    return <p>An error has occurred loading filters.</p>;
+    return <p>{t("list.loadError")}</p>;
   }
 
   const filtered = filteredData(filtersData ?? [], status);
@@ -214,9 +217,9 @@ function FilterList({ toggleCreateFilter }: any) {
       <div className="align-middle min-w-full rounded-t-lg rounded-b-lg shadow-table bg-gray-50 dark:bg-gray-800 border border-gray-250 dark:border-gray-775">
         <div className="rounded-t-lg flex justify-between px-4 bg-gray-125 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
           <div className="flex gap-4">
-            <StatusButton data={filtered.all} label="All" value="" currentValue={status} dispatch={dispatchFilter} />
-            <StatusButton data={filtered.enabled} label="Enabled" value="enabled" currentValue={status} dispatch={dispatchFilter} />
-            <StatusButton data={filtered.disabled} label="Disabled" value="disabled" currentValue={status} dispatch={dispatchFilter} />
+            <StatusButton data={filtered.all} label={t("list.statusAll")} value="" currentValue={status} dispatch={dispatchFilter} />
+            <StatusButton data={filtered.enabled} label={t("list.statusEnabled")} value="enabled" currentValue={status} dispatch={dispatchFilter} />
+            <StatusButton data={filtered.disabled} label={t("list.statusDisabled")} value="disabled" currentValue={status} dispatch={dispatchFilter} />
           </div>
 
           <div className="flex items-center gap-5">
@@ -231,11 +234,11 @@ function FilterList({ toggleCreateFilter }: any) {
               <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
                 {filtered.filtered.length > 0
                   ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
-                  : <EmptyListState text={`No ${status} filters`}/>
+                  : <EmptyListState text={t("list.noStatusFilters", { status: status === "enabled" ? t("list.statusEnabled").toLowerCase() : t("list.statusDisabled").toLowerCase() })}/>
                 }
               </ul>
             ) : (
-              <EmptyListState text="No filters here.." buttonText="Add new" buttonOnClick={toggleCreateFilter}/>
+              <EmptyListState text={t("list.noFilters")} buttonText={t("list.addNew")} buttonOnClick={toggleCreateFilter}/>
             )
         }
       </div>
@@ -283,6 +286,7 @@ interface FilterItemDropdownProps {
 }
 
 const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
+  const { t } = useTranslation("filters");
 
   // This function handles the export of a filter to a JSON string
   const handleExportJson = useCallback(async (discordFormat = false) => {
@@ -339,19 +343,19 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       // Asynchronously call copyTextToClipboard
       CopyTextToClipboard(finalJson)
         .then(() => {
-          toast.custom((t) => <Toast type="success" body="Filter copied to clipboard!" t={t} />);
+          toast.custom((toastInstance) => <Toast type="success" body={t("list.copied")} t={toastInstance} />);
 
         })
         .catch((err) => {
           console.error("could not copy filter to clipboard", err);
 
-          toast.custom((t) => <Toast type="error" body="Failed to copy JSON to clipboard." t={t} />);
+          toast.custom((toastInstance) => <Toast type="error" body={t("list.copyFailed")} t={toastInstance} />);
         });
     } catch (error) {
       console.error(error);
-      toast.custom((t) => <Toast type="error" body="Failed to get filter data." t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("list.fetchFailed")} t={toastInstance} />);
     }
-  }, [filter]);
+  }, [filter, t]);
 
   const cancelModalButtonRef = useRef(null);
 
@@ -365,7 +369,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
       queryClient.invalidateQueries({ queryKey: FilterKeys.detail(filter.id) });
 
-      toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} was deleted`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("list.deleted", { name: filter?.name })} t={toastInstance} />);
     }
   });
 
@@ -374,7 +378,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`Filter ${filter?.name} duplicated`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("list.duplicated", { name: filter?.name })} t={toastInstance} />);
     }
   });
 
@@ -389,8 +393,8 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
           deleteMutation.mutate(filter.id);
           toggleDeleteModal();
         }}
-        title={`Remove filter: ${filter.name}`}
-        text="Are you sure you want to remove this filter? This action cannot be undone."
+        title={t("list.removeTitle", { name: filter.name })}
+        text={t("list.removeText")}
       />
       <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
@@ -432,7 +436,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     )}
                     aria-hidden="true"
                   />
-                  Edit
+                  {t("list.edit")}
                 </Link>
               )}
             </MenuItem>
@@ -451,7 +455,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     )}
                     aria-hidden="true"
                   />
-                  Export JSON
+                  {t("list.exportJson")}
                 </button>
               )}
             </MenuItem>
@@ -471,7 +475,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     )}
                     aria-hidden="true"
                   />
-                  Export JSON to Discord
+                  {t("list.exportJsonDiscord")}
                 </button>
               )}
             </MenuItem>
@@ -491,7 +495,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     )}
                     aria-hidden="true"
                   />
-                  Toggle
+                  {t("list.toggle")}
                 </button>
               )}
             </MenuItem>
@@ -511,7 +515,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     )}
                     aria-hidden="true"
                   />
-                  Duplicate
+                  {t("list.duplicate")}
                 </button>
               )}
             </MenuItem>
@@ -533,7 +537,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
                     )}
                     aria-hidden="true"
                   />
-                  Delete
+                  {t("list.delete")}
                 </button>
               )}
             </MenuItem>
@@ -550,6 +554,7 @@ interface FilterListItemProps {
 }
 
 function FilterListItem({ filter, idx }: FilterListItemProps) {
+  const { t } = useTranslation("filters");
   const queryClient = useQueryClient();
 
   // Check if this filter uses any disabled indexers and get their names
@@ -567,7 +572,16 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
     onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={`${filter.name} was ${filter.enabled ? "disabled" : "enabled"} successfully`} t={t} />);
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={t("list.toggleSuccess", {
+            name: filter.name,
+            state: filter.enabled ? t("list.disabledState") : t("list.enabledState")
+          })}
+          t={toastInstance}
+        />
+      ));
       // We need to invalidate both keys here.
       // The filters key is used on the /filters page,
       // while the ["filter", filter.id] key is used on the details page.
@@ -607,11 +621,11 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           className="transition flex items-center w-full break-words whitespace-wrap text-sm font-bold text-gray-800 dark:text-gray-100 hover:text-black dark:hover:text-gray-350"
         >
           {filter.name}
-          {filter.is_auto_updated && <SparklesIcon title="This filter is automatically updated by a list" className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400 inline" aria-hidden="true"/>}
+          {filter.is_auto_updated && <SparklesIcon title={t("list.autoUpdatedTitle")} className="ml-1 w-4 h-4 text-amber-500 dark:text-amber-400 inline" aria-hidden="true"/>}
         </Link>
         <div className="flex items-center flex-wrap">
           <span className="mr-2 break-words whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-            Priority: {filter.priority !== 0 ? (
+            {t("list.priority")}: {filter.priority !== 0 ? (
               <span className="text-gray-850 dark:text-gray-200">{filter.priority}</span>
             ) : filter.priority}
           </span>
@@ -627,18 +641,18 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                     className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
                   >
                     <span className={filter.actions_count === 0 || filter.actions_enabled_count === 0 ? "text-red-500 hover:text-red-400 dark:hover:text-red-400" : ""}>
-                      Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                      {t("list.actions")}: {filter.actions_enabled_count}/{filter.actions_count}
                     </span>
                   </Link>
                 }
               >
                 {filter.actions_count === 0 ? (
                   <>
-                    {"No actions defined. Set up actions to enable snatching."}
+                    {t("list.noActionsDefined")}
                   </>
                 ) : filter.actions_enabled_count === 0 ? (
                   <>
-                    {"You need to enable at least one action in the filter otherwise you will not get any snatches."}
+                    {t("list.noActionsEnabled")}
                   </>
                 ) : null}
               </Tooltip>
@@ -651,14 +665,14 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
                 className="flex items-center cursor-pointer hover:text-black dark:hover:text-gray-300"
               >
                 <span>
-                  Actions: {filter.actions_enabled_count}/{filter.actions_count}
+                  {t("list.actions")}: {filter.actions_enabled_count}/{filter.actions_count}
                 </span>
               </Link>
             )}
           </span>
           {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
             <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-              Downloads: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads}{filter.max_downloads_interval && filter.max_downloads_interval > 1 ? ` / ${filter.max_downloads_interval}` : ""} {filter.max_downloads_unit}
+              {t("list.downloads")}: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_interval && filter.max_downloads_interval > 1 ? `${filter.max_downloads_interval} ` : ""}{filter.max_downloads_unit}
             </span>
           )}
         </div>
@@ -667,7 +681,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
         {disabledIndexersInfo.hasDisabled && (
           <span
             className="inline-flex items-center"
-            title={`Uses disabled indexer(s): ${disabledIndexersInfo.names.join(", ")}`}
+            title={t("list.usesDisabledIndexers", { names: disabledIndexersInfo.names.join(", ") })}
           >
             <ExclamationTriangleIcon className="w-4 h-4 text-red-500 dark:text-red-400 relative top-px" aria-hidden="true"/>
           </span>
@@ -722,10 +736,12 @@ interface FilterIndexersProps {
 }
 
 function FilterIndexers({ indexers }: FilterIndexersProps) {
+  const { t } = useTranslation("filters");
+
   if (!indexers.length) {
     return (
       <span className="hidden sm:inline-flex items-center px-2 py-1 rounded-md text-xs font-medium uppercase text-white bg-red-750">
-        NO INDEXER
+        {t("list.noIndexer")}
       </span>
     );
   }
@@ -798,6 +814,7 @@ const ListboxFilter = ({
 
 // a unique option from a list
 const IndexerSelectFilter = ({ dispatch }: any) => {
+  const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
   const { data, isSuccess } = useQuery(IndexersOptionsQueryOptions());
@@ -815,11 +832,11 @@ const IndexerSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="1"
       key="indexer-select"
-      label={data && filterListState.indexerFilter[0] ? `Indexer: ${data.find(i => i.identifier == filterListState.indexerFilter[0])?.name}` : "Indexer"}
+      label={data && filterListState.indexerFilter[0] ? `${t("list.indexerFilter.label")}: ${data.find(i => i.identifier == filterListState.indexerFilter[0])?.name}` : t("list.indexerFilter.label")}
       currentValue={filterListState.indexerFilter[0] ?? ""}
       onChange={setFilter}
     >
-      <FilterOption label="All" value="" />
+      <FilterOption label={t("list.indexerFilter.all")} value="" />
       {isSuccess && data?.map((indexer, idx) => (
         <FilterOption key={idx} label={indexer.name} value={indexer.identifier} />
       ))}
@@ -861,6 +878,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
 );
 
 export const SortSelectFilter = ({ dispatch }: any) => {
+  const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
   const setFilter = (value: string) => {
@@ -872,14 +890,14 @@ export const SortSelectFilter = ({ dispatch }: any) => {
   };
 
   const options = [
-    { label: "Name A-Z", value: "name-asc" },
-    { label: "Name Z-A", value: "name-desc" },
-    { label: "Priority highest", value: "priority-desc" },
-    { label: "Priority lowest", value: "priority-asc" },
-    { label: "Recently created first", value: "created_at-desc" },
-    { label: "Recently created last", value: "created_at-asc" },
-    { label: "Recently updated first", value: "updated_at-desc" },
-    { label: "Recently updated last", value: "updated_at-asc" }
+    { label: t("list.sort.nameAsc"), value: "name-asc" },
+    { label: t("list.sort.nameDesc"), value: "name-desc" },
+    { label: t("list.sort.priorityDesc"), value: "priority-desc" },
+    { label: t("list.sort.priorityAsc"), value: "priority-asc" },
+    { label: t("list.sort.createdDesc"), value: "created_at-desc" },
+    { label: t("list.sort.createdAsc"), value: "created_at-asc" },
+    { label: t("list.sort.updatedDesc"), value: "updated_at-desc" },
+    { label: t("list.sort.updatedAsc"), value: "updated_at-asc" }
   ];
 
   // Render a multi-select box
@@ -887,12 +905,12 @@ export const SortSelectFilter = ({ dispatch }: any) => {
     <ListboxFilter
       id="sort"
       key="sort-select"
-      label={filterListState.sortOrder ? `Sort: ${options.find(o => o.value == filterListState.sortOrder)?.label}` : "Sort"}
+      label={filterListState.sortOrder ? `${t("list.sort.label")}: ${options.find(o => o.value == filterListState.sortOrder)?.label}` : t("list.sort.label")}
       currentValue={filterListState.sortOrder ?? ""}
       onChange={setFilter}
     >
       <>
-        <FilterOption label="Reset" />
+        <FilterOption label={t("list.sort.default")} />
         {options.map((f, idx) =>
           <FilterOption key={idx} label={f.label} value={f.value} />
         )}

@@ -256,11 +256,21 @@ func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 }
 
 func (s *service) test(ctx context.Context, feed *domain.Feed) error {
-	// create sub logger
-	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
+	existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	if err != nil {
+		s.log.Error().Err(err).Int("feed_id", feed.ID).Msg("could not find feed")
+		return err
+	}
+
+	if domain.IsRedactedString(feed.ApiKey) {
+		feed.ApiKey = existingFeed.ApiKey
+	}
+	if domain.IsRedactedString(feed.Cookie) {
+		feed.Cookie = existingFeed.Cookie
+	}
 
 	// add proxy conf
-	if feed.UseProxy {
+	if existingFeed.UseProxy {
 		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
 		if err != nil {
 			return errors.Wrap(err, "could not find proxy for indexer feed")
@@ -270,6 +280,9 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 			feed.Proxy = proxyConf
 		}
 	}
+
+	// create sub logger
+	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
 
 	// test feeds
 	switch feed.Type {
@@ -292,7 +305,7 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 		return errors.New("unsupported feed type: %s", feed.Type)
 	}
 
-	s.log.Info().Msgf("feed test successful - connected to feed: %s", feed.URL)
+	s.log.Info().Str("feed", feed.Name).Str("url", feed.URL).Msgf("feed test successful - connected to feed")
 
 	return nil
 }
@@ -663,6 +676,17 @@ func (s *service) ForceRun(ctx context.Context, id int) error {
 	feed, err := s.FindByID(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if feed.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
+		if err != nil {
+			return errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			feed.Proxy = proxyConf
+		}
 	}
 
 	fi := newFeedInstance(feed)

@@ -10,6 +10,7 @@ import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/r
 import { EllipsisHorizontalIcon, ForwardIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
@@ -26,43 +27,47 @@ import { Section } from "./_components";
 import { ReleaseProfileDuplicateAddForm, ReleaseProfileDuplicateUpdateForm } from "@forms/settings/ReleaseForms";
 import { CleanupJobAddForm, CleanupJobUpdateForm } from "@forms/settings/CleanupJobForms";
 import { classNames } from "@utils";
-import { PushStatusOptions } from "@domain/constants";
+import { getPushStatusOptions } from "@domain/constants";
 
-const ReleaseSettings = () => (
-  <div className="lg:col-span-9">
-    <ReleaseProfileDuplicates/>
+const ReleaseSettings = () => {
+  const { t } = useTranslation(["settings", "options"]);
 
-    <div className="py-6 px-4 sm:p-6">
-      <div className="border border-red-500 rounded-sm">
-        {/* Warning about dangerous operations */}
-        <div className="px-6 pt-6 pb-4">
-          <span className="text-red-600 dark:text-red-500">
-            <strong>Warning:</strong> This section manages release history deletion. Automated cleanup jobs run on schedules, while manual deletion allows immediate one-time cleanup. Both operations permanently delete data and cannot be undone.
-          </span>
-          <ul className="list-disc pl-5 mt-4 text-sm text-gray-500 dark:text-gray-400">
-            <li>
-              <strong className="text-gray-600 dark:text-gray-300">Older than</strong> - How old releases must be before deletion (Required for both automated and manual deletion)
-            </li>
-            <li><strong className="text-gray-600 dark:text-gray-300">Indexers</strong> - Optional filter (if none selected, applies to all indexers)</li>
-            <li><strong className="text-gray-600 dark:text-gray-300">Release statuses</strong> - Optional filter (if none selected, applies to all release statuses)</li>
-          </ul>
-        </div>
+  return (
+    <div className="lg:col-span-9">
+      <ReleaseProfileDuplicates/>
 
-        <ReleaseCleanupJobs/>
+      <div className="py-6 px-4 sm:p-6">
+        <div className="border border-red-500 rounded-sm">
+          <div className="px-6 pt-6 pb-4">
+            <span className="text-red-600 dark:text-red-500">
+              <strong>{t("settings:releases.warningTitle")}</strong> {t("settings:releases.warningBody")}
+            </span>
+            <ul className="list-disc pl-5 mt-4 text-sm text-gray-500 dark:text-gray-400">
+              <li>
+                <strong className="text-gray-600 dark:text-gray-300">{t("settings:releases.olderThan")}</strong> - {t("settings:releases.olderThanDesc")}
+              </li>
+              <li><strong className="text-gray-600 dark:text-gray-300">{t("settings:releases.indexers")}</strong> - {t("settings:releases.indexersDesc")}</li>
+              <li><strong className="text-gray-600 dark:text-gray-300">{t("settings:releases.releaseStatuses")}</strong> - {t("settings:releases.releaseStatusesDesc")}</li>
+            </ul>
+          </div>
 
-        <div className="py-6 px-4 sm:p-6">
-          <DeleteReleases/>
+          <ReleaseCleanupJobs/>
+
+          <div className="py-6 px-4 sm:p-6">
+            <DeleteReleases/>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface ReleaseProfileProps {
   profile: ReleaseProfileDuplicate;
 }
 
 function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
+  const { t } = useTranslation("settings");
   const [updatePanelIsOpen, toggleUpdatePanel] = useToggle(false);
 
   return (
@@ -75,33 +80,33 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
           {profile.name}
         </div>
         <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
-          {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title="Release name" />}
-          {profile.hash && <EnabledPill value={profile.hash} label="Hash" title="Normalized hash of the release name. Use with Release name for exact match" />}
-          {profile.title && <EnabledPill value={profile.title} label="Title" title="Parsed title" />}
-          {profile.sub_title && <EnabledPill value={profile.sub_title} label="Sub Title" title="Parsed sub title like Episode name" />}
-          {profile.group && <EnabledPill value={profile.group} label="Group" title="Release group" />}
-          {profile.year && <EnabledPill value={profile.year} label="Year" title="Year" />}
-          {profile.month && <EnabledPill value={profile.month} label="Month" title="Month" />}
-          {profile.day && <EnabledPill value={profile.day} label="Day" title="Day" />}
-          {profile.source && <EnabledPill value={profile.source} label="Source" title="Source" />}
-          {profile.resolution && <EnabledPill value={profile.resolution} label="Resolution" title="Resolution" />}
-          {profile.codec && <EnabledPill value={profile.codec} label="Codec" title="Codec" />}
-          {profile.container && <EnabledPill value={profile.container} label="Container" title="Container" />}
-          {profile.dynamic_range && <EnabledPill value={profile.dynamic_range} label="Dynamic Range" title="Dynamic Range (HDR,DV)" />}
-          {profile.audio && <EnabledPill value={profile.audio} label="Audio" title="Audio formats" />}
-          {profile.season && <EnabledPill value={profile.season} label="Season" title="Season number" />}
-          {profile.episode && <EnabledPill value={profile.episode} label="Episode" title="Episode number" />}
-          {profile.website && <EnabledPill value={profile.website} label="Website" title="Website/Service" />}
-          {profile.proper && <EnabledPill value={profile.proper} label="Proper" title="Scene proper" />}
-          {profile.repack && <EnabledPill value={profile.repack} label="Repack" title="Scene repack" />}
-          {profile.edition && <EnabledPill value={profile.edition} label="Edition" title="Edition (eg. Collectors Edition) and Cut (eg. Directors Cut)" />}
-          {profile.language && <EnabledPill value={profile.language} label="Language" title="Language and Region" />}
+          {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title={t("releases.duplicateFieldTitles.releaseName")} />}
+          {profile.hash && <EnabledPill value={profile.hash} label={t("forms.releaseProfile.fields.hash")} title={t("releases.duplicateFieldTitles.hash")} />}
+          {profile.title && <EnabledPill value={profile.title} label={t("forms.releaseProfile.fields.title")} title={t("releases.duplicateFieldTitles.title")} />}
+          {profile.sub_title && <EnabledPill value={profile.sub_title} label={t("forms.releaseProfile.fields.subTitle")} title={t("releases.duplicateFieldTitles.subTitle")} />}
+          {profile.group && <EnabledPill value={profile.group} label={t("forms.releaseProfile.fields.group")} title={t("releases.duplicateFieldTitles.group")} />}
+          {profile.year && <EnabledPill value={profile.year} label={t("forms.releaseProfile.fields.year")} title={t("releases.duplicateFieldTitles.year")} />}
+          {profile.month && <EnabledPill value={profile.month} label={t("forms.releaseProfile.fields.month")} title={t("releases.duplicateFieldTitles.month")} />}
+          {profile.day && <EnabledPill value={profile.day} label={t("forms.releaseProfile.fields.day")} title={t("releases.duplicateFieldTitles.day")} />}
+          {profile.source && <EnabledPill value={profile.source} label={t("forms.releaseProfile.fields.source")} title={t("releases.duplicateFieldTitles.source")} />}
+          {profile.resolution && <EnabledPill value={profile.resolution} label={t("forms.releaseProfile.fields.resolution")} title={t("releases.duplicateFieldTitles.resolution")} />}
+          {profile.codec && <EnabledPill value={profile.codec} label={t("forms.releaseProfile.fields.codec")} title={t("releases.duplicateFieldTitles.codec")} />}
+          {profile.container && <EnabledPill value={profile.container} label={t("forms.releaseProfile.fields.container")} title={t("releases.duplicateFieldTitles.container")} />}
+          {profile.dynamic_range && <EnabledPill value={profile.dynamic_range} label={t("forms.releaseProfile.fields.dynamicRange")} title={t("releases.duplicateFieldTitles.dynamicRange")} />}
+          {profile.audio && <EnabledPill value={profile.audio} label={t("forms.releaseProfile.fields.audio")} title={t("releases.duplicateFieldTitles.audio")} />}
+          {profile.season && <EnabledPill value={profile.season} label={t("forms.releaseProfile.fields.season")} title={t("releases.duplicateFieldTitles.season")} />}
+          {profile.episode && <EnabledPill value={profile.episode} label={t("forms.releaseProfile.fields.episode")} title={t("releases.duplicateFieldTitles.episode")} />}
+          {profile.website && <EnabledPill value={profile.website} label={t("forms.releaseProfile.fields.website")} title={t("releases.duplicateFieldTitles.website")} />}
+          {profile.proper && <EnabledPill value={profile.proper} label={t("forms.releaseProfile.fields.proper")} title={t("releases.duplicateFieldTitles.proper")} />}
+          {profile.repack && <EnabledPill value={profile.repack} label={t("forms.releaseProfile.fields.repack")} title={t("releases.duplicateFieldTitles.repack")} />}
+          {profile.edition && <EnabledPill value={profile.edition} label={t("forms.releaseProfile.fields.edition")} title={t("releases.duplicateFieldTitles.edition")} />}
+          {profile.language && <EnabledPill value={profile.language} label={t("forms.releaseProfile.fields.language")} title={t("releases.duplicateFieldTitles.language")} />}
         </div>
         <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer"
             onClick={toggleUpdatePanel}
           >
-            Edit
+            {t("releases.edit")}
           </span>
         </div>
       </div>
@@ -123,14 +128,15 @@ const EnabledPill = ({ value, label, title }: PillProps) => (
 );
 
 function ReleaseProfileDuplicates() {
+  const { t } = useTranslation("settings");
   const [addPanelIsOpen, toggleAdd] = useToggle(false);
 
   const releaseProfileQuery = useSuspenseQuery(ReleaseProfileDuplicateList())
 
   return (
     <Section
-      title="Release Duplicate Profiles"
-      description="Manage duplicate profiles."
+      title={t("releases.duplicateProfilesTitle")}
+      description={t("releases.duplicateProfilesDesc")}
       rightSide={
         <button
           type="button"
@@ -138,7 +144,7 @@ function ReleaseProfileDuplicates() {
           onClick={toggleAdd}
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
-          Add new
+          {t("releases.addNew")}
         </button>
       }
     >
@@ -149,7 +155,8 @@ function ReleaseProfileDuplicates() {
           <ul className="min-w-full relative">
             <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
               <div
-                className="col-span-2 sm:col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name
+                className="col-span-2 sm:col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                {t("releases.name")}
               </div>
               {/*<div*/}
               {/*  className="col-span-6 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"*/}
@@ -175,7 +182,7 @@ function ReleaseProfileDuplicates() {
             ))}
           </ul>
         ) : (
-          <EmptySimple title="No duplicate rlease profiles" subtitle="" buttonText="Add new profile"
+          <EmptySimple title={t("releases.noDuplicateProfiles")} subtitle="" buttonText={t("releases.addNewProfile")}
                        buttonAction={toggleAdd}/>
         )}
       </div>
@@ -184,6 +191,7 @@ function ReleaseProfileDuplicates() {
 }
 
 function ReleaseCleanupJobs() {
+  const { t } = useTranslation("settings");
   const [addPanelIsOpen, toggleAdd] = useToggle(false);
 
   const cleanupJobsQuery = useSuspenseQuery({
@@ -193,8 +201,8 @@ function ReleaseCleanupJobs() {
 
   return (
     <Section
-      title="Release Cleanup Jobs"
-      description="Schedule automatic cleanup of old releases with custom filters."
+      title={t("releases.cleanupJobsTitle")}
+      description={t("releases.cleanupJobsDesc")}
       rightSide={
         <button
           type="button"
@@ -202,7 +210,7 @@ function ReleaseCleanupJobs() {
           onClick={toggleAdd}
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
-          Add new
+          {t("releases.addNew")}
         </button>
       }
     >
@@ -213,16 +221,16 @@ function ReleaseCleanupJobs() {
           <ul className="min-w-full relative">
             <li className="grid grid-cols-12 border-b border-gray-200 dark:border-gray-700">
               <div className="col-span-1 pl-1 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Enabled
+                {t("releases.enabled")}
               </div>
               <div className="col-span-6 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Name
+                {t("releases.name")}
               </div>
               <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Last Run
+                {t("releases.lastRun")}
               </div>
               <div className="col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Next Run
+                {t("releases.nextRun")}
               </div>
             </li>
             {cleanupJobsQuery.data.map((job) => (
@@ -231,9 +239,9 @@ function ReleaseCleanupJobs() {
           </ul>
         ) : (
           <EmptySimple
-            title="No cleanup jobs"
-            subtitle="Create automated cleanup schedules"
-            buttonText="Add new job"
+            title={t("releases.noCleanupJobs")}
+            subtitle={t("releases.createCleanupSchedules")}
+            buttonText={t("releases.addNewJob")}
             buttonAction={toggleAdd}
           />
         )}
@@ -247,6 +255,7 @@ interface CleanupJobListItemProps {
 }
 
 function CleanupJobListItem({ job }: CleanupJobListItemProps) {
+  const { t } = useTranslation("settings");
   const [updatePanelIsOpen, toggleUpdatePanel] = useToggle(false);
   const queryClient = useQueryClient();
 
@@ -254,7 +263,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
     mutationFn: (enabled: boolean) => APIClient.release.cleanupJobs.toggleEnabled(job.id, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
-      toast.custom(t => <Toast type="success" body={`${job.name} ${job.enabled ? "disabled" : "enabled"}`} t={t} />);
+      toast.custom(toastInstance => <Toast type="success" body={t("releases.cleanupJobToggled", { name: job.name, state: job.enabled ? t("releases.cleanupJobDisabled") : t("releases.cleanupJobEnabled") })} t={toastInstance} />);
     }
   });
 
@@ -262,7 +271,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
     mutationFn: () => APIClient.release.cleanupJobs.forceRun(job.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
-      toast.custom(t => <Toast type="success" body={`${job.name} triggered`} t={t} />);
+      toast.custom(toastInstance => <Toast type="success" body={t("releases.cleanupJobTriggered", { name: job.name })} t={toastInstance} />);
     }
   });
 
@@ -274,7 +283,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
   // Format last_run status
   const lastRunDisplay = job.last_run !== "0001-01-01T00:00:00Z"
     ? job.last_run_status
-    : "Never";
+    : t("releases.never");
 
   return (
     <li>
@@ -324,6 +333,7 @@ interface CleanupItemDropdownProps {
 }
 
 function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdownProps) {
+  const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
@@ -334,7 +344,7 @@ function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdown
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
       queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.detail(job.id) });
-      toast.custom((t) => <Toast type="success" body={`${job.name} deleted`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("releases.cleanupJobDeleted", { name: job.name })} t={toastInstance} />);
       toggleDeleteModal();
     },
   });
@@ -350,8 +360,8 @@ function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdown
           deleteMutation.mutate(job.id);
           toggleDeleteModal();
         }}
-        title={`Remove cleanup job: ${job.name}`}
-        text="Are you sure you want to remove this cleanup job? This action cannot be undone."
+        title={t("releases.removeCleanupJobTitle", { name: job.name })}
+        text={t("releases.removeCleanupJobText")}
       />
 
       <MenuButton className="px-4 py-2">
@@ -390,7 +400,7 @@ function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdown
                     )}
                     aria-hidden="true"
                   />
-                  Edit
+                  {t("releases.edit")}
                 </button>
               )}
             </MenuItem>
@@ -412,7 +422,7 @@ function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdown
                     )}
                     aria-hidden="true"
                   />
-                  Run now
+                  {t("releases.runNow")}
                 </button>
               )}
             </MenuItem>
@@ -434,7 +444,7 @@ function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdown
                     )}
                     aria-hidden="true"
                   />
-                  Delete
+                  {t("releases.delete")}
                 </button>
               )}
             </MenuItem>
@@ -445,20 +455,20 @@ function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdown
   )
 }
 
-const getDurationLabel = (durationValue: number): string => {
+const getDurationLabel = (durationValue: number, t: ReturnType<typeof useTranslation>["t"]): string => {
   const durationOptions: Record<number, string> = {
-    0: "all time",
-    1: "1 hour",
-    12: "12 hours",
-    24: "1 day",
-    168: "1 week",
-    720: "1 month",
-    2160: "3 months",
-    4320: "6 months",
-    8760: "1 year"
+    0: t("releases.duration.allTime"),
+    1: t("releases.duration.hour1"),
+    12: t("releases.duration.hours12"),
+    24: t("releases.duration.day1"),
+    168: t("releases.duration.week1"),
+    720: t("releases.duration.month1"),
+    2160: t("releases.duration.months3"),
+    4320: t("releases.duration.months6"),
+    8760: t("releases.duration.year1")
   };
 
-  return durationOptions[durationValue] || "Invalid duration";
+  return durationOptions[durationValue] || t("releases.duration.invalid");
 };
 
 interface Indexer {
@@ -472,7 +482,9 @@ interface ReleaseStatus {
 }
 
 function DeleteReleases() {
+  const { t } = useTranslation(["settings", "options"]);
   const queryClient = useQueryClient();
+  const pushStatusOptions = getPushStatusOptions(t);
   const [duration, setDuration] = useState<string>("");
   const [parsedDuration, setParsedDuration] = useState<number>();
   const [indexers, setIndexers] = useState<Indexer[]>([]);
@@ -494,13 +506,13 @@ function DeleteReleases() {
       APIClient.release.delete(params),
     onSuccess: () => {
       if (parsedDuration === 0) {
-        toast.custom((t) => (
-          <Toast type="success" body={"All releases based on criteria were deleted."} t={t}/>
+        toast.custom((tst) => (
+          <Toast type="success" body={t("settings:releases.allDeleted")} t={tst}/>
         ));
       } else {
-        toast.custom((t) => (
-          <Toast type="success" body={`Releases older than ${getDurationLabel(parsedDuration ?? 0)} were deleted.`}
-                 t={t}/>
+        toast.custom((tst) => (
+          <Toast type="success" body={t("settings:releases.olderThanDeleted", { duration: getDurationLabel(parsedDuration ?? 0, t) })}
+                 t={tst}/>
         ));
       }
 
@@ -510,7 +522,7 @@ function DeleteReleases() {
 
   const deleteOlderReleases = () => {
     if (parsedDuration === undefined || isNaN(parsedDuration) || parsedDuration < 0) {
-      toast.custom((t) => <Toast type="error" body={"Please select a valid age."} t={t}/>);
+      toast.custom((toastInstance) => <Toast type="error" body={t("settings:releases.invalidAge")} t={toastInstance}/>);
       return;
     }
 
@@ -521,6 +533,21 @@ function DeleteReleases() {
     });
   };
 
+  const statusesText = releaseStatuses.length
+    ? t("releases.removeReleasesStatuses", { statuses: releaseStatuses.map(status => status.label).join(", ") })
+    : "";
+
+  const scope = parsedDuration
+    ? t("releases.removeReleasesScopeOlder", {
+      duration: getDurationLabel(parsedDuration, t),
+      indexers: indexers.length ? t("releases.selectedIndexers") : t("releases.allIndexers"),
+      statuses: statusesText
+    })
+    : t("releases.removeReleasesScopeAll", {
+      indexers: indexers.length ? t("releases.selectedIndexers") : t("releases.allIndexers"),
+      statuses: statusesText
+    });
+
   return (
     <div className="flex flex-col sm:flex-row gap-2 justify-between items-center rounded-md">
       <DeleteModal
@@ -529,15 +556,14 @@ function DeleteReleases() {
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteOlderReleases}
-        title="Remove releases"
-        text={`You are about to ${parsedDuration ? `permanently delete all release history records older than ${getDurationLabel(parsedDuration)} for ` : 'delete all release history records for '}${indexers.length ? 'the chosen indexers' : 'all indexers'}${releaseStatuses.length ? ` and with the following release statuses: ${releaseStatuses.map(status => status.label).join(', ')}` : ''}.`}
+        title={t("releases.removeReleases")}
+        text={t("releases.removeReleasesText", { scope })}
       />
       <div className="flex flex-col gap-2 w-full">
         <div>
-          <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Delete release history</h2>
+          <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">{t("releases.deleteReleaseHistory")}</h2>
           <p className="text-sm mt-2 text-gray-500 dark:text-gray-400">
-            Select the criteria below to permanently delete release history records that are older than the chosen age
-            and optionally match the selected indexers and release statuses:
+            {t("releases.deleteReleaseHistoryDesc")}
           </p>
         </div>
 
@@ -546,21 +572,21 @@ function DeleteReleases() {
             {
               label: (
                 <span>
-                  Older than:
+                  {t("releases.olderThan")}:
                   <span className="text-red-600 dark:text-red-500"> *</span>
                 </span>
               ),
               content: <AgeSelect duration={duration} setDuration={setDuration} setParsedDuration={setParsedDuration}/>
             },
             {
-              label: 'Indexers:',
+              label: `${t("releases.indexers")}:`,
               content: <RMSC
                 options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []}
                 value={indexers} onChange={setIndexers} labelledBy="Select indexers"/>
             },
             {
-              label: 'Release statuses:',
-              content: <RMSC options={PushStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
+              label: `${t("releases.releaseStatuses")}:`,
+              content: <RMSC options={pushStatusOptions} value={releaseStatuses} onChange={setReleaseStatuses}
                              labelledBy="Select release statuses"/>
             }
           ].map((item, index) => (
@@ -574,13 +600,11 @@ function DeleteReleases() {
             type="button"
             onClick={() => {
               if (parsedDuration === undefined || isNaN(parsedDuration)) {
-                toast.custom((t) => (
+                toast.custom((tst) => (
                   <Toast
                     type="error"
-                    body={
-                      "Please enter a valid age. For example, 6 months or 1 year."
-                    }
-                    t={t}
+                    body={t("releases.invalidAgeExample")}
+                    t={tst}
                   />
                 ));
               } else {
@@ -589,7 +613,7 @@ function DeleteReleases() {
             }}
             className="inline-flex justify-center sm:w-1/5 md:w-1/5 w-full px-4 py-2 sm:mt-6 border border-transparent cursor-pointer text-sm font-medium rounded-md text-red-700 hover:text-red-800 dark:text-white bg-red-200 dark:bg-red-700 hover:bg-red-300 dark:hover:bg-red-800 focus:outline-hidden focus:ring-1 focus:ring-inset focus:ring-red-600"
           >
-            Delete
+            {t("releases.delete")}
           </button>
 
         </div>

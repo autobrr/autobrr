@@ -103,8 +103,12 @@ func (o *oidcAuthServiceMock) OAuthExchange(ctx context.Context, code string, op
 	return nil, nil
 }
 
-func (o *oidcAuthServiceMock) OauthAuthCodeURL(state string) string {
+func (o *oidcAuthServiceMock) OauthAuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
 	return ""
+}
+
+func (o *oidcAuthServiceMock) SupportsPKCE() bool {
+	return false
 }
 
 func newHttpTestClient() *http.Client {

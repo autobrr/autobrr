@@ -4,6 +4,7 @@
  */
 
 import { useFormikContext } from "formik";
+import { useTranslation } from "react-i18next";
 
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
@@ -31,18 +32,18 @@ import {
 // };
 
 const Releases = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.use_regex || values.match_releases !== undefined || values.except_releases !== undefined}
-      title="Release Names"
-      subtitle="Match only certain release names and/or ignore other release names."
+      title={t("advanced.releases.title")}
+      subtitle={t("advanced.releases.subtitle")}
     >
       <FilterLayout>
         <FilterHalfRow>
-          <SwitchGroup name="use_regex" label="Use Regex" className="pt-2" />
+          <SwitchGroup name="use_regex" label={t("advanced.common.useRegex")} className="pt-2" />
         </FilterHalfRow>
       </FilterLayout>
 
@@ -50,19 +51,19 @@ const Releases = () => {
         <FilterHalfRow>
           <RegexTextAreaField
             name="match_releases"
-            label="Match releases"
+            label={t("advanced.releases.match")}
             useRegex={values.use_regex}
             columns={6}
-            placeholder="eg. *some?movie*,*some?show*s01*"
+            placeholder={t("advanced.releases.matchPlaceholder")}
             tooltip={
               <div>
-                <p>This field has full regex support (Golang flavour).</p>
+                <p>{t("advanced.common.regexTooltip1")}</p>
                 <DocsLink href="https://autobrr.com/filters#advanced" />
                 <br />
                 <br />
-                <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+                <p>{t("advanced.common.regexTooltip2")}</p>
                 <br />
-                <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+                <p>{t("advanced.common.regexTooltip3")}</p>
               </div>
             }
           />
@@ -71,19 +72,19 @@ const Releases = () => {
         <FilterHalfRow>
           <RegexTextAreaField
             name="except_releases"
-            label="Except releases"
+            label={t("advanced.releases.except")}
             useRegex={values.use_regex}
             columns={6}
-            placeholder="eg. *bad?movie*,*bad?show*s03*"
+            placeholder={t("advanced.releases.exceptPlaceholder")}
             tooltip={
               <div>
-                <p>This field has full regex support (Golang flavour).</p>
+                <p>{t("advanced.common.regexTooltip1")}</p>
                 <DocsLink href="https://autobrr.com/filters#advanced" />
                 <br />
                 <br />
-                <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+                <p>{t("advanced.common.regexTooltip2")}</p>
                 <br />
-                <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+                <p>{t("advanced.common.regexTooltip3")}</p>
               </div>
             }
           />
@@ -93,10 +94,10 @@ const Releases = () => {
 
       {values.match_releases ? (
         <WarningAlert
-          alert="Ask yourself:"
+          alert={t("advanced.releases.alert")}
           text={
             <>
-              Do you have a good reason to use <strong>Match releases</strong> instead of one of the other tabs?
+              {t("advanced.releases.matchWarning")}
             </>
           }
           colors="text-cyan-700 bg-cyan-100 dark:bg-cyan-200 dark:text-cyan-800"
@@ -104,10 +105,10 @@ const Releases = () => {
       ) : null}
       {values.except_releases ? (
         <WarningAlert
-          alert="Ask yourself:"
+          alert={t("advanced.releases.alert")}
           text={
             <>
-              Do you have a good reason to use <strong>Except releases</strong> instead of one of the other tabs?
+              {t("advanced.releases.exceptWarning")}
             </>
           }
           colors="text-fuchsia-700 bg-fuchsia-100 dark:bg-fuchsia-200 dark:text-fuchsia-800"
@@ -118,35 +119,35 @@ const Releases = () => {
 }
 
 const Groups = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.match_release_groups !== undefined || values.except_release_groups !== undefined}
-      title="Groups"
-      subtitle="Match only certain groups and/or ignore other groups."
+      title={t("advanced.groups.title")}
+      subtitle={t("advanced.groups.subtitle")}
     >
       <TextAreaAutoResize
         name="match_release_groups"
-        label="Match release groups"
+        label={t("advanced.groups.match")}
         columns={6}
-        placeholder="eg. group1,group2"
+        placeholder={t("advanced.groups.matchPlaceholder")}
         tooltip={
           <div>
-            <p>Comma separated list of release groups to match.</p>
+            <p>{t("advanced.groups.matchTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
           </div>
         }
       />
       <TextAreaAutoResize
         name="except_release_groups"
-        label="Except release groups"
+        label={t("advanced.groups.except")}
         columns={6}
-        placeholder="eg. badgroup1,badgroup2"
+        placeholder={t("advanced.groups.exceptPlaceholder")}
         tooltip={
           <div>
-            <p>Comma separated list of release groups to ignore (takes priority over Match releases).</p>
+            <p>{t("advanced.groups.exceptTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
           </div>
         }
@@ -156,35 +157,35 @@ const Groups = () => {
 }
 
 const Categories = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.match_categories !== undefined || values.except_categories !== undefined}
-      title="Categories"
-      subtitle="Match or exclude categories (if announced)"
+      title={t("advanced.categories.title")}
+      subtitle={t("advanced.categories.subtitle")}
     >
       <TextAreaAutoResize
         name="match_categories"
-        label="Match categories"
+        label={t("advanced.categories.match")}
         columns={6}
-        placeholder="eg. *category*,category1"
+        placeholder={t("advanced.categories.matchPlaceholder")}
         tooltip={
           <div>
-            <p>Comma separated list of categories to match.</p>
+            <p>{t("advanced.categories.matchTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters/categories" />
           </div>
         }
       />
       <TextAreaAutoResize
         name="except_categories"
-        label="Except categories"
+        label={t("advanced.categories.except")}
         columns={6}
-        placeholder="eg. *category*"
+        placeholder={t("advanced.categories.exceptPlaceholder")}
         tooltip={
           <div>
-            <p>Comma separated list of categories to ignore (takes priority over Match releases).</p>
+            <p>{t("advanced.categories.exceptTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters/categories" />
           </div>
         }
@@ -194,37 +195,37 @@ const Categories = () => {
 }
 
 const Tags = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.tags !== undefined || values.except_tags !== undefined}
-      title="Tags"
-      subtitle="Match or exclude tags (if announced)"
+      title={t("advanced.tags.title")}
+      subtitle={t("advanced.tags.subtitle")}
     >
       <div className={classNames("sm:col-span-6", FilterLayoutClass, FilterTightGridGapClass)}>
         <TextAreaAutoResize
           name="tags"
-          label="Match tags"
+          label={t("advanced.tags.match")}
           columns={8}
-          placeholder="eg. tag1,tag2"
+          placeholder={t("advanced.tags.matchPlaceholder")}
           tooltip={
             <div>
-              <p>Comma separated list of tags to match.</p>
+              <p>{t("advanced.tags.matchTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters#advanced" />
             </div>
           }
         />
         <Select
           name="tags_match_logic"
-          label="Match logic"
+          label={t("advanced.tags.matchLogic")}
           columns={4}
           options={CONSTS.tagsMatchLogicOptions}
-          optionDefaultText="any"
+          optionDefaultText={t("advanced.tags.matchLogicDefault")}
           tooltip={
             <div>
-              <p>Logic used to match filter tags.</p>
+              <p>{t("advanced.tags.matchLogicTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters#advanced" />
             </div>
           }
@@ -233,25 +234,25 @@ const Tags = () => {
       <div className={classNames("sm:col-span-6", FilterLayoutClass, FilterTightGridGapClass)}>
         <TextAreaAutoResize
           name="except_tags"
-          label="Except tags"
+          label={t("advanced.tags.except")}
           columns={8}
-          placeholder="eg. tag1,tag2"
+          placeholder={t("advanced.tags.exceptPlaceholder")}
           tooltip={
             <div>
-              <p>Comma separated list of tags to ignore (takes priority over Match releases).</p>
+              <p>{t("advanced.tags.exceptTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters#advanced" />
             </div>
           }
         />
         <Select
           name="except_tags_match_logic"
-          label="Except logic"
+          label={t("advanced.tags.exceptLogic")}
           columns={4}
           options={CONSTS.tagsMatchLogicOptions}
-          optionDefaultText="any"
+          optionDefaultText={t("advanced.tags.exceptLogicDefault")}
           tooltip={
             <div>
-              <p>Logic used to match except tags.</p>
+              <p>{t("advanced.tags.exceptLogicTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters#advanced" />
             </div>
           }
@@ -262,36 +263,35 @@ const Tags = () => {
 }
 
 const Uploaders = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.match_uploaders !== undefined || values.except_uploaders !== undefined}
-      title="Uploaders"
-      subtitle="Match or ignore uploaders (if announced)"
+      title={t("advanced.uploaders.title")}
+      subtitle={t("advanced.uploaders.subtitle")}
     >
       <TextAreaAutoResize
         name="match_uploaders"
-        label="Match uploaders"
+        label={t("advanced.uploaders.match")}
         columns={6}
-        placeholder="eg. uploader1,uploader2"
+        placeholder={t("advanced.uploaders.matchPlaceholder")}
         tooltip={
           <div>
-            <p>Comma separated list of uploaders to match.</p>
+            <p>{t("advanced.uploaders.matchTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
           </div>
         }
       />
       <TextAreaAutoResize
         name="except_uploaders"
-        label="Except uploaders"
+        label={t("advanced.uploaders.except")}
         columns={6}
-        placeholder="eg. anonymous1,anonymous2"
+        placeholder={t("advanced.uploaders.exceptPlaceholder")}
         tooltip={
           <div>
-            <p>Comma separated list of uploaders to ignore (takes priority over Match releases).
-            </p>
+            <p>{t("advanced.uploaders.exceptTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
           </div>
         }
@@ -301,25 +301,25 @@ const Uploaders = () => {
 }
 
 const Language = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.match_language?.length > 0 || values.except_language?.length > 0}
-      title="Language"
-      subtitle="Match or ignore languages (if announced)"
+      title={t("advanced.language.title")}
+      subtitle={t("advanced.language.subtitle")}
     >
       <MultiSelect
         name="match_language"
         options={CONSTS.LANGUAGE_OPTIONS}
-        label="Match Language"
+        label={t("advanced.language.match")}
         columns={6}
       />
       <MultiSelect
         name="except_language"
         options={CONSTS.LANGUAGE_OPTIONS}
-        label="Except Language"
+        label={t("advanced.language.except")}
         columns={6}
       />
     </CollapsibleSection>
@@ -327,25 +327,25 @@ const Language = () => {
 }
 
 const Origins = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.origins?.length > 0 || values.except_origins?.length > 0}
-      title="Origins"
-      subtitle="Match Internals, Scene, P2P, etc. (if announced)"
+      title={t("advanced.origins.title")}
+      subtitle={t("advanced.origins.subtitle")}
     >
       <MultiSelect
         name="origins"
         options={CONSTS.ORIGIN_OPTIONS}
-        label="Match Origins"
+        label={t("advanced.origins.match")}
         columns={6}
       />
       <MultiSelect
         name="except_origins"
         options={CONSTS.ORIGIN_OPTIONS}
-        label="Except Origins"
+        label={t("advanced.origins.except")}
         columns={6}
       />
     </CollapsibleSection>
@@ -353,52 +353,48 @@ const Origins = () => {
 }
 
 const Freeleech = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.freeleech || values.freeleech_percent !== undefined}
-      title="Freeleech"
-      subtitle="Match based off freeleech (if announced)"
+      title={t("advanced.freeleech.title")}
+      subtitle={t("advanced.freeleech.subtitle")}
     >
       <TextField
         name="freeleech_percent"
-        label="Freeleech percent"
+        label={t("advanced.freeleech.percent")}
         disabled={values.freeleech}
         tooltip={
           <div>
-            <p>
-              Freeleech may be announced as a binary true/false value or as a
-              percentage (less likely), depending on the indexer. Use one <span className="font-bold">or</span> the other.
-              The Freeleech toggle overrides this field if it is toggled/true.
-            </p>
+            <p>{t("advanced.freeleech.percentTooltip1")}</p>
+            <br />
+            <p>{t("advanced.freeleech.percentTooltip2")}</p>
             <br />
             <p>
-              Refer to our documentation for more details:{" "}
+              {t("advanced.freeleech.percentTooltip3")}{" "}
               <DocsLink href="https://autobrr.com/filters/freeleech" />
             </p>
           </div>
         }
         columns={6}
-        placeholder="eg. 50,75-100"
+        placeholder={t("advanced.freeleech.percentPlaceholder")}
       />
       <FilterHalfRow>
         <SwitchGroup
           name="freeleech"
-          label="Freeleech"
+          label={t("advanced.freeleech.toggle")}
           className="py-0"
-          description="Cannot be used with Freeleech percent. Overrides Freeleech percent if toggled/true."
+          description={t("advanced.freeleech.toggleDescription")}
           tooltip={
             <div>
-              <p>
-                Freeleech may be announced as a binary true/false value (more likely) or as a
-                percentage, depending on the indexer. Use one <span className="font-bold">or</span> the other.
-                This field overrides Freeleech percent if it is toggled/true.
-              </p>
+              <p>{t("advanced.freeleech.toggleTooltip1")}</p>
+              <br />
+              <p>{t("advanced.freeleech.toggleTooltip2")}</p>
               <br />
               <p>
-                See who uses what in the documentation:{" "}
+                {t("advanced.freeleech.toggleTooltip3")}{" "}
                 <DocsLink href="https://autobrr.com/filters/freeleech" />
               </p>
             </div>
@@ -410,7 +406,7 @@ const Freeleech = () => {
 }
 
 const FeedSpecific = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
@@ -424,95 +420,95 @@ const FeedSpecific = () => {
         values.min_leechers !== undefined ||
         values.max_leechers !== undefined
       }
-      title="RSS/Torznab/Newznab-specific"
+      title={t("advanced.feedSpecific.title")}
       subtitle={
-        <>These options are <span className="font-bold">only</span> for Feeds such as RSS, Torznab and Newznab</>
+        <>{t("advanced.feedSpecific.subtitle")}</>
       }
     >
       <FilterLayout>
         <SwitchGroup
           name="use_regex_description"
-          label="Use Regex"
+          label={t("advanced.common.useRegex")}
           className="col-span-12 sm:col-span-6"
         />
       </FilterLayout>
 
       <RegexTextAreaField
         name="match_description"
-        label="Match description"
+        label={t("advanced.feedSpecific.matchDescription")}
         useRegex={values.use_regex_description}
         columns={6}
-        placeholder="eg. *some?movie*,*some?show*s01*"
+        placeholder={t("advanced.feedSpecific.matchDescriptionPlaceholder")}
         tooltip={
           <div>
-            <p>This field has full regex support (Golang flavour).</p>
+            <p>{t("advanced.common.regexTooltip1")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <p>{t("advanced.common.regexTooltip2")}</p>
             <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            <p>{t("advanced.common.regexTooltip3")}</p>
           </div>
         }
       />
       <RegexTextAreaField
         name="except_description"
-        label="Except description"
+        label={t("advanced.feedSpecific.exceptDescription")}
         useRegex={values.use_regex_description}
         columns={6}
-        placeholder="eg. *bad?movie*,*bad?show*s03*"
+        placeholder={t("advanced.feedSpecific.exceptDescriptionPlaceholder")}
         tooltip={
           <div>
-            <p>This field has full regex support (Golang flavour).</p>
+            <p>{t("advanced.common.regexTooltip1")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <p>{t("advanced.common.regexTooltip2")}</p>
             <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            <p>{t("advanced.common.regexTooltip3")}</p>
           </div>
         }
       />
       <NumberField
         name="min_seeders"
-        label="Min Seeders"
-        placeholder="Takes any number (0 is infinite)"
+        label={t("advanced.feedSpecific.minSeeders")}
+        placeholder={t("advanced.feedSpecific.countPlaceholder")}
         tooltip={
           <div>
-            <p>Number of min seeders as specified by the respective unit. Only for Torznab</p>
+            <p>{t("advanced.feedSpecific.seedersTooltip", { type: t("advanced.feedSpecific.minSeeders").toLowerCase() })}</p>
             <DocsLink href="https://autobrr.com/filters#rules" />
           </div>
         }
       />
       <NumberField
         name="max_seeders"
-        label="Max Seeders"
-        placeholder="Takes any number (0 is infinite)"
+        label={t("advanced.feedSpecific.maxSeeders")}
+        placeholder={t("advanced.feedSpecific.countPlaceholder")}
         tooltip={
           <div>
-            <p>Number of max seeders as specified by the respective unit. Only for Torznab</p>
+            <p>{t("advanced.feedSpecific.seedersTooltip", { type: t("advanced.feedSpecific.maxSeeders").toLowerCase() })}</p>
             <DocsLink href="https://autobrr.com/filters#rules" />
           </div>
         }
       />
       <NumberField
         name="min_leechers"
-        label="Min Leechers"
-        placeholder="Takes any number (0 is infinite)"
+        label={t("advanced.feedSpecific.minLeechers")}
+        placeholder={t("advanced.feedSpecific.countPlaceholder")}
         tooltip={
           <div>
-            <p>Number of min leechers as specified by the respective unit. Only for Torznab</p>
+            <p>{t("advanced.feedSpecific.seedersTooltip", { type: t("advanced.feedSpecific.minLeechers").toLowerCase() })}</p>
             <DocsLink href="https://autobrr.com/filters#rules" />
           </div>
         }
       />
       <NumberField
         name="max_leechers"
-        label="Max Leechers"
-        placeholder="Takes any number (0 is infinite)"
+        label={t("advanced.feedSpecific.maxLeechers")}
+        placeholder={t("advanced.feedSpecific.countPlaceholder")}
         tooltip={
           <div>
-            <p>Number of max leechers as specified by the respective unit. Only for Torznab</p>
+            <p>{t("advanced.feedSpecific.seedersTooltip", { type: t("advanced.feedSpecific.maxLeechers").toLowerCase() })}</p>
             <DocsLink href="https://autobrr.com/filters#rules" />
           </div>
         }
@@ -521,67 +517,67 @@ const FeedSpecific = () => {
   );
 }
 const RawReleaseTags = () => {
-
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   return (
     <CollapsibleSection
       defaultOpen={values.use_regex_release_tags || values.match_release_tags !== undefined || values.except_release_tags !== undefined}
-      title="Raw Release Tags"
+      title={t("advanced.rawReleaseTags.title")}
       subtitle={
         <>
-          <span className="underline underline-offset-2">Advanced users only</span>
-          {": "}This is the <span className="font-bold">raw</span> releaseTags string from the announce.
+          <span className="underline underline-offset-2">{t("advanced.rawReleaseTags.subtitlePrefix")}</span>
+          {": "}{t("advanced.rawReleaseTags.subtitleSuffix")}
         </>
       }
     >
       <WarningAlert
         text={
-          <>These might not be what you think they are. For <span className="underline font-bold">very advanced</span> users who know how things are parsed.</>
+          <>{t("advanced.rawReleaseTags.warning")}</>
         }
       />
 
       <FilterLayout>
         <SwitchGroup
           name="use_regex_release_tags"
-          label="Use Regex"
+          label={t("advanced.common.useRegex")}
           className="col-span-12 sm:col-span-6"
         />
       </FilterLayout>
 
       <RegexField
         name="match_release_tags"
-        label="Match release tags"
+        label={t("advanced.rawReleaseTags.match")}
         useRegex={values.use_regex_release_tags}
         columns={6}
-        placeholder="eg. *mkv*,*foreign*"
+        placeholder={t("advanced.rawReleaseTags.placeholder")}
         tooltip={
           <div>
-            <p>This field has full regex support (Golang flavour).</p>
+            <p>{t("advanced.common.regexTooltip1")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <p>{t("advanced.common.regexTooltip2")}</p>
             <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            <p>{t("advanced.common.regexTooltip3")}</p>
           </div>
         }
       />
       <RegexField
         name="except_release_tags"
-        label="Except release tags"
+        label={t("advanced.rawReleaseTags.except")}
         useRegex={values.use_regex_release_tags}
         columns={6}
-        placeholder="eg. *mkv*,*foreign*"
+        placeholder={t("advanced.rawReleaseTags.placeholder")}
         tooltip={
           <div>
-            <p>This field has full regex support (Golang flavour).</p>
+            <p>{t("advanced.common.regexTooltip1")}</p>
             <DocsLink href="https://autobrr.com/filters#advanced" />
             <br />
             <br />
-            <p>Remember to tick <b>Use Regex</b> if using more than <code>*</code> and <code>?</code>.</p>
+            <p>{t("advanced.common.regexTooltip2")}</p>
             <br />
-            <p>Mode: <code>(?i)</code> <b>case-insensitive</b></p>
+            <p>{t("advanced.common.regexTooltip3")}</p>
           </div>
         }
       />

@@ -1,0 +1,180 @@
+{
+  "announceType": {
+    "NEW": "Nuevo",
+    "CHECKED": "Verificado",
+    "PROMO": "Promo",
+    "PROMO_GP": "Promo GP",
+    "RESURRECTED": "Resucitado"
+  },
+  "downloadClient": {
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Agregar torrents directamente a qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Agregar torrents directamente a Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge 2",
+      "description": "Agregar torrents directamente a Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Agregar torrents directamente a rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Agregar torrents directamente a Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Agregar torrents directamente a Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "Enviar a Radarr y dejar que decida"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "Enviar a Sonarr y dejar que decida"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "Enviar a Lidarr y dejar que decida"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "Enviar a Whisparr y dejar que decida"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "Enviar a Readarr y dejar que decida"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "Agregar nzbs directamente a SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "Agregar nzbs directamente a NZBGet"
+    }
+  },
+  "actionType": {
+    "TEST": {
+      "label": "Prueba",
+      "description": "Una acción simple para probar un filtro."
+    },
+    "WATCH_FOLDER": {
+      "label": "Carpeta vigilada",
+      "description": "Agregar torrents filtrados a un directorio vigilado"
+    },
+    "WEBHOOK": {
+      "label": "Webhook",
+      "description": "Ejecutar webhook"
+    },
+    "EXEC": {
+      "label": "Exec",
+      "description": "Ejecutar un comando personalizado después de una coincidencia de filtro"
+    },
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Agregar torrents directamente a qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Agregar torrents directamente a Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge v2",
+      "description": "Agregar torrents directamente a Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Agregar torrents directamente a rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Agregar torrents directamente a Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Agregar torrents directamente a Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "Enviar a Radarr y dejar que decida"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "Enviar a Sonarr y dejar que decida"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "Enviar a Lidarr y dejar que decida"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "Enviar a Whisparr y dejar que decida"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "Enviar a Readarr y dejar que decida"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "Agregar a SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "Agregar a NZBGet"
+    }
+  },
+  "pushStatus": {
+    "PUSH_REJECTED": "Rechazado",
+    "PUSH_APPROVED": "Aprobado",
+    "PENDING": "Pendiente",
+    "PUSH_ERROR": "Error"
+  },
+  "notificationType": {
+    "DISCORD": "Discord",
+    "GOTIFY": "Gotify",
+    "LUNASEA": "LunaSea",
+    "NOTIFIARR": "Notifiarr",
+    "NTFY": "Ntfy",
+    "PUSHOVER": "Pushover",
+    "SHOUTRRR": "Shoutrrr",
+    "TELEGRAM": "Telegram",
+    "WEBHOOK": "Webhook"
+  },
+  "event": {
+    "PUSH_REJECTED": {
+      "label": "Envío rechazado",
+      "description": "Cuando el envío es rechazado por los arrs o el cliente de descarga"
+    },
+    "PUSH_APPROVED": {
+      "label": "Envío aprobado",
+      "description": "Cuando el envío es aprobado por los arrs o el cliente de descarga"
+    },
+    "PUSH_ERROR": {
+      "label": "Error de envío",
+      "description": "Cuando hay un error de envío en los arrs o el cliente de descarga"
+    },
+    "IRC_DISCONNECTED": {
+      "label": "IRC desconectado",
+      "description": "Desconectado inesperadamente de la red IRC"
+    },
+    "IRC_RECONNECTED": {
+      "label": "IRC reconectado",
+      "description": "Reconectado a la red IRC después de un error"
+    },
+    "APP_UPDATE_AVAILABLE": {
+      "label": "Nueva actualización",
+      "description": "Recibir notificaciones de actualizaciones"
+    },
+    "RELEASE_NEW": {
+      "label": "Nuevo lanzamiento",
+      "description": "Nuevo lanzamiento del indexador (antes del filtrado)"
+    }
+  }
+}

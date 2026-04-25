@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { getRouteApi, redirect } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, ExclamationTriangleIcon, MegaphoneIcon, XMarkIcon  } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import toast from "@components/hot-toast";
@@ -20,22 +21,14 @@ import { ConfigQueryOptions, ListsQueryOptions, UpdatesQueryOptions } from "@api
 import { AuthContext } from "@utils/Context";
 
 export const Header = () => {
+  const { t } = useTranslation("common");
   const loginRoute = getRouteApi("/login");
 
-  const { isError:isConfigError, error: configError, data: config } = useQuery(ConfigQueryOptions(true));
-  if (isConfigError) {
-    console.log(configError);
-  }
+  const { data: config } = useQuery(ConfigQueryOptions(true));
 
-  const { isError: isUpdateError, error, data } = useQuery(UpdatesQueryOptions(config?.check_for_updates === true));
-  if (isUpdateError) {
-    console.log("update error", error);
-  }
+  const { data } = useQuery(UpdatesQueryOptions(config?.check_for_updates === true));
 
-  const { isError: isListError, error: ListsError, data: lists } = useQuery(ListsQueryOptions());
-  if (isListError) {
-    console.log("list error", ListsError);
-  }
+  const { data: lists } = useQuery(ListsQueryOptions());
 
   // Check if the last run of any list has errored
   const hasErroredList = lists?.some(list => list.last_refresh_status === "ERROR");
@@ -44,17 +37,15 @@ export const Header = () => {
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
-      toast.custom((t) => (
-        <Toast type="success" body="You have been logged out. Goodbye!" t={t} />
+      toast.custom((toastInstance) => (
+        <Toast type="success" body={t("header.logoutSuccess")} t={toastInstance} />
       ));
       AuthContext.reset();
       redirect({
         to: loginRoute.id,
       })
     },
-    onError: (err) => {
-      console.error("logout error", err)
-    }
+    onError: () => {}
   });
 
   return (
@@ -72,7 +63,7 @@ export const Header = () => {
                 <div className="-mr-2 flex sm:hidden">
                   {/* Mobile menu button */}
                   <DisclosureButton className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
-                    <span className="sr-only">Open main menu</span>
+                    <span className="sr-only">{t("header.openMainMenu")}</span>
                     {open ? (
                       <XMarkIcon
                         className="block h-6 w-6"
@@ -93,7 +84,7 @@ export const Header = () => {
               <ExternalLink href={data.html_url}>
                 <div className="flex mt-4 py-2 bg-blue-500 rounded-sm justify-center">
                   <MegaphoneIcon className="h-6 w-6 text-blue-100" />
-                  <span className="text-blue-100 font-medium mx-3">New update available!</span>
+                  <span className="text-blue-100 font-medium mx-3">{t("header.newUpdateAvailable")}</span>
                   <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>
                 </div>
               </ExternalLink>
@@ -103,7 +94,7 @@ export const Header = () => {
               <div className="flex mt-4 py-2 bg-red-500 rounded-sm justify-center">
                 <ExclamationTriangleIcon className="h-6 w-6 text-red-100" />
                 <span className="text-red-100 font-medium mx-3">
-                  {erroredLists?.length === 1 ? "List refresh failed!" : "Multiple list refreshes failed!"}
+                  {erroredLists?.length === 1 ? t("header.listRefreshFailed") : t("header.multipleListRefreshesFailed")}
                 </span>
                 {erroredLists?.length === 1 ? (
                   <span className="inline-flex items-center rounded-md bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">

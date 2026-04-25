@@ -8,6 +8,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { Form, Formik } from "formik";
 import type { FormikValues, FormikProps } from "formik";
+import { useTranslation } from "react-i18next";
 
 import { DEBUG } from "@components/debug";
 import { useToggle } from "@hooks/hooks";
@@ -47,6 +48,7 @@ function SlideOver<DataType extends FormikValues>({
   isTestError,
   extraButtons
 }: SlideOverProps<DataType>): ReactElement {
+  const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const formRef = useRef<FormikProps<DataType>>(null);
 
@@ -62,8 +64,8 @@ function SlideOver<DataType extends FormikValues>({
             toggle={toggleDeleteModal}
             buttonRef={cancelModalButtonRef}
             deleteAction={deleteAction}
-            title={`Remove ${title}`}
-            text={`Are you sure you want to remove this ${title}? This action cannot be undone.`}
+            title={t("panel.removeTitle", { title })}
+            text={t("panel.removeText", { title })}
           />
         )}
 
@@ -105,9 +107,15 @@ function SlideOver<DataType extends FormikValues>({
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{type === "CREATE" ? "Create" : "Update"} {title}</DialogTitle>
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                                {type === "CREATE"
+                                  ? t("panel.createTitle", { title })
+                                  : t("panel.updateTitle", { title })}
+                              </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {type === "CREATE" ? "Create" : "Update"} {title}.
+                                {type === "CREATE"
+                                  ? t("panel.createDescription", { title })
+                                  : t("panel.updateDescription", { title })}
                               </p>
                             </div>
                             <div className="h-7 flex items-center">
@@ -116,7 +124,7 @@ function SlideOver<DataType extends FormikValues>({
                                 className="bg-white dark:bg-gray-900 rounded-md text-gray-400 hover:text-gray-500 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                 onClick={toggle}
                               >
-                                <span className="sr-only">Close panel</span>
+                                <span className="sr-only">{t("panel.closePanel")}</span>
                                 <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                               </button>
                             </div>
@@ -136,7 +144,7 @@ function SlideOver<DataType extends FormikValues>({
                               className="inline-flex items-center justify-center px-4 py-2 border border-transparent cursor-pointer font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
                               onClick={toggleDeleteModal}
                             >
-                              Remove
+                              {t("panel.remove")}
                             </button>
                           )}
                           <div className="flex">
@@ -184,11 +192,11 @@ function SlideOver<DataType extends FormikValues>({
                                     ></path>
                                   </svg>
                                 ) : isTestSuccessful ? (
-                                  "OK!"
+                                  t("panel.ok")
                                 ) : isTestError ? (
-                                  "ERROR"
+                                  t("panel.error")
                                 ) : (
-                                  "Test"
+                                  t("panel.test")
                                 )}
                               </button>
                             )}
@@ -201,7 +209,7 @@ function SlideOver<DataType extends FormikValues>({
                                 toggle();
                               }}
                             >
-                              Cancel
+                              {t("panel.cancel")}
                             </button>
                             <button
                               type="button"
@@ -211,7 +219,7 @@ function SlideOver<DataType extends FormikValues>({
                                 formRef.current?.submitForm();
                               }}
                             >
-                              {type === "CREATE" ? "Create" : "Save"}
+                              {type === "CREATE" ? t("panel.create") : t("panel.save")}
                             </button>
                           </div>
                         </div>

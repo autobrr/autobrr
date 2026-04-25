@@ -134,9 +134,25 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.MagnetURI = item.Link
 		rls.DownloadURL = ""
 	}
-	// Loop through the enclosures.
+
 	for _, e := range item.Enclosures {
+		if e.Type == "application/x-nzb" {
+			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType != "" && j.Feed.Settings.DownloadType != domain.FeedDownloadTypeNzb {
+				continue
+			}
+			if e.URL != "" {
+				rls.DownloadURL = e.URL
+			}
+			if e.Length != "" && e.Length != "1" {
+				rls.ParseSizeBytesString(e.Length)
+			}
+			rls.Protocol = domain.ReleaseProtocolNzb
+			break
+		}
 		if e.Type == "application/x-bittorrent" {
+			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeNzb {
+				continue
+			}
 			if e.URL != "" {
 				rls.DownloadURL = e.URL
 			}
@@ -150,9 +166,13 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 					rls.DownloadURL = ""
 				}
 			}
-			// exit the loop to avoid processing any others.
 			break
 		}
+	}
+
+	// If download type is explicitly set to NZB, override protocol
+	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeNzb {
+		rls.Protocol = domain.ReleaseProtocolNzb
 	}
 
 	if rls.DownloadURL == "" && item.Link != "" {
@@ -215,6 +235,41 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 				rls.Size = size
 			}
 		}
+	} else if cc, ok := item.Custom["contentLength"]; ok {
+		if cc != "" {
+			size, err := strconv.ParseUint(cc, 10, 64)
+			if err != nil {
+				j.Log.Error().Err(err).Msgf("could not parse item.Custom.ContentLength: %s", cc)
+			}
+
+			if size > rls.Size {
+				rls.Size = size
+			}
+		}
+	}
+
+	if val, ok := item.Custom["infoHash"]; ok {
+		rls.TorrentHash = val
+	}
+
+	if val, ok := item.Custom["seeds"]; ok {
+		value, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			j.Log.Error().Err(err).Msgf("could not parse item.Custom.seeds: %d", value)
+		}
+		rls.Seeders = int(value)
+	}
+
+	if val, ok := item.Custom["peers"]; ok {
+		value, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			j.Log.Error().Err(err).Msgf("could not parse item.Custom.peers: %d", value)
+		}
+		rls.Leechers = int(value) - rls.Seeders
+	}
+
+	if val, ok := item.Custom["magnetURI"]; ok {
+		rls.MagnetURI = val
 	}
 
 	// additional size parsing
@@ -235,6 +290,64 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if rls.TorrentHash == "" && element.InfoHash != "" {
 			rls.TorrentHash = element.InfoHash
 		}
+	}
+
+	if extParent, extOK := item.Extensions["torrent"]; extOK {
+		if val, ok := extParent["contentLength"]; ok {
+			if len(val) > 0 {
+				if size, err := strconv.ParseUint(val[0].Value, 10, 64); err == nil && size > rls.Size {
+					rls.Size = size
+				}
+			}
+		}
+
+		if val, ok := extParent["contentLengthHR"]; ok {
+			if len(val) > 0 {
+				rls.ParseSizeBytesString(val[0].Value)
+			}
+		}
+
+		if val, ok := extParent["infoHash"]; ok {
+			if len(val) > 0 {
+				rls.TorrentHash = val[0].Value
+			}
+		}
+
+		if val, ok := extParent["magnetURI"]; ok {
+			if len(val) > 0 {
+				rls.MagnetURI = val[0].Value
+			}
+		}
+
+		if val, ok := extParent["seeds"]; ok {
+			if len(val) > 0 {
+				if parsedValue, err := strconv.ParseUint(val[0].Value, 10, 64); err == nil {
+					rls.Seeders = int(parsedValue)
+				}
+			}
+		}
+
+		if val, ok := extParent["peers"]; ok {
+			if len(val) > 0 {
+				if parsedValue, err := strconv.ParseUint(val[0].Value, 10, 64); err == nil {
+					rls.Leechers = int(parsedValue) - rls.Seeders
+				}
+			}
+		}
+
+		if val, ok := extParent["leechers"]; ok {
+			if len(val) > 0 {
+				if parsedValue, err := strconv.ParseUint(val[0].Value, 10, 64); err == nil {
+					rls.Leechers = int(parsedValue)
+				}
+			}
+		}
+
+		//if val, ok := extParent["fileName"]; ok {
+		//	if len(val) > 0 {
+		//		rls.FileName = val[0].Value
+		//	}
+		//}
 	}
 
 	// basic freeleech parsing
@@ -407,6 +520,7 @@ func readSizeFromDescription(str string, r *domain.Release) bool {
 // itemCustomElement
 // used for some feeds like Aviztas network
 type itemCustomElement struct {
-	ContentLength int64  `xml:"contentLength,contentlength"`
-	InfoHash      string `xml:"infoHash"`
+	ContentLength   int64  `xml:"contentLength,contentlength"`
+	ContentLengthHR string `xml:"contentLengthHR"`
+	InfoHash        string `xml:"infoHash"`
 }
