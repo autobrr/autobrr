@@ -141,9 +141,9 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
+
 		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
 			rls.MagnetURI = item.Link
-			rls.DownloadURL = ""
 		}
 
 		if item.Enclosure != nil && item.Enclosure.Type == "application/x-bittorrent" {
