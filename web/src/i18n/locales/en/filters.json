@@ -191,7 +191,7 @@
       "matchTooltip": "Comma separated list of release groups to match.",
       "except": "Except release groups",
       "exceptPlaceholder": "eg. badgroup1,badgroup2",
-      "exceptTooltip": "Comma separated list of release groups to ignore (takes priority over Match releases)."
+      "exceptTooltip": "Comma separated list of release groups to ignore (takes priority over Match release groups)."
     },
     "categories": {
       "title": "Categories",
@@ -201,7 +201,7 @@
       "matchTooltip": "Comma separated list of categories to match.",
       "except": "Except categories",
       "exceptPlaceholder": "eg. *category*",
-      "exceptTooltip": "Comma separated list of categories to ignore (takes priority over Match releases)."
+      "exceptTooltip": "Comma separated list of categories to ignore (takes priority over Match categories)."
     },
     "tags": {
       "title": "Tags",
@@ -214,7 +214,7 @@
       "matchLogicTooltip": "Logic used to match filter tags.",
       "except": "Except tags",
       "exceptPlaceholder": "eg. tag1,tag2",
-      "exceptTooltip": "Comma separated list of tags to ignore (takes priority over Match releases).",
+      "exceptTooltip": "Comma separated list of tags to ignore (takes priority over Match tags).",
       "exceptLogic": "Except logic",
       "exceptLogicDefault": "any",
       "exceptLogicTooltip": "Logic used to match except tags."
@@ -227,7 +227,7 @@
       "matchTooltip": "Comma separated list of uploaders to match.",
       "except": "Except uploaders",
       "exceptPlaceholder": "eg. anonymous1,anonymous2",
-      "exceptTooltip": "Comma separated list of uploaders to ignore (takes priority over Match releases)."
+      "exceptTooltip": "Comma separated list of uploaders to ignore (takes priority over Match uploaders)."
     },
     "language": {
       "title": "Language",
@@ -298,10 +298,10 @@
       "dailyShows": "Daily Shows",
       "months": "Months",
       "monthsPlaceholder": "eg. 4,2-9",
-      "monthsTooltip": "This field takes a range of years and/or comma separated single months.",
+      "monthsTooltip": "This field takes a range of months and/or comma separated single months.",
       "days": "Days",
       "daysPlaceholder": "eg. 1,15-30",
-      "daysTooltip": "This field takes a range of years and/or comma separated single days.",
+      "daysTooltip": "This field takes a range of days and/or comma separated single days.",
       "smartEpisode": "Smart Episode",
       "smartEpisodeDescription": "Do not match episodes older than the last one matched."
     },

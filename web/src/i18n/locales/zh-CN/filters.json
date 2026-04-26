@@ -191,7 +191,7 @@
       "matchTooltip": "用逗号分隔要匹配的发布小组列表。",
       "except": "排除发布小组",
       "exceptPlaceholder": "例如：badgroup1,badgroup2",
-      "exceptTooltip": "用逗号分隔要忽略的发布小组列表（优先级高于匹配发布）。"
+      "exceptTooltip": "用逗号分隔要忽略的发布小组列表（优先级高于匹配发布小组）。"
     },
     "categories": {
       "title": "分类",
@@ -201,7 +201,7 @@
       "matchTooltip": "用逗号分隔要匹配的分类列表。",
       "except": "排除分类",
       "exceptPlaceholder": "例如：*category*",
-      "exceptTooltip": "用逗号分隔要忽略的分类列表（优先级高于匹配发布）。"
+      "exceptTooltip": "用逗号分隔要忽略的分类列表（优先级高于匹配分类）。"
     },
     "tags": {
       "title": "标签",
@@ -214,7 +214,7 @@
       "matchLogicTooltip": "用于匹配过滤器标签的逻辑。",
       "except": "排除标签",
       "exceptPlaceholder": "例如：tag1,tag2",
-      "exceptTooltip": "用逗号分隔要忽略的标签列表（优先级高于匹配发布）。",
+      "exceptTooltip": "用逗号分隔要忽略的标签列表（优先级高于匹配标签）。",
       "exceptLogic": "排除逻辑",
       "exceptLogicDefault": "任意",
       "exceptLogicTooltip": "用于匹配排除标签的逻辑。"
@@ -227,7 +227,7 @@
       "matchTooltip": "用逗号分隔要匹配的发布者列表。",
       "except": "排除发布者",
       "exceptPlaceholder": "例如：anonymous1,anonymous2",
-      "exceptTooltip": "用逗号分隔要忽略的发布者列表（优先级高于匹配发布）。"
+      "exceptTooltip": "用逗号分隔要忽略的发布者列表（优先级高于匹配发布者）。"
     },
     "language": {
       "title": "语言",

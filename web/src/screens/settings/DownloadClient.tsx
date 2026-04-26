@@ -130,12 +130,12 @@ function ListItem({ client }: DLSettingsItemProps) {
             setValue={onToggleMutation}
           />
         </div>
-        <div className="col-span-8 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
-        <div className="hidden sm:block col-span-4 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
-        <div className="hidden sm:block col-span-2 py-3 text-left items-center text-sm text-gray-600 dark:text-gray-400">
+        <div className="col-span-8 sm:col-span-3 lg:col-span-3 pl-10 sm:pl-12 pr-4 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate" title={client.name}>{client.name}</div>
+        <div className="hidden sm:block col-span-6 lg:col-span-4 pr-12 lg:pr-4 py-3 text-left items-center whitespace-nowrap text-sm text-gray-600 dark:text-gray-400 truncate" title={client.host}>{client.host}</div>
+        <div className="hidden lg:block col-span-2 py-3 text-left items-center text-sm text-gray-600 dark:text-gray-400 ">
           {actionTypeNameMap[client.type]}
         </div>
-        <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
+        <div className="col-span-2 px-6 whitespace-nowrap flex justify-end text-sm font-medium">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer" onClick={toggleUpdateClient}>
             {t("settings:listScreens.common.edit")}
           </span>
@@ -179,7 +179,7 @@ function DownloadClientSettings() {
                 {t("listScreens.common.enabled")} <span className="sort-indicator">{sortedClients.getSortIndicator("enabled")}</span>
               </div>
               <div
-                className="col-span-6 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+                className="col-span-6 sm:col-span-3 lg:col-span-3 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                 onClick={() => sortedClients.requestSort("name")}
               >
                 {t("listScreens.common.name")} <span className="sort-indicator">{sortedClients.getSortIndicator("name")}</span>
@@ -190,7 +190,7 @@ function DownloadClientSettings() {
               >
                 {t("listScreens.downloadClients.host")} <span className="sort-indicator">{sortedClients.getSortIndicator("host")}</span>
               </div>
-              <div className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
+              <div className="hidden lg:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
                 onClick={() => sortedClients.requestSort("type")}
               >
                 {t("listScreens.common.type")} <span className="sort-indicator">{sortedClients.getSortIndicator("type")}</span>
