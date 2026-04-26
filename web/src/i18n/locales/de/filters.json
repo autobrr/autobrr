@@ -298,10 +298,10 @@
       "dailyShows": "Tägliche Sendungen",
       "months": "Monate",
       "monthsPlaceholder": "z.B. 4,2-9",
-      "monthsTooltip": "Dieses Feld nimmt einen Jahresbereich und/oder durch Komma getrennte Einzelmonate.",
+      "monthsTooltip": "Dieses Feld nimmt einen Monatsbereich und/oder durch Komma getrennte Einzelmonate.",
       "days": "Tage",
       "daysPlaceholder": "z.B. 1,15-30",
-      "daysTooltip": "Dieses Feld nimmt einen Jahresbereich und/oder durch Komma getrennte Einzeltage.",
+      "daysTooltip": "Dieses Feld nimmt einen Tagesbereich und/oder durch Komma getrennte Einzeltage.",
       "smartEpisode": "Intelligente Folge",
       "smartEpisodeDescription": "Keine Folgen filtern, die älter sind als die zuletzt gefilterte."
     },
