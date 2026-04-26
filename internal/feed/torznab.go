@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -141,13 +142,18 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet && strings.HasPrefix(item.Link, domain.MagnetURIPrefix) {
 			rls.MagnetURI = item.Link
 			rls.DownloadURL = ""
 		}
 
 		if item.Enclosure != nil && item.Enclosure.Type == "application/x-bittorrent" {
 			rls.DownloadURL = item.Enclosure.URL
+
+			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet && strings.HasPrefix(item.Enclosure.URL, domain.MagnetURIPrefix) {
+				rls.MagnetURI = item.Enclosure.URL
+				rls.DownloadURL = ""
+			}
 		}
 
 		rls.ParseString(item.Title)
