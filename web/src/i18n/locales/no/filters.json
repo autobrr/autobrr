@@ -201,7 +201,7 @@
       "matchTooltip": "Kommaseparert liste over kategorier som skal samsvare.",
       "except": "Ekskluder kategorier",
       "exceptPlaceholder": "f.eks. *kategori*",
-      "exceptTooltip": "Kommaseparert liste over kategorier som skal ignoreres (prioriteres foran Samsvar med utgivelser)."
+      "exceptTooltip": "Kommaseparert liste over kategorier som skal ignoreres (prioriteres foran Samsvar med kategorier)."
     },
     "tags": {
       "title": "Tagger",
@@ -214,7 +214,7 @@
       "matchLogicTooltip": "Logikk brukt for å samsvare filtertagger.",
       "except": "Ekskluder tagger",
       "exceptPlaceholder": "f.eks. tag1,tag2",
-      "exceptTooltip": "Kommaseparert liste over tagger som skal ignoreres (prioriteres foran Samsvar med utgivelser).",
+      "exceptTooltip": "Kommaseparert liste over tagger som skal ignoreres (prioriteres foran Samsvar med tagger).",
       "exceptLogic": "Ekskluderingslogikk",
       "exceptLogicDefault": "hvilken som helst",
       "exceptLogicTooltip": "Logikk brukt for å samsvare med ekskluderte tagger."
@@ -227,7 +227,7 @@
       "matchTooltip": "Kommaseparert liste over opplastere som skal samsvare.",
       "except": "Ekskluder opplastere",
       "exceptPlaceholder": "f.eks. anonym1,anonym2",
-      "exceptTooltip": "Kommaseparert liste over opplastere som skal ignoreres (prioriteres foran Samsvar med utgivelser)."
+      "exceptTooltip": "Kommaseparert liste over opplastere som skal ignoreres (prioriteres foran Samsvar med opplastere)."
     },
     "language": {
       "title": "Språk",
@@ -298,10 +298,10 @@
       "dailyShows": "Daglige serier (Daily Shows)",
       "months": "Måneder",
       "monthsPlaceholder": "f.eks. 4,2-9",
-      "monthsTooltip": "Dette feltet tar et område av år og/eller kommaseparerte enkeltmåneder.",
+      "monthsTooltip": "Dette feltet tar et område av måneder og/eller kommaseparerte enkeltmåneder.",
       "days": "Dager",
       "daysPlaceholder": "f.eks. 1,15-30",
-      "daysTooltip": "Dette feltet tar et område av år og/eller kommaseparerte enkeltdager.",
+      "daysTooltip": "Dette feltet tar et område av dager og/eller kommaseparerte enkeltdager.",
       "smartEpisode": "Smart episode",
       "smartEpisodeDescription": "Ikke la samsvare med episoder som er eldre enn den siste som samsvarte."
     },
