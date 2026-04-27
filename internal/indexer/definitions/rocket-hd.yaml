@@ -27,7 +27,7 @@ irc:
   channels:
     - "#announce"
   announcers:
-    - RocketMan
+    - GLaDOS
   settings:
     - name: nick
       type: text
@@ -45,32 +45,47 @@ irc:
     type: single
     lines:
       - tests:
-          - line: "New Upload Category: [TV] Type: [WEB-DL] Name: [Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA] Size: [67.15 GiB] Uploader: [Anonym] Url: [https://rocket-hd.cc/torrents/00]"
+          - line: "TV|WEB-DL|1080p|Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA|RLS:Die.Scharfschuetzen.S01.German.1080p.WEB-DL.H.264-AIDA|S:67.15GiB|TMDB:12345|U:Anonym|O:INTERNAL|FL:0|DU:0 [https://rocket-hd.cc/torrents/99]"
             expect:
               category: TV
               releaseTags: WEB-DL
+              resolution: 1080p
               torrentName: Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA
-              torrentSize: 67.15 GiB
+              releaseName: Die.Scharfschuetzen.S01.German.1080p.WEB-DL.H.264-AIDA
+              torrentSize: 67.15GiB
+              tmdb: "12345"
               uploader: Anonym
-              baseUrl: https://rocket-hd.cc/
-              torrentId: "00"
-          - line: "New Upload Category: [Movies] Type: [Encode] Name: [Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE] Size: [7.42 GiB] Uploader: [fritz47] Url: [https://rocket-hd.cc/torrents/00]"
+              origin: INTERNAL
+              freeleechPercent: "0"
+              doubleUp: "0"
+              torrentId: "99"
+          - line: "Movies|Encode|1080p|Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE|RLS:Ju.On.2.2003.GERMAN.DL.1080p.BluRay.x264-WATCHABLE|S:7.42GiB|TMDB:67890|U:fritz47|O:NORMAL|FL:50|DU:0 [https://rocket-hd.cc/torrents/100]"
             expect:
               category: Movies
               releaseTags: Encode
+              resolution: 1080p
               torrentName: Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE
-              torrentSize: 7.42 GiB
+              releaseName: Ju.On.2.2003.GERMAN.DL.1080p.BluRay.x264-WATCHABLE
+              torrentSize: 7.42GiB
+              tmdb: "67890"
               uploader: fritz47
-              baseUrl: https://rocket-hd.cc/
-              torrentId: "00"
-        pattern: 'New Upload Category: \[(.+)\] Type: \[(.+)\] Name: \[(.+?)\] Size: \[(.+)\] Uploader: \[(.+)\] Url: \[(https?\:\/\/.+\/).+\/(\d+)\]'
+              origin: NORMAL
+              freeleechPercent: "50"
+              doubleUp: "0"
+              torrentId: "100"
+        pattern: '^([^|]+)\|([^|]+)\|([^|]*)\|([^|]+)\|RLS:([^|]+)\|S:([^|]+)\|TMDB:(\d+)\|U:([^|]+)\|O:([^|]+)\|FL:(\d+)\|DU:(\d+) \[.*?/torrents/(\d+)\]'
         vars:
           - category
           - releaseTags
+          - resolution
           - torrentName
+          - releaseName
           - torrentSize
+          - tmdb
           - uploader
-          - baseUrl
+          - origin
+          - freeleechPercent
+          - doubleUp
           - torrentId
 
     match:
