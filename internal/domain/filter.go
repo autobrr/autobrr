@@ -43,20 +43,28 @@ type FilterRepo interface {
 }
 
 type FilterDownloads struct {
-	HourCount  int `json:"hour_count"`
-	DayCount   int `json:"day_count"`
-	WeekCount  int `json:"week_count"`
-	MonthCount int `json:"month_count"`
-	TotalCount int `json:"total_count"`
+	MinuteCount int `json:"minute_count"`
+	HourCount   int `json:"hour_count"`
+	DayCount    int `json:"day_count"`
+	WeekCount   int `json:"week_count"`
+	MonthCount  int `json:"month_count"`
+	TotalCount  int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
-	return fmt.Sprintf("Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
+	return fmt.Sprintf("Minute: %d, Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.MinuteCount, f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
 }
 
-func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int) bool {
+func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int, interval int) bool {
+	// Handle default/invalid interval
+	if interval <= 0 {
+		interval = 1
+	}
+
 	var count int
 	switch unit {
+	case FilterMaxDownloadsMinute:
+		count = f.MinuteCount
 	case FilterMaxDownloadsHour:
 		count = f.HourCount
 	case FilterMaxDownloadsDay:
@@ -69,17 +77,26 @@ func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads i
 		count = f.TotalCount
 	}
 
-	return count < maxDownloads
+	// Proportional calculation: allow maxDownloads * interval downloads
+	return count < (maxDownloads * interval)
 }
+
+type FilterMaxDownloadsWindowType string
+
+const (
+	FilterMaxDownloadsWindowFixed   FilterMaxDownloadsWindowType = "FIXED"
+	FilterMaxDownloadsWindowRolling FilterMaxDownloadsWindowType = "ROLLING"
+)
 
 type FilterMaxDownloadsUnit string
 
 const (
-	FilterMaxDownloadsHour  FilterMaxDownloadsUnit = "HOUR"
-	FilterMaxDownloadsDay   FilterMaxDownloadsUnit = "DAY"
-	FilterMaxDownloadsWeek  FilterMaxDownloadsUnit = "WEEK"
-	FilterMaxDownloadsMonth FilterMaxDownloadsUnit = "MONTH"
-	FilterMaxDownloadsEver  FilterMaxDownloadsUnit = "EVER"
+	FilterMaxDownloadsMinute FilterMaxDownloadsUnit = "MINUTE"
+	FilterMaxDownloadsHour   FilterMaxDownloadsUnit = "HOUR"
+	FilterMaxDownloadsDay    FilterMaxDownloadsUnit = "DAY"
+	FilterMaxDownloadsWeek   FilterMaxDownloadsUnit = "WEEK"
+	FilterMaxDownloadsMonth  FilterMaxDownloadsUnit = "MONTH"
+	FilterMaxDownloadsEver   FilterMaxDownloadsUnit = "EVER"
 )
 
 type SmartEpisodeParams struct {
@@ -115,10 +132,12 @@ type Filter struct {
 	MinSize                   string                   `json:"min_size,omitempty"`
 	MaxSize                   string                   `json:"max_size,omitempty"`
 	Delay                     int                      `json:"delay,omitempty"`
-	Priority                  int32                    `json:"priority"`
-	MaxDownloads              int                      `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit          FilterMaxDownloadsUnit   `json:"max_downloads_unit,omitempty"`
-	MatchReleases             string                   `json:"match_releases,omitempty"`
+	Priority                  int32                        `json:"priority"`
+	MaxDownloads              int                          `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit          FilterMaxDownloadsUnit       `json:"max_downloads_unit,omitempty"`
+	MaxDownloadsInterval      int                          `json:"max_downloads_interval,omitempty"`
+	MaxDownloadsWindowType    FilterMaxDownloadsWindowType `json:"max_downloads_window_type,omitempty"`
+	MatchReleases             string                       `json:"match_releases,omitempty"`
 	ExceptReleases            string                   `json:"except_releases,omitempty"`
 	UseRegex                  bool                     `json:"use_regex,omitempty"`
 	MatchReleaseGroups        string                   `json:"match_release_groups,omitempty"`
@@ -269,10 +288,12 @@ type FilterUpdate struct {
 	MaxSize                   *string                 `json:"max_size,omitempty"`
 	Delay                     *int                    `json:"delay,omitempty"`
 	Priority                  *int32                  `json:"priority,omitempty"`
-	AnnounceTypes             *[]string               `json:"announce_types,omitempty"`
-	MaxDownloads              *int                    `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit          *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
-	MatchReleases             *string                 `json:"match_releases,omitempty"`
+	AnnounceTypes             *[]string                     `json:"announce_types,omitempty"`
+	MaxDownloads              *int                          `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit          *FilterMaxDownloadsUnit       `json:"max_downloads_unit,omitempty"`
+	MaxDownloadsInterval      *int                          `json:"max_downloads_interval,omitempty"`
+	MaxDownloadsWindowType    *FilterMaxDownloadsWindowType `json:"max_downloads_window_type,omitempty"`
+	MatchReleases             *string                       `json:"match_releases,omitempty"`
 	ExceptReleases            *string                 `json:"except_releases,omitempty"`
 	UseRegex                  *bool                   `json:"use_regex,omitempty"`
 	MatchReleaseGroups        *string                 `json:"match_release_groups,omitempty"`
@@ -424,7 +445,17 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 
 	// Max downloads check. If reached return early so other filters can be checked as quick as possible.
 	if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
-		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit), f.Downloads.String(), fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit))
+		interval := f.MaxDownloadsInterval
+		if interval <= 0 {
+			interval = 1
+		}
+		var intervalMsg string
+		if interval == 1 {
+			intervalMsg = fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit)
+		} else {
+			intervalMsg = fmt.Sprintf("reached %d every %d %s", f.MaxDownloads, interval, f.MaxDownloadsUnit)
+		}
+		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] %s", intervalMsg), f.Downloads.String(), intervalMsg)
 		return f.RejectReasons, false
 	}
 
@@ -725,7 +756,13 @@ func (f *Filter) checkMaxDownloads() bool {
 		return false
 	}
 
-	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads)
+	// Default to interval of 1 if not set
+	interval := f.MaxDownloadsInterval
+	if interval <= 0 {
+		interval = 1
+	}
+
+	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads, interval)
 }
 
 // isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"

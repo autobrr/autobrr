@@ -686,6 +686,10 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
     value: ""
   },
   {
+    label: "MINUTE",
+    value: "MINUTE"
+  },
+  {
     label: "HOUR",
     value: "HOUR"
   },
@@ -704,6 +708,17 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
   {
     label: "EVER",
     value: "EVER"
+  }
+];
+
+export const windowTypeOptions: OptionBasic[] = [
+  {
+    label: "Fixed (resets at hour/day/week start)",
+    value: "FIXED"
+  },
+  {
+    label: "Rolling (last X hours/days)",
+    value: "ROLLING"
   }
 ];
 

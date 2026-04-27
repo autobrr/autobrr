@@ -1927,7 +1927,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 10, Total: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Minute: 0, Hour: 0, Day: 0, Week: 0, Month: 10, Total: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
 			wantMatch:        false,
 		},
 		{
@@ -1941,7 +1941,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 50, Total: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Minute: 0, Hour: 0, Day: 0, Week: 0, Month: 50, Total: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
 			wantMatch:        false,
 		},
 		{
@@ -1958,7 +1958,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 20, Day: 25, Week: 50, Month: 50, Total: 50", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Minute: 0, Hour: 20, Day: 25, Week: 50, Month: 50, Total: 50", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
 			wantMatch:        false,
 		},
 		{
@@ -2056,6 +2056,132 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			wantMatch:        true,
 		},
+		{
+			name: "test_interval_1",
+			fields: fields{
+				MaxDownloads:         10,
+				MaxDownloadsUnit:     FilterMaxDownloadsHour,
+				MaxDownloadsInterval: 2,
+				Downloads: &FilterDownloads{
+					HourCount: 15,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_interval_2",
+			fields: fields{
+				MaxDownloads:         10,
+				MaxDownloadsUnit:     FilterMaxDownloadsHour,
+				MaxDownloadsInterval: 2,
+				Downloads: &FilterDownloads{
+					HourCount: 20,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Minute: 0, Hour: 20, Day: 0, Week: 0, Month: 0, Total: 0", want: "reached 10 every 2 HOUR", format: "[max downloads] reached 10 every 2 HOUR"}}},
+			wantMatch:        false,
+		},
+		{
+			name: "test_interval_3",
+			fields: fields{
+				MaxDownloads:         5,
+				MaxDownloadsUnit:     FilterMaxDownloadsDay,
+				MaxDownloadsInterval: 3,
+				Downloads: &FilterDownloads{
+					DayCount: 10,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_interval_4",
+			fields: fields{
+				MaxDownloads:         5,
+				MaxDownloadsUnit:     FilterMaxDownloadsDay,
+				MaxDownloadsInterval: 3,
+				Downloads: &FilterDownloads{
+					DayCount: 15,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Minute: 0, Hour: 0, Day: 15, Week: 0, Month: 0, Total: 0", want: "reached 5 every 3 DAY", format: "[max downloads] reached 5 every 3 DAY"}}},
+			wantMatch:        false,
+		},
+		{
+			name: "test_interval_backward_compat",
+			fields: fields{
+				MaxDownloads:         10,
+				MaxDownloadsUnit:     FilterMaxDownloadsMonth,
+				MaxDownloadsInterval: 1,
+				Downloads: &FilterDownloads{
+					MonthCount: 5,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_interval_default_zero",
+			fields: fields{
+				MaxDownloads:         10,
+				MaxDownloadsUnit:     FilterMaxDownloadsHour,
+				MaxDownloadsInterval: 0,
+				Downloads: &FilterDownloads{
+					HourCount: 5,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_minute_interval_1",
+			fields: fields{
+				MaxDownloads:         5,
+				MaxDownloadsUnit:     FilterMaxDownloadsMinute,
+				MaxDownloadsInterval: 2,
+				Downloads: &FilterDownloads{
+					MinuteCount: 8,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_minute_interval_2",
+			fields: fields{
+				MaxDownloads:         5,
+				MaxDownloadsUnit:     FilterMaxDownloadsMinute,
+				MaxDownloadsInterval: 2,
+				Downloads: &FilterDownloads{
+					MinuteCount: 10,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Minute: 10, Hour: 0, Day: 0, Week: 0, Month: 0, Total: 0", want: "reached 5 every 2 MINUTE", format: "[max downloads] reached 5 every 2 MINUTE"}}},
+			wantMatch:        false,
+		},
+		{
+			name: "test_minute_single",
+			fields: fields{
+				MaxDownloads:         3,
+				MaxDownloadsUnit:     FilterMaxDownloadsMinute,
+				MaxDownloadsInterval: 1,
+				Downloads: &FilterDownloads{
+					MinuteCount: 2,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2071,6 +2197,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				Priority:             tt.fields.Priority,
 				MaxDownloads:         tt.fields.MaxDownloads,
 				MaxDownloadsUnit:     tt.fields.MaxDownloadsUnit,
+				MaxDownloadsInterval: tt.fields.MaxDownloadsInterval,
 				MatchReleases:        tt.fields.MatchReleases,
 				ExceptReleases:       tt.fields.ExceptReleases,
 				UseRegex:             tt.fields.UseRegex,
