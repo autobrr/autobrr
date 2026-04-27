@@ -712,6 +712,7 @@ func TestRelease_MapVars(t *testing.T) {
 			r := tt.fields
 			_ = r.MapVars(&tt.args.definition, tt.args.varMap)
 
+			r.Vars = nil // Vars pass-through is tested separately
 			assert.Equal(t, tt.want, r)
 		})
 	}
