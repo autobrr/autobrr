@@ -527,8 +527,8 @@
       "skipHashCheckTooltip": "Dette vil kun fungere på Deluge v2."
     },
     "transmission": {
-      "label": "Torrentetikett",
-      "labelPlaceholder": "f.eks. etikett1"
+      "label": "Torrentetiketter",
+      "labelPlaceholder": "f.eks. etikett1,etikett2"
     },
     "rtorrent": {
       "label": "Etikett",

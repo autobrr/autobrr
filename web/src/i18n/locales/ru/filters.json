@@ -527,8 +527,8 @@
       "skipHashCheckTooltip": "Это работает только в Deluge v2."
     },
     "transmission": {
-      "label": "Метка торрента",
-      "labelPlaceholder": "например, label1"
+      "label": "Метки торрента",
+      "labelPlaceholder": "например, label1,label2"
     },
     "rtorrent": {
       "label": "Метка",
