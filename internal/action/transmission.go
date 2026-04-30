@@ -70,7 +70,9 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			}
 
 			if action.Label != "" {
-				p.Labels = []string{action.Label}
+				labels := strings.TrimSuffix(action.Label, ",")
+				labels = strings.TrimPrefix(labels, ",")
+				p.Labels = strings.Split(labels, ",")
 			}
 
 			if action.LimitUploadSpeed > 0 {
@@ -131,7 +133,9 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		}
 
 		if action.Label != "" {
-			p.Labels = []string{action.Label}
+			labels := strings.TrimSuffix(action.Label, ",")
+			labels = strings.TrimPrefix(labels, ",")
+			p.Labels = strings.Split(labels, ",")
 		}
 
 		if action.LimitUploadSpeed > 0 {
