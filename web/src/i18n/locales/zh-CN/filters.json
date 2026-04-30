@@ -528,7 +528,7 @@
     },
     "transmission": {
       "label": "种子标签",
-      "labelPlaceholder": "例如：label1"
+      "labelPlaceholder": "例如：label1,label2"
     },
     "rtorrent": {
       "label": "标签",
