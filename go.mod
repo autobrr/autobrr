@@ -16,7 +16,7 @@ require (
 	github.com/anacrolix/torrent v1.61.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.4.0
-	github.com/autobrr/go-qbittorrent v1.15.0-rc1
+	github.com/autobrr/go-qbittorrent v1.15.0
 	github.com/autobrr/go-rtorrent v1.12.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.7.0
@@ -26,7 +26,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/ergochat/irc-go v0.6.0
 	github.com/fergusstrange/embedded-postgres v1.34.0
-	github.com/fsnotify/fsnotify v1.10.0
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-andiamo/splitter v1.2.5
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
