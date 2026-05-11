@@ -1149,3 +1149,19 @@ func TestRelease_Hash(t *testing.T) {
 		})
 	}
 }
+
+func TestMustNormalize(t *testing.T) {
+	tests := []struct {
+		name string
+		args string
+		want string
+	}{
+		{name: "1", args: "9-1-1 Lone Star", want: "9 1 1 lone star"},
+		{name: "2", args: "9.1.1 Lone Star", want: "9 1 1 lone star"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, MustNormalize(tt.args), "MustNormalize(%v)", tt.args)
+		})
+	}
+}

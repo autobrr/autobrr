@@ -353,6 +353,7 @@ CREATE TABLE "release"
     normalized_hash  TEXT,
     size             INTEGER,
     title            TEXT,
+    title_normalized TEXT,
     sub_title        TEXT,
     category         TEXT,
     season           INTEGER,
@@ -405,6 +406,9 @@ CREATE INDEX release_normalized_hash_index
 
 CREATE INDEX release_title_index
     ON "release" (title);
+
+CREATE INDEX release_title_normalized_index
+    ON "release" (title_normalized);
 
 CREATE INDEX release_sub_title_index
     ON "release" (sub_title);
