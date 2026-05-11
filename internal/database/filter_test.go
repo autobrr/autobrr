@@ -821,11 +821,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockData.Downloads)
 			assert.Equal(t, mockData.Downloads, &domain.FilterDownloads{
-				HourCount:  1,
-				DayCount:   1,
-				WeekCount:  1,
-				MonthCount: 1,
-				TotalCount: 1,
+				MinuteCount: 1,
+				HourCount:   1,
+				DayCount:    1,
+				WeekCount:   1,
+				MonthCount:  1,
+				TotalCount:  1,
 			})
 
 			// Cleanup
@@ -902,11 +903,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
-				HourCount:  1,
-				DayCount:   1,
-				WeekCount:  1,
-				MonthCount: 1,
-				TotalCount: 1,
+				MinuteCount: 1,
+				HourCount:   1,
+				DayCount:    1,
+				WeekCount:   1,
+				MonthCount:  1,
+				TotalCount:  1,
 			})
 
 			// Cleanup
@@ -1006,6 +1008,236 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(t.Context(), mockFilter.ID)
+		})
+
+		t.Run(fmt.Sprintf("GetFilterDownloads_Rolling_Window_Minute [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mockFilter := getMockFilter()
+			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
+			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsMinute
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			// Create release with status within the last minute (should be counted)
+			mockRelease := getMockRelease()
+			mockRelease.FilterID = mockFilter.ID
+			err = releaseRepo.Store(t.Context(), mockRelease)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus := getMockReleaseActionStatus()
+			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
+			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
+			mockReleaseActionStatus.ReleaseID = mockRelease.ID
+			mockReleaseActionStatus.Timestamp = time.Now().Add(-30 * time.Second) // 30 seconds ago
+
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
+			assert.NoError(t, err)
+
+			// Execute - should count the release from 30 seconds ago
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			assert.Equal(t, 1, mockFilter.Downloads.MinuteCount, "Should count release within last minute")
+
+			// Cleanup
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
+		t.Run(fmt.Sprintf("GetFilterDownloads_Rolling_Window_Hour [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mockFilter := getMockFilter()
+			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
+			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsHour
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			// Create release within the last hour
+			mockRelease := getMockRelease()
+			mockRelease.FilterID = mockFilter.ID
+			err = releaseRepo.Store(t.Context(), mockRelease)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus := getMockReleaseActionStatus()
+			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
+			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
+			mockReleaseActionStatus.ReleaseID = mockRelease.ID
+			mockReleaseActionStatus.Timestamp = time.Now().Add(-30 * time.Minute) // 30 minutes ago
+
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
+			assert.NoError(t, err)
+
+			// Execute - should count the release from 30 minutes ago
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			assert.Equal(t, 1, mockFilter.Downloads.HourCount, "Should count release within last hour")
+
+			// Cleanup
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
+		t.Run(fmt.Sprintf("GetFilterDownloads_Rolling_Window_Excludes_Old [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mockFilter := getMockFilter()
+			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
+			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsMinute
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			// Create release outside the rolling window (should NOT be counted)
+			mockRelease := getMockRelease()
+			mockRelease.FilterID = mockFilter.ID
+			err = releaseRepo.Store(t.Context(), mockRelease)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus := getMockReleaseActionStatus()
+			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
+			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
+			mockReleaseActionStatus.ReleaseID = mockRelease.ID
+			mockReleaseActionStatus.Timestamp = time.Now().Add(-2 * time.Minute) // 2 minutes ago
+
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
+			assert.NoError(t, err)
+
+			// Execute - should NOT count the release from 2 minutes ago for a 1-minute window
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			assert.Equal(t, 0, mockFilter.Downloads.MinuteCount, "Should NOT count release outside rolling window")
+			assert.Equal(t, 1, mockFilter.Downloads.TotalCount, "Total count should include all releases")
+
+			// Cleanup
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
+		t.Run(fmt.Sprintf("GetFilterDownloads_Default_To_Fixed [%s]", dbType), func(t *testing.T) {
+			// Setup - filter without MaxDownloadsWindowType should default to FIXED
+			mockFilter := getMockFilter()
+			mockFilter.MaxDownloadsWindowType = "" // Explicitly unset
+			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsHour
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			mockRelease := getMockRelease()
+			mockRelease.FilterID = mockFilter.ID
+			err = releaseRepo.Store(t.Context(), mockRelease)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus := getMockReleaseActionStatus()
+			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
+			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
+			mockReleaseActionStatus.ReleaseID = mockRelease.ID
+
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
+			assert.NoError(t, err)
+
+			// Execute - should use FIXED window (calendar boundaries) by default
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			// Since we created a release just now, it should be in the current hour for FIXED window
+			assert.Equal(t, 1, mockFilter.Downloads.HourCount, "Should count using FIXED window by default")
+
+			// Cleanup
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
+		t.Run(fmt.Sprintf("GetFilterDownloads_Rolling_Window_Day [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mockFilter := getMockFilter()
+			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
+			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsDay
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			// Create release within the last 24 hours
+			mockRelease := getMockRelease()
+			mockRelease.FilterID = mockFilter.ID
+			err = releaseRepo.Store(t.Context(), mockRelease)
+			assert.NoError(t, err)
+
+			mockReleaseActionStatus := getMockReleaseActionStatus()
+			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
+			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
+			mockReleaseActionStatus.ReleaseID = mockRelease.ID
+			mockReleaseActionStatus.Timestamp = time.Now().Add(-12 * time.Hour) // 12 hours ago
+
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
+			assert.NoError(t, err)
+
+			// Execute - should count the release from 12 hours ago
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			assert.Equal(t, 1, mockFilter.Downloads.DayCount, "Should count release within last 24 hours")
+
+			// Cleanup
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
 		})
 
 	}

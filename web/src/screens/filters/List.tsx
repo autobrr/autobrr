@@ -672,7 +672,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
           {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
             <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-              {t("list.downloads")}: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_unit}
+              {t("list.downloads")}: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_interval && filter.max_downloads_interval > 1 ? `${filter.max_downloads_interval} ` : ""}{filter.max_downloads_unit}
             </span>
           )}
         </div>
@@ -702,6 +702,8 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
 
 function renderMaxDownloads(unit: string, downloads: FilterDownloads): number {
   switch (unit) {
+    case "MINUTE":
+      return downloads.minute_count
     case "HOUR":
       return downloads.hour_count
     case "DAY":
