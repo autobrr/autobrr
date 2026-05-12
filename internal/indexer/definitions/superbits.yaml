@@ -6,6 +6,7 @@ description: Superbits is a SWEDISH private torrent tracker for MOVIES / TV / 0D
 language: en-us
 urls:
   - https://superbits.org/
+  - https://login.superbits.org/
 privacy: private
 protocol: torrent
 supports:
