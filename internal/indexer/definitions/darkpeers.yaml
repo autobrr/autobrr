@@ -20,14 +20,14 @@ settings:
     help: "Go to My Settings > RSS Key, and copy your RSS Key"
 
 irc:
-  network: P2P-Network
-  server: irc.p2p-network.net
+  network: DarkPeers
+  server: irc.darkpeers.org
   port: 6697
   tls: true
   channels:
-    - "#dpannounce"
+    - "#announce"
   announcers:
-    - darkpeers
+    - DP
   settings:
     - name: nick
       type: text

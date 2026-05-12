@@ -274,6 +274,264 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			// Solo case: irc.p2p-network.net exists only to host #dpannounce. After the
+			// migration we expect a brand-new DarkPeers network with #announce (preserving
+			// channel password / enabled / detached) and the old network row removed.
+			name:   "DarkPeers IRC Network Migration - solo",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "DarkPeers IRC Network Migration - solo",
+				MigrationIndex:      90,
+				MigrationsUntilName: "90_feed_add_tls_skip_verify",
+				MigrationToRun:      "91_irc_update_darkpeers_network",
+
+				SetupData: func(db *sql.DB) error {
+					_, err := db.Exec(`
+					INSERT INTO irc_network (
+						id, enabled, name, server, port, tls, tls_skip_verify, pass, nick,
+						auth_mechanism, auth_account, auth_password, invite_command,
+						use_bouncer, bouncer_addr, bot_mode, connected, connected_since,
+						use_proxy, proxy_id, created_at, updated_at
+					) VALUES (
+						1, 1, 'P2P-Network', 'irc.p2p-network.net', 6697, 1, 0, '', 'darkpeersbot',
+						'SASL_PLAIN', 'darkpeersbot', 'nickservpass', '',
+						0, '', 0, 0, NULL,
+						0, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00'
+					)`)
+					if err != nil {
+						return err
+					}
+
+					_, err = db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES (1, 1, '#dpannounce', 'chanpass', 0, 1)`)
+					return err
+				},
+				ValidateResult: func(db *sql.DB, t *testing.T) {
+					// New DarkPeers network row created with copied auth/connection details.
+					var (
+						name, server, authMech, authAccount, authPass, nick string
+						port                                                int
+						tls                                                 bool
+					)
+					err := db.QueryRow(`SELECT name, server, port, tls, nick, auth_mechanism, auth_account, auth_password FROM irc_network WHERE server = 'irc.darkpeers.org'`).
+						Scan(&name, &server, &port, &tls, &nick, &authMech, &authAccount, &authPass)
+					require.NoError(t, err)
+					assert.Equal(t, "DarkPeers", name)
+					assert.Equal(t, "irc.darkpeers.org", server)
+					assert.Equal(t, 6697, port)
+					assert.True(t, tls)
+					assert.Equal(t, "darkpeersbot", nick)
+					assert.Equal(t, "SASL_PLAIN", authMech)
+					assert.Equal(t, "darkpeersbot", authAccount)
+					assert.Equal(t, "nickservpass", authPass)
+
+					// #announce channel attached to DarkPeers, password preserved.
+					var chanName, chanPass string
+					var chanEnabled bool
+					err = db.QueryRow(`SELECT c.name, c.password, c.enabled FROM irc_channel c JOIN irc_network n ON c.network_id = n.id WHERE n.server = 'irc.darkpeers.org'`).
+						Scan(&chanName, &chanPass, &chanEnabled)
+					require.NoError(t, err)
+					assert.Equal(t, "#announce", chanName)
+					assert.Equal(t, "chanpass", chanPass)
+					assert.True(t, chanEnabled)
+
+					// Old #dpannounce channel is gone.
+					var count int
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel WHERE LOWER(name) = '#dpannounce'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 0, count, "#dpannounce channel should be deleted")
+
+					// Old empty P2P-Network row deleted because it only existed for DarkPeers.
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.p2p-network.net'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 0, count, "old irc.p2p-network.net row should be deleted")
+				},
+			},
+			want: "",
+		},
+		{
+			// Shared case: another indexer (bit-hdtv) shares the same irc.p2p-network.net
+			// row. We must move #dpannounce → DarkPeers but keep the old network row
+			// intact for #bithdtv-announce.
+			name:   "DarkPeers IRC Network Migration - shared network",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "DarkPeers IRC Network Migration - shared network",
+				MigrationIndex:      90,
+				MigrationsUntilName: "90_feed_add_tls_skip_verify",
+				MigrationToRun:      "91_irc_update_darkpeers_network",
+
+				SetupData: func(db *sql.DB) error {
+					_, err := db.Exec(`
+					INSERT INTO irc_network (
+						id, enabled, name, server, port, tls, tls_skip_verify, pass, nick,
+						auth_mechanism, auth_account, auth_password, invite_command,
+						use_bouncer, bouncer_addr, bot_mode, connected, connected_since,
+						use_proxy, proxy_id, created_at, updated_at
+					) VALUES (
+						1, 1, 'P2P-Network', 'irc.p2p-network.net', 6697, 1, 0, '', 'sharedbot',
+						'SASL_PLAIN', 'sharedbot', 'sharedpass', '',
+						0, '', 0, 0, NULL,
+						0, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00'
+					)`)
+					if err != nil {
+						return err
+					}
+
+					_, err = db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES (1, 1, '#dpannounce', '', 0, 1)`)
+					if err != nil {
+						return err
+					}
+					_, err = db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES (2, 1, '#bithdtv-announce', '', 0, 1)`)
+					return err
+				},
+				ValidateResult: func(db *sql.DB, t *testing.T) {
+					var count int
+
+					// DarkPeers network now exists.
+					err := db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.darkpeers.org' AND name = 'DarkPeers'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 1, count, "DarkPeers network should be created")
+
+					// #announce moved to DarkPeers.
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel c JOIN irc_network n ON c.network_id = n.id WHERE c.name = '#announce' AND n.server = 'irc.darkpeers.org'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 1, count, "#announce should exist on DarkPeers")
+
+					// Old p2p-network row still exists.
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.p2p-network.net'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 1, count, "P2P-Network row should remain because it still has another channel")
+
+					// Old row still owns the bit-hdtv channel only.
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel c JOIN irc_network n ON c.network_id = n.id WHERE n.server = 'irc.p2p-network.net'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 1, count, "only #bithdtv-announce should remain on P2P-Network")
+
+					var remaining string
+					err = db.QueryRow(`SELECT c.name FROM irc_channel c JOIN irc_network n ON c.network_id = n.id WHERE n.server = 'irc.p2p-network.net'`).Scan(&remaining)
+					require.NoError(t, err)
+					assert.Equal(t, "#bithdtv-announce", remaining)
+				},
+			},
+			want: "",
+		},
+		{
+			// Negative case: an irc.p2p-network.net row that doesn't have #dpannounce
+			// must be left completely untouched (no DarkPeers row, no channel changes).
+			name:   "DarkPeers IRC Network Migration - unrelated network untouched",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "DarkPeers IRC Network Migration - unrelated network untouched",
+				MigrationIndex:      90,
+				MigrationsUntilName: "90_feed_add_tls_skip_verify",
+				MigrationToRun:      "91_irc_update_darkpeers_network",
+
+				SetupData: func(db *sql.DB) error {
+					_, err := db.Exec(`
+					INSERT INTO irc_network (
+						id, enabled, name, server, port, tls, tls_skip_verify, pass, nick,
+						auth_mechanism, auth_account, auth_password, invite_command,
+						use_bouncer, bouncer_addr, bot_mode, connected, connected_since,
+						use_proxy, proxy_id, created_at, updated_at
+					) VALUES (
+						1, 1, 'P2P-Network', 'irc.p2p-network.net', 6697, 1, 0, '', 'otherbot',
+						'NONE', '', '', '',
+						0, '', 0, 0, NULL,
+						0, NULL, '2025-01-01 00:00:00', '2025-01-01 00:00:00'
+					)`)
+					if err != nil {
+						return err
+					}
+
+					_, err = db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES (1, 1, '#bithdtv-announce', '', 0, 1)`)
+					return err
+				},
+				ValidateResult: func(db *sql.DB, t *testing.T) {
+					var count int
+
+					// No DarkPeers network created.
+					err := db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.darkpeers.org'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 0, count, "no DarkPeers network should be created when #dpannounce is absent")
+
+					// Old network row and its channel still intact.
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.p2p-network.net'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 1, count)
+
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel WHERE name = '#bithdtv-announce'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 1, count)
+				},
+			},
+			want: "",
+		},
+		{
+			// Multi-row case: two distinct p2p-network rows (different nicks) each carry
+			// #dpannounce. Each must be migrated to its own DarkPeers row keyed by nick;
+			// both old rows should be removed since #dpannounce was their only channel.
+			name:   "DarkPeers IRC Network Migration - multiple rows by nick",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "DarkPeers IRC Network Migration - multiple rows by nick",
+				MigrationIndex:      90,
+				MigrationsUntilName: "90_feed_add_tls_skip_verify",
+				MigrationToRun:      "91_irc_update_darkpeers_network",
+
+				SetupData: func(db *sql.DB) error {
+					_, err := db.Exec(`
+					INSERT INTO irc_network (
+						id, enabled, name, server, port, tls, tls_skip_verify, pass, nick,
+						auth_mechanism, auth_account, auth_password, invite_command,
+						use_bouncer, bouncer_addr, bot_mode, connected, connected_since,
+						use_proxy, proxy_id, created_at, updated_at
+					) VALUES
+						(1, 1, 'P2P-Network', 'irc.p2p-network.net', 6697, 1, 0, '', 'bot_a',
+						 'SASL_PLAIN', 'bot_a', 'pass_a', '', 0, '', 0, 0, NULL, 0, NULL,
+						 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+						(2, 1, 'P2P-Network', 'irc.p2p-network.net', 6697, 1, 0, '', 'bot_b',
+						 'SASL_PLAIN', 'bot_b', 'pass_b', '', 0, '', 0, 0, NULL, 0, NULL,
+						 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`)
+					if err != nil {
+						return err
+					}
+
+					_, err = db.Exec(`INSERT INTO irc_channel (enabled, name, password, detached, network_id) VALUES
+						(1, '#dpannounce', '', 0, 1),
+						(1, '#dpannounce', '', 0, 2)`)
+					return err
+				},
+				ValidateResult: func(db *sql.DB, t *testing.T) {
+					var count int
+
+					// Two new DarkPeers rows, one per nick, with auth carried over.
+					err := db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.darkpeers.org'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 2, count, "two DarkPeers rows should be created, one per nick")
+
+					var authPass string
+					err = db.QueryRow(`SELECT auth_password FROM irc_network WHERE server = 'irc.darkpeers.org' AND nick = 'bot_a'`).Scan(&authPass)
+					require.NoError(t, err)
+					assert.Equal(t, "pass_a", authPass)
+
+					err = db.QueryRow(`SELECT auth_password FROM irc_network WHERE server = 'irc.darkpeers.org' AND nick = 'bot_b'`).Scan(&authPass)
+					require.NoError(t, err)
+					assert.Equal(t, "pass_b", authPass)
+
+					// Two #announce channels, one per DarkPeers row.
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel c JOIN irc_network n ON c.network_id = n.id WHERE c.name = '#announce' AND n.server = 'irc.darkpeers.org'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 2, count)
+
+					// Both old p2p-network rows removed.
+					err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.p2p-network.net'`).Scan(&count)
+					require.NoError(t, err)
+					assert.Equal(t, 0, count, "both old p2p-network rows should be deleted")
+				},
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
