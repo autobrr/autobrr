@@ -26,7 +26,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
-  NODE_VERSION: '22.17.0'
+  NODE_VERSION: '24.15.0'
 
 permissions:
   id-token: write
