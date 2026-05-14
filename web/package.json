@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "homepage": ".",
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -12,13 +12,6 @@
     "lint:ci": "node ./scripts/eslint-to-sarif.cjs src/ > ../results.sarif || true",
     "preview": "vite preview",
     "lint:watch": "pnpm run lint -- --watch"
-  },
-  "pnpm": {
-    "overrides": {
-      "csstype": "3.1.2",
-      "rollup": "npm:@rollup/wasm-node",
-      "react": "$react"
-    }
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
