@@ -50,14 +50,14 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 'NEW :: Films :: Cant.Hardly.Wait.1998.MULTi.1080p.BluRay.DDP5.1.x264-ZiT :: 7.05 Gio :: 1080p :: - :: https://nexum-core.com/torrents/4053'
+        - line: 'NEW :: Films :: Cant.Hardly.Wait.1998.MULTi.1080p.BluRay.DDP5.1.x264-ZiT :: 7.05 Gio :: 1080p :: FREELEECH :: https://nexum-core.com/torrents/4053'
           expect:
             announceType: "NEW"
             category: Films
             torrentName: Cant.Hardly.Wait.1998.MULTi.1080p.BluRay.DDP5.1.x264-ZiT
             torrentSize: '7.05 Gi'
             releaseTags: 1080p
-            flags: "-"
+            freeleech: "FREELEECH"
             baseUrl: "https://nexum-core.com/"
             torrentId: "4053"
         - line: 'NEW :: Animés :: One.Piece.E021.MULTi.1080p.WEB.x264-AMB3R :: 607.78 Mio :: 1080p :: - :: https://nexum-core.com/torrents/4080'
@@ -67,7 +67,7 @@ irc:
             torrentName: One.Piece.E021.MULTi.1080p.WEB.x264-AMB3R
             torrentSize: '607.78 Mi'
             releaseTags: 1080p
-            flags: "-"
+            freeleech: "-"
             baseUrl: "https://nexum-core.com/"
             torrentId: "4080"
         - line: 'NEW :: Séries TV :: The.Librarians.The.Next.Chapter.S01E01.MULTi.1080p.WEB.H265-TyHD :: 883.01 Mio :: 1080p :: - :: https://nexum-core.com/torrents/4153'
@@ -77,17 +77,17 @@ irc:
             torrentName: The.Librarians.The.Next.Chapter.S01E01.MULTi.1080p.WEB.H265-TyHD
             torrentSize: '883.01 Mi'
             releaseTags: 1080p
-            flags: "-"
+            freeleech: "-"
             baseUrl: "https://nexum-core.com/"
             torrentId: "4153"
-        pattern: '^(.+) :: (.*?) :: (.*?) :: ([\d.]+\s?[KMGTP]?i)o :: (.*?) :: (.*?) :: (https?\:\/\/.+\/)torrents\/(\d+)$'
+        pattern: '^(.+) :: (.*?) :: (.*?) :: ([\d.]+\s?[KMGTP]?i)o :: (.*?) :: (FREELEECH|-) :: (https?\:\/\/.+\/)torrents\/(\d+)$'
         vars:
           - announceType
           - category
           - torrentName
           - torrentSize
           - releaseTags
-          - flags
+          - freeleech
           - baseUrl
           - torrentId
 
