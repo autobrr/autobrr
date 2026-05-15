@@ -26,7 +26,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
-  NODE_VERSION: '22.17.0'
+  NODE_VERSION: '24.15.0'
 
 permissions:
   id-token: write
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -48,10 +48,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up corepack
-        run: npm install -g corepack@latest && corepack enable
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.5
+        with:
+          package_json_file: web/package.json
 
-      # It can not be done before enable corepack
+      # It can not be done before installing pnpm
       - name: Set up cache
         uses: actions/setup-node@v6
         with:
@@ -67,17 +69,10 @@ jobs:
         run: CI= pnpm run build
 
       - name: Upload web production build
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: web/dist
-
-      - name: Upload web-dist to release assets
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
-            dist/web-dist.tar.gz
 
   test:
     name: Test ubuntu-latest
@@ -96,7 +91,7 @@ jobs:
       CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -117,7 +112,7 @@ jobs:
         run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
 
       - name: Upload pprof
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: pprof-test-ubuntu-latest
           path: profile
@@ -143,7 +138,7 @@ jobs:
       CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -166,7 +161,7 @@ jobs:
         run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
 
       - name: Upload pprof
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: pprof-test-${{ matrix.os }}
           path: profile
@@ -193,12 +188,12 @@ jobs:
       CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: web/dist
@@ -213,7 +208,7 @@ jobs:
         run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
 
       - name: Upload pprof
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: pprof-pgo-${{ matrix.os }}
           path: cpu-${{ matrix.os }}.pprof
@@ -224,7 +219,7 @@ jobs:
     needs: [ pgo, test, testother ]
     steps:
       - name: Download pprof profiles
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           pattern: pprof-*
           merge-multiple: true
@@ -234,7 +229,7 @@ jobs:
         run: ls -la profile
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -246,7 +241,7 @@ jobs:
         run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
 
       - name: Upload pprof
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: pprof
           path: cpu.pprof
@@ -271,18 +266,18 @@ jobs:
       GOOS: ${{ matrix.goos }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: web/dist
 
       - name: Download pprof profile
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: pprof
 
@@ -302,16 +297,25 @@ jobs:
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - name: Set cache prefix
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "cache_prefix=release" >> $GITHUB_ENV
+          else
+            echo "cache_prefix=push" >> $GITHUB_ENV
+          fi
+
       - name: Cache builds
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: dist/${{ matrix.goos }}
-          key: ${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
           enableCrossOsArchive: ${{ matrix.runner == 'windows-latest' && 'true' || 'false'}}
 
       - name: Run GoReleaser snapshot build
         if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser-pro
           version: "~> v2"
@@ -322,7 +326,7 @@ jobs:
 
       - name: Run GoReleaser build
         if: startsWith(github.ref, 'refs/tags/')
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser-pro
           version: "~> v2"
@@ -332,7 +336,7 @@ jobs:
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
       - name: Upload assets
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: autobrr-${{ matrix.goos }}
           path: |
@@ -344,13 +348,14 @@ jobs:
 
   release:
     name: Merge and publish distribution binaries
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     needs: prepare
     env:
       flags: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -371,35 +376,52 @@ jobs:
         run: |
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - name: Set cache prefix
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "cache_prefix=release" >> $GITHUB_ENV
+          else
+            echo "cache_prefix=push" >> $GITHUB_ENV
+          fi
+
       - name: Get Linux cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: dist/linux
-          key: linux-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-linux-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get FreeBSD cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: dist/freebsd
-          key: freebsd-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-freebsd-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Darwin cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: dist/darwin
-          key: darwin-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-darwin-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Windows cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: dist/windows
-          key: windows-${{ env.sha_short }}${{ env.flags }}
+          key: ${{ env.cache_prefix }}-windows-${{ env.sha_short }}${{ env.flags }}
           enableCrossOsArchive: true
+
+      - name: Download web production build
+        uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Create web dist tarball
+        run: tar -czf web-dist.tar.gz -C . web/dist
 
       # release
       - name: Merge and publish GoReleaser build
-        uses: goreleaser/goreleaser-action@v6
-        if: steps.cache.outputs.cache-hit != 'true' # do not run if cache hit
+        uses: goreleaser/goreleaser-action@v7
         with:
           distribution: goreleaser-pro
           version: "~> v2"
@@ -407,17 +429,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-
-      # - name: Publish version to GitHub Releases
-      #   if: startsWith(github.ref, 'refs/tags/')
-      #   uses: goreleaser/goreleaser-action@v6
-      #   with:
-      #     distribution: goreleaser-pro
-      #     version: "~> v2"
-      #     args: publish
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
   docker:
     name: Build Docker images
@@ -505,23 +516,23 @@ jobs:
     runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: web/dist
 
       - name: Download pprof profile
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: pprof
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
@@ -529,7 +540,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |
@@ -542,17 +553,17 @@ jobs:
 
       - name: Set up QEMU
         if: matrix.qemu == true
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Supported Architectures
         run: docker buildx ls
 
       - name: Build and publish image
         id: docker_build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.file || './ci.Dockerfile' }}
@@ -576,7 +587,7 @@ jobs:
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload image digest
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: docker-digests-${{ steps.digest-prep.outputs.manifest-hash }}
           path: /tmp/digests/*
@@ -590,17 +601,17 @@ jobs:
     needs: [ docker ]
     steps:
       - name: Download image digests
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           path: /tmp/digests
           pattern: docker-digests-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
@@ -608,7 +619,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY_IMAGE }}
           tags: |

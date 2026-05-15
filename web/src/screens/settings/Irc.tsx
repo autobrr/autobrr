@@ -16,6 +16,7 @@ import {
   PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
@@ -96,6 +97,7 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
 }
 
 const IrcSettings = () => {
+  const { t } = useTranslation("settings");
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
@@ -172,8 +174,8 @@ const IrcSettings = () => {
 
   return (
     <Section
-      title="IRC"
-      description="IRC networks and channels. Click on a network to view channel status."
+      title={t("forms.irc.listTitle")}
+      description={t("forms.irc.listDescription")}
       rightSide={
         <button
           type="button"
@@ -181,7 +183,7 @@ const IrcSettings = () => {
           className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
-          Add new
+          {t("forms.irc.addNew")}
         </button>
       }
     >
@@ -192,40 +194,40 @@ const IrcSettings = () => {
           <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 relative"
-              title="Network healthy"
+              title={t("forms.irc.networkHealthy")}
             >
               <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
               <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
             </span>
-            <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkHealthy")}</span>
           </li>
 
           <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
-              title="Network unhealthy"
+              title={t("forms.irc.networkUnhealthy")}
             />
-            <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkUnhealthy")}</span>
           </li>
 
           <li className="flex items-center md:px-2 py-1 md:py-0">
             <span
               className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
-              title="Network disabled"
+              title={t("forms.irc.networkDisabled")}
             >
             </span>
-            <span className="text-sm text-gray-800 dark:text-gray-500">Network disabled</span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkDisabled")}</span>
           </li>
         </ul>
         <div className="flex gap-x-2">
           <button
             className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
             onClick={toggleExpand}
-            title={expandNetworks ? "collapse" : "expand"}
+            title={expandNetworks ? t("forms.irc.collapseTitle") : t("forms.irc.expandTitle")}
           >
             {expandNetworks
-              ? <span className="flex items-center text-sm">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4" /></span>
-              : <span className="flex items-center text-sm">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4" /></span>
+              ? <span className="flex items-center text-sm">{t("forms.irc.collapse")} <ArrowsPointingInIcon className="ml-1 w-4 h-4" /></span>
+              : <span className="flex items-center text-sm">{t("forms.irc.expand")} <ArrowsPointingOutIcon className="ml-1 w-4 h-4" /></span>
             }</button>
           <IRCLogsDropdown />
         </div>
@@ -236,19 +238,19 @@ const IrcSettings = () => {
           <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
             <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("enabled")}>
-              Enabled <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("enabled")}</span>
+              {t("forms.irc.enabled")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("enabled")}</span>
             </div>
             <div className="col-span-10 md:col-span-3 px-11 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("name")}>
-              Network <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("name")}</span>
+              {t("forms.irc.network")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("name")}</span>
             </div>
             <div className="hidden md:flex col-span-4 px-6 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("server")}>
-              Server <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("server")}</span>
+              {t("forms.irc.server")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("server")}</span>
             </div>
             <div className="hidden md:flex col-span-3 px-5 py-3 text-left uppercase tracking-wider cursor-pointer"
               onClick={() => sortedNetworks.requestSort("nick")}>
-              Nick <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("nick")}</span>
+              {t("forms.irc.nick")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("nick")}</span>
             </div>
           </li>
           {sortedNetworks.items.map((network) => (
@@ -257,9 +259,9 @@ const IrcSettings = () => {
         </ul>
       ) : (
         <EmptySimple
-          title="No networks"
-          subtitle="Normally set up via Indexers"
-          buttonText="Add new network"
+          title={t("forms.irc.noNetworks")}
+          subtitle={t("forms.irc.noNetworksSubtitle")}
+          buttonText={t("forms.irc.addNewNetwork")}
           buttonAction={toggleAddNetwork}
         />
       )}
@@ -273,6 +275,7 @@ interface ListItemProps {
 }
 
 const ListItem = ({ network, expanded }: ListItemProps) => {
+  const { t } = useTranslation("settings");
   const [updateIsOpen, toggleUpdate] = useToggle(false);
   const [edit, toggleEdit] = useToggle(false);
 
@@ -282,7 +285,16 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
     onSuccess: (network: IrcNetwork) => {
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
-      toast.custom(t => <Toast type="success" body={`${network.name} was ${network.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
+      toast.custom(toastItem => (
+        <Toast
+          type="success"
+          body={t("forms.irc.toggleSuccess", {
+            name: network.name,
+            state: network.enabled ? t("forms.irc.enabledState") : t("forms.irc.disabledState")
+          })}
+          t={toastItem}
+        />
+      ));
     }
   });
 
@@ -326,7 +338,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
                 network.healthy ? (
                   <span
                     className="mr-3 flex h-3 w-3 relative"
-                    title={`Connected since: ${simplifyDate(network.connected_since)}`}
+                    title={t("forms.irc.connectedSince", { time: simplifyDate(network.connected_since) })}
                   >
                     <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                     <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
@@ -351,7 +363,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         <div className="hidden md:flex col-span-4 md:pl-6 text-gray-500 dark:text-gray-400">
           <div
             className="overflow-x-auto flex items-center"
-            title={network.tls ? "Secured using TLS" : "Insecure, not using TLS"}
+            title={network.tls ? t("forms.irc.tlsSecured") : t("forms.irc.tlsInsecure")}
           >
             <div className="min-h-2 min-w-2">
               {network.tls ? (
@@ -389,13 +401,13 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
               <ul>
                 <li className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                   <div className="col-span-5 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
-                    Channel
+                    {t("forms.irc.channel")}
                   </div>
                   <div className="hidden sm:flex col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
-                    Monitoring since
+                    {t("forms.irc.monitoringSince")}
                   </div>
                   <div className="col-span-6 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
-                    Last announce
+                    {t("forms.irc.lastAnnounce")}
                   </div>
                 </li>
                 {network.channels.map((c) => (
@@ -404,7 +416,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
               </ul>
             ) : (
               <div className="flex text-center justify-center py-4 dark:text-gray-500">
-                <p>No channels!</p>
+                <p>{t("forms.irc.noChannels")}</p>
               </div>
             )}
           </div>
@@ -420,6 +432,7 @@ interface ChannelItemProps {
 }
 
 const ChannelItem = ({ network, channel }: ChannelItemProps) => {
+  const { t } = useTranslation("settings");
   const [viewChannel, toggleView] = useToggle(false);
 
   return (
@@ -455,7 +468,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
         </div>
         <div className="col-span-1 flex items-center justify-end">
           <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded-sm dark:border-gray-900">
-            {viewChannel ? "Hide" : "View"}
+            {viewChannel ? t("forms.irc.hide") : t("forms.irc.view")}
           </button>
         </div>
       </div>
@@ -528,6 +541,7 @@ const ListItemDropdown = ({
   network,
   toggleUpdate
 }: ListItemDropdownProps) => {
+  const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef(null);
 
   const queryClient = useQueryClient();
@@ -540,7 +554,7 @@ const ListItemDropdown = ({
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
       queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
-      toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t} />);
+      toast.custom((toastItem) => <Toast type="success" body={t("forms.irc.networkDeleted", { name: network.name })} t={toastItem} />);
 
       toggleDeleteModal();
     }
@@ -552,7 +566,7 @@ const ListItemDropdown = ({
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
       queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${network.name} was successfully restarted`} t={t} />);
+      toast.custom((toastItem) => <Toast type="success" body={t("forms.irc.networkRestarted", { name: network.name })} t={toastItem} />);
     }
   });
 
@@ -576,8 +590,8 @@ const ListItemDropdown = ({
           deleteMutation.mutate(network.id);
           toggleDeleteModal();
         }}
-        title={`Remove network: ${network.name}`}
-        text="Are you sure you want to remove this network? This action cannot be undone."
+        title={t("forms.irc.removeNetworkTitle", { name: network.name })}
+        text={t("forms.irc.removeNetworkText")}
       />
       <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
@@ -615,7 +629,7 @@ const ListItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Edit
+                  {t("forms.irc.edit")}
                 </button>
               )}
             </MenuItem>
@@ -650,7 +664,7 @@ const ListItemDropdown = ({
                   )}
                   onClick={() => restart(network.id)}
                   disabled={!network.enabled}
-                  title={network.enabled ? "Restart" : "Network disabled"}
+                  title={network.enabled ? t("forms.irc.restart") : t("forms.irc.networkDisabled")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={classNames(
                     "w-5 h-5 mr-2",
@@ -661,7 +675,7 @@ const ListItemDropdown = ({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
                   </svg>
 
-                  Restart
+                  {t("forms.irc.restart")}
                 </button>
               )}
             </MenuItem>
@@ -683,7 +697,7 @@ const ListItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Delete
+                  {t("forms.irc.delete")}
                 </button>
               )}
             </MenuItem>
@@ -701,11 +715,12 @@ interface ReprocessAnnounceProps {
 }
 
 const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceProps) => {
+  const { t } = useTranslation("settings");
   const mutation = useMutation({
     mutationFn: (req: IrcProcessManualRequest) => APIClient.irc.reprocessAnnounce(req.network_id, req.channel, req.msg),
     onSuccess: () => {
-      toast.custom((t) => (
-        <Toast type="success" body={`Announce sent to re-process!`} t={t} />
+      toast.custom((toastItem) => (
+        <Toast type="success" body={t("forms.irc.announceReprocessed")} t={toastItem} />
       ));
     }
   });
@@ -726,7 +741,7 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
 
   return (
     <div className="block">
-    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title="Re-process announce">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title={t("forms.irc.reprocessAnnounce")}>
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon />
@@ -834,6 +849,7 @@ export const Events = ({ network, channel }: EventsProps) => {
 export default IrcSettings;
 
 const IRCLogsDropdown = () => {
+  const { t } = useTranslation("settings");
   const [settings, setSettings] = SettingsContext.use();
 
   const onSetValue = (
@@ -863,7 +879,7 @@ const IRCLogsDropdown = () => {
   return (
     <Menu as="div" className="relative">
       <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
-        <span className="flex items-center">Options <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
+        <span className="flex items-center">{t("forms.irc.options")} <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
       </MenuButton>
       <Transition
         as={Fragment}
@@ -881,7 +897,7 @@ const IRCLogsDropdown = () => {
           <MenuItem>
             {() => (
               <Checkbox
-                label="Scroll to bottom on new message"
+                label={t("forms.irc.scrollOnNewMessage")}
                 value={settings.scrollOnNewLog}
                 setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
               />

@@ -77,6 +77,7 @@ type IrcNetwork struct {
 	Server           string       `json:"server"`
 	Port             int          `json:"port"`
 	TLS              bool         `json:"tls"`
+	TLSSkipVerify    bool         `json:"tls_skip_verify"`
 	Pass             string       `json:"pass"`
 	Nick             string       `json:"nick"`
 	Auth             IRCAuth      `json:"auth,omitempty"`
@@ -116,6 +117,9 @@ func (in IrcNetwork) DetermineIfRestartIsRequired(desiredState *IrcNetwork) ([]s
 	}
 	if in.TLS != desiredState.TLS {
 		fieldsChanged = append(fieldsChanged, "tls")
+	}
+	if in.TLSSkipVerify != desiredState.TLSSkipVerify {
+		fieldsChanged = append(fieldsChanged, "tls skip verify")
 	}
 	if in.Pass != desiredState.Pass {
 		fieldsChanged = append(fieldsChanged, "pass")
@@ -158,6 +162,7 @@ type IrcNetworkWithHealth struct {
 	Server           string                 `json:"server"`
 	Port             int                    `json:"port"`
 	TLS              bool                   `json:"tls"`
+	TLSSkipVerify    bool                   `json:"tls_skip_verify"`
 	Pass             string                 `json:"pass"`
 	Nick             string                 `json:"nick"`
 	Auth             IRCAuth                `json:"auth,omitempty"`

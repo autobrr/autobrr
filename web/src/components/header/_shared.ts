@@ -4,7 +4,7 @@
  */
 
 interface NavItem {
-  name: string;
+  labelKey: string;
   path: string;
   exact?: boolean;
 }
@@ -14,9 +14,9 @@ export interface RightNavProps {
 }
 
 export const NAV_ROUTES: Array<NavItem> = [
-  { name: "Dashboard", path: "/", exact: true },
-  { name: "Filters", path: "/filters" },
-  { name: "Releases", path: "/releases" },
-  { name: "Settings", path: "/settings" },
-  { name: "Logs", path: "/logs" }
+  { labelKey: "nav.dashboard", path: "/", exact: true },
+  { labelKey: "nav.filters", path: "/filters" },
+  { labelKey: "nav.releases", path: "/releases" },
+  { labelKey: "nav.settings", path: "/settings" },
+  { labelKey: "nav.logs", path: "/logs" }
 ];

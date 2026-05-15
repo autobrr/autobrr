@@ -8,6 +8,7 @@ import { Form, Formik, FormikValues } from "formik";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { AddFormProps } from "@forms/_shared";
 import { DEBUG } from "@components/debug.tsx";
@@ -21,6 +22,7 @@ import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 
 export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -28,11 +30,11 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body="Proxy added!" t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.added")} t={toastInstance} />);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Proxy could not be added" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.proxy.addFailed")} t={toastInstance} />);
     }
   });
 
@@ -91,10 +93,10 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
                               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add proxy
+                                {t("forms.proxy.addTitle")}
                               </DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Add proxy to be used with Indexers or IRC.
+                                {t("forms.proxy.addDescription")}
                               </p>
                             </div>
                             <div className="h-7 flex items-center">
@@ -103,7 +105,7 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                                 className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 onClick={toggle}
                               >
-                                <span className="sr-only">Close panel</span>
+                                <span className="sr-only">{t("forms.proxy.closePanel")}</span>
                                 <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                               </button>
                             </div>
@@ -111,21 +113,21 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                         </div>
 
                         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                          <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
-                          <SwitchGroupWide name="enabled" label="Enabled" />
+                          <TextFieldWide name="name" label={t("forms.proxy.name")} defaultValue="" required={true} />
+                          <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")} />
                           <SelectFieldBasic
                             name="type"
-                            label="Proxy type"
+                            label={t("forms.proxy.proxyType")}
                             options={ProxyTypeOptions}
-                            tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
-                            help="Usually SOCKS5"
+                            tooltip={<span>{t("forms.proxy.proxyTypeTooltip")}</span>}
+                            help={t("forms.proxy.proxyTypeHelp")}
                           />
-                          <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
+                          <TextFieldWide name="addr" label={t("forms.proxy.addr")} required={true} help={t("forms.proxy.addrHelp")} autoComplete="off"/>
                         </div>
 
                         <div>
-                          <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off" />
-                          <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
+                          <TextFieldWide name="user" label={t("forms.proxy.user")} help={t("forms.proxy.userHelp")} autoComplete="off" />
+                          <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} autoComplete="off"/>
                         </div>
                       </div>
 
@@ -137,20 +139,20 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={() => testProxy(values)}
                           >
-                            Test
+                            {t("forms.proxy.test")}
                           </button>
                           <button
                             type="button"
                             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
-                            Cancel
+                            {t("forms.proxy.cancel")}
                           </button>
                           <button
                             type="submit"
                             className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
-                            Save
+                            {t("forms.proxy.save")}
                           </button>
                         </div>
                       </div>
@@ -177,6 +179,7 @@ interface UpdateFormProps<T> {
 }
 
 export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
@@ -184,11 +187,11 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`Proxy ${data.name} updated!`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.updated", { name: data.name })} t={toastInstance} />);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Proxy could not be updated" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.proxy.updateFailed")} t={toastInstance} />);
     }
   });
 
@@ -201,7 +204,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`Proxy ${data.name} was deleted.`} t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.deleted", { name: data.name })} t={toastInstance}/>);
     }
   });
 
@@ -228,7 +231,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
   return (
     <SlideOver<Proxy>
-      title="Proxy"
+      title={t("forms.proxy.title")}
       initialValues={initialValues}
       onSubmit={onSubmit}
       deleteAction={deleteFn}
@@ -240,22 +243,22 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       {() => (
         <div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            <TextFieldWide name="name" label="Name" defaultValue="" required={true}/>
-            <SwitchGroupWide name="enabled" label="Enabled"/>
+            <TextFieldWide name="name" label={t("forms.proxy.name")} defaultValue="" required={true}/>
+            <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")}/>
             <SelectFieldBasic
               name="type"
-              label="Proxy type"
+              label={t("forms.proxy.proxyType")}
               required={true}
               options={ProxyTypeOptions}
-              tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
-              help="Usually SOCKS5"
+              tooltip={<span>{t("forms.proxy.proxyTypeTooltip")}</span>}
+              help={t("forms.proxy.proxyTypeHelp")}
             />
-            <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
+            <TextFieldWide name="addr" label={t("forms.proxy.addr")} required={true} help={t("forms.proxy.addrHelp")} autoComplete="off"/>
           </div>
 
           <div>
-            <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off"/>
-            <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
+            <TextFieldWide name="user" label={t("forms.proxy.user")} help={t("forms.proxy.userHelp")} autoComplete="off"/>
+            <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} autoComplete="off"/>
           </div>
         </div>
       )}

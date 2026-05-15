@@ -470,6 +470,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			Server:           n.Server,
 			Port:             n.Port,
 			TLS:              n.TLS,
+			TLSSkipVerify:    n.TLSSkipVerify,
 			Pass:             n.Pass,
 			Nick:             n.Nick,
 			Auth:             n.Auth,
@@ -687,6 +688,25 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		}
 
 		s.networkCache.Set(network.ID, network)
+
+		// attach proxy
+		network.Proxy = nil
+		if network.UseProxy && network.ProxyId != 0 {
+			networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
+			if err != nil {
+				s.log.Error().Err(err).Msgf("failed to get proxy for network: %s", network.Server)
+				return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
+			}
+			network.Proxy = networkProxy
+		}
+
+		// if network is enabled, start it immediately
+		if network.Enabled {
+			if err := s.startNetwork(*network); err != nil {
+				s.log.Error().Err(err).Msgf("could not start network: %s", network.Name)
+				return errors.New("could not start network: %s", network.Name)
+			}
+		}
 
 		return nil
 	}

@@ -29,6 +29,14 @@ type releaseService interface {
 	StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+
+	ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error)
+	GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error)
+	StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	DeleteCleanupJob(ctx context.Context, id int) error
+	ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error
+	ForceRunCleanupJob(ctx context.Context, id int) error
 }
 
 type releaseHandler struct {
@@ -62,6 +70,19 @@ func (h releaseHandler) Routes(r chi.Router) {
 		r.Post("/", h.storeReleaseProfileDuplicate)
 
 		r.Delete("/{profileId}", h.deleteReleaseProfileDuplicate)
+	})
+
+	r.Route("/cleanup-jobs", func(r chi.Router) {
+		r.Get("/", h.listCleanupJobs)
+		r.Post("/", h.storeCleanupJob)
+
+		r.Route("/{jobID}", func(r chi.Router) {
+			r.Get("/", h.getCleanupJob)
+			r.Put("/", h.updateCleanupJob)
+			r.Delete("/", h.deleteCleanupJob)
+			r.Patch("/enabled", h.toggleCleanupJobEnabled)
+			r.Post("/run", h.forceRunCleanupJob)
+		})
 	})
 }
 
@@ -236,6 +257,7 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		"PUSH_APPROVED": true,
 		"PUSH_REJECTED": true,
 		"PUSH_ERROR":    true,
+		"PENDING":       true,
 	}
 	var filteredStatuses []string
 	for _, status := range releaseStatuses {
@@ -371,4 +393,141 @@ func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *
 	}
 
 	h.encoder.NoContent(w)
+}
+
+// Cleanup job handlers
+
+func (h releaseHandler) listCleanupJobs(w http.ResponseWriter, r *http.Request) {
+	jobs, err := h.service.ListCleanupJobs(r.Context())
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, jobs)
+}
+
+func (h releaseHandler) getCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	job, err := h.service.GetCleanupJob(r.Context(), jobID)
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, job)
+}
+
+func (h releaseHandler) storeCleanupJob(w http.ResponseWriter, r *http.Request) {
+	var data *domain.ReleaseCleanupJob
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.StoreCleanupJob(r.Context(), data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
+}
+
+func (h releaseHandler) updateCleanupJob(w http.ResponseWriter, r *http.Request) {
+	var data *domain.ReleaseCleanupJob
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.UpdateCleanupJob(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", data.ID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
+}
+
+func (h releaseHandler) deleteCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.DeleteCleanupJob(r.Context(), jobID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h releaseHandler) toggleCleanupJobEnabled(w http.ResponseWriter, r *http.Request) {
+	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	var data struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.ToggleCleanupJobEnabled(r.Context(), jobID, data.Enabled); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+}
+
+func (h releaseHandler) forceRunCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.ForceRunCleanupJob(r.Context(), jobID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }

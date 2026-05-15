@@ -545,51 +545,192 @@ func TestReleaseRepo_Delete(t *testing.T) {
 		actionRepo := NewActionRepo(log, db, downloadClientRepo)
 		repo := NewReleaseRepo(log, db)
 
-		mockData := getMockRelease()
-		releaseActionMockData := getMockReleaseActionStatus()
-		actionMockData := getMockAction()
+		// Setup shared dependencies
+		mock := getMockDownloadClient()
+		err := downloadClientRepo.Store(context.Background(), &mock)
+		assert.NoError(t, err)
 
-		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
-			// Setup
-			mock := getMockDownloadClient()
-			err := downloadClientRepo.Store(context.Background(), &mock)
-			assert.NoError(t, err)
-			assert.NotNil(t, mock)
+		err = filterRepo.Store(context.Background(), getMockFilter())
+		assert.NoError(t, err)
 
-			err = filterRepo.Store(context.Background(), getMockFilter())
-			assert.NoError(t, err)
+		createdFilters, err := filterRepo.ListFilters(context.Background())
+		assert.NoError(t, err)
+		assert.NotNil(t, createdFilters)
 
-			createdFilters, err := filterRepo.ListFilters(context.Background())
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+		actionMock := getMockAction()
+		actionMock.FilterID = createdFilters[0].ID
+		actionMock.ClientID = mock.ID
+		err = actionRepo.Store(context.Background(), actionMock)
+		assert.NoError(t, err)
 
-			actionMockData.FilterID = createdFilters[0].ID
-			actionMockData.ClientID = mock.ID
-			mockData.FilterID = createdFilters[0].ID
+		tests := []struct {
+			name              string
+			deleteReq         *domain.DeleteReleaseRequest
+			expectedRemaining int
+		}{
+			{
+				name:              "OlderThan_Precision_24Hours",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 24},
+				expectedRemaining: 2,
+			},
+			{
+				name:              "Indexer_Filter",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 0, Indexers: []string{"btn", "ptp"}},
+				expectedRemaining: 1,
+			},
+			{
+				name:              "Status_Filter",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 0, ReleaseStatuses: []string{"PUSH_REJECTED", "PUSH_ERROR"}},
+				expectedRemaining: 2,
+			},
+			{
+				name:              "Combined_Filters",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 24, Indexers: []string{"btn"}, ReleaseStatuses: []string{"PUSH_REJECTED"}},
+				expectedRemaining: 3,
+			},
+			{
+				name:              "Delete_All",
+				deleteReq:         &domain.DeleteReleaseRequest{OlderThan: 0},
+				expectedRemaining: 0,
+			},
+		}
 
-			err = repo.Store(context.Background(), mockData)
-			assert.NoError(t, err)
-			err = actionRepo.Store(context.Background(), actionMockData)
-			assert.NoError(t, err)
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("Delete_%s [%s]", tt.name, dbType), func(t *testing.T) {
+				ctx := context.Background()
 
-			releaseActionMockData.ReleaseID = mockData.ID
-			releaseActionMockData.ActionID = int64(actionMockData.ID)
-			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+				// Setup - create test-specific releases
+				switch tt.name {
+				case "OlderThan_Precision_24Hours":
+					// Test datetime precision: create releases avoiding exact boundary
+					for i, age := range []time.Duration{
+						22*time.Hour + 30*time.Minute, // Should be kept (clearly younger than 24h)
+						23*time.Hour + 45*time.Minute, // Should be kept (younger than 24h)
+						24*time.Hour + 30*time.Minute, // Should be deleted (clearly older than 24h)
+						25*time.Hour + 30*time.Minute, // Should be deleted (much older than 24h)
+					} {
+						mockRel := getMockRelease()
+						mockRel.Timestamp = time.Now().Add(-age)
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
 
-			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
-			assert.NoError(t, err)
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						ras.Status = domain.ReleasePushStatusApproved
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+						_ = i
+					}
 
-			// Execute
-			err = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
+				case "Indexer_Filter":
+					// Test indexer filtering: create releases from different indexers
+					for _, indexer := range []string{"btn", "ptp", "hdt"} {
+						mockRel := getMockRelease()
+						mockRel.Indexer.Identifier = indexer
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
 
-			// Verify
-			assert.NoError(t, err)
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
 
-			// Cleanup
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
-			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
-			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
-		})
+				case "Status_Filter":
+					// Test status filtering: create releases with all statuses including PENDING.
+					// Validates that PENDING is excluded from deletion per domain.ValidDeletableReleasePushStatus.
+					// Expected: PUSH_APPROVED and PUSH_PENDING remain, PUSH_REJECTED and PUSH_ERROR deleted.
+					for _, status := range []domain.ReleasePushStatus{
+						domain.ReleasePushStatusApproved,
+						domain.ReleasePushStatusRejected,
+						domain.ReleasePushStatusErr,
+						domain.ReleasePushStatusPending,
+					} {
+						mockRel := getMockRelease()
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
+
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						ras.Status = status
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
+
+				case "Combined_Filters":
+					// Test combined filters: age + indexer + status
+					testData := []struct {
+						age     time.Duration
+						indexer string
+						status  domain.ReleasePushStatus
+					}{
+						{20 * time.Hour, "btn", domain.ReleasePushStatusApproved}, // Keep (age)
+						{25 * time.Hour, "ptp", domain.ReleasePushStatusRejected}, // Keep (indexer)
+						{25 * time.Hour, "btn", domain.ReleasePushStatusApproved}, // Keep (status)
+						{25 * time.Hour, "btn", domain.ReleasePushStatusRejected}, // Delete (matches all filters)
+					}
+
+					for _, td := range testData {
+						mockRel := getMockRelease()
+						mockRel.Timestamp = time.Now().Add(-td.age)
+						mockRel.Indexer.Identifier = td.indexer
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
+
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						ras.Status = td.status
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
+
+				case "Delete_All":
+					// Test delete all: create 3 releases with any variation
+					for i := 0; i < 3; i++ {
+						mockRel := getMockRelease()
+						mockRel.FilterID = createdFilters[0].ID
+						err := repo.Store(ctx, mockRel)
+						assert.NoError(t, err)
+
+						ras := getMockReleaseActionStatus()
+						ras.ReleaseID = mockRel.ID
+						ras.ActionID = int64(actionMock.ID)
+						ras.FilterID = int64(createdFilters[0].ID)
+						err = repo.StoreReleaseActionStatus(ctx, ras)
+						assert.NoError(t, err)
+					}
+				}
+
+				// Execute
+				err := repo.Delete(ctx, tt.deleteReq)
+				assert.NoError(t, err)
+
+				// Verify
+				releases, err := repo.Find(ctx, domain.ReleaseQueryParams{})
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedRemaining, len(releases.Data), "Expected %d releases to remain, got %d", tt.expectedRemaining, len(releases.Data))
+
+				// Cleanup
+				_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
+			})
+		}
+
+		// Cleanup shared resources
+		_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMock.ID})
+		_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
+		_ = downloadClientRepo.Delete(context.Background(), mock.ID)
 	}
 }
 
@@ -1385,5 +1526,295 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 		//_ = releaseRepo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 		_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMock.ID})
 		_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
+	}
+}
+
+func getMockReleaseCleanupJob() *domain.ReleaseCleanupJob {
+	return &domain.ReleaseCleanupJob{
+		Name:          "Test Cleanup Job",
+		Enabled:       true,
+		Schedule:      "0 3 * * *",
+		OlderThan:     720,
+		Indexers:      "btn,ptp",
+		Statuses:      "PUSH_REJECTED,PUSH_ERROR",
+		LastRun:       time.Now(),
+		LastRunStatus: domain.ReleaseCleanupStatusSuccess,
+		LastRunData:   `{"deleted": 10}`,
+	}
+}
+
+func TestReleaseCleanupJobRepo_Store(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, db)
+		mockData := getMockReleaseCleanupJob()
+
+		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Execute
+			err := repo.StoreCleanupJob(context.Background(), mockData)
+			assert.NoError(t, err)
+			assert.NotZero(t, mockData.ID)
+
+			// Verify
+			job, err := repo.FindCleanupJobByID(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, mockData.Name, job.Name)
+			assert.Equal(t, mockData.Enabled, job.Enabled)
+			assert.Equal(t, mockData.Schedule, job.Schedule)
+			assert.Equal(t, mockData.OlderThan, job.OlderThan)
+			assert.Equal(t, mockData.Indexers, job.Indexers)
+			assert.Equal(t, mockData.Statuses, job.Statuses)
+
+			// Cleanup
+			_ = repo.DeleteCleanupJob(context.Background(), mockData.ID)
+		})
+	}
+}
+
+func TestReleaseCleanupJobRepo_FindByID(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, db)
+		mockData := getMockReleaseCleanupJob()
+
+		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			err := repo.StoreCleanupJob(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Execute
+			job, err := repo.FindCleanupJobByID(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, mockData.Name, job.Name)
+			assert.Equal(t, mockData.ID, job.ID)
+
+			// Cleanup
+			_ = repo.DeleteCleanupJob(context.Background(), mockData.ID)
+		})
+
+		t.Run(fmt.Sprintf("FindByID_Fails_Not_Found [%s]", dbType), func(t *testing.T) {
+			// Execute
+			_, err := repo.FindCleanupJobByID(context.Background(), 99999)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}
+
+func TestReleaseCleanupJobRepo_List(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, db)
+
+		t.Run(fmt.Sprintf("List_Returns_All_Jobs [%s]", dbType), func(t *testing.T) {
+			// Setup - create multiple jobs
+			job1 := getMockReleaseCleanupJob()
+			job1.Name = "Job 1"
+			job2 := getMockReleaseCleanupJob()
+			job2.Name = "Job 2"
+			job3 := getMockReleaseCleanupJob()
+			job3.Name = "Job 3"
+
+			err := repo.StoreCleanupJob(context.Background(), job1)
+			assert.NoError(t, err)
+			err = repo.StoreCleanupJob(context.Background(), job2)
+			assert.NoError(t, err)
+			err = repo.StoreCleanupJob(context.Background(), job3)
+			assert.NoError(t, err)
+
+			// Execute
+			jobs, err := repo.ListCleanupJobs(context.Background())
+			assert.NoError(t, err)
+			assert.GreaterOrEqual(t, len(jobs), 3)
+
+			// Verify - find our test jobs
+			foundJobs := 0
+			for _, job := range jobs {
+				if job.Name == "Job 1" || job.Name == "Job 2" || job.Name == "Job 3" {
+					foundJobs++
+				}
+			}
+			assert.Equal(t, 3, foundJobs)
+
+			// Cleanup
+			_ = repo.DeleteCleanupJob(context.Background(), job1.ID)
+			_ = repo.DeleteCleanupJob(context.Background(), job2.ID)
+			_ = repo.DeleteCleanupJob(context.Background(), job3.ID)
+		})
+
+		t.Run(fmt.Sprintf("List_Empty_Table [%s]", dbType), func(t *testing.T) {
+			// Execute
+			jobs, err := repo.ListCleanupJobs(context.Background())
+			assert.NoError(t, err)
+			assert.NotNil(t, jobs)
+		})
+	}
+}
+
+func TestReleaseCleanupJobRepo_Update(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, db)
+		mockData := getMockReleaseCleanupJob()
+
+		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			err := repo.StoreCleanupJob(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Update data
+			mockData.Name = "Updated Name"
+			mockData.Schedule = "0 4 * * *"
+			mockData.OlderThan = 168
+			mockData.Enabled = false
+			mockData.Indexers = "hdt,blu"
+			mockData.Statuses = "PUSH_APPROVED"
+
+			// Execute
+			err = repo.UpdateCleanupJob(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Verify
+			updatedJob, err := repo.FindCleanupJobByID(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, "Updated Name", updatedJob.Name)
+			assert.Equal(t, "0 4 * * *", updatedJob.Schedule)
+			assert.Equal(t, 168, updatedJob.OlderThan)
+			assert.Equal(t, false, updatedJob.Enabled)
+			assert.Equal(t, "hdt,blu", updatedJob.Indexers)
+			assert.Equal(t, "PUSH_APPROVED", updatedJob.Statuses)
+
+			// Cleanup
+			_ = repo.DeleteCleanupJob(context.Background(), mockData.ID)
+		})
+
+		t.Run(fmt.Sprintf("Update_Fails_Non_Existing_Job [%s]", dbType), func(t *testing.T) {
+			// Setup
+			nonExistingJob := getMockReleaseCleanupJob()
+			nonExistingJob.ID = 99999
+
+			// Execute
+			err := repo.UpdateCleanupJob(context.Background(), nonExistingJob)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}
+
+func TestReleaseCleanupJobRepo_UpdateLastRun(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, db)
+		mockData := getMockReleaseCleanupJob()
+
+		t.Run(fmt.Sprintf("UpdateLastRun_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			err := repo.StoreCleanupJob(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Update last run data
+			newLastRun := time.Now().Add(-1 * time.Hour)
+			mockData.LastRun = newLastRun
+			mockData.LastRunStatus = domain.ReleaseCleanupStatusError
+			mockData.LastRunData = `{"error": "test error"}`
+
+			// Execute
+			err = repo.UpdateCleanupJobLastRun(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Verify
+			updatedJob, err := repo.FindCleanupJobByID(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, domain.ReleaseCleanupStatusError, updatedJob.LastRunStatus)
+			assert.Equal(t, `{"error": "test error"}`, updatedJob.LastRunData)
+			assert.WithinDuration(t, newLastRun, updatedJob.LastRun, 2*time.Second)
+
+			// Cleanup
+			_ = repo.DeleteCleanupJob(context.Background(), mockData.ID)
+		})
+
+		t.Run(fmt.Sprintf("UpdateLastRun_Fails_Non_Existing_Job [%s]", dbType), func(t *testing.T) {
+			// Setup
+			nonExistingJob := getMockReleaseCleanupJob()
+			nonExistingJob.ID = 99999
+
+			// Execute
+			err := repo.UpdateCleanupJobLastRun(context.Background(), nonExistingJob)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}
+
+func TestReleaseCleanupJobRepo_ToggleEnabled(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, db)
+		mockData := getMockReleaseCleanupJob()
+
+		t.Run(fmt.Sprintf("ToggleEnabled_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mockData.Enabled = true
+			err := repo.StoreCleanupJob(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Execute - disable
+			err = repo.CleanupJobToggleEnabled(context.Background(), mockData.ID, false)
+			assert.NoError(t, err)
+
+			// Verify
+			job, err := repo.FindCleanupJobByID(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+			assert.False(t, job.Enabled)
+
+			// Execute - enable
+			err = repo.CleanupJobToggleEnabled(context.Background(), mockData.ID, true)
+			assert.NoError(t, err)
+
+			// Verify
+			job, err = repo.FindCleanupJobByID(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+			assert.True(t, job.Enabled)
+
+			// Cleanup
+			_ = repo.DeleteCleanupJob(context.Background(), mockData.ID)
+		})
+
+		t.Run(fmt.Sprintf("ToggleEnabled_Fails_Non_Existing_Job [%s]", dbType), func(t *testing.T) {
+			// Execute
+			err := repo.CleanupJobToggleEnabled(context.Background(), 99999, false)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}
+
+func TestReleaseCleanupJobRepo_Delete(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, db)
+		mockData := getMockReleaseCleanupJob()
+
+		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			err := repo.StoreCleanupJob(context.Background(), mockData)
+			assert.NoError(t, err)
+
+			// Execute
+			err = repo.DeleteCleanupJob(context.Background(), mockData.ID)
+			assert.NoError(t, err)
+
+			// Verify
+			_, err = repo.FindCleanupJobByID(context.Background(), mockData.ID)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+
+		t.Run(fmt.Sprintf("Delete_Fails_Non_Existing_Job [%s]", dbType), func(t *testing.T) {
+			// Execute
+			err := repo.DeleteCleanupJob(context.Background(), 99999)
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
 	}
 }

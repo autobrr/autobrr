@@ -150,6 +150,11 @@ func TestSanitizeLogFile(t *testing.T) {
 			expected: "\"module\":\"action\" ExternalWebhookHost:REDACTED ExternalWebhookData:",
 		},
 		{
+			name:     "torrentData_json_escaped",
+			input:    "\"module\":\"action\" data: {\\n  \\\"torrentData\\\": \\\"m1lL2Nzpjb21tZW50NzY6vdG9ycmMzU3NWE0NmU3ODU3NzJmNjZmZjBkYzQ4MWVmOTQ3NWFhYmE3NWUzZTQyZWE0NjNkODllYj5+/ny\\\"}",
+			expected: "\"module\":\"action\" data: {\\n  \\\"torrentData\\\": \\\"REDACTED\\\"}",
+		},
+		{
 			input:    "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"ad789a9s8d.asdpoiasdpojads09sad809\\\",\\n  \\\"minratio\\\": 10.0\\n",
 			expected: "\"module\":\"filter\" \\\"id\\\": 3855,\\n  \\\"apikey\\\": \\\"REDACTED\\\",\\n  \\\"minratio\\\": 10.0\\n",
 		},

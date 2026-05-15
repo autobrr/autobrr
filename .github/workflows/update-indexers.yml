@@ -19,14 +19,14 @@ jobs:
     
     steps:
     - name: Check out autobrr.com repo
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: ${{ env.DOCS_REPO }}
         path: ${{ env.DOCS_PATH }}
         token: ${{ secrets.DOCS_TOKEN }}
 
     - name: Check out autobrr repo
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: ${{ env.SOURCE_REPO }}
         path: ${{ env.SOURCE_PATH }}

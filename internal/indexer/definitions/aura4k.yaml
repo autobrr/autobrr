@@ -1,0 +1,124 @@
+---
+name: Aura4K
+identifier: aura4k
+description: Aura4K is a private torrent tracker for 4k MOVIES and TV
+language: en-us
+urls:
+  - https://aura4k.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Site Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: Aura4K
+  server: irc.aura4k.net
+  port: 6697
+  tls: true
+  channels:
+    - "#AURA4K"
+  announcers:
+    - AuraPost
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Use your site username + _BOT (Eg. Username_BOT).
+    - name: pass
+      type: secret
+      required: true
+      label: Server Password
+      help: Go to Site Settings > IRC Key, and copy your IRC Key.
+    - name: user
+      type: text
+      required: false
+      label: Ident
+      help: Use your site username + _BOT (Eg. Username_BOT).
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: "[Aura4K] [x2 Upload] [Freeleech: 50%] [Internal] UploaderName has uploaded The Boys S01 2160p AMZN WEB-DL DDP5.1 H.265-AURA [Category: TV] [Type: WEB-DL] [Size: 16.97 GiB] [Url: https://aura4k.net/torrents/2696]"
+          expect:
+            torrentId: "2696"
+            torrentSize: "16.97 GiB"
+            torrentName: "The Boys S01 2160p AMZN WEB-DL DDP5.1 H.265-AURA"
+            uploader: "UploaderName"
+            category: "TV"
+            releaseTags: "WEB-DL"
+            du: "x2 Upload"
+            fl: "50"
+            internal: "Internal"
+
+        - line: "[Aura4K] UploaderName has uploaded The Boys S01 2160p AMZN WEB-DL DDP5.1 H.265-AURA [Category: TV] [Type: WEB-DL] [Size: 16.97 GiB] [Url: https://aura4k.net/torrents/2696]"
+          expect:
+            torrentId: "2696"
+            torrentSize: "16.97 GiB"
+            torrentName: "The Boys S01 2160p AMZN WEB-DL DDP5.1 H.265-AURA"
+            uploader: "UploaderName"
+            category: "TV"
+            releaseTags: "WEB-DL"
+            du: ""
+            fl: ""
+            internal: ""
+
+        - line: "[Aura4K] [Freeleech: 100%] UploaderName has uploaded Batman Forever [Category: Movies] [Type: Remux] [Size: 60.5 GiB] [Url: https://aura4k.net/torrents/2697]"
+          expect:
+            torrentId: "2697"
+            torrentSize: "60.5 GiB"
+            torrentName: "Batman Forever"
+            uploader: "UploaderName"
+            category: "Movies"
+            releaseTags: "Remux"
+            du: ""
+            fl: "100"
+            internal: ""
+
+        pattern: '(?i)\[Aura4K\]\s*(?:\[(x2 Upload)\]\s*)?(?:\[Freeleech: (\d+)%\]\s*)?(?:\[(Internal)\]\s*)?(.+?) has uploaded (.+?) \[Category: (.+?)\] \[Type: (.+?)\] \[Size: (.+?)\] \[Url: .*?\/torrents\/(\d+)\]'
+        vars:
+          - du
+          - fl
+          - internal
+          - uploader
+          - torrentName
+          - category
+          - releaseTags
+          - torrentSize
+          - torrentId
+
+    mappings:
+      fl:
+        "100":
+          downloadVolumeFactor: 0
+        "75":
+          downloadVolumeFactor: 0.25
+        "50":
+          downloadVolumeFactor: 0.5
+        "25":
+          downloadVolumeFactor: 0.75
+        "":
+          downloadVolumeFactor: 1
+      du:
+        "x2 Upload":
+          uploadVolumeFactor: 2
+        "":
+          uploadVolumeFactor: 1
+      internal:
+        "Internal":
+          origin: "INTERNAL"
+        "":
+          origin: ""
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

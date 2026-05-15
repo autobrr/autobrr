@@ -1,0 +1,233 @@
+{
+  "appName": "autobrr",
+  "nav": {
+    "dashboard": "Oversikt",
+    "filters": "Filtre",
+    "releases": "Utgivelser",
+    "settings": "Innstillinger",
+    "logs": "Logger",
+    "docs": "Dokumentasjon"
+  },
+  "userMenu": {
+    "account": "Konto",
+    "settings": "Innstillinger",
+    "logout": "Logg ut"
+  },
+  "forms": {
+    "chooseOption": "Velg et alternativ"
+  },
+  "input": {
+    "invalidRegex": "Ugyldig regex"
+  },
+  "keyField": {
+    "show": "Vis",
+    "copyToClipboard": "Kopier til utklippstavle",
+    "copySuccess": "API-nøkkel kopiert til utklippstavlen!",
+    "copyFailed": "API-nøkkel kopiering feilet!"
+  },
+  "modal": {
+    "remove": "Fjern",
+    "cancel": "Avbryt",
+    "forceRun": "Tving igang",
+    "confirmationPhrase": "Jeg forstår",
+    "forceRunPlaceholder": "Skriv '{{phrase}}' for å aktivere knappen"
+  },
+  "header": {
+    "logoutSuccess": "Du har blitt logget ut. På gjensyn!",
+    "openMainMenu": "Åpne hovedmeny",
+    "newUpdateAvailable": "Ny oppdatering tilgjengelig!",
+    "listRefreshFailed": "Klarte ikke å oppdatere listen!",
+    "multipleListRefreshesFailed": "Klarte ikke å oppdatere flere lister!"
+  },
+  "logs": {
+    "title": "Logger",
+    "filterPlaceholder": "Skriv inn et regex-mønster for å filtrere logger...",
+    "clearTitle": "Fjern logger fra visning",
+    "cleared": "Logger fjernet fra visning.",
+    "filesTitle": "Loggfiler",
+    "filesDescription": "Last ned gamle loggfiler.",
+    "columns": {
+      "name": "Navn",
+      "lastModified": "Sist endret",
+      "size": "Størrelse"
+    },
+    "noOldFiles": "Ingen gamle loggfiler",
+    "sanitizing": "Loggfilen blir rensket. Vennligst vent...",
+    "sanitizingShort": "Forbereder logg...",
+    "downloadFile": "Last ned fil",
+    "options": {
+      "scrollOnNewMessage": "Rull til bunnen ved ny melding",
+      "indentLogLines": "Innrykk av logglinjer",
+      "indentLogLinesDescription": "Rykk inn hver logglinje i henhold til deres respektive startposisjon.",
+      "hideWrappedText": "Skjul innpakket tekst",
+      "hideWrappedTextDescription": "Skjuler tekst som er ment å pakkes inn."
+    }
+  },
+  "releaseTable": {
+    "noResults": "Ingen resultater",
+    "error": "Feil",
+    "details": "Detaljer",
+    "downloadTorrent": "Last ned torrentfil",
+    "visitTorrentInfo": "Besøk torrentinfo-URL",
+    "actionReplayed": "{{action}} spilt av på nytt",
+    "retry": "Prøv på nytt",
+    "action": "Handling",
+    "labels": {
+      "category": "Kategori",
+      "size": "Størrelse",
+      "misc": "Diverse"
+    },
+    "columns": {
+      "age": "Alder",
+      "release": "Utgivelse",
+      "links": "Lenker",
+      "actions": "Handlinger",
+      "indexer": "Indexer"
+    },
+    "status": {
+      "error": "feil",
+      "rejected": "avvist",
+      "approved": "godkjent",
+      "pending": "venter"
+    },
+    "fields": {
+      "release": "Utgivelse",
+      "indexer": "Indexer",
+      "protocol": "Protokoll",
+      "implementation": "Implementasjon",
+      "announceType": "Annonseringstype",
+      "category": "Kategori",
+      "uploader": "Lastet opp av",
+      "size": "Størrelse",
+      "title": "Tittel",
+      "year": "År",
+      "season": "Sesong",
+      "episode": "Episode",
+      "resolution": "Oppløsning",
+      "source": "Kilde",
+      "codec": "Kodek",
+      "hdr": "HDR",
+      "group": "Gruppe",
+      "container": "Konteiner",
+      "origin": "Opprinnelse",
+      "type": "Type",
+      "client": "Klient",
+      "filter": "Filter",
+      "time": "Tid",
+      "rejected": "Avvist"
+    },
+    "previous": "Forrige",
+    "next": "Neste",
+    "prev": "Forrige",
+    "first": "Første",
+    "last": "Siste",
+    "itemsPerPage": "Elementer per side",
+    "entries": "{{count}} oppføringer",
+    "pageOf": "Side {{page}} av {{total}}",
+    "pagination": "Paginering",
+    "toggleView": "Bytt visning",
+    "goIncognito": "Gå inkognito"
+  },
+  "releaseSearch": {
+    "title": "Utgivelser",
+    "descriptionPrefix": "Søkemotoren bruker en spesiell mønstergjenkjenningsmotor for å filtrere ut resultater. Vennligst",
+    "clickHere": "klikk her",
+    "descriptionSuffix": "for å få tips om hvordan du får relevante resultater.",
+    "searchTips": "Søketips",
+    "wildcardIntro": "Du kan bruke <strong>2</strong> spesielle <highlight>jokertegn</highlight> for mønstergjenkjenning.",
+    "percentRule": "- Prosent (<code1 />) - for å matche en <italic>sekvens</italic> av tegn (tilsvarende <code2 /> i Regex)",
+    "underscoreRule": "- Understrek (<code1 />) - for å matche et <italic>enkelt</italic> tegn (tilsvarende <code2 /> i Regex)",
+    "keywordFaceting": "I tillegg støtter autobrr <highlight>nøkkelordsfasettering</highlight>.",
+    "supportedKeywords": "Støttede nøkkelord er: <category>kategori</category>, <codec>kodek</codec>, <episode>episode</episode>, <filter>filter</filter>, <group>gruppe</group>, <hdr>hdr</hdr>, <resolution>oppløsning</resolution>, <season>sesong</season>, <source>kilde</source>, <title>tittel</title> og <year>år</year>.",
+    "examples": "Eksempler:",
+    "exampleYearResolution": "alt 1080p fra året 2022",
+    "exampleGroupHdr": "alle Dolby Vision-utgivelser fra en bestemt gruppe, f.eks. Framestor",
+    "exampleMovieTitle": "alle utgivelser som starter med \"Movie Title\" i 1080p",
+    "exampleShowEpisode": "alle utgivelser som starter med \"The Show\" relatert til S05E03",
+    "exampleCollectionSpace": "alle utgivelser som inneholder \"collection hd\" - i samme rekkefølge - og med et mellomrom!",
+    "exampleCollectionWildcard": "alle utgivelser som inneholder \"collection\" OG \"hd\" - i samme rekkefølge - men med et jokertegn i mellom, f.eks. et mellomrom ELLER et punktum ELLER et hvilket som helst annet tegn",
+    "docsPrefix": "Som alltid, vennligst se vår",
+    "docsLink": "Søkefunksjon bruksanvisning",
+    "docsSuffix": "dokumentasjonsside for å holde deg oppdatert på de nyeste eksemplene og informasjonen."
+  },
+  "releaseFilters": {
+    "all": "Alle",
+    "searchPlaceholder": "Søk i utgivelser...",
+    "indexer": "Indexer",
+    "indexersCount": "{{count}} indekserere",
+    "clearSelection": "Fjern valg",
+    "pushStatus": "Push-status"
+  },
+  "activityTable": {
+    "title": "Nylig aktivitet",
+    "loading": "Laster...",
+    "noRecentActivity": "Ingen nylig aktivitet",
+    "columns": {
+      "age": "Alder",
+      "release": "Utgivelse",
+      "actions": "Handlinger",
+      "indexer": "Indexer"
+    }
+  },
+  "dashboardStats": {
+    "title": "Statistikk",
+    "filteredReleases": "Filtrerte utgivelser",
+    "approvedPushes": "Godkjente pushes",
+    "rejectedPushes": "Avviste pushes",
+    "erroredPushes": "Feilede pushes"
+  },
+  "theme": {
+    "light": "Lys",
+    "dark": "Mørk",
+    "system": "System",
+    "toggleLightToDark": "Lys modus (klikk for mørk)",
+    "toggleDarkToSystem": "Mørk modus (klikk for system)",
+    "toggleSystemToLight": "Systemmodus (klikk for lys)"
+  },
+  "language": {
+    "label": "Språk",
+    "english": "English",
+    "french": "Français",
+    "german": "Deutsch",
+    "norwegian": "Norsk",
+    "russian": "Русский",
+    "simplifiedChinese": "简体中文",    
+    "spanish": "Español"
+  },
+  "toast": {
+    "success": "Suksess",
+    "error": "Feil",
+    "warning": "Advarsel",
+    "info": "Info",
+    "close": "Lukk"
+  },
+  "warning": {
+    "defaultTitle": "Advarsel!",
+    "srOnly": "Info"
+  },
+  "errorPage": {
+    "unrecoverable": "Vi fanget opp en uopprettelig feil!",
+    "offline": "Tilkobling til Autobrr feilet! Sjekk applikasjonens tilstand og bekreft nettverkstilkoblingen din.",
+    "reportPrefix": "Vennligst vurder å rapportere denne feilen til vår",
+    "github": "GitHub-side",
+    "discord": "vår offisielle Discord-kanal",
+    "reportMiddle": "eller til",
+    "recoveryHint": "Du kan prøve å tilbakestille sidetilstanden ved å bruke knappen nedenfor, eller ved å starte autobrr-applikasjonen på nytt. Det er imidlertid ikke garantert at dette løser feilen.",
+    "reset": "Tilbakestill sidetilstand"
+  },
+  "notFound": {
+    "status404": "404 Siden ble ikke funnet",
+    "title": "Oops, ser ut som det ble litt for mye brr!",
+    "bugPrefix": "I tilfelle du tror dette er en feil snarere enn for mye brr,",
+    "reportPrefix": "føl deg fri til å rapportere dette til vår",
+    "github": "GitHub-side",
+    "discord": "vår offisielle Discord-kanal",
+    "reportMiddle": "eller til",
+    "backOnTrack": "Ellers, la oss hjelpe deg med å komme tilbake på sporet for mer brr!",
+    "backToDashboard": "Tilbake til Oversikt",
+    "filterStatus404": "Status 404",
+    "filterTitlePrefix": "Filter med id",
+    "filterTitleSuffix": "ikke funnet!",
+    "backToFilters": "Tilbake til filtre"
+  }
+}

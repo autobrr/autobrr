@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"math"
+	"sync"
 	"time"
 )
 
@@ -31,6 +33,8 @@ type SQLite3Store struct {
 	db              SqlDB
 	stopCleanup     chan bool
 	cleanupInterval time.Duration
+	cache           map[string]cacheEntry
+	cacheMu         sync.RWMutex
 }
 
 // New returns a new SQLite3Store instance, with a background cleanup goroutine
@@ -39,6 +43,7 @@ func New(db SqlDB, opts ...OptFunc) *SQLite3Store {
 	p := &SQLite3Store{
 		db:              db,
 		cleanupInterval: 5 * time.Minute,
+		cache:           make(map[string]cacheEntry),
 	}
 
 	for _, opt := range opts {
@@ -64,14 +69,23 @@ func (p *SQLite3Store) Find(token string) (b []byte, exists bool, err error) {
 // If the session token is not found or is expired, the returned exists flag will
 // be set to false.
 func (p *SQLite3Store) FindCtx(ctx context.Context, token string) (b []byte, exists bool, err error) {
-	row := p.db.QueryRowContext(ctx, "SELECT data FROM sessions WHERE token = $1 AND julianday('now') < expiry", token)
-	err = row.Scan(&b)
+	// Fast-path cache check
+	if data, ok := p.getCached(token); ok {
+		return data, true, nil
+	}
+
+	var expiryJulian float64
+
+	row := p.db.QueryRowContext(ctx, "SELECT data, expiry FROM sessions WHERE token = $1 AND julianday('now') < expiry", token)
+	err = row.Scan(&b, &expiryJulian)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, false, nil
 		}
 		return nil, false, err
 	}
+
+	p.setCached(token, b, julianToTime(expiryJulian))
 
 	return b, true, nil
 }
@@ -91,6 +105,8 @@ func (p *SQLite3Store) CommitCtx(ctx context.Context, token string, b []byte, ex
 	if err != nil {
 		return err
 	}
+
+	p.setCached(token, b, expiry)
 	return nil
 }
 
@@ -104,6 +120,9 @@ func (p *SQLite3Store) Delete(token string) error {
 // instance.
 func (p *SQLite3Store) DeleteCtx(ctx context.Context, token string) error {
 	_, err := p.db.ExecContext(ctx, "DELETE FROM sessions WHERE token = $1", token)
+	if err == nil {
+		p.deleteCached(token)
+	}
 	return err
 }
 
@@ -116,7 +135,7 @@ func (p *SQLite3Store) All() (map[string][]byte, error) {
 // AllCtx returns a map containing the token and data for all active (i.e.
 // not expired) sessions in the SQLite3Store instance.
 func (p *SQLite3Store) AllCtx(ctx context.Context) (map[string][]byte, error) {
-	rows, err := p.db.QueryContext(ctx, "SELECT token, data FROM sessions WHERE julianday('now') < expiry")
+	rows, err := p.db.QueryContext(ctx, "SELECT token, data, expiry FROM sessions WHERE julianday('now') < expiry")
 	if err != nil {
 		return nil, err
 	}
@@ -128,14 +147,16 @@ func (p *SQLite3Store) AllCtx(ctx context.Context) (map[string][]byte, error) {
 		var (
 			token string
 			data  []byte
+			exp   float64
 		)
 
-		err = rows.Scan(&token, &data)
+		err = rows.Scan(&token, &data, &exp)
 		if err != nil {
 			return nil, err
 		}
 
 		sessions[token] = data
+		p.setCached(token, data, julianToTime(exp))
 	}
 
 	err = rows.Err()
@@ -155,6 +176,7 @@ func (p *SQLite3Store) startCleanup(interval time.Duration) {
 			if err != nil {
 				log.Println(err)
 			}
+			p.pruneCache()
 		case <-p.stopCleanup:
 			ticker.Stop()
 			return
@@ -181,4 +203,53 @@ func (p *SQLite3Store) StopCleanup() {
 func (p *SQLite3Store) deleteExpired(ctx context.Context) error {
 	_, err := p.db.ExecContext(ctx, "DELETE FROM sessions WHERE expiry < julianday('now')")
 	return err
+}
+
+type cacheEntry struct {
+	data   []byte
+	expiry time.Time
+}
+
+func (p *SQLite3Store) getCached(token string) ([]byte, bool) {
+	p.cacheMu.RLock()
+	entry, ok := p.cache[token]
+	p.cacheMu.RUnlock()
+	if !ok {
+		return nil, false
+	}
+	if time.Now().After(entry.expiry) {
+		p.deleteCached(token)
+		return nil, false
+	}
+	return entry.data, true
+}
+
+func (p *SQLite3Store) setCached(token string, data []byte, expiry time.Time) {
+	p.cacheMu.Lock()
+	p.cache[token] = cacheEntry{data: data, expiry: expiry}
+	p.cacheMu.Unlock()
+}
+
+func (p *SQLite3Store) deleteCached(token string) {
+	p.cacheMu.Lock()
+	delete(p.cache, token)
+	p.cacheMu.Unlock()
+}
+
+func (p *SQLite3Store) pruneCache() {
+	now := time.Now()
+	p.cacheMu.Lock()
+	for token, entry := range p.cache {
+		if now.After(entry.expiry) {
+			delete(p.cache, token)
+		}
+	}
+	p.cacheMu.Unlock()
+}
+
+// julianToTime converts a SQLite julianday() float into a time.Time.
+func julianToTime(j float64) time.Time {
+	seconds := (j - 2440587.5) * 86400
+	whole, frac := math.Modf(seconds)
+	return time.Unix(int64(whole), int64(frac*float64(time.Second))).UTC()
 }

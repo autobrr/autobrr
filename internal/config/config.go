@@ -302,7 +302,6 @@ func (c *AppConfig) defaults() {
 		MetricsPort:           9074,
 		MetricsBasicAuthUsers: "",
 	}
-
 }
 
 func (c *AppConfig) loadFromEnv() {

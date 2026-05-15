@@ -252,16 +252,16 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 		}
 	}()
 
-	if err = r.delete(ctx, tx, clientID); err != nil {
-		return errors.Wrap(err, "error deleting download client: %d", clientID)
-	}
-
 	if err = r.deleteClientFromAction(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
 	if err = r.clearClientFromLists(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error clearing client from lists: %d", clientID)
+	}
+
+	if err = r.delete(ctx, tx, clientID); err != nil {
+		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
 	r.log.Debug().Msgf("delete download client: %d", clientID)
@@ -295,53 +295,24 @@ func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int32)
 }
 
 func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int32) error {
-	queryBuilder := r.db.squirrel.
-		Update("action").
-		Set("enabled", false).
-		Set("client_id", 0).
-		Where(sq.Eq{"client_id": clientID}).
-		Suffix("RETURNING filter_id").RunWith(tx)
-
-	// return values
-	var filterID int
-
-	err := queryBuilder.QueryRowContext(ctx).Scan(&filterID)
+	rowsAffected, err := r.disableClientReferences(ctx, tx, "action", clientID)
 	if err != nil {
-		// this will throw when the client is not connected to any actions
-		// it is not an error in this case
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil
-		}
-
-		return errors.Wrap(err, "error executing query")
+		return err
 	}
 
-	r.log.Debug().Msgf("deleting download client %d from action for filter %d", clientID, filterID)
+	if rowsAffected > 0 {
+		r.log.Debug().Msgf("disabled %d actions that referenced client %d", rowsAffected, clientID)
+	} else {
+		r.log.Debug().Msgf("no actions found referencing client %d", clientID)
+	}
 
 	return nil
 }
 
 func (r *DownloadClientRepo) clearClientFromLists(ctx context.Context, tx *Tx, clientID int32) error {
-	queryBuilder := r.db.squirrel.
-		Update("list").
-		Set("enabled", false).
-		Set("client_id", 0).
-		Where(sq.Eq{"client_id": clientID}).
-		RunWith(tx)
-
-	query, args, err := queryBuilder.ToSql()
+	rowsAffected, err := r.disableClientReferences(ctx, tx, "list", clientID)
 	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	result, err := tx.ExecContext(ctx, query, args...)
-	if err != nil {
-		return errors.Wrap(err, "error executing query")
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return errors.Wrap(err, "error getting rows affected")
+		return err
 	}
 
 	if rowsAffected > 0 {
@@ -351,4 +322,29 @@ func (r *DownloadClientRepo) clearClientFromLists(ctx context.Context, tx *Tx, c
 	}
 
 	return nil
+}
+
+func (r *DownloadClientRepo) disableClientReferences(ctx context.Context, tx *Tx, table string, clientID int32) (int64, error) {
+	queryBuilder := r.db.squirrel.
+		Update(table).
+		Set("enabled", false).
+		Set("client_id", sq.Expr("NULL")).
+		Where(sq.Eq{"client_id": clientID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, "error getting rows affected")
+	}
+
+	return rowsAffected, nil
 }

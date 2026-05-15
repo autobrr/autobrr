@@ -21,7 +21,7 @@ on:
     - cron: '20 13 * * 6'
 
 env:
-  NODE_VERSION: '22.17.0'
+  NODE_VERSION: '24.15.0'
 
 jobs:
   analyze:
@@ -49,17 +49,19 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Set up Node
       uses: actions/setup-node@v6
       with:
         node-version: ${{ env.NODE_VERSION }}
 
-    - name: Set up corepack
-      run: npm install -g corepack@latest && corepack enable
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v6.0.5
+      with:
+        package_json_file: web/package.json
 
-      # It can not be done before enable corepack
+      # It can not be done before installing pnpm
     - name: Set up cache
       uses: actions/setup-node@v6
       with:

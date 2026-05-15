@@ -70,7 +70,14 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 			}
 
 			if action.Label != "" {
-				p.Labels = []string{action.Label}
+				var labels []string
+				for label := range strings.SplitSeq(action.Label, ",") {
+					label = strings.TrimSpace(label)
+					if label != "" {
+						labels = append(labels, label)
+					}
+				}
+				p.Labels = labels
 			}
 
 			if action.LimitUploadSpeed > 0 {
@@ -131,7 +138,14 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 		}
 
 		if action.Label != "" {
-			p.Labels = []string{action.Label}
+			var labels []string
+			for label := range strings.SplitSeq(action.Label, ",") {
+				label = strings.TrimSpace(label)
+				if label != "" {
+					labels = append(labels, label)
+				}
+			}
+			p.Labels = labels
 		}
 
 		if action.LimitUploadSpeed > 0 {

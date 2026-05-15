@@ -6,14 +6,16 @@
 import { WarningAlert } from "@components/alerts";
 import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
 import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
+import { useTranslation } from "react-i18next";
 
 
-export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => (
+export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <FilterSection
-    title="Instance"
-    subtitle={
-      <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
-    }
+    title={t("actionComponents.instance.title")}
+    subtitle={t("actionComponents.instance.subtitle")}
   >
     <FilterLayout>
       <FilterHalfRow>
@@ -26,92 +28,140 @@ export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => (
       <FilterHalfRow>
         <TextField
           name={`actions.${idx}.category`}
-          label="Category"
+          label={t("actionComponents.common.category")}
           columns={6}
-          placeholder="eg. category"
-          tooltip={<p>Category must exist already.</p>}
+          placeholder={t("actionComponents.common.categoryPlaceholder")}
+          tooltip={<p>{t("actionComponents.common.categoryTooltip")}</p>}
         />
       </FilterHalfRow>
     </FilterLayout>
   </FilterSection>
-);
+  );
+};
 
-export const Test = () => (
+export const NZBGet = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
+  <FilterSection
+    title={t("actionComponents.instance.title")}
+    subtitle={t("actionComponents.instance.subtitle")}
+  >
+    <FilterLayout>
+      <FilterHalfRow>
+        <DownloadClientSelect
+          name={`actions.${idx}.client_id`}
+          action={action}
+          clients={clients}
+        />
+      </FilterHalfRow>
+      <FilterHalfRow>
+        <TextField
+          name={`actions.${idx}.category`}
+          label={t("actionComponents.common.category")}
+          columns={6}
+          placeholder={t("actionComponents.common.categoryPlaceholder")}
+          tooltip={<p>{t("actionComponents.common.categoryTooltip")}</p>}
+        />
+      </FilterHalfRow>
+    </FilterLayout>
+  </FilterSection>
+  );
+};
+
+export const Test = () => {
+  const { t } = useTranslation("filters");
+
+  return (
   <WarningAlert
-    alert="Heads up!"
+    alert={t("actionComponents.test.alert")}
     className="mt-2"
     colors="text-fuchsia-700 bg-fuchsia-100 dark:bg-fuchsia-200 dark:text-fuchsia-800"
-    text="The test action does nothing except to show if the filter works. Make sure to have your Logs page open while testing."
+    text={t("actionComponents.test.text")}
   />
-);
+  );
+};
 
-export const Exec = ({ idx }: ClientActionProps) => (
+export const Exec = ({ idx }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <FilterSection
-    title="Exec Arguments"
-    subtitle="Specify the executable and its arguments to be executed upon filter match. Use an absolute path."
+    title={t("actionComponents.exec.title")}
+    subtitle={t("actionComponents.exec.subtitle")}
   >
     <FilterLayout>
       <TextField
         name={`actions.${idx}.exec_cmd`}
-        label="Path to Executable"
-        placeholder="Path to program eg. /bin/test"
+        label={t("actionComponents.exec.path")}
+        placeholder={t("actionComponents.exec.pathPlaceholder")}
       />
 
       <TextAreaAutoResize
         name={`actions.${idx}.exec_args`}
-        label="Arguments"
-        placeholder="Arguments eg. --test"
+        label={t("actionComponents.exec.arguments")}
+        placeholder={t("actionComponents.exec.argumentsPlaceholder")}
       />
     </FilterLayout>
 
   </FilterSection>
-);
+  );
+};
 
-export const WatchFolder = ({ idx }: ClientActionProps) => (
+export const WatchFolder = ({ idx }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <FilterSection
-    title="Watch Folder Arguments"
-    subtitle="Point to where autobrr should save the files it fetches. Use an absolute path."
+    title={t("actionComponents.watchFolder.title")}
+    subtitle={t("actionComponents.watchFolder.subtitle")}
   >
     <FilterLayout>
       <TextAreaAutoResize
         name={`actions.${idx}.watch_folder`}
-        label="Watch directory"
-        placeholder="Watch directory eg. /home/user/rwatch"
+        label={t("actionComponents.watchFolder.directory")}
+        placeholder={t("actionComponents.watchFolder.directoryPlaceholder")}
       />
     </FilterLayout>
   </FilterSection>
-);
+  );
+};
 
-export const WebHook = ({ idx }: ClientActionProps) => (
+export const WebHook = ({ idx }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <FilterSection
-    title="Webhook Arguments"
-    subtitle="Specify the payload to be sent to the desired endpoint upon filter match."
+    title={t("actionComponents.webhook.title")}
+    subtitle={t("actionComponents.webhook.subtitle")}
   >
     <FilterLayout>
       <TextField
         name={`actions.${idx}.webhook_host`}
-        label="Endpoint"
+        label={t("actionComponents.webhook.endpoint")}
         columns={6}
-        placeholder="Host eg. http://localhost/webhook"
+        placeholder={t("actionComponents.webhook.endpointPlaceholder")}
         tooltip={
-          <p>URL or IP to your API. Pass params and set API tokens etc.</p>
+          <p>{t("actionComponents.webhook.endpointTooltip")}</p>
         }
       />
     </FilterLayout>
     <TextAreaAutoResize
       name={`actions.${idx}.webhook_data`}
-      label="Payload (json)"
-      placeholder={"Request data: { \"key\": \"value\" }"}
+      label={t("actionComponents.webhook.payload")}
+      placeholder={t("actionComponents.webhook.payloadPlaceholder")}
     />
   </FilterSection>
-);
+  );
+};
 
-export const Arr = ({ idx, action, clients }: ClientActionProps) => (
+export const Arr = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <FilterSection
-    title="Instance"
-    subtitle={
-      <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
-    }
+    title={t("actionComponents.instance.title")}
+    subtitle={t("actionComponents.instance.subtitle")}
   >
     <FilterLayout>
       <FilterHalfRow>
@@ -126,27 +176,22 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => (
         <div className="">
           <TextField
             name={`actions.${idx}.external_download_client`}
-            label="Override download client name for arr"
+            label={t("actionComponents.arr.overrideClientName")}
             tooltip={
-              <p>
-                Override Download client name from the one set in Clients. Useful if you
-                have multiple clients inside the arr.
-              </p>
+              <p>{t("actionComponents.arr.overrideClientNameTooltip")}</p>
             }
           />
           <NumberField
             name={`actions.${idx}.external_download_client_id`}
-            label="Override download client id for arr DEPRECATED"
+            label={t("actionComponents.arr.overrideClientId")}
             className="mt-4"
             tooltip={
-              <p>
-                Override Download client Id from the one set in Clients. Useful if you
-                have multiple clients inside the arr.
-              </p>
+              <p>{t("actionComponents.arr.overrideClientIdTooltip")}</p>
             }
           />
         </div>
       </FilterHalfRow>
     </FilterLayout>
   </FilterSection>
-);
+  );
+};

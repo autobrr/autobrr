@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -291,13 +292,24 @@ func (h *Handler) Run() (err error) {
 				proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
 			}
 
-			proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
-			if err != nil {
-				return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+			var proxyDialer proxy.Dialer
+
+			switch proxyUrl.Scheme {
+			case "http", "https":
+				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, h.network.Server, h.network.Port)
+				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, h.network.TLSSkipVerify)
+
+			default:
+				h.log.Debug().Msgf("Using %s proxy: %s", proxyUrl.Scheme, proxyUrl.Host)
+				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
+				if err != nil {
+					return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+				}
 			}
+
 			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
 			if !ok {
-				return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
+				return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
 			}
 
 			client.DialContext = proxyContextDialer.DialContext
@@ -325,7 +337,7 @@ func (h *Handler) Run() (err error) {
 
 		client.UseTLS = true
 		client.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: h.network.TLSSkipVerify,
 			MinVersion:         tls.VersionTLS10,
 			CipherSuites:       unsafeCipherSuites,
 		}
@@ -1197,6 +1209,22 @@ func (h *Handler) sendConnectCommands(msg string) error {
 			continue
 		}
 
+		if strings.HasPrefix(cmd, "/sleep") {
+			parts := strings.SplitN(cmd, " ", 2)
+			if len(parts) < 2 {
+				h.log.Warn().Msgf("sleep command missing duration: %s", cmd)
+				continue
+			}
+			secs, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+			if err != nil {
+				h.log.Error().Err(err).Msgf("error parsing sleep command: %s", cmd)
+				continue
+			}
+			h.log.Debug().Msgf("sleeping for %d seconds: %s", secs, cmd)
+			time.Sleep(time.Duration(secs) * time.Second)
+			continue
+		}
+
 		h.log.Debug().Msgf("sending connect command: %s", cmd)
 
 		params := strings.SplitN(cmd, " ", 2)
@@ -1474,6 +1502,10 @@ func DetermineNetworkRestartRequired(currentState, desiredState domain.IrcNetwor
 	if currentState.TLS != desiredState.TLS {
 		restartNeeded = true
 		fieldsChanged = append(fieldsChanged, "tls")
+	}
+	if currentState.TLSSkipVerify != desiredState.TLSSkipVerify {
+		restartNeeded = true
+		fieldsChanged = append(fieldsChanged, "tls skip verify")
 	}
 	if currentState.Pass != desiredState.Pass {
 		restartNeeded = true
