@@ -300,6 +300,13 @@ function FormFieldsNtfy() {
         help={t("forms.notification.accessTokenHelp")}
       />
 
+      <TextFieldWide
+        name="topic"
+        label={t("forms.notification.tags")}
+        help={t("forms.notification.ntfyTagsHelp")}
+        placeholder={t("forms.notification.ntfyTagsPlaceholder")}
+      />
+
       <NumberFieldWide
         name="priority"
         label={t("forms.notification.priority")}
