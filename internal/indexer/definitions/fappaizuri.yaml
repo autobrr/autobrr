@@ -1,0 +1,79 @@
+---
+#id: fappaizuri
+name: Fappaizuri
+identifier: fappaizuri
+description: Fappaizuri is a private torrent tracker for japanese XXX
+language: en-us
+urls:
+  - https://fappaizuri.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: TorrentTrader
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: To be found in the navigation pane under "Your Profile".
+
+irc:
+  network: Fappaizuri
+  server: irc.fappaizuri.me
+  port: 6697
+  tls: true
+  channels:
+    - "#fappaizuri-announce"
+  announcers:
+    - "Fapster"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Username of bot must be set to username|bot.
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "Fapster !auth IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with Fapster. Replace IRCKEY. 
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: '[HENTAI] Nikuen 2 [82.96 MB] - https://fappaizuri.me/download.php?id=00000&hit=1'
+          expect:
+            category: HENTAI
+            torrentName: Nikuen 2
+            torrentSize: 82.96 MB
+            baseUrl: https://fappaizuri.me/
+            torrentId: "00000"
+
+        pattern: '\[(.*)\] (.*) \[(.*)\] - (https:\/\/.*\/).*id=(\d*).*'
+        vars:
+          - category
+          - torrentName
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents-details.php?id={{ .torrentId }}"
+      torrenturl: "/download.php?id={{ .torrentId }}&hit=1&passkey={{ .passkey }}"

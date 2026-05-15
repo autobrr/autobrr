@@ -15,6 +15,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type AutobrrURLChecker struct {
@@ -110,7 +112,7 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 				t.Errorf("Failed to GET url %s: %v", url, err)
 				return
 			}
-			defer resp.Body.Close()
+			defer sharedhttp.DrainAndClose(resp)
 
 			if resp.StatusCode == http.StatusNotFound {
 				t.Errorf("URL %s returned 404 Not Found", url)

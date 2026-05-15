@@ -7,9 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/pkg/errors"
 )
@@ -39,23 +41,29 @@ func (s *service) mdblist(ctx context.Context, list *domain.List) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
 	}
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
 	}
 
 	var data []struct {
-		Title string `json:"title"`
+		Title       string `json:"title"`
+		ReleaseYear int    `json:"release_year"`
+		MediaType   string `json:"mediatype"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
 	}
 
-	filterTitles := []string{}
+	var filterTitles []string
 	for _, item := range data {
-		filterTitles = append(filterTitles, processTitle(item.Title, list.MatchRelease)...)
+		title := item.Title
+		if list.IncludeYear && list.MatchRelease && item.ReleaseYear > 0 && item.MediaType == "movie" {
+			title = title + "*" + strconv.Itoa(item.ReleaseYear) + "*"
+		}
+		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
 	}
 
 	if len(filterTitles) == 0 {

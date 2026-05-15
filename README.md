@@ -144,18 +144,13 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 - Seedit4.me
 - SeedHost.eu
 - Ultra.cc
+- Whatbox.ca - has built-in integration with their apps, have to enable their "Expert" mode for external connections
 
 ##### Installation Scripts
 
 We have support for a couple of other providers out of the box.  
-Please contact us on [Discord](https://discord.gg/WQ2eUycxyT) if your provider is missing.
+Please contact us on [Discord](https://discord.autobrr.com) if your provider is missing.
 The scripts require some input, but do most of the work.
-
-#### WhatBox
-
-```bash
-wget https://gobrr.sh/install_whatbox && bash install_whatbox
-```
 
 #### Feralhosting
 
@@ -172,7 +167,7 @@ wget https://gobrr.sh/install_bytesized && bash install_bytesized
 #### Other providers
 
 For other providers the Seedbox.io installer should work. If not, open an issue or contact us
-on [Discord](https://discord.gg/WQ2eUycxyT)
+on [Discord](https://discord.autobrr.com)
 
 ```bash
 wget https://gobrr.sh/install_sbio && bash install_sbio
@@ -302,7 +297,7 @@ WantedBy=multi-user.target
 Start the service. Enable will make it startup on reboot.
 
 ```bash
-systemctl enable -q --now --user autobrr@$USER
+systemctl enable --now autobrr@$USER.service
 ```
 
 By default, the configuration is set to listen on `127.0.0.1`. While autobrr works fine as is exposed to the internet,
@@ -317,7 +312,7 @@ If you are not running a reverse proxy change `host` in the `config.toml` to `0.
 The following environment variables can be used:
 
 | Variable                               | Description                                              | Default                                  |
-| -------------------------------------- | -------------------------------------------------------- | ---------------------------------------- |
+|----------------------------------------|----------------------------------------------------------|------------------------------------------|
 | `AUTOBRR__HOST`                        | Listen address                                           | `127.0.0.1`                              |
 | `AUTOBRR__PORT`                        | Listen port                                              | `7474`                                   |
 | `AUTOBRR__BASE_URL`                    | Base URL for reverse proxy                               | `/`                                      |
@@ -329,12 +324,16 @@ The following environment variables can be used:
 | `AUTOBRR__CUSTOM_DEFINITIONS`          | Path to custom indexer definitions                       | -                                        |
 | `AUTOBRR__CHECK_FOR_UPDATES`           | Enable update checks                                     | `true`                                   |
 | `AUTOBRR__DATABASE_TYPE`               | Database type (sqlite/postgres)                          | `sqlite`                                 |
+| `AUTOBRR__DATABASE_DSN`                | Database connection string. Use this or individual vars  | -                                        |
 | `AUTOBRR__POSTGRES_HOST`               | PostgreSQL host                                          | -                                        |
 | `AUTOBRR__POSTGRES_PORT`               | PostgreSQL port                                          | `5432`                                   |
 | `AUTOBRR__POSTGRES_DATABASE`           | PostgreSQL database name                                 | -                                        |
+| `AUTOBRR__POSTGRES_DB`                 | PostgreSQL database name                                 | -                                        |
 | `AUTOBRR__POSTGRES_USER`               | PostgreSQL username                                      | -                                        |
 | `AUTOBRR__POSTGRES_PASS`               | PostgreSQL password                                      | -                                        |
+| `AUTOBRR__POSTGRES_PASSWORD`           | PostgreSQL password                                      | -                                        |
 | `AUTOBRR__POSTGRES_SSLMODE`            | PostgreSQL SSL mode                                      | `disable`                                |
+| `AUTOBRR__POSTGRES_SOCKET`             | PostgreSQL unix socket                                   | -                                        |
 | `AUTOBRR__POSTGRES_EXTRA_PARAMS`       | Additional PostgreSQL parameters                         | -                                        |
 | `AUTOBRR__OIDC_ENABLED`                | Enable OpenID Connect authentication                     | `false`                                  |
 | `AUTOBRR__OIDC_ISSUER`                 | OIDC issuer URL                                          | -                                        |
@@ -347,9 +346,55 @@ The following environment variables can be used:
 | `AUTOBRR__METRICS_PORT`                | Metrics listen port                                      | `9074`                                   |
 | `AUTOBRR__METRICS_BASIC_AUTH_USERS`    | Metrics basic auth users                                 | -                                        |
 
+#### Docker secrets
+
+All ENV vars have a `_FILE` option where it can read contents from a file, such as docker secrets. See the example below:
+
+```yaml
+services:
+  autobrr:
+    image: ghcr.io/autobrr/autobrr:latest
+    container_name: autobrr
+    volumes:
+      - ./config:/config
+    ports:
+      - "7474:7474"
+    restart: unless-stopped
+    environment:
+      - AUTOBRR__DATABASE_TYPE=postgres
+      - AUTOBRR__POSTGRES_HOST=postgres
+      - AUTOBRR__POSTGRES_PORT=5432
+      - AUTOBRR__POSTGRES_USER=autobrr
+      - AUTOBRR__POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - AUTOBRR__POSTGRES_DB=autobrr
+    secrets:
+      - db_password
+
+  postgres:
+    image: postgres:12.10
+    container_name: postgres
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=autobrr
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - POSTGRES_DB=autobrr
+    secrets:
+      - db_password
+
+secrets:
+  db_password:
+    file: db_password.txt
+
+volumes:
+  postgres:
+```
+
 ## Community
 
-Join our friendly and welcoming community on [Discord](https://discord.gg/WQ2eUycxyT)! Connect with fellow autobrr users, get advice, and share your experiences. Whether you're seeking help, wanting to contribute, or just looking to discuss your ideas, our community is a hub of discussion and support. We're all here to help each other out, so don't hesitate to jump in!
+Join our friendly and welcoming community on [Discord](https://discord.autobrr.com)! Connect with fellow autobrr users, get advice, and share your experiences. Whether you're seeking help, wanting to contribute, or just looking to discuss your ideas, our community is a hub of discussion and support. We're all here to help each other out, so don't hesitate to jump in!
 
 ## Contributing
 

@@ -10,7 +10,7 @@ on:
     - cron: '20 13 * * 6'
 
 env:
-  NODE_VERSION: '20.17.0'
+  NODE_VERSION: '24.15.0'
 
 jobs:
   codeql:
@@ -23,21 +23,23 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up corepack
-        run: npm install -g corepack@latest && corepack enable
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.5
+        with:
+          package_json_file: web/package.json
 
-      # It can not be done before enable corepack
+      # It can not be done before installing pnpm
       - name: Set up cache
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
@@ -46,21 +48,16 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      # Runs the ESlint code analysis
+      # Runs the ESLint code analysis and writes SARIF output
       - name: Run ESLint
-        # eslint exits 1 if it finds anything to report
         run: SARIF_ESLINT_EMBED=true pnpm run lint:ci
         working-directory: web
 
-      - name: Replace React trash
-        run: sed -i 's$Please see details in message$https://reactjs.org/is-broken-sarif-trash/$g' results.sarif
-
-      - name: Anyone home?
-        # eslint exits 1 if it finds anything to report
+      - name: Inspect SARIF
         run: cat results.sarif
 
       # Uploads results.sarif to GitHub repository using the upload-sarif action
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         with:
           # Path to SARIF file relative to the root of the repository
           sarif_file: results.sarif

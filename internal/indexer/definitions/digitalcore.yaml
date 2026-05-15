@@ -1,4 +1,3 @@
----
 #id: digitalcore
 name: DigitalCore
 identifier: digitalcore
@@ -58,15 +57,7 @@ irc:
     type: single
     lines:
       - tests:
-        - line: 'NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000'
-          expect:
-            category: Movies/XviD
-            torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
-            baseUrl: https://digitalcore.club/api/v1/torrents/
-            torrentId: "00000"
-            tags: ""
-            releaseTags: ""
-        - line: 'NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar]'
+        - line: 'NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Size: [1.23 GiB]'
           expect:
             category: Movies/XviD
             torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
@@ -74,7 +65,8 @@ irc:
             torrentId: "00000"
             tags: ""
             releaseTags: p2p,unrar
-        - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Genre: [Drama, Fantasy, Horror]'
+            torrentSize: 1.23 GiB
+        - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Genre: [Drama, Fantasy, Horror] :: Size: [1.23 GiB]'
           expect:
             category: Movies/1080p
             torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
@@ -82,15 +74,17 @@ irc:
             torrentId: "00000"
             tags: "Drama, Fantasy, Horror"
             releaseTags: p2p,unrar
-        - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Genre: [Drama, Fantasy, Horror]'
+            torrentSize: 1.23 GiB
+        - line: "NEW TORRENT in Games/PC :: STAR.WARS.Episode.I.Jedi.Power.Battles.Update.1-RUNE :: https://digitalcore.club/api/v1/torrents/download/1726693 :: Tags: [new] :: Genre: [Platform, Hack and slash/Beat 'em up, Adventure, Arcade] :: Size: [65.98 MiB]"
           expect:
-            category: Movies/1080p
-            torrentName: This.is.my.Movie.2019.BRRip.XviD.AC3-iND
+            category: Games/PC
+            torrentName: STAR.WARS.Episode.I.Jedi.Power.Battles.Update.1-RUNE
             baseUrl: https://digitalcore.club/api/v1/torrents/
-            torrentId: "00000"
-            tags: "Drama, Fantasy, Horror"
-            releaseTags: ""
-        pattern: 'NEW TORRENT in (.+) :: (.+) :: (https:\/\/.+\/).+\/([0-9a-zA-Z]+)(?: :: Tags: )?(?:\[([0-9a-zA-Z ,\-&]+)\])?(?: :: Genre: )?(?:\[([0-9a-zA-Z ,\-&]+)\])?'
+            torrentId: "1726693"
+            tags: "Platform, Hack and slash/Beat 'em up, Adventure, Arcade"
+            releaseTags: new
+            torrentSize: 65.98 MiB
+        pattern: 'NEW TORRENT in (.+) :: (.+) :: (https:\/\/.+\/)download\/(\d+) :: Tags: \[(.+?)\](?: :: Genre: )?(?:\[(.+?)\])? :: Size: \[(.+)\]'
         vars:
           - category
           - torrentName
@@ -98,6 +92,7 @@ irc:
           - torrentId
           - releaseTags
           - tags
+          - torrentSize
 
     match:
       infourl: "/torrent/{{ .torrentId }}/"

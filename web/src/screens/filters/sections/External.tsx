@@ -4,9 +4,10 @@
  */
 
 import { useRef } from "react";
-import { ChevronRightIcon } from "@heroicons/react/24/solid";
+import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import { ArrowDownIcon, ArrowUpIcon, SquaresPlusIcon } from "@heroicons/react/24/outline";
 import { Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext } from "formik";
+import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
@@ -14,7 +15,7 @@ import { TextAreaAutoResize } from "@components/inputs/input";
 import { EmptyListState } from "@components/emptystates";
 import { NumberField, Select, TextField } from "@components/inputs";
 import {
-  ExternalFilterTypeNameMap,
+  ExternalFilterOnErrorOptions,
   ExternalFilterTypeOptions,
   ExternalFilterWebhookMethodOptions
 } from "@domain/constants";
@@ -23,9 +24,10 @@ import { DeleteModal } from "@components/modals";
 import { DocsLink } from "@components/ExternalLink";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
-import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
+import { FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
 
 export function External() {
+  const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
   const newItem: ExternalFilter = {
@@ -33,7 +35,8 @@ export function External() {
     index: values.external.length,
     name: `External ${values.external.length + 1}`,
     enabled: false,
-    type: "EXEC"
+    type: "EXEC",
+    on_error: "REJECT",
   };
 
   return (
@@ -44,8 +47,8 @@ export function External() {
             <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
               <TitleSubtitle
                 className="ml-4 mt-4"
-                title="External filters"
-                subtitle="Run external scripts or webhooks and check status as part of filtering."
+                title={t("external.title")}
+                subtitle={t("external.subtitle")}
               />
               <div className="ml-4 mt-4 shrink-0">
                 <button
@@ -57,7 +60,7 @@ export function External() {
                     className="w-5 h-5 mr-1"
                     aria-hidden="true"
                   />
-                  Add new
+                  {t("external.addNew")}
                 </button>
               </div>
             </div>
@@ -76,7 +79,7 @@ export function External() {
                 ))}
               </ul>
             ) : (
-              <EmptyListState text="No external filters yet!" />
+              <EmptyListState text={t("external.empty")} />
             )}
           </>
         )}
@@ -94,6 +97,7 @@ interface FilterExternalItemProps {
 }
 
 function FilterExternalItem({ idx, external, initialEdit, remove, move }: FilterExternalItemProps) {
+  const { t } = useTranslation("filters");
   const { values, setFieldValue } = useFormikContext<Filter>();
   const cancelButtonRef = useRef(null);
 
@@ -125,9 +129,9 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
         )}
       >
         {((idx > 0) || (idx < values.external.length - 1)) ? (
-          <div className="flex flex-col pr-2 justify-between">
+          <div className="flex flex-col pr-3 justify-between">
             {idx > 0 && (
-              <button type="button" onClick={moveUp}>
+              <button type="button" className="cursor-pointer" onClick={moveUp}>
                 <ArrowUpIcon
                   className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"
                   aria-hidden="true"
@@ -136,7 +140,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
             )}
 
             {idx < values.external.length - 1 && (
-              <button type="button" onClick={moveDown}>
+              <button type="button" className="cursor-pointer" onClick={moveDown}>
                 <ArrowDownIcon
                   className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"
                   aria-hidden="true"
@@ -161,7 +165,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
           )}
         </Field>
 
-        <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center" type="button" onClick={toggleEdit}>
+        <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center cursor-pointer" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="truncate">
               <div className="flex text-sm">
@@ -173,13 +177,13 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
             <div className="shrink-0 sm:mt-0 sm:ml-5">
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  {ExternalFilterTypeNameMap[external.type]}
+                  {t(`external.types.${external.type}`)}
                 </span>
               </div>
             </div>
           </div>
           <div className="ml-5 shrink-0">
-            <ChevronRightIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+            {edit ? <ChevronDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" /> : <ChevronRightIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />}
           </div>
         </button>
 
@@ -192,29 +196,44 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
             buttonRef={cancelButtonRef}
             toggle={toggleDeleteModal}
             deleteAction={removeAction}
-            title="Remove external filter"
-            text="Are you sure you want to remove this external filter? This action cannot be undone."
+            title={t("external.removeTitle")}
+            text={t("external.removeText")}
           />
 
           <FilterPage gap="sm:gap-y-6">
             <FilterSection
-              title="External Filter"
-              subtitle="Define the type of your filter and its name"
+              title={t("external.sectionTitle")}
+              subtitle={t("external.sectionSubtitle")}
             >
               <FilterLayout>
-                <FilterHalfRow>
-                  <Select
-                    name={`external.${idx}.type`}
-                    label="Type"
-                    optionDefaultText="Select type"
-                    options={ExternalFilterTypeOptions}
-                    tooltip={<div><p>Select the type for this external filter.</p></div>}
-                  />
-                </FilterHalfRow>
+                <Select
+                  name={`external.${idx}.type`}
+                  label={t("external.type")}
+                  optionDefaultText={t("external.selectType")}
+                  options={ExternalFilterTypeOptions.map(option => ({
+                    ...option,
+                    label: t(`external.types.${option.value}`)
+                  }))}
+                  tooltip={<div><p>{t("external.typeTooltip")}</p></div>}
+                  columns={4}
+                />
 
-                <FilterHalfRow>
-                  <TextField name={`external.${idx}.name`} label="Name" />
-                </FilterHalfRow>
+                <TextField
+                  name={`external.${idx}.name`}
+                  label={t("external.name")} columns={4}
+                />
+
+                <Select
+                  name={`external.${idx}.on_error`}
+                  label={t("external.onError")}
+                  optionDefaultText={t("external.selectType")}
+                  options={ExternalFilterOnErrorOptions.map(option => ({
+                    ...option,
+                    label: t(`external.onErrorOptions.${option.value}`)
+                  }))}
+                  tooltip={<div><p>{t("external.onErrorTooltip")}</p></div>}
+                  columns={4}
+                />
               </FilterLayout>
             </FilterSection>
 
@@ -226,7 +245,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
                 onClick={toggleDeleteModal}
               >
-                Remove External
+                {t("external.remove")}
               </button>
 
               <button
@@ -234,7 +253,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
                 onClick={toggleEdit}
               >
-                Close
+                {t("external.close")}
               </button>
             </div>
           </FilterPage>
@@ -251,39 +270,37 @@ interface TypeFormProps {
 }
 
 const TypeForm = ({ external, idx }: TypeFormProps) => {
+  const { t } = useTranslation("filters");
   switch (external.type) {
   case "EXEC": {
     return (
       <FilterSection
-        title="Execute"
-        subtitle="Specify the executable, the argument and the expected exit status to run as a pre-filter"
+        title={t("external.execute.title")}
+        subtitle={t("external.execute.subtitle")}
       >
         <FilterLayout>
           <TextAreaAutoResize
             name={`external.${idx}.exec_cmd`}
-            label="Path to Executable"
+            label={t("external.execute.path")}
             columns={5}
-            placeholder="Absolute path to executable eg. /bin/test"
+            placeholder={t("external.execute.pathPlaceholder")}
             tooltip={
               <div>
-                <p>
-                  For custom commands you should specify the full path to the binary/program
-                  you want to run. And you can include your own static variables:
-                </p>
+                <p>{t("external.execute.pathTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters/actions#custom-commands--exec" />
               </div>
             }
           />
           <TextAreaAutoResize
             name={`external.${idx}.exec_args`}
-            label="Exec Arguments"
+            label={t("external.execute.args")}
             columns={5}
-            placeholder={"Arguments eg. --test \"{{ .TorrentName }}\""}
+            placeholder={t("external.execute.argsPlaceholder")}
           />
           <div className="col-span-12 sm:col-span-2">
             <NumberField
               name={`external.${idx}.exec_expect_status`}
-              label="Expected exit status"
+              label={t("external.execute.expectedExitStatus")}
               placeholder="0"
             />
           </div>
@@ -295,69 +312,69 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
     return (
       <>
         <FilterSection
-          title="Request"
-          subtitle="Specify your request destination endpoint, headers and expected return status"
+          title={t("external.request.title")}
+          subtitle={t("external.request.subtitle")}
         >
           <FilterLayout>
             <TextField
               name={`external.${idx}.webhook_host`}
-              label="Endpoint"
+              label={t("external.request.endpoint")}
               columns={6}
-              placeholder="Host eg. http://localhost/webhook"
-              tooltip={<p>URL or IP to your API. Pass params and set API tokens etc.</p>}
+              placeholder={t("external.request.endpointPlaceholder")}
+              tooltip={<p>{t("external.request.endpointTooltip")}</p>}
             />
             <Select
               name={`external.${idx}.webhook_method`}
-              label="HTTP method"
-              optionDefaultText="Select http method"
+              label={t("external.request.httpMethod")}
+              optionDefaultText={t("external.request.httpMethodDefault")}
               options={ExternalFilterWebhookMethodOptions}
-              tooltip={<div><p>Select the HTTP method for this webhook. Defaults to POST</p></div>}
+              tooltip={<div><p>{t("external.request.httpMethodTooltip")}</p></div>}
             />
             <TextField
               name={`external.${idx}.webhook_headers`}
-              label="HTTP Request Headers"
+              label={t("external.request.headers")}
               columns={6}
-              placeholder="HEADER=custom1,HEADER2=custom2"
+              placeholder={t("external.request.headersPlaceholder")}
             />
             <NumberField
               name={`external.${idx}.webhook_expect_status`}
-              label="Expected HTTP status code"
+              label={t("external.request.expectedStatus")}
               placeholder="200"
             />
           </FilterLayout>
         </FilterSection>
         <FilterSection
-          title="Retry"
-          subtitle="Retry behavior on request failure"
+          title={t("external.retry.title")}
+          subtitle={t("external.retry.subtitle")}
         >
           <FilterLayout>
             <TextField
               name={`external.${idx}.webhook_retry_status`}
-              label="Retry http status code(s)"
-              placeholder="Retry on status eg. 202, 204"
+              label={t("external.retry.retryStatus")}
+              placeholder={t("external.retry.retryStatusPlaceholder")}
               columns={6}
             />
             <NumberField
               name={`external.${idx}.webhook_retry_attempts`}
-              label="Maximum retry attempts"
+              label={t("external.retry.retryAttempts")}
               placeholder="10"
             />
             <NumberField
               name={`external.${idx}.webhook_retry_delay_seconds`}
-              label="Retry delay in seconds"
+              label={t("external.retry.retryDelaySeconds")}
               placeholder="1"
             />
           </FilterLayout>
         </FilterSection>
         <FilterSection
-          title="Payload"
-          subtitle="Specify your JSON payload"
+          title={t("external.payload.title")}
+          subtitle={t("external.payload.subtitle")}
         >
           <FilterLayout>
             <TextAreaAutoResize
               name={`external.${idx}.webhook_data`}
-              label="Data (json)"
-              placeholder={"Request data: { \"key\": \"value\" }"}
+              label={t("external.payload.data")}
+              placeholder={t("external.payload.dataPlaceholder")}
             />
           </FilterLayout>
         </FilterSection>

@@ -7,12 +7,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Client interface {
@@ -176,7 +176,7 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 		return nil, errors.Wrap(err, "error during rpc http request")
 	}
 
-	defer httpResponse.Body.Close()
+	defer sharedhttp.DrainAndClose(httpResponse)
 
 	var rpcResponse *RPCResponse
 	decoder := json.NewDecoder(httpResponse.Body)
@@ -186,7 +186,7 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 
 	if err != nil {
 		if httpResponse.StatusCode >= 400 {
-			return nil, errors.Wrap(err, fmt.Sprintf("rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode))
+			return nil, errors.Wrap(err, "rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode)
 		}
 		//	if res.StatusCode == http.StatusUnauthorized {
 		//		return nil, errors.New("unauthorized: bad credentials")

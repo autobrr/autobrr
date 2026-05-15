@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -105,7 +106,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error getting releases for %v: %s", c.Repo, resp.Status)
@@ -170,6 +171,10 @@ func (c *Checker) buildUserAgent() string {
 }
 
 func isDevelop(version string) bool {
+	if strings.HasPrefix(version, "pr-") {
+		return true
+	}
+
 	tags := []string{"dev", "develop", "master", "latest", ""}
 
 	for _, tag := range tags {

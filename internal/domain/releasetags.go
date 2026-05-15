@@ -61,6 +61,11 @@ func init() {
 		{tag: "V0 (VBR)", title: "V0 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V1 (VBR)", title: "V1 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V2 (VBR)", title: "V2 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "DSD", title: "Direct Stream Digital", regexp: "", re: nil},
+		{tag: "DSD64", title: "DSD Oversampling ratio 64x", regexp: "", re: nil},
+		{tag: "DSD128", title: "DSD Oversampling ratio 128x", regexp: "", re: nil},
+		{tag: "DSD256", title: "DSD Oversampling ratio 256x", regexp: "", re: nil},
+		{tag: "DSD512", title: "DSD Oversampling ratio 512x", regexp: "", re: nil},
 	}
 	types["audio"] = audio
 
@@ -80,6 +85,10 @@ func init() {
 		{tag: "V0 (VBR)", title: "V0 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V1 (VBR)", title: "V1 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V2 (VBR)", title: "V2 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "DSD64", title: "DSD Oversampling ratio 64x", regexp: "", re: nil},
+		{tag: "DSD128", title: "DSD Oversampling ratio 128x", regexp: "", re: nil},
+		{tag: "DSD256", title: "DSD Oversampling ratio 256x", regexp: "", re: nil},
+		{tag: "DSD512", title: "DSD Oversampling ratio 512x", regexp: "", re: nil},
 	}
 	types["audioBitrate"] = audioBitrate
 
@@ -107,6 +116,7 @@ func init() {
 		{tag: "OGG", title: "", regexp: "", re: nil},
 		{tag: "OPUS", title: "", regexp: "", re: nil},
 		{tag: "TrueHD", title: "Dolby TrueHD", regexp: "(?:dolby[\\-\\._ ]?)?true[\\-\\._ ]?hd", re: nil},
+		{tag: "DSD", title: "Direct Stream Digital", regexp: "", re: nil},
 	}
 	types["audioFormat"] = audioFormat
 
@@ -485,6 +495,12 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			// check tag
 			match := info.Match(tags)
 			if !match {
+				continue
+			}
+
+			if info.Tag() == "Log" {
+				releaseTags.HasLog = true
+				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
 				continue
 			}
 

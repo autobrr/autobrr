@@ -4,21 +4,24 @@
  */
 
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { classNames } from "@utils";
 
 interface EmptySimpleProps {
     title: string;
     subtitle?: string;
     buttonText?: string;
     buttonAction?: () => void;
+    border?: boolean;
 }
 
 export const EmptySimple = ({
   title,
   subtitle,
   buttonText,
-  buttonAction
+  buttonAction,
+  border = false,
 }: EmptySimpleProps) => (
-  <div className="text-center py-8">
+  <div className={classNames(border ? "border-1 border-gray-200 dark:border-gray-700" : "", "text-center py-8")}>
     <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">{title}</h3>
     {subtitle ? (
       <p className="mt-1 text-sm text-gray-500 dark:text-gray-200">{subtitle}</p>

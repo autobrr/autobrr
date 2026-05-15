@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -82,7 +83,7 @@ type Handler struct {
 	sse                 *sse.Server
 	network             *domain.IrcNetwork
 	releaseSvc          release.Service
-	notificationService notification.Service
+	notificationService notification.Sender
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
@@ -106,7 +107,7 @@ type Handler struct {
 	saslauthed    bool
 }
 
-func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Service) *Handler {
+func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Sender) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,
@@ -256,13 +257,24 @@ func (h *Handler) Run() (err error) {
 				proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
 			}
 
-			proxyDialer, err := proxy.FromURL(proxyUrl, proxy.Direct)
-			if err != nil {
-				return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+			var proxyDialer proxy.Dialer
+
+			switch proxyUrl.Scheme {
+			case "http", "https":
+				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, h.network.Server, h.network.Port)
+				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, h.network.TLSSkipVerify)
+
+			default:
+				h.log.Debug().Msgf("Using %s proxy: %s", proxyUrl.Scheme, proxyUrl.Host)
+				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
+				if err != nil {
+					return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+				}
 			}
+
 			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
 			if !ok {
-				return errors.Wrap(err, "proxy dialer does not expose DialContext(): %v", proxyDialer)
+				return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
 			}
 
 			client.DialContext = proxyContextDialer.DialContext
@@ -290,7 +302,7 @@ func (h *Handler) Run() (err error) {
 
 		client.UseTLS = true
 		client.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: h.network.TLSSkipVerify,
 			MinVersion:         tls.VersionTLS10,
 			CipherSuites:       unsafeCipherSuites,
 		}
@@ -398,7 +410,8 @@ func (h *Handler) isOurNick(nick string) bool {
 }
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
-	return h.CurrentNick() == nick
+	// soju just reports JOIN (366) messages with the wildcard.
+	return h.CurrentNick() == nick || (h.network.UseBouncer && nick == "*")
 }
 
 func (h *Handler) setConnectionStatus() {
@@ -914,6 +927,22 @@ func (h *Handler) sendConnectCommands(msg string) error {
 
 		// if there's an extra , (comma) the command will be empty so lets skip that
 		if cmd == "" {
+			continue
+		}
+
+		if strings.HasPrefix(cmd, "/sleep") {
+			parts := strings.SplitN(cmd, " ", 2)
+			if len(parts) < 2 {
+				h.log.Warn().Msgf("sleep command missing duration: %s", cmd)
+				continue
+			}
+			secs, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+			if err != nil {
+				h.log.Error().Err(err).Msgf("error parsing sleep command: %s", cmd)
+				continue
+			}
+			h.log.Debug().Msgf("sleeping for %d seconds: %s", secs, cmd)
+			time.Sleep(time.Duration(secs) * time.Second)
 			continue
 		}
 

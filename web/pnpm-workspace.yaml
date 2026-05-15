@@ -1,0 +1,7 @@
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+overrides:
+  csstype: 3.1.2
+  rollup: npm:@rollup/wasm-node
+  react: $react

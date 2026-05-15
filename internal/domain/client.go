@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
@@ -34,7 +35,38 @@ type DownloadClient struct {
 	Settings      DownloadClientSettings `json:"settings,omitempty"`
 
 	// cached http client
-	Client any
+	Client any `json:"-"`
+}
+
+func (c DownloadClient) MarshalJSON() ([]byte, error) {
+	redactedSettings := DownloadClientSettings{
+		APIKey:                   RedactString(c.Settings.APIKey),
+		Rules:                    c.Settings.Rules,
+		ExternalDownloadClientId: c.Settings.ExternalDownloadClientId,
+		ExternalDownloadClient:   c.Settings.ExternalDownloadClient,
+		Auth: DownloadClientAuth{
+			Enabled:  c.Settings.Auth.Enabled,
+			Type:     c.Settings.Auth.Type,
+			Username: c.Settings.Auth.Username,
+			Password: RedactString(c.Settings.Auth.Password),
+		},
+		Basic: BasicAuth{
+			Auth:     c.Settings.Basic.Auth,
+			Username: c.Settings.Basic.Username,
+			Password: RedactString(c.Settings.Basic.Password),
+		},
+	}
+
+	type Alias DownloadClient
+	return json.Marshal(&struct {
+		*Alias
+		Password string                 `json:"password"`
+		Settings DownloadClientSettings `json:"settings"`
+	}{
+		Password: RedactString(c.Password),
+		Settings: redactedSettings,
+		Alias:    (*Alias)(&c),
+	})
 }
 
 type DownloadClientSettings struct {
@@ -107,6 +139,17 @@ type DownloadClientAuth struct {
 	Password string                 `json:"password,omitempty"`
 }
 
+//func (d DownloadClientAuth) MarshalJSON() ([]byte, error) {
+//	type Alias DownloadClientAuth
+//	return json.Marshal(&struct {
+//		*Alias
+//		Password string `json:"password,omitempty"`
+//	}{
+//		Password: RedactString(d.Password),
+//		Alias:    (*Alias)(&d),
+//	})
+//}
+
 type DownloadClientRules struct {
 	Enabled                     bool                        `json:"enabled"`
 	MaxActiveDownloads          int                         `json:"max_active_downloads"`
@@ -121,6 +164,17 @@ type BasicAuth struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
+
+//func (b BasicAuth) MarshalJSON() ([]byte, error) {
+//	type Alias BasicAuth
+//	return json.Marshal(&struct {
+//		*Alias
+//		Password string `json:"password,omitempty"`
+//	}{
+//		Password: RedactString(b.Password),
+//		Alias:    (*Alias)(&b),
+//	})
+//}
 
 type IgnoreSlowTorrentsCondition string
 
@@ -144,6 +198,7 @@ const (
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
 	DownloadClientTypeSabnzbd      DownloadClientType = "SABNZBD"
+	DownloadClientTypeNzbget       DownloadClientType = "NZBGET"
 )
 
 // Validate basic validation of client
@@ -161,6 +216,9 @@ func (c DownloadClient) Validate() error {
 func (c DownloadClient) BuildLegacyHost() (string, error) {
 	if c.Type == DownloadClientTypeQbittorrent {
 		return c.qbitBuildLegacyHost()
+	}
+	if c.Type == DownloadClientTypeTransmission {
+		return c.transmissionBuildLegacyHost()
 	}
 	return c.Host, nil
 }
@@ -200,6 +258,56 @@ func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
 		} else {
 			u.Host = fmt.Sprintf("%v:%v", u.Host, c.Port)
 		}
+	}
+
+	// make into new string and return
+	return u.String(), nil
+}
+
+// transmissionBuildLegacyHost builds the full Transmission RPC URL from host, port, and tls settings
+func (c DownloadClient) transmissionBuildLegacyHost() (string, error) {
+	// parse url
+	u, err := url.Parse(c.Host)
+	if err != nil {
+		return "", err
+	}
+
+	// reset Opaque
+	u.Opaque = ""
+
+	// set scheme
+	scheme := "http"
+	if c.TLS {
+		scheme = "https"
+	}
+	u.Scheme = scheme
+
+	// if host is empty lets use one from settings
+	if u.Host == "" {
+		u.Host = c.Host
+	}
+
+	// reset Path if it's the same as Host (means Host was just a hostname)
+	if u.Host == u.Path {
+		u.Path = ""
+	}
+
+	// handle ports
+	if c.Port > 0 {
+		if c.Port == 80 || c.Port == 443 {
+			// skip for regular http and https
+		} else {
+			u.Host = fmt.Sprintf("%v:%v", u.Host, c.Port)
+		}
+	}
+
+	// Ensure path ends with /rpc
+	if !strings.HasSuffix(u.Path, "/rpc") {
+		path, err := url.JoinPath(u.Path, "/rpc")
+		if err != nil {
+			return "", err
+		}
+		u.Path = path
 	}
 
 	// make into new string and return

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/pkg/errors"
 )
@@ -35,7 +36,7 @@ func (s *service) anilist(ctx context.Context, list *domain.List) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
 	}
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)

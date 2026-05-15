@@ -23,6 +23,10 @@ var (
 			repl:    "${1}REDACTED${3}",
 		},
 		{
+			pattern: regexp.MustCompile(`(\\"torrentData\\":\s?\\")(.+?)(\\"|")`),
+			repl:    "${1}REDACTED${3}",
+		},
+		{
 			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|auth|secret_key|api|apikey)=([a-zA-Z0-9]+)`),
 			repl:    "${1}=REDACTED",
 		},
@@ -98,9 +102,9 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 			strings.Contains(line, `"module":"action"`)
 
 		for i := 0; i < len(regexReplacements); i++ {
-			// Apply the first three patterns only if the line contains "module":"feed",
+			// Apply the first patterns only if the line contains "module":"feed",
 			// "module":"filter", "repo":"release", or "module":"action"
-			if i < 4 {
+			if i < 5 {
 				if bFilter {
 					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
 				}

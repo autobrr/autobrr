@@ -8,6 +8,7 @@ type Config struct {
 	ConfigPath              string
 	Host                    string `toml:"host"`
 	Port                    int    `toml:"port"`
+	CorsAllowedOrigins      string `toml:"corsAllowedOrigins"`
 	LogLevel                string `toml:"logLevel"`
 	LogPath                 string `toml:"logPath"`
 	LogMaxSize              int    `toml:"logMaxSize"`
@@ -18,13 +19,16 @@ type Config struct {
 	CustomDefinitions       string `toml:"customDefinitions"`
 	CheckForUpdates         bool   `toml:"checkForUpdates"`
 	DatabaseType            string `toml:"databaseType"`
+	DatabaseDSN             string `toml:"databaseDSN"`
 	DatabaseMaxBackups      int    `toml:"databaseMaxBackups"`
+	DatabaseAutoMigrate     bool   `toml:"databaseAutoMigrate"`
 	PostgresHost            string `toml:"postgresHost"`
 	PostgresPort            int    `toml:"postgresPort"`
 	PostgresDatabase        string `toml:"postgresDatabase"`
 	PostgresUser            string `toml:"postgresUser"`
 	PostgresPass            string `toml:"postgresPass"`
 	PostgresSSLMode         string `toml:"postgresSSLMode"`
+	PostgresSocket          string `toml:"postgresSocket"`
 	PostgresExtraParams     string `toml:"postgresExtraParams"`
 	ProfilingEnabled        bool   `toml:"profilingEnabled"`
 	ProfilingHost           string `toml:"profilingHost"`

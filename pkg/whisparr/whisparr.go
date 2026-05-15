@@ -4,7 +4,6 @@
 package whisparr
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -26,6 +25,8 @@ type Config struct {
 	Username  string
 	Password  string
 
+	TLSSkipVerify bool
+
 	Log *log.Logger
 }
 
@@ -42,9 +43,14 @@ type client struct {
 }
 
 func New(config Config) Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
+
 	httpClient := &http.Client{
 		Timeout:   time.Second * 120,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
 	c := &client{
@@ -91,20 +97,15 @@ func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.Wrap(err, "could not test whisparr")
 	}
 
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(bufio.NewReader(res.Body))
-	if err != nil {
-		return nil, errors.Wrap(err, "could not read body")
-	}
+	defer sharedhttp.DrainAndClose(res)
 
 	response := SystemStatusResponse{}
-	err = json.Unmarshal(body, &response)
+	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
-	c.Log.Printf("whisparr system/status status: (%v) response: %v\n", res.Status, string(body))
+	c.Log.Printf("whisparr system/status status: (%v) response: %+v\n", res.Status, response)
 
 	return &response, nil
 }
@@ -119,20 +120,15 @@ func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
 		return nil, nil
 	}
 
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(bufio.NewReader(res.Body))
-	if err != nil {
-		return nil, errors.Wrap(err, "could not read body")
-	}
+	defer sharedhttp.DrainAndClose(res)
 
 	pushResponse := make([]PushResponse, 0)
-	err = json.Unmarshal(body, &pushResponse)
+	err = json.NewDecoder(res.Body).Decode(&pushResponse)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
-	c.Log.Printf("whisparr release/push status: (%v) response: %v\n", res.Status, string(body))
+	c.Log.Printf("whisparr release/push status: (%v) response: %+v\n", res.Status, pushResponse)
 
 	// log and return if rejected
 	if pushResponse[0].Rejected {

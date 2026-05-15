@@ -33,12 +33,15 @@ type Macro struct {
 	Category                  string
 	Codec                     []string
 	Container                 string
+	Cookie                    string
 	CurrentDay                int
 	CurrentHour               int
 	CurrentMinute             int
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
+	CurrentTimeUnixMS         int64
+	CurrentUnixTimeMS         int64
 	Description               string
 	DownloadUrl               string
 	Episode                   int
@@ -69,6 +72,7 @@ type Macro struct {
 	Protocol                  string
 	Proper                    bool
 	Region                    string
+	ReleaseTags               string
 	Repack                    bool
 	Resolution                string
 	Season                    int
@@ -110,12 +114,15 @@ func NewMacro(release Release) Macro {
 		Category:                  release.Category,
 		Codec:                     release.Codec,
 		Container:                 release.Container,
+		Cookie:                    release.RawCookie,
 		CurrentDay:                currentTime.Day(),
 		CurrentHour:               currentTime.Hour(),
 		CurrentMinute:             currentTime.Minute(),
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
+		CurrentTimeUnixMS:         currentTime.UnixMilli(),
+		CurrentUnixTimeMS:         currentTime.UnixMilli(),
 		Description:               release.Description,
 		DownloadUrl:               release.DownloadURL,
 		Episode:                   release.Episode,
@@ -146,6 +153,7 @@ func NewMacro(release Release) Macro {
 		Protocol:                  release.Protocol.String(),
 		Proper:                    release.Proper,
 		Region:                    release.Region,
+		ReleaseTags:               release.ReleaseTags,
 		Repack:                    release.Repack,
 		Resolution:                release.Resolution,
 		Season:                    release.Season,

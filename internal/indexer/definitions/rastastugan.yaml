@@ -1,0 +1,95 @@
+---
+#id: rastastugan
+name: Rastastugan
+identifier: rastastugan
+description: Rastastugan is a NORDIC private tracker for MOVIES / TV / GENERAL
+language: en-us
+urls:
+  - https://rastastugan.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key
+    help: "Go to My Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: Rizon
+  server: irc.rizon.net
+  port: 6697
+  tls: true
+  channels:
+    - "#rastastugan"
+  announcers:
+    - "BotAnna"
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Username of bot must be set to username|bot.
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: Category [Movies] Type [WEB-DL] Name [Mercy.2026.NORDiC.2160p.WEB-DL.DV.HDR10+.H.265.DDP5.1.Atmos-TWA] Resolution [2160p] Freeleech [100%] Internal [Yes] Double Upload [No] Size [17.52 GiB] Uploader [Anonymous] Url [https://rastastugan.org/torrents/22286]
+          expect:
+            category: Movies
+            releaseTags: WEB-DL
+            torrentName: Mercy.2026.NORDiC.2160p.WEB-DL.DV.HDR10+.H.265.DDP5.1.Atmos-TWA
+            resolution: 2160p
+            freeleechPercent: 100%
+            internal: "Yes"
+            tags: "No"
+            torrentSize: 17.52 GiB
+            uploader: Anonymous
+            baseUrl: https://rastastugan.org/
+            torrentId: "22286"
+        - line: Category [Movies] Type [WEB-DL] Name [Wake Up Dead Man A Knives Out Mystery 2025 2160p NF WEB-DL DD+ 5.1 Atmos DV HDR H.265-BYNDR] Freeleech [0%] Internal [No] Double Upload [No] Size [20.11 GiB] Uploader [Angelic3525] Url [https://rastastugan.org/torrents/16360]
+          expect:
+            category: Movies
+            releaseTags: WEB-DL
+            torrentName: Wake Up Dead Man A Knives Out Mystery 2025 2160p NF WEB-DL DD+ 5.1 Atmos DV HDR H.265-BYNDR
+            resolution: ""
+            freeleechPercent: 0%
+            internal: "No"
+            tags: "No"
+            torrentSize: 20.11 GiB
+            uploader: Angelic3525
+            baseUrl: https://rastastugan.org/
+            torrentId: "16360"
+        pattern: 'Category \[(.*)\] Type \[(.*)\] Name \[(.*?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.*)\] Internal \[(.*)\] Double Upload \[(.*)\] Size \[(.*)\] Uploader \[(.*)\] Url \[(https?://.+/).+/(\d+)\]'
+        vars:
+          - category
+          - releaseTags
+          - torrentName
+          - resolution
+          - freeleechPercent
+          - internal
+          - tags
+          - torrentSize
+          - uploader
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

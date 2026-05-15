@@ -50,7 +50,7 @@ func (r *ProxyRepo) Store(ctx context.Context, p *domain.Proxy) error {
 			p.Timeout,
 		).
 		Suffix("RETURNING id").
-		RunWith(r.db.handler)
+		RunWith(r.db.Handler)
 
 	var retID int64
 	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
@@ -82,7 +82,7 @@ func (r *ProxyRepo) Update(ctx context.Context, p *domain.Proxy) error {
 	}
 
 	// update record
-	res, err := r.db.handler.ExecContext(ctx, query, args...)
+	res, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -119,7 +119,7 @@ func (r *ProxyRepo) List(ctx context.Context) ([]domain.Proxy, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -210,7 +210,7 @@ func (r *ProxyRepo) FindByID(ctx context.Context, id int64) (*domain.Proxy, erro
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -247,7 +247,7 @@ func (r *ProxyRepo) ToggleEnabled(ctx context.Context, id int64, enabled bool) e
 	}
 
 	// update record
-	res, err := r.db.handler.ExecContext(ctx, query, args...)
+	res, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}

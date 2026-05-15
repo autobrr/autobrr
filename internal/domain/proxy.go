@@ -5,6 +5,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"net/url"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -30,14 +31,27 @@ type Proxy struct {
 	Timeout int       `json:"timeout"`
 }
 
+func (p Proxy) MarshalJSON() ([]byte, error) {
+	type Alias Proxy
+	return json.Marshal(&struct {
+		*Alias
+		Pass string `json:"pass"`
+	}{
+		Pass:  RedactString(p.Pass),
+		Alias: (*Alias)(&p),
+	})
+}
+
 type ProxyType string
 
 const (
 	ProxyTypeSocks5 = "SOCKS5"
+	ProxyTypeHTTP   = "HTTP"
 )
 
 func (p Proxy) ValidProxyType() bool {
-	if p.Type == ProxyTypeSocks5 {
+	switch p.Type {
+	case ProxyTypeSocks5, ProxyTypeHTTP:
 		return true
 	}
 
@@ -49,7 +63,7 @@ func (p Proxy) Validate() error {
 		return errors.New("invalid proxy type: %s", p.Type)
 	}
 
-	if err := ValidateProxyAddr(p.Addr); err != nil {
+	if err := ValidateProxyAddr(p.Addr, p.Type); err != nil {
 		return err
 	}
 
@@ -60,7 +74,7 @@ func (p Proxy) Validate() error {
 	return nil
 }
 
-func ValidateProxyAddr(addr string) error {
+func ValidateProxyAddr(addr string, proxyType ProxyType) error {
 	if addr == "" {
 		return errors.New("addr is required")
 	}
@@ -70,8 +84,17 @@ func ValidateProxyAddr(addr string) error {
 		return errors.Wrap(err, "could not parse proxy url: %s", addr)
 	}
 
-	if proxyUrl.Scheme != "socks5" && proxyUrl.Scheme != "socks5h" {
-		return errors.New("proxy url scheme must be socks5 or socks5h")
+	switch proxyType {
+	case ProxyTypeSocks5:
+		if proxyUrl.Scheme != "socks5" && proxyUrl.Scheme != "socks5h" {
+			return errors.New("proxy url scheme must be socks5 or socks5h")
+		}
+	case ProxyTypeHTTP:
+		if proxyUrl.Scheme != "http" && proxyUrl.Scheme != "https" {
+			return errors.New("proxy url scheme must be http or https")
+		}
+	default:
+		return errors.New("invalid proxy type: %s", proxyType)
 	}
 
 	return nil

@@ -69,6 +69,36 @@ checkForUpdates = true
 #
 sessionSecret = "secret-session-key"
 
+# Database configuration
+#
+#databaseType = "postgres"
+#databaseDSN = "postgresql://autobrr:postgres@localhost:5432/autobrr?sslmode=disable"
+#
+#databaseType = "sqlite"
+#databaseDSN = "file:/config/data/autobrr.db"
+#
+# Use databaseDSN or the individual fields
+#
+#postgresHost = "localhost"
+#
+#postgresPort = 5432
+#
+#postgresUser = "autobrr"
+#
+#postgresPass = "postgres"
+#
+#postgresDatabase = "autobrr"
+#
+#postgresSSLMode = "disable"
+#
+# Optional
+#
+#postgresSocket = "/run/socket.sock"
+#
+# Optional
+#
+#postgresExtraParams = "connect_timeout=10"
+
 # OpenID Connect Configuration
 #
 # Enable OIDC authentication

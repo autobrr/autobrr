@@ -329,6 +329,37 @@ func TestIndexersParseAndFilter(t *testing.T) {
 					},
 					match: false,
 				},
+				{
+					name: "announce_6",
+					args: args{
+						announceLines: []string{"The best artist - Album No 1 [2017] [Album] - FLAC / Lossless / Log / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - Hip.Hop,Estonian,2010s"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:            "filter_1",
+									MatchCategories: "Album",
+									Years:           "2017",
+									Quality:         []string{"Lossless"},
+									Sources:         []string{"CD"},
+									Formats:         []string{"FLAC"},
+									Log:             true,
+									Cue:             true,
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:            "filter_2",
+									MatchCategories: "Album",
+									PerfectFlac:     true,
+								},
+								match:      false,
+								rejections: []string{"wanted: perfect flac. got: [Cue FLAC Lossless Log]"},
+							},
+						},
+					},
+					match: false,
+				},
 			},
 			match: true,
 		},

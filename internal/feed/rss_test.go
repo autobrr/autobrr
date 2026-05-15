@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/release"
 
 	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
@@ -27,8 +26,9 @@ func TestRSSJob_processItem(t *testing.T) {
 		Name       string
 		Log        zerolog.Logger
 		URL        string
-		Repo       domain.FeedCacheRepo
-		ReleaseSvc release.Service
+		Repo       jobFeedRepo
+		CacheRepo  jobFeedCacheRepo
+		ReleaseSvc jobReleaseSvc
 		attempts   int
 		errors     []error
 		JobID      int
@@ -550,7 +550,8 @@ func TestRSSJob_processItem(t *testing.T) {
 				Name:       tt.fields.Name,
 				Log:        tt.fields.Log,
 				URL:        tt.fields.URL,
-				CacheRepo:  tt.fields.Repo,
+				Repo:       tt.fields.Repo,
+				CacheRepo:  tt.fields.CacheRepo,
 				ReleaseSvc: tt.fields.ReleaseSvc,
 				attempts:   tt.fields.attempts,
 				errors:     tt.fields.errors,

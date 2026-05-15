@@ -97,7 +97,7 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	body := bufio.NewReader(res.Body)
 	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
@@ -144,7 +144,7 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	body := bufio.NewReader(res.Body)
 	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {

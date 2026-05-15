@@ -6,6 +6,8 @@
 log/
 logs/
 
+!internal/database/migrations/*/*.sql
+
 # OS generated files
 .DS_Store*
 ._*
@@ -32,6 +34,9 @@ yarn.lock
 .pnpm-store
 # If needed, package-lock.json shall be added manually using an explicit git add command
 package-lock.json
+
+# Docker
+config/
 
 # Others
 web/build

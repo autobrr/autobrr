@@ -22,11 +22,11 @@ type Subscriber struct {
 	eventbus EventBus.Bus
 
 	feedSvc         feed.Service
-	notificationSvc notification.Service
+	notificationSvc notification.Sender
 	releaseSvc      release.Service
 }
 
-func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feed.Service, notificationSvc notification.Service, releaseSvc release.Service) Subscriber {
+func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feed.Service, notificationSvc notification.Sender, releaseSvc release.Service) Subscriber {
 	s := Subscriber{
 		log:             log.With().Str("module", "events").Logger(),
 		eventbus:        eventbus,

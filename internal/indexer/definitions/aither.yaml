@@ -32,14 +32,20 @@ irc:
     - name: nick
       type: text
       required: true
-      label: Username
-      help: Profile > Settings > External Chat Tokens > Add Device Token.
+      label: Nick
+      help: Bot nick. Can use the Device Token's username.
 
-    - name: pass
+    - name: auth.account
+      type: text
+      required: true
+      label: Account
+      help: My Settings > External Chat > Device Token's Username
+
+    - name: auth.password
       type: secret
       required: true
-      label: Token
-      help: Profile > Settings > External Chat Tokens > Token.
+      label: IRC Token
+      help: My Settings > External Chat > Device Token's Token
 
   parse:
     type: single

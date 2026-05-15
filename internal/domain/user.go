@@ -3,7 +3,10 @@
 
 package domain
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 type UserRepo interface {
 	GetUserCount(ctx context.Context) (int, error)
@@ -17,6 +20,23 @@ type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+func (u User) MarshalJSON() ([]byte, error) {
+	type Alias User
+	return json.Marshal(&struct {
+		*Alias
+		Password string `json:"password"`
+	}{
+		Password: RedactString(u.Password),
+		Alias:    (*Alias)(&u),
+	})
+}
+
+type UserLoginRequest struct {
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	RememberMe bool   `json:"remember_me"`
 }
 
 type UpdateUserRequest struct {

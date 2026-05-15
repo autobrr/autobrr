@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<caps>
+    <server version="1.1" title="..." strapline="..."
+            email="..." url="http://indexer.local/"
+            image="http://indexer.local/content/banner.jpg" />
+    <limits max="100" default="50" />
+    <retention days="400" />
+    <registration available="yes" open="yes" />
+
+    <searching>
+        <search available="yes" supportedParams="q" />
+        <tv-search available="yes" supportedParams="q,rid,tvdbid,season,ep" />
+        <movie-search available="no" supportedParams="q,imdbid,genre" />
+        <audio-search available="no" supportedParams="q" />
+        <book-search available="no" supportedParams="q" />
+    </searching>
+
+    <categories>
+        <category id="2000" name="Movies">
+            <subcat id="2010" name="Foreign" />
+        </category>
+        <category id="5000" name="TV">
+            <subcat id="5040" name="HD" />
+            <subcat id="5070" name="Anime" />
+        </category>
+    </categories>
+
+    <groups>
+        <group id="1" name="alt.binaries...." description="..." lastupdate="..." />
+    </groups>
+
+    <tags>
+        <tag name="anonymous" description="Uploader is anonymous" />
+        <tag name="trusted" description="Uploader has high reputation" />
+        <tag name="internal" description="Uploader is an internal release group" />
+    </tags>
+</caps>

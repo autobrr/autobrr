@@ -29,7 +29,7 @@ type ApiClient interface {
 
 type Client struct {
 	url         string
-	client      *http.Client
+	httpClient  *http.Client
 	rateLimiter *rate.Limiter
 	APIKey      string
 }
@@ -42,10 +42,18 @@ func WithUrl(url string) OptFunc {
 	}
 }
 
-func NewClient(apiKey string, opts ...OptFunc) ApiClient {
+func WithHTTPClient(httpClient *http.Client) OptFunc {
+	return func(c *Client) {
+		if httpClient != nil {
+			c.httpClient = httpClient
+		}
+	}
+}
+
+func NewClient(apiKey string, opts ...OptFunc) *Client {
 	c := &Client{
 		url: DefaultURL,
-		client: &http.Client{
+		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
 		},
@@ -165,7 +173,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.client.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return resp, err
 	}
@@ -192,7 +200,7 @@ func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error
 		return errors.Wrap(err, "could not make request: %+v", req)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	body := bufio.NewReader(res.Body)
 

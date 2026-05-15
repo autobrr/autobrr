@@ -5,6 +5,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { classNames } from "@utils";
 import { LinkIcon } from "@heroicons/react/24/solid";
 import { ReleasesStatsQueryOptions } from "@api/queries";
@@ -45,20 +46,21 @@ const StatsItem = ({ name, placeholder, value, to, eventType }: StatsItemProps) 
 );
 
 export const Stats = () => {
+  const { t } = useTranslation("common");
   const { isLoading, data } = useQuery(ReleasesStatsQueryOptions());
 
   return (
     <div>
       <h1 className="text-3xl font-bold text-black dark:text-white">
-        Stats
+        {t("dashboardStats.title")}
       </h1>
 
       <dl className={classNames("grid grid-cols-2 gap-2 sm:gap-5 mt-5 sm:grid-cols-2 lg:grid-cols-4", isLoading ? "animate-pulse" : "")}>
-        <StatsItem name="Filtered Releases" to="/releases" value={data?.filtered_count ?? 0} />
+        <StatsItem name={t("dashboardStats.filteredReleases")} to="/releases" value={data?.filtered_count ?? 0} />
         {/* <StatsItem name="Filter Rejected Releases" stat={data?.filter_rejected_count} /> */}
-        <StatsItem name="Approved Pushes" to="/releases" eventType="PUSH_APPROVED" value={data?.push_approved_count ?? 0} />
-        <StatsItem name="Rejected Pushes" to="/releases" eventType="PUSH_REJECTED" value={data?.push_rejected_count ?? 0 } />
-        <StatsItem name="Errored Pushes" to="/releases" eventType="PUSH_ERROR"  value={data?.push_error_count ?? 0} />
+        <StatsItem name={t("dashboardStats.approvedPushes")} to="/releases" eventType="PUSH_APPROVED" value={data?.push_approved_count ?? 0} />
+        <StatsItem name={t("dashboardStats.rejectedPushes")} to="/releases" eventType="PUSH_REJECTED" value={data?.push_rejected_count ?? 0 } />
+        <StatsItem name={t("dashboardStats.erroredPushes")} to="/releases" eventType="PUSH_ERROR"  value={data?.push_error_count ?? 0} />
       </dl>
     </div>
   );

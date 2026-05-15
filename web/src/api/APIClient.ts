@@ -247,13 +247,12 @@ const appClient = {
 
 export const APIClient = {
   auth: {
-    login: (username: string, password: string) => appClient.Post("api/auth/login", {
-      body: { username, password }
+    login: (username: string, password: string, remember_me: boolean) => appClient.Post("api/auth/login", {
+      body: { username, password, remember_me }
     }),
     logout: () => appClient.Post("api/auth/logout"),
     validate: async (): Promise<ValidateResponse> => {
-      const response = await appClient.Get<ValidateResponse>("api/auth/validate");
-      return response;
+        return await appClient.Get<ValidateResponse>("api/auth/validate");
     },
     onboard: (username: string, password: string) => appClient.Post("api/auth/onboard", {
       body: { username, password }
@@ -328,13 +327,24 @@ export const APIClient = {
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),
-    delete: (id: number) => appClient.Delete(`api/filters/${id}`)
+    delete: (id: number) => appClient.Delete(`api/filters/${id}`),
+    notifications: {
+      get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
+      update: (filterId: number, notifications: FilterNotification[]) => 
+        appClient.Put(`api/filters/${filterId}/notifications`, {
+          body: notifications
+        })
+    }
   },
   feeds: {
     find: () => appClient.Get<Feed[]>("api/feeds"),
     create: (feed: FeedCreate) => appClient.Post("api/feeds", {
       body: feed
     }),
+    fetchCapsDraft: (feed: FeedCapsRequest) => appClient.Post<unknown>("api/feeds/caps", {
+      body: feed
+    }),
+    fetchCaps: (id: number) => appClient.Get<FeedCaps>(`api/feeds/${id}/caps`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, {
       body: { enabled }
     }),
@@ -409,7 +419,14 @@ export const APIClient = {
     delete: (id: number) => appClient.Delete(`api/notification/${id}`),
     test: (notification: ServiceNotification) => appClient.Post("api/notification/test", {
       body: notification
-    })
+    }),
+    getPushoverSounds: (apiToken: string) => {
+      // Don't make request if token is redacted or empty
+      if (!apiToken || apiToken === "<redacted>" || apiToken === "") {
+        return Promise.reject(new Error("API token is required"));
+      }
+      return appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`);
+    }
   },
   lists: {
     list: () => appClient.Get<List[]>("api/lists"),
@@ -455,13 +472,13 @@ export const APIClient = {
         if (!filter.value)
           return;
 
-        if (filter.id == "indexer.identifier") {
+        if (filter.id == "indexer.identifier" || filter.id == "indexer_identifier") {
           if (typeof filter.value === "string") {
             params["indexer"].push(filter.value);
-          }
-        } else if (filter.id == "indexer_identifier") {
-          if (typeof filter.value === "string") {
-            params["indexer"].push(filter.value);
+          } else if (Array.isArray(filter.value)) {
+            for (const v of filter.value) {
+              if (typeof v === "string") params["indexer"].push(v);
+            }
           }
         } else if (filter.id === "action_status") {
           if (typeof filter.value === "string") {
@@ -500,6 +517,22 @@ export const APIClient = {
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
     ),
+    cleanupJobs: {
+      list: () => appClient.Get<ReleaseCleanupJob[]>("api/release/cleanup-jobs"),
+      getByID: (id: number) => appClient.Get<ReleaseCleanupJob>(`api/release/cleanup-jobs/${id}`),
+      store: (job: ReleaseCleanupJob) => appClient.Post("api/release/cleanup-jobs", {
+        body: job
+      }),
+      update: (job: ReleaseCleanupJob) => appClient.Put(`api/release/cleanup-jobs/${job.id}`, {
+        body: job
+      }),
+      delete: (id: number) => appClient.Delete(`api/release/cleanup-jobs/${id}`),
+      toggleEnabled: (id: number, enabled: boolean) => appClient.Patch(
+        `api/release/cleanup-jobs/${id}/enabled`,
+        { body: { enabled } }
+      ),
+      forceRun: (id: number) => appClient.Post(`api/release/cleanup-jobs/${id}/run`)
+    },
     profiles: {
       duplicates: {
         list: () => appClient.Get<ReleaseProfileDuplicate[]>(`api/release/profiles/duplicate`),

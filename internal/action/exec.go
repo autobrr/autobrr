@@ -11,7 +11,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/mattn/go-shellwords"
+	"github.com/Hellseher/go-shellquote"
 )
 
 func (s *service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
@@ -23,9 +23,7 @@ func (s *service) execCmd(ctx context.Context, action *domain.Action, release do
 		return errors.Wrap(err, "exec failed, could not find program: %s", action.ExecCmd)
 	}
 
-	p := shellwords.NewParser()
-	p.ParseBacktick = true
-	args, err := p.Parse(action.ExecArgs)
+	args, err := shellquote.Split(action.ExecArgs)
 	if err != nil {
 		return errors.Wrap(err, "could not parse exec args: %s", action.ExecArgs)
 	}

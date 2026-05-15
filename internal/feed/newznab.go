@@ -5,14 +5,14 @@ package feed
 
 import (
 	"context"
-	"sort"
+	"crypto/tls"
+	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/proxy"
-	"github.com/autobrr/autobrr/internal/release"
-	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
 
@@ -20,15 +20,14 @@ import (
 )
 
 type NewznabJob struct {
-	Feed         *domain.Feed
-	Name         string
-	Log          zerolog.Logger
-	URL          string
-	Client       newznab.Client
-	Repo         domain.FeedRepo
-	CacheRepo    domain.FeedCacheRepo
-	ReleaseSvc   release.Service
-	SchedulerSvc scheduler.Service
+	Feed       *domain.Feed
+	Name       string
+	Log        zerolog.Logger
+	URL        string
+	Client     newznabClient
+	Repo       jobFeedRepo
+	CacheRepo  jobFeedCacheRepo
+	ReleaseSvc jobReleaseSvc
 
 	attempts int
 	errors   []error
@@ -36,7 +35,12 @@ type NewznabJob struct {
 	JobID int
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznab.Client, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service) FeedJob {
+type newznabClient interface {
+	WithHTTPClient(client *http.Client)
+	Search(ctx context.Context, query string, categories []int) (*newznab.SearchResponse, error)
+}
+
+func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
 	return &NewznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -85,33 +89,52 @@ func (j *NewznabJob) process(ctx context.Context) error {
 		return nil
 	}
 
+	releases, err := j.processItems(items)
+	if err != nil {
+		j.Log.Error().Err(err).Msgf("error processing items")
+		return errors.Wrap(err, "error processing items")
+	}
+
+	// process all new releases
+	go j.ReleaseSvc.ProcessMultipleFromIndexer(releases, j.Feed.Indexer)
+
+	return nil
+}
+
+func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, error) {
 	releases := make([]*domain.Release, 0)
 	now := time.Now()
 	for _, item := range items {
+		j.Log.Trace().Str("item", item.Title).Msg("processing item..")
+
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
+					j.Log.Debug().Msgf("item is older than feed max age, skipping: %s", item.Title)
 					continue
 				}
 			}
 		}
 
-		rls := domain.NewRelease(domain.IndexerMinimal{ID: j.Feed.Indexer.ID, Name: j.Feed.Indexer.Name, Identifier: j.Feed.Indexer.Identifier, IdentifierExternal: j.Feed.Indexer.IdentifierExternal})
+		rls := domain.NewRelease(j.Feed.Indexer)
 		rls.Implementation = domain.ReleaseImplementationNewznab
 		rls.Protocol = domain.ReleaseProtocolNzb
 
 		rls.TorrentName = item.Title
 		rls.InfoURL = item.GUID
 
-		// parse size bytes string
-		rls.ParseSizeBytesString(item.Size)
-
 		rls.ParseString(item.Title)
+		rls.Size = item.Size
 
-		if item.Enclosure != nil {
-			if item.Enclosure.Type == "application/x-nzb" {
-				rls.DownloadURL = item.Enclosure.Url
+		if item.Enclosure != nil && item.Enclosure.Type == "application/x-nzb" {
+			rls.DownloadURL = item.Enclosure.Url
+			if rls.Size == 0 && item.Enclosure.Length > item.Size {
+				rls.Size = item.Enclosure.Length
 			}
+		}
+
+		if len(item.Categories) == 1 {
+			rls.Category = item.Categories[0].Name
 		}
 
 		// map newznab categories ID and Name into rls.Categories
@@ -123,10 +146,7 @@ func (j *NewznabJob) process(ctx context.Context) error {
 		releases = append(releases, rls)
 	}
 
-	// process all new releases
-	go j.ReleaseSvc.ProcessMultiple(releases)
-
-	return nil
+	return releases, nil
 }
 
 func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
@@ -137,13 +157,19 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 			return nil, errors.Wrap(err, "could not get proxy client")
 		}
 
+		if j.Feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
+		}
+
 		j.Client.WithHTTPClient(proxyClient)
 
 		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
 	}
 
 	// get feed
-	feed, err := j.Client.GetFeed(ctx)
+	feed, err := j.Client.Search(ctx, "", j.Feed.Categories)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
@@ -153,35 +179,47 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
-	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Channel.Items))
+	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Items))
 
 	items := make([]newznab.FeedItem, 0)
-	if len(feed.Channel.Items) == 0 {
+	if len(feed.Items) == 0 {
 		return items, nil
 	}
 
-	sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
-		return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
-	})
+	//sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
+	//	return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
+	//})
 
-	toCache := make([]domain.FeedCacheItem, 0)
+	// Collect all valid GUIDs first
+	guidItemMap := make(map[string]*newznab.FeedItem)
+	var guids []string
 
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
-
-	for _, item := range feed.Channel.Items {
+	for _, item := range feed.Items {
 		if item.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
 		}
 
-		exists, err := j.CacheRepo.Exists(j.Feed.ID, item.GUID)
-		if err != nil {
-			j.Log.Error().Err(err).Msg("could not check if item exists")
-			continue
-		}
+		guidItemMap[item.GUID] = item
+		guids = append(guids, item.GUID)
+	}
 
-		if exists {
+	// reverse order so oldest items are processed first
+	slices.Reverse(guids)
+
+	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
+	if err != nil {
+		j.Log.Error().Err(err).Msg("could not get existing items from cache")
+		return nil, errors.Wrap(err, "could not get existing items from cache")
+	}
+
+	// set ttl to 1 month
+	ttl := time.Now().AddDate(0, 1, 0)
+	toCache := make([]domain.FeedCacheItem, 0)
+
+	for _, guid := range guids {
+		item := guidItemMap[guid]
+		if existingGuids[guid] {
 			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
 			continue
 		}
@@ -190,7 +228,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    item.GUID,
+			Key:    guid,
 			Value:  []byte(item.Title),
 			TTL:    ttl,
 		})

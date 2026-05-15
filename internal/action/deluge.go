@@ -328,9 +328,9 @@ func (s *service) prepareDelugeOptions(action *domain.Action) (deluge.Options, e
 	// set options
 	options := deluge.Options{}
 
-	if action.Paused {
-		options.AddPaused = &action.Paused
-	}
+	// always set; to override client default
+	options.AddPaused = &action.Paused
+
 	if action.SavePath != "" {
 		options.DownloadLocation = &action.SavePath
 	}

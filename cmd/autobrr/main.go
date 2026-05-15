@@ -4,7 +4,8 @@
 package main
 
 import (
-	"log"
+	"context"
+	stdlog "log"
 	"os"
 	"os/signal"
 	"runtime/pprof"
@@ -36,8 +37,11 @@ import (
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
+	"github.com/autobrr/autobrr/pkg/sqlite3store"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
+	"github.com/alexedwards/scs/postgresstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/asaskevich/EventBus"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
@@ -54,11 +58,13 @@ var (
 
 func main() {
 	var configPath, profilePath string
-	pflag.StringVar(&configPath, "config", "", "path to configuration file")
+	pflag.StringVar(&configPath, "config", "", "path to configuration directory")
 	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
 	pflag.Parse()
 
 	shutdownFunc, isPGO := pgoRun(profilePath)
+
+	ctx := context.Background()
 
 	// read config
 	cfg := config.New(configPath, version)
@@ -95,7 +101,12 @@ func main() {
 	bus := EventBus.New()
 
 	// open database connection
-	db, _ := database.NewDB(cfg.Config, log)
+	db, err := database.NewDB(cfg.Config, log)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not initialize database")
+	}
+	defer db.Close()
+
 	if err := db.Open(); err != nil {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
@@ -107,6 +118,21 @@ func main() {
 	log.Info().Msgf("Log-level: %s", cfg.Config.LogLevel)
 	log.Info().Msgf("Using database: %s", db.Driver)
 	log.Debug().Msgf("GOMEMLIMIT: %d bytes", memLimit)
+
+	// session manager
+	sessionManager := scs.New()
+	switch db.Driver {
+	case database.DriverSQLite:
+		sessionManager.Store = sqlite3store.New(db)
+	case database.DriverPostgres:
+		sessionManager.Store = postgresstore.New(db.Handler)
+	}
+
+	// setup OIDC
+	oidcService := auth.NewOIDCService(log, cfg.Config)
+	if err := oidcService.Discover(ctx); err != nil {
+		log.Fatal().Err(err).Msg("could not init OIDC service")
+	}
 
 	// setup repos
 	var (
@@ -131,16 +157,16 @@ func main() {
 		updateService         = update.NewUpdate(log, cfg.Config)
 		notificationService   = notification.NewService(log, notificationRepo)
 		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
-		indexerAPIService     = indexer.NewAPIService(log)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
+		indexerAPIService     = indexer.NewAPIService(log, proxyService)
 		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
-		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService)
-		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
+		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
+		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService, schedulingService, bus)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
@@ -152,27 +178,30 @@ func main() {
 	errorChannel := make(chan error)
 
 	go func() {
-		httpServer := http.NewServer(
-			log,
-			cfg,
-			serverEvents,
-			db,
-			version,
-			commit,
-			date,
-			actionService,
-			apiService,
-			authService,
-			downloadClientService,
-			filterService,
-			feedService,
-			indexerService,
-			ircService,
-			listService,
-			notificationService,
-			proxyService,
-			releaseService,
-			updateService,
+		httpServer := http.NewServer(http.Deps{
+			Log:                   log,
+			SSE:                   serverEvents,
+			DB:                    db,
+			Config:                cfg,
+			SessionManager:        sessionManager,
+			Version:               version,
+			Commit:                commit,
+			Date:                  date,
+			ActionService:         actionService,
+			ApiService:            apiService,
+			AuthService:           authService,
+			DownloadClientService: downloadClientService,
+			FilterService:         filterService,
+			FeedService:           feedService,
+			IndexerService:        indexerService,
+			IrcService:            ircService,
+			ListService:           listService,
+			NotificationService:   notificationService,
+			OIDCService:           oidcService,
+			ProxyService:          proxyService,
+			ReleaseService:        releaseService,
+			UpdateService:         updateService,
+		},
 		)
 		errorChannel <- httpServer.Open()
 	}()
@@ -196,7 +225,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, listService, schedulingService, updateService)
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return
@@ -229,11 +258,11 @@ func pgoRun(file string) (func(), bool) {
 
 	f, err := os.Create(file)
 	if err != nil {
-		log.Fatalf("could not create CPU profile: %v", err)
+		stdlog.Fatalf("could not create CPU profile: %v", err)
 	}
 
 	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatalf("could not create CPU profile: %v", err)
+		stdlog.Fatalf("could not create CPU profile: %v", err)
 	}
 
 	return func() {

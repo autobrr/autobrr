@@ -30,7 +30,7 @@ type service struct {
 	log             zerolog.Logger
 	config          *domain.Config
 	version         string
-	notificationSvc notification.Service
+	notificationSvc notification.Sender
 	updateSvc       *update.Service
 
 	cron *cron.Cron
@@ -38,7 +38,7 @@ type service struct {
 	m    sync.RWMutex
 }
 
-func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Service, updateSvc *update.Service) Service {
+func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Sender, updateSvc *update.Service) Service {
 	return &service{
 		log:             log.With().Str("module", "scheduler").Logger(),
 		config:          config,
@@ -79,6 +79,12 @@ func (s *service) addAppJobs() {
 		if id, err := s.ScheduleJob(checkUpdates, 2*time.Hour, "app-check-updates"); err != nil {
 			s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
 		}
+	}
+
+	tempDirCleanup := NewTempDirCleanupJob(s.log.With().Str("job", "temp-dir-cleanup").Logger())
+
+	if id, err := s.AddJob(tempDirCleanup, "0 4 * * *", "temp-dir-cleanup"); err != nil {
+		s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding temp dir cleanup job: %v", id)
 	}
 }
 

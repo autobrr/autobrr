@@ -1,0 +1,180 @@
+{
+  "announceType": {
+    "NEW": "Новый",
+    "CHECKED": "Проверен",
+    "PROMO": "Промо",
+    "PROMO_GP": "Промо GP",
+    "RESURRECTED": "Воскрешён"
+  },
+  "downloadClient": {
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Добавить торренты напрямую в qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Добавить торренты напрямую в Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge 2",
+      "description": "Добавить торренты напрямую в Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Добавить торренты напрямую в rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Добавить торренты напрямую в Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Добавить торренты напрямую в Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "Отправить в Radarr, пусть он решает"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "Отправить в Sonarr, пусть он решает"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "Отправить в Lidarr, пусть он решает"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "Отправить в Whisparr, пусть он решает"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "Отправить в Readarr, пусть он решает"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "Добавить nzb напрямую в SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "Добавить nzb напрямую в NZBGet"
+    }
+  },
+  "actionType": {
+    "TEST": {
+      "label": "Тест",
+      "description": "Простое действие для проверки фильтра."
+    },
+    "WATCH_FOLDER": {
+      "label": "Отслеживаемая папка",
+      "description": "Добавить отфильтрованные торренты в отслеживаемую папку"
+    },
+    "WEBHOOK": {
+      "label": "Webhook",
+      "description": "Выполнить webhook"
+    },
+    "EXEC": {
+      "label": "Exec",
+      "description": "Выполнить пользовательскую команду после совпадения фильтра"
+    },
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Добавить торренты напрямую в qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Добавить торренты напрямую в Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge v2",
+      "description": "Добавить торренты напрямую в Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Добавить торренты напрямую в rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Добавить торренты напрямую в Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Добавить торренты напрямую в Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "Отправить в Radarr, пусть он решает"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "Отправить в Sonarr, пусть он решает"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "Отправить в Lidarr, пусть он решает"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "Отправить в Whisparr, пусть он решает"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "Отправить в Readarr, пусть он решает"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "Добавить в SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "Добавить в NZBGet"
+    }
+  },
+  "pushStatus": {
+    "PUSH_REJECTED": "Отклонено",
+    "PUSH_APPROVED": "Одобрено",
+    "PENDING": "В ожидании",
+    "PUSH_ERROR": "Ошибка"
+  },
+  "notificationType": {
+    "DISCORD": "Discord",
+    "GOTIFY": "Gotify",
+    "LUNASEA": "LunaSea",
+    "NOTIFIARR": "Notifiarr",
+    "NTFY": "Ntfy",
+    "PUSHOVER": "Pushover",
+    "SHOUTRRR": "Shoutrrr",
+    "TELEGRAM": "Telegram",
+    "WEBHOOK": "Webhook"
+  },
+  "event": {
+    "PUSH_REJECTED": {
+      "label": "Отправка отклонена",
+      "description": "При отклонении отправки *arr-приложением или клиентом загрузки"
+    },
+    "PUSH_APPROVED": {
+      "label": "Отправка одобрена",
+      "description": "При одобрении отправки *arr-приложением или клиентом загрузки"
+    },
+    "PUSH_ERROR": {
+      "label": "Ошибка отправки",
+      "description": "При ошибке отправки в *arr-приложение или клиент загрузки"
+    },
+    "IRC_DISCONNECTED": {
+      "label": "Отключение IRC",
+      "description": "Неожиданное отключение от IRC-сети"
+    },
+    "IRC_RECONNECTED": {
+      "label": "Переподключение IRC",
+      "description": "Переподключение к IRC-сети после ошибки"
+    },
+    "APP_UPDATE_AVAILABLE": {
+      "label": "Новое обновление",
+      "description": "Получать уведомления об обновлениях"
+    },
+    "RELEASE_NEW": {
+      "label": "Новый релиз",
+      "description": "При новом релизе от индексатора (до фильтрации)"
+    }
+  }
+}
