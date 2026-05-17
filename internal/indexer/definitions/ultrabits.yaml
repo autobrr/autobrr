@@ -64,7 +64,7 @@ irc:
       - tests:
           - line: 'P2P Movie-WEB|1|cmpa4sh22000f01mdh5jb0x4k|0|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
             expect:
-              category: P2P Movie-x264
+              category: P2P Movie-WEB
               leechTypeEnum: 1
               torrentId: cmpa4sh22000f01mdh5jb0x4k
               originEnum: 0
@@ -73,7 +73,7 @@ irc:
               uploader: uploader
           - line: 'NEW Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
             expect:
-              category: NEW Movie-x264
+              category: NEW Movie-WEB
               leechTypeEnum: 0
               torrentId: cmpa4sh22000f01mdh5jb0x4k
               originEnum: 1
@@ -82,7 +82,7 @@ irc:
               uploader: uploader
           - line: 'ARCHIVE Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
             expect:
-              category: ARCHIVE Movie-x264
+              category: ARCHIVE Movie-WEB
               leechTypeEnum: 0
               torrentId: cmpa4sh22000f01mdh5jb0x4k
               originEnum: 1
