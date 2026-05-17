@@ -68,7 +68,7 @@ irc:
               leechTypeEnum: 1
               torrentId: cmpa4sh22000f01mdh5jb0x4k
               originEnum: 0
-              torrentName: The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR
+              torrentName: Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE
               torrentSize: 4.32 GiB
               uploader: uploader
           - line: 'NEW Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
@@ -77,7 +77,7 @@ irc:
               leechTypeEnum: 0
               torrentId: cmpa4sh22000f01mdh5jb0x4k
               originEnum: 1
-              torrentName: The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR
+              torrentName: Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE
               torrentSize: 4.32 GiB
               uploader: uploader
           - line: 'ARCHIVE Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
@@ -86,7 +86,7 @@ irc:
               leechTypeEnum: 0
               torrentId: cmpa4sh22000f01mdh5jb0x4k
               originEnum: 1
-              torrentName: The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR
+              torrentName: Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE
               torrentSize: 4.32 GiB
               uploader: uploader
         pattern: '^(.+)\|(\d)\|([a-zA-Z0-9]+)\|(\d)\|(.+)\|(.+)\|(.+)$'
