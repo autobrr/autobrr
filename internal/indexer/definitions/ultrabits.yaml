@@ -1,0 +1,113 @@
+---
+# id: ultrabits
+name: UltraBits
+identifier: ultrabits
+description: UltraBits - Swedish/Nordic private tracker (movies, tv, music, games, general)
+language: en-us,sv-se
+urls:
+  - https://ultrabits.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: |
+      Personal account credential. Find it under
+      Profile - Settings - Security on ultrabits.org. Treat it like
+      a password - anyone with this passkey can download as you.
+
+irc:
+  network: UltraBits
+  server: irc.ultrabits.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - ub-announce
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Bot nick
+      help: |
+        The nickname autobrr connects as. Pick something unique to
+        your client — autobrr's own bot, separate from anything you
+        chat with manually.
+
+    - name: auth.account
+      type: text
+      required: true
+      label: Tracker username
+      help: |
+        Your UltraBits username. The IRC server SASLs you in as this
+        account, regardless of what nick autobrr connects with.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: IRC key (ub_…)
+      help: |
+        A dedicated IRC key for autobrr. Generate at
+        Profile → Settings → IRC keys. Per-client, individually
+        revocable — if this autobrr instance is compromised you can
+        revoke this one key without breaking irssi / HexChat / etc.
+
+parse:
+  type: single
+  lines:
+    - tests:
+        - line: '[NEW] [movie] [Movie-x264] [FL] The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR [78.4 GiB] by Trinity | https://ultrabits.org/torrents/the-matrix-1999-uhd-bluray-2160p'
+          expect:
+            tags: NEW
+            mediaType: movie
+            category: Movie-x264
+            freeleech: FL
+            torrentName: The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR
+            torrentSize: 78.4 GiB
+            uploader: Trinity
+            slug: the-matrix-1999-uhd-bluray-2160p
+        - line: '[P2P] [tv] [TV-Nordic] [FL] [aud:sv] [sub:sv,en] Dips.S03E04.SWEDiSH.1080p.SVT.WEB-DL.H.265-NORViNE [703.7 MiB] by Anonymous | https://ultrabits.org/torrents/dips-s03e04-swedish-1080p-svt-web-dl-h-265-norvine'
+          expect:
+            tags: P2P
+            mediaType: tv
+            category: TV-Nordic
+            freeleech: FL
+            audioLangs: sv
+            subLangs: sv,en
+            torrentName: Dips.S03E04.SWEDiSH.1080p.SVT.WEB-DL.H.265-NORViNE
+            torrentSize: 703.7 MiB
+            uploader: Anonymous
+            slug: dips-s03e04-swedish-1080p-svt-web-dl-h-265-norvine
+        - line: '[ARCHIVE] [music] [FLAC] Pink.Floyd-The.Dark.Side.of.the.Moon-1973-LP-FLAC [413.2 MiB] by SoundGoblin | https://ultrabits.org/torrents/pink-floyd-dark-side-1973-flac'
+          expect:
+            tags: ARCHIVE
+            mediaType: music
+            category: FLAC
+            torrentName: Pink.Floyd-The.Dark.Side.of.the.Moon-1973-LP-FLAC
+            torrentSize: 413.2 MiB
+            uploader: SoundGoblin
+            slug: pink-floyd-dark-side-1973-flac
+      pattern: '^\[(\w+)\] \[(\w+)\] \[([\w-]+)\](?: \[(FL)\])?(?: \[(2X)\])?(?: \[(INT)\])?(?: \[aud:([\w,]+)\])?(?: \[sub:([\w,]+)\])? (.+?) \[([\d.]+ [KMGTP]i?B)\] by (\S+) \| https?://[^/]+/torrents/(\S+)$'
+      vars:
+        - tags
+        - mediaType
+        - category
+        - freeleech
+        - doubleUp
+        - internal
+        - audioLangs
+        - subLangs
+        - torrentName
+        - torrentSize
+        - uploader
+        - slug
+
+  match:
+    infourl: "/torrents/{{ .slug }}"
+    torrenturl: "/rss/dl/{{ .passkey }}/{{ .slug }}.torrent"
