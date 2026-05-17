@@ -12,14 +12,12 @@ supports:
   - irc
   - rss
 settings:
-  - name: passkey
+  - name: apikey
     type: secret
     required: true
-    label: Passkey
+    label: API key
     help: |
-      Personal account credential. Find it under
-      Profile - Settings - Security on ultrabits.org. Treat it like
-      a password - anyone with this passkey can download as you.
+      Find it under Profile - Settings - API Keys. https://ultrabits.org/profile/settings/api-keys
 
 irc:
   network: UltraBits
@@ -36,9 +34,7 @@ irc:
       required: true
       label: Bot nick
       help: |
-        The nickname autobrr connects as. Pick something unique to
-        your client — autobrr's own bot, separate from anything you
-        chat with manually.
+        The nickname autobrr connects as. Eg. username_bot
 
     - name: auth.account
       type: text
@@ -51,12 +47,10 @@ irc:
     - name: auth.password
       type: secret
       required: true
-      label: IRC key (ub_…)
+      label: IRC key (ub_xxx)
       help: |
         A dedicated IRC key for autobrr. Generate at
-        Profile → Settings → IRC keys. Per-client, individually
-        revocable — if this autobrr instance is compromised you can
-        revoke this one key without breaking irssi / HexChat / etc.
+        Profile → Settings → IRC keys. https://ultrabits.org/profile/settings/irc-keys
 
   parse:
     type: single
@@ -113,13 +107,13 @@ irc:
         "1": # 100% FL
           downloadVolumeFactor: 0
           uploadVolumeFactor: 1
-        "2": # Normal leech with Double up
-          downloadVolumeFactor: 1
-          uploadVolumeFactor: 2
-        "3": # 100% FL with Double up
+        "2": # 100% FL with Double up
           downloadVolumeFactor: 0
+          uploadVolumeFactor: 2
+        "3": # Normal leech with Double up
+          downloadVolumeFactor: 1
           uploadVolumeFactor: 2
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/rss/dl/{{ .passkey }}/{{ .torrentId }}.torrent"
+      torrenturl: "/rss/dl/{{ .apikey }}/{{ .torrentId }}.torrent"
