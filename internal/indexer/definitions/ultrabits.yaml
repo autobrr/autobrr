@@ -2,7 +2,7 @@
 # id: ultrabits
 name: UltraBits
 identifier: ultrabits
-description: UltraBits - Swedish/Nordic private tracker (movies, tv, music, games, general)
+description: UltraBits is a Swedish/Nordic private tracker for MOVIES, TV, MUSIC, GAMES, GENERAL
 language: en-us,sv-se
 urls:
   - https://ultrabits.org/
@@ -62,52 +62,64 @@ irc:
     type: single
     lines:
       - tests:
-          - line: '[NEW] [movie] [Movie-x264] [FL] The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR [78.4 GiB] by Trinity | https://ultrabits.org/torrents/the-matrix-1999-uhd-bluray-2160p'
+          - line: 'P2P Movie-WEB|1|cmpa4sh22000f01mdh5jb0x4k|0|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
             expect:
-              tags: NEW
-              mediaType: movie
-              category: Movie-x264
-              freeleech: FL
+              category: P2P Movie-x264
+              leechTypeEnum: 1
+              torrentId: cmpa4sh22000f01mdh5jb0x4k
+              originEnum: 0
               torrentName: The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR
-              torrentSize: 78.4 GiB
-              uploader: Trinity
-              slug: the-matrix-1999-uhd-bluray-2160p
-          - line: '[P2P] [tv] [TV-Nordic] [FL] [aud:sv] [sub:sv,en] Dips.S03E04.SWEDiSH.1080p.SVT.WEB-DL.H.265-NORViNE [703.7 MiB] by Anonymous | https://ultrabits.org/torrents/dips-s03e04-swedish-1080p-svt-web-dl-h-265-norvine'
+              torrentSize: 4.32 GiB
+              uploader: uploader
+          - line: 'NEW Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
             expect:
-              tags: P2P
-              mediaType: tv
-              category: TV-Nordic
-              freeleech: FL
-              audioLangs: sv
-              subLangs: sv,en
-              torrentName: Dips.S03E04.SWEDiSH.1080p.SVT.WEB-DL.H.265-NORViNE
-              torrentSize: 703.7 MiB
-              uploader: Anonymous
-              slug: dips-s03e04-swedish-1080p-svt-web-dl-h-265-norvine
-          - line: '[ARCHIVE] [music] [FLAC] Pink.Floyd-The.Dark.Side.of.the.Moon-1973-LP-FLAC [413.2 MiB] by SoundGoblin | https://ultrabits.org/torrents/pink-floyd-dark-side-1973-flac'
+              category: NEW Movie-x264
+              leechTypeEnum: 0
+              torrentId: cmpa4sh22000f01mdh5jb0x4k
+              originEnum: 1
+              torrentName: The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR
+              torrentSize: 4.32 GiB
+              uploader: uploader
+          - line: 'ARCHIVE Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
             expect:
-              tags: ARCHIVE
-              mediaType: music
-              category: FLAC
-              torrentName: Pink.Floyd-The.Dark.Side.of.the.Moon-1973-LP-FLAC
-              torrentSize: 413.2 MiB
-              uploader: SoundGoblin
-              slug: pink-floyd-dark-side-1973-flac
-        pattern: '^\[(\w+)\] \[(\w+)\] \[([\w-]+)\](?: \[(FL)\])?(?: \[(2X)\])?(?: \[(INT)\])?(?: \[aud:([\w,]+)\])?(?: \[sub:([\w,]+)\])? (.+?) \[([\d.]+ [KMGTP]i?B)\] by (\S+) \| https?://[^/]+/torrents/(\S+)$'
+              category: ARCHIVE Movie-x264
+              leechTypeEnum: 0
+              torrentId: cmpa4sh22000f01mdh5jb0x4k
+              originEnum: 1
+              torrentName: The.Matrix.1999.UHD.BluRay.2160p.HEVC.TrueHD.7.1-FraMeSToR
+              torrentSize: 4.32 GiB
+              uploader: uploader
+        pattern: '^(.+)\|(\d)\|([a-zA-Z0-9]+)\|(\d)\|(.+)\|(.+)\|(.+)$'
         vars:
-          - tags
-          - mediaType
           - category
-          - freeleech
-          - doubleUp
-          - internal
-          - audioLangs
-          - subLangs
+          - leechTypeEnum
+          - torrentId
+          - originEnum
           - torrentName
           - torrentSize
           - uploader
-          - slug
+
+    mappings:
+      originEnum:
+        "0":
+          origin: ""
+        "1":
+          origin: "INTERNAL"
+
+      leechTypeEnum:
+        "0": # Normal
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+        "1": # 100% FL
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 1
+        "2": # Normal leech with Double up
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 2
+        "3": # 100% FL with Double up
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 2
 
     match:
-      infourl: "/torrents/{{ .slug }}"
-      torrenturl: "/rss/dl/{{ .passkey }}/{{ .slug }}.torrent"
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/rss/dl/{{ .passkey }}/{{ .torrentId }}.torrent"
