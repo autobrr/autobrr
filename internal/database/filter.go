@@ -1573,7 +1573,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 // https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
 func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) (err error) {
 	var query string
-	
+
 	// Choose query based on window type (default to FIXED for backward compatibility)
 	if filter.MaxDownloadsWindowType == domain.FilterMaxDownloadsWindowRolling {
 		query = r.filterDownloadQueryRolling.Get()

@@ -186,12 +186,13 @@
   },
   "language": {
     "label": "Langue",
-    "english": "Anglais",
-    "simplifiedChinese": "Chinois simplifié",
-    "german": "Allemand",
+    "english": "English",
     "french": "Français",
-    "russian": "Russe",
-    "spanish": "Espagnol"
+    "german": "Deutsch",
+    "norwegian": "Norsk",
+    "russian": "Русский",
+    "simplifiedChinese": "简体中文",    
+    "spanish": "Español"
   },
   "toast": {
     "success": "Succès",

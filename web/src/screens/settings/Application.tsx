@@ -190,10 +190,11 @@ function ApplicationSettings() {
             className="rounded-md min-w-56 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer text-sm text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="en">{t("common:language.english")}</option>
-            <option value="de">{t("common:language.german")}</option>
             <option value="fr">{t("common:language.french")}</option>
-            <option value="es">{t("common:language.spanish")}</option>
+            <option value="de">{t("common:language.german")}</option>
+            <option value="no">{t("common:language.norwegian")}</option>
             <option value="ru">{t("common:language.russian")}</option>
+            <option value="es">{t("common:language.spanish")}</option>
             <option value="zh-CN">{t("common:language.simplifiedChinese")}</option>
           </select>
           </div>

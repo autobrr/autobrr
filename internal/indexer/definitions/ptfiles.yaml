@@ -27,7 +27,7 @@ irc:
   channels:
     - "#PTF-Announce"
   announcers:
-    - PTF
+    - PTFBot
   settings:
     - name: nick
       type: text

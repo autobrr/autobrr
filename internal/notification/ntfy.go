@@ -64,6 +64,9 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 	if s.Settings.Priority > 0 {
 		req.Header.Set("Priority", strconv.Itoa(int(s.Settings.Priority)))
 	}
+	if s.Settings.Topic != "" {
+		req.Header.Set("Tags", s.Settings.Topic)
+	}
 
 	// set basic auth or access token
 	if s.Settings.Username != "" && s.Settings.Password != "" {
