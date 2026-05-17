@@ -1,0 +1,119 @@
+---
+# id: ultrabits
+name: UltraBits
+identifier: ultrabits
+description: UltraBits is a Swedish/Nordic private tracker for MOVIES, TV, MUSIC, GAMES, GENERAL
+language: en-us,sv-se
+urls:
+  - https://ultrabits.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+settings:
+  - name: apikey
+    type: secret
+    required: true
+    label: API key
+    help: |
+      Find it under Profile - Settings - API Keys. https://ultrabits.org/profile/settings/api-keys
+
+irc:
+  network: UltraBits
+  server: irc.ultrabits.org
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - ub-announce
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Bot nick
+      help: |
+        The nickname autobrr connects as. Eg. username_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: Tracker username
+      help: |
+        Your UltraBits username. The IRC server SASLs you in as this
+        account, regardless of what nick autobrr connects with.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: IRC key (ub_xxx)
+      help: |
+        A dedicated IRC key for autobrr. Generate at
+        Profile → Settings → IRC keys. https://ultrabits.org/profile/settings/irc-keys
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: 'P2P Movie-WEB|1|cmpa4sh22000f01mdh5jb0x4k|0|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
+            expect:
+              category: P2P Movie-WEB
+              leechTypeEnum: 1
+              torrentId: cmpa4sh22000f01mdh5jb0x4k
+              originEnum: 0
+              torrentName: Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE
+              torrentSize: 4.32 GiB
+              uploader: uploader
+          - line: 'NEW Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
+            expect:
+              category: NEW Movie-WEB
+              leechTypeEnum: 0
+              torrentId: cmpa4sh22000f01mdh5jb0x4k
+              originEnum: 1
+              torrentName: Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE
+              torrentSize: 4.32 GiB
+              uploader: uploader
+          - line: 'ARCHIVE Movie-WEB|0|cmpa4sh22000f01mdh5jb0x4k|1|Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE|4.32 GiB|uploader'
+            expect:
+              category: ARCHIVE Movie-WEB
+              leechTypeEnum: 0
+              torrentId: cmpa4sh22000f01mdh5jb0x4k
+              originEnum: 1
+              torrentName: Eva.and.Adam.Fyra.Fodelsedagar.and.Ett.Fiasko.2001.1080p.NF.WEB-DL.DDP5.1.x264-OzONE
+              torrentSize: 4.32 GiB
+              uploader: uploader
+        pattern: '^(.+)\|(\d)\|([a-zA-Z0-9]+)\|(\d)\|(.+)\|(.+)\|(.+)$'
+        vars:
+          - category
+          - leechTypeEnum
+          - torrentId
+          - originEnum
+          - torrentName
+          - torrentSize
+          - uploader
+
+    mappings:
+      originEnum:
+        "0":
+          origin: ""
+        "1":
+          origin: "INTERNAL"
+
+      leechTypeEnum:
+        "0": # Normal
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+        "1": # 100% FL
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 1
+        "2": # 100% FL with Double up
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 2
+        "3": # Normal leech with Double up
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 2
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/rss/dl/{{ .apikey }}/{{ .torrentId }}.torrent"
