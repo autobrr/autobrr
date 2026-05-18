@@ -415,7 +415,7 @@ func (s *service) Start() error {
 
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
-				if err := s.ApiService.AddClient(indexer.Identifier, indexer.SettingsMap); err != nil {
+				if err := s.ApiService.AddClient(indexer.Identifier, indexer.SettingsMap, indexer.ProxyID, indexer.UseProxy); err != nil {
 					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
 				}
 			}
@@ -471,7 +471,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
-			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
 				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
 			}
 		}
@@ -509,7 +509,7 @@ func (s *service) updateIndexer(indexer domain.Indexer) error {
 
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
-			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap); err != nil {
+			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
 				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
 			}
 		}
@@ -788,6 +788,8 @@ func (s *service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 	}
 
 	req.Identifier = def.Identifier
+	req.ProxyID = def.ProxyID
+	req.UseProxy = def.UseProxy
 
 	if _, err = s.ApiService.TestConnection(ctx, req); err != nil {
 		s.log.Error().Err(err).Msgf("error testing api for: %s", indexer.Identifier)

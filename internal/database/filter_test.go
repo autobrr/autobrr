@@ -954,7 +954,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus.Timestamp = mockReleaseActionStatus.Timestamp.AddDate(0, -1, 0)
+			mockReleaseActionStatus.Timestamp = mockReleaseActionStatus.Timestamp.Add(-35 * 24 * time.Hour) // use Add instead of AddDate(0, -1, 0) to not cause issues where previous month is shorter than current month.
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
 			assert.NoError(t, err)
@@ -963,7 +963,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus2.ActionID = int64(mockAction2.ID)
 			mockReleaseActionStatus2.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus2.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus2.Timestamp = mockReleaseActionStatus2.Timestamp.AddDate(0, -1, 0)
+			mockReleaseActionStatus2.Timestamp = mockReleaseActionStatus2.Timestamp.Add(-35 * 24 * time.Hour) // use Add instead of AddDate(0, -1, 0) to not cause issues where previous month is shorter than current month.
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus2)
 			assert.NoError(t, err)

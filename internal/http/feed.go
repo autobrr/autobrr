@@ -26,6 +26,8 @@ type feedService interface {
 	Test(ctx context.Context, feed *domain.Feed) error
 	GetLastRunData(ctx context.Context, id int) (string, error)
 	ForceRun(ctx context.Context, id int) error
+	FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.FeedCapabilities, error)
+	FetchCapsByID(ctx context.Context, id int) (*domain.FeedCapabilities, error)
 }
 
 type feedHandler struct {
@@ -44,6 +46,7 @@ func (h feedHandler) Routes(r chi.Router) {
 	r.Get("/", h.find)
 	r.Post("/", h.store)
 	r.Post("/test", h.test)
+	r.Post("/caps", h.caps)
 
 	r.Route("/{feedID}", func(r chi.Router) {
 		r.Get("/", h.findByID)
@@ -53,6 +56,7 @@ func (h feedHandler) Routes(r chi.Router) {
 		r.Patch("/enabled", h.toggleEnabled)
 		r.Get("/latest", h.latestRun)
 		r.Post("/forcerun", h.forceRun)
+		r.Get("/caps", h.capsByID)
 	})
 }
 
@@ -118,6 +122,22 @@ func (h feedHandler) test(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
+func (h feedHandler) caps(w http.ResponseWriter, r *http.Request) {
+	var data *domain.Feed
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	caps, err := h.service.FetchCaps(r.Context(), data)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, caps)
+}
+
 func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 	var data *domain.Feed
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -152,6 +172,27 @@ func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+}
+
+func (h feedHandler) capsByID(w http.ResponseWriter, r *http.Request) {
+	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	caps, err := h.service.FetchCapsByID(r.Context(), feedID)
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", feedID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, caps)
 }
 
 func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {

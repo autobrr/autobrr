@@ -132,11 +132,11 @@ func TestClient_GetCaps(t *testing.T) {
 					Image:     "http://indexer.local/content/banner.jpg",
 				},
 				Limits: Limits{
-					Max:     "100",
-					Default: "50",
+					Max:     100,
+					Default: 50,
 				},
 				Retention: Retention{
-					Days: "400",
+					Days: 400,
 				},
 				Registration: Registration{
 					Available: "yes",

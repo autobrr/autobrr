@@ -7,12 +7,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
@@ -45,8 +47,11 @@ func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*d
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.categories",
+			"f.capabilities",
 			"f.api_key",
 			"f.cookie",
+			"f.tls_skip_verify",
 			"f.settings",
 			"f.created_at",
 			"f.updated_at",
@@ -80,14 +85,24 @@ func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*d
 	var apiKey, cookie, settings sql.NullString
 	var indexerID, indexerProxyID sql.NullInt64
 	var indexerIdentifier, indexerIdentifierExternal, indexerName sql.NullString
+	var capabilitiesJSONString sql.NullString
 	var indexerUseProxy sql.NullBool
+	var categoriesText []string
 
-	if err := row.Scan(&f.ID, &indexerID, &indexerIdentifier, &indexerIdentifierExternal, &indexerName, &indexerUseProxy, &indexerProxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt, &f.IndexerID); err != nil {
+	if err := row.Scan(&f.ID, &indexerID, &indexerIdentifier, &indexerIdentifierExternal, &indexerName, &indexerUseProxy, &indexerProxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, pq.Array(&categoriesText), &capabilitiesJSONString, &apiKey, &cookie, &f.TLSSkipVerify, &settings, &f.CreatedAt, &f.UpdatedAt, &f.IndexerID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
 
 		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	if len(categoriesText) > 0 {
+		categories, err := parseCategoryIDs(categoriesText)
+		if err != nil {
+			return nil, err
+		}
+		f.Categories = categories
 	}
 
 	if indexerID.Valid {
@@ -111,6 +126,15 @@ func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*d
 		f.Settings = &settingsJson
 	}
 
+	if capabilitiesJSONString.Valid {
+		var capabilitiesJson domain.FeedCapabilities
+		if err = json.Unmarshal([]byte(capabilitiesJSONString.String), &capabilitiesJson); err != nil {
+			return nil, errors.Wrap(err, "error unmarshal capabilities")
+		}
+
+		f.Capabilities = &capabilitiesJson
+	}
+
 	return &f, nil
 }
 
@@ -131,8 +155,11 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.categories",
+			"f.capabilities",
 			"f.api_key",
 			"f.cookie",
+			"f.tls_skip_verify",
 			"f.settings",
 			"f.created_at",
 			"f.updated_at",
@@ -155,13 +182,23 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 
 	var apiKey, cookie, settings sql.NullString
 	var proxyID sql.NullInt64
+	var capabilitiesJSONString sql.NullString
+	var categoriesText []string
 
-	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, pq.Array(&categoriesText), &capabilitiesJSONString, &apiKey, &cookie, &f.TLSSkipVerify, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
 
 		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	if len(categoriesText) > 0 {
+		categories, err := parseCategoryIDs(categoriesText)
+		if err != nil {
+			return nil, err
+		}
+		f.Categories = categories
 	}
 
 	f.ProxyID = proxyID.Int64
@@ -175,6 +212,14 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 		}
 
 		f.Settings = &settingsJson
+	}
+
+	if capabilitiesJSONString.Valid {
+		var capabilitiesJson domain.FeedCapabilities
+		if err = json.Unmarshal([]byte(capabilitiesJSONString.String), &capabilitiesJson); err != nil {
+			return nil, errors.Wrap(err, "error unmarshal capabilities")
+		}
+		f.Capabilities = &capabilitiesJson
 	}
 
 	return &f, nil
@@ -197,10 +242,12 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.categories",
+			"f.capabilities",
 			"f.api_key",
 			"f.cookie",
+			"f.tls_skip_verify",
 			"f.last_run",
-			"f.last_run_data",
 			"f.settings",
 			"f.created_at",
 			"f.updated_at",
@@ -225,18 +272,26 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	for rows.Next() {
 		var f domain.Feed
 
-		var apiKey, cookie, lastRunData, settings sql.NullString
+		var apiKey, cookie, settings sql.NullString
 		var lastRun sql.NullTime
-
+		var capabilitiesJSONString sql.NullString
 		var proxyID sql.NullInt64
+		var categoriesText []string
 
-		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, pq.Array(&categoriesText), &capabilitiesJSONString, &apiKey, &cookie, &f.TLSSkipVerify, &lastRun, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		if len(categoriesText) > 0 {
+			categories, err := parseCategoryIDs(categoriesText)
+			if err != nil {
+				return nil, err
+			}
+			f.Categories = categories
 		}
 
 		f.ProxyID = proxyID.Int64
 		f.LastRun = lastRun.Time
-		f.LastRunData = lastRunData.String
 		f.ApiKey = apiKey.String
 		f.Cookie = cookie.String
 
@@ -251,6 +306,14 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			}
 
 			f.Settings = &settingsJson
+		}
+
+		if capabilitiesJSONString.Valid {
+			var capabilitiesJson domain.FeedCapabilities
+			if err = json.Unmarshal([]byte(capabilitiesJSONString.String), &capabilitiesJson); err != nil {
+				return nil, errors.Wrap(err, "error unmarshal capabilities")
+			}
+			f.Capabilities = &capabilitiesJson
 		}
 
 		feeds = append(feeds, f)
@@ -294,6 +357,11 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 		return errors.Wrap(err, "error marshaling feed settings json data")
 	}
 
+	capabilities, err := json.Marshal(feed.Capabilities)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed capabilities json data")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("feed").
 		Columns(
@@ -303,7 +371,10 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			"url",
 			"interval",
 			"timeout",
+			"categories",
+			"capabilities",
 			"api_key",
+			"tls_skip_verify",
 			"indexer_id",
 			"settings",
 		).
@@ -314,7 +385,10 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			feed.URL,
 			feed.Interval,
 			feed.Timeout,
+			pq.Array(formatCategoryIDs(feed.Categories)),
+			capabilities,
 			feed.ApiKey,
+			feed.TLSSkipVerify,
 			feed.IndexerID,
 			settings,
 		).
@@ -337,6 +411,11 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		return errors.Wrap(err, "error marshaling feed settings json data")
 	}
 
+	capabilities, err := json.Marshal(feed.Capabilities)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed capabilities json data")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("feed").
 		Set("name", feed.Name).
@@ -346,11 +425,45 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("interval", feed.Interval).
 		Set("timeout", feed.Timeout).
 		Set("max_age", feed.MaxAge).
+		Set("categories", pq.Array(formatCategoryIDs(feed.Categories))).
+		Set("capabilities", capabilities).
 		Set("api_key", feed.ApiKey).
 		Set("cookie", feed.Cookie).
+		Set("tls_skip_verify", feed.TLSSkipVerify).
 		Set("settings", settings).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": feed.ID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *FeedRepo) UpdateCapabilities(ctx context.Context, feedID int, caps *domain.FeedCapabilities) error {
+	capabilities, err := json.Marshal(caps)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed capabilities json data")
+	}
+
+	queryBuilder := r.db.squirrel.
+		Update("feed").
+		Set("capabilities", capabilities).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"id": feedID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -473,4 +586,37 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 	r.log.Debug().Msgf("feed.delete: successfully deleted: %v", id)
 
 	return nil
+}
+
+func parseCategoryIDs(values []string) ([]int, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	parsed := make([]int, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		id, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid category id")
+		}
+		parsed = append(parsed, id)
+	}
+
+	return parsed, nil
+}
+
+func formatCategoryIDs(values []int) []string {
+	if len(values) == 0 {
+		return []string{}
+	}
+
+	formatted := make([]string, 0, len(values))
+	for _, value := range values {
+		formatted = append(formatted, strconv.Itoa(value))
+	}
+
+	return formatted
 }

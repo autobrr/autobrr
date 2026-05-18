@@ -9,7 +9,7 @@ on:
   pull_request:
 
 env:
-  NODE_VERSION: '22.17.0'
+  NODE_VERSION: '24.15.0'
 
 jobs:
   nilaway:

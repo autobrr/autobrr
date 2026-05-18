@@ -4,6 +4,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { APIClient } from "@api/APIClient.ts";
 import { ReleaseProfileDuplicateKeys } from "@api/query_keys.ts";
 import { toast } from "@components/hot-toast";
@@ -13,18 +14,19 @@ import { SlideOver } from "@components/panels";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
     mutationFn: (profile: ReleaseProfileDuplicate) => APIClient.release.profiles.duplicates.store(profile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseProfileDuplicateKeys.lists() });
-      toast.custom((t) => <Toast type="success" body="Profile was added" t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.releaseProfile.added")} t={toastInstance} />);
 
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Profile could not be added" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.releaseProfile.addFailed")} t={toastInstance} />);
     }
   });
 
@@ -61,7 +63,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
   return (
     <SlideOver
       type="CREATE"
-      title="Duplicate Profile"
+      title={t("forms.releaseProfile.title")}
       isOpen={isOpen}
       toggle={toggle}
       onSubmit={onSubmit}
@@ -69,30 +71,30 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name"/>
+          <TextFieldWide required name="name" label={t("forms.releaseProfile.fields.name")}/>
 
-          <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
-          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
-          <SwitchGroupWide name="title" label="Title" description="Parsed title" />
-          <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
-          <SwitchGroupWide name="year" label="Year" />
-          <SwitchGroupWide name="month" label="Month" description="For daily releases" />
-          <SwitchGroupWide name="day" label="Day" description="For daily releases" />
-          <SwitchGroupWide name="source" label="Source" />
-          <SwitchGroupWide name="resolution" label="Resolution" />
-          <SwitchGroupWide name="codec" label="Codec" />
-          <SwitchGroupWide name="container" label="Container" />
-          <SwitchGroupWide name="dynamic_range" label="Dynamic Range" />
-          <SwitchGroupWide name="audio" label="Audio" />
-          <SwitchGroupWide name="group" label="Group" description="Release group" />
-          <SwitchGroupWide name="season" label="Season" />
-          <SwitchGroupWide name="episode" label="Episode" />
-          <SwitchGroupWide name="website" label="Website/Service" description="Services such as AMZN/HULU/NF" />
-          <SwitchGroupWide name="proper" label="Proper" />
-          <SwitchGroupWide name="repack" label="Repack" />
-          <SwitchGroupWide name="edition" label="Edition" />
-          <SwitchGroupWide name="hybrid" label="Hybrid version" />
-          <SwitchGroupWide name="language" label="Language" />
+          <SwitchGroupWide name="release_name" label={t("forms.releaseProfile.fields.releaseName")} description={t("forms.releaseProfile.descriptions.releaseName")} />
+          <SwitchGroupWide name="hash" label={t("forms.releaseProfile.fields.hash")} description={t("forms.releaseProfile.descriptions.hash")} />
+          <SwitchGroupWide name="title" label={t("forms.releaseProfile.fields.title")} description={t("forms.releaseProfile.descriptions.title")} />
+          <SwitchGroupWide name="sub_title" label={t("forms.releaseProfile.fields.subTitle")} description={t("forms.releaseProfile.descriptions.subTitle")} />
+          <SwitchGroupWide name="year" label={t("forms.releaseProfile.fields.year")} />
+          <SwitchGroupWide name="month" label={t("forms.releaseProfile.fields.month")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
+          <SwitchGroupWide name="day" label={t("forms.releaseProfile.fields.day")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
+          <SwitchGroupWide name="source" label={t("forms.releaseProfile.fields.source")} />
+          <SwitchGroupWide name="resolution" label={t("forms.releaseProfile.fields.resolution")} />
+          <SwitchGroupWide name="codec" label={t("forms.releaseProfile.fields.codec")} />
+          <SwitchGroupWide name="container" label={t("forms.releaseProfile.fields.container")} />
+          <SwitchGroupWide name="dynamic_range" label={t("forms.releaseProfile.fields.dynamicRange")} />
+          <SwitchGroupWide name="audio" label={t("forms.releaseProfile.fields.audio")} />
+          <SwitchGroupWide name="group" label={t("forms.releaseProfile.fields.group")} description={t("forms.releaseProfile.descriptions.group")} />
+          <SwitchGroupWide name="season" label={t("forms.releaseProfile.fields.season")} />
+          <SwitchGroupWide name="episode" label={t("forms.releaseProfile.fields.episode")} />
+          <SwitchGroupWide name="website" label={t("forms.releaseProfile.fields.website")} description={t("forms.releaseProfile.descriptions.website")} />
+          <SwitchGroupWide name="proper" label={t("forms.releaseProfile.fields.proper")} />
+          <SwitchGroupWide name="repack" label={t("forms.releaseProfile.fields.repack")} />
+          <SwitchGroupWide name="edition" label={t("forms.releaseProfile.fields.edition")} />
+          <SwitchGroupWide name="hybrid" label={t("forms.releaseProfile.fields.hybrid")} />
+          <SwitchGroupWide name="language" label={t("forms.releaseProfile.fields.language")} />
         </div>
       )}
     </SlideOver>
@@ -100,18 +102,19 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
 }
 
 export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profile }: UpdateFormProps<ReleaseProfileDuplicate>) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
   const storeMutation = useMutation({
     mutationFn: (profile: ReleaseProfileDuplicate) => APIClient.release.profiles.duplicates.store(profile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseProfileDuplicateKeys.lists() });
-      toast.custom((t) => <Toast type="success" body="Profile was added" t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.releaseProfile.added")} t={toastInstance} />);
 
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Profile could not be added" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.releaseProfile.addFailed")} t={toastInstance} />);
     }
   });
 
@@ -123,7 +126,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
       queryClient.invalidateQueries({ queryKey: ReleaseProfileDuplicateKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ReleaseProfileDuplicateKeys.detail(profile.id) });
 
-      toast.custom((t) => <Toast type="success" body={`Profile ${profile.name} was deleted!`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.releaseProfile.deleted", { name: profile.name })} t={toastInstance} />);
 
       toggle();
     },
@@ -162,7 +165,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
   return (
     <SlideOver
       type="UPDATE"
-      title="Duplicate Profile"
+      title={t("forms.releaseProfile.title")}
       isOpen={isOpen}
       toggle={toggle}
       deleteAction={onDelete}
@@ -171,30 +174,30 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     >
       {() => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label="Name"/>
+          <TextFieldWide required name="name" label={t("forms.releaseProfile.fields.name")}/>
 
-          <SwitchGroupWide name="release_name" label="Release name" description="Full release name" />
-          <SwitchGroupWide name="hash" label="Hash" description="Normalized hash of the release name. Use with Release name for exact match" />
-          <SwitchGroupWide name="title" label="Title" description="Parsed title" />
-          <SwitchGroupWide name="sub_title" label="Sub Title" description="Parsed Sub Title like Episode Name" />
-          <SwitchGroupWide name="year" label="Year" />
-          <SwitchGroupWide name="month" label="Month" description="For daily releases" />
-          <SwitchGroupWide name="day" label="Day" description="For daily releases" />
-          <SwitchGroupWide name="source" label="Source" />
-          <SwitchGroupWide name="resolution" label="Resolution" />
-          <SwitchGroupWide name="codec" label="Codec" />
-          <SwitchGroupWide name="container" label="Container" />
-          <SwitchGroupWide name="dynamic_range" label="Dynamic Range (HDR,DV etc)" />
-          <SwitchGroupWide name="audio" label="Audio" />
-          <SwitchGroupWide name="group" label="Group" description="Release group" />
-          <SwitchGroupWide name="season" label="Season" />
-          <SwitchGroupWide name="episode" label="Episode" />
-          <SwitchGroupWide name="website" label="Website/Service" description="Services such as AMZN/HULU/NF" />
-          <SwitchGroupWide name="repack" label="Repack" />
-          <SwitchGroupWide name="proper" label="Proper" />
-          <SwitchGroupWide name="edition" label="Edition and Cut" />
-          <SwitchGroupWide name="hybrid" label="Hybrid version" />
-          <SwitchGroupWide name="language" label="Language and Region" />
+          <SwitchGroupWide name="release_name" label={t("forms.releaseProfile.fields.releaseName")} description={t("forms.releaseProfile.descriptions.releaseName")} />
+          <SwitchGroupWide name="hash" label={t("forms.releaseProfile.fields.hash")} description={t("forms.releaseProfile.descriptions.hash")} />
+          <SwitchGroupWide name="title" label={t("forms.releaseProfile.fields.title")} description={t("forms.releaseProfile.descriptions.title")} />
+          <SwitchGroupWide name="sub_title" label={t("forms.releaseProfile.fields.subTitle")} description={t("forms.releaseProfile.descriptions.subTitle")} />
+          <SwitchGroupWide name="year" label={t("forms.releaseProfile.fields.year")} />
+          <SwitchGroupWide name="month" label={t("forms.releaseProfile.fields.month")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
+          <SwitchGroupWide name="day" label={t("forms.releaseProfile.fields.day")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
+          <SwitchGroupWide name="source" label={t("forms.releaseProfile.fields.source")} />
+          <SwitchGroupWide name="resolution" label={t("forms.releaseProfile.fields.resolution")} />
+          <SwitchGroupWide name="codec" label={t("forms.releaseProfile.fields.codec")} />
+          <SwitchGroupWide name="container" label={t("forms.releaseProfile.fields.container")} />
+          <SwitchGroupWide name="dynamic_range" label={t("forms.releaseProfile.fields.dynamicRange")} description={t("forms.releaseProfile.descriptions.dynamicRange")} />
+          <SwitchGroupWide name="audio" label={t("forms.releaseProfile.fields.audio")} />
+          <SwitchGroupWide name="group" label={t("forms.releaseProfile.fields.group")} description={t("forms.releaseProfile.descriptions.group")} />
+          <SwitchGroupWide name="season" label={t("forms.releaseProfile.fields.season")} />
+          <SwitchGroupWide name="episode" label={t("forms.releaseProfile.fields.episode")} />
+          <SwitchGroupWide name="website" label={t("forms.releaseProfile.fields.website")} description={t("forms.releaseProfile.descriptions.website")} />
+          <SwitchGroupWide name="repack" label={t("forms.releaseProfile.fields.repack")} />
+          <SwitchGroupWide name="proper" label={t("forms.releaseProfile.fields.proper")} />
+          <SwitchGroupWide name="edition" label={t("forms.releaseProfile.fields.edition")} description={t("forms.releaseProfile.descriptions.edition")} />
+          <SwitchGroupWide name="hybrid" label={t("forms.releaseProfile.fields.hybrid")} />
+          <SwitchGroupWide name="language" label={t("forms.releaseProfile.fields.language")} description={t("forms.releaseProfile.descriptions.language")} />
         </div>
       )}
     </SlideOver>

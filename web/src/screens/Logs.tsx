@@ -7,6 +7,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
+import { useTranslation } from "react-i18next";
 import {
   Cog6ToothIcon,
   DocumentArrowDownIcon,
@@ -43,6 +44,7 @@ const LogColors: Record<LogLevel, string> = {
 };
 
 export const Logs = () => {
+  const { t } = useTranslation("common");
   const [settings] = SettingsContext.use();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,13 +103,13 @@ export const Logs = () => {
 
   const handleClearLogs = () => {
     setLogs([]);
-    toast.custom((t) => <Toast type="success" body="Logs cleared from view." t={t} />);
+    toast.custom((toastInstance) => <Toast type="success" body={t("logs.cleared")} t={toastInstance} />);
   };
 
   return (
     <main>
       <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
+        <h1 className="text-3xl font-bold text-black dark:text-white">{t("logs.title")}</h1>
       </div>
 
       <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-4 lg:px-8">
@@ -124,7 +126,7 @@ export const Logs = () => {
                 "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
                 "block w-full dark:bg-gray-900 shadow-xs dark:text-gray-100 sm:text-sm rounded-md"
               )}
-              placeholder="Enter a regex pattern to filter logs by..."
+              placeholder={t("logs.filterPlaceholder")}
             />
             {isInvalidRegex && (
               <div className="absolute mt-1.5 right-28 items-center text-xs text-red-500">
@@ -135,7 +137,7 @@ export const Logs = () => {
               type="button"
               onClick={handleClearLogs}
               className="px-4 py-2"
-              title="Clear logs from view"
+              title={t("logs.clearTitle")}
             >
               <TrashIcon className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400" aria-hidden="true" />
             </button>
@@ -187,23 +189,20 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { isError, error, data } = useSuspenseQuery({
+  const { t } = useTranslation("common");
+  const { data } = useSuspenseQuery({
     queryKey: ["log-files"],
     queryFn: () => APIClient.logs.files(),
     retry: false,
     refetchOnWindowFocus: false
   });
 
-  if (isError) {
-    console.log("could not load log files", error);
-  }
-
   return (
     <div>
       <div className="mt-2">
-        <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">Log files</h2>
+        <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">{t("logs.filesTitle")}</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Download old log files.
+          {t("logs.filesDescription")}
         </p>
       </div>
 
@@ -211,13 +210,13 @@ export const LogFiles = () => {
         <ul className="py-3 min-w-full relative">
           <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
             <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Name
+              {t("logs.columns.name")}
             </div>
             <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Last modified
+              {t("logs.columns.lastModified")}
             </div>
             <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Size
+              {t("logs.columns.size")}
             </div>
           </li>
 
@@ -225,7 +224,7 @@ export const LogFiles = () => {
         </ul>
       ) : (
         <EmptySimple
-          title="No old log files"
+          title={t("logs.noOldFiles")}
           subtitle=""
         />
       )}
@@ -238,14 +237,15 @@ interface LogFilesItemProps {
 }
 
 const LogFilesItem = ({ file }: LogFilesItemProps) => {
+  const { t } = useTranslation("common");
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownload = async () => {
     setIsDownloading(true);
 
     // Add a custom toast before the download starts
-    const toastId = toast.custom((t) => (
-      <Toast type="info" body="Log file is being sanitized. Please wait..." t={t} />
+    const toastId = toast.custom((toastInstance) => (
+      <Toast type="info" body={t("logs.sanitizing")} t={toastInstance} />
     ));
 
     const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
@@ -284,7 +284,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
                 "text-gray-900 dark:text-gray-300",
                 "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
               )}
-              title={!isDownloading ? "Download file" : "Sanitizing log..."}
+              title={!isDownloading ? t("logs.downloadFile") : t("logs.sanitizingShort")}
               onClick={handleDownload}
             >
               {!isDownloading ? (
@@ -309,6 +309,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
 // interface LogsDropdownProps {}
 
 const LogsDropdown = () => {
+  const { t } = useTranslation("common");
   const [settings, setSettings] = SettingsContext.use();
 
   const onSetValue = (
@@ -343,7 +344,7 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
-                  label="Scroll to bottom on new message"
+                  label={t("logs.options.scrollOnNewMessage")}
                   value={settings.scrollOnNewLog}
                   setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
                 />
@@ -352,8 +353,8 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
-                  label="Indent log lines"
-                  description="Indent each log line according to their respective starting position."
+                  label={t("logs.options.indentLogLines")}
+                  description={t("logs.options.indentLogLinesDescription")}
                   value={settings.indentLogLines}
                   setValue={(newValue) => onSetValue("indentLogLines", newValue)}
                 />
@@ -362,8 +363,8 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
-                  label="Hide wrapped text"
-                  description="Hides text that is meant to be wrapped."
+                  label={t("logs.options.hideWrappedText")}
+                  description={t("logs.options.hideWrappedTextDescription")}
                   value={settings.hideWrappedText}
                   setValue={(newValue) => onSetValue("hideWrappedText", newValue)}
                 />

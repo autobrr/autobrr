@@ -6,7 +6,6 @@ package download_client
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -20,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/nzbget"
 	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
@@ -105,7 +105,7 @@ func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 	}
 
 	switch client.Type {
-	case "RADARR":
+	case domain.DownloadClientTypeRadarr:
 		arrClient := client.Client.(*radarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
@@ -123,7 +123,7 @@ func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 
 		return data, nil
 
-	case "SONARR":
+	case domain.DownloadClientTypeSonarr:
 		arrClient := client.Client.(*sonarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
@@ -285,6 +285,7 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Host:          clientHost,
 			Username:      client.Username,
 			Password:      client.Password,
+			APIKey:        client.Settings.APIKey,
 			TLSSkipVerify: client.TLSSkipVerify,
 			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
 			BasicUser:     client.Settings.Auth.Username,
@@ -322,12 +323,12 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		})
 
 	case domain.DownloadClientTypeTransmission:
-		scheme := "http"
-		if client.TLS {
-			scheme = "https"
+		clientHost, err := client.BuildLegacyHost()
+		if err != nil {
+			return nil, errors.Wrap(err, "error building Transmission host url: %v", client.Host)
 		}
 
-		transmissionURL, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+		transmissionURL, err := url.Parse(clientHost)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not parse transmission url")
 		}
@@ -378,52 +379,57 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 
 	case domain.DownloadClientTypeLidarr:
 		client.Client = lidarr.New(lidarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeRadarr:
 		client.Client = radarr.New(radarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeReadarr:
 		client.Client = readarr.New(readarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeSonarr:
 		client.Client = sonarr.New(sonarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeWhisparr:
 		client.Client = whisparr.New(whisparr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeSabnzbd:
@@ -433,6 +439,13 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Log:       nil,
 			BasicUser: client.Settings.Auth.Username,
 			BasicPass: client.Settings.Auth.Password,
+		})
+
+	case domain.DownloadClientTypeNzbget:
+		client.Client = nzbget.New(nzbget.Options{
+			Host:     client.Host,
+			Username: client.Username,
+			Password: client.Password,
 		})
 	}
 

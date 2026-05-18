@@ -17,6 +17,8 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"golang.org/x/oauth2"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
@@ -74,6 +76,41 @@ func (a authServiceMock) UpdateUser(ctx context.Context, req domain.UpdateUserRe
 	return nil
 }
 
+type oidcAuthServiceMock struct {
+}
+
+func (o *oidcAuthServiceMock) IsEnabled() bool {
+	return false
+}
+
+func (o *oidcAuthServiceMock) ValidateConfig() error {
+	return nil
+}
+
+func (o *oidcAuthServiceMock) UserInfo(ctx context.Context, tokenSource oauth2.TokenSource) (*oidc.UserInfo, error) {
+	return nil, nil
+}
+
+func (o *oidcAuthServiceMock) VerifyIDToken(ctx context.Context, idToken string) (*oidc.IDToken, error) {
+	return nil, nil
+}
+
+func (o *oidcAuthServiceMock) GetEndpoint() oauth2.Endpoint {
+	return oauth2.Endpoint{}
+}
+
+func (o *oidcAuthServiceMock) OAuthExchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+	return nil, nil
+}
+
+func (o *oidcAuthServiceMock) OauthAuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
+	return ""
+}
+
+func (o *oidcAuthServiceMock) SupportsPKCE() bool {
+	return false
+}
+
 func newHttpTestClient() *http.Client {
 	c := &http.Client{}
 
@@ -123,12 +160,14 @@ func TestAuthHandlerLogin(t *testing.T) {
 		},
 	}
 
+	oidcServiceMock := &oidcAuthServiceMock{}
+
 	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service, oidcServiceMock)
 	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
@@ -178,12 +217,14 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 		},
 	}
 
+	oidcServiceMock := &oidcAuthServiceMock{}
+
 	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service, oidcServiceMock)
 	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
@@ -243,12 +284,14 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 		},
 	}
 
+	oidcServiceMock := &oidcAuthServiceMock{}
+
 	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service, oidcServiceMock)
 	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
@@ -284,12 +327,14 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 		},
 	}
 
+	oidcServiceMock := &oidcAuthServiceMock{}
+
 	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service, oidcServiceMock)
 	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 
@@ -334,12 +379,14 @@ func TestAuthHandlerLogout(t *testing.T) {
 		},
 	}
 
+	oidcServiceMock := &oidcAuthServiceMock{}
+
 	server := &Server{
 		log:            logger,
 		sessionManager: sessionManager,
 	}
 
-	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service)
+	handler := newAuthHandler(encoder, logger, server, &domain.Config{}, server.sessionManager, service, oidcServiceMock)
 	s := setupServer(server)
 	s.Route("/auth", handler.Routes)
 

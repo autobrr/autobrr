@@ -156,6 +156,7 @@ const (
 	ActionTypeWhisparr     ActionType = "WHISPARR"
 	ActionTypeReadarr      ActionType = "READARR"
 	ActionTypeSabnzbd      ActionType = "SABNZBD"
+	ActionTypeNzbget       ActionType = "NZBGET"
 )
 
 type ActionContentLayout string

@@ -5,31 +5,36 @@ package btn
 
 import (
 	"context"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	res, err := c.rpcClient.CallCtx(ctx, "userInfo", [2]string{c.APIKey})
+	startTime := time.Now()
+	res, err := c.rpcClient.CallCtx(ctx, "getTorrentsBrowse", [2]string{c.APIKey, "100"})
 	if err != nil {
 		return false, errors.Wrap(err, "test api userInfo failed")
 	}
+
+	elapsed := time.Since(startTime)
+	c.Log.Printf("btn: API test took %s", elapsed)
 
 	if res.Error != nil {
 		return false, errors.New("btn: API test error: %s", res.Error.Message)
 	}
 
-	var u *UserInfo
-	if err := res.GetObject(&u); err != nil {
-		return false, errors.Wrap(err, "test api get userInfo")
+	var r *TorrentsBrowseResponse
+	if err := res.GetObject(&r); err != nil {
+		return false, errors.Wrap(err, "test api getTorrentsBrowse")
 	}
 
-	if u.Username != "" {
-		return true, nil
+	if r.Results == "" {
+		return false, nil
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
@@ -100,4 +105,9 @@ type UserInfo struct {
 	HnR             string `json:"HnR"`
 	UploadsSnatched string `json:"UploadsSnatched"`
 	Snatches        string `json:"Snatches"`
+}
+
+type TorrentsBrowseResponse struct {
+	Results string `json:"results"`
+	//Torrents map[string]Torrent `json:"torrents"`
 }

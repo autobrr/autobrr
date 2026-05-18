@@ -1,0 +1,180 @@
+{
+  "announceType": {
+    "NEW": "Neu",
+    "CHECKED": "Geprüft",
+    "PROMO": "Promo",
+    "PROMO_GP": "Promo GP",
+    "RESURRECTED": "Wiederbelebt"
+  },
+  "downloadClient": {
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Torrents direkt zu qBittorrent hinzufügen"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Torrents direkt zu Deluge hinzufügen"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge 2",
+      "description": "Torrents direkt zu Deluge 2 hinzufügen"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Torrents direkt zu rTorrent hinzufügen"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Torrents direkt zu Transmission hinzufügen"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Torrents direkt zu Porla hinzufügen"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "An Radarr senden und entscheiden lassen"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "An Sonarr senden und entscheiden lassen"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "An Lidarr senden und entscheiden lassen"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "An Whisparr senden und entscheiden lassen"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "An Readarr senden und entscheiden lassen"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "NZBs direkt zu SABnzbd hinzufügen"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "NZBs direkt zu NZBGet hinzufügen"
+    }
+  },
+  "actionType": {
+    "TEST": {
+      "label": "Test",
+      "description": "Eine einfache Aktion zum Testen eines Filters."
+    },
+    "WATCH_FOLDER": {
+      "label": "Watchverzeichnis",
+      "description": "Gefilterte Torrents in ein Watchverzeichnis hinzufügen"
+    },
+    "WEBHOOK": {
+      "label": "Webhook",
+      "description": "Webhook ausführen"
+    },
+    "EXEC": {
+      "label": "Exec",
+      "description": "Benutzerdefinierten Befehl nach Filtertreffer ausführen"
+    },
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Torrents direkt zu qBittorrent hinzufügen"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Torrents direkt zu Deluge hinzufügen"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge v2",
+      "description": "Torrents direkt zu Deluge 2 hinzufügen"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Torrents direkt zu rTorrent hinzufügen"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Torrents direkt zu Transmission hinzufügen"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Torrents direkt zu Porla hinzufügen"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "An Radarr senden und entscheiden lassen"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "An Sonarr senden und entscheiden lassen"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "An Lidarr senden und entscheiden lassen"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "An Whisparr senden und entscheiden lassen"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "An Readarr senden und entscheiden lassen"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "Zu SABnzbd hinzufügen"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "Zu NZBGet hinzufügen"
+    }
+  },
+  "pushStatus": {
+    "PUSH_REJECTED": "Abgelehnt",
+    "PUSH_APPROVED": "Angenommen",
+    "PENDING": "Ausstehend",
+    "PUSH_ERROR": "Fehler"
+  },
+  "notificationType": {
+    "DISCORD": "Discord",
+    "GOTIFY": "Gotify",
+    "LUNASEA": "LunaSea",
+    "NOTIFIARR": "Notifiarr",
+    "NTFY": "Ntfy",
+    "PUSHOVER": "Pushover",
+    "SHOUTRRR": "Shoutrrr",
+    "TELEGRAM": "Telegram",
+    "WEBHOOK": "Webhook"
+  },
+  "event": {
+    "PUSH_REJECTED": {
+      "label": "Push Abgelehnt",
+      "description": "Bei abgelehnten Pushes an die ARRs oder den Downloadclient"
+    },
+    "PUSH_APPROVED": {
+      "label": "Push Angenommen",
+      "description": "Bei angenommen Pushes an die ARRs oder den Downloadclient"
+    },
+    "PUSH_ERROR": {
+      "label": "Push Fehler",
+      "description": "Bei Fehlern beim Pushen an die ARRs oder den Downloadclient"
+    },
+    "IRC_DISCONNECTED": {
+      "label": "IRC Getrennt",
+      "description": "Unerwartet vom IRC-Netzwerk getrennt"
+    },
+    "IRC_RECONNECTED": {
+      "label": "IRC Wieder verbunden",
+      "description": "Nach Fehler wieder mit IRC-Netzwerk verbunden"
+    },
+    "APP_UPDATE_AVAILABLE": {
+      "label": "Neues Update",
+      "description": "Über Updates benachrichtigt werden"
+    },
+    "RELEASE_NEW": {
+      "label": "Neuer Release",
+      "description": "Bei neuem Release vom Indexer (vor dem Filtern)"
+    }
+  }
+}

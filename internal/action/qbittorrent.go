@@ -49,7 +49,7 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 
 		s.log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-		if err = qbtClient.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
+		if _, err = qbtClient.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
 			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, client.Name)
 		}
 
@@ -69,7 +69,7 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 
 	s.log.Trace().Msgf("action qBittorrent options: %+v", options)
 
-	if err = qbtClient.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
+	if _, err = qbtClient.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
 		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
 	}
 

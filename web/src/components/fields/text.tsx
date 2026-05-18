@@ -6,6 +6,7 @@
 import { useToggle } from "@hooks/hooks";
 import { CheckIcon, DocumentDuplicateIcon, EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
@@ -14,6 +15,7 @@ interface KeyFieldProps {
 }
 
 export const KeyField = ({ value }: KeyFieldProps) => {
+  const { t } = useTranslation("common");
   const [isVisible, toggleVisibility] = useToggle(false);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -33,11 +35,11 @@ export const KeyField = ({ value }: KeyFieldProps) => {
         // If successful, update the isCopied state value
         setIsCopied(true);
 
-        toast.custom(t => (
+        toast.custom(toastInstance => (
           <Toast
             type="success"
-            body="API key copied to clipboard!"
-            t={t}
+            body={t("keyField.copySuccess")}
+            t={toastInstance}
           />
         ));
 
@@ -48,11 +50,11 @@ export const KeyField = ({ value }: KeyFieldProps) => {
       .catch((err) => {
         console.error(err);
 
-        toast.custom(t => (
+        toast.custom(toastInstance => (
           <Toast
             type="error"
-            body="Failed to copy API key."
-            t={t}
+            body={t("keyField.copyFailed")}
+            t={toastInstance}
           />
         ));
       });
@@ -74,7 +76,7 @@ export const KeyField = ({ value }: KeyFieldProps) => {
           type="button"
           className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-100  text-sm font-medium text-gray-700 bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700  focus:outline-hidden"
           onClick={toggleVisibility}
-          title="show"
+          title={t("keyField.show")}
         >
           {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
         </button>
@@ -82,7 +84,7 @@ export const KeyField = ({ value }: KeyFieldProps) => {
           type="button"
           className="-ml-px relative inline-flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-700 hover:bg-gray-100  text-sm font-medium rounded-r-md text-gray-700 dark:text-gray-100 bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 focus:outline-hidden"
           onClick={handleCopyClick}
-          title="Copy to clipboard"
+          title={t("keyField.copyToClipboard")}
         >
           {isCopied
             ? <CheckIcon

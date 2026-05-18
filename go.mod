@@ -1,8 +1,10 @@
 module github.com/autobrr/autobrr
 
-go 1.25
+go 1.25.0
 
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
+
+replace github.com/moistari/rls => github.com/autobrr/rls v0.8.0
 
 require (
 	github.com/Hellseher/go-shellquote v0.1.0
@@ -11,28 +13,29 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/alexedwards/scs/postgresstore v0.0.0-20250417082927-ab20b3feb5e9
 	github.com/alexedwards/scs/v2 v2.9.0
-	github.com/anacrolix/torrent v1.59.1
+	github.com/anacrolix/torrent v1.61.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/autobrr/go-deluge v1.3.0
-	github.com/autobrr/go-qbittorrent v1.15.0-rc1
+	github.com/autobrr/go-deluge v1.4.0
+	github.com/autobrr/go-qbittorrent v1.16.0
 	github.com/autobrr/go-rtorrent v1.12.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/containrrr/shoutrrr v0.8.0
-	github.com/coreos/go-oidc/v3 v3.16.0
+	github.com/coreos/go-oidc/v3 v3.18.0
 	github.com/dcarbone/zadapters/zstdlog v1.1.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/ergochat/irc-go v0.4.0
-	github.com/fergusstrange/embedded-postgres v1.32.0
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/ergochat/irc-go v0.6.0
+	github.com/fergusstrange/embedded-postgres v1.34.0
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-andiamo/splitter v1.2.5
-	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/render v1.0.3
+	github.com/google/uuid v1.6.0
 	github.com/gosimple/slug v1.15.0
-	github.com/hashicorp/go-version v1.7.0
+	github.com/hashicorp/go-version v1.9.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
 	github.com/icholy/digest v1.1.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.12.3
 	github.com/magiconair/properties v1.8.10
 	github.com/mmcdole/gofeed v1.3.0
 	github.com/moistari/rls v0.6.0
@@ -41,22 +44,22 @@ require (
 	github.com/r3labs/sse/v2 v2.10.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.11.1
-	github.com/rs/zerolog v1.34.0
-	github.com/sasha-s/go-deadlock v0.3.6
+	github.com/rs/zerolog v1.35.1
+	github.com/sasha-s/go-deadlock v0.3.9
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/crypto v0.43.0
-	golang.org/x/net v0.45.0
-	golang.org/x/oauth2 v0.32.0
-	golang.org/x/sync v0.17.0
-	golang.org/x/term v0.36.0
-	golang.org/x/text v0.30.0
-	golang.org/x/time v0.14.0
+	golang.org/x/crypto v0.51.0
+	golang.org/x/net v0.54.0
+	golang.org/x/oauth2 v0.36.0
+	golang.org/x/sync v0.20.0
+	golang.org/x/term v0.43.0
+	golang.org/x/text v0.37.0
+	golang.org/x/time v0.15.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
-	modernc.org/sqlite v1.39.1
+	modernc.org/sqlite v1.50.0
 )
 
 require (
@@ -66,7 +69,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
-	github.com/anacrolix/generics v0.1.0 // indirect
+	github.com/anacrolix/generics v0.1.1-0.20251125230353-15d98d46693b // indirect
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.10.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
@@ -75,9 +78,8 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/gdm85/go-rencode v0.1.8 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hekmon/cunits/v2 v2.1.0 // indirect
@@ -86,7 +88,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -98,7 +100,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe // indirect
@@ -113,16 +115,17 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
-	golang.org/x/sys v0.37.0 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	golang.org/x/exp v0.0.0-20260508232706-74f9aab9d74a // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
-	modernc.org/libc v1.66.10 // indirect
+	modernc.org/libc v1.72.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )

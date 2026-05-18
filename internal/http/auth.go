@@ -29,27 +29,25 @@ type authHandler struct {
 	encoder        encoder
 	config         *domain.Config
 	service        authService
+	oidcService    oidcService
 	server         *Server
 	sessionManager *scs.SessionManager
 	oidcHandler    *OIDCHandler
 }
 
-func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService) *authHandler {
+func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService, oidcService oidcService) *authHandler {
 	h := &authHandler{
 		log:            log,
 		encoder:        encoder,
 		config:         config,
 		service:        service,
+		oidcService:    oidcService,
 		sessionManager: sessionManager,
 		server:         server,
 	}
 
-	if config.OIDCEnabled {
-		oidcHandler, err := NewOIDCHandler(encoder, log, config, sessionManager)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to initialize OIDC handler")
-		}
-		h.oidcHandler = oidcHandler
+	if h.oidcService.IsEnabled() {
+		h.oidcHandler = NewOIDCHandler(encoder, log, config, sessionManager, oidcService)
 	}
 
 	return h
@@ -93,13 +91,11 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	h.sessionManager.Cookie.SameSite = http.SameSiteLaxMode
 	h.sessionManager.Cookie.Path = h.config.BaseURL
 
-	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy
-	// if forwarded protocol is https then set cookie secure
-	// SameSite Strict can only be set with a secure cookie. So we overwrite it here if possible.
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
+	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy.
+	// When forwarded protocol is https we mark the cookie as Secure, but keep SameSite=Lax so OIDC
+	// callbacks returning from a different domain still include the session cookie.
 	if r.Header.Get("X-Forwarded-Proto") == "https" {
 		h.sessionManager.Cookie.Secure = true
-		h.sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 	}
 
 	if err := h.sessionManager.RenewToken(ctx); err != nil {
@@ -167,6 +163,10 @@ func (h *authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 
 // onboardEligible checks if the onboarding process is eligible.
 func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
+	if h.config.OIDCEnabled {
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: using oidc provider")
+	}
+
 	userCount, err := h.service.GetUserCount(ctx)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New("could not get user count")

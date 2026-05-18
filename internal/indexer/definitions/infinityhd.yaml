@@ -1,0 +1,159 @@
+---
+#id: infinityhd
+name: InfinityHD
+identifier: infinityhd
+description: InfinityHD is a private torrent tracker for MOVIES and TV
+language: en-us
+urls:
+  - https://infinityhd.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to My Settings > Settings -> RSS Key, and copy your RSS Key"
+
+irc:
+  network: InfinityHD
+  server: irc.infinityhd.net
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - cosmo
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: 0:2:0:0:12878:9939320728:1774760500:203489|WEB-DL/1080p|2022|Mike Judge's Beavis and Butt-Head S02 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb|uploader1
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 2
+            leechTypeEnum: 0
+            originEnum: 0
+            torrentId: "12878"
+            torrentSizeBytes: "9939320728"
+            uploadedDate: "1774760500"
+            tmdb: "203489"
+            releaseTags: WEB-DL/1080p
+            year: "2022"
+            torrentName: Mike Judge's Beavis and Butt-Head S02 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb
+            uploader: uploader1
+        - line: 0:3:1:0:12880:18962924195:1774757803:213830|Encode/1080p|2024|I Was Reincarnated as the 7th Prince so I Can Take My Time Perfecting My Magical Ability AKA Tensei Shitara Dainana Ouji Datta Node, Kimama ni Majutsu wo Kiwamemasu S01 PROPER 1080p BluRay Dual-Audio Opus 2.0 x265-Headpatter|uploader2
+          expect:
+            announceTypeEnum: 0
+            categoryEnum: 3
+            leechTypeEnum: 1
+            originEnum: 0
+            torrentId: "12880"
+            torrentSizeBytes: "18962924195"
+            uploadedDate: "1774757803"
+            tmdb: "213830"
+            releaseTags: Encode/1080p
+            year: "2024"
+            torrentName: I Was Reincarnated as the 7th Prince so I Can Take My Time Perfecting My Magical Ability AKA Tensei Shitara Dainana Ouji Datta Node, Kimama ni Majutsu wo Kiwamemasu S01 PROPER 1080p BluRay Dual-Audio Opus 2.0 x265-Headpatter
+            uploader: uploader2
+        # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
+        pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\d+):(\d+)\|(.*)\|(\d+)?\|(.+)\|(.+)'
+        vars:
+          - announceTypeEnum
+          - categoryEnum
+          - leechTypeEnum
+          - originEnum
+          - torrentId
+          - torrentSizeBytes
+          - uploadedDate
+          - tmdb
+          - releaseTags
+          - year
+          - torrentName
+          - uploader
+
+    mappings:
+      announceTypeEnum:
+        "0":
+          announceType: NEW
+        "1":
+          announceType: PROMO
+        "2":
+          announceType: RESURRECTED
+
+      categoryEnum:
+        "1":
+          category: "Movies"
+        "2":
+          category: "TV"
+        "3":
+          category: "Anime"
+        "4":
+          category: "Anime Movie"
+
+      originEnum:
+        "0":
+          origin: ""
+        "1":
+          origin: "INTERNAL"
+        "2":
+          origin: "INTERNAL" # PERSONAL RIP
+
+      leechTypeEnum:
+        "0": # Normal
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+        "1": # 100% FL
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 1
+        "2": # 75% FL
+          downloadVolumeFactor: 0.75
+          uploadVolumeFactor: 1
+        "3": # 50% FL
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 1
+        "4": # 25% FL
+          downloadVolumeFactor: 0.25
+          uploadVolumeFactor: 1
+        "5": # Normal leech with Double up
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 2
+        "6": # 100% FL with Double up
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 2
+        "7": # 75% FL with Double up
+          downloadVolumeFactor: 0.75
+          uploadVolumeFactor: 2
+        "8": # 50% FL with Double up
+          downloadVolumeFactor: 0.5
+          uploadVolumeFactor: 2
+        "9": # 25% FL with Double up
+          downloadVolumeFactor: 0.25
+          uploadVolumeFactor: 2
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

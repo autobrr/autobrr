@@ -10,6 +10,7 @@ interface IrcNetwork {
   server: string;
   port: number;
   tls: boolean;
+  tls_skip_verify: boolean;
   nick: string;
   pass: string;
   auth: IrcAuth; // optional
@@ -30,6 +31,7 @@ interface IrcNetworkCreate {
   server: string;
   port: number;
   tls: boolean;
+  tls_skip_verify: boolean;
   pass: string;
   nick: string;
   auth: IrcAuth; // optional

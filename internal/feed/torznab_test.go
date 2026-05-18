@@ -47,7 +47,7 @@ func TestTorznabJob_RunE(t *testing.T) {
 		Name       string
 		Log        zerolog.Logger
 		URL        string
-		Client     torznab.Client
+		Client     *torznab.Client
 		Repo       jobFeedRepo
 		CacheRepo  jobFeedCacheRepo
 		ReleaseSvc jobReleaseSvc

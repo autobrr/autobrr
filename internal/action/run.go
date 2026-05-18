@@ -83,6 +83,9 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeSabnzbd:
 		rejections, err = s.sabnzbd(ctx, action, *release)
 
+	case domain.ActionTypeNzbget:
+		rejections, err = s.nzbget(ctx, action, *release)
+
 	default:
 		return nil, errors.New("unsupported action type: %s", action.Type)
 	}
@@ -102,6 +105,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Protocol:       release.Protocol,
 		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
+		Release:        release,
 	}
 
 	if action.Client != nil {
@@ -226,7 +230,6 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	}
 
 	defer sharedhttp.DrainAndClose(res)
-
 
 	if len(action.WebhookData) > 256 {
 		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))

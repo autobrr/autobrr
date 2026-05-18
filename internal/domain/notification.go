@@ -52,7 +52,11 @@ type Notification struct {
 	Devices       string               `json:"devices"`
 	Priority      int32                `json:"priority"`
 	Topic         string               `json:"topic"`
+	Sound         string               `json:"sound"`
+	EventSounds   map[string]string    `json:"event_sounds,omitempty"` // event -> sound mapping
 	UsedByFilters []FilterNotification `json:"used_by_filters,omitempty"`
+	Method        string               `json:"method,omitempty"`
+	Headers       string               `json:"headers,omitempty"`
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
 
@@ -101,6 +105,10 @@ func (n *Notification) IsEnabled() bool {
 		}
 	case NotificationTypeTelegram:
 		if n.Token != "" && n.Channel != "" {
+			return true
+		}
+	case NotificationTypeWebhook:
+		if n.Webhook != "" {
 			return true
 		}
 	}
@@ -198,6 +206,7 @@ type NotificationPayload struct {
 	Timestamp           time.Time
 	Sender              string
 	FilterNotifications []FilterNotification // per-filter notifications
+	Release             *Release             // full release data for webhook
 }
 
 type NotificationType string
@@ -218,6 +227,7 @@ const (
 	NotificationTypeNtfy       NotificationType = "NTFY"
 	NotificationTypeLunaSea    NotificationType = "LUNASEA"
 	NotificationTypeShoutrrr   NotificationType = "SHOUTRRR"
+	NotificationTypeWebhook    NotificationType = "WEBHOOK"
 )
 
 type NotificationEvent string
@@ -229,6 +239,7 @@ const (
 	NotificationEventPushError          NotificationEvent = "PUSH_ERROR"
 	NotificationEventIRCDisconnected    NotificationEvent = "IRC_DISCONNECTED"
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
+	NotificationEventReleaseNew         NotificationEvent = "RELEASE_NEW"
 	NotificationEventTest               NotificationEvent = "TEST"
 )
 
@@ -270,4 +281,264 @@ type NotificationQueryParams struct {
 		PushStatus string
 	}
 	Search string
+}
+
+// WebhookEventType represents namespaced event types
+type WebhookEventType string
+
+const (
+	WebhookEventReleaseNew      WebhookEventType = "release.new"
+	WebhookEventActionApproved  WebhookEventType = "action.approved"
+	WebhookEventActionRejected  WebhookEventType = "action.rejected"
+	WebhookEventActionError     WebhookEventType = "action.error"
+	WebhookEventIRCDisconnected WebhookEventType = "irc.disconnected"
+	WebhookEventIRCReconnected  WebhookEventType = "irc.reconnected"
+	WebhookEventAppUpdate       WebhookEventType = "app.update_available"
+	WebhookEventTest            WebhookEventType = "test"
+)
+
+// WebhookEvent is the top-level webhook payload structure
+type WebhookEvent struct {
+	Event     WebhookEventType `json:"event"`
+	ID        string           `json:"id"`
+	Timestamp time.Time        `json:"timestamp"`
+	Version   string           `json:"version"`
+	Data      *WebhookData     `json:"data"`
+}
+
+// WebhookData contains all nested event data
+type WebhookData struct {
+	Release *WebhookRelease `json:"release,omitempty"`
+	Indexer *WebhookIndexer `json:"indexer,omitempty"`
+	Filter  *WebhookFilter  `json:"filter,omitempty"`
+	Action  *WebhookAction  `json:"action,omitempty"`
+	Result  *WebhookResult  `json:"result,omitempty"`
+}
+
+// WebhookRelease contains release-specific data
+type WebhookRelease struct {
+	Protocol         string       `json:"protocol,omitempty"`
+	Implementation   string       `json:"implementation,omitempty"`
+	Timestamp        time.Time    `json:"timestamp,omitempty"`
+	Type             string       `json:"type"`
+	AnnounceType     AnnounceType `json:"announce_type"`
+	Link             string       `json:"link,omitempty"`
+	DownloadURL      string       `json:"download_url,omitempty"`
+	InfoURL          string       `json:"info_url,omitempty"`
+	MagnetURI        string       `json:"magnet_uri,omitempty"`
+	Category         string       `json:"category,omitempty"`
+	Categories       []string     `json:"categories,omitempty"`
+	ExternalID       string       `json:"external_id,omitempty"`
+	ExternalGroupID  string       `json:"external_group_id,omitempty"`
+	Size             uint64       `json:"size,omitempty"`
+	Name             string       `json:"name"`
+	Title            string       `json:"title,omitempty"`
+	SubTitle         string       `json:"sub_title,omitempty"`
+	Season           int          `json:"season,omitempty"`
+	Episode          int          `json:"episode,omitempty"`
+	Year             int          `json:"year,omitempty"`
+	Month            int          `json:"month,omitempty"`
+	Day              int          `json:"day,omitempty"`
+	Resolution       string       `json:"resolution,omitempty"`
+	Source           string       `json:"source,omitempty"`
+	Codec            []string     `json:"codec,omitempty"`
+	Container        string       `json:"container,omitempty"`
+	DynamicRange     []string     `json:"dynamic_range,omitempty"`
+	Audio            []string     `json:"audio,omitempty"`
+	AudioChannels    string       `json:"audio_channels,omitempty"`
+	AudioFormat      string       `json:"audio_format,omitempty"`
+	Bitrate          string       `json:"bitrate,omitempty"`
+	MediaProcessing  string       `json:"media_processing,omitempty"`
+	Group            string       `json:"group,omitempty"`
+	Website          string       `json:"website,omitempty"`
+	Origin           string       `json:"origin,omitempty"`
+	Uploader         string       `json:"uploader,omitempty"`
+	PreTime          string       `json:"pre_time,omitempty"`
+	Edition          []string     `json:"edition,omitempty"`
+	Cut              []string     `json:"cut,omitempty"`
+	Language         []string     `json:"language,omitempty"`
+	Region           string       `json:"region,omitempty"`
+	Tags             []string     `json:"tags,omitempty"`
+	Proper           bool         `json:"proper,omitempty"`
+	Repack           bool         `json:"repack,omitempty"`
+	Hybrid           bool         `json:"hybrid,omitempty"`
+	Artists          string       `json:"artists,omitempty"`
+	RecordLabel      string       `json:"record_label,omitempty"`
+	HasCue           bool         `json:"has_cue,omitempty"`
+	HasLog           bool         `json:"has_log,omitempty"`
+	LogScore         int          `json:"log_score,omitempty"`
+	Freeleech        bool         `json:"freeleech,omitempty"`
+	FreeleechPercent int          `json:"freeleech_percent,omitempty"`
+	Seeders          int          `json:"seeders,omitempty"`
+	Leechers         int          `json:"leechers,omitempty"`
+	MetaIMDB         string       `json:"meta_imdb,omitempty"`
+}
+
+// WebhookIndexer contains indexer information
+type WebhookIndexer struct {
+	Name           string `json:"name"`
+	Identifier     string `json:"identifier,omitempty"`
+	Protocol       string `json:"protocol,omitempty"`
+	Implementation string `json:"implementation,omitempty"`
+}
+
+// WebhookFilter contains filter information
+type WebhookFilter struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// WebhookAction contains action information
+type WebhookAction struct {
+	Name   string `json:"name,omitempty"`
+	Type   string `json:"type,omitempty"`
+	Client string `json:"client,omitempty"`
+}
+
+// WebhookResult contains push result information
+type WebhookResult struct {
+	Status     string   `json:"status,omitempty"`
+	Rejections []string `json:"rejections,omitempty"`
+}
+
+func mapNotificationEventToWebhookEvent(event NotificationEvent) WebhookEventType {
+	switch event {
+	case NotificationEventReleaseNew:
+		return WebhookEventReleaseNew
+	case NotificationEventPushApproved:
+		return WebhookEventActionApproved
+	case NotificationEventPushRejected:
+		return WebhookEventActionRejected
+	case NotificationEventPushError:
+		return WebhookEventActionError
+	case NotificationEventIRCDisconnected:
+		return WebhookEventIRCDisconnected
+	case NotificationEventIRCReconnected:
+		return WebhookEventIRCReconnected
+	case NotificationEventAppUpdateAvailable:
+		return WebhookEventAppUpdate
+	case NotificationEventTest:
+		return WebhookEventTest
+	default:
+		return WebhookEventTest
+	}
+}
+
+// NewWebhookEvent creates a structured webhook payload
+func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id string) *WebhookEvent {
+	eventPayload := &WebhookEvent{
+		Event:     mapNotificationEventToWebhookEvent(event),
+		ID:        id,
+		Timestamp: payload.Timestamp,
+		Version:   "1.0",
+	}
+	data := &WebhookData{}
+
+	// Populate Release data if available
+	if payload.Release != nil {
+		release := payload.Release
+		data.Release = &WebhookRelease{
+			Protocol:         string(release.Protocol),
+			Implementation:   string(release.Implementation),
+			Timestamp:        release.Timestamp,
+			Type:             release.Type.String(),
+			AnnounceType:     release.AnnounceType,
+			DownloadURL:      release.DownloadURL,
+			InfoURL:          release.InfoURL,
+			MagnetURI:        release.MagnetURI,
+			Category:         release.Category,
+			Categories:       release.Categories,
+			ExternalID:       release.TorrentID,
+			ExternalGroupID:  release.GroupID,
+			Size:             release.Size,
+			Name:             release.TorrentName,
+			Title:            release.Title,
+			SubTitle:         release.SubTitle,
+			Season:           release.Season,
+			Episode:          release.Episode,
+			Year:             release.Year,
+			Month:            release.Month,
+			Day:              release.Day,
+			Resolution:       release.Resolution,
+			Source:           release.Source,
+			Codec:            release.Codec,
+			Container:        release.Container,
+			DynamicRange:     release.HDR,
+			Audio:            release.Audio,
+			AudioChannels:    release.AudioChannels,
+			AudioFormat:      release.AudioFormat,
+			Bitrate:          release.Bitrate,
+			MediaProcessing:  release.MediaProcessing,
+			Group:            release.Group,
+			Website:          release.Website,
+			Origin:           release.Origin,
+			Uploader:         release.Uploader,
+			PreTime:          release.PreTime,
+			Edition:          release.Edition,
+			Cut:              release.Cut,
+			Language:         release.Language,
+			Region:           release.Region,
+			Tags:             release.Tags,
+			Proper:           release.Proper,
+			Repack:           release.Repack,
+			Hybrid:           release.Hybrid,
+			Artists:          release.Artists,
+			RecordLabel:      release.RecordLabel,
+			HasCue:           release.HasCue,
+			HasLog:           release.HasLog,
+			LogScore:         release.LogScore,
+			Freeleech:        release.Freeleech,
+			FreeleechPercent: release.FreeleechPercent,
+			Seeders:          release.Seeders,
+			Leechers:         release.Leechers,
+			MetaIMDB:         release.MetaIMDB,
+		}
+	} else if payload.ReleaseName != "" {
+		// Fallback if full release object is missing but we have basic info in payload
+		data.Release = &WebhookRelease{
+			Name: payload.ReleaseName,
+			Size: payload.Size,
+		}
+	}
+
+	// Populate Indexer data
+	if payload.Indexer != "" {
+		data.Indexer = &WebhookIndexer{
+			Name:     payload.Indexer,
+			Protocol: string(payload.Protocol),
+		}
+		// If we have full release object, we might have more indexer info
+		if payload.Release != nil {
+			data.Indexer.Identifier = payload.Release.Indexer.Identifier
+		}
+	}
+
+	// Populate Filter data
+	if payload.Filter != "" || payload.FilterID > 0 {
+		data.Filter = &WebhookFilter{
+			ID:   payload.FilterID,
+			Name: payload.Filter,
+		}
+	}
+
+	// Populate Action data
+	if payload.Action != "" || payload.ActionType != "" {
+		data.Action = &WebhookAction{
+			Name:   payload.Action,
+			Type:   string(payload.ActionType),
+			Client: payload.ActionClient,
+		}
+	}
+
+	// Populate Result data for action events
+	if event == NotificationEventPushApproved || event == NotificationEventPushRejected || event == NotificationEventPushError {
+		data.Result = &WebhookResult{
+			Status:     string(payload.Status),
+			Rejections: payload.Rejections,
+		}
+	}
+
+	eventPayload.Data = data
+
+	return eventPayload
 }

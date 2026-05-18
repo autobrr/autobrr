@@ -5,10 +5,13 @@ package feed
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"math"
+	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -37,7 +40,7 @@ type TorznabJob struct {
 	Name       string
 	Log        zerolog.Logger
 	URL        string
-	Client     torznab.Client
+	Client     torznabClient
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
@@ -54,7 +57,12 @@ type RefreshFeedJob interface {
 	RunE(ctx context.Context) error
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc, slots chan struct{}) RefreshFeedJob {
+type torznabClient interface {
+	WithHTTPClient(client *http.Client)
+	Search(ctx context.Context, query string, categories []int) (*torznab.SearchResponse, error)
+}
+
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc, slots chan struct{}) RefreshFeedJob {
 	return &TorznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -145,13 +153,22 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet && strings.HasPrefix(item.Link, domain.MagnetURIPrefix) {
 			rls.MagnetURI = item.Link
 			rls.DownloadURL = ""
 		}
 
+		if item.Enclosure != nil && item.Enclosure.Type == "application/x-bittorrent" {
+			rls.DownloadURL = item.Enclosure.URL
+
+			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet && strings.HasPrefix(item.Enclosure.URL, domain.MagnetURIPrefix) {
+				rls.MagnetURI = item.Enclosure.URL
+				rls.DownloadURL = ""
+			}
+		}
+
 		rls.ParseString(item.Title)
-		rls.Size = uint64(item.Size)
+		rls.Size = item.Size
 		rls.Seeders = item.Seeders
 		rls.Leechers = item.Leechers
 		rls.Uploader = item.Author
@@ -243,13 +260,19 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 			return nil, errors.Wrap(err, "could not get proxy client")
 		}
 
+		if j.Feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
+		}
+
 		j.Client.WithHTTPClient(proxyClient)
 
 		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
 	}
 
 	// get feed
-	feed, err := j.Client.FetchFeed(ctx)
+	feed, err := j.Client.Search(ctx, "", j.Feed.Categories)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
@@ -259,10 +282,10 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
-	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feed.Channel.Items))
+	j.Log.Debug().Msgf("refreshing feed: %v, found (%d) items", j.Name, len(feed.Items))
 
 	items := make([]torznab.FeedItem, 0)
-	if len(feed.Channel.Items) == 0 {
+	if len(feed.Items) == 0 {
 		return items, nil
 	}
 
@@ -270,7 +293,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 	guidItemMap := make(map[string]*torznab.FeedItem)
 	var guids []string
 
-	for _, item := range feed.Channel.Items {
+	for _, item := range feed.Items {
 		if item.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue

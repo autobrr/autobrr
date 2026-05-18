@@ -40,7 +40,7 @@ func TestAPI(t *testing.T) {
 		//}
 
 		// read json response
-		jsonPayload, _ := os.ReadFile("testdata/btn_get_user_info.json")
+		jsonPayload, _ := os.ReadFile("testdata/btn_torrents_browse.json")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonPayload)
@@ -57,7 +57,7 @@ func TestAPI(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test_user",
+			name: "test_api",
 			fields: fields{
 				Url:    ts.URL,
 				APIKey: key,

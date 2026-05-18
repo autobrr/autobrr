@@ -30,14 +30,15 @@ func getMockIrcChannel() domain.IrcChannel {
 func getMockIrcNetwork() domain.IrcNetwork {
 	connectedSince := time.Now().Add(-time.Hour) // Example time 1 hour ago
 	return domain.IrcNetwork{
-		ID:      0,
-		Name:    "Freenode",
-		Enabled: true,
-		Server:  "irc.freenode.net",
-		Port:    6667,
-		TLS:     true,
-		Pass:    "serverpass",
-		Nick:    "nickname",
+		ID:            0,
+		Name:          "Freenode",
+		Enabled:       true,
+		Server:        "irc.freenode.net",
+		Port:          6667,
+		TLS:           true,
+		TLSSkipVerify: true,
+		Pass:          "serverpass",
+		Nick:          "nickname",
 		Auth: domain.IRCAuth{
 			Mechanism: domain.IRCAuthMechanismSASLPlain,
 			Account:   "useraccount",
