@@ -19,8 +19,8 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/nzbget"
+	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
 	"github.com/autobrr/autobrr/pkg/whisparr"
@@ -105,7 +105,7 @@ func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 	}
 
 	switch client.Type {
-	case "RADARR":
+	case domain.DownloadClientTypeRadarr:
 		arrClient := client.Client.(*radarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
@@ -123,7 +123,7 @@ func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 
 		return data, nil
 
-	case "SONARR":
+	case domain.DownloadClientTypeSonarr:
 		arrClient := client.Client.(*sonarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
@@ -285,6 +285,7 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Host:          clientHost,
 			Username:      client.Username,
 			Password:      client.Password,
+			APIKey:        client.Settings.APIKey,
 			TLSSkipVerify: client.TLSSkipVerify,
 			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
 			BasicUser:     client.Settings.Auth.Username,
