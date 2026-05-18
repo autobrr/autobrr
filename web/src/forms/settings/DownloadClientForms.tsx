@@ -205,6 +205,8 @@ function FormFieldsQbit() {
       <TextFieldWide name="username" label={t("forms.downloadClient.username")} />
       <PasswordFieldWide name="password" label={t("forms.downloadClient.password")} />
 
+      <PasswordFieldWide required name="settings.apikey" label={t("forms.downloadClient.apiKey")} />
+
       <SwitchGroupWide name="settings.basic.auth" label={t("forms.downloadClient.basicAuth")} />
 
       {settings.basic?.auth === true && (

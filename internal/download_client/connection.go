@@ -16,8 +16,8 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/nzbget"
+	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
 	"github.com/autobrr/autobrr/pkg/whisparr"
@@ -84,6 +84,7 @@ func (s *service) testQbittorrentConnection(ctx context.Context, client domain.D
 		TLSSkipVerify: client.TLSSkipVerify,
 		Username:      client.Username,
 		Password:      client.Password,
+		APIKey:        client.Settings.APIKey,
 		Log:           s.subLogger,
 	}
 
