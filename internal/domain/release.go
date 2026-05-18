@@ -78,6 +78,7 @@ type Release struct {
 	TorrentDataRawBytes                []byte                `json:"-"`
 	TorrentHash                        string                `json:"-"`
 	TorrentName                        string                `json:"name"`            // full release name
+	Vars                               map[string]string     `json:"-"`               // raw announce vars from indexer definition
 	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
 	Size                               uint64                `json:"size"`
 	Title                              string                `json:"title"`     // Parsed title
@@ -1267,6 +1268,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
 		r.MetaIMDB = metaImdb
 	}
+
+	r.Vars = varMap
 
 	return nil
 }
