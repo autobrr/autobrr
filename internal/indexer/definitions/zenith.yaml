@@ -1,0 +1,115 @@
+---
+#id: zenith
+name: Zenith
+identifier: zenith
+description: Zenith is a Private Torrent Tracker for MOVIES / TV / GENERAL
+language: en-us
+urls:
+  - https://znth.cx/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Profile > Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: Zenith
+  server: irc.znth.cx
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - Zenith
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+          - line: "New in [Movies]: Road House 1989 1080p BluRay DD 5.1 x264-CtrlHD [1080p] [Encode] [11.84 GiB] [FL: No] [INTERNAL: No] [https://znth.cx/torrents/2364] by: [Anonymous]"
+            expect:
+              category: Movies
+              torrentName: Road House 1989 1080p BluRay DD 5.1 x264-CtrlHD
+              resolution: 1080p
+              releaseTags: Encode
+              torrentSize: 11.84 GiB
+              freeleechEnum: "No"
+              internal: "No"
+              baseUrl: https://znth.cx/
+              torrentId: "2364"
+              uploader: Anonymous
+          - line: "New in [Music]: Trippie Redd - ! 2019 WEB-DL FLAC 16-bit 44 1 kHz-NICFEIN [] [FLAC] [213.7 MiB] [FL: Yes] [INTERNAL: No] [https://znth.cx/torrents/2345] by: [chevron]"
+            expect:
+              category: Music
+              torrentName: "Trippie Redd - ! 2019 WEB-DL FLAC 16-bit 44 1 kHz-NICFEIN"
+              resolution: ""
+              releaseTags: FLAC
+              torrentSize: 213.7 MiB
+              freeleechEnum: "Yes"
+              internal: "No"
+              baseUrl: https://znth.cx/
+              torrentId: "2345"
+              uploader: chevron
+          - line: "New in [TV]: Training Day S01 1080p AMZN WEBRip DD+ 5.1 x264-RTN [1080p] [WEBRip] [41.2 GiB] [FL: Yes] [INTERNAL: No] [https://znth.cx/torrents/2348] by: [Bitjoe]"
+            expect:
+              category: TV
+              torrentName: Training Day S01 1080p AMZN WEBRip DD+ 5.1 x264-RTN
+              resolution: 1080p
+              releaseTags: WEBRip
+              torrentSize: 41.2 GiB
+              freeleechEnum: "Yes"
+              internal: "No"
+              baseUrl: https://znth.cx/
+              torrentId: "2348"
+              uploader: Bitjoe
+        # New in [CATEGORY]: NAME [RESOLUTION] [TYPE] [SIZE] [FL: Yes|No] [INTERNAL: Yes|No] [URL] by: [UPLOADER]
+        pattern: 'New in \[([^\]]+)\]: (.+) \[([^\]]*)\] \[([^\]]+)\] \[([^\]]+)\] \[FL: (Yes|No)\] \[INTERNAL: (Yes|No)\] \[(https?\:\/\/[^\/]+\/)torrents\/(\d+)\] by: \[([^\]]+)\]'
+        vars:
+          - category
+          - torrentName
+          - resolution
+          - releaseTags
+          - torrentSize
+          - freeleechEnum
+          - internal
+          - baseUrl
+          - torrentId
+          - uploader
+
+    mappings:
+      freeleechEnum:
+        "Yes":
+          downloadVolumeFactor: 0
+          uploadVolumeFactor: 1
+        "No":
+          downloadVolumeFactor: 1
+          uploadVolumeFactor: 1
+
+    match:
+      infourl: "/torrents/{{ .torrentId }}"
+      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
