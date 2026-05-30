@@ -58,7 +58,7 @@ irc:
               resolution: 1080p
               releaseTags: Encode
               torrentSize: 11.84 GiB
-              freeleechEnum: "No"
+              freeleech: "No"
               internal: "No"
               baseUrl: https://znth.cx/
               torrentId: "2364"
@@ -70,7 +70,7 @@ irc:
               resolution: ""
               releaseTags: FLAC
               torrentSize: 213.7 MiB
-              freeleechEnum: "Yes"
+              freeleech: "Yes"
               internal: "No"
               baseUrl: https://znth.cx/
               torrentId: "2345"
@@ -82,7 +82,7 @@ irc:
               resolution: 1080p
               releaseTags: WEBRip
               torrentSize: 41.2 GiB
-              freeleechEnum: "Yes"
+              freeleech: "Yes"
               internal: "No"
               baseUrl: https://znth.cx/
               torrentId: "2348"
@@ -100,7 +100,6 @@ irc:
           - baseUrl
           - torrentId
           - uploader
-
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
