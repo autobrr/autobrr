@@ -96,11 +96,6 @@ irc:
           announceType: NEW
         "Featured":
           announceType: PROMO
-      internal:
-        "Yes":
-          origin: INTERNAL
-        "No":
-          origin: ""
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
