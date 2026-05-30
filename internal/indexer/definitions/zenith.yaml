@@ -95,20 +95,12 @@ irc:
           - resolution
           - releaseTags
           - torrentSize
-          - freeleechEnum
+          - freeleech
           - internal
           - baseUrl
           - torrentId
           - uploader
 
-    mappings:
-      freeleechEnum:
-        "Yes":
-          downloadVolumeFactor: 0
-          uploadVolumeFactor: 1
-        "No":
-          downloadVolumeFactor: 1
-          uploadVolumeFactor: 1
 
     match:
       infourl: "/torrents/{{ .torrentId }}"
