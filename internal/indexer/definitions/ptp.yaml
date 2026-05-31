@@ -190,5 +190,5 @@ irc:
           uploadVolumeFactor: 0
 
     match:
-      infourl: "/torrents.php?torrentid={{ .torrentId }}"
+      infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
       torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}&key={{ .key }}"
