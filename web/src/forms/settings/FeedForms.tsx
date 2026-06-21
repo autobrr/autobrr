@@ -30,6 +30,7 @@ interface InitialValues {
   url: string;
   api_key: string;
   cookie: string;
+  user_agent: string;
   tls_skip_verify: boolean;
   interval: number;
   timeout: number;
@@ -112,6 +113,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     url: feed.url,
     api_key: feed.api_key,
     cookie: feed.cookie || "",
+    user_agent: feed.user_agent || "",
     tls_skip_verify: feed.tls_skip_verify ?? false,
     interval: feed.interval,
     timeout: feed.timeout,
@@ -288,6 +290,8 @@ function FormFieldsRSS() {
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
 
       <PasswordFieldWide name="cookie" label={t("forms.feed.cookie")} help={t("forms.feed.cookieHelp")} />
+      
+      <TextFieldWide name="user_agent" label={t("forms.feed.userAgent")} help={t("forms.feed.userAgentHelp")} />
     </div>
   );
 }

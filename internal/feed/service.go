@@ -311,7 +311,7 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie, feed.TLSSkipVerify)
+	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie, feed.UserAgent, feed.TLSSkipVerify)
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {

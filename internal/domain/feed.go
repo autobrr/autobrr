@@ -55,6 +55,7 @@ type Feed struct {
 	Capabilities  *FeedCapabilities `json:"capabilities"`
 	ApiKey        string            `json:"api_key"`
 	Cookie        string            `json:"cookie"`
+	UserAgent     string            `json:"user_agent"`
 	TLSSkipVerify bool              `json:"tls_skip_verify"`
 	Settings      *FeedSettingsJSON `json:"settings"`
 	CreatedAt     time.Time         `json:"created_at"`

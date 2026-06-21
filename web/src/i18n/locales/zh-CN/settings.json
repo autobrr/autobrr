@@ -389,6 +389,8 @@
       "maxAgeHelp": "订阅内容的最大年龄，单位秒。填 0 可禁用年龄过滤并处理所有内容。",
       "cookie": "Cookie",
       "cookieHelp": "不常用",
+      "userAgent": "User-Agent",
+      "userAgentHelp": "RSS请求的自定义User-Agent。当Cloudflare cookie需要匹配User-Agent时使用（例如来自byparr）",
       "categoriesTitle": "分类",
       "categoriesDescription": "抓取可用分类并选择需要包含的项。",
       "fetch": "抓取",
