@@ -360,6 +360,9 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if j.Feed.Cookie != "" {
 		rls.RawCookie = j.Feed.Cookie
 	}
+	if j.Feed.UserAgent != "" {
+		rls.UserAgent = j.Feed.UserAgent
+	}
 
 	return rls
 }

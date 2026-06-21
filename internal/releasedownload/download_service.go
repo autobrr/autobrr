@@ -113,7 +113,12 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 		return errors.Wrap(err, "error downloading file")
 	}
 
-	req.Header.Set("User-Agent", "autobrr")
+	// Use custom User-Agent if provided, otherwise default to autobrr
+	userAgent := "autobrr"
+	if r.UserAgent != "" {
+		userAgent = r.UserAgent
+	}
+	req.Header.Set("User-Agent", userAgent)
 
 	httpClient := &http.Client{
 		Timeout:   30 * time.Second,
