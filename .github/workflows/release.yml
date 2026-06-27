@@ -307,7 +307,7 @@ jobs:
           fi
 
       - name: Cache builds
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/${{ matrix.goos }}
           key: ${{ env.cache_prefix }}-${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
@@ -386,25 +386,25 @@ jobs:
           fi
 
       - name: Get Linux cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/linux
           key: ${{ env.cache_prefix }}-linux-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get FreeBSD cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/freebsd
           key: ${{ env.cache_prefix }}-freebsd-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Darwin cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/darwin
           key: ${{ env.cache_prefix }}-darwin-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Windows cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/windows
           key: ${{ env.cache_prefix }}-windows-${{ env.sha_short }}${{ env.flags }}
