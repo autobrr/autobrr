@@ -1,11 +1,11 @@
 ---
-# id: rotorrent
-name: RoTorrent
-identifier: rotorrent
-description: RoTorrent (ROT) is a ROMANIAN private torrent tracker for MOVIES / TV / GENERAL
+# id: seedcore
+name: SeedCore
+identifier: seedcore
+description: SeedCore (SC) is a ROMANIAN private torrent tracker for MOVIES / TV / GENERAL
 language: ro
 urls:
-  - https://rotorrent.info
+  - https://seedcore.net
 privacy: private
 protocol: torrent
 supports:
@@ -25,9 +25,9 @@ irc:
   port: 6697
   tls: true
   channels:
-    - "#Rotorrent.info"
+    - "#SeedCore.net"
   announcers:
-    - RotBot
+    - SeedCore
   settings:
     - name: nick
       type: text
