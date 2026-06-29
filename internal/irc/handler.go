@@ -301,6 +301,11 @@ func (h *Handler) Run() (err error) {
 	}
 	client.AddCallback("INVITE", h.handleInvite)
 	client.AddCallback("366", h.handleJoined)
+	client.AddCallback("471", h.handleJoinError) // ERR_CHANNELISFULL
+	client.AddCallback("473", h.handleJoinError) // ERR_INVITEONLYCHAN
+	client.AddCallback("474", h.handleJoinError) // ERR_BANNEDFROMCHAN
+	client.AddCallback("475", h.handleJoinError) // ERR_BADCHANNELKEY
+	client.AddCallback("477", h.handleJoinError) // ERR_NEEDREGGEDNICK
 	client.AddCallback("PART", h.handlePart)
 	client.AddCallback("PRIVMSG", h.onMessage)
 	client.AddCallback("NOTICE", h.onNotice)
@@ -899,6 +904,22 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	}
 
 	h.log.Info().Msgf("Monitoring channel %s", channel)
+}
+
+// handleJoinError handles IRC error numerics for failed JOIN attempts.
+// Covers: 471 (full), 473 (invite-only), 474 (banned), 475 (bad key), 477 (need registered nick).
+func (h *Handler) handleJoinError(msg ircmsg.Message) {
+	if len(msg.Params) < 2 {
+		return
+	}
+	channel := msg.Params[1]
+	reason := ""
+	if len(msg.Params) > 2 {
+		reason = msg.Params[2]
+	}
+	errMsg := fmt.Sprintf("could not join %s: %s (%s)", channel, reason, msg.Command)
+	h.log.Error().Msgf("JOIN error: %s", errMsg)
+	h.addConnectError(errMsg)
 }
 
 // sendConnectCommands sends invite commands
