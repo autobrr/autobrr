@@ -13,11 +13,17 @@ supports:
   - rss
 # source: unknown
 settings:
-  - name: torrent_pass
+  - name: passkey
     type: secret
     required: true
-    label: Torrent pass
-    help: Right click DL on a torrent and get the torrent_pass.
+    label: Passkey
+    help: Check your profile.
+
+  - name: userId
+    type: secret
+    required: true
+    label: User ID
+    help: Check your profile URL and copy the ID.
 
 irc:
   network: DasUnerwartete
@@ -76,4 +82,4 @@ irc:
 
     match:
       infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+      torrenturl: "/rss-download.php?uid={{ .userId }}&pk={{ .passkey }}&torrent={{ .torrentId }}"
