@@ -72,7 +72,7 @@ irc:
             baseUrl: https://dasunerwartete.biz/
             torrentId: "002"
 
-        pattern: '.+ (.+) \| (.+) \| (.+) \| (https?\:\/\/.*\/).*id=(\d+)'
+        pattern: '.+ (.+) \| (.+) \| (.+) \| (https?\:\/\/.*\/).*id=(\d{2,})'
         vars:
           - torrentName
           - category
