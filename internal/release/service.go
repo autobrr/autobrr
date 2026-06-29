@@ -466,6 +466,11 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		var rejections []string
 
+		// stopProcessing is set when an action errors with on_error=STOP. It aborts
+		// the remaining actions and the whole release, preventing fall-through to the
+		// next matching filter.
+		stopProcessing := false
+
 		// run actions (watchFolder, test, exec, qBittorrent, Deluge, arr etc.)
 		for idx, act := range actions {
 			// only run enabled actions
@@ -508,8 +513,8 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 			rejections = status.Rejections
 
-			if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-				s.log.Error().Err(err).Msgf("release.Process: error storing action status for filter: %s", release.FilterName)
+			if storeErr := s.StoreReleaseActionStatus(ctx, status); storeErr != nil {
+				s.log.Error().Err(storeErr).Msgf("release.Process: error storing action status for filter: %s", release.FilterName)
 			}
 
 			if len(rejections) > 0 {
@@ -520,12 +525,26 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 				l.Debug().Str("action", act.Name).Str("action_type", string(act.Type)).Msgf("release rejected: %s", strings.Join(rejections, ", "))
 			}
 
+			// honor the action's on_error setting: stop running the remaining
+			// actions for this release when an action errors and is set to STOP
+			if err != nil && act.OnError == domain.ActionOnErrorStop {
+				l.Debug().Str("action", act.Name).Str("action_type", string(act.Type)).Msg("release.Process: action error and on_error set to STOP, skipping remaining actions for this release")
+				stopProcessing = true
+				break
+			}
+
 			// if no rejections consider action approved, run next
 			continue
 		}
 
 		if err = s.Update(ctx, release); err != nil {
 			l.Error().Err(err).Msgf("release.Process: error updating release: %v", release.TorrentName)
+		}
+
+		// an action requested on_error=STOP; abort processing this release entirely
+		// instead of falling through to the next matching filter
+		if stopProcessing {
+			break
 		}
 
 		// if we have rejections from arr, continue to next filter

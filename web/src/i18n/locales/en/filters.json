@@ -132,6 +132,9 @@
     "selectType": "Select type",
     "actionTypeTooltip": "Select the action type for this action.",
     "name": "Name",
+    "onError": "On Error",
+    "selectOnError": "Select on error behavior",
+    "onErrorTooltip": "What to do with the remaining actions for this release if this action fails. Continue runs the next action, Stop skips the remaining actions.",
     "removeAction": "Remove Action",
     "close": "Close"
   },
@@ -477,7 +480,8 @@
       "path": "Path to Executable",
       "pathPlaceholder": "Path to program eg. /bin/test",
       "arguments": "Arguments",
-      "argumentsPlaceholder": "Arguments eg. --test"
+      "argumentsPlaceholder": "Arguments eg. --test",
+      "expectedExitStatus": "Expected exit status"
     },
     "watchFolder": {
       "title": "Watch Folder Arguments",
@@ -491,6 +495,20 @@
       "endpoint": "Endpoint",
       "endpointPlaceholder": "Host eg. http://localhost/webhook",
       "endpointTooltip": "URL or IP to your API. Pass params and set API tokens etc.",
+      "httpMethod": "HTTP method",
+      "httpMethodDefault": "Select http method",
+      "httpMethodTooltip": "Select the HTTP method for this webhook. Defaults to POST.",
+      "headers": "HTTP Request Headers",
+      "headersPlaceholder": "HEADER=value;HEADER2=value2",
+      "expectedStatus": "Expected HTTP status code",
+      "retryTitle": "Retry",
+      "retrySubtitle": "Retry behavior on request failure.",
+      "retryStatus": "Retry http status code(s)",
+      "retryStatusPlaceholder": "Retry on status eg. 500, 502, 503",
+      "retryAttempts": "Maximum retry attempts",
+      "retryDelaySeconds": "Retry delay in seconds",
+      "payloadTitle": "Payload",
+      "payloadSubtitle": "Specify the payload to send with the webhook request.",
       "payload": "Payload (json)",
       "payloadPlaceholder": "Request data: { \"key\": \"value\" }"
     },

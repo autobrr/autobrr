@@ -104,6 +104,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("80_feed_add_tls_skip_verify.sql")
 	migrate.AddFileMigration("81_irc_update_darkpeers_network.sql")
 	migrate.AddFileMigration("82_indexers_rename_rotorrent_to_seedcore.sql")
+	migrate.AddFileMigration("83_add_action_status_retry_and_position.sql")
 
 	return migrate
 }
