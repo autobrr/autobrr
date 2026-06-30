@@ -1,0 +1,192 @@
+name: Update Go & Docker base images
+
+# Manually-dispatched maintenance workflow that bumps the project to the latest
+# Go toolchain and the latest Docker base images, then opens (or refreshes) a PR.
+#
+# What it updates:
+#   - go.mod          `go` directive          -> latest stable Go minor (e.g. 1.26.0)
+#   - Dockerfile      golang builder image    -> golang:<go-minor>-alpine<newest>   (e.g. 1.26-alpine3.24)
+#   - Dockerfile      node web-builder image  -> node:<newest-LTS>-alpine<newest>   (e.g. 24.18.0-alpine3.24)
+#   - Dockerfile      alpine runner image     -> alpine:<newest-minor>              (e.g. 3.24)
+#
+# Versions are auto-detected at run time from go.dev, nodejs.org and Docker Hub —
+# there are no inputs to fill in, just dispatch it.
+#
+# Optional secret: set `AUTOMATION_TOKEN` (a PAT or GitHub App token with repo +
+# pull-request scope) so the branch push and the opened PR are attributed to that
+# identity and therefore trigger the normal `pull_request` CI (eslint / golang-linter /
+# codeql). Without it the workflow falls back to the default GITHUB_TOKEN, which still
+# works but (1) the resulting PR will NOT trigger downstream CI and (2) `gh pr create`
+# requires the org/repo setting "Allow GitHub Actions to create and approve pull
+# requests" to be enabled. This mirrors update-indexers.yml, which uses secrets.DOCS_TOKEN.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Persisted for the branch push; prefer AUTOMATION_TOKEN so the push (and
+          # the PR opened below) trigger CI. See the header comment for details.
+          token: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Detect latest versions
+        id: detect
+        run: |
+          set -euo pipefail
+
+          die() { echo "::error::$1"; exit 1; }
+
+          # ---- Latest stable Go (e.g. "go1.26.4" -> "1.26.4", minor "1.26") ----
+          go_full="$(curl -fsSL 'https://go.dev/dl/?mode=json' \
+            | jq -r 'map(select(.stable == true)) | .[0].version' || true)"
+          go_version="${go_full#go}"
+          [[ "$go_version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] \
+            || die "could not determine latest stable Go release (got '$go_full')"
+          go_minor="$(echo "$go_version" | cut -d. -f1,2)"
+          # Pin the go.mod directive to the minor (matches the minor-pinned builder image
+          # and avoids a PR on every patch release).
+          go_mod_version="${go_minor}.0"
+
+          # ---- Newest alpine variant of golang:<minor>-alpine<X.Y> ----
+          golang_alpine="$(curl -fsSL "https://hub.docker.com/v2/repositories/library/golang/tags/?page_size=100&name=${go_minor}-alpine" \
+            | jq -r '.results[].name' \
+            | grep -E "^${go_minor//./\\.}-alpine[0-9]+\.[0-9]+$" \
+            | sed -E 's/^.*-alpine//' \
+            | sort -V | tail -1 || true)"
+          [ -n "$golang_alpine" ] || die "no golang:${go_minor}-alpine* image tag found on Docker Hub"
+          golang_tag="${go_minor}-alpine${golang_alpine}"
+
+          # ---- Newest Node LTS full version (e.g. "24.18.0") ----
+          node_version="$(curl -fsSL 'https://nodejs.org/dist/index.json' \
+            | jq -r 'map(select(.lts != false)) | .[].version' \
+            | sed 's/^v//' \
+            | sort -V | tail -1 || true)"
+          [[ "$node_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+            || die "could not determine latest Node LTS (got '$node_version')"
+
+          # ---- Newest alpine variant of node:<version>-alpine<X.Y> ----
+          node_alpine="$(curl -fsSL "https://hub.docker.com/v2/repositories/library/node/tags/?page_size=100&name=${node_version}-alpine" \
+            | jq -r '.results[].name' \
+            | grep -E "^${node_version//./\\.}-alpine[0-9]+\.[0-9]+$" \
+            | sed -E 's/^.*-alpine//' \
+            | sort -V | tail -1 || true)"
+          [ -n "$node_alpine" ] || die "no node:${node_version}-alpine* image tag found on Docker Hub"
+          node_tag="${node_version}-alpine${node_alpine}"
+
+          # ---- Alpine minor for the runner image (e.g. "3.24") ----
+          # Use the newest Alpine variant shipped by the builder images above, so the
+          # runtime base stays consistent with (and never ahead of) the build toolchain.
+          # Both inputs come from bounded, single-page tag queries, so this avoids a
+          # separate — and paginated — library/alpine tag lookup.
+          alpine_version="$(printf '%s\n%s\n' "$golang_alpine" "$node_alpine" | sort -V | tail -1)"
+          [[ "$alpine_version" =~ ^[0-9]+\.[0-9]+$ ]] \
+            || die "could not determine Alpine version for the runner (got '$alpine_version')"
+
+          {
+            echo "go_mod_version=$go_mod_version"
+            echo "golang_tag=$golang_tag"
+            echo "node_tag=$node_tag"
+            echo "alpine_version=$alpine_version"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Detected -> go.mod: $go_mod_version | golang:$golang_tag | node:$node_tag | alpine:$alpine_version"
+
+      - name: Apply updates
+        id: apply
+        env:
+          GO_MOD_VERSION: ${{ steps.detect.outputs.go_mod_version }}
+          GOLANG_TAG: ${{ steps.detect.outputs.golang_tag }}
+          NODE_TAG: ${{ steps.detect.outputs.node_tag }}
+          ALPINE_VERSION: ${{ steps.detect.outputs.alpine_version }}
+        run: |
+          set -euo pipefail
+
+          # Capture current values (for the PR description) before editing.
+          old_go="$(grep -oE '^go [0-9][^[:space:]]*' go.mod | awk '{print $2}')"
+          old_golang="$(grep -oE 'golang:[^[:space:]]+' Dockerfile | head -1)"
+          old_node="$(grep -oE 'node:[^[:space:]]+' Dockerfile | head -1)"
+          old_alpine="$(grep -oE '^FROM alpine:[^[:space:]]+' Dockerfile | sed 's/^FROM //' | head -1)"
+
+          # go.mod go directive
+          sed -i -E "s|^go [0-9]+\.[0-9]+(\.[0-9]+)?$|go ${GO_MOD_VERSION}|" go.mod
+          # Dockerfile: golang builder, node web-builder, alpine runner
+          sed -i -E "s|^FROM golang:[^[:space:]]+ (AS app-builder)|FROM golang:${GOLANG_TAG} \1|" Dockerfile
+          sed -i -E "s|^FROM node:[^[:space:]]+ (AS web-builder)|FROM node:${NODE_TAG} \1|" Dockerfile
+          sed -i -E "s|^FROM alpine:[^[:space:]]+|FROM alpine:${ALPINE_VERSION}|" Dockerfile
+
+          {
+            echo "old_go=$old_go"
+            echo "old_golang=$old_golang"
+            echo "old_node=$old_node"
+            echo "old_alpine=$old_alpine"
+          } >> "$GITHUB_OUTPUT"
+
+          if git diff --quiet -- go.mod Dockerfile; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Everything is already up to date — nothing to do." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "### Toolchain update" >> "$GITHUB_STEP_SUMMARY"
+            echo '```diff' >> "$GITHUB_STEP_SUMMARY"
+            git --no-pager diff -- go.mod Dockerfile >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            git --no-pager diff -- go.mod Dockerfile
+          fi
+
+      - name: Create or update pull request
+        if: steps.apply.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
+          BASE_BRANCH: ${{ github.ref_name }}
+          GO_MOD_VERSION: ${{ steps.detect.outputs.go_mod_version }}
+          GOLANG_TAG: ${{ steps.detect.outputs.golang_tag }}
+          NODE_TAG: ${{ steps.detect.outputs.node_tag }}
+          ALPINE_VERSION: ${{ steps.detect.outputs.alpine_version }}
+          OLD_GO: ${{ steps.apply.outputs.old_go }}
+          OLD_GOLANG: ${{ steps.apply.outputs.old_golang }}
+          OLD_NODE: ${{ steps.apply.outputs.old_node }}
+          OLD_ALPINE: ${{ steps.apply.outputs.old_alpine }}
+        run: |
+          set -euo pipefail
+
+          BRANCH="automation/update-toolchain"
+          TITLE="build(deps): update Go to ${GO_MOD_VERSION} and bump Docker base images"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -C "$BRANCH"
+          git add go.mod Dockerfile
+          git commit -m "$TITLE"
+          git push --force origin "$BRANCH"
+
+          BODY="$(printf '%s\n' \
+            "Automated update of the Go toolchain and Docker base images." \
+            "" \
+            "| Target | From | To |" \
+            "| --- | --- | --- |" \
+            "| go.mod \`go\` directive | ${OLD_GO} | ${GO_MOD_VERSION} |" \
+            "| builder image | ${OLD_GOLANG} | golang:${GOLANG_TAG} |" \
+            "| web-builder image | ${OLD_NODE} | node:${NODE_TAG} |" \
+            "| runner image | ${OLD_ALPINE} | alpine:${ALPINE_VERSION} |" \
+            "" \
+            "Generated by the \`${GITHUB_WORKFLOW}\` workflow.")"
+
+          existing="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty' || true)"
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --title "$TITLE" --body "$BODY"
+            echo "Updated existing PR #$existing"
+          else
+            gh pr create --base "$BASE_BRANCH" --head "$BRANCH" --title "$TITLE" --body "$BODY"
+          fi
