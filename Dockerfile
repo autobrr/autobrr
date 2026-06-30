@@ -1,5 +1,5 @@
 # build web
-FROM node:22.17.0-alpine3.22 AS web-builder
+FROM node:24.18.0-alpine3.24 AS web-builder
 # Update and enable Corepack
 RUN npm install -g corepack@latest && \
     corepack enable
@@ -13,7 +13,7 @@ COPY web ./
 RUN pnpm run build
 
 # build app
-FROM golang:1.25-alpine3.22 AS app-builder
+FROM golang:1.26-alpine3.24 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev
@@ -39,7 +39,7 @@ RUN go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISIO
     go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
-FROM alpine:latest
+FROM alpine:3.24
 
 LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 
