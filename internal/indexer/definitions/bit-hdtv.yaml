@@ -52,7 +52,7 @@ irc:
       type: secret
       required: true
       label: Channel Password
-      help: Channel password for #bit-hdtv
+      help: "Channel password for #bit-hdtv"
 
   parse:
     type: single
