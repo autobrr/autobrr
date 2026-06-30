@@ -1,0 +1,1 @@
+ALTER TABLE filter ADD COLUMN max_downloads_period INTEGER NOT NULL DEFAULT 1;

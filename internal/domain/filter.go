@@ -43,44 +43,68 @@ type FilterRepo interface {
 }
 
 type FilterDownloads struct {
-	HourCount  int `json:"hour_count"`
-	DayCount   int `json:"day_count"`
-	WeekCount  int `json:"week_count"`
-	MonthCount int `json:"month_count"`
-	TotalCount int `json:"total_count"`
+	PeriodCount int `json:"period_count"`
+	TotalCount  int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
-	return fmt.Sprintf("Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
+	return fmt.Sprintf("Period: %d, Total: %d", f.PeriodCount, f.TotalCount)
 }
 
 func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int) bool {
-	var count int
-	switch unit {
-	case FilterMaxDownloadsHour:
-		count = f.HourCount
-	case FilterMaxDownloadsDay:
-		count = f.DayCount
-	case FilterMaxDownloadsWeek:
-		count = f.WeekCount
-	case FilterMaxDownloadsMonth:
-		count = f.MonthCount
-	case FilterMaxDownloadsEver:
-		count = f.TotalCount
+	if unit == FilterMaxDownloadsEver {
+		return f.TotalCount < maxDownloads
 	}
-
-	return count < maxDownloads
+	return f.PeriodCount < maxDownloads
 }
 
 type FilterMaxDownloadsUnit string
 
 const (
-	FilterMaxDownloadsHour  FilterMaxDownloadsUnit = "HOUR"
-	FilterMaxDownloadsDay   FilterMaxDownloadsUnit = "DAY"
-	FilterMaxDownloadsWeek  FilterMaxDownloadsUnit = "WEEK"
-	FilterMaxDownloadsMonth FilterMaxDownloadsUnit = "MONTH"
-	FilterMaxDownloadsEver  FilterMaxDownloadsUnit = "EVER"
+	FilterMaxDownloadsMinute FilterMaxDownloadsUnit = "MINUTE"
+	FilterMaxDownloadsHour   FilterMaxDownloadsUnit = "HOUR"
+	FilterMaxDownloadsDay    FilterMaxDownloadsUnit = "DAY"
+	FilterMaxDownloadsWeek   FilterMaxDownloadsUnit = "WEEK"
+	FilterMaxDownloadsMonth  FilterMaxDownloadsUnit = "MONTH"
+	FilterMaxDownloadsEver   FilterMaxDownloadsUnit = "EVER"
 )
+
+// downloadPeriodUnits returns the period (defaulting to 1 if <= 0) and the
+// PostgreSQL/SQLite unit string for the filter's download window.
+// Callers must handle FilterMaxDownloadsEver separately before calling this.
+func (f *Filter) downloadPeriodUnits() (int, string) {
+	period := f.MaxDownloadsPeriod
+	if period <= 0 {
+		period = 1
+	}
+	switch f.MaxDownloadsUnit {
+	case FilterMaxDownloadsMinute:
+		return period, "minutes"
+	case FilterMaxDownloadsHour:
+		return period, "hours"
+	case FilterMaxDownloadsDay:
+		return period, "days"
+	case FilterMaxDownloadsWeek:
+		return period * 7, "days"
+	case FilterMaxDownloadsMonth:
+		return period, "months"
+	}
+	return 1, "days"
+}
+
+// DownloadPeriodSQLiteModifier returns a SQLite datetime modifier string like "-3 days".
+// Callers must handle FilterMaxDownloadsEver separately.
+func (f *Filter) DownloadPeriodSQLiteModifier() string {
+	n, unit := f.downloadPeriodUnits()
+	return fmt.Sprintf("-%d %s", n, unit)
+}
+
+// DownloadPeriodPGInterval returns a PostgreSQL interval string like "3 days".
+// Callers must handle FilterMaxDownloadsEver separately.
+func (f *Filter) DownloadPeriodPGInterval() string {
+	n, unit := f.downloadPeriodUnits()
+	return fmt.Sprintf("%d %s", n, unit)
+}
 
 type SmartEpisodeParams struct {
 	Title   string
@@ -118,6 +142,7 @@ type Filter struct {
 	Priority                  int32                    `json:"priority"`
 	MaxDownloads              int                      `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit          FilterMaxDownloadsUnit   `json:"max_downloads_unit,omitempty"`
+	MaxDownloadsPeriod        int                      `json:"max_downloads_period"`
 	MatchReleases             string                   `json:"match_releases,omitempty"`
 	ExceptReleases            string                   `json:"except_releases,omitempty"`
 	UseRegex                  bool                     `json:"use_regex,omitempty"`
@@ -272,6 +297,7 @@ type FilterUpdate struct {
 	AnnounceTypes             *[]string               `json:"announce_types,omitempty"`
 	MaxDownloads              *int                    `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit          *FilterMaxDownloadsUnit `json:"max_downloads_unit,omitempty"`
+	MaxDownloadsPeriod        *int                    `json:"max_downloads_period,omitempty"`
 	MatchReleases             *string                 `json:"match_releases,omitempty"`
 	ExceptReleases            *string                 `json:"except_releases,omitempty"`
 	UseRegex                  *bool                   `json:"use_regex,omitempty"`

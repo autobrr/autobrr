@@ -162,6 +162,7 @@ CREATE TABLE filter
     priority                     INTEGER   DEFAULT 0    NOT NULL,
     max_downloads                INTEGER   DEFAULT 0,
     max_downloads_unit           TEXT,
+    max_downloads_period         INTEGER   DEFAULT 1    NOT NULL,
     announce_types               TEXT[]    DEFAULT '{}',
     match_releases               TEXT,
     except_releases              TEXT,

@@ -307,6 +307,7 @@ const schema = z.object({
   name: z.string(),
   max_downloads: z.number().optional(),
   max_downloads_unit: z.string().optional(),
+  max_downloads_period: z.number().min(1).default(1),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
   actions: z.array(actionSchema),
   external: z.array(externalFilterSchema)
@@ -418,6 +419,7 @@ export const FilterDetails = () => {
               priority: filter.priority,
               max_downloads: filter.max_downloads,
               max_downloads_unit: filter.max_downloads_unit,
+              max_downloads_period: filter.max_downloads_period,
               use_regex: filter.use_regex || false,
               shows: filter.shows,
               years: filter.years,

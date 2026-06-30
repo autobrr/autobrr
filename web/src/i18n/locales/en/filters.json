@@ -112,6 +112,8 @@
     "maxDownloadsPer": "Max downloads per",
     "selectUnit": "Select unit",
     "maxDownloadsPerTooltip": "The unit of time for counting the maximum downloads per filter.",
+    "maxDownloadsPeriod": "every",
+    "maxDownloadsPeriodTooltip": "Multiplier for the time window. E.g. 3 with DAY = every 3 days.",
     "skipDuplicatesProfile": "Skip Duplicates profile",
     "selectProfile": "Select profile",
     "skipDuplicatesProfileTooltip": "Select the skip duplicate profile.",

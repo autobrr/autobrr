@@ -28,6 +28,7 @@ func getMockFilter() *domain.Filter {
 		Priority:             1,
 		MaxDownloads:         100,
 		MaxDownloadsUnit:     domain.FilterMaxDownloadsHour,
+		MaxDownloadsPeriod:   1,
 		MatchReleases:        "BRRip",
 		ExceptReleases:       "BRRip",
 		UseRegex:             false,
@@ -800,6 +801,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockAction.ClientID = mockClient.ID
 
 			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.FilterID = int64(mockData.ID)
@@ -821,11 +823,8 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockData.Downloads)
 			assert.Equal(t, mockData.Downloads, &domain.FilterDownloads{
-				HourCount:  1,
-				DayCount:   1,
-				WeekCount:  1,
-				MonthCount: 1,
-				TotalCount: 1,
+				PeriodCount: 1,
+				TotalCount:  1,
 			})
 
 			// Cleanup
@@ -835,17 +834,14 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
 		})
 
-		t.Run(fmt.Sprintf("GetFilterDownloads_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
-			mockFilter := &domain.Filter{ID: -1}
+		t.Run(fmt.Sprintf("GetFilterDownloads_Returns_Zero_For_Unknown_ID [%s]", dbType), func(t *testing.T) {
+			mockFilter := &domain.Filter{ID: -1, MaxDownloadsUnit: domain.FilterMaxDownloadsHour}
 			err := repo.GetFilterDownloadCount(t.Context(), mockFilter)
 			assert.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
-				HourCount:  0,
-				DayCount:   0,
-				WeekCount:  0,
-				MonthCount: 0,
-				TotalCount: 0,
+				PeriodCount: 0,
+				TotalCount:  0,
 			})
 		})
 
@@ -902,16 +898,130 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
-				HourCount:  1,
-				DayCount:   1,
-				WeekCount:  1,
-				MonthCount: 1,
-				TotalCount: 1,
+				PeriodCount: 1,
+				TotalCount:  1,
 			})
 
 			// Cleanup
 			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction1.ID})
 			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction2.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
+		t.Run(fmt.Sprintf("GetFilterDownloads_WithPeriod [%s]", dbType), func(t *testing.T) {
+			// 3-day filter: a release 2 days old should be inside the window (PeriodCount == 1).
+			mockFilter := getMockFilter()
+			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsDay
+			mockFilter.MaxDownloadsPeriod = 3
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			mockRelease := getMockRelease()
+			mockRelease.FilterID = mockFilter.ID
+			err = releaseRepo.Store(t.Context(), mockRelease)
+			assert.NoError(t, err)
+
+			mockStatus := getMockReleaseActionStatus()
+			mockStatus.ActionID = int64(mockAction.ID)
+			mockStatus.FilterID = int64(mockFilter.ID)
+			mockStatus.ReleaseID = mockRelease.ID
+			mockStatus.Timestamp = mockStatus.Timestamp.Add(-2 * 24 * time.Hour) // 2 days ago: inside 3-day window, outside 1-day window
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockStatus)
+			assert.NoError(t, err)
+
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			assert.Equal(t, 1, mockFilter.Downloads.PeriodCount) // inside 3-day window
+			assert.Equal(t, 1, mockFilter.Downloads.TotalCount)
+
+			// 1-day filter: the same 2-days-old release must be outside the window (PeriodCount == 0).
+			mockFilter1Day := getMockFilter()
+			mockFilter1Day.MaxDownloadsUnit = domain.FilterMaxDownloadsDay
+			mockFilter1Day.MaxDownloadsPeriod = 1
+			err = repo.Store(t.Context(), mockFilter1Day)
+			assert.NoError(t, err)
+
+			mockAction1Day := getMockAction()
+			mockAction1Day.FilterID = mockFilter1Day.ID
+			mockAction1Day.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction1Day)
+			assert.NoError(t, err)
+
+			mockRelease1Day := getMockRelease()
+			mockRelease1Day.FilterID = mockFilter1Day.ID
+			err = releaseRepo.Store(t.Context(), mockRelease1Day)
+			assert.NoError(t, err)
+
+			mockStatus1Day := getMockReleaseActionStatus()
+			mockStatus1Day.ActionID = int64(mockAction1Day.ID)
+			mockStatus1Day.FilterID = int64(mockFilter1Day.ID)
+			mockStatus1Day.ReleaseID = mockRelease1Day.ID
+			mockStatus1Day.Timestamp = mockStatus1Day.Timestamp.Add(-2 * 24 * time.Hour) // same 2-days-old timestamp
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockStatus1Day)
+			assert.NoError(t, err)
+
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter1Day)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter1Day.Downloads)
+			assert.Equal(t, 0, mockFilter1Day.Downloads.PeriodCount) // outside 1-day window — proves period matters
+
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction1Day.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = repo.Delete(t.Context(), mockFilter1Day.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
+		t.Run(fmt.Sprintf("GetFilterDownloads_EVER [%s]", dbType), func(t *testing.T) {
+			mockFilter := getMockFilter()
+			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsEver
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			mockRelease := getMockRelease()
+			mockRelease.FilterID = mockFilter.ID
+			err = releaseRepo.Store(t.Context(), mockRelease)
+			assert.NoError(t, err)
+
+			mockStatus := getMockReleaseActionStatus()
+			mockStatus.ActionID = int64(mockAction.ID)
+			mockStatus.FilterID = int64(mockFilter.ID)
+			mockStatus.ReleaseID = mockRelease.ID
+			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockStatus)
+			assert.NoError(t, err)
+
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			// For EVER, PeriodCount must equal TotalCount
+			assert.Equal(t, mockFilter.Downloads.TotalCount, mockFilter.Downloads.PeriodCount)
+			assert.Equal(t, 1, mockFilter.Downloads.TotalCount)
+
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
 			_ = repo.Delete(t.Context(), mockFilter.ID)
 			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
 			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -973,15 +1083,13 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
-				HourCount:  0,
-				DayCount:   0,
-				WeekCount:  0,
-				MonthCount: 0,
-				TotalCount: 1,
+				PeriodCount: 0,
+				TotalCount:  1,
 			})
 
 			// Cleanup
 			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction2.ID})
 			_ = repo.Delete(t.Context(), mockFilter.ID)
 			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
 			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -997,11 +1105,8 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
-				HourCount:  0,
-				DayCount:   0,
-				WeekCount:  0,
-				MonthCount: 0,
-				TotalCount: 0,
+				PeriodCount: 0,
+				TotalCount:  0,
 			})
 
 			// Cleanup

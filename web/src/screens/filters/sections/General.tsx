@@ -126,6 +126,17 @@ export const General = () => {
               </div>
             }
           />
+          <NumberField
+            name="max_downloads_period"
+            label={t("filters:general.maxDownloadsPeriod")}
+            placeholder="1"
+            tooltip={
+              <div>
+                <p>{t("filters:general.maxDownloadsPeriodTooltip")}</p>
+                <DocsLink href="https://autobrr.com/filters#rules" />
+              </div>
+            }
+          />
           <Select
             name="max_downloads_unit"
             label={t("filters:general.maxDownloadsPer")}
