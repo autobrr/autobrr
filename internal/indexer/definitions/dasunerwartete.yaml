@@ -1,0 +1,85 @@
+---
+#id: anthelion
+name: DasUnerwartete
+identifier: dasunerwartete
+description: DasUnerwartete (DU) is a GERMAN Private Torrent Tracker for MOVIES / TV / GENERAL.
+language: de-DE
+urls:
+  - https://dasunerwartete.biz/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: unknown
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: Check your profile.
+
+  - name: userId
+    type: secret
+    required: true
+    label: User ID
+    help: Check your profile URL and copy the ID.
+
+irc:
+  network: DasUnerwartete
+  server: irc.dasunerwartete.biz
+  port: 6697
+  tls: true
+  channels:
+    - "#announce"
+  announcers:
+    - DU-Announce
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Must be like username|bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  parse:
+    type: single
+    lines:
+      - tests:
+        - line: '🆕 Harlan.Cobens.Nur.fuer.dein.Leben.S01E07.GERMAN.DL.1080P.WEB.X264-WAYNE | Serien/HD | 1.54 GB | https://dasunerwartete.biz/details.php?id=001'
+          expect:
+            torrentName: Harlan.Cobens.Nur.fuer.dein.Leben.S01E07.GERMAN.DL.1080P.WEB.X264-WAYNE
+            category: Serien/HD
+            torrentSize: 1.54 GB
+            baseUrl: https://dasunerwartete.biz/
+            torrentId: "001"
+        - line: '🆕 DoYouThinkIAmSexy.German.2022.AC3.DVDRiP.x264-GMA | Filme/SD | 699.16 MB | https://dasunerwartete.biz/details.php?id=002'
+          expect:
+            torrentName: DoYouThinkIAmSexy.German.2022.AC3.DVDRiP.x264-GMA
+            category: Filme/SD
+            torrentSize: 699.16 MB
+            baseUrl: https://dasunerwartete.biz/
+            torrentId: "002"
+
+        pattern: '.+ (.+) \| (.+) \| (.+) \| (https?\:\/\/.*\/).*id=(\d{2,})'
+        vars:
+          - torrentName
+          - category
+          - torrentSize
+          - baseUrl
+          - torrentId
+
+    match:
+      infourl: "/details.php?id={{ .torrentId }}"
+      torrenturl: "/rss-download.php?uid={{ .userId }}&pk={{ .passkey }}&torrent={{ .torrentId }}"
