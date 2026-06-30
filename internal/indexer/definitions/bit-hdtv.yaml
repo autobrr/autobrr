@@ -38,15 +38,21 @@ irc:
 
     - name: auth.account
       type: text
-      required: true
+      required: false
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot.
 
     - name: auth.password
       type: secret
-      required: true
+      required: false
       label: NickServ Password
       help: NickServ password
+
+    - name: channels.password
+      type: secret
+      required: true
+      label: Channel Password
+      help: Channel password for #bit-hdtv
 
   parse:
     type: single
