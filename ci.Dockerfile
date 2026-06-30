@@ -1,5 +1,5 @@
 # build app
-FROM --platform=$BUILDPLATFORM golang:1.25-alpine3.22 AS app-builder
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine3.24 AS app-builder
 RUN apk add --no-cache git tzdata
 
 ENV SERVICE=autobrr
@@ -33,11 +33,11 @@ go build -pgo=cpu.pprof -ldflags "-s -w -X main.version=${VERSION} -X main.commi
 go build -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${REVISION} -X main.date=${BUILDTIME}" -o /out/bin/autobrrctl cmd/autobrrctl/main.go
 
 # build runner
-FROM alpine:latest AS runner
+FROM alpine:3.24 AS runner
 
 LABEL org.opencontainers.image.source="https://github.com/autobrr/autobrr"
 LABEL org.opencontainers.image.licenses="GPL-2.0-or-later"
-LABEL org.opencontainers.image.base.name="alpine:latest"
+LABEL org.opencontainers.image.base.name="alpine:3.24"
 
 ENV HOME="/config" \
     XDG_CONFIG_HOME="/config" \
