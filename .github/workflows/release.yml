@@ -440,78 +440,78 @@ jobs:
           - platform: linux/386
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/amd64
             runner: ubuntu-latest
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/amd64/v2
             runner: ubuntu-latest
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/amd64/v3
             runner: ubuntu-latest
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm/v6
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm/v7
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v8.2 # Neoverse + Raspberry Pi
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v8.4 # AWS Graviton3
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v9
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v9.2 # Apple M4
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/ppc64le
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/riscv64
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/s390x
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: windows/amd64
             # runner: windows-latest
             runner: ubuntu-latest
             qemu: true
-            file: ./ciwindows.Dockerfile
+            file: ./distrib/docker/ciwindows.Dockerfile
 
     runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
     steps:
@@ -566,7 +566,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ${{ matrix.file || './ci.Dockerfile' }}
+          file: ${{ matrix.file || './distrib/docker/ci.Dockerfile' }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}
