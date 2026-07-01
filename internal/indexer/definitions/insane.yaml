@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: insane
 name: iNSANE
 identifier: insane
@@ -24,10 +25,6 @@ irc:
   server: irc2.hu
   port: 6697
   tls: true
-  channels:
-    - "#insane"
-  announcers:
-    - Insane
   settings:
     - name: nick
       type: text
@@ -47,27 +44,31 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '[Új] Good.Kids.2016.BDRip.x264.HuN-No1 -== Film/Hun/SD ==- 923.67 MB - 5 file => https://newinsane.info/details.php?id=652387'
-          expect:
-            torrentName: Good.Kids.2016.BDRip.x264.HuN-No1
-            category: 'Film/Hun/SD'
-            torrentSize: "923.67 MB"
-            baseUrl: https://newinsane.info/
-            torrentId: "652387"
-        pattern: \[Új\] (.*) -== (.*) ==- (.*) - .* file => (https://.*/)details.php.*id=(.*)
-        vars:
-          - torrentName
-          - category
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#insane"
+      announcers:
+        - Insane
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: '[Új] Good.Kids.2016.BDRip.x264.HuN-No1 -== Film/Hun/SD ==- 923.67 MB - 5 file => https://newinsane.info/details.php?id=652387'
+              expect:
+                releaseName: Good.Kids.2016.BDRip.x264.HuN-No1
+                category: 'Film/Hun/SD'
+                torrentSize: "923.67 MB"
+                baseUrl: https://newinsane.info/
+                torrentId: "652387"
+            pattern: \[Új\] (.*) -== (.*) ==- (.*) - .* file => (https://.*/)details.php.*id=(.*)
+            vars:
+              - releaseName
+              - category
+              - torrentSize
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download.php/{{ .torrentId }}/{{ .passkey }}/[iNs-{{ .torrentId }}][{{ .category }}]{{ .torrentName }}.torrent"
-      encode:
-        - torrentName
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download.php/{{ .torrentId }}/{{ .passkey }}/[iNs-{{ .torrentId }}][{{ .category }}]{{ .releaseName }}.torrent"
+          encode:
+            - releaseName

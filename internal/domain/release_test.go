@@ -464,8 +464,9 @@ func TestRelease_Parse(t *testing.T) {
 
 func TestRelease_MapVars(t *testing.T) {
 	type args struct {
-		varMap     map[string]string
-		definition IndexerDefinition
+		varMap map[string]string
+		//definition IndexerDefinition
+		forceSizeUnit string
 	}
 	tests := []struct {
 		name   string
@@ -639,7 +640,7 @@ func TestRelease_MapVars(t *testing.T) {
 					"torrentSize":      "10000",
 					"tags":             "hip.hop,rhythm.and.blues, 2000s",
 				},
-				definition: IndexerDefinition{IRC: &IndexerIRC{Parse: &IndexerIRCParse{ForceSizeUnit: "MB"}}},
+				forceSizeUnit: "MB",
 			},
 		},
 		{
@@ -710,7 +711,7 @@ func TestRelease_MapVars(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			_ = r.MapVars(&tt.args.definition, tt.args.varMap)
+			_ = r.MapVars(tt.args.varMap, tt.args.forceSizeUnit)
 
 			assert.Equal(t, tt.want, r)
 		})

@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: FinElite
 name: FinElite
 identifier: finelite
@@ -23,10 +24,6 @@ irc:
   server: irc.predataba.se
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - FinElite
   settings:
     - name: nick
       type: text
@@ -34,25 +31,29 @@ irc:
       label: Nick
       help: Bot nick. Eg. user_bot
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'This Is A New show S00E00 720p WEB H264-Test [TV HD] 1.40 GB https://finelite.org/details/0000000'
-          expect:
-            torrentName: This Is A New show S00E00 720p WEB H264-Test
-            category: TV HD
-            torrentSize: 1.40 GB
-            baseUrl: https://finelite.org/
-            torrentId: "0000000"
-        pattern: '(.+) \[(.+)\] (.+) (https?\:\/\/[^\/]+\/)details\/(\d+)'
-        vars:
-          - torrentName
-          - category
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - FinElite
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: 'This Is A New show S00E00 720p WEB H264-Test [TV HD] 1.40 GB https://finelite.org/details/0000000'
+              expect:
+                releaseName: This Is A New show S00E00 720p WEB H264-Test
+                category: TV HD
+                torrentSize: 1.40 GB
+                baseUrl: https://finelite.org/
+                torrentId: "0000000"
+            pattern: '(.+) \[(.+)\] (.+) (https?\:\/\/[^\/]+\/)details\/(\d+)'
+            vars:
+              - releaseName
+              - category
+              - torrentSize
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/details/{{ .torrentId }}"
-      torrenturl: "/lataa/{{ .authkey }}/{{ .torrentId }}.torrent"
+        match:
+          infourl: "/details/{{ .torrentId }}"
+          downloadurl: "/lataa/{{ .authkey }}/{{ .torrentId }}.torrent"

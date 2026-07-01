@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: orpheus
 name: Orpheus
 identifier: ops
@@ -43,10 +44,6 @@ irc:
   server: irc.orpheus.network
   port: 7000
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - hermes
   settings:
     - name: nick
       type: text
@@ -73,51 +70,55 @@ irc:
       label: Invite command
       help: Invite auth with Hermes. Replace USERNAME and IRCKEY.
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'TORRENT: Dirty Dike – Bogies & Alcohol – [2008] [Album] CD/MP3/320 – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download'
-          expect:
-            torrentName: Dirty Dike – Bogies & Alcohol – [2008] [Album] CD/MP3/320
-            title: Dirty Dike – Bogies & Alcohol
-            year: "2008"
-            category: Album
-            releaseTags: CD/MP3/320
-            tags: hip.hop,uk.hip.hop,united.kingdom
-            baseUrl: https://orpheus.network/
-            torrentId: "0000000"
-        - line: 'TORRENT: Various Artists – Bicycle Day: 85 Yrs of LSD Special – [2023] [Compilation] WEB/FLAC/Lossless – ambient,electronic – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download'
-          expect:
-            torrentName: 'Various Artists – Bicycle Day: 85 Yrs of LSD Special – [2023] [Compilation] WEB/FLAC/Lossless'
-            title: 'Various Artists – Bicycle Day: 85 Yrs of LSD Special'
-            year: "2023"
-            category: Compilation
-            releaseTags: WEB/FLAC/Lossless
-            tags: ambient,electronic
-            baseUrl: https://orpheus.network/
-            torrentId: "0000000"
-        - line: 'TORRENT: Snoop Dogg – Untitled – [2001] [Sampler] Vinyl/MP3/320 –  – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download'
-          expect:
-            torrentName: Snoop Dogg – Untitled – [2001] [Sampler] Vinyl/MP3/320
-            title: Snoop Dogg – Untitled
-            year: "2001"
-            category: Sampler
-            releaseTags: Vinyl/MP3/320
-            tags: ""
-            baseUrl: https://orpheus.network/
-            torrentId: "0000000"
-        pattern: 'TORRENT: ((.*) . \[(.*?)\] \[(.*?)\] (.*)) . \s*(.*) . https?:\/\/.* . (https?:\/\/.*\/).*torrentid=(\d+).*'
-        vars:
-          - torrentName
-          - title
-          - year
-          - category
-          - releaseTags
-          - tags
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - hermes
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: 'TORRENT: Dirty Dike – Bogies & Alcohol – [2008] [Album] CD/MP3/320 – hip.hop,uk.hip.hop,united.kingdom – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download'
+              expect:
+                releaseName: Dirty Dike – Bogies & Alcohol – [2008] [Album] CD/MP3/320
+                title: Dirty Dike – Bogies & Alcohol
+                year: "2008"
+                category: Album
+                releaseTags: CD/MP3/320
+                tags: hip.hop,uk.hip.hop,united.kingdom
+                baseUrl: https://orpheus.network/
+                torrentId: "0000000"
+            - line: 'TORRENT: Various Artists – Bicycle Day: 85 Yrs of LSD Special – [2023] [Compilation] WEB/FLAC/Lossless – ambient,electronic – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download'
+              expect:
+                releaseName: 'Various Artists – Bicycle Day: 85 Yrs of LSD Special – [2023] [Compilation] WEB/FLAC/Lossless'
+                title: 'Various Artists – Bicycle Day: 85 Yrs of LSD Special'
+                year: "2023"
+                category: Compilation
+                releaseTags: WEB/FLAC/Lossless
+                tags: ambient,electronic
+                baseUrl: https://orpheus.network/
+                torrentId: "0000000"
+            - line: 'TORRENT: Snoop Dogg – Untitled – [2001] [Sampler] Vinyl/MP3/320 –  – https://orpheus.network/torrents.php?id=0000000 – https://orpheus.network/torrents.php?id=0000000&torrentid=0000000&action=download'
+              expect:
+                releaseName: Snoop Dogg – Untitled – [2001] [Sampler] Vinyl/MP3/320
+                title: Snoop Dogg – Untitled
+                year: "2001"
+                category: Sampler
+                releaseTags: Vinyl/MP3/320
+                tags: ""
+                baseUrl: https://orpheus.network/
+                torrentId: "0000000"
+            pattern: 'TORRENT: ((.*) . \[(.*?)\] \[(.*?)\] (.*)) . \s*(.*) . https?:\/\/.* . (https?:\/\/.*\/).*torrentid=(\d+).*'
+            vars:
+              - releaseName
+              - title
+              - year
+              - category
+              - releaseTags
+              - tags
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrents.php?torrentid={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
+        match:
+          infourl: "/torrents.php?torrentid={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"

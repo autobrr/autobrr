@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: nordicquality
 name: NordicQuality
 identifier: nordicquality
@@ -24,10 +25,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#nordicquality"
-  announcers:
-    - NordicQuality
   settings:
     - name: nick
       type: text
@@ -47,35 +44,39 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-          - line: '[ NEW ][ TV ][ WEB-DL ][ Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP ][ 6.74 GiB ][ https://nordicq.org/torrents/0000 ]'
-            expect:
-              announceTypeEnum: NEW
-              category: TV
-              releaseTags: WEB-DL
-              torrentName: Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP
-              torrentSize: 6.74 GiB
-              baseUrl: https://nordicq.org/
-              torrentId: "0000"
+  channels:
+    - name: "#nordicquality"
+      announcers:
+        - NordicQuality
+      parse:
+        type: single
+        lines:
+          - tests:
+              - line: '[ NEW ][ TV ][ WEB-DL ][ Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP ][ 6.74 GiB ][ https://nordicq.org/torrents/0000 ]'
+                expect:
+                  announceTypeEnum: NEW
+                  category: TV
+                  releaseTags: WEB-DL
+                  releaseName: Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP
+                  torrentSize: 6.74 GiB
+                  baseUrl: https://nordicq.org/
+                  torrentId: "0000"
 
-        pattern: '\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (https.*\/).*\/(\d+) \]'
-        vars:
-          - announceTypeEnum
-          - category
-          - releaseTags
-          - torrentName
-          - torrentSize
-          - baseUrl
-          - torrentId
+            pattern: '\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (.*) \]\[ (https.*\/).*\/(\d+) \]'
+            vars:
+              - announceTypeEnum
+              - category
+              - releaseTags
+              - releaseName
+              - torrentSize
+              - baseUrl
+              - torrentId
 
-    mappings:
-      announceTypeEnum:
-        "NEW":
-          announceType: NEW
+        mappings:
+          announceTypeEnum:
+            "NEW":
+              announceType: NEW
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

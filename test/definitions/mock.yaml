@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: mock
 name: MockIndexer
 identifier: mock
@@ -24,10 +25,6 @@ irc:
   server: localhost
   port: 6697
   tls: false
-  channels:
-    - "#announces"
-  announcers:
-    - _AnnounceBot_
   settings:
     - name: nick
       type: text
@@ -47,22 +44,26 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://localhost:3999/torrent/000000"
-          - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://localhost:3999/torrent/000000"
-        pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
-        vars:
-          - category
-          - torrentName
-          - uploader
-          - freeleech
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announces"
+      announcers:
+        - _AnnounceBot_
+      parse:
+        type: single
+        lines:
+          - test:
+              - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' -  http://localhost:3999/torrent/000000"
+              - "New Torrent Announcement: <PC :: Iso>  Name:'debian live 10 6 0 amd64 standard iso' uploaded by 'Anonymous' freeleech -  http://localhost:3999/torrent/000000"
+            pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
+            vars:
+              - category
+              - releaseName
+              - uploader
+              - freeleech
+              - baseUrl
+              - torrentId
 
-    match:
-      torrenturl: "/file/{{ .torrentId }}/{{ .torrentName }}.torrent"
-      encode:
-        - torrentName
+        match:
+          torrenturl: "/file/{{ .torrentId }}/{{ .releaseName }}.torrent"
+          encode:
+            - releaseName

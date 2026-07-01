@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: happyfappy
 name: HappyFappy
 identifier: happyfappy
@@ -30,10 +31,6 @@ irc:
   server: irc.rizon.net
   port: 6697
   tls: true
-  channels:
-    - "#HF-Announce"
-  announcers:
-    - "WizBoy"
   settings:
     - name: nick
       type: text
@@ -53,28 +50,32 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-          - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.net/torrents.php?torrentid=00000'
-            expect:
-              torrentName: '[OnlyFans] Some Actress, Other Actress - Having fun together'
-              torrentSize: 1.03 GiB
-              uploader: UPLOADER
-              tags: 1080p, lesbian, onlyfans.com, fansite
-              baseUrl: https://www.happyfappy.net/
-              torrentId: 00000
+  channels:
+    - name: "#HF-Announce"
+      announcers:
+        - "WizBoy"
+      parse:
+        type: single
+        lines:
+          - tests:
+              - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.net/torrents.php?torrentid=00000'
+                expect:
+                  releaseName: '[OnlyFans] Some Actress, Other Actress - Having fun together'
+                  torrentSize: 1.03 GiB
+                  uploader: UPLOADER
+                  tags: 1080p, lesbian, onlyfans.com, fansite
+                  baseUrl: https://www.happyfappy.net/
+                  torrentId: 00000
 
-        pattern: '^(.+) - Size: (.+) - Uploader: (.+) - Tags: (.+) - (https:\/\/.*\/).*id=(\d+)$'
-        vars:
-          - torrentName
-          - torrentSize
-          - uploader
-          - tags
-          - baseUrl
-          - torrentId
+            pattern: '^(.+) - Size: (.+) - Uploader: (.+) - Tags: (.+) - (https:\/\/.*\/).*id=(\d+)$'
+            vars:
+              - releaseName
+              - torrentSize
+              - uploader
+              - tags
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrents.php?torrentid={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+        match:
+          infourl: "/torrents.php?torrentid={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

@@ -144,23 +144,24 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
 		for _, channel := range definition.IRC.Channels {
 			// some channels are defined in mixed case
-			channel = strings.ToLower(channel)
+			channelName := strings.ToLower(channel.Name)
 
-			h.announceProcessors[channel] = announce.NewAnnounceProcessor(h.log, h.releaseSvc, definition)
+			h.announceProcessors[channelName] = announce.NewAnnounceProcessor(h.log, h.releaseSvc, definition)
 
-			h.channelHealth[channel] = &channelHealth{
-				name:       channel,
+			h.channelHealth[channelName] = &channelHealth{
+				name:       channelName,
 				monitoring: false,
 			}
 
 			// create map of valid channels
-			h.validChannels[channel] = struct{}{}
+			h.validChannels[channelName] = struct{}{}
+
+			// create map of valid announcers
+			for _, announcer := range channel.Announcers {
+				h.validAnnouncers[strings.ToLower(announcer)] = struct{}{}
+			}
 		}
 
-		// create map of valid announcers
-		for _, announcer := range definition.IRC.Announcers {
-			h.validAnnouncers[strings.ToLower(announcer)] = struct{}{}
-		}
 	}
 }
 

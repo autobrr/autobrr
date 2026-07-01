@@ -549,11 +549,10 @@ func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefiniti
 func (s *service) LoadIndexerDefinitions() error {
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
-		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
+		return errors.Wrap(err, "could not read indexer definitions directory")
 	}
 
 	if len(entries) == 0 {
-		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
 		return errors.Wrap(err, "could not read directory")
 	}
 
@@ -569,8 +568,7 @@ func (s *service) LoadIndexerDefinitions() error {
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed reading file: %s", file)
-			return errors.Wrap(err, "could not read file: %s", file)
+			return errors.Wrap(err, "could not read indexer definition file: %s", file)
 		}
 
 		var d domain.IndexerDefinition
@@ -578,13 +576,26 @@ func (s *service) LoadIndexerDefinitions() error {
 		dec.KnownFields(true)
 
 		if err = dec.Decode(&d); err != nil {
-			s.log.Error().Stack().Err(err).Msgf("failed unmarshal file: %s", file)
-			return errors.Wrap(err, "could not unmarshal file: %s", file)
+			return errors.Wrap(err, "could not unmarshal indexer definition file: %s", file)
 		}
 
-		if d.Implementation == "" {
-			d.Implementation = "irc"
-		}
+		d.Prepare()
+
+		//if d.Implementation == "" {
+		//	d.Implementation = "irc"
+		//}
+		//
+		//if d.IRC != nil {
+		//	d.IRC.ChannelsMap = map[string]*domain.IndexerIRCV2Channel{}
+		//
+		//	for _, channel := range d.IRC.Channels {
+		//		d.IRC.ChannelsMap[channel.Name] = &domain.IndexerIRCV2Channel{
+		//			Name:       channel.Name,
+		//			Announcers: channel.Announcers,
+		//			Parse:      channel.Parse,
+		//		}
+		//	}
+		//}
 
 		s.definitions[d.Identifier] = d
 	}
@@ -634,6 +645,27 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 	return d.ToIndexerDefinition(), nil
 }
 
+func OpenAndDecodeDefinition(file string, data any) error {
+	f, err := os.Open(file)
+	if err != nil {
+		return errors.Wrap(err, "could not open file: %s", file)
+	}
+	defer f.Close()
+
+	dec := yaml.NewDecoder(f)
+	dec.KnownFields(false)
+
+	if err = dec.Decode(data); err != nil {
+		return errors.Wrap(err, "could not decode definition file: %s", file)
+	}
+
+	if data == nil {
+		return errors.New("empty definition file")
+	}
+
+	return nil
+}
+
 // LoadCustomIndexerDefinitions load definitions from custom path
 func (s *service) LoadCustomIndexerDefinitions() error {
 	if s.config.CustomDefinitions == "" {
@@ -650,8 +682,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 	entries, err := outputDirRead.ReadDir(0)
 	if err != nil {
-		s.log.Fatal().Err(err).Stack().Msg("failed reading directory")
-		return errors.Wrap(err, "could not read directory")
+		return errors.Wrap(err, "could not read customDefinitions directory: %s", s.config.CustomDefinitions)
 	}
 
 	customCount := 0
@@ -667,13 +698,25 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		s.log.Trace().Msgf("parsing custom definition: %s", file)
 
-		definition, err := OpenAndProcessDefinition(file)
-		if err != nil {
+		var def *domain.IndexerDefinitionCustom
+		if err := OpenAndDecodeDefinition(file, &def); err != nil {
 			s.log.Error().Err(err).Msgf("could not open definition file: %s", file)
 			continue
 		}
 
-		s.definitions[definition.Identifier] = *definition
+		//if def.Implementation == "" {
+		//	def.Implementation = "irc"
+		//}
+
+		s.definitions[def.Identifier] = *def.ToIndexerDefinition()
+
+		//definition, err := OpenAndProcessDefinition(file)
+		//if err != nil {
+		//	s.log.Error().Err(err).Msgf("could not open definition file: %s", file)
+		//	continue
+		//}
+		//
+		//s.definitions[definition.Identifier] = *definition
 
 		customCount++
 	}

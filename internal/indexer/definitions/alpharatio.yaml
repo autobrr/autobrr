@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: alpharatio
 name: AlphaRatio
 identifier: alpharatio
@@ -30,10 +31,6 @@ irc:
   server: irc.alpharatio.cc
   port: 7000
   tls: true
-  channels:
-    - "#Announce"
-  announcers:
-    - Voyager
   settings:
     - name: nick
       type: text
@@ -48,41 +45,45 @@ irc:
       label: Invite command
       help: Invite auth with Voyager. Replace USERNAME with site nick and set IRCKEY.
 
-  parse:
-    type: multi
-    forcesizeunit: MB
-    lines:
-      - tests:
-        - line: '[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]'
-          expect:
-            category: moviehd
-            torrentName: that.movie.2017.internal.1080p.bluray.crf.x264-group
-            baseUrl: https://alpharatio.cc/
-            groupId: "000000"
-            torrentId: "000000"
-            preTime: 2 mins, 59 secs
-        pattern: '\[.*\]-\[(.*)\]-\[(.*)\]-\[.*\]-\[ (https?://.+/).*id=(.*) ]-\[ (\d+) \](?:-\[ \w* (.*) after .* ])?'
-        vars:
-          - category
-          - torrentName
-          - baseUrl
-          - groupId
-          - torrentId
-          - preTime
-      - tests:
-        - line: '[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]'
-          expect:
-            scene: "1"
-            torrentSize: "10659"
-            freeleech: "1"
-            auto: "1"
-        pattern: '\[.*\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.*\]'
-        vars:
-          - scene
-          - torrentSize
-          - freeleech
-          - auto
+  channels:
+    - name: "#Announce"
+      announcers:
+        - Voyager
+      parse:
+        type: multi
+        forcesizeunit: MB
+        lines:
+          - tests:
+            - line: '[new release]-[moviehd]-[that.movie.2017.internal.1080p.bluray.crf.x264-group]-[url]-[ https://alpharatio.cc/torrents.php?id=000000 ]-[ 000000 ]-[ uploaded 2 mins, 59 secs after pre. ]'
+              expect:
+                category: moviehd
+                releaseName: that.movie.2017.internal.1080p.bluray.crf.x264-group
+                baseUrl: https://alpharatio.cc/
+                groupId: "000000"
+                torrentId: "000000"
+                preTime: 2 mins, 59 secs
+            pattern: '\[.*\]-\[(.*)\]-\[(.*)\]-\[.*\]-\[ (https?://.+/).*id=(.*) ]-\[ (\d+) \](?:-\[ \w* (.*) after .* ])?'
+            vars:
+              - category
+              - releaseName
+              - baseUrl
+              - groupId
+              - torrentId
+              - preTime
+          - tests:
+            - line: '[AutoDL]-[MovieHD]-[000000]-[ 1 | 10659 | 1 | 1 ]-[That.Movie.2017.INTERNAL.1080p.BluRay.CRF.x264-GROUP]'
+              expect:
+                scene: "1"
+                torrentSize: "10659"
+                freeleech: "1"
+                auto: "1"
+            pattern: '\[.*\]-\[.*\]-\[.*\]-\[ ([01]) \| (\d+) \| ([01]) \| ([01]) \]-\[.*\]'
+            vars:
+              - scene
+              - torrentSize
+              - freeleech
+              - auto
 
-    match:
-      infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+        match:
+          infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

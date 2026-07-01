@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: torrentnetwork
 name: TorrentNetwork
 identifier: torrentnetwork
@@ -24,10 +25,6 @@ irc:
   server: irc.tntracker.org
   port: 19436
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - "|TN|"
   settings:
     - name: nick
       type: text
@@ -47,32 +44,36 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: multi
-    lines:
-      - tests:
-        - line: '{New Torrent} Name {Luke_EP--Wildstyle_-_Sump_Ting-(RNR002)-WEB-2016-OMA} Typ {Music|MP3} Pre {14 s}'
-          expect:
-            torrentName: Luke_EP--Wildstyle_-_Sump_Ting-(RNR002)-WEB-2016-OMA
-            category: Music|MP3
-            preTime: 14 s
-        pattern: '\{New Torrent\} Name \{(.*)\} Typ \{(.+?)\}(?: Pre \{(.*)\})?'
-        vars:
-          - torrentName
-          - category
-          - preTime
-      - tests:
-        - line: '{New Torrent} Size {24.629 MiB} Files {5} Link {https://tntracker.org/torrent/000000}'
-          expect:
-            torrentSize: 24.629 MiB
-            baseUrl: https://tntracker.org/
-            torrentId: "000000"
-        pattern: '\{New Torrent\} Size \{(.*)\} Files \{\d+\} Link \{(https?:\/\/[^\/]+\/)torrent\/(\d+)\}'
-        vars:
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - "|TN|"
+      parse:
+        type: multi
+        lines:
+          - tests:
+            - line: '{New Torrent} Name {Luke_EP--Wildstyle_-_Sump_Ting-(RNR002)-WEB-2016-OMA} Typ {Music|MP3} Pre {14 s}'
+              expect:
+                releaseName: Luke_EP--Wildstyle_-_Sump_Ting-(RNR002)-WEB-2016-OMA
+                category: Music|MP3
+                preTime: 14 s
+            pattern: '\{New Torrent\} Name \{(.*)\} Typ \{(.+?)\}(?: Pre \{(.*)\})?'
+            vars:
+              - releaseName
+              - category
+              - preTime
+          - tests:
+            - line: '{New Torrent} Size {24.629 MiB} Files {5} Link {https://tntracker.org/torrent/000000}'
+              expect:
+                torrentSize: 24.629 MiB
+                baseUrl: https://tntracker.org/
+                torrentId: "000000"
+            pattern: '\{New Torrent\} Size \{(.*)\} Files \{\d+\} Link \{(https?:\/\/[^\/]+\/)torrent\/(\d+)\}'
+            vars:
+              - torrentSize
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrent/{{ .torrentId }}"
-      torrenturl: "/download/{{ .torrentId }}/{{ .passkey }}"
+        match:
+          infourl: "/torrent/{{ .torrentId }}"
+          downloadurl: "/download/{{ .torrentId }}/{{ .passkey }}"

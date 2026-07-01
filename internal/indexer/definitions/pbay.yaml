@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: pb
 name: Pornbay
 identifier: pornbay
@@ -30,12 +31,6 @@ irc:
   server: irc.digitalirc.org
   port: 6697
   tls: true
-  channels:
-    - "#pornbay-announce"
-  announcers:
-    - "PB-Announcer"
-    - "Llamab1t"
-    - "Llamab3t"
   settings:
     - name: nick
       type: text
@@ -55,35 +50,41 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000'
-          expect:
-            category: XXX-Cateogry
-            torrentName: '[SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p]'
-            torrentSize: 4.77 GB
-            uploader: Tester
-            baseUrl: https://pornbay.org/
-            torrentId: "000000"
-        - line: '[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000'
-          expect:
-            category: XXX-Category-2
-            torrentName: SomeXXXSite - Some Name
-            torrentSize: 1.35 GB
-            uploader: someUploader
-            baseUrl: https://pornbay.org/
-            torrentId: "000000"
-        pattern: '\[(.+?)\] (\[?.*\]?.*) \[([0-9]+?.*?) - Uploader: (.+)\] - (https:\/\/.+\/)torrents.php\?id=(\d+)'
-        vars:
-          - category
-          - torrentName
-          - torrentSize
-          - uploader
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#pornbay-announce"
+      announcers:
+        - "PB-Announcer"
+        - "Llamab1t"
+        - "Llamab3t"
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: '[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000'
+              expect:
+                category: XXX-Cateogry
+                releaseName: '[SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p]'
+                torrentSize: 4.77 GB
+                uploader: Tester
+                baseUrl: https://pornbay.org/
+                torrentId: "000000"
+            - line: '[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000'
+              expect:
+                category: XXX-Category-2
+                releaseName: SomeXXXSite - Some Name
+                torrentSize: 1.35 GB
+                uploader: someUploader
+                baseUrl: https://pornbay.org/
+                torrentId: "000000"
+            pattern: '\[(.+?)\] (\[?.*\]?.*) \[([0-9]+?.*?) - Uploader: (.+)\] - (https:\/\/.+\/)torrents.php\?id=(\d+)'
+            vars:
+              - category
+              - releaseName
+              - torrentSize
+              - uploader
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+        match:
+          infourl: "/torrents.php?id={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: brks
 name: BrokenStones
 identifier: brks
@@ -30,10 +31,6 @@ irc:
   server: irc.brokenstones.is
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - stonekeeper
   settings:
     - name: nick
       type: text
@@ -60,29 +57,33 @@ irc:
       label: Invite command
       help: Invite auth with StoneKeeper. Replace USERNAME and IRCKEY.
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'TORRENT: Broken Stones [4.2.0/U2B] - 4.20 MB - Mac Category - private, tracker - https://brokenstones.is/torrents.php?id=777 / https://brokenstones.is/torrents.php?action=download&id=666'
-          expect:
-            torrentName: Broken Stones [4.2.0/U2B]
-            torrentSize: 4.20 MB
-            category: Mac Category
-            tags: private, tracker
-            baseUrl: https://brokenstones.is/
-            groupId: "777"
-            torrentId: "666"
-        pattern: 'TORRENT: (.*\]) - (.*?) - (.*?) - (.*?) - (https:\/\/brokenstones\.is\/)torrents.php\?id=(\d+) \/ https:\/\/brokenstones.is\/torrents.php\?action=download&id=(\d+)'
-        vars:
-          - torrentName
-          - torrentSize
-          - category
-          - tags
-          - baseUrl
-          - groupId
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - stonekeeper
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: 'TORRENT: Broken Stones [4.2.0/U2B] - 4.20 MB - Mac Category - private, tracker - https://brokenstones.is/torrents.php?id=777 / https://brokenstones.is/torrents.php?action=download&id=666'
+              expect:
+                releaseName: Broken Stones [4.2.0/U2B]
+                torrentSize: 4.20 MB
+                category: Mac Category
+                tags: private, tracker
+                baseUrl: https://brokenstones.is/
+                groupId: "777"
+                torrentId: "666"
+            pattern: 'TORRENT: (.*\]) - (.*?) - (.*?) - (.*?) - (https:\/\/brokenstones\.is\/)torrents.php\?id=(\d+) \/ https:\/\/brokenstones.is\/torrents.php\?action=download&id=(\d+)'
+            vars:
+              - releaseName
+              - torrentSize
+              - category
+              - tags
+              - baseUrl
+              - groupId
+              - torrentId
 
-    match:
-      infourl: "/torrents.php?id={{ .groupId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+        match:
+          infourl: "/torrents.php?id={{ .groupId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

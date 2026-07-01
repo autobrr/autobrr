@@ -1,3 +1,5 @@
+---
+version: 2
 #id: abnormal
 name: ABNormal
 identifier: abnormal
@@ -27,10 +29,6 @@ irc:
   server: irc.abn.lol
   port: 33333
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - ABN_BOT
   settings:
     - name: nick
       type: text
@@ -55,21 +53,25 @@ irc:
       required: true
       label: Network password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|'
-          expect:
-            baseUrl: https://abn.lol/
-            torrentId: "000000"
-            torrentName: Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP
-        pattern: '^\s*\|.+\|\s*\|\s(https?\:\/\/[^\/]+\/).*[&\?]ReleaseId\=(\d+)\s\|[\s:]+\|([^|]+)\|\s*'
-        vars:
-          - baseUrl
-          - torrentId
-          - torrentName
+  channels:
+    - name: "#announce"
+      announcers:
+        - ABN_BOT
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: '|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|'
+              expect:
+                baseUrl: https://abn.lol/
+                torrentId: "000000"
+                releaseName: Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP
+            pattern: '^\s*\|.+\|\s*\|\s(https?\:\/\/[^\/]+\/).*[&\?]ReleaseId\=(\d+)\s\|[\s:]+\|([^|]+)\|\s*'
+            vars:
+              - baseUrl
+              - torrentId
+              - releaseName
 
-    match:
-      infourl: "/Torrent/Details?ReleaseId={{ .torrentId }}"
-      torrenturl: "/Feed/Download?UserID={{ .uid }}&TorrentKey={{ .passkey }}&ReleaseId={{ .torrentId }}"
+        match:
+          infourl: "/Torrent/Details?ReleaseId={{ .torrentId }}"
+          downloadurl: "/Feed/Download?UserID={{ .uid }}&TorrentKey={{ .passkey }}&ReleaseId={{ .torrentId }}"

@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: polishtracker
 name: PolishTracker
 identifier: polishtracker
@@ -24,10 +25,6 @@ irc:
   server: irc.pte.nu
   port: 6775
   tls: true
-  channels:
-    - "#pt-announce"
-  announcers:
-    - PT-BOT
   settings:
     - name: nick
       type: text
@@ -54,39 +51,43 @@ irc:
       label: Invite command
       help: Invite auth with PT-BOT. Replace IRCKEY with your IRC key.
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '::: PolishTracker :::  Torrent ( Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 2.14 GB )  ||  Link: ( https://pte.nu/torrents/000000 )  ||  Wiecej: ( http://www.filmweb.pl/film?id=000000 )'
-          expect:
-            torrentName: Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP
-            category: movies HD
-            torrentSize: 2.14 GB
-            baseUrl: https://pte.nu/
-            torrentId: "000000"
-        - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP )  ||  Kategoria: ( movies SD )  ||  Rozmiar: ( 1.15 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
-          expect:
-            torrentName: Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP
-            category: movies SD
-            torrentSize: 1.15 GB
-            baseUrl: https://pte.nu/
-            torrentId: "000000"
-        - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 5.02 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
-          expect:
-            torrentName: Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP
-            category: movies HD
-            torrentSize: 5.02 GB
-            baseUrl: https://pte.nu/
-            torrentId: "000000"
-        pattern: '::: PolishTracker :::  Torrent \( (.+) \)  \|\|  Kategoria: \( (.+) \)  \|\|  Rozmiar: \( (.+) \)  \|\|  Link: \( (https:\/\/.+\/)torrents\/(\d+) \)'
-        vars:
-          - torrentName
-          - category
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#pt-announce"
+      announcers:
+        - PT-BOT
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: '::: PolishTracker :::  Torrent ( Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 2.14 GB )  ||  Link: ( https://pte.nu/torrents/000000 )  ||  Wiecej: ( http://www.filmweb.pl/film?id=000000 )'
+              expect:
+                releaseName: Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP
+                category: movies HD
+                torrentSize: 2.14 GB
+                baseUrl: https://pte.nu/
+                torrentId: "000000"
+            - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP )  ||  Kategoria: ( movies SD )  ||  Rozmiar: ( 1.15 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
+              expect:
+                releaseName: Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP
+                category: movies SD
+                torrentSize: 1.15 GB
+                baseUrl: https://pte.nu/
+                torrentId: "000000"
+            - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 5.02 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
+              expect:
+                releaseName: Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP
+                category: movies HD
+                torrentSize: 5.02 GB
+                baseUrl: https://pte.nu/
+                torrentId: "000000"
+            pattern: '::: PolishTracker :::  Torrent \( (.+) \)  \|\|  Kategoria: \( (.+) \)  \|\|  Rozmiar: \( (.+) \)  \|\|  Link: \( (https:\/\/.+\/)torrents\/(\d+) \)'
+            vars:
+              - releaseName
+              - category
+              - torrentSize
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/downrss/{{ .rsskey }}/{{ .torrentId }}"
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/downrss/{{ .rsskey }}/{{ .torrentId }}"

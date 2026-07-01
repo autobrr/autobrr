@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: retroflix
 name: RetroFlix
 identifier: retroflix
@@ -24,13 +25,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#retroflix"
-  announcers:
-    - retroflix-announcer
-    - retroflix-announcer1
-    - retroflix-announcer2
-    - retroflix-announcer3
   settings:
     - name: nick
       type: text
@@ -50,34 +44,41 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: New! (Movies) - [REQUESTED].French.Movie.(1978).(French.with.English.Subtitles) - (18.76 GB) - https://retroflix.club/browse/t/00000/french-movie-1978-french-with-english-subtitles
-          expect:
-            category: Movies
-            torrentName: French.Movie.(1978).(French.with.English.Subtitles)
-            torrentSize: 18.76 GB
-            baseUrl: https://retroflix.club/
-            torrentId: "00000"
-        - line: New! (Movies) - Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1 - (5.42 GB) - https://retroflix.club/browse/t/00000/old-movie-1967-1080p-bluray-x265-10bit-group1
-          expect:
-            category: Movies
-            torrentName: Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1
-            torrentSize: 5.42 GB
-            baseUrl: https://retroflix.club/
-            torrentId: "00000"
-        pattern: '^New! \((.*)\) - (?:\[REQUESTED\].)?(.*) - \((.*)\) - (https?:\/\/.*\/)browse/t/(\d+).*'
-        vars:
-          - category
-          - torrentName
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#retroflix"
+      announcers:
+        - retroflix-announcer
+        - retroflix-announcer1
+        - retroflix-announcer2
+        - retroflix-announcer3
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: New! (Movies) - [REQUESTED].French.Movie.(1978).(French.with.English.Subtitles) - (18.76 GB) - https://retroflix.club/browse/t/00000/french-movie-1978-french-with-english-subtitles
+              expect:
+                category: Movies
+                releaseName: French.Movie.(1978).(French.with.English.Subtitles)
+                torrentSize: 18.76 GB
+                baseUrl: https://retroflix.club/
+                torrentId: "00000"
+            - line: New! (Movies) - Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1 - (5.42 GB) - https://retroflix.club/browse/t/00000/old-movie-1967-1080p-bluray-x265-10bit-group1
+              expect:
+                category: Movies
+                releaseName: Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1
+                torrentSize: 5.42 GB
+                baseUrl: https://retroflix.club/
+                torrentId: "00000"
+            pattern: '^New! \((.*)\) - (?:\[REQUESTED\].)?(.*) - \((.*)\) - (https?:\/\/.*\/)browse/t/(\d+).*'
+            vars:
+              - category
+              - releaseName
+              - torrentSize
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/browse/t/{{ .torrentId }}/{{ .torrentName }}"
-      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
-      encode:
-        - torrentName
+        match:
+          infourl: "/browse/t/{{ .torrentId }}/{{ .releaseName }}"
+          downloadurl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+          encode:
+            - releaseName

@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: onlyencodes
 name: OnlyEncodes
 identifier: onlyencodes
@@ -24,10 +25,6 @@ irc:
   server: irc.onlyencodes.cc
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - OEBot
   settings:
     - name: nick
       type: text
@@ -47,37 +44,41 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: Category [Movie] Type [Remux] Name [Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [27.5 GB] Uploader [uploaderName] Url [https://onlyencodes.cc/torrents/download/00000]
-          expect:
-            category: Movie
-            releaseTags: Remux
-            torrentName: Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP
-            resolution: 1080p
-            freeleechPercent: 0%
-            internal: "No"
-            tags: "No"
-            torrentSize: 27.5 GB
-            uploader: uploaderName
-            baseUrl: https://onlyencodes.cc/
-            torrentId: "00000"
-        pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(https?\:\/\/.*?\/).*\/(\d+)\]'
-        vars:
-          - category
-          - releaseTags
-          - torrentName
-          - resolution
-          - freeleechPercent
-          - internal
-          - tags
-          - torrentSize
-          - uploader
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - OEBot
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: Category [Movie] Type [Remux] Name [Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [27.5 GB] Uploader [uploaderName] Url [https://onlyencodes.cc/torrents/download/00000]
+              expect:
+                category: Movie
+                releaseTags: Remux
+                releaseName: Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP
+                resolution: 1080p
+                freeleechPercent: 0%
+                internal: "No"
+                tags: "No"
+                torrentSize: 27.5 GB
+                uploader: uploaderName
+                baseUrl: https://onlyencodes.cc/
+                torrentId: "00000"
+            pattern: '.*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(https?\:\/\/.*?\/).*\/(\d+)\]'
+            vars:
+              - category
+              - releaseTags
+              - releaseName
+              - resolution
+              - freeleechPercent
+              - internal
+              - tags
+              - torrentSize
+              - uploader
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

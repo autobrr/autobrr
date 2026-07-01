@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: tracker42
 name: PussyTorrents
 identifier: pussytorrents
@@ -25,10 +26,6 @@ irc:
   server: irc.pussytorrents.org
   port: 6021
   tls: true
-  channels:
-    - "#pussytorrents"
-  announcers:
-    - _PussyBot_
   settings:
     - name: nick
       type: text
@@ -48,34 +45,38 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'New Torrent Announcement: Name:''BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF'' uploaded by ''Anonymous'' -  https://www.pussytorrents.org/torrent/69'
-          expect:
-            torrentName: BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF
-            uploader: Anonymous
-            freeleech: ""
-            baseUrl: https://www.pussytorrents.org/
-            torrentId: "69"
-        - line: 'New Torrent Announcement: Name:''BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens'' uploaded by ''Anonymous'' -  https://www.pussytorrents.org/torrent/96'
-          expect:
-            torrentName: BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens
-            uploader: Anonymous
-            freeleech: ""
-            baseUrl: https://www.pussytorrents.org/
-            torrentId: "96"
-        pattern: New Torrent Announcement:\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
-        vars:
-          - torrentName
-          - uploader
-          - freeleech
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#pussytorrents"
+      announcers:
+        - _PussyBot_
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: 'New Torrent Announcement: Name:''BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF'' uploaded by ''Anonymous'' -  https://www.pussytorrents.org/torrent/69'
+              expect:
+                releaseName: BsBigHouse 12 12 21 Kyle Comes To Play XXX 480i MP2 YUSUF
+                uploader: Anonymous
+                freeleech: ""
+                baseUrl: https://www.pussytorrents.org/
+                torrentId: "69"
+            - line: 'New Torrent Announcement: Name:''BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens'' uploaded by ''Anonymous'' -  https://www.pussytorrents.org/torrent/96'
+              expect:
+                releaseName: BadBus 8 9 98 carter and the lemon XXX 576p MP4 CatStevens
+                uploader: Anonymous
+                freeleech: ""
+                baseUrl: https://www.pussytorrents.org/
+                torrentId: "96"
+            pattern: New Torrent Announcement:\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
+            vars:
+              - releaseName
+              - uploader
+              - freeleech
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrent/{{ .torrentId }}"
-      torrenturl: "/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent"
-      encode:
-        - torrentName
+        match:
+          infourl: "/torrent/{{ .torrentId }}"
+          downloadurl: "/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .releaseName }}.torrent"
+          encode:
+            - releaseName

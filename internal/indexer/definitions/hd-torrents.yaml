@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: hdt
 name: HD-Torrents
 identifier: hdt
@@ -30,10 +31,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#HD-Torrents.Announce"
-  announcers:
-    - HoboLarry
   settings:
     - name: nick
       type: text
@@ -53,27 +50,31 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'New Torrent in category [Movies/Remux] That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
-          expect:
-            category: Movies/Remux
-            torrentName: That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1
-            torrentSize: 14.60 GB
-            baseUrl: https://hd-torrents.org/
-            torrentId: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-        pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).+id=(.+)'
-        vars:
-          - category
-          - torrentName
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#HD-Torrents.Announce"
+      announcers:
+        - HoboLarry
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: 'New Torrent in category [Movies/Remux] That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1 (14.60 GB) uploaded! Download: https://hd-torrents.org/download.php?id=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+              expect:
+                category: Movies/Remux
+                releaseName: That Movie (2008) Blu-ray 1080p REMUX AVC DTS-HD MA 7 1
+                torrentSize: 14.60 GB
+                baseUrl: https://hd-torrents.org/
+                torrentId: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+            pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).+id=(.+)'
+            vars:
+              - category
+              - releaseName
+              - torrentSize
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}"
-      encode:
-        - torrentName
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .releaseName }}"
+          encode:
+            - releaseName

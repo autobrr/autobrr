@@ -1,4 +1,5 @@
 ---
+version: 2
 name: Retro Movies Club
 identifier: rmc
 description: Retro Movies Club (RMC) is a private torrent tracker for Movies released prior to the year 2001
@@ -23,10 +24,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#rmcannounce"
-  announcers:
-    - RMCAnn
   settings:
     - name: nick
       type: text
@@ -46,29 +43,33 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: "[RMC] New Movie - Type: [Bluray Encode] Name: [Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER] Size: [1.13 GiB] Uploader: [Hitchcock] Url: [https://retro-movies.club/torrents/2506]"
-          expect:
-            category: Movie
-            releaseTags: Bluray Encode
-            torrentName: "Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER"
-            torrentSize: 1.13 GiB
-            uploader: Hitchcock
-            baseUrl: https://retro-movies.club/
-            torrentId: "2506"
-        pattern: '\[RMC\] New (Movie) - Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
-        vars:
-          - category
-          - releaseTags
-          - torrentName
-          - torrentSize
-          - uploader
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#rmcannounce"
+      announcers:
+        - RMCAnn
+      parse:
+        type: single
+        lines:
+          - tests:
+            - line: "[RMC] New Movie - Type: [Bluray Encode] Name: [Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER] Size: [1.13 GiB] Uploader: [Hitchcock] Url: [https://retro-movies.club/torrents/2506]"
+              expect:
+                category: Movie
+                releaseTags: Bluray Encode
+                releaseName: "Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER"
+                torrentSize: 1.13 GiB
+                uploader: Hitchcock
+                baseUrl: https://retro-movies.club/
+                torrentId: "2506"
+            pattern: '\[RMC\] New (Movie) - Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
+            vars:
+              - category
+              - releaseTags
+              - releaseName
+              - torrentSize
+              - uploader
+              - baseUrl
+              - torrentId
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
