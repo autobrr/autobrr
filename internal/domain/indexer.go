@@ -125,7 +125,7 @@ type IndexerDefinition struct {
 	RSS                *FeedSettings     `json:"rss,omitempty"`
 }
 
-func (i IndexerDefinition) Prepare() {
+func (i *IndexerDefinition) Prepare() {
 	if i.Implementation == "" {
 		i.Implementation = "irc"
 	}

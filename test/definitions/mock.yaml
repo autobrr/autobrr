@@ -64,6 +64,6 @@ irc:
               - torrentId
 
         match:
-          torrenturl: "/file/{{ .torrentId }}/{{ .releaseName }}.torrent"
+          downloadurl: "/file/{{ .torrentId }}/{{ .releaseName }}.torrent"
           encode:
             - releaseName

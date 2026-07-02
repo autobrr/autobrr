@@ -612,35 +612,52 @@ func isValidExtension(ext string) bool {
 }
 
 func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
-	f, err := os.Open(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not open file: %s", file)
 	}
-	defer f.Close()
 
+	// peek at the version field to decide which schema to decode into
+	var meta struct {
+		Version int `yaml:"version"`
+	}
+	if err := yaml.Unmarshal(data, &meta); err != nil {
+		return nil, errors.Wrap(err, "could not detect definition version: %s", file)
+	}
+
+	// version 2+ maps directly onto the current IndexerDefinition schema
+	if meta.Version >= 2 {
+		var d domain.IndexerDefinition
+
+		dec := yaml.NewDecoder(bytes.NewReader(data))
+		dec.KnownFields(false)
+
+		if err := dec.Decode(&d); err != nil {
+			return nil, errors.Wrap(err, "could not decode definition file: %s", file)
+		}
+
+		d.Prepare()
+
+		return &d, nil
+	}
+
+	// legacy (v1) definitions use the compatibility struct and get converted
 	var d *domain.IndexerDefinitionCustom
 
-	dec := yaml.NewDecoder(f)
+	dec := yaml.NewDecoder(bytes.NewReader(data))
 	dec.KnownFields(false)
 
-	if err = dec.Decode(&d); err != nil {
+	if err := dec.Decode(&d); err != nil {
 		return nil, errors.Wrap(err, "could not decode definition file: %s", file)
 	}
 
 	if d == nil {
-		//s.log.Warn().Msgf("skipping empty file: %s", file)
 		return nil, errors.New("empty definition file")
 	}
 
 	if d.Implementation == "" {
 		d.Implementation = "irc"
 	}
-
-	//if d.Implementation == "irc" && d.IRC != nil {
-	//	if d.IRC.Parse == nil {
-	//		s.log.Warn().Msgf("DEPRECATED: indexer definition version: %s", file)
-	//	}
-	//}
 
 	return d.ToIndexerDefinition(), nil
 }
@@ -698,25 +715,13 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 
 		s.log.Trace().Msgf("parsing custom definition: %s", file)
 
-		var def *domain.IndexerDefinitionCustom
-		if err := OpenAndDecodeDefinition(file, &def); err != nil {
+		definition, err := OpenAndProcessDefinition(file)
+		if err != nil {
 			s.log.Error().Err(err).Msgf("could not open definition file: %s", file)
 			continue
 		}
 
-		//if def.Implementation == "" {
-		//	def.Implementation = "irc"
-		//}
-
-		s.definitions[def.Identifier] = *def.ToIndexerDefinition()
-
-		//definition, err := OpenAndProcessDefinition(file)
-		//if err != nil {
-		//	s.log.Error().Err(err).Msgf("could not open definition file: %s", file)
-		//	continue
-		//}
-		//
-		//s.definitions[definition.Identifier] = *definition
+		s.definitions[definition.Identifier] = *definition
 
 		customCount++
 	}
