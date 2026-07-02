@@ -51,21 +51,15 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '[Új] Good.Kids.2016.BDRip.x264.HuN-No1 -== Film/Hun/SD ==- 923.67 MB - 5 file => https://newinsane.info/details.php?id=652387'
-              expect:
-                releaseName: Good.Kids.2016.BDRip.x264.HuN-No1
-                category: 'Film/Hun/SD'
-                torrentSize: "923.67 MB"
-                baseUrl: https://newinsane.info/
-                torrentId: "652387"
-            pattern: \[Új\] (.*) -== (.*) ==- (.*) - .* file => (https://.*/)details.php.*id=(.*)
-            vars:
-              - releaseName
-              - category
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: \[Új\] (?P<releaseName>.*) -== (?P<category>.*) ==- (?P<torrentSize>.*) - .* file => (?P<baseUrl>https://.*/)details.php.*id=(?P<torrentId>.*)
+            tests:
+              - line: '[Új] Good.Kids.2016.BDRip.x264.HuN-No1 -== Film/Hun/SD ==- 923.67 MB - 5 file => https://newinsane.info/details.php?id=652387'
+                expect:
+                  releaseName: Good.Kids.2016.BDRip.x264.HuN-No1
+                  category: 'Film/Hun/SD'
+                  torrentSize: "923.67 MB"
+                  baseUrl: https://newinsane.info/
+                  torrentId: "652387"
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

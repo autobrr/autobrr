@@ -51,7 +51,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: '^\[NEW\]\s+(?P<releaseName>.+?)\s+\|\s+(?P<category>.+?)\s+\|\s+(?P<releaseTags>.+?)\s+\|\s+(?P<resolution>.+?)\s+\|\s+(?P<torrentSize>.+?)\s+\|\s+(?P<uploader>.+?)(?:\s+\|\s+(?P<origin>[^|]+))?\s+\|\s+DL:\s+(?P<baseUrl>https?\:\/\/.*?\/).*\/(?P<torrentId>\d+)$'
+            tests:
               - line: '[NEW] Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH | TV | WEB-DL | 1080p | 2.81 GiB | STCBOT | SCENE | DL: https://skipthecommercials.xyz/torrents/27653'
                 expect:
                   releaseName: "Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH"
@@ -63,6 +64,7 @@ irc:
                   origin: SCENE
                   baseUrl: https://skipthecommercials.xyz/
                   torrentId: "27653"
+
               - line: '[NEW] The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC | TV | Seasons-HD | 1080p | 23.41 GiB | STCBOT | INTERNAL | DL: https://skipthecommercials.xyz/torrents/27848'
                 expect:
                   releaseName: "The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC"
@@ -74,6 +76,7 @@ irc:
                   origin: INTERNAL
                   baseUrl: https://skipthecommercials.xyz/
                   torrentId: "27848"
+
               - line: '[NEW] The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES | TV | WEB-DL | 1080p | 36.81 GiB | STCBOT | DL: https://skipthecommercials.xyz/torrents/27884'
                 expect:
                   releaseName: "The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES"
@@ -85,17 +88,6 @@ irc:
                   origin: ""
                   baseUrl: https://skipthecommercials.xyz/
                   torrentId: "27884"
-            pattern: '^\[NEW\]\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)\s+\|\s+(.+?)(?:\s+\|\s+([^|]+))?\s+\|\s+DL:\s+(https?\:\/\/.*?\/).*\/(\d+)$'
-            vars:
-              - releaseName
-              - category
-              - releaseTags
-              - resolution
-              - torrentSize
-              - uploader
-              - origin
-              - baseUrl
-              - torrentId
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

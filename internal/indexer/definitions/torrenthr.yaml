@@ -58,21 +58,15 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 'Novi torrent uploadan -> Ime: A.torrent.name.here.WEBRip.x264-tina .:. Kategorija: Serije/SD .:. Velicina: 283.94 MB .:. URL: http://www.torrenthr.org/details.php?id=000000'
-              expect:
-                releaseName: A.torrent.name.here.WEBRip.x264-tina
-                category: Serije/SD
-                torrentSize: 283.94 MB
-                baseUrl: www.torrenthr.org/
-                torrentId: "000000"
-            pattern: 'Novi torrent uploadan \-> Ime: (.*) \.:\. Kategorija: (.*) \.:\. Velicina: (.*) \.:\. URL: https?\:\/\/([^\/]+\/).*[&amp;\?]id=(\d+)'
-            vars:
-              - releaseName
-              - category
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: 'Novi torrent uploadan \-> Ime: (?P<releaseName>.*) \.:\. Kategorija: (?P<category>.*) \.:\. Velicina: (?P<torrentSize>.*) \.:\. URL: https?\:\/\/(?P<baseUrl>[^\/]+\/).*[&amp;\?]id=(?P<torrentId>\d+)'
+            tests:
+              - line: 'Novi torrent uploadan -> Ime: A.torrent.name.here.WEBRip.x264-tina .:. Kategorija: Serije/SD .:. Velicina: 283.94 MB .:. URL: http://www.torrenthr.org/details.php?id=000000'
+                expect:
+                  releaseName: A.torrent.name.here.WEBRip.x264-tina
+                  category: Serije/SD
+                  torrentSize: 283.94 MB
+                  baseUrl: www.torrenthr.org/
+                  torrentId: "000000"
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

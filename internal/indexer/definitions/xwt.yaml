@@ -52,7 +52,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: 'New Torrent: (?P<releaseName>.*) \((?P<category>.*)\) ⸺ (?P<baseUrl>https?\:\/\/[^\/]+\/).*[&\?]id=(?P<torrentId>\d+)'
+            tests:
               - line: 'New Torrent: WWE.Raw.Classics.Seth.Freakin.Rollins.NETFLIX.1080p.WEB.H265-WWEFANS (Netflix HD) ⸺ https://xtremewrestlingtorrents.net/details.php?id=10&hit=1'
                 expect:
                   releaseName: WWE.Raw.Classics.Seth.Freakin.Rollins.NETFLIX.1080p.WEB.H265-WWEFANS
@@ -66,13 +67,6 @@ irc:
                   category: WWE Network HD
                   baseUrl: https://xtremewrestlingtorrents.net/
                   torrentId: 11
-
-            pattern: 'New Torrent: (.*) \((.*)\) ⸺ (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
-            vars:
-              - releaseName
-              - category
-              - baseUrl
-              - torrentId
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

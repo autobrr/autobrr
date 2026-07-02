@@ -15,4 +15,5 @@ var (
 	ErrDeleteFailed                   = errors.New("delete failed")
 	ErrNoActiveFiltersFoundForIndexer = errors.New("no active filters found for indexer")
 	ErrUnexpectedLine                 = errors.New("unexpected line")
+	ErrIndexerNotFound                = errors.New("indexer not found")
 )

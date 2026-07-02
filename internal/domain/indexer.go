@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/url"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -30,17 +31,17 @@ type IndexerRepo interface {
 }
 
 type Indexer struct {
-	ID                 int64             `json:"id"`
-	Name               string            `json:"name"`
-	Identifier         string            `json:"identifier"`
-	IdentifierExternal string            `json:"identifier_external"`
-	Enabled            bool              `json:"enabled"`
-	Implementation     string            `json:"implementation"`
-	BaseURL            string            `json:"base_url,omitempty"`
-	UseProxy           bool              `json:"use_proxy"`
-	Proxy              *Proxy            `json:"proxy"`
-	ProxyID            int64             `json:"proxy_id"`
-	Settings           map[string]string `json:"settings,omitempty"`
+	ID                 int64                 `json:"id"`
+	Name               string                `json:"name"`
+	Identifier         string                `json:"identifier"`
+	IdentifierExternal string                `json:"identifier_external"`
+	Enabled            bool                  `json:"enabled"`
+	Implementation     IndexerImplementation `json:"implementation"`
+	BaseURL            string                `json:"base_url,omitempty"`
+	UseProxy           bool                  `json:"use_proxy"`
+	Proxy              *Proxy                `json:"proxy"`
+	ProxyID            int64                 `json:"proxy_id"`
+	Settings           map[string]string     `json:"settings,omitempty"`
 }
 
 func (i Indexer) MarshalJSON() ([]byte, error) {
@@ -82,7 +83,7 @@ func (i Indexer) MarshalJSON() ([]byte, error) {
 }
 
 func (i Indexer) ImplementationIsFeed() bool {
-	return i.Implementation == "rss" || i.Implementation == "torznab" || i.Implementation == "newznab"
+	return i.Implementation == IndexerImplementationRSS || i.Implementation == IndexerImplementationTorznab || i.Implementation == IndexerImplementationNewznab
 }
 
 type IndexerMinimal struct {
@@ -101,33 +102,33 @@ func (m IndexerMinimal) GetExternalIdentifier() string {
 }
 
 type IndexerDefinition struct {
-	Version            int               `json:"-"`
-	ID                 int               `json:"id,omitempty"`
-	Name               string            `json:"name"`
-	Identifier         string            `json:"identifier"`
-	IdentifierExternal string            `json:"identifier_external"`
-	Implementation     string            `json:"implementation"`
-	BaseURL            string            `json:"base_url,omitempty"`
-	Enabled            bool              `json:"enabled"`
-	Description        string            `json:"description"`
-	Language           string            `json:"language"`
-	Privacy            string            `json:"privacy"`
-	Protocol           string            `json:"protocol"`
-	URLS               []string          `json:"urls"`
-	Supports           []string          `json:"supports"`
-	UseProxy           bool              `json:"use_proxy"`
-	ProxyID            int64             `json:"proxy_id"`
-	Settings           []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap        map[string]string `json:"-"`
-	IRC                *IndexerIRCV2     `json:"irc,omitempty"`
-	Torznab            *Torznab          `json:"torznab,omitempty"`
-	Newznab            *Newznab          `json:"newznab,omitempty"`
-	RSS                *FeedSettings     `json:"rss,omitempty"`
+	Version            int                   `json:"-"`
+	ID                 int                   `json:"id,omitempty"`
+	Name               string                `json:"name"`
+	Identifier         string                `json:"identifier"`
+	IdentifierExternal string                `json:"identifier_external"`
+	Implementation     IndexerImplementation `json:"implementation"`
+	BaseURL            string                `json:"base_url,omitempty"`
+	Enabled            bool                  `json:"enabled"`
+	Description        string                `json:"description"`
+	Language           string                `json:"language"`
+	Privacy            string                `json:"privacy"`
+	Protocol           string                `json:"protocol"`
+	URLS               []string              `json:"urls"`
+	Supports           []string              `json:"supports"`
+	UseProxy           bool                  `json:"use_proxy"`
+	ProxyID            int64                 `json:"proxy_id"`
+	Settings           []IndexerSetting      `json:"settings,omitempty"`
+	SettingsMap        map[string]string     `json:"-"`
+	IRC                *IndexerIRCV2         `json:"irc,omitempty"`
+	Torznab            *FeedSettings         `json:"torznab,omitempty"`
+	Newznab            *FeedSettings         `json:"newznab,omitempty"`
+	RSS                *FeedSettings         `json:"rss,omitempty"`
 }
 
 func (i *IndexerDefinition) Prepare() {
-	if i.Implementation == "" {
-		i.Implementation = "irc"
+	if i.Implementation == IndexerImplementationLegacy {
+		i.Implementation = IndexerImplementationIRC
 	}
 
 	if i.IRC != nil {
@@ -180,30 +181,30 @@ func (i IndexerDefinition) HasApi() bool {
 }
 
 type IndexerDefinitionCustom struct {
-	ID             int               `json:"id,omitempty"`
-	Name           string            `json:"name"`
-	Identifier     string            `json:"identifier"`
-	Implementation string            `json:"implementation"`
-	BaseURL        string            `json:"base_url,omitempty"`
-	Enabled        bool              `json:"enabled,omitempty"`
-	Description    string            `json:"description"`
-	Language       string            `json:"language"`
-	Privacy        string            `json:"privacy"`
-	Protocol       string            `json:"protocol"`
-	URLS           []string          `json:"urls"`
-	Supports       []string          `json:"supports"`
-	Settings       []IndexerSetting  `json:"settings,omitempty"`
-	SettingsMap    map[string]string `json:"-"`
-	IRC            *IndexerIRC       `json:"irc,omitempty"`
-	Torznab        *Torznab          `json:"torznab,omitempty"`
-	Newznab        *Newznab          `json:"newznab,omitempty"`
-	RSS            *FeedSettings     `json:"rss,omitempty"`
-	Parse          *IndexerIRCParse  `json:"parse,omitempty"`
+	ID             int                   `json:"id,omitempty"`
+	Name           string                `json:"name"`
+	Identifier     string                `json:"identifier"`
+	Implementation IndexerImplementation `json:"implementation"`
+	BaseURL        string                `json:"base_url,omitempty"`
+	Enabled        bool                  `json:"enabled,omitempty"`
+	Description    string                `json:"description"`
+	Language       string                `json:"language"`
+	Privacy        string                `json:"privacy"`
+	Protocol       string                `json:"protocol"`
+	URLS           []string              `json:"urls"`
+	Supports       []string              `json:"supports"`
+	Settings       []IndexerSetting      `json:"settings,omitempty"`
+	SettingsMap    map[string]string     `json:"-"`
+	IRC            *IndexerIRC           `json:"irc,omitempty"`
+	Torznab        *FeedSettings         `json:"torznab,omitempty"`
+	Newznab        *FeedSettings         `json:"newznab,omitempty"`
+	RSS            *FeedSettings         `json:"rss,omitempty"`
+	Parse          *IndexerIRCParse      `json:"parse,omitempty"`
 }
 
 func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
-	if i.Implementation == "" {
-		i.Implementation = "irc"
+	if i.Implementation == IndexerImplementationLegacy {
+		i.Implementation = IndexerImplementationIRC
 	}
 
 	d := &IndexerDefinition{
@@ -271,6 +272,13 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 	return d
 }
 
+type SettingsFieldType string
+
+const (
+	SettingsFieldTypeText   SettingsFieldType = "text"
+	SettingsFieldTypeSecret SettingsFieldType = "secret"
+)
+
 type IndexerSetting struct {
 	Name        string `json:"name"`
 	Required    bool   `json:"required,omitempty"`
@@ -300,16 +308,7 @@ func (is IndexerSetting) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type Torznab struct {
-	MinInterval int              `json:"minInterval"`
-	Settings    []IndexerSetting `json:"settings"`
-}
-
-type Newznab struct {
-	MinInterval int              `json:"minInterval"`
-	Settings    []IndexerSetting `json:"settings"`
-}
-
+// FeedSettings shared Feed settings for Torznab, Newznab and RSS
 type FeedSettings struct {
 	MinInterval int              `json:"minInterval"`
 	Settings    []IndexerSetting `json:"settings"`
@@ -325,24 +324,6 @@ type IndexerIRC struct {
 	SettingsMap map[string]string `json:"-"`
 	Settings    []IndexerSetting  `json:"settings"`
 	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
-}
-
-func (i IndexerIRC) ValidAnnouncer(announcer string) bool {
-	for _, a := range i.Announcers {
-		if a == announcer {
-			return true
-		}
-	}
-	return false
-}
-
-func (i IndexerIRC) ValidChannel(channel string) bool {
-	for _, a := range i.Channels {
-		if a == channel {
-			return true
-		}
-	}
-	return false
 }
 
 type IRCMappings map[string]map[string]map[string]string
@@ -375,9 +356,9 @@ type IndexerIRCV2Parse struct {
 
 type IndexerIRCV2ParseMatch struct {
 	DownloadURL string   `json:"downloadurl"`
-	ReleaseName string   `json:"releasename"`
-	MagnetURI   string   `json:"magneturi"`
-	InfoURL     string   `json:"infourl"`
+	ReleaseName string   `json:"releaseName"`
+	MagnetURI   string   `json:"magnetURI"`
+	InfoURL     string   `json:"infoURL"`
 	Encode      []string `json:"encode"`
 }
 
@@ -395,18 +376,54 @@ type LineTest struct {
 }
 
 type IndexerIRCParseLine struct {
-	Tests   []LineTest `json:"tests"`
 	Pattern string     `json:"pattern"`
 	Vars    []string   `json:"vars"`
 	Ignore  bool       `json:"ignore"`
+	Tests   []LineTest `json:"tests"`
 }
 
 func (l IndexerIRCParseLine) ParseLine(tmpVars map[string]string, line string, ignore bool) (bool, error) {
+	// an explicit vars list takes precedence and keeps the legacy positional mapping
 	if len(l.Vars) > 0 {
 		return parseLineExtract(l.Pattern, l.Vars, tmpVars, line)
 	}
 
+	// otherwise, if the pattern defines named capture groups, map those directly.
+	// this mirrors parseLineExtract's single-match, case-sensitive semantics.
+	if rxp, err := regexcache.Compile(l.Pattern); err == nil && hasNamedGroups(rxp) {
+		return parseLineExtractNamed(rxp, tmpVars, line)
+	}
+
 	return parseLineMatchRegexp(l.Pattern, tmpVars, line, ignore)
+}
+
+// hasNamedGroups reports whether the compiled pattern defines any named capture groups.
+func hasNamedGroups(rxp *regexp.Regexp) bool {
+	for _, name := range rxp.SubexpNames() {
+		if name != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// parseLineExtractNamed maps named capture groups to their values. Unnamed groups are
+// skipped, so a pattern can capture without binding a variable.
+func parseLineExtractNamed(rxp *regexp.Regexp, tmpVars map[string]string, line string) (bool, error) {
+	matches := rxp.FindStringSubmatch(line)
+	if matches == nil {
+		return false, nil
+	}
+
+	for i, name := range rxp.SubexpNames() {
+		if i == 0 || name == "" {
+			continue
+		}
+
+		tmpVars[name] = matches[i]
+	}
+
+	return true, nil
 }
 
 func parseLineregExMatch(pattern string, value string) ([]string, error) {
@@ -479,12 +496,6 @@ type IndexerIRCParseMatch struct {
 	MagnetURI   string   `json:"magneturi"`
 	InfoURL     string   `json:"infourl"`
 	Encode      []string `json:"encode"`
-}
-
-type IndexerIRCParseMatched struct {
-	InfoURL     string
-	TorrentURL  string
-	TorrentName string
 }
 
 func parseTemplateURL(baseURL, sourceURL string, vars map[string]string, basename string) (*url.URL, error) {

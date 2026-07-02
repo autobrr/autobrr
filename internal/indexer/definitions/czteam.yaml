@@ -51,7 +51,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: 'New Torrent:\s+(?P<releaseName>.+?)\s+--\s+(?:\[(?P<freeleech>FreeLeech!)\]\s+--\s+)?\[(?P<category>[^\]]+)\]\s+\[(?P<torrentSize>[^\]]+)\]\s+--\s+(?P<baseUrl>https?:\/\/[^\/]+\/)details\.php\?id=(?P<torrentId>\d+)'
+            tests:
               - line: "New Torrent: Nuremberg.2025.2160p.iT.WEB-DL.DTS-HD.MA.5.1.DV.HDR10P.H.265-BTBN -- [Movies/HDTV-RO] [28,59 GB] -- https://czteam.me/details.php?id=218411"
                 expect:
                   releaseName: Nuremberg.2025.2160p.iT.WEB-DL.DTS-HD.MA.5.1.DV.HDR10P.H.265-BTBN
@@ -60,6 +61,7 @@ irc:
                   torrentSize: "28,59 GB"
                   baseUrl: https://czteam.me/
                   torrentId: "218411"
+
               - line: "New Torrent: For.All.Mankind.S05E02.The.Hard.Six.1080p.ATVP.WEB-DL.DDP5.1.Atmos.H.264-FLUX -- [FreeLeech!] -- [TvEps/HD] [4,12 GB] -- https://czteam.me/details.php?id=218406"
                 expect:
                   releaseName: For.All.Mankind.S05E02.The.Hard.Six.1080p.ATVP.WEB-DL.DDP5.1.Atmos.H.264-FLUX
@@ -68,14 +70,6 @@ irc:
                   torrentSize: "4,12 GB"
                   baseUrl: https://czteam.me/
                   torrentId: "218406"
-            pattern: 'New Torrent:\s+(.+?)\s+--\s+(?:\[(FreeLeech!)\]\s+--\s+)?\[([^\]]+)\]\s+\[([^\]]+)\]\s+--\s+(https?:\/\/[^\/]+\/)details\.php\?id=(\d+)'
-            vars:
-              - releaseName
-              - freeleech
-              - category
-              - torrentSize
-              - baseUrl
-              - torrentId
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

@@ -57,7 +57,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: '^(?P<releaseName>.+) - Size: (?P<torrentSize>.+) - Uploader: (?P<uploader>.+) - Tags: (?P<tags>.+) - (?P<baseUrl>https:\/\/.*\/).*id=(?P<torrentId>\d+)$'
+            tests:
               - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.net/torrents.php?torrentid=00000'
                 expect:
                   releaseName: '[OnlyFans] Some Actress, Other Actress - Having fun together'
@@ -66,15 +67,6 @@ irc:
                   tags: 1080p, lesbian, onlyfans.com, fansite
                   baseUrl: https://www.happyfappy.net/
                   torrentId: 00000
-
-            pattern: '^(.+) - Size: (.+) - Uploader: (.+) - Tags: (.+) - (https:\/\/.*\/).*id=(\d+)$'
-            vars:
-              - releaseName
-              - torrentSize
-              - uploader
-              - tags
-              - baseUrl
-              - torrentId
 
         match:
           infourl: "/torrents.php?torrentid={{ .torrentId }}"

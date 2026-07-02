@@ -64,80 +64,65 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 0:2:0:0:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
-              expect:
-                announceTypeEnum: 0
-                categoryEnum: 2
-                originEnum: 0
-                freeleechEnum: 0
-                groupId: "357805"
-                torrentId: "1332009"
-                key: "9k6p"
-                imdb: "tt24249072"
-                torrentSizeBytes: "1899875175"
-                uploadedDate: "1728081334"
-                releaseTags: H.264/MKV/WEB/720p
-                editionTags: ""
-                year: "2023"
-                title: "Last Straw"
-                releaseName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
-                tags: thriller,horror
-            - line: 2:1:0:1:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
-              expect:
-                announceTypeEnum: 2
-                categoryEnum: 1
-                originEnum: 0
-                freeleechEnum: 1
-                groupId: "357805"
-                torrentId: "1332009"
-                key: "9k6p"
-                imdb: "tt24249072"
-                torrentSizeBytes: "1899875175"
-                uploadedDate: "1728081334"
-                releaseTags: H.264/MKV/WEB/720p
-                editionTags: ""
-                year: "2023"
-                title: "Last Straw"
-                releaseName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
-                tags: thriller,horror
-            - line: 1:1:2:1:21108:1332339:ncfe:tt0107426:63996413804:1728081334|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
-              expect:
-                announceTypeEnum: 1
-                categoryEnum: 1
-                originEnum: 2
-                freeleechEnum: 1
-                groupId: "21108"
-                torrentId: "1332339"
-                key: "ncfe"
-                imdb: "tt0107426"
-                torrentSizeBytes: "63996413804"
-                uploadedDate: "1728081334"
-                releaseTags: BD66/m2ts/Blu-ray/2160p
-                editionTags: "Dolby Atmos/Dolby Vision"
-                year: "1993"
-                title: "Little Buddha"
-                releaseName: Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1
-                tags: drama,italian
-            # <announceType>:<category>:<origin>:<freeleech_type>:<gid>:<tid>:<key>:tt<imdbid>:<sizebytes>|<format>/<container>/<source>/<resolution>|<edition_tags>|<year>|<title>|<releasename>|<taglist>
-            pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\w+):(tt\d+)?:(\d+):(\d+)\|(.*)\|(.*)\|(\d+)\|(.+)\|(.+)\|(.+)'
-            vars:
-              - announceTypeEnum
-              - categoryEnum
-              - originEnum
-              - freeleechEnum
-              - groupId
-              - torrentId
-              - key
-              - imdb
-              - torrentSizeBytes
-              - uploadedDate
-              - releaseTags
-              - editionTags
-              - year
-              - title
-              - releaseName
-              - tags
+          # <announceType>:<category>:<origin>:<freeleech_type>:<gid>:<tid>:<key>:tt<imdbid>:<sizebytes>|<format>/<container>/<source>/<resolution>|<edition_tags>|<year>|<title>|<releasename>|<taglist>
+          - pattern: '(?P<announceTypeEnum>\d):(?P<categoryEnum>\d):(?P<originEnum>\d):(?P<freeleechEnum>\d):(?P<groupId>\d+):(?P<torrentId>\d+):(?P<key>\w+):(?P<imdb>tt\d+)?:(?P<torrentSizeBytes>\d+):(?P<uploadedDate>\d+)\|(?P<releaseTags>.*)\|(?P<editionTags>.*)\|(?P<year>\d+)\|(?P<title>.+)\|(?P<releaseName>.+)\|(?P<tags>.+)'
+            tests:
+              - line: 0:2:0:0:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 2
+                  originEnum: 0
+                  freeleechEnum: 0
+                  groupId: "357805"
+                  torrentId: "1332009"
+                  key: "9k6p"
+                  imdb: "tt24249072"
+                  torrentSizeBytes: "1899875175"
+                  uploadedDate: "1728081334"
+                  releaseTags: H.264/MKV/WEB/720p
+                  editionTags: ""
+                  year: "2023"
+                  title: "Last Straw"
+                  releaseName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
+                  tags: thriller,horror
+
+              - line: 2:1:0:1:357805:1332009:9k6p:tt24249072:1899875175:1728081334|H.264/MKV/WEB/720p||2023|Last Straw|Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX|thriller,horror
+                expect:
+                  announceTypeEnum: 2
+                  categoryEnum: 1
+                  originEnum: 0
+                  freeleechEnum: 1
+                  groupId: "357805"
+                  torrentId: "1332009"
+                  key: "9k6p"
+                  imdb: "tt24249072"
+                  torrentSizeBytes: "1899875175"
+                  uploadedDate: "1728081334"
+                  releaseTags: H.264/MKV/WEB/720p
+                  editionTags: ""
+                  year: "2023"
+                  title: "Last Straw"
+                  releaseName: Last.Straw.2023.REPACK.720p.AMZN.WEB-DL.DDP5.1.H.264-FLUX
+                  tags: thriller,horror
+
+              - line: 1:1:2:1:21108:1332339:ncfe:tt0107426:63996413804:1728081334|BD66/m2ts/Blu-ray/2160p|Dolby Atmos/Dolby Vision|1993|Little Buddha|Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1|drama,italian
+                expect:
+                  announceTypeEnum: 1
+                  categoryEnum: 1
+                  originEnum: 2
+                  freeleechEnum: 1
+                  groupId: "21108"
+                  torrentId: "1332339"
+                  key: "ncfe"
+                  imdb: "tt0107426"
+                  torrentSizeBytes: "63996413804"
+                  uploadedDate: "1728081334"
+                  releaseTags: BD66/m2ts/Blu-ray/2160p
+                  editionTags: "Dolby Atmos/Dolby Vision"
+                  year: "1993"
+                  title: "Little Buddha"
+                  releaseName: Little.Buddha.1993.2160p.FRA.UHD.Blu-ray.DV.HDR.HEVC.DTS-HD.MA.5.1
+                  tags: drama,italian
 
         mappings:
           announceTypeEnum:

@@ -58,25 +58,21 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=z4WBMrhj&hit=1'
-              expect:
-                releaseName: Some.TV.Show.S01E02.720p.WEB.h264-KOGi
-                category: TV/HDx264
-                baseUrl: https://revott.me/
-                torrentId: z4WBMrhj
-            - line: '!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=eAg24buk&hit=1'
-              expect:
-                releaseName: Some.Other.Show.S01E02.1080p.WEB.h264-KOGi
-                category: TV/HDx264
-                baseUrl: https://revott.me/
-                torrentId: eAg24buk
-            pattern: '!new (.*) \| (.*) \| (https?:\/\/.*\/).*id=([0-9a-zA-Z]+)'
-            vars:
-              - releaseName
-              - category
-              - baseUrl
-              - torrentId
+          - pattern: '!new (?P<releaseName>.*) \| (?P<category>.*) \| (?P<baseUrl>https?:\/\/.*\/).*id=(?P<torrentId>[0-9a-zA-Z]+)'
+            tests:
+              - line: '!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=z4WBMrhj&hit=1'
+                expect:
+                  releaseName: Some.TV.Show.S01E02.720p.WEB.h264-KOGi
+                  category: TV/HDx264
+                  baseUrl: https://revott.me/
+                  torrentId: z4WBMrhj
+
+              - line: '!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=eAg24buk&hit=1'
+                expect:
+                  releaseName: Some.Other.Show.S01E02.1080p.WEB.h264-KOGi
+                  category: TV/HDx264
+                  baseUrl: https://revott.me/
+                  torrentId: eAg24buk
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

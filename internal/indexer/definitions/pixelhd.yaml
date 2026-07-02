@@ -64,41 +64,29 @@ irc:
       parse:
         type: multi
         lines:
-          - tests:
-            - line: "New torrent uploaded!"
-              expect: {}
-            pattern: '^New torrent uploaded!$'
+          - pattern: '^New torrent uploaded!$'
             ignore: true
+            tests:
+              - line: "New torrent uploaded!"
+                expect: { }
 
-          - tests:
-            - line: 'Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001'
-              expect:
-                releaseName: Dragons Forever
-                year: "1988"
-                baseUrl: https://pixelhd.me/
-                torrentId: "23001"
+          - pattern: 'Title: (?P<releaseName>.*) \| Year: (?P<year>.*) \| URL: (?P<baseUrl>https?:\/\/.*\/).+id=(?P<torrentId>.+)'
+            tests:
+              - line: 'Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001'
+                expect:
+                  releaseName: Dragons Forever
+                  year: "1988"
+                  baseUrl: https://pixelhd.me/
+                  torrentId: "23001"
 
-            pattern: 'Title: (.*) \| Year: (.*) \| URL: (https?:\/\/.*\/).+id=(.+)'
-            vars:
-              - releaseName
-              - year
-              - baseUrl
-              - torrentId
-
-          - tests:
-            - line: 'Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance'
-              expect:
-                uploader: Anon
-                releaseGroup: Px4K
-                container: MP4
-                tags: action,comedy,romance
-
-            pattern: 'Uploader: (.*) \| Release Group: (.*) \| Format: (.*) \| Genre\(s\): (.*)'
-            vars:
-              - uploader
-              - releaseGroup
-              - container
-              - tags
+          - pattern: 'Uploader: (?P<uploader>.*) \| Release Group: (?P<releaseGroup>.*) \| Format: (?P<container>.*) \| Genre\(s\): (?P<tags>.*)'
+            tests:
+              - line: 'Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance'
+                expect:
+                  uploader: Anon
+                  releaseGroup: Px4K
+                  container: MP4
+                  tags: action,comedy,romance
 
         match:
           infourl: "/torrents.php?torrentid={{ .torrentId }}"

@@ -58,7 +58,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: '(?P<releaseName>(?P<title>.*?)+)(?: - (?P<category>Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|))?[\s\p{Zs}]{2,}\[(?P<year>\d+)\] :: (?P<releaseTags>.*?(?:Hardsubs|RAW|Softsubs|Translated) \((?P<releaseGroup>.*?)\).*?|.*?)(?: \/ Episode (?P<releaseEpisode>\d+).*?)?(?: \/ )?(?P<freeleech>Freeleech)?(?:.?\|\|.?)(?P<baseUrl>https.+\/)torrents.*\?id=(?P<groupId>\d+)&torrentid=(?P<torrentId>\d+)(?:.?\|\|.?)?(?P<tags>[A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (?P<uploader>.*))?'
+            tests:
               - line: "Awesome Raw Novel - Light Novel  [2005] :: Raw / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || supernatural || Uploaded by: Test-Uploader"
                 expect:
                   releaseName: "Awesome Raw Novel"
@@ -68,12 +69,13 @@ irc:
                   releaseTags: "Raw / EPUB"
                   releaseGroup: ""
                   releaseEpisode: ""
-                  freeleech:  ""
+                  freeleech: ""
                   baseUrl: "https://animebytes.tv/"
                   groupId: "00000"
                   torrentId: "00000"
                   tags: "supernatural"
                   uploader: "Test-Uploader"
+
               - line: "Awesome Translated Novel - Light Novel  [2018] :: Translated (Translation Group) / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || adventure, comedy, fantasy, harem, school.life, magic, action || Uploaded by: UPLOADER"
                 expect:
                   releaseName: "Awesome Translated Novel"
@@ -89,6 +91,7 @@ irc:
                   torrentId: "000000"
                   tags: "adventure, comedy, fantasy, harem, school.life, magic, action"
                   uploader: "UPLOADER"
+
               - line: "Great BluRay SoftSubbed Anime - TV Series  [2020] :: Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech || https://animebytes.tv/torrents.php?id=00008&torrentid=000000 || comedy, drama, school.life, sports || Uploaded by: Uploader"
                 expect:
                   releaseName: "Great BluRay SoftSubbed Anime"
@@ -104,6 +107,7 @@ irc:
                   torrentId: "000000"
                   tags: "comedy, drama, school.life, sports"
                   uploader: "Uploader"
+
               - line: "Awesome Translated Manga - Manga  [2019] :: Translated (Translation Group) / Digital / Ongoing || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || comedy, fantasy, school.life, shounen, slice.of.life"
                 expect:
                   releaseName: "Awesome Translated Manga"
@@ -119,6 +123,7 @@ irc:
                   torrentId: "000000"
                   tags: "comedy, fantasy, school.life, shounen, slice.of.life"
                   uploader: ""
+
               - line: "Cool Movie - Movie  [2020] :: Blu-ray / MKV / h265 10-bit / 1929x804 / AC3 5.1 / Dual Audio / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=000000&torrentid=0000000 || drama, romance, slice.of.life || Uploaded by: Anon-Uploader"
                 expect:
                   releaseName: "Cool Movie"
@@ -134,6 +139,7 @@ irc:
                   torrentId: "0000000"
                   tags: "drama, romance, slice.of.life"
                   uploader: "Anon-Uploader"
+
               - line: "Awesome Live Action Special - Live Action TV Special  [2021] :: Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || manga || Uploaded by: Some-Uploader"
                 expect:
                   releaseName: "Awesome Live Action Special"
@@ -149,6 +155,7 @@ irc:
                   torrentId: "00000"
                   tags: "manga"
                   uploader: "Some-Uploader"
+
               - line: "Best Visual Novel - Visual Novel  [2006] :: Game / PC / Unarchived / Hentai (Censored) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || nukige || Uploaded by: Uploader"
                 expect:
                   releaseName: "Best Visual Novel"
@@ -164,6 +171,7 @@ irc:
                   torrentId: "00000"
                   tags: "nukige"
                   uploader: "Uploader"
+
               - line: "Artist Name - Album of awesome Music  [1991] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=00000&torrentid=000000 || ambient, folk || Uploaded by: Uploader"
                 expect:
                   releaseName: "Artist Name - Album of awesome Music"
@@ -179,6 +187,7 @@ irc:
                   torrentId: "000000"
                   tags: "ambient, folk"
                   uploader: "Uploader"
+
               - line: "Awesome Series - TV Series  [2022] :: Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group) / Episode 1 / Freeleech || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || || Uploaded by: Uploader"
                 expect:
                   releaseName: "Awesome Series"
@@ -188,27 +197,12 @@ irc:
                   releaseTags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group)"
                   releaseGroup: "Sub Group"
                   releaseEpisode: "1"
-                  freeleech:  "Freeleech"
+                  freeleech: "Freeleech"
                   baseUrl: "https://animebytes.tv/"
                   groupId: "00000"
                   torrentId: "000000"
                   tags: ""
                   uploader: "Uploader"
-            pattern: '((.*?)+)(?: - (Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|))?[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
-            vars:
-              - releaseName
-              - title
-              - category
-              - year
-              - releaseTags
-              - releaseGroup
-              - releaseEpisode
-              - freeleech
-              - baseUrl
-              - groupId
-              - torrentId
-              - tags
-              - uploader
 
         match:
           infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"

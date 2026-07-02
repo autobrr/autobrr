@@ -58,22 +58,15 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '[HENTAI] Nikuen 2 [82.96 MB] - https://fappaizuri.me/download.php?id=00000&hit=1'
-              expect:
-                category: HENTAI
-                releaseName: Nikuen 2
-                torrentSize: 82.96 MB
-                baseUrl: https://fappaizuri.me/
-                torrentId: "00000"
-
-            pattern: '\[(.*)\] (.*) \[(.*)\] - (https:\/\/.*\/).*id=(\d*).*'
-            vars:
-              - category
-              - releaseName
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: '\[(?P<category>.*)\] (?P<releaseName>.*) \[(?P<torrentSize>.*)\] - (?P<baseUrl>https:\/\/.*\/).*id=(?P<torrentId>\d*).*'
+            tests:
+              - line: '[HENTAI] Nikuen 2 [82.96 MB] - https://fappaizuri.me/download.php?id=00000&hit=1'
+                expect:
+                  category: HENTAI
+                  releaseName: Nikuen 2
+                  torrentSize: 82.96 MB
+                  baseUrl: https://fappaizuri.me/
+                  torrentId: "00000"
 
         match:
           infourl: "/torrents-details.php?id={{ .torrentId }}"

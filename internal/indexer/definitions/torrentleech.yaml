@@ -56,31 +56,25 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 'New Torrent Announcement: <PC :: Iso>  Name:''debian live 10 6 0 amd64 standard iso'' uploaded by ''Anonymous'' -  http://www.tracker01.test/torrent/000000'
-              expect:
-                category: 'PC :: Iso'
-                releaseName: debian live 10 6 0 amd64 standard iso
-                uploader: Anonymous
-                freeleech: ""
-                baseUrl: http://www.tracker01.test/
-                torrentId: "000000"
-            - line: 'New Torrent Announcement: <PC :: Iso>  Name:''debian live 10 6 0 amd64 standard iso'' uploaded by ''Anonymous'' freeleech -  http://www.tracker01.test/torrent/000000'
-              expect:
-                category: 'PC :: Iso'
-                releaseName: debian live 10 6 0 amd64 standard iso
-                uploader: Anonymous
-                freeleech: freeleech
-                baseUrl: http://www.tracker01.test/
-                torrentId: "000000"
-            pattern: New Torrent Announcement:\s*<([^>]*)>\s*Name:'(.*)' uploaded by '([^']*)'\s*(freeleech)*\s*-\s*(https?\:\/\/[^\/]+\/)torrent\/(\d+)
-            vars:
-              - category
-              - releaseName
-              - uploader
-              - freeleech
-              - baseUrl
-              - torrentId
+          - pattern: New Torrent Announcement:\s*<(?P<category>[^>]*)>\s*Name:'(?P<releaseName>.*)' uploaded by '(?P<uploader>[^']*)'\s*(?P<freeleech>freeleech)*\s*-\s*(?P<baseUrl>https?\:\/\/[^\/]+\/)torrent\/(?P<torrentId>\d+)
+            tests:
+              - line: 'New Torrent Announcement: <PC :: Iso>  Name:''debian live 10 6 0 amd64 standard iso'' uploaded by ''Anonymous'' -  http://www.tracker01.test/torrent/000000'
+                expect:
+                  category: 'PC :: Iso'
+                  releaseName: debian live 10 6 0 amd64 standard iso
+                  uploader: Anonymous
+                  freeleech: ""
+                  baseUrl: http://www.tracker01.test/
+                  torrentId: "000000"
+
+              - line: 'New Torrent Announcement: <PC :: Iso>  Name:''debian live 10 6 0 amd64 standard iso'' uploaded by ''Anonymous'' freeleech -  http://www.tracker01.test/torrent/000000'
+                expect:
+                  category: 'PC :: Iso'
+                  releaseName: debian live 10 6 0 amd64 standard iso
+                  uploader: Anonymous
+                  freeleech: freeleech
+                  baseUrl: http://www.tracker01.test/
+                  torrentId: "000000"
 
         match:
           infourl: "/torrent/{{ .torrentId }}"

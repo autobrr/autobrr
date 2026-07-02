@@ -44,7 +44,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: '\[(?P<category>.*)\] - (?P<releaseName>.*) - \((?P<torrentSize>\d+\.?\d*[KMGTP]?iB)\) - (?P<baseUrl>https?:\/\/.*\/)view\/(?P<torrentId>\d+)\/torrent\s*(?P<tags>trusted|remake|batch)?'
+            tests:
               - line: "[Live Action - Raw] - 見て、お母さん、私は日本語が書けます！ - (220.30MiB) - https://nyaa.si/view/000000/torrent"
                 expect:
                   category: Live Action - Raw
@@ -53,6 +54,7 @@ irc:
                   baseUrl: https://nyaa.si/
                   torrentId: "000000"
                   tags: ""
+
               - line: "[Anime - English-translated] - [GROUP] Woah [1080p BD AV1] - (3.60GiB) - https://nyaa.si/view/000001/torrent"
                 expect:
                   category: Anime - English-translated
@@ -61,6 +63,7 @@ irc:
                   baseUrl: https://nyaa.si/
                   torrentId: "000001"
                   tags: ""
+
               - line: "[Anime - English-translated] - [GROUP] Woah [1080p x265] - (123.23GiB) - https://nyaa.si/view/000002/torrent trusted"
                 expect:
                   category: Anime - English-translated
@@ -69,15 +72,6 @@ irc:
                   baseUrl: https://nyaa.si/
                   torrentId: "000002"
                   tags: trusted
-
-            pattern: '\[(.*)\] - (.*) - \((\d+\.?\d*[KMGTP]?iB)\) - (https?:\/\/.*\/)view\/(\d+)\/torrent\s*(trusted|remake|batch)?'
-            vars:
-              - category
-              - releaseName
-              - torrentSize
-              - baseUrl
-              - torrentId
-              - tags
 
         match:
           infourl: "/view/{{ .torrentId }}"

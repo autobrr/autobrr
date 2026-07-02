@@ -51,41 +51,36 @@ irc:
       parse:
         type: multi
         lines:
-          - tests:
-            - line: 'New Torrent Uploaded:'
-              expect:
-                raw: "New Torrent Uploaded:"
-            pattern: '^New Torrent Uploaded:'
-          - tests:
-            - line: 'Name....: That Artist - Good Album-SAT-01-30-2021-GROUP'
-              expect:
-                releaseName: That Artist - Good Album-SAT-01-30-2021-GROUP
-            pattern: '^Name\.*:\s*(.*)'
-            vars:
-              - releaseName
-          - tests:
-            - line: 'Uploader: anon'
-              expect:
-                uploader: anon
-            pattern: '^Uploader\.*:\s*(.*)'
-            vars:
-              - uploader
-          - tests:
-            - line: 'Category: Livesets - House'
-              expect:
-                category: Livesets - House
-            pattern: '^Category\.*:\s*(.*)'
-            vars:
-              - category
-          - tests:
-            - line: 'URL.....: https://www.trancetraffic.com/details.php?id=000000&hit=1'
-              expect:
-                baseUrl: https://www.trancetraffic.com/
-                torrentId: "000000"
-            pattern: '^URL\.*:\s*(https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
-            vars:
-              - baseUrl
-              - torrentId
+          - pattern: '^New Torrent Uploaded:'
+            tests:
+              - line: 'New Torrent Uploaded:'
+                expect:
+                  raw: "New Torrent Uploaded:"
+
+          - pattern: '^Name\.*:\s*(?P<releaseName>.*)'
+            tests:
+              - line: 'Name....: That Artist - Good Album-SAT-01-30-2021-GROUP'
+                expect:
+                  releaseName: That Artist - Good Album-SAT-01-30-2021-GROUP
+
+          - pattern: '^Uploader\.*:\s*(?P<uploader>.*)'
+            tests:
+              - line: 'Uploader: anon'
+                expect:
+                  uploader: anon
+
+          - pattern: '^Category\.*:\s*(?P<category>.*)'
+            tests:
+              - line: 'Category: Livesets - House'
+                expect:
+                  category: Livesets - House
+
+          - pattern: '^URL\.*:\s*(?P<baseUrl>https?\:\/\/[^\/]+\/).*[&\?]id=(?P<torrentId>\d+)'
+            tests:
+              - line: 'URL.....: https://www.trancetraffic.com/details.php?id=000000&hit=1'
+                expect:
+                  baseUrl: https://www.trancetraffic.com/
+                  torrentId: "000000"
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

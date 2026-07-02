@@ -50,25 +50,17 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: "[RMC] New Movie - Type: [Bluray Encode] Name: [Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER] Size: [1.13 GiB] Uploader: [Hitchcock] Url: [https://retro-movies.club/torrents/2506]"
-              expect:
-                category: Movie
-                releaseTags: Bluray Encode
-                releaseName: "Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER"
-                torrentSize: 1.13 GiB
-                uploader: Hitchcock
-                baseUrl: https://retro-movies.club/
-                torrentId: "2506"
-            pattern: '\[RMC\] New (Movie) - Type: \[(.*)\] Name: \[(.*)\] Size: \[(.*)\] Uploader: \[(.*)\] Url: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
-            vars:
-              - category
-              - releaseTags
-              - releaseName
-              - torrentSize
-              - uploader
-              - baseUrl
-              - torrentId
+          - pattern: '\[RMC\] New (?P<category>Movie) - Type: \[(?P<releaseTags>.*)\] Name: \[(?P<releaseName>.*)\] Size: \[(?P<torrentSize>.*)\] Uploader: \[(?P<uploader>.*)\] Url: \[(?P<baseUrl>https?\:\/\/.*?\/).*\/(?P<torrentId>\d+)\]'
+            tests:
+              - line: "[RMC] New Movie - Type: [Bluray Encode] Name: [Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER] Size: [1.13 GiB] Uploader: [Hitchcock] Url: [https://retro-movies.club/torrents/2506]"
+                expect:
+                  category: Movie
+                  releaseTags: Bluray Encode
+                  releaseName: "Happy Gilmore 1996 480p BluRay AAC 2.0 x264-GAZER"
+                  torrentSize: 1.13 GiB
+                  uploader: Hitchcock
+                  baseUrl: https://retro-movies.club/
+                  torrentId: "2506"
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

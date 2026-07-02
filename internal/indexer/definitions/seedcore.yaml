@@ -51,50 +51,38 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 0:1:1:0:1873:21210147233:1769458612:63|Encode/1080p|1995|Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek|uploader1
-              expect:
-                announceTypeEnum: 0
-                categoryEnum: 1
-                leechTypeEnum: 1
-                originEnum: 0
-                torrentId: "1873"
-                torrentSizeBytes: "21210147233"
-                uploadedDate: "1769458612"
-                tmdb: "63"
-                releaseTags: Encode/1080p
-                year: "1995"
-                releaseName: Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek
-                uploader: uploader1
-            - line: 0:1:0:0:4942:6598346281:1773517762:1457783|PRODUS IN ROMANIA/2160p||Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB|BAD
-              expect:
-                announceTypeEnum: 0
-                categoryEnum: 1
-                leechTypeEnum: 0
-                originEnum: 0
-                torrentId: "4942"
-                torrentSizeBytes: "6598346281"
-                uploadedDate: "1773517762"
-                tmdb: "1457783"
-                releaseTags: PRODUS IN ROMANIA/2160p
-                year: ""
-                releaseName: Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB
-                uploader: BAD
-            # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
-            pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\d+):(\d+)\|(.*)\|(\d+)?\|(.+)\|(.+)'
-            vars:
-              - announceTypeEnum
-              - categoryEnum
-              - leechTypeEnum
-              - originEnum
-              - torrentId
-              - torrentSizeBytes
-              - uploadedDate
-              - tmdb
-              - releaseTags
-              - year
-              - releaseName
-              - uploader
+          # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
+          - pattern: '(?P<announceTypeEnum>\d):(?P<categoryEnum>\d):(?P<leechTypeEnum>\d):(?P<originEnum>\d):(?P<torrentId>\d+):(?P<torrentSizeBytes>\d+):(?P<uploadedDate>\d+):(?P<tmdb>\d+)\|(?P<releaseTags>.*)\|(?P<year>\d+)?\|(?P<releaseName>.+)\|(?P<uploader>.+)'
+            tests:
+              - line: 0:1:1:0:1873:21210147233:1769458612:63|Encode/1080p|1995|Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek|uploader1
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 1
+                  leechTypeEnum: 1
+                  originEnum: 0
+                  torrentId: "1873"
+                  torrentSizeBytes: "21210147233"
+                  uploadedDate: "1769458612"
+                  tmdb: "63"
+                  releaseTags: Encode/1080p
+                  year: "1995"
+                  releaseName: Twelve Monkeys AKA 12 Monkeys 1995 1080p BluRay DTS 5.1 x264-Geek
+                  uploader: uploader1
+
+              - line: 0:1:0:0:4942:6598346281:1773517762:1457783|PRODUS IN ROMANIA/2160p||Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB|BAD
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 1
+                  leechTypeEnum: 0
+                  originEnum: 0
+                  torrentId: "4942"
+                  torrentSizeBytes: "6598346281"
+                  uploadedDate: "1773517762"
+                  tmdb: "1457783"
+                  releaseTags: PRODUS IN ROMANIA/2160p
+                  year: ""
+                  releaseName: Padurea.de.molizi.2025.2160p.HMAX.WEB-DL.DD+5.1.H.265-playWEB
+                  uploader: BAD
 
         mappings:
           announceTypeEnum:

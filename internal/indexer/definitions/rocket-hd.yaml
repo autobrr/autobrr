@@ -45,7 +45,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: '^(?P<category>[^|]+)\|(?P<releaseTags>[^|]+)\|(?P<resolution>[^|]*)\|(?P<releaseName>[^|]+)\|RLS:(?P<releaseName2>[^|]+)\|S:(?P<torrentSize>[^|]+)\|TMDB:(?P<tmdb>\d+)\|U:(?P<uploader>[^|]+)\|O:(?P<origin>[^|]+)\|FL:(?P<freeleechPercent>\d+)\|DU:(?P<doubleUp>\d+) \[.*?/torrents/(?P<torrentId>\d+)\]'
+            tests:
               - line: "TV|WEB-DL|1080p|Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA|RLS:Die.Scharfschuetzen.S01.German.1080p.WEB-DL.H.264-AIDA|S:67.15GiB|TMDB:12345|U:Anonym|O:INTERNAL|FL:0|DU:0 [https://rocket-hd.cc/torrents/99]"
                 expect:
                   category: TV
@@ -60,6 +61,7 @@ irc:
                   freeleechPercent: "0"
                   doubleUp: "0"
                   torrentId: "99"
+
               - line: "Movies|Encode|1080p|Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE|RLS:Ju.On.2.2003.GERMAN.DL.1080p.BluRay.x264-WATCHABLE|S:7.42GiB|TMDB:67890|U:fritz47|O:NORMAL|FL:50|DU:0 [https://rocket-hd.cc/torrents/100]"
                 expect:
                   category: Movies
@@ -74,20 +76,6 @@ irc:
                   freeleechPercent: "50"
                   doubleUp: "0"
                   torrentId: "100"
-            pattern: '^([^|]+)\|([^|]+)\|([^|]*)\|([^|]+)\|RLS:([^|]+)\|S:([^|]+)\|TMDB:(\d+)\|U:([^|]+)\|O:([^|]+)\|FL:(\d+)\|DU:(\d+) \[.*?/torrents/(\d+)\]'
-            vars:
-              - category
-              - releaseTags
-              - resolution
-              - releaseName
-              - releaseName2
-              - torrentSize
-              - tmdb
-              - uploader
-              - origin
-              - freeleechPercent
-              - doubleUp
-              - torrentId
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

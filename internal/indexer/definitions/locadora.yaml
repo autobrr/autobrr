@@ -11,7 +11,7 @@ privacy: private
 protocol: torrent
 supports:
   - irc
-    #  - rss
+  #  - rss
 # source: UNIT3D
 settings:
   - name: rsskey
@@ -31,7 +31,7 @@ irc:
       required: true
       label: Nick
       help: Bot nick. Eg. user_bot
-      
+
     - name: auth.account
       type: text
       required: false
@@ -51,31 +51,20 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '[Filmes] [WEB-DL] [1080p] [Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)] [https://locadora.cc/torrents/28808] [7.61 GiB] [100%] [Internal:1] [tmdb-39513]'
-              expect:
-                category: Filmes
-                releaseTags: WEB-DL
-                resolution: 1080p
-                releaseName: Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)
-                baseUrl: https://locadora.cc/
-                torrentId: "28808"
-                torrentSize: 7.61 GiB
-                freeleechPercent: 100%
-                internal: "1"
-                tags: "39513"
-            pattern: '\[(.+)\] \[(.+)\] \[(.+)\] \[(.+?)\] \[(https?\:\/\/.+\/).+\/(\d+)\] \[(.+?)\] \[(.+?)\] \[Internal:(\d)\] \[[a-z]+-(\d+)\]'
-            vars:
-              - category
-              - releaseTags
-              - resolution
-              - releaseName
-              - baseUrl
-              - torrentId
-              - torrentSize
-              - freeleechPercent
-              - internal
-              - tags
+          - pattern: '\[(?P<category>.+)\] \[(?P<releaseTags>.+)\] \[(?P<resolution>.+)\] \[(?P<releaseName>.+?)\] \[(?P<baseUrl>https?\:\/\/.+\/).+\/(?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\] \[(?P<freeleechPercent>.+?)\] \[Internal:(?P<internal>\d)\] \[[a-z]+-(?P<tags>\d+)\]'
+            tests:
+              - line: '[Filmes] [WEB-DL] [1080p] [Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)] [https://locadora.cc/torrents/28808] [7.61 GiB] [100%] [Internal:1] [tmdb-39513]'
+                expect:
+                  category: Filmes
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  releaseName: Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)
+                  baseUrl: https://locadora.cc/
+                  torrentId: "28808"
+                  torrentSize: 7.61 GiB
+                  freeleechPercent: 100%
+                  internal: "1"
+                  tags: "39513"
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

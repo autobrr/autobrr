@@ -54,28 +54,23 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: New! (Movies) - [REQUESTED].French.Movie.(1978).(French.with.English.Subtitles) - (18.76 GB) - https://retroflix.club/browse/t/00000/french-movie-1978-french-with-english-subtitles
-              expect:
-                category: Movies
-                releaseName: French.Movie.(1978).(French.with.English.Subtitles)
-                torrentSize: 18.76 GB
-                baseUrl: https://retroflix.club/
-                torrentId: "00000"
-            - line: New! (Movies) - Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1 - (5.42 GB) - https://retroflix.club/browse/t/00000/old-movie-1967-1080p-bluray-x265-10bit-group1
-              expect:
-                category: Movies
-                releaseName: Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1
-                torrentSize: 5.42 GB
-                baseUrl: https://retroflix.club/
-                torrentId: "00000"
-            pattern: '^New! \((.*)\) - (?:\[REQUESTED\].)?(.*) - \((.*)\) - (https?:\/\/.*\/)browse/t/(\d+).*'
-            vars:
-              - category
-              - releaseName
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: '^New! \((?P<category>.*)\) - (?:\[REQUESTED\].)?(?P<releaseName>.*) - \((?P<torrentSize>.*)\) - (?P<baseUrl>https?:\/\/.*\/)browse/t/(?P<torrentId>\d+).*'
+            tests:
+              - line: New! (Movies) - [REQUESTED].French.Movie.(1978).(French.with.English.Subtitles) - (18.76 GB) - https://retroflix.club/browse/t/00000/french-movie-1978-french-with-english-subtitles
+                expect:
+                  category: Movies
+                  releaseName: French.Movie.(1978).(French.with.English.Subtitles)
+                  torrentSize: 18.76 GB
+                  baseUrl: https://retroflix.club/
+                  torrentId: "00000"
+
+              - line: New! (Movies) - Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1 - (5.42 GB) - https://retroflix.club/browse/t/00000/old-movie-1967-1080p-bluray-x265-10bit-group1
+                expect:
+                  category: Movies
+                  releaseName: Old.Movie.1967.1080p.BluRay.x265.10bit-GROUP1
+                  torrentSize: 5.42 GB
+                  baseUrl: https://retroflix.club/
+                  torrentId: "00000"
 
         match:
           infourl: "/browse/t/{{ .torrentId }}/{{ .releaseName }}"

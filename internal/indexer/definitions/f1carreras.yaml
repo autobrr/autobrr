@@ -51,35 +51,28 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: NEW|5308|Movies|WEB-DL|1080p|Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]|10 GB|Uploaded by uploader1
-              expect:
-                torrentId: "5308"
-                category: Movies
-                releaseTags: WEB-DL
-                resolution: 1080p
-                releaseName: Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]
-                torrentSize: "10 GB"
-                uploader: uploader1
-            - line: NEW|5311|MotoGP|WEB-DL||MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC|7.1 GB|Uploaded by uploader2
-              expect:
-                torrentId: "5311"
-                category: MotoGP
-                releaseTags: WEB-DL
-                resolution: ""
-                releaseName: MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC
-                torrentSize: "7.1 GB"
-                uploader: uploader2
-            # <announceType>|<id>|<category>|<Type>|<resolution>|<releasename>|<size>|<uploader>
-            pattern: 'NEW\|(\d+)\|(.+)\|(.+)\|(.+)?\|(.+)\|(.+)\|Uploaded by (.+)'
-            vars:
-              - torrentId
-              - category
-              - releaseTags
-              - resolution
-              - releaseName
-              - torrentSize
-              - uploader
+          # <announceType>|<id>|<category>|<Type>|<resolution>|<releasename>|<size>|<uploader>
+          - pattern: 'NEW\|(?P<torrentId>\d+)\|(?P<category>.+)\|(?P<releaseTags>.+)\|(?P<resolution>.+)?\|(?P<releaseName>.+)\|(?P<torrentSize>.+)\|Uploaded by (?P<uploader>.+)'
+            tests:
+              - line: NEW|5308|Movies|WEB-DL|1080p|Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]|10 GB|Uploaded by uploader1
+                expect:
+                  torrentId: "5308"
+                  category: Movies
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  releaseName: Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]
+                  torrentSize: "10 GB"
+                  uploader: uploader1
+
+              - line: NEW|5311|MotoGP|WEB-DL||MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC|7.1 GB|Uploaded by uploader2
+                expect:
+                  torrentId: "5311"
+                  category: MotoGP
+                  releaseTags: WEB-DL
+                  resolution: ""
+                  releaseName: MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC
+                  torrentSize: "7.1 GB"
+                  uploader: uploader2
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

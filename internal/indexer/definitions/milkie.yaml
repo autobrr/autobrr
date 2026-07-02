@@ -54,21 +54,15 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '{tv} :: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST :: [1080p, web] :: https://milkie.cc/browse/xxxxxxxxxxxx'
-              expect:
-                category: tv
-                releaseName: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST
-                releaseTags: 1080p, web
-                baseUrl: https://milkie.cc/
-                torrentId: xxxxxxxxxxxx
-            pattern: '{(.*)}\s::\s(.*)\s::\s\[(.*)\]\s::\s(https?\:\/\/[^\/]+\/)browse\/(.*)'
-            vars:
-              - category
-              - releaseName
-              - releaseTags
-              - baseUrl
-              - torrentId
+          - pattern: '{(?P<category>.*)}\s::\s(?P<releaseName>.*)\s::\s\[(?P<releaseTags>.*)\]\s::\s(?P<baseUrl>https?\:\/\/[^\/]+\/)browse\/(?P<torrentId>.*)'
+            tests:
+              - line: '{tv} :: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST :: [1080p, web] :: https://milkie.cc/browse/xxxxxxxxxxxx'
+                expect:
+                  category: tv
+                  releaseName: The.Great.Xmas.Show.S00E00.1080p.WEB.H264-TEST
+                  releaseTags: 1080p, web
+                  baseUrl: https://milkie.cc/
+                  torrentId: xxxxxxxxxxxx
 
         match:
           infourl: "/browse/{{ .torrentId }}"

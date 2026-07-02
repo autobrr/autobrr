@@ -59,43 +59,37 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 'New Torrent: This.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/torrents/autodl?id=00000'
-              expect:
-                releaseName: This.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test
-                freeleechEnum: ""
-                category: TV
-                uploader: Uploader
-                torrentSize: 137.73 GB
-                baseUrl: https://beyond-hd.me/
-                torrentId: "00000"
-            - line: 'New Torrent: That Show S03E04 1080p WEB-DL DDP 5.1 H.264-GROUP [Capped FL] Category: TV By: Anonymous Size: 1.62 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000'
-              expect:
-                releaseName: That Show S03E04 1080p WEB-DL DDP 5.1 H.264-GROUP
-                freeleechEnum: Capped FL
-                category: TV
-                uploader: Anonymous
-                torrentSize: 1.62 GiB
-                baseUrl: https://beyond-hd.me/
-                torrentId: "00000"
-            - line: 'New Torrent: Movie BluRay 1080p DD5.1 x264-GudGRP [50% Free] Category: Movies By: Uploader Size: 6.09 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000'
-              expect:
-                releaseName: Movie BluRay 1080p DD5.1 x264-GudGRP
-                freeleechEnum: 50% Free
-                category: Movies
-                uploader: Uploader
-                torrentSize: 6.09 GiB
-                baseUrl: https://beyond-hd.me/
-                torrentId: "00000"
-            pattern: 'New Torrent: (.*?) (?:\[(.*)\] )?Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
-            vars:
-              - releaseName
-              - freeleechEnum
-              - category
-              - uploader
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: 'New Torrent: (?P<releaseName>.*?) (?:\[(?P<freeleechEnum>.*)\] )?Category: (?P<category>.*) By: (?P<uploader>.*) Size: (?P<torrentSize>.*) Link: (?P<baseUrl>https?\:\/\/[^\/]+\/).*[&\?]id=(?P<torrentId>\d+)'
+            tests:
+              - line: 'New Torrent: This.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/torrents/autodl?id=00000'
+                expect:
+                  releaseName: This.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test
+                  freeleechEnum: ""
+                  category: TV
+                  uploader: Uploader
+                  torrentSize: 137.73 GB
+                  baseUrl: https://beyond-hd.me/
+                  torrentId: "00000"
+
+              - line: 'New Torrent: That Show S03E04 1080p WEB-DL DDP 5.1 H.264-GROUP [Capped FL] Category: TV By: Anonymous Size: 1.62 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000'
+                expect:
+                  releaseName: That Show S03E04 1080p WEB-DL DDP 5.1 H.264-GROUP
+                  freeleechEnum: Capped FL
+                  category: TV
+                  uploader: Anonymous
+                  torrentSize: 1.62 GiB
+                  baseUrl: https://beyond-hd.me/
+                  torrentId: "00000"
+
+              - line: 'New Torrent: Movie BluRay 1080p DD5.1 x264-GudGRP [50% FL] Category: Movies By: Uploader Size: 6.09 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000'
+                expect:
+                  releaseName: Movie BluRay 1080p DD5.1 x264-GudGRP
+                  freeleechEnum: 50% FL
+                  category: Movies
+                  uploader: Uploader
+                  torrentSize: 6.09 GiB
+                  baseUrl: https://beyond-hd.me/
+                  torrentId: "00000"
 
         mappings:
           freeleechEnum:
@@ -117,9 +111,6 @@ irc:
             "100% FL":
               downloadVolumeFactor: 0.75
               uploadVolumeFactor: 1
-            "3": # Neutral
-              downloadVolumeFactor: 0
-              uploadVolumeFactor: 0
 
         match:
           infourl: "/torrents/autodl?id={{ .torrentId }}"

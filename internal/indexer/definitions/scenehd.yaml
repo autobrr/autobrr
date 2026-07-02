@@ -58,19 +58,14 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '[NEW] Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP [TV/720] https://scenehd.org/details.php?id=00000'
-              expect:
-                releaseName: Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP
-                category: TV/720
-                baseUrl: https://scenehd.org/
-                torrentId: "00000"
-            pattern: '\[NEW\] (.+) \[(.+)\] (https?\:\/\/.+\/).*id=(\d+)'
-            vars:
-              - releaseName
-              - category
-              - baseUrl
-              - torrentId
+          - pattern: '\[NEW\] (?P<releaseName>.+) \[(?P<category>.+)\] (?P<baseUrl>https?\:\/\/.+\/).*id=(?P<torrentId>\d+)'
+            tests:
+              - line: '[NEW] Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP [TV/720] https://scenehd.org/details.php?id=00000'
+                expect:
+                  releaseName: Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP
+                  category: TV/720
+                  baseUrl: https://scenehd.org/
+                  torrentId: "00000"
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

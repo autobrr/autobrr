@@ -51,21 +51,15 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '[NEW] A Nice Self-Help Book (Books) https://www.docspedia.world/details.php?id=1234'
-              expect:
-                releaseName: A Nice Self-Help Book
-                category: Books
-                baseUrl: https://www.docspedia.world
-                torrentId: "1234"
-                preTime: ""
-            pattern: '\[NEW] (.*) \(([^)]*)\) (https:\/\/.+)\/details\.php\?id=(\d+)\s*(?:\[PRED ([^\]]*)\])?'
-            vars:
-              - releaseName
-              - category
-              - baseUrl
-              - torrentId
-              - preTime
+          - pattern: '\[NEW] (?P<releaseName>.*) \((?P<category>[^)]*)\) (?P<baseUrl>https:\/\/.+)\/details\.php\?id=(?P<torrentId>\d+)\s*(?:\[PRED (?P<preTime>[^\]]*)\])?'
+            tests:
+              - line: '[NEW] A Nice Self-Help Book (Books) https://www.docspedia.world/details.php?id=1234'
+                expect:
+                  releaseName: A Nice Self-Help Book
+                  category: Books
+                  baseUrl: https://www.docspedia.world
+                  torrentId: "1234"
+                  preTime: ""
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

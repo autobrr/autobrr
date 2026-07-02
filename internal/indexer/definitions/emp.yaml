@@ -58,23 +58,16 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 'Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.sx/torrents.php?torrentid=000000'
-              expect:
-                releaseName: Some long funny title
-                torrentSize: 2.54 GiB
-                uploader: uploader1
-                tags: tag1,tag2
-                baseUrl: https://www.empornium.sx/
-                torrentId: "000000"
-            pattern: '(.*) - Size: (.+) - Uploader: (.+) - Tags: (.*) - (https:\/\/.*\/)torrents\.php\?torrentid=(\d+)'
-            vars:
-              - releaseName
-              - torrentSize
-              - uploader
-              - tags
-              - baseUrl
-              - torrentId
+          - pattern: '(?P<releaseName>.*) - Size: (?P<torrentSize>.+) - Uploader: (?P<uploader>.+) - Tags: (?P<tags>.*) - (?P<baseUrl>https:\/\/.*\/)torrents\.php\?torrentid=(?P<torrentId>\d+)'
+            tests:
+              - line: 'Some long funny title - Size: 2.54 GiB - Uploader: uploader1 - Tags: tag1,tag2 - https://www.empornium.sx/torrents.php?torrentid=000000'
+                expect:
+                  releaseName: Some long funny title
+                  torrentSize: 2.54 GiB
+                  uploader: uploader1
+                  tags: tag1,tag2
+                  baseUrl: https://www.empornium.sx/
+                  torrentId: "000000"
 
         match:
           infourl: "/torrents.php?torrentid={{ .torrentId }}"

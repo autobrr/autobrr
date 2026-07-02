@@ -51,50 +51,38 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 0:2:0:0:12878:9939320728:1774760500:203489|WEB-DL/1080p|2022|Mike Judge's Beavis and Butt-Head S02 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb|uploader1
-              expect:
-                announceTypeEnum: 0
-                categoryEnum: 2
-                leechTypeEnum: 0
-                originEnum: 0
-                torrentId: "12878"
-                torrentSizeBytes: "9939320728"
-                uploadedDate: "1774760500"
-                tmdb: "203489"
-                releaseTags: WEB-DL/1080p
-                year: "2022"
-                releaseName: Mike Judge's Beavis and Butt-Head S02 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb
-                uploader: uploader1
-            - line: 0:3:1:0:12880:18962924195:1774757803:213830|Encode/1080p|2024|I Was Reincarnated as the 7th Prince so I Can Take My Time Perfecting My Magical Ability AKA Tensei Shitara Dainana Ouji Datta Node, Kimama ni Majutsu wo Kiwamemasu S01 PROPER 1080p BluRay Dual-Audio Opus 2.0 x265-Headpatter|uploader2
-              expect:
-                announceTypeEnum: 0
-                categoryEnum: 3
-                leechTypeEnum: 1
-                originEnum: 0
-                torrentId: "12880"
-                torrentSizeBytes: "18962924195"
-                uploadedDate: "1774757803"
-                tmdb: "213830"
-                releaseTags: Encode/1080p
-                year: "2024"
-                releaseName: I Was Reincarnated as the 7th Prince so I Can Take My Time Perfecting My Magical Ability AKA Tensei Shitara Dainana Ouji Datta Node, Kimama ni Majutsu wo Kiwamemasu S01 PROPER 1080p BluRay Dual-Audio Opus 2.0 x265-Headpatter
-                uploader: uploader2
-            # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
-            pattern: '(\d):(\d):(\d):(\d):(\d+):(\d+):(\d+):(\d+)\|(.*)\|(\d+)?\|(.+)\|(.+)'
-            vars:
-              - announceTypeEnum
-              - categoryEnum
-              - leechTypeEnum
-              - originEnum
-              - torrentId
-              - torrentSizeBytes
-              - uploadedDate
-              - tmdb
-              - releaseTags
-              - year
-              - releaseName
-              - uploader
+          # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
+          - pattern: '(?P<announceTypeEnum>\d):(?P<categoryEnum>\d):(?P<leechTypeEnum>\d):(?P<originEnum>\d):(?P<torrentId>\d+):(?P<torrentSizeBytes>\d+):(?P<uploadedDate>\d+):(?P<tmdb>\d+)\|(?P<releaseTags>.*)\|(?P<year>\d+)?\|(?P<releaseName>.+)\|(?P<uploader>.+)'
+            tests:
+              - line: 0:2:0:0:12878:9939320728:1774760500:203489|WEB-DL/1080p|2022|Mike Judge's Beavis and Butt-Head S02 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb|uploader1
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 2
+                  leechTypeEnum: 0
+                  originEnum: 0
+                  torrentId: "12878"
+                  torrentSizeBytes: "9939320728"
+                  uploadedDate: "1774760500"
+                  tmdb: "203489"
+                  releaseTags: WEB-DL/1080p
+                  year: "2022"
+                  releaseName: Mike Judge's Beavis and Butt-Head S02 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb
+                  uploader: uploader1
+
+              - line: 0:3:1:0:12880:18962924195:1774757803:213830|Encode/1080p|2024|I Was Reincarnated as the 7th Prince so I Can Take My Time Perfecting My Magical Ability AKA Tensei Shitara Dainana Ouji Datta Node, Kimama ni Majutsu wo Kiwamemasu S01 PROPER 1080p BluRay Dual-Audio Opus 2.0 x265-Headpatter|uploader2
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 3
+                  leechTypeEnum: 1
+                  originEnum: 0
+                  torrentId: "12880"
+                  torrentSizeBytes: "18962924195"
+                  uploadedDate: "1774757803"
+                  tmdb: "213830"
+                  releaseTags: Encode/1080p
+                  year: "2024"
+                  releaseName: I Was Reincarnated as the 7th Prince so I Can Take My Time Perfecting My Magical Ability AKA Tensei Shitara Dainana Ouji Datta Node, Kimama ni Majutsu wo Kiwamemasu S01 PROPER 1080p BluRay Dual-Audio Opus 2.0 x265-Headpatter
+                  uploader: uploader2
 
         mappings:
           announceTypeEnum:

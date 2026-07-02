@@ -58,19 +58,14 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '[TB-RLS] .:. [ The.New.Game-GROUP ] .:. [ https://www.torrentbytes.net/download.php?id=0000000 ] .:. [ https://www.torrentbytes.net/details.php?id=0000000 ] .:. [ Uploaded 2 minutes, 12 seconds after pre ]'
-              expect:
-                releaseName: The.New.Game-GROUP
-                baseUrl: https://www.torrentbytes.net/
-                torrentId: "0000000"
-                preTime: '2 minutes, 12 seconds after pre '
-            pattern: '^\[TB-RLS\] \.:\. \[ (.*) \] \.:\. \[ (https?\:\/\/.*\/).*id=(\d+).*https?\:\/\/(?:.*\[ Uploaded (.*)\])?'
-            vars:
-              - releaseName
-              - baseUrl
-              - torrentId
-              - preTime
+          - pattern: '^\[TB-RLS\] \.:\. \[ (?P<releaseName>.*) \] \.:\. \[ (?P<baseUrl>https?\:\/\/.*\/).*id=(?P<torrentId>\d+).*https?\:\/\/(?:.*\[ Uploaded (?P<preTime>.*)\])?'
+            tests:
+              - line: '[TB-RLS] .:. [ The.New.Game-GROUP ] .:. [ https://www.torrentbytes.net/download.php?id=0000000 ] .:. [ https://www.torrentbytes.net/details.php?id=0000000 ] .:. [ Uploaded 2 minutes, 12 seconds after pre ]'
+                expect:
+                  releaseName: The.New.Game-GROUP
+                  baseUrl: https://www.torrentbytes.net/
+                  torrentId: "0000000"
+                  preTime: '2 minutes, 12 seconds after pre '
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

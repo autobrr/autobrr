@@ -58,35 +58,31 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '::: PolishTracker :::  Torrent ( Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 2.14 GB )  ||  Link: ( https://pte.nu/torrents/000000 )  ||  Wiecej: ( http://www.filmweb.pl/film?id=000000 )'
-              expect:
-                releaseName: Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP
-                category: movies HD
-                torrentSize: 2.14 GB
-                baseUrl: https://pte.nu/
-                torrentId: "000000"
-            - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP )  ||  Kategoria: ( movies SD )  ||  Rozmiar: ( 1.15 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
-              expect:
-                releaseName: Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP
-                category: movies SD
-                torrentSize: 1.15 GB
-                baseUrl: https://pte.nu/
-                torrentId: "000000"
-            - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 5.02 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
-              expect:
-                releaseName: Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP
-                category: movies HD
-                torrentSize: 5.02 GB
-                baseUrl: https://pte.nu/
-                torrentId: "000000"
-            pattern: '::: PolishTracker :::  Torrent \( (.+) \)  \|\|  Kategoria: \( (.+) \)  \|\|  Rozmiar: \( (.+) \)  \|\|  Link: \( (https:\/\/.+\/)torrents\/(\d+) \)'
-            vars:
-              - releaseName
-              - category
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: '::: PolishTracker :::  Torrent \( (?P<releaseName>.+) \)  \|\|  Kategoria: \( (?P<category>.+) \)  \|\|  Rozmiar: \( (?P<torrentSize>.+) \)  \|\|  Link: \( (?P<baseUrl>https:\/\/.+\/)torrents\/(?P<torrentId>\d+) \)'
+            tests:
+              - line: '::: PolishTracker :::  Torrent ( Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 2.14 GB )  ||  Link: ( https://pte.nu/torrents/000000 )  ||  Wiecej: ( http://www.filmweb.pl/film?id=000000 )'
+                expect:
+                  releaseName: Some.Movie.2017.PLSUB.1080p.BDRip.x264-GROUP
+                  category: movies HD
+                  torrentSize: 2.14 GB
+                  baseUrl: https://pte.nu/
+                  torrentId: "000000"
+
+              - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP )  ||  Kategoria: ( movies SD )  ||  Rozmiar: ( 1.15 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
+                expect:
+                  releaseName: Some.Other.Movie.1985.iNTERNAL.BDRip.x264-GROUP
+                  category: movies SD
+                  torrentSize: 1.15 GB
+                  baseUrl: https://pte.nu/
+                  torrentId: "000000"
+
+              - line: '::: PolishTracker :::  Torrent ( Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP )  ||  Kategoria: ( movies HD )  ||  Rozmiar: ( 5.02 GB )  ||  Link: ( https://pte.nu/torrents/000000 )'
+                expect:
+                  releaseName: Some.Other.Movie.1985.iNTERNAL.720p.BluRay.x264-GROUP
+                  category: movies HD
+                  torrentSize: 5.02 GB
+                  baseUrl: https://pte.nu/
+                  torrentId: "000000"
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

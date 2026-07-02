@@ -25,7 +25,6 @@ settings:
     label: Auth key
     help: Right click DL on a torrent and get the authkey.
 
-
 irc:
   network: Bemaniso
   server: irc.bemaniso.ws
@@ -45,35 +44,31 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr
-              expect:
-                releaseName: Torrent Name Here
-                releaseTags: '-'
-                torrentInfoId: "00000"
-                torrentId: "00001"
-                tags: ps2, ddr
-            - line: Big Vs. 2 Small  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - arcade, gundam, exvs
-              expect:
-                releaseName: Big Vs. 2 Small
-                releaseTags: '-'
-                torrentInfoId: "00000"
-                torrentId: "00001"
-                tags: arcade, gundam, exvs
-            - line: Cool title [2000] [DJ Mix] - FLAC / Lossless / Log / 100% / Cue / CD - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - eurobeat
-              expect:
-                releaseName: Cool title [2000] [DJ Mix]
-                releaseTags: FLAC / Lossless / Log / 100% / Cue / CD -
-                torrentInfoId: "00000"
-                torrentId: "00001"
-                tags: eurobeat
-            pattern: '(.*) -? (.*) (?:.*id=(\d+)) / (?:.*id=(\d+)) - (.*)'
-            vars:
-              - releaseName
-              - releaseTags
-              - torrentInfoId
-              - torrentId
-              - tags
+          - pattern: '(?P<releaseName>.*) -? (?P<releaseTags>.*) (?:.*id=(?P<torrentInfoId>\d+)) / (?:.*id=(?P<torrentId>\d+)) - (?P<tags>.*)'
+            tests:
+              - line: Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr
+                expect:
+                  releaseName: Torrent Name Here
+                  releaseTags: '-'
+                  torrentInfoId: "00000"
+                  torrentId: "00001"
+                  tags: ps2, ddr
+
+              - line: Big Vs. 2 Small  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - arcade, gundam, exvs
+                expect:
+                  releaseName: Big Vs. 2 Small
+                  releaseTags: '-'
+                  torrentInfoId: "00000"
+                  torrentId: "00001"
+                  tags: arcade, gundam, exvs
+
+              - line: Cool title [2000] [DJ Mix] - FLAC / Lossless / Log / 100% / Cue / CD - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - eurobeat
+                expect:
+                  releaseName: Cool title [2000] [DJ Mix]
+                  releaseTags: FLAC / Lossless / Log / 100% / Cue / CD -
+                  torrentInfoId: "00000"
+                  torrentId: "00001"
+                  tags: eurobeat
 
         match:
           infourl: "/torrents.php?id={{ .torrentInfoId }}"

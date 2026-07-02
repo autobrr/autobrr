@@ -38,21 +38,15 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: 'This Is A New show S00E00 720p WEB H264-Test [TV HD] 1.40 GB https://finelite.org/details/0000000'
-              expect:
-                releaseName: This Is A New show S00E00 720p WEB H264-Test
-                category: TV HD
-                torrentSize: 1.40 GB
-                baseUrl: https://finelite.org/
-                torrentId: "0000000"
-            pattern: '(.+) \[(.+)\] (.+) (https?\:\/\/[^\/]+\/)details\/(\d+)'
-            vars:
-              - releaseName
-              - category
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: '(?P<releaseName>.+) \[(?P<category>.+)\] (?P<torrentSize>.+) (?P<baseUrl>https?\:\/\/[^\/]+\/)details\/(?P<torrentId>\d+)'
+            tests:
+              - line: 'This Is A New show S00E00 720p WEB H264-Test [TV HD] 1.40 GB https://finelite.org/details/0000000'
+                expect:
+                  releaseName: This Is A New show S00E00 720p WEB H264-Test
+                  category: TV HD
+                  torrentSize: 1.40 GB
+                  baseUrl: https://finelite.org/
+                  torrentId: "0000000"
 
         match:
           infourl: "/details/{{ .torrentId }}"

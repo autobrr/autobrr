@@ -60,17 +60,13 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|'
-              expect:
-                baseUrl: https://abn.lol/
-                torrentId: "000000"
-                releaseName: Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP
-            pattern: '^\s*\|.+\|\s*\|\s(https?\:\/\/[^\/]+\/).*[&\?]ReleaseId\=(\d+)\s\|[\s:]+\|([^|]+)\|\s*'
-            vars:
-              - baseUrl
-              - torrentId
-              - releaseName
+          - pattern: '^\s*\|.+\|\s*\|\s(?P<baseUrl>https?\:\/\/[^\/]+\/).*[&\?]ReleaseId\=(?P<torrentId>\d+)\s\|[\s:]+\|(?P<releaseName>[^|]+)\|\s*'
+            tests:
+              - line: '|2020/08/22 00:00:00| | https://abn.lol/Torrent/Details?ReleaseId=000000 | : |Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP|'
+                expect:
+                  baseUrl: https://abn.lol/
+                  torrentId: "000000"
+                  releaseName: Action.Test.S01E01.FRENCH.WEB.x264-NOGROUP
 
         match:
           infourl: "/Torrent/Details?ReleaseId={{ .torrentId }}"

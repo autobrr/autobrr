@@ -44,7 +44,8 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
+          - pattern: '(?P<postId>\d+)\ (?P<category>\d+)\ (?P<torrentHash>[a-z0-9]{40})\ (?P<releaseName>.*)'
+            tests:
               - line: '6769288 28 f3df71e5bdf2ca66168be7c1390e5685742bf6a8 [MP4/3.81G]JUR-274【破壊版】会社の地味な人妻経理を≪濃厚マゾ潮≫吹き散らかす、俺専用の愛人に仕立て上げた―。 椎名ゆな'
                 expect:
                   postId: 6769288
@@ -65,13 +66,6 @@ irc:
                   category: 2
                   torrentHash: 81c758d0eca5372d59e43879ecf2e2bce33a06c4
                   releaseName: '[MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで'
-
-            pattern: '(\d+)\ (\d+)\ ([a-z0-9]{40})\ (.*)'
-            vars:
-              - postId
-              - category
-              - torrentHash
-              - releaseName
 
         match:
           magneturi: 'magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .releaseName }}'

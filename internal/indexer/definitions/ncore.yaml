@@ -58,30 +58,24 @@ irc:
       parse:
         type: single
         lines:
-          - tests:
-            - line: '[NEW TORRENT in mp3] Artist name - Album name > 115.63 MiB in 17F > https://ncore.pro/torrents.php?action=details&id=0000000'
-              expect:
-                category: mp3
-                releaseName: Artist name - Album name
-                torrentSize: 115.63 MiB
-                baseUrl: https://ncore.pro/
-                torrentId: "0000000"
-            - line: '[NEW TORRENT in xvidser_hun] Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP > 269.31 MiB in 2F > https://ncore.pro/torrents.php?action=details&id=0000000'
-              expect:
-                category: xvidser_hun
-                releaseName: Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP
-                torrentSize: 269.31 MiB
-                baseUrl: https://ncore.pro/
-                torrentId: "0000000"
-            pattern: '\[NEW TORRENT in (.*)\] (.*) > (.*) in .* > (https?://.*/).*action=.*id=(.*)'
-            vars:
-              - category
-              - releaseName
-              - torrentSize
-              - baseUrl
-              - torrentId
+          - pattern: '\[NEW TORRENT in (?P<category>.*)\] (?P<releaseName>.*) > (?P<torrentSize>.*) in .* > (?P<baseUrl>https?://.*/).*action=.*id=(?P<torrentId>.*)'
+            tests:
+              - line: '[NEW TORRENT in mp3] Artist name - Album name > 115.63 MiB in 17F > https://ncore.pro/torrents.php?action=details&id=0000000'
+                expect:
+                  category: mp3
+                  releaseName: Artist name - Album name
+                  torrentSize: 115.63 MiB
+                  baseUrl: https://ncore.pro/
+                  torrentId: "0000000"
+
+              - line: '[NEW TORRENT in xvidser_hun] Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP > 269.31 MiB in 2F > https://ncore.pro/torrents.php?action=details&id=0000000'
+                expect:
+                  category: xvidser_hun
+                  releaseName: Some.Show.S02E67.RTLM.WEB-DL.H264.HUN-GROUP
+                  torrentSize: 269.31 MiB
+                  baseUrl: https://ncore.pro/
+                  torrentId: "0000000"
 
         match:
           infourl: "/torrents.php?action=details&id={{ .torrentId }}"
-          # https://ncore.pro/torrents.php?action=download&id=0000&key=00000
           downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&key={{ .passkey }}"
