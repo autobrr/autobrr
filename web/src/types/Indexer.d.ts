@@ -44,7 +44,6 @@ interface IndexerDefinition {
   torznab: IndexerTorznab;
   newznab?: IndexerTorznab;
   rss: IndexerFeed;
-  parse: IndexerParse;
 }
 
 interface IndexerSetting {
@@ -64,10 +63,14 @@ interface IndexerIRC {
   server: string;
   port: number;
   tls: boolean;
-  nickserv: boolean;
-  channels: string[];
-  announcers: string[];
   settings: IndexerSetting[];
+  channels: IndexerIRCChannel[];
+}
+
+interface IndexerIRCChannel {
+  name: string;
+  announcers: string[];
+  parse: IndexerParse;
 }
 
 interface IndexerTorznab {
@@ -82,6 +85,8 @@ interface IndexerFeed {
 
 interface IndexerParse {
   type: string;
+  forcesizeunit: boolean;
+  skipcleanmessage: boolean;
   lines: IndexerParseLines[];
   match: IndexerParseMatch;
 }
@@ -93,7 +98,10 @@ interface IndexerParseLines {
 }
 
 interface IndexerParseMatch {
-  torrentUrl: string;
+  downloadurl: string;
+  releasename: string;
+  magneturi: string;
+  infourl: string;
   encode: string[];
 }
 
