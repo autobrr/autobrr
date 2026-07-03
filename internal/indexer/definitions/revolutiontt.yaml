@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: revolutiontt
 name: RevolutionTT
 identifier: revolutiontt
@@ -24,10 +25,6 @@ irc:
   server: irc.revott.me
   port: 7000
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - RevoTT
   settings:
     - name: nick
       type: text
@@ -54,31 +51,31 @@ irc:
       label: Invite command
       help: Invite auth with RevoTT. Replace USERNAME and PASSKEY
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=z4WBMrhj&hit=1'
-          expect:
-            torrentName: Some.TV.Show.S01E02.720p.WEB.h264-KOGi
-            category: TV/HDx264
-            baseUrl: https://revott.me/
-            torrentId: z4WBMrhj
-        - line: '!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=eAg24buk&hit=1'
-          expect:
-            torrentName: Some.Other.Show.S01E02.1080p.WEB.h264-KOGi
-            category: TV/HDx264
-            baseUrl: https://revott.me/
-            torrentId: eAg24buk
-        pattern: '!new (.*) \| (.*) \| (https?:\/\/.*\/).*id=([0-9a-zA-Z]+)'
-        vars:
-          - torrentName
-          - category
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - RevoTT
+      parse:
+        type: single
+        lines:
+          - pattern: '!new (?P<releaseName>.*) \| (?P<category>.*) \| (?P<baseUrl>https?:\/\/.*\/).*id=(?P<torrentId>[0-9a-zA-Z]+)'
+            tests:
+              - line: '!new Some.TV.Show.S01E02.720p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=z4WBMrhj&hit=1'
+                expect:
+                  releaseName: Some.TV.Show.S01E02.720p.WEB.h264-KOGi
+                  category: TV/HDx264
+                  baseUrl: https://revott.me/
+                  torrentId: z4WBMrhj
 
-    match:
-      infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download.php/{{ .torrentId }}/{{ .torrentName }}.torrent?passkey={{ .passkey }}"
-      encode:
-        - torrentName
+              - line: '!new Some.Other.Show.S01E02.1080p.WEB.h264-KOGi | TV/HDx264 | https://revott.me/details.php?id=eAg24buk&hit=1'
+                expect:
+                  releaseName: Some.Other.Show.S01E02.1080p.WEB.h264-KOGi
+                  category: TV/HDx264
+                  baseUrl: https://revott.me/
+                  torrentId: eAg24buk
+
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download.php/{{ .torrentId }}/{{ .releaseName }}.torrent?passkey={{ .passkey }}"
+          encode:
+            - releaseName

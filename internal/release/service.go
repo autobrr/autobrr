@@ -301,11 +301,11 @@ func (s *service) ForceRunCleanupJob(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error {
+func (s *service) ProcessManual(_ context.Context, req *domain.ReleaseProcessReq) error {
 	// get indexer definition with data
-	def, err := s.indexerSvc.GetMappedDefinitionByName(req.IndexerIdentifier)
-	if err != nil {
-		return err
+	def, ok := s.indexerSvc.GetMappedDefinitionByName(req.IndexerIdentifier)
+	if !ok {
+		return domain.ErrIndexerNotFound
 	}
 
 	rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier, IdentifierExternal: def.IdentifierExternal})
@@ -317,8 +317,14 @@ func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 		tmpVars := map[string]string{}
 		parseFailed := false
 
-		for idx, parseLine := range def.IRC.Parse.Lines {
-			match, err := indexer.ParseLine(&s.log, parseLine.Pattern, parseLine.Vars, tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
+		channelName := def.IRC.Channels[0].Name
+		channel, ok := def.IRC.ChannelsMap[channelName]
+		if !ok {
+			return errors.New("no channel configured")
+		}
+
+		for idx, parseLine := range channel.Parse.Lines {
+			match, err := parseLine.ParseLine(tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
 			if err != nil {
 				parseFailed = true
 				break
@@ -337,8 +343,7 @@ func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 		rls.Protocol = domain.ReleaseProtocol(def.Protocol)
 
 		// on lines matched
-		err = def.IRC.Parse.Parse(def, tmpVars, rls)
-		if err != nil {
+		if err := channel.Parse.Parse(def, channelName, tmpVars, rls); err != nil {
 			return err
 		}
 

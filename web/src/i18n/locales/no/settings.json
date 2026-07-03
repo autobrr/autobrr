@@ -758,7 +758,8 @@
       "proxyDesc": "Angi en proxy som skal brukes for nedlastinger av .torrent-filer og feeder.",
       "selectProxy": "Velg proxy",
       "selectProxyPlaceholder": "Velg en proxy",
-      "chooseType": "Velg en type"
+      "chooseType": "Velg en type",
+      "editFeeds": "Rediger RSS-feeder i Innstillinger -> Feeder"
     },
     "releaseProfile": {
       "title": "Duplikatprofil",

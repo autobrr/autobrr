@@ -758,7 +758,8 @@
         "proxyDesc": "Nastavte proxy pro použití při stahování .torrent souborů a kanálů.",
         "selectProxy": "Vybrat proxy",
         "selectProxyPlaceholder": "Vybrat proxy",
-        "chooseType": "Vybrat typ"
+        "chooseType": "Vybrat typ",
+        "editFeeds": "Upravit RSS kanály v Nastavení -> Kanály"
       },
       "releaseProfile": {
         "title": "Duplikátní profil",

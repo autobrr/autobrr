@@ -1049,12 +1049,12 @@ func (r *Release) HasMagnetUri() bool {
 const MagnetURIPrefix = "magnet:?"
 
 // MapVars map vars from regex captures to fields on release
-func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
-	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
-		return errors.Wrap(err, "failed parsing required field")
-	} else {
-		r.TorrentName = html.UnescapeString(torrentName)
+func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error {
+	releaseName, err := getStringMapValueAlt(varMap, "releaseName", "torrentName")
+	if err != nil {
+		return errors.Wrap(err, "failed parsing required field: torrentName or releaseName")
 	}
+	r.TorrentName = html.UnescapeString(releaseName)
 
 	if torrentHash, err := getStringMapValue(varMap, "torrentHash"); err == nil {
 		r.TorrentHash = torrentHash
@@ -1086,15 +1086,6 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
-		// special handling for BHD to map their freeleech into percent
-		if def.Identifier == "beyondhd" {
-			if freeleechPercent == "Capped FL" {
-				freeleechPercent = "100%"
-			} else if strings.Contains(freeleechPercent, "% FL") {
-				freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
-			}
-		}
-
 		// remove % and trim spaces
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
@@ -1122,22 +1113,13 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if downloadVolumeFactorVar, ok := varMap["downloadVolumeFactor"]; ok {
-		// special handling for BHD to map their freeleech into percent
-		//if def.Identifier == "beyondhd" {
-		//	if freeleechPercent == "Capped FL" {
-		//		freeleechPercent = "100%"
-		//	} else if strings.Contains(freeleechPercent, "% FL") {
-		//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
-		//	}
-		//}
-
 		//r.downloadVolumeFactor = downloadVolumeFactor
 
 		// Parse the value as decimal number
 		downloadVolumeFactor, parseErr := strconv.ParseFloat(downloadVolumeFactorVar, 64)
 		if parseErr == nil {
 			// Values below 0.0 and above 1.0 are rejected
-			if downloadVolumeFactor >= 0 || downloadVolumeFactor <= 1 {
+			if downloadVolumeFactor >= 0 && downloadVolumeFactor <= 1 {
 				// Multiply by 100 to convert from ratio to percentage and round it
 				// to the nearest integer value
 				downloadPercentage := math.Round(downloadVolumeFactor * 100)
@@ -1153,15 +1135,6 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
-	//	// special handling for BHD to map their freeleech into percent
-	//	//if def.Identifier == "beyondhd" {
-	//	//	if freeleechPercent == "Capped FL" {
-	//	//		freeleechPercent = "100%"
-	//	//	} else if strings.Contains(freeleechPercent, "% FL") {
-	//	//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
-	//	//	}
-	//	//}
-	//
 	//	r.uploadVolumeFactor = uploadVolumeFactor
 	//
 	//	//freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
@@ -1188,8 +1161,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
 
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
-		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
-			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
+		if forceSizeUnit != "" {
+			torrentSize = fmt.Sprintf("%s %s", torrentSize, forceSizeUnit)
 		}
 
 		size, parseErr := humanize.ParseBytes(torrentSize)
@@ -1284,6 +1257,21 @@ func getStringMapValue(stringMap map[string]string, key string) (string, error) 
 	return "", errors.New("key was not found in map: %q", lowerKey)
 }
 
+func getStringMapValueAlt(stringMap map[string]string, keys ...string) (string, error) {
+	for _, key := range keys {
+		lowerKey := strings.ToLower(key)
+
+		// case-insensitive match
+		for k, v := range stringMap {
+			if strings.ToLower(k) == lowerKey {
+				return v, nil
+			}
+		}
+	}
+
+	return "", errors.New("could not find any key in map: %v", keys)
+}
+
 func SplitAny(s string, seps string) []string {
 	splitter := func(r rune) bool {
 		return strings.ContainsRune(seps, r)
@@ -1305,10 +1293,10 @@ func getUniqueTags(target []string, source []string) []string {
 
 	for _, t := range source {
 		found := false
-		norm := rls.MustNormalize(t)
+		normalized := rls.MustNormalize(t)
 
 		for _, s := range target {
-			if rls.MustNormalize(s) == norm {
+			if rls.MustNormalize(s) == normalized {
 				found = true
 				break
 			}

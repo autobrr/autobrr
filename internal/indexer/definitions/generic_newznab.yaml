@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: newznab
 name: Generic Newznab
 identifier: newznab
@@ -13,17 +14,19 @@ supports:
   - newznab
 # source: newznab
 
-newznab:
+feed:
   # minInterval: 15
   settings:
     - name: url
       type: text
       required: true
       label: Indexer URL
+
     - name: newznab_url
       type: text
       required: true
       label: Newznab URL
+
     - name: api_key
       type: secret
       required: false

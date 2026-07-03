@@ -122,7 +122,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 		}
 
 		i.IdentifierExternal = identifierExternal.V
-		i.Implementation = implementation.V
+		i.Implementation = domain.IndexerImplementation(implementation.V)
 		i.BaseURL = baseURL.V
 		i.ProxyID = proxyID.V
 
@@ -171,7 +171,7 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	}
 
 	i.IdentifierExternal = identifierExternal.V
-	i.Implementation = implementation.V
+	i.Implementation = domain.IndexerImplementation(implementation.V)
 	i.BaseURL = baseURL.V
 	i.ProxyID = proxyID.V
 
@@ -222,7 +222,7 @@ func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (
 	}
 
 	i.IdentifierExternal = identifierExternal.V
-	i.Implementation = implementation.V
+	i.Implementation = domain.IndexerImplementation(implementation.V)
 	i.BaseURL = baseURL.V
 	i.ProxyID = proxyID.V
 
