@@ -934,7 +934,6 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		releaseRepo := NewReleaseRepo(log, db)
