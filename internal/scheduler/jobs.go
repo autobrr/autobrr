@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/update"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
@@ -23,8 +21,8 @@ type CheckUpdatesJob struct {
 	Name          string
 	Log           zerolog.Logger
 	Version       string
-	NotifSvc      notification.Sender
-	updateService *update.Service
+	NotifSvc      notificationSender
+	updateService updateChecker
 
 	lastCheckVersion string
 }

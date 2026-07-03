@@ -11,7 +11,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 )
 
-func (s *service) sabnzbd(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) sabnzbd(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action Sabnzbd")
 
 	if release.Protocol != domain.ReleaseProtocolNzb {

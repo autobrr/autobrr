@@ -17,49 +17,51 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Sender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
-}
-
-type Tester interface {
-	Test(ctx context.Context, notification *domain.Notification) error
-}
-
-type Storer interface {
+type notificationRepo interface {
+	List(ctx context.Context) ([]domain.Notification, error)
 	Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error)
 	FindByID(ctx context.Context, notificationID int) (*domain.Notification, error)
 	Store(ctx context.Context, notification *domain.Notification) error
 	Update(ctx context.Context, notification *domain.Notification) error
 	Delete(ctx context.Context, notificationID int) error
-}
 
-type FilterStorer interface {
+	GetNotificationFilters(ctx context.Context, notificationID int) ([]domain.FilterNotification, error)
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
 	StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
 	DeleteFilterNotifications(ctx context.Context, filterID int) error
 }
 
-type FullService interface {
-	FilterStorer
-	Storer
-	Sender
-	Tester
+type Sender interface {
+	Send(event domain.NotificationEvent, payload domain.NotificationPayload) error
+	CanSend(event domain.NotificationEvent) bool
+	CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool
+	IsEnabled() bool
+	Name() string
+	HasFilterEvents(filterID int) bool
 }
+
+//type Sender interface {
+//	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
+//}
+//
+//type Tester interface {
+//	Test(ctx context.Context, notification *domain.Notification) error
+//}
 
 type Service struct {
 	log  zerolog.Logger
-	repo domain.NotificationRepo
+	repo notificationRepo
 
 	notifications map[int]*domain.Notification
-	senders       map[int]domain.NotificationSender
+	senders       map[int]Sender
 }
 
-func NewService(log logger.Logger, repo domain.NotificationRepo) *Service {
+func NewService(log logger.Logger, repo notificationRepo) *Service {
 	s := &Service{
 		log:           log.With().Str("module", "notification").Logger(),
 		repo:          repo,
 		notifications: make(map[int]*domain.Notification),
-		senders:       make(map[int]domain.NotificationSender),
+		senders:       make(map[int]Sender),
 	}
 
 	s.registerSenders()
@@ -290,7 +292,7 @@ func (s *Service) Send(event domain.NotificationEvent, payload domain.Notificati
 	}
 
 	// Find interested senders first to avoid spawning goroutines for no reason
-	var interestedSenders []domain.NotificationSender
+	var interestedSenders []Sender
 
 	if payload.FilterID > 0 {
 		hasFilterSpecific := false
@@ -324,7 +326,7 @@ func (s *Service) Send(event domain.NotificationEvent, payload domain.Notificati
 		return
 	}
 
-	go func(interested []domain.NotificationSender, event domain.NotificationEvent, payload domain.NotificationPayload) {
+	go func(interested []Sender, event domain.NotificationEvent, payload domain.NotificationPayload) {
 		for _, sender := range interested {
 			s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
 
@@ -354,7 +356,7 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		}
 	}
 
-	var agent domain.NotificationSender
+	var agent Sender
 
 	// send test events
 	events := []domain.NotificationPayload{

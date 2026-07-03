@@ -40,7 +40,7 @@ func (s *telegramSender) Name() string {
 	return "telegram"
 }
 
-func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	threadID := 0
 	if t := settings.Topic; t != "" {
 		var err error

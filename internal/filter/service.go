@@ -14,12 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -29,40 +25,72 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
+type filterRepo interface {
+	ListFilters(ctx context.Context) ([]domain.Filter, error)
+	Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error)
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error)
-	Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error)
-	CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
-	ListFilters(ctx context.Context) ([]domain.Filter, error)
+	FindExternalFiltersByID(ctx context.Context, filterId int) ([]domain.FilterExternal, error)
 	Store(ctx context.Context, filter *domain.Filter) error
 	Update(ctx context.Context, filter *domain.Filter) error
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
-	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	Delete(ctx context.Context, filterID int) error
-	AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
-	AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
-	AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
-	CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error)
+	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
+	StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error
+	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error
+	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	DeleteFilterExternal(ctx context.Context, filterID int) error
+	GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) error
+	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
+	StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
+	DeleteFilterNotifications(ctx context.Context, filterID int) error
+}
+
+type actionService interface {
+	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
+	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
+	DeleteByFilterID(ctx context.Context, filterID int) error
+}
+
+type indexerService interface {
+	FindByFilterID(ctx context.Context, filterID int) ([]domain.Indexer, error)
+}
+
+type indexerAPIService interface {
+	GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error)
+}
+
+type downloadService interface {
+	DownloadRelease(ctx context.Context, rls *domain.Release) error
+}
+
+type notificationService interface {
+	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
+	StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
+	DeleteFilterNotifications(ctx context.Context, filterID int) error
+}
+
+type releaseRepo interface {
+	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
 	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
 }
 
-type service struct {
+type Service struct {
 	log             zerolog.Logger
-	repo            domain.FilterRepo
-	actionService   action.Service
-	releaseRepo     domain.ReleaseRepo
-	indexerSvc      indexer.Service
-	apiService      indexer.APIService
-	downloadSvc     *releasedownload.DownloadService
-	notificationSvc notification.FilterStorer
+	repo            filterRepo
+	actionService   actionService
+	releaseRepo     releaseRepo
+	indexerSvc      indexerService
+	apiService      indexerAPIService
+	downloadSvc     downloadService
+	notificationSvc notificationService
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Service, releaseRepo domain.ReleaseRepo, apiService indexer.APIService, indexerSvc indexer.Service, downloadSvc *releasedownload.DownloadService, notificationSvc notification.FilterStorer) Service {
-	return &service{
+func NewService(log logger.Logger, repo filterRepo, actionSvc actionService, releaseRepo releaseRepo, apiService indexerAPIService, indexerSvc indexerService, downloadSvc downloadService, notificationSvc notificationService) *Service {
+	return &Service{
 		log:             log.With().Str("module", "filter").Logger(),
 		repo:            repo,
 		releaseRepo:     releaseRepo,
@@ -78,7 +106,7 @@ func NewService(log logger.Logger, repo domain.FilterRepo, actionSvc action.Serv
 	}
 }
 
-func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
+func (s *Service) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
 	// get filters
 	filters, err := s.repo.Find(ctx, params)
 	if err != nil {
@@ -103,7 +131,7 @@ func (s *service) Find(ctx context.Context, params domain.FilterQueryParams) ([]
 	return filters, nil
 }
 
-func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
+func (s *Service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	// get filters
 	filters, err := s.repo.ListFilters(ctx)
 	if err != nil {
@@ -122,7 +150,7 @@ func (s *service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	return filters, nil
 }
 
-func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
+func (s *Service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
 	filter, err := s.repo.FindByID(ctx, filterID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find filter for id: %v", filterID)
@@ -158,7 +186,7 @@ func (s *service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	return filter, nil
 }
 
-func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error) {
+func (s *Service) FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error) {
 	// get filters for indexer
 	filters, err := s.repo.FindByIndexerIdentifier(ctx, indexer)
 	if err != nil {
@@ -178,7 +206,7 @@ func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 	return filters, nil
 }
 
-func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
+func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 	if err := filter.Validate(); err != nil {
 		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
 		return err
@@ -196,7 +224,7 @@ func (s *service) Store(ctx context.Context, filter *domain.Filter) error {
 	return nil
 }
 
-func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
+func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	err := filter.Validate()
 	if err != nil {
 		s.log.Error().Err(err).Msgf("validation error filter: %+v", filter)
@@ -249,7 +277,7 @@ func (s *service) Update(ctx context.Context, filter *domain.Filter) error {
 	return nil
 }
 
-func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
 	// cleanup
 	if filter.Shows != nil {
 		// replace newline with comma
@@ -300,7 +328,7 @@ func (s *service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 	return nil
 }
 
-func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, error) {
+func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, error) {
 	// find filter with actions, indexers and external filters
 	filter, err := s.FindByID(ctx, filterID)
 	if err != nil {
@@ -347,7 +375,7 @@ func (s *service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	return filter, nil
 }
 
-func (s *service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
 	if err := s.repo.ToggleEnabled(ctx, filterID, enabled); err != nil {
 		s.log.Error().Err(err).Msg("could not update filter enabled")
 		return err
@@ -358,7 +386,7 @@ func (s *service) ToggleEnabled(ctx context.Context, filterID int, enabled bool)
 	return nil
 }
 
-func (s *service) Delete(ctx context.Context, filterID int) error {
+func (s *Service) Delete(ctx context.Context, filterID int) error {
 	if filterID == 0 {
 		return nil
 	}
@@ -395,7 +423,7 @@ func (s *service) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
+func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
 	l := s.log.With().Str("method", "CheckFilter").Logger()
 
 	l.Debug().Msgf("checking filter: %s with release %s", f.Name, release.TorrentName)
@@ -550,7 +578,7 @@ func (s *service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 // it is necessary to download the torrent file and parse it to make the size
 // check. We use the API where available to minimize the number of torrents we
 // need to download.
-func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
+func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
@@ -617,7 +645,7 @@ func (s *service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	return true, nil
 }
 
-func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
+func (s *Service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
@@ -693,7 +721,7 @@ func (s *service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 	return true, nil
 }
 
-func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
+func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filter, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with API or size checks
 		errors.RecoverPanic(recover(), &err)
@@ -772,15 +800,15 @@ func (s *service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 	return true, nil
 }
 
-func (s *service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error) {
+func (s *Service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error) {
 	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
 }
 
-func (s *service) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
+func (s *Service) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
 	return s.releaseRepo.CheckIsDuplicateRelease(ctx, profile, release)
 }
 
-func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (ok bool, err error) {
+func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (ok bool, err error) {
 	defer func() {
 		// try recover panic if anything went wrong with the external filter checks
 		errors.RecoverPanic(recover(), &err)
@@ -850,7 +878,7 @@ func (s *service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 	return true, nil
 }
 
-func (s *service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
+func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
 	s.log.Trace().Msgf("filter exec release: %s", release.TorrentName)
 
 	// read the file into bytes we can then use in the macro
@@ -936,7 +964,7 @@ func (s *service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	return 0, nil
 }
 
-func (s *service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
+func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
 	l := s.log.With().Str("method", "webhook").Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
 
 	s.log.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)

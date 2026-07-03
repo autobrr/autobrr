@@ -138,7 +138,7 @@ func main() {
 	var (
 		apikeyRepo         = database.NewAPIRepo(log, db)
 		downloadClientRepo = database.NewDownloadClientRepo(log, db)
-		actionRepo         = database.NewActionRepo(log, db, downloadClientRepo)
+		actionRepo         = database.NewActionRepo(log, db)
 		filterRepo         = database.NewFilterRepo(log, db)
 		feedRepo           = database.NewFeedRepo(log, db)
 		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
@@ -161,7 +161,7 @@ func main() {
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
 		indexerAPIService     = indexer.NewAPIService(log, proxyService)
-		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
+		downloadService       = releasedownload.NewDownloadService(log, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)

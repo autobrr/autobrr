@@ -82,7 +82,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
@@ -138,7 +138,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
@@ -303,7 +303,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
@@ -362,7 +362,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
@@ -422,7 +422,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
@@ -482,7 +482,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
@@ -542,7 +542,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		// Setup shared dependencies
@@ -740,7 +740,7 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
@@ -934,9 +934,8 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 		releaseRepo := NewReleaseRepo(log, db)
 
 		// reset

@@ -4,22 +4,10 @@
 package domain
 
 import (
-	"context"
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
-
-type ActionRepo interface {
-	Store(ctx context.Context, action *Action) error
-	StoreFilterActions(ctx context.Context, filterID int64, actions []*Action) ([]*Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*Action, error)
-	List(ctx context.Context) ([]Action, error)
-	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
-	Delete(ctx context.Context, req *DeleteActionRequest) error
-	DeleteByFilterID(ctx context.Context, filterID int) error
-	ToggleEnabled(actionID int) error
-}
 
 type Action struct {
 	ID                       int                 `json:"id"`

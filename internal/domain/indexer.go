@@ -5,7 +5,6 @@ package domain
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/url"
 	"regexp"
@@ -18,17 +17,6 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
 )
-
-type IndexerRepo interface {
-	Store(ctx context.Context, indexer Indexer) (*Indexer, error)
-	Update(ctx context.Context, indexer Indexer) (*Indexer, error)
-	List(ctx context.Context) ([]Indexer, error)
-	Delete(ctx context.Context, id int) error
-	FindByFilterID(ctx context.Context, id int) ([]Indexer, error)
-	FindByID(ctx context.Context, id int) (*Indexer, error)
-	GetBy(ctx context.Context, req GetIndexerRequest) (*Indexer, error)
-	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
-}
 
 type Indexer struct {
 	ID                 int64                 `json:"id"`

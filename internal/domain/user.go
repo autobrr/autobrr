@@ -4,17 +4,8 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 )
-
-type UserRepo interface {
-	GetUserCount(ctx context.Context) (int, error)
-	FindByUsername(ctx context.Context, username string) (*User, error)
-	Store(ctx context.Context, req CreateUserRequest) error
-	Update(ctx context.Context, req UpdateUserRequest) error
-	Delete(ctx context.Context, username string) error
-}
 
 type User struct {
 	ID       int    `json:"id"`

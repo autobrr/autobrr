@@ -43,7 +43,7 @@ func (s *pushoverSender) Name() string {
 	return "pushover"
 }
 
-func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &pushoverSender{
 		log:      log.With().Str("sender", "pushover").Str("name", settings.Name).Logger(),
 		Settings: settings,

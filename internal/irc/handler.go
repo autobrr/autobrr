@@ -14,8 +14,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/avast/retry-go"
@@ -80,10 +78,10 @@ const (
 
 type Handler struct {
 	log                 zerolog.Logger
-	sse                 *sse.Server
+	sse                 sseServer
 	network             *domain.IrcNetwork
-	releaseSvc          release.Service
-	notificationService notification.Sender
+	releaseSvc          releaseService
+	notificationService notificationSender
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
@@ -107,7 +105,7 @@ type Handler struct {
 	saslauthed    bool
 }
 
-func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Service, notificationSvc notification.Sender) *Handler {
+func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, notificationSvc notificationSender) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,

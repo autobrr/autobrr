@@ -14,7 +14,7 @@ import (
 	"github.com/autobrr/go-qbittorrent"
 )
 
-func (s *service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action qBittorrent: %s", action.Name)
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
@@ -133,7 +133,7 @@ func (s *service) qbittorrent(ctx context.Context, action *domain.Action, releas
 	return nil, nil
 }
 
-func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, error) {
+func (s *Service) prepareQbitOptions(action *domain.Action) (map[string]string, error) {
 	opts := &qbittorrent.TorrentAddOptions{}
 
 	opts.Paused = false
@@ -194,7 +194,7 @@ func (s *service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 }
 
 // qbittorrentCheckRulesCanDownload
-func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *domain.Action, rules domain.DownloadClientRules, qbt *qbittorrent.Client) ([]string, error) {
+func (s *Service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *domain.Action, rules domain.DownloadClientRules, qbt *qbittorrent.Client) ([]string, error) {
 	s.log.Trace().Msgf("action qBittorrent: %s check rules", action.Name)
 
 	// make sure it's not set to 0 by default
@@ -257,7 +257,7 @@ func (s *service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *
 	return nil, nil
 }
 
-func (s *service) qbittorrentCheckIgnoreSlow(downloadSpeedThreshold int64, uploadSpeedThreshold int64, info *qbittorrent.TransferInfo) []string {
+func (s *Service) qbittorrentCheckIgnoreSlow(downloadSpeedThreshold int64, uploadSpeedThreshold int64, info *qbittorrent.TransferInfo) []string {
 	s.log.Debug().Msgf("checking client ignore slow torrent rules: %+v", info)
 
 	rejections := make([]string, 0)

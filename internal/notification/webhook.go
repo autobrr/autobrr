@@ -26,7 +26,7 @@ type webhookSender struct {
 	httpClient *http.Client
 }
 
-func NewWebhookSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewWebhookSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &webhookSender{
 		log:      log.With().Str("sender", "webhook").Str("name", settings.Name).Logger(),
 		Settings: settings,

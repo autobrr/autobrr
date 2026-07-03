@@ -12,7 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (s *service) lidarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) lidarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action LIDARR")
 
 	// TODO validate data

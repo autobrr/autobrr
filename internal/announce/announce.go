@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
@@ -17,16 +16,20 @@ type Processor interface {
 	AddLineToQueue(channel string, line string) error
 }
 
+type releaseService interface {
+	Process(release *domain.Release)
+}
+
 type announceProcessor struct {
 	log     zerolog.Logger
 	indexer *domain.IndexerDefinition
 
-	releaseSvc release.Service
+	releaseSvc releaseService
 
 	queues map[string]chan string
 }
 
-func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
+func NewAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
 		log:        log.With().Str("module", "announce_processor").Str("indexer", indexer.Name).Str("network", indexer.IRC.Network).Logger(),
 		releaseSvc: releaseSvc,

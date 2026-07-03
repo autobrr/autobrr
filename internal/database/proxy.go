@@ -21,7 +21,7 @@ type ProxyRepo struct {
 	db  *DB
 }
 
-func NewProxyRepo(log logger.Logger, db *DB) domain.ProxyRepo {
+func NewProxyRepo(log logger.Logger, db *DB) *ProxyRepo {
 	return &ProxyRepo{
 		log: log.With().Str("repo", "proxy").Logger(),
 		db:  db,

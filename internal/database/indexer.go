@@ -22,7 +22,7 @@ type IndexerRepo struct {
 	db  *DB
 }
 
-func NewIndexerRepo(log logger.Logger, db *DB) domain.IndexerRepo {
+func NewIndexerRepo(log logger.Logger, db *DB) *IndexerRepo {
 	return &IndexerRepo{
 		log: log.With().Str("module", "database").Str("repo", "indexer").Logger(),
 		db:  db,
