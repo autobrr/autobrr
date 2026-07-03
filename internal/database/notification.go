@@ -22,7 +22,7 @@ type NotificationRepo struct {
 	db  *DB
 }
 
-func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
+func NewNotificationRepo(log logger.Logger, db *DB) *NotificationRepo {
 	return &NotificationRepo{
 		log: log.With().Str("repo", "notification").Logger(),
 		db:  db,

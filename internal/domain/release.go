@@ -36,28 +36,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type ReleaseRepo interface {
-	Store(ctx context.Context, release *Release) error
-	Update(ctx context.Context, r *Release) error
-	Find(ctx context.Context, params ReleaseQueryParams) (*FindReleasesResponse, error)
-	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
-	GetIndexerOptions(ctx context.Context) ([]string, error)
-	Stats(ctx context.Context) (*ReleaseStats, error)
-	Delete(ctx context.Context, req *DeleteReleaseRequest) error
-	CheckSmartEpisodeCanDownload(ctx context.Context, p *SmartEpisodeParams) (bool, error)
-	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
-
-	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
-	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
-
-	StoreDuplicateProfile(ctx context.Context, profile *DuplicateReleaseProfile) error
-	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
-	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
-	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *Release) (bool, error)
-
-	ReleaseCleanupJobRepo
-}
-
 type Release struct {
 	ID                                 int64                 `json:"id"`
 	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
@@ -523,17 +501,6 @@ func (j *ReleaseCleanupJob) Validate() error {
 	}
 
 	return nil
-}
-
-// ReleaseCleanupJobRepo interface for managing cleanup jobs
-type ReleaseCleanupJobRepo interface {
-	ListCleanupJobs(ctx context.Context) ([]*ReleaseCleanupJob, error)
-	FindCleanupJobByID(ctx context.Context, id int) (*ReleaseCleanupJob, error)
-	StoreCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
-	UpdateCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
-	UpdateCleanupJobLastRun(ctx context.Context, job *ReleaseCleanupJob) error
-	CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error
-	DeleteCleanupJob(ctx context.Context, id int) error
 }
 
 type ReleaseFilterStatus string

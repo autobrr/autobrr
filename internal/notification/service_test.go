@@ -49,7 +49,7 @@ func TestService_Send_Optimization(t *testing.T) {
 		sender := new(mockSender)
 		svc := &Service{
 			log: log,
-			senders: map[int]domain.NotificationSender{
+			senders: map[int]Sender{
 				1: sender,
 			},
 		}
@@ -72,7 +72,7 @@ func TestService_Send_Optimization(t *testing.T) {
 		sender := new(mockSender)
 		svc := &Service{
 			log: log,
-			senders: map[int]domain.NotificationSender{
+			senders: map[int]Sender{
 				1: sender,
 			},
 		}

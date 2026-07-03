@@ -21,7 +21,7 @@ type IrcRepo struct {
 	db  *DB
 }
 
-func NewIrcRepo(log logger.Logger, db *DB) domain.IrcRepo {
+func NewIrcRepo(log logger.Logger, db *DB) *IrcRepo {
 	return &IrcRepo{
 		log: log.With().Str("repo", "irc").Logger(),
 		db:  db,

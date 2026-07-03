@@ -781,7 +781,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 		repo := NewFilterRepo(log, db)
 		releaseRepo := NewReleaseRepo(log, db)
 		downloadClientRepo := NewDownloadClientRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 
 		t.Run(fmt.Sprintf("GetFilterDownloads_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup

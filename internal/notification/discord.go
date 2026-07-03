@@ -58,7 +58,7 @@ func (s *discordSender) Name() string {
 	return "discord"
 }
 
-func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &discordSender{
 		log:      log.With().Str("sender", "discord").Str("name", settings.Name).Logger(),
 		Settings: settings,

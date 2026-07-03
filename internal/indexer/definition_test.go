@@ -12,7 +12,7 @@ import (
 
 func TestIndexerYamlExpectations(t *testing.T) {
 	t.Parallel()
-	s := &service{definitions: map[string]domain.IndexerDefinition{}}
+	s := &Service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
 	assert.NoError(t, err)
 

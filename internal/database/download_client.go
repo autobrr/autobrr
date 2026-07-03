@@ -21,7 +21,7 @@ type DownloadClientRepo struct {
 	db  *DB
 }
 
-func NewDownloadClientRepo(log logger.Logger, db *DB) domain.DownloadClientRepo {
+func NewDownloadClientRepo(log logger.Logger, db *DB) *DownloadClientRepo {
 	return &DownloadClientRepo{
 		log: log.With().Str("repo", "action").Logger(),
 		db:  db,

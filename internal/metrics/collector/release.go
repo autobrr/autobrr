@@ -6,12 +6,16 @@ package collector
 import (
 	"context"
 
-	"github.com/autobrr/autobrr/internal/release"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type releaseService interface {
+	Stats(ctx context.Context) (*domain.ReleaseStats, error)
+}
+
 type releaseCollector struct {
-	releaseService release.Service
+	releaseService releaseService
 
 	totalCount          *prometheus.Desc
 	filteredCount       *prometheus.Desc
@@ -47,7 +51,7 @@ func (collector *releaseCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(collector.pushErrorCount, prometheus.GaugeValue, float64(stats.PushErrorCount))
 }
 
-func NewReleaseCollector(releaseService release.Service) *releaseCollector {
+func NewReleaseCollector(releaseService releaseService) *releaseCollector {
 	return &releaseCollector{
 		releaseService: releaseService,
 		totalCount: prometheus.NewDesc(

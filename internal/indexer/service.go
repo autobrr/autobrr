@@ -15,7 +15,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
@@ -25,32 +24,32 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Service interface {
+type schedulerService interface {
+	RemoveJobByIdentifier(id string) error
+}
+
+type releaseRepo interface {
+	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
+}
+
+type indexerRepo interface {
 	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
 	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
+	List(ctx context.Context) ([]domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
-	List(ctx context.Context) ([]domain.Indexer, error)
 	GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error)
-	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
-
-	Start() error
-	LoadIndexerDefinitions() error
-	GetAll() ([]*domain.IndexerDefinition, error)
-	GetTemplates() ([]domain.IndexerDefinition, error)
-	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
-	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, bool)
 }
 
-type service struct {
+type Service struct {
 	log         zerolog.Logger
 	config      *domain.Config
-	repo        domain.IndexerRepo
-	releaseRepo domain.ReleaseRepo
-	ApiService  APIService
-	scheduler   scheduler.Service
+	repo        indexerRepo
+	releaseRepo releaseRepo
+	ApiService  apiService
+	scheduler   schedulerService
 	bus         EventBus.Bus
 
 	// contains all raw indexer definitions
@@ -63,8 +62,8 @@ type service struct {
 	feedIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo domain.IndexerRepo, releaseRepo domain.ReleaseRepo, apiService APIService, scheduler scheduler.Service) Service {
-	return &service{
+func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo indexerRepo, releaseRepo releaseRepo, apiService apiService, scheduler schedulerService) *Service {
+	return &Service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
 		repo:                      repo,
@@ -79,7 +78,7 @@ func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo
 	}
 }
 
-func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+func (s *Service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	// sanitize user input
 	indexer.Name = sanitize.String(indexer.Name)
 
@@ -115,7 +114,7 @@ func (s *service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 	return i, nil
 }
 
-func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
 	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
@@ -178,7 +177,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 	return i, nil
 }
 
-func (s *service) Delete(ctx context.Context, id int) error {
+func (s *Service) Delete(ctx context.Context, id int) error {
 	indexer, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
@@ -201,7 +200,7 @@ func (s *service) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
+func (s *Service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	indexers, err := s.repo.FindByFilterID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %d", id)
@@ -211,7 +210,7 @@ func (s *service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer,
 	return indexers, err
 }
 
-func (s *service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
+func (s *Service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
 	indexers, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find indexer by id: %d", id)
@@ -221,7 +220,7 @@ func (s *service) FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	return indexers, err
 }
 
-func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
+func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
 	indexers, err := s.repo.List(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not get indexer list")
@@ -231,7 +230,7 @@ func (s *service) List(ctx context.Context) ([]domain.Indexer, error) {
 	return indexers, err
 }
 
-func (s *service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
+func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
 	indexer, err := s.repo.GetBy(ctx, req)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not get indexer by: %v", req)
@@ -241,7 +240,7 @@ func (s *service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*dom
 	return indexer, err
 }
 
-func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
+func (s *Service) GetAll() ([]*domain.IndexerDefinition, error) {
 	var res = make([]*domain.IndexerDefinition, 0)
 
 	for _, indexer := range s.mappedDefinitions {
@@ -260,7 +259,7 @@ func (s *service) GetAll() ([]*domain.IndexerDefinition, error) {
 	return res, nil
 }
 
-func (s *service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
+func (s *Service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
 	indexers, err := s.repo.List(context.Background())
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not read indexer list")
@@ -283,7 +282,7 @@ func (s *service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
 	return s.mappedDefinitions, nil
 }
 
-func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
+func (s *Service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
 	definitionName := indexer.Identifier
 
 	if indexer.ImplementationIsFeed() {
@@ -330,7 +329,7 @@ func (s *service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	return d, nil
 }
 
-func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
+func (s *Service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
 	d, ok := s.mappedDefinitions[indexer.Identifier]
 	if !ok {
 		return nil, domain.ErrIndexerNotFound
@@ -370,7 +369,7 @@ func (s *service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefin
 	return d, nil
 }
 
-func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
+func (s *Service) GetTemplates() ([]domain.IndexerDefinition, error) {
 	definitions := s.definitions
 
 	ret := make([]domain.IndexerDefinition, 0)
@@ -386,7 +385,7 @@ func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
 	return ret, nil
 }
 
-func (s *service) Start() error {
+func (s *Service) Start() error {
 	// load all indexer definitions
 	if err := s.LoadIndexerDefinitions(); err != nil {
 		s.log.Error().Err(err).Msg("could not load indexer definitions")
@@ -430,7 +429,7 @@ func (s *service) Start() error {
 	return nil
 }
 
-func (s *service) removeIndexer(indexer domain.Indexer) {
+func (s *Service) removeIndexer(indexer domain.Indexer) {
 	// handle feeds
 	switch indexer.Implementation {
 	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
@@ -441,7 +440,7 @@ func (s *service) removeIndexer(indexer domain.Indexer) {
 	delete(s.mappedDefinitions, indexer.Identifier)
 }
 
-func (s *service) addIndexer(indexer domain.Indexer) error {
+func (s *Service) addIndexer(indexer domain.Indexer) error {
 	indexerDefinition, err := s.mapIndexer(indexer)
 	if err != nil {
 		return err
@@ -473,7 +472,7 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 	return nil
 }
 
-func (s *service) updateIndexer(indexer domain.Indexer) error {
+func (s *Service) updateIndexer(indexer domain.Indexer) error {
 	indexerDefinition, err := s.updateMapIndexer(indexer)
 	if err != nil {
 		return err
@@ -508,7 +507,7 @@ func (s *service) updateIndexer(indexer domain.Indexer) error {
 // mapIRCServerDefinitionLookup map irc stuff to indexer.name
 // map[irc.network.test][indexer1] = indexer1
 // map[irc.network.test][indexer2] = indexer2
-func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition *domain.IndexerDefinition) {
+func (s *Service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition *domain.IndexerDefinition) {
 	if indexerDefinition.IRC != nil {
 		// check if already exists, if ok add it to existing, otherwise create new
 		_, exists := s.lookupIRCServerDefinition[ircServer]
@@ -521,7 +520,7 @@ func (s *service) mapIRCServerDefinitionLookup(ircServer string, indexerDefiniti
 }
 
 // LoadIndexerDefinitions load definitions from golang embed fs
-func (s *service) LoadIndexerDefinitions() error {
+func (s *Service) LoadIndexerDefinitions() error {
 	entries, err := fs.ReadDir(Definitions, "definitions")
 	if err != nil {
 		return errors.Wrap(err, "could not read indexer definitions directory")
@@ -643,7 +642,7 @@ func OpenAndDecodeDefinition(file string, data any) error {
 }
 
 // LoadCustomIndexerDefinitions load definitions from custom path
-func (s *service) LoadCustomIndexerDefinitions() error {
+func (s *Service) LoadCustomIndexerDefinitions() error {
 	if s.config.CustomDefinitions == "" {
 		return nil
 	}
@@ -690,7 +689,7 @@ func (s *service) LoadCustomIndexerDefinitions() error {
 	return nil
 }
 
-func (s *service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition {
+func (s *Service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition {
 	server = strings.ToLower(server)
 
 	var indexerDefinitions []*domain.IndexerDefinition
@@ -729,7 +728,7 @@ func (s *service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefini
 //	return indexerDefinitions
 //}
 
-func (s *service) getDefinitionByName(name string) (*domain.IndexerDefinition, bool) {
+func (s *Service) getDefinitionByName(name string) (*domain.IndexerDefinition, bool) {
 	if v, ok := s.definitions[name]; ok {
 		return &v, true
 	}
@@ -737,7 +736,7 @@ func (s *service) getDefinitionByName(name string) (*domain.IndexerDefinition, b
 	return nil, false
 }
 
-func (s *service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, bool) {
+func (s *Service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, bool) {
 	v, ok := s.mappedDefinitions[name]
 	if !ok {
 		return nil, false
@@ -746,7 +745,7 @@ func (s *service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinit
 	return v, true
 }
 
-func (s *service) stopFeed(indexer string) {
+func (s *Service) stopFeed(indexer string) {
 	_, ok := s.feedIndexers[indexer]
 	if !ok {
 		return
@@ -757,7 +756,7 @@ func (s *service) stopFeed(indexer string) {
 	}
 }
 
-func (s *service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error {
+func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error {
 	indexer, err := s.FindByID(ctx, req.IndexerId)
 	if err != nil {
 		return err
@@ -795,7 +794,7 @@ func (s *service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 	return nil
 }
 
-func (s *service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error {
+func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error {
 	indexer, err := s.FindByID(ctx, indexerID)
 	if err != nil {
 		return err

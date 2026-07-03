@@ -15,7 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/porla"
 )
 
-func (s *service) porla(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) porla(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Porla: %s", action.Name)
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
@@ -108,7 +108,7 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 	return nil, nil
 }
 
-func (s *service) porlaCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, prla *porla.Client) ([]string, error) {
+func (s *Service) porlaCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, prla *porla.Client) ([]string, error) {
 	s.log.Trace().Msgf("action Porla: %s check rules", action.Name)
 
 	// check for active downloads and other rules

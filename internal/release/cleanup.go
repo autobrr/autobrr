@@ -14,18 +14,18 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type releaseRepo interface {
+type releaseCleanupRepo interface {
 	UpdateCleanupJobLastRun(ctx context.Context, job *domain.ReleaseCleanupJob) error
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 }
 
 type CleanupJob struct {
 	log         zerolog.Logger
-	releaseRepo releaseRepo
+	releaseRepo releaseCleanupRepo
 	job         *domain.ReleaseCleanupJob
 }
 
-func NewCleanupJob(log zerolog.Logger, releaseRepo releaseRepo, job *domain.ReleaseCleanupJob) *CleanupJob {
+func NewCleanupJob(log zerolog.Logger, releaseRepo releaseCleanupRepo, job *domain.ReleaseCleanupJob) *CleanupJob {
 	return &CleanupJob{
 		log:         log,
 		releaseRepo: releaseRepo,
