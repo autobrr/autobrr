@@ -707,6 +707,47 @@ func TestRelease_MapVars(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:   "downloadVolumeFactor maps charged fraction to freeleech percent",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Freeleech:        true,
+				FreeleechPercent: 75,
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "0.25",
+				},
+			},
+		},
+		{
+			name:   "downloadVolumeFactor below range is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "-0.1",
+				},
+			},
+		},
+		{
+			name:   "downloadVolumeFactor above range is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "1.1",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

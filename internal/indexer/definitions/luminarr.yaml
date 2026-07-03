@@ -145,13 +145,13 @@ irc:
               downloadVolumeFactor: 0
               uploadVolumeFactor: 1
             "2": # 75% FL
-              downloadVolumeFactor: 0.75
+              downloadVolumeFactor: 0.25
               uploadVolumeFactor: 1
             "3": # 50% FL
               downloadVolumeFactor: 0.5
               uploadVolumeFactor: 1
             "4": # 25% FL
-              downloadVolumeFactor: 0.25
+              downloadVolumeFactor: 0.75
               uploadVolumeFactor: 1
             "5": # Normal leech with Double up
               downloadVolumeFactor: 1
@@ -160,13 +160,13 @@ irc:
               downloadVolumeFactor: 0
               uploadVolumeFactor: 2
             "7": # 75% FL with Double up
-              downloadVolumeFactor: 0.75
+              downloadVolumeFactor: 0.25
               uploadVolumeFactor: 2
             "8": # 50% FL with Double up
               downloadVolumeFactor: 0.5
               uploadVolumeFactor: 2
             "9": # 25% FL with Double up
-              downloadVolumeFactor: 0.25
+              downloadVolumeFactor: 0.75
               uploadVolumeFactor: 2
 
         match:

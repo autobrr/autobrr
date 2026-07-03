@@ -1119,7 +1119,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		downloadVolumeFactor, parseErr := strconv.ParseFloat(downloadVolumeFactorVar, 64)
 		if parseErr == nil {
 			// Values below 0.0 and above 1.0 are rejected
-			if downloadVolumeFactor >= 0 || downloadVolumeFactor <= 1 {
+			if downloadVolumeFactor >= 0 && downloadVolumeFactor <= 1 {
 				// Multiply by 100 to convert from ratio to percentage and round it
 				// to the nearest integer value
 				downloadPercentage := math.Round(downloadVolumeFactor * 100)

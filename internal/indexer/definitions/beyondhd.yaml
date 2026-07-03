@@ -100,13 +100,13 @@ irc:
               downloadVolumeFactor: 0
               uploadVolumeFactor: 1
             "25% FL": #
-              downloadVolumeFactor: 0.25
+              downloadVolumeFactor: 0.75
               uploadVolumeFactor: 1
             "50% FL": # Halfleech
               downloadVolumeFactor: 0.5
               uploadVolumeFactor: 1
             "75% FL":
-              downloadVolumeFactor: 0.75
+              downloadVolumeFactor: 0.25
               uploadVolumeFactor: 1
             "100% FL":
               downloadVolumeFactor: 0
