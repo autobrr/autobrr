@@ -121,9 +121,7 @@ type IndexerDefinition struct {
 	Settings           []IndexerSetting      `json:"settings,omitempty"`
 	SettingsMap        map[string]string     `json:"-"`
 	IRC                *IndexerIRCV2         `json:"irc,omitempty"`
-	Torznab            *FeedSettings         `json:"torznab,omitempty"`
-	Newznab            *FeedSettings         `json:"newznab,omitempty"`
-	RSS                *FeedSettings         `json:"rss,omitempty"`
+	Feed               *FeedSettings         `json:"feed,omitempty"`
 }
 
 func (i *IndexerDefinition) Prepare() {
@@ -196,9 +194,7 @@ type IndexerDefinitionCustom struct {
 	Settings       []IndexerSetting      `json:"settings,omitempty"`
 	SettingsMap    map[string]string     `json:"-"`
 	IRC            *IndexerIRC           `json:"irc,omitempty"`
-	Torznab        *FeedSettings         `json:"torznab,omitempty"`
-	Newznab        *FeedSettings         `json:"newznab,omitempty"`
-	RSS            *FeedSettings         `json:"rss,omitempty"`
+	Feed           *FeedSettings         `json:"feed,omitempty"`
 	Parse          *IndexerIRCParse      `json:"parse,omitempty"`
 }
 
@@ -222,10 +218,6 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 		Supports:       i.Supports,
 		Settings:       i.Settings,
 		SettingsMap:    i.SettingsMap,
-		//IRC:            i.IRC,
-		Torznab: i.Torznab,
-		Newznab: i.Newznab,
-		RSS:     i.RSS,
 	}
 
 	if i.IRC != nil && i.Parse != nil {
@@ -280,22 +272,22 @@ const (
 )
 
 type IndexerSetting struct {
-	Name        string `json:"name"`
-	Required    bool   `json:"required,omitempty"`
-	Type        string `json:"type"`
-	Value       string `json:"value,omitempty"`
-	Label       string `json:"label"`
-	Default     string `json:"default,omitempty"`
-	Description string `json:"description,omitempty"`
-	Help        string `json:"help,omitempty"`
-	Regex       string `json:"regex,omitempty"`
+	Name        string            `json:"name"`
+	Required    bool              `json:"required,omitempty"`
+	Type        SettingsFieldType `json:"type"`
+	Value       string            `json:"value,omitempty"`
+	Label       string            `json:"label"`
+	Default     string            `json:"default,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Help        string            `json:"help,omitempty"`
+	Regex       string            `json:"regex,omitempty"`
 }
 
 func (is IndexerSetting) MarshalJSON() ([]byte, error) {
 	type Alias IndexerSetting
 
 	redactedValue := is.Value
-	if strings.ToLower(is.Type) == "secret" {
+	if strings.ToLower(string(is.Type)) == "secret" {
 		redactedValue = RedactString(is.Value)
 	}
 

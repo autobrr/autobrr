@@ -23,12 +23,14 @@ interface IndexerMinimal {
   identifier_external: string;
 }
 
+type IndexerImplementation = "irc" | "torznab" | "newznab" | "rss";
+
 interface IndexerDefinition {
   id: number;
   name: string;
   identifier: string;
   identifier_external: string;
-  implementation: string;
+  implementation: IndexerImplementation;
   base_url: string;
   enabled?: boolean;
   description: string;
@@ -41,15 +43,15 @@ interface IndexerDefinition {
   proxy_id?: number;
   settings: IndexerSetting[];
   irc: IndexerIRC;
-  torznab: IndexerTorznab;
-  newznab?: IndexerTorznab;
-  rss: IndexerFeed;
+  feed: IndexerFeed;
 }
+
+type SettingsFieldType = "text" | "secret";
 
 interface IndexerSetting {
   name: string;
   required?: boolean;
-  type: string;
+  type: SettingsFieldType;
   value?: string;
   label: string;
   default?: string;
@@ -71,11 +73,6 @@ interface IndexerIRCChannel {
   name: string;
   announcers: string[];
   parse: IndexerParse;
-}
-
-interface IndexerTorznab {
-  minInterval: number;
-  settings: IndexerSetting[];
 }
 
 interface IndexerFeed {

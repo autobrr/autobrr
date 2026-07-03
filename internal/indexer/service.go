@@ -33,14 +33,15 @@ type Service interface {
 	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	List(ctx context.Context) ([]domain.Indexer, error)
 	GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error)
-	GetAll() ([]*domain.IndexerDefinition, error)
-	GetTemplates() ([]domain.IndexerDefinition, error)
-	LoadIndexerDefinitions() error
-	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
-	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, bool)
-	Start() error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
+
+	Start() error
+	LoadIndexerDefinitions() error
+	GetAll() ([]*domain.IndexerDefinition, error)
+	GetTemplates() ([]domain.IndexerDefinition, error)
+	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
+	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, bool)
 }
 
 type service struct {
@@ -58,12 +59,8 @@ type service struct {
 	mappedDefinitions map[string]*domain.IndexerDefinition
 	// map server:channel:announce to indexer.Identifier
 	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
-	// torznab indexers
-	torznabIndexers map[string]*domain.IndexerDefinition
-	// newznab indexers
-	newznabIndexers map[string]*domain.IndexerDefinition
-	// rss indexers
-	rssIndexers map[string]*domain.IndexerDefinition
+	// feed indexers
+	feedIndexers map[string]*domain.IndexerDefinition
 }
 
 func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo domain.IndexerRepo, releaseRepo domain.ReleaseRepo, apiService APIService, scheduler scheduler.Service) Service {
@@ -76,9 +73,7 @@ func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo
 		scheduler:                 scheduler,
 		bus:                       bus,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
-		torznabIndexers:           make(map[string]*domain.IndexerDefinition),
-		newznabIndexers:           make(map[string]*domain.IndexerDefinition),
-		rssIndexers:               make(map[string]*domain.IndexerDefinition),
+		feedIndexers:              make(map[string]*domain.IndexerDefinition),
 		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
@@ -174,7 +169,7 @@ func (s *service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 
 	if currentIndexer.ImplementationIsFeed() {
 		if currentIndexer.Enabled && !indexer.Enabled {
-			s.stopFeed(indexer.Implementation, indexer.Identifier)
+			s.stopFeed(indexer.Identifier)
 		}
 	}
 
@@ -383,6 +378,11 @@ func (s *service) GetTemplates() ([]domain.IndexerDefinition, error) {
 		ret = append(ret, definition)
 	}
 
+	// sort by name
+	sort.SliceStable(ret, func(i, j int) bool {
+		return strings.ToLower(ret[i].Name) < strings.ToLower(ret[j].Name)
+	})
+
 	return ret, nil
 }
 
@@ -420,14 +420,8 @@ func (s *service) Start() error {
 			}
 
 		// handle feeds
-		case domain.IndexerImplementationRSS:
-			s.rssIndexers[indexer.Identifier] = indexer
-
-		case domain.IndexerImplementationTorznab:
-			s.torznabIndexers[indexer.Identifier] = indexer
-
-		case domain.IndexerImplementationNewznab:
-			s.newznabIndexers[indexer.Identifier] = indexer
+		case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
+			s.feedIndexers[indexer.Identifier] = indexer
 		}
 	}
 
@@ -439,14 +433,8 @@ func (s *service) Start() error {
 func (s *service) removeIndexer(indexer domain.Indexer) {
 	// handle feeds
 	switch indexer.Implementation {
-	case domain.IndexerImplementationRSS:
-		delete(s.rssIndexers, indexer.Identifier)
-
-	case domain.IndexerImplementationTorznab:
-		delete(s.torznabIndexers, indexer.Identifier)
-
-	case domain.IndexerImplementationNewznab:
-		delete(s.newznabIndexers, indexer.Identifier)
+	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
+		delete(s.feedIndexers, indexer.Identifier)
 	}
 
 	// remove mapped definition
@@ -476,14 +464,8 @@ func (s *service) addIndexer(indexer domain.Indexer) error {
 		}
 
 	// handle feeds
-	case domain.IndexerImplementationRSS:
-		s.rssIndexers[indexer.Identifier] = indexerDefinition
-
-	case domain.IndexerImplementationTorznab:
-		s.torznabIndexers[indexer.Identifier] = indexerDefinition
-
-	case domain.IndexerImplementationNewznab:
-		s.newznabIndexers[indexer.Identifier] = indexerDefinition
+	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
+		s.feedIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -514,14 +496,8 @@ func (s *service) updateIndexer(indexer domain.Indexer) error {
 		}
 
 	// handle feeds
-	case domain.IndexerImplementationRSS:
-		s.rssIndexers[indexer.Identifier] = indexerDefinition
-
-	case domain.IndexerImplementationTorznab:
-		s.torznabIndexers[indexer.Identifier] = indexerDefinition
-
-	case domain.IndexerImplementationNewznab:
-		s.newznabIndexers[indexer.Identifier] = indexerDefinition
+	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
+		s.feedIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -770,25 +746,9 @@ func (s *service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinit
 	return v, true
 }
 
-func (s *service) stopFeed(implementation domain.IndexerImplementation, indexer string) {
-	// verify indexer is a feed indexer
-	switch implementation {
-	case domain.IndexerImplementationRSS:
-		_, ok := s.rssIndexers[indexer]
-		if !ok {
-			return
-		}
-	case domain.IndexerImplementationTorznab:
-		_, ok := s.torznabIndexers[indexer]
-		if !ok {
-			return
-		}
-	case domain.IndexerImplementationNewznab:
-		_, ok := s.newznabIndexers[indexer]
-		if !ok {
-			return
-		}
-	default:
+func (s *service) stopFeed(indexer string) {
+	_, ok := s.feedIndexers[indexer]
+	if !ok {
 		return
 	}
 
@@ -855,7 +815,7 @@ func (s *service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	}
 
 	if indexer.ImplementationIsFeed() && !enabled {
-		s.stopFeed(indexer.Implementation, indexer.Identifier)
+		s.stopFeed(indexer.Identifier)
 	}
 
 	s.log.Debug().Msgf("indexer.toggle_enabled: update indexer '%d' to '%v'", indexerID, enabled)
