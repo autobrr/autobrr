@@ -109,7 +109,7 @@ irc:
               downloadVolumeFactor: 0.75
               uploadVolumeFactor: 1
             "100% FL":
-              downloadVolumeFactor: 0.75
+              downloadVolumeFactor: 0
               uploadVolumeFactor: 1
 
         match:
