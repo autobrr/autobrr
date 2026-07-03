@@ -458,7 +458,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
   const onSubmit = (formData: FormikValues) => {
     const ind = data && data.find(i => i.identifier === formData.identifier);
     if (!ind) {
-      console.error("could not find indexer: ", formData.identifier, " in ", data, " - ", formData)
+      console.error("could not find indexer: ", formData.identifier, " in ", data, " - ", formData);
       return;
     }
 
