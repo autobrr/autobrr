@@ -29,6 +29,17 @@ const (
 	ChannelStateError
 )
 
+// recovery tuning. Delays are fields on the state machine (defaulting to these)
+// so tests can shorten them; the caps/counts are fixed.
+const (
+	defaultInviteResponseTimeout = 30 * time.Second
+	defaultJoinConfirmTimeout    = 45 * time.Second
+	defaultErrorRetryBaseDelay   = 15 * time.Minute
+
+	maxErrorRetries    = 8
+	maxErrorRetryDelay = 6 * time.Hour
+)
+
 func (s ChannelState) String() string {
 	switch s {
 	case ChannelStateIdle:
@@ -103,8 +114,9 @@ var validChannelTransitions = map[ChannelState][]ChannelState{
 	},
 	ChannelStateKicked: {
 		ChannelStateIdle,
-		ChannelStateJoining,
-		ChannelStateAwaitingInvite,
+		ChannelStateJoining,        // only via an explicit invite; never auto-rejoin
+		ChannelStateAwaitingInvite, // idem, for invite channels
+		ChannelStateMonitoring,     // a late JOIN confirmation should still recover
 	},
 	ChannelStateParted: {
 		ChannelStateIdle,
@@ -115,6 +127,9 @@ var validChannelTransitions = map[ChannelState][]ChannelState{
 	},
 	ChannelStateError: {
 		ChannelStateIdle,
+		ChannelStateJoining,        // auto-retry / recover (direct-join channels)
+		ChannelStateAwaitingInvite, // auto-retry / recover (invite channels)
+		ChannelStateMonitoring,     // a successful JOIN should recover directly
 	},
 }
 
@@ -129,16 +144,29 @@ type ChannelStateMachine struct {
 	lastAttempt     time.Time
 	authAttempts    int
 	joinAfterInvite bool
+
+	// recovery bookkeeping (guarded by m)
+	inviteGen     int // bumped on each AwaitingInvite entry; guards stale invite-timeout fires
+	joinGen       int // bumped on each Joining entry; guards stale join-timeout fires
+	errorAttempts int
+
+	// tunable delays, immutable after construction (tests may set them before use)
+	inviteTimeout  time.Duration
+	joinTimeout    time.Duration
+	errorBaseDelay time.Duration
 }
 
 func NewChannelStateMachine(channel *Channel, handler *Handler, inviteCommand string) *ChannelStateMachine {
 	return &ChannelStateMachine{
-		state:         ChannelStateIdle,
-		channel:       channel,
-		handler:       handler,
-		log:           handler.log.With().Str("channel", channel.Name).Str("component", "channel-state").Logger(),
-		inviteCommand: strings.TrimSpace(inviteCommand),
-		authAttempts:  0,
+		state:          ChannelStateIdle,
+		channel:        channel,
+		handler:        handler,
+		log:            handler.log.With().Str("channel", channel.Name).Str("component", "channel-state").Logger(),
+		inviteCommand:  strings.TrimSpace(inviteCommand),
+		authAttempts:   0,
+		inviteTimeout:  defaultInviteResponseTimeout,
+		joinTimeout:    defaultJoinConfirmTimeout,
+		errorBaseDelay: defaultErrorRetryBaseDelay,
 	}
 }
 
@@ -177,7 +205,7 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 	case ChannelStateJoining:
 		sm.runJoin()
 	case ChannelStateAwaitingInvite:
-		sm.runJoinFlowLocked()
+		sm.handleAwaitingInvite()
 	case ChannelStateAwaitingInviteBot:
 		sm.handleWaitForInviteBot()
 	case ChannelStateInviteFailed:
@@ -189,20 +217,16 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 	case ChannelStateKicked:
 		sm.handleKicked()
 	case ChannelStateParted:
-
+	case ChannelStateDisabled:
+	case ChannelStateError:
+		// entry is handled directly by enterError (which can be reached from
+		// states such as Monitoring that have no transition() path)
 	default:
 		sm.log.Error().Str("state", state.String()).Msgf("invalid state")
 	}
 }
 
 func (sm *ChannelStateMachine) Start() {
-	//sm.m.RLock()
-	//defer sm.m.RUnlock()
-
-	//if sm.state == ChannelStateMonitoring || sm.state == ChannelStateJoining || sm.state == ChannelStateAwaitingInvite {
-	//	return
-	//}
-
 	if !sm.channel.Enabled {
 		sm.log.Debug().Msg("channel disabled, skipping join workflow")
 		sm.transition(ChannelStateDisabled)
@@ -230,6 +254,9 @@ func (sm *ChannelStateMachine) Reset() {
 	sm.m.Lock()
 	sm.state = ChannelStateIdle
 	sm.authAttempts = 0
+	sm.errorAttempts = 0
+	sm.inviteGen++ // invalidate any pending invite-timeout callback
+	sm.joinGen++   // invalidate any pending join-timeout callback
 	sm.joinAfterInvite = false
 	sm.m.Unlock()
 
@@ -238,28 +265,53 @@ func (sm *ChannelStateMachine) Reset() {
 	sm.broadcastStateChange(ChannelStateIdle)
 }
 
-func (sm *ChannelStateMachine) runJoinFlowLocked() {
+// handleAwaitingInvite sends the invite command and arms a timeout so that a
+// silent invite bot (no INVITE and no ERR_NOSUCHNICK) still falls through to the
+// backoff/retry loop instead of stalling in AwaitingInvite forever.
+func (sm *ChannelStateMachine) handleAwaitingInvite() {
 	if !sm.channel.Enabled {
 		sm.log.Debug().Msg("channel disabled, skipping join workflow")
 		return
 	}
 
-	sm.lastAttempt = time.Now()
-
-	if sm.inviteCommand == "" {
+	sm.m.Lock()
+	inviteCommand := sm.inviteCommand
+	if inviteCommand == "" {
+		sm.m.Unlock()
 		sm.transition(ChannelStateJoining)
 		return
 	}
-
-	sm.m.Lock()
+	sm.lastAttempt = time.Now()
 	sm.authAttempts++
-	sm.state = ChannelStateAwaitingInvite
+	sm.inviteGen++
+	gen := sm.inviteGen
+	attempt := sm.authAttempts
+	timeout := sm.inviteTimeout
 	sm.m.Unlock()
 
-	sm.log.Debug().Str("invite_command", sm.inviteCommand).Int("attempt", sm.authAttempts).Msg("sending invite command for channel")
-	if err := sm.sendInviteCommandLocked(); err != nil {
-		sm.transitionErrorLocked(err)
+	sm.log.Debug().Str("invite_command", inviteCommand).Int("attempt", attempt).Msg("sending invite command for channel")
+
+	if err := sm.sendInviteCommand(inviteCommand); err != nil {
+		sm.enterError(err.Error())
+		return
 	}
+
+	time.AfterFunc(timeout, func() { sm.onInviteTimeout(gen) })
+}
+
+// onInviteTimeout fires when we have waited too long for a response to the invite
+// command. It only acts if the channel is still waiting for the same invite
+// attempt (gen), otherwise an INVITE/NOSUCHNICK/reset already moved us on.
+func (sm *ChannelStateMachine) onInviteTimeout(gen int) {
+	sm.m.Lock()
+	stale := sm.state != ChannelStateAwaitingInvite || sm.inviteGen != gen
+	sm.m.Unlock()
+	if stale {
+		return
+	}
+
+	sm.log.Debug().Msg("no invite response received, retrying after backoff")
+	sm.transition(ChannelStateAwaitingInviteBot)
 }
 
 func (sm *ChannelStateMachine) runJoin() {
@@ -268,27 +320,53 @@ func (sm *ChannelStateMachine) runJoin() {
 		return
 	}
 
-	sm.lastAttempt = time.Now()
-
 	sm.m.Lock()
+	sm.lastAttempt = time.Now()
 	joinAfterInvite := sm.joinAfterInvite
 	sm.joinAfterInvite = false
+	inviteCommand := sm.inviteCommand
+	sm.joinGen++
+	gen := sm.joinGen
+	timeout := sm.joinTimeout
 	sm.m.Unlock()
 
-	if sm.inviteCommand != "" && !joinAfterInvite {
+	if inviteCommand != "" && !joinAfterInvite {
 		sm.transition(ChannelStateAwaitingInvite)
 		return
 	}
 
 	sm.log.Debug().Msg("joining channel")
 	if err := sm.handler.JoinChannel(sm.channel.Name, sm.channel.Password); err != nil {
-		sm.transitionErrorLocked(err)
+		sm.enterError(err.Error())
+		return
 	}
+
+	// if RPL_ENDOFNAMES never arrives (join silently rejected: banned, full,
+	// bad key, or a slow/broken server), fall into the bounded error-retry loop
+	// instead of stalling in Joining forever.
+	time.AfterFunc(timeout, func() { sm.onJoinTimeout(gen) })
+}
+
+// onJoinTimeout fires when a JOIN was sent but never confirmed. It only acts if
+// the channel is still on the same join attempt (a later JOIN, a successful
+// RPL_ENDOFNAMES, a kick or a reset all supersede it).
+func (sm *ChannelStateMachine) onJoinTimeout(gen int) {
+	sm.m.Lock()
+	stale := sm.state != ChannelStateJoining || sm.joinGen != gen
+	sm.m.Unlock()
+	if stale {
+		return
+	}
+
+	sm.log.Debug().Msg("join not confirmed in time, treating as failed")
+	sm.enterError("join not confirmed")
 }
 
 func (sm *ChannelStateMachine) OnInvite(nick string) {
 	sm.m.Lock()
-	if sm.state != ChannelStateAwaitingInvite && sm.state != ChannelStateKicked {
+	switch sm.state {
+	case ChannelStateMonitoring, ChannelStateJoining, ChannelStateDisabled, ChannelStateParted:
+		// already joined/joining, or intentionally not in the channel
 		sm.m.Unlock()
 		return
 	}
@@ -305,19 +383,27 @@ func (sm *ChannelStateMachine) OnInviteFailed(msg string) {
 
 func (sm *ChannelStateMachine) handleInviteFailed() {
 	sm.log.Debug().Msg("invite failed")
-	//sm.transition(ChannelStateInviteFailedNoSuchNick)
 }
 
 func (sm *ChannelStateMachine) handleWaitForInviteBot() {
-	delay, ok := retryBackoff(sm.authAttempts)
+	sm.m.RLock()
+	attempts := sm.authAttempts
+	sm.m.RUnlock()
+
+	delay, ok := retryBackoff(attempts)
 	if !ok {
-		sm.log.Debug().Int("attempt", sm.authAttempts).Msg("invite retries exhausted, marking channel as errored")
-		sm.transition(ChannelStateError)
+		sm.log.Debug().Int("attempt", attempts).Msg("invite retries exhausted, marking channel as errored")
+		sm.enterError("invite retries exhausted")
 		return
 	}
 
-	sm.log.Debug().Dur("sleep", delay).Int("attempt", sm.authAttempts).Msg("waiting for invite bot before retrying")
+	sm.log.Debug().Dur("sleep", delay).Int("attempt", attempts).Msg("waiting for invite bot before retrying")
 	time.Sleep(delay)
+
+	// the invite may have arrived (or the channel been reset) while we slept
+	if sm.CurrentState() != ChannelStateAwaitingInviteBot {
+		return
+	}
 
 	sm.transition(ChannelStateAwaitingInvite)
 }
@@ -328,23 +414,31 @@ func (sm *ChannelStateMachine) OnNoSuchNick(nick string) {
 
 func (sm *ChannelStateMachine) handleNoSuchNick() {
 	sm.log.Debug().Msg("no such nick")
-	// start timer to retry
+	// route into the backoff/retry loop
 	sm.transition(ChannelStateAwaitingInviteBot)
 }
 
 func (sm *ChannelStateMachine) OnJoinSuccess() {
+	if sm.CurrentState() == ChannelStateMonitoring {
+		return
+	}
 	sm.transition(ChannelStateMonitoring)
 }
 
 func (sm *ChannelStateMachine) handleMonitoring() {
-	sm.m.RLock()
-	defer sm.m.RUnlock()
+	sm.m.Lock()
 	if sm.state != ChannelStateMonitoring {
+		sm.m.Unlock()
 		return
 	}
+	// a successful join clears the retry/backoff bookkeeping
+	sm.authAttempts = 0
+	sm.errorAttempts = 0
+	sm.m.Unlock()
+
 	sm.channel.SetMonitoring()
 	sm.log.Debug().Msg("monitoring channel")
-	sm.broadcastStateChange(ChannelStateMonitoring)
+	// onStateEntry already broadcast the Monitoring state
 }
 
 func (sm *ChannelStateMachine) OnParted() {
@@ -356,18 +450,21 @@ func (sm *ChannelStateMachine) OnParted() {
 	}
 }
 
+// OnKicked marks the channel as kicked and, deliberately, does NOT schedule any rejoining.
+// A kicked channel stays Kicked until it is cleared by a
+// reconnect (Reset), a manual restart, or an explicit INVITE (OnInvite) - i.e.
+// only when we are actually welcomed back, never on our own initiative.
 func (sm *ChannelStateMachine) OnKicked(nick, kickedBy, reason string) {
 	sm.m.Lock()
-	defer sm.m.Unlock()
-
 	sm.state = ChannelStateKicked
+	sm.m.Unlock()
+
 	sm.channel.ResetMonitoring()
 
 	msg := domain.IrcMessage{
 		Network: sm.channel.NetworkID,
 		Channel: sm.channel.Name,
 		Type:    "KICK",
-		//Nick:    kickedBy,
 		Nick:    "<-*",
 		Message: fmt.Sprintf("%s was kicked from %s by %s (%s)", nick, sm.channel.Name, kickedBy, reason),
 		Time:    time.Now(),
@@ -376,44 +473,82 @@ func (sm *ChannelStateMachine) OnKicked(nick, kickedBy, reason string) {
 
 	sm.handler.broadcastMessage(msg)
 	sm.broadcastStateChange(ChannelStateKicked)
+
+	sm.log.Info().Str("by", kickedBy).Str("reason", reason).Msg("kicked from channel; not auto-rejoining")
 }
 
 func (sm *ChannelStateMachine) handleKicked() {
-	//sm.m.Lock()
-	//defer sm.m.Unlock()
-	//
-	//sm.state = ChannelStateKicked
-	//sm.channel.ResetMonitoring()
-	//
-	//msg := domain.IrcMessage{
-	//	Network: sm.channel.NetworkID,
-	//	Channel: sm.channel.Name,
-	//	Type:    "KICK",
-	//	//Nick:    kickedBy,
-	//	Nick:    "<-*",
-	//	Message: fmt.Sprintf("%s was kicked from %s by %s (%s)", nick, sm.channel.Name, kickedBy, reason),
-	//	Time:    time.Now(),
-	//}
-	//sm.channel.Messages.AddMessage(msg)
-	//
-	//sm.handler.broadcastMessage(msg)
+	// OnKicked sets the state directly (Monitoring has no transition to Kicked)
+	// and intentionally schedules no rejoin, so there is nothing to do on entry.
 }
 
 func (sm *ChannelStateMachine) OnError(reason string) {
+	sm.enterError(reason)
+}
+
+// enterError moves the channel into the Error state and schedules an automatic
+// recovery attempt. Error is entered by direct assignment (not transition())
+// because it can be reached from states such as Monitoring that have no
+// transitions defined.
+func (sm *ChannelStateMachine) enterError(reason string) {
 	sm.m.Lock()
-	defer sm.m.Unlock()
-
-	sm.transitionErrorLocked(errors.New("%s", reason))
-}
-
-func (sm *ChannelStateMachine) transitionErrorLocked(err error) {
 	sm.state = ChannelStateError
-	sm.channel.SetConnectionError(err.Error())
-	sm.log.Warn().Err(err).Msg("channel join failed")
+	sm.errorAttempts++
+	attempt := sm.errorAttempts
+	sm.m.Unlock()
+
+	sm.channel.SetConnectionError(reason)
+	sm.log.Warn().Str("reason", reason).Int("attempt", attempt).Msg("channel entered error state")
+	sm.broadcastStateChange(ChannelStateError)
+
+	go sm.scheduleErrorRetry(attempt)
 }
 
-func (sm *ChannelStateMachine) sendInviteCommandLocked() error {
-	cmd := sm.inviteCommand
+// scheduleErrorRetry waits out a growing backoff and then restarts the join
+// workflow. Only the most recent error attempt drives recovery, and only while
+// the channel is still errored; after maxErrorRetries it gives up.
+func (sm *ChannelStateMachine) scheduleErrorRetry(attempt int) {
+	delay, ok := sm.errorRetryDelay(attempt)
+	if !ok {
+		sm.log.Warn().Int("attempt", attempt).Msg("giving up channel recovery after repeated errors")
+		return
+	}
+
+	sm.log.Debug().Dur("delay", delay).Int("attempt", attempt).Msg("scheduling channel recovery after error")
+	time.Sleep(delay)
+
+	sm.m.Lock()
+	stale := sm.state != ChannelStateError || sm.errorAttempts != attempt
+	inviteCommand := sm.inviteCommand
+	sm.m.Unlock()
+	if stale {
+		return
+	}
+
+	if inviteCommand != "" {
+		sm.transition(ChannelStateAwaitingInvite)
+		return
+	}
+	sm.transition(ChannelStateJoining)
+}
+
+// errorRetryDelay returns how long to wait before retrying from Error and
+// whether we should still try. The delay grows exponentially up to a cap.
+func (sm *ChannelStateMachine) errorRetryDelay(attempt int) (time.Duration, bool) {
+	if attempt < 1 {
+		attempt = 1
+	}
+	if attempt > maxErrorRetries {
+		return 0, false
+	}
+	delay := sm.errorBaseDelay << (attempt - 1)
+	if delay <= 0 || delay > maxErrorRetryDelay {
+		delay = maxErrorRetryDelay
+	}
+	return delay, true
+}
+
+func (sm *ChannelStateMachine) sendInviteCommand(cmd string) error {
 	if cmd == "" {
 		return errors.New("invite command missing")
 	}
@@ -440,10 +575,17 @@ func (sm *ChannelStateMachine) CurrentState() ChannelState {
 }
 
 func (sm *ChannelStateMachine) SetInviteCommand(inviteCommand string) {
+	inviteCommand = strings.TrimSpace(inviteCommand)
+
 	sm.m.Lock()
-	defer sm.m.Unlock()
-	if sm.inviteCommand != inviteCommand {
-		sm.inviteCommand = strings.TrimSpace(inviteCommand)
+	changed := sm.inviteCommand != inviteCommand
+	if changed {
+		sm.inviteCommand = inviteCommand
+	}
+	sm.m.Unlock()
+
+	// transition outside the lock; transition() acquires sm.m itself
+	if changed {
 		sm.transition(ChannelStateJoining)
 	}
 }
@@ -483,7 +625,7 @@ func retryBackoff(attempt int) (time.Duration, bool) {
 	case attempt <= firstPhaseAttempts:
 		return 15 * time.Second, true
 	case attempt <= firstPhaseAttempts+secondPhaseAttempts:
-		return 15 * time.Second, true
+		return 30 * time.Second, true
 	case attempt <= firstPhaseAttempts+secondPhaseAttempts+thirdPhaseAttempts:
 		return time.Minute, true
 	case attempt <= firstPhaseAttempts+secondPhaseAttempts+thirdPhaseAttempts+fourthPhaseAttempts:
