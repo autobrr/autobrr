@@ -247,17 +247,17 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	var channelsToLeave = make([]string, 0)
 	var channelsToJoin = make([]domain.IrcChannel, 0)
 
-	// create map of expected channels
+	// create map of expected channels (keyed lowercase to match handler storage)
 	for _, channel := range network.Channels {
-		expectedChannels[channel.Name] = struct{}{}
+		expectedChannels[strings.ToLower(channel.Name)] = struct{}{}
 	}
 
 	// check current channels of currentNetwork against expected
 	for _, handlerChan := range currentNetwork.Channels {
-		handlerChannels[handlerChan.Name] = struct{}{}
+		name := strings.ToLower(handlerChan.Name)
+		handlerChannels[name] = struct{}{}
 
-		_, ok := expectedChannels[handlerChan.Name]
-		if ok {
+		if _, ok := expectedChannels[name]; ok {
 			// 	if currentNetwork channel matches network channel next
 			continue
 		}
@@ -268,8 +268,7 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 	// check new channels against currentNetwork to see which to join
 	for _, channel := range network.Channels {
-		_, ok := handlerChannels[channel.Name]
-		if ok {
+		if _, ok := handlerChannels[strings.ToLower(channel.Name)]; ok {
 			continue
 		}
 
@@ -282,18 +281,15 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	for _, leaveChannel := range channelsToLeave {
 		s.log.Debug().Msgf("%s: part channel %s", network.Server, leaveChannel)
 
-		if err := handler.PartChannel(leaveChannel); err != nil {
-			s.log.Error().Err(err).Msgf("failed to leave channel: %s", leaveChannel)
-		}
+		handler.RemoveChannel(leaveChannel)
 	}
 
-	// join channels
+	// join channels. AddChannel registers the Channel + state machine before
+	// sending JOIN so the JOIN echo is not treated as an unwanted channel.
 	for _, joinChannel := range channelsToJoin {
 		s.log.Debug().Msgf("%s: join new channel %s", network.Server, joinChannel.Name)
 
-		if err := handler.JoinChannel(joinChannel.Name, joinChannel.Password); err != nil {
-			s.log.Error().Err(err).Msgf("failed to join channel: %s", joinChannel.Name)
-		}
+		handler.AddChannel(joinChannel)
 	}
 
 	// update network for currentNetwork

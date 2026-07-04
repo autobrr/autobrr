@@ -918,6 +918,71 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 	return h.Send("JOIN", params...)
 }
 
+// AddChannel registers a channel on an already-running handler and starts its
+// join workflow. The Channel (and its state machine) MUST exist in h.channels
+// before the JOIN is sent: otherwise the server's JOIN echo reaches handleJoin,
+// finds no matching channel, and immediately parts it as "unwanted" - so a
+// channel added to a live network never gets monitored until a full restart.
+// Safe to call for a channel that already exists (refreshes config, starts it
+// only if it is enabled and not already monitoring).
+func (h *Handler) AddChannel(channel domain.IrcChannel) {
+	channelName := strings.ToLower(channel.Name)
+
+	ircChannel, found := h.channels.Get(channelName)
+	if !found {
+		// a user-defined extra channel has no indexer announce processor
+		ircChannel = NewChannel(h.log, h.network.ID, channelName, false, nil)
+		ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
+		h.channels.Set(channelName, ircChannel)
+	}
+
+	ircChannel.ID = channel.ID
+	ircChannel.Enabled = channel.Enabled
+	ircChannel.Password = channel.Password
+
+	if !ircChannel.Enabled {
+		h.log.Debug().Msgf("channel %s added but disabled, not joining", channelName)
+		return
+	}
+
+	if ircChannel.Monitoring {
+		// already joined and monitored, nothing to do
+		return
+	}
+
+	h.log.Debug().Msgf("adding and joining channel %s", channelName)
+
+	if sm := ircChannel.StateMachine(); sm != nil {
+		sm.Start()
+		return
+	}
+
+	if err := h.JoinChannel(ircChannel.Name, ircChannel.Password); err != nil {
+		h.log.Error().Stack().Err(err).Msgf("error joining channel %s", channelName)
+	}
+}
+
+// RemoveChannel parts a channel on a running handler and removes it from
+// tracking so it no longer counts toward network health, and voids any pending
+// retry timers on its state machine.
+func (h *Handler) RemoveChannel(name string) {
+	channelName := strings.ToLower(name)
+
+	h.log.Debug().Msgf("removing channel %s", channelName)
+
+	if err := h.PartChannel(channelName); err != nil {
+		h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channelName)
+	}
+
+	if ch, found := h.channels.Get(channelName); found {
+		if sm := ch.StateMachine(); sm != nil {
+			sm.Reset() // stop monitoring and void any pending timers
+		}
+	}
+
+	h.channels.Del(channelName)
+}
+
 // handleJoin listens for JOIN events
 func (h *Handler) handleJoin(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
