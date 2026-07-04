@@ -120,9 +120,11 @@ func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, de
 }
 
 func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
+	network := h.GetNetwork()
+
 	connectCommands := make([]string, 0)
-	if h.network.InviteCommand != "" {
-		cmds := strings.Split(strings.ReplaceAll(h.network.InviteCommand, "/msg", ""), ",")
+	if network.InviteCommand != "" {
+		cmds := strings.Split(strings.ReplaceAll(network.InviteCommand, "/msg", ""), ",")
 		for _, cmd := range cmds {
 			cmd = strings.TrimSpace(cmd)
 
@@ -176,7 +178,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			// some channels are defined in mixed case
 			channelName := strings.ToLower(channel.Name)
 
-			ircChannel := NewChannel(h.log, h.network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
+			ircChannel := NewChannel(h.log, network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 			ircChannel.SetInviteCommand(inviteCommand)
 
@@ -191,7 +193,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 		}
 
 		// look for user defined channels and add
-		for _, channel := range h.network.Channels {
+		for _, channel := range network.Channels {
 			channelName := strings.ToLower(channel.Name)
 
 			if ch, found := h.channels.Get(channelName); found {
@@ -207,7 +209,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 				continue
 			}
 
-			ircChannel := NewChannel(h.log, h.network.ID, channelName, false, nil)
+			ircChannel := NewChannel(h.log, network.ID, channelName, false, nil)
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 
 			h.channels.Set(channelName, ircChannel)
@@ -227,10 +229,14 @@ func (h *Handler) Run() (err error) {
 	// check if network requires nickserv
 	// check if network or channels requires invite command
 
-	addr := fmt.Sprintf("%s:%d", h.network.Server, h.network.Port)
+	// snapshot the network once so a concurrent SetNetwork/UpdateNetwork cannot
+	// tear the config we build the connection from
+	network := h.GetNetwork()
 
-	if h.network.UseBouncer && h.network.BouncerAddr != "" {
-		addr = h.network.BouncerAddr
+	addr := fmt.Sprintf("%s:%d", network.Server, network.Port)
+
+	if network.UseBouncer && network.BouncerAddr != "" {
+		addr = network.BouncerAddr
 	}
 
 	// this used to be TraceLevel but was changed to DebugLevel during connect to see the info without needing to change loglevel
@@ -262,10 +268,10 @@ func (h *Handler) Run() (err error) {
 	}()
 
 	client := &ircevent.Connection{
-		Nick:          h.network.Nick,
-		User:          h.network.Auth.Account,
-		RealName:      h.network.Auth.Account,
-		Password:      h.network.Pass,
+		Nick:          network.Nick,
+		User:          network.Auth.Account,
+		RealName:      network.Auth.Account,
+		Password:      network.Pass,
 		Server:        addr,
 		KeepAlive:     4 * time.Minute,
 		Timeout:       2 * time.Minute,
@@ -276,36 +282,36 @@ func (h *Handler) Run() (err error) {
 		Log:           subLogger,
 	}
 
-	if h.network.UseProxy && h.network.Proxy != nil {
-		if !h.network.Proxy.Enabled {
+	if network.UseProxy && network.Proxy != nil {
+		if !network.Proxy.Enabled {
 			h.log.Debug().Msgf("proxy disabled, skip")
 		} else {
-			if h.network.Proxy.Addr == "" {
+			if network.Proxy.Addr == "" {
 				return errors.New("proxy addr missing")
 			}
 
-			proxyUrl, err := url.Parse(h.network.Proxy.Addr)
+			proxyUrl, err := url.Parse(network.Proxy.Addr)
 			if err != nil {
-				return errors.Wrap(err, "could not parse proxy url: %s", h.network.Proxy.Addr)
+				return errors.Wrap(err, "could not parse proxy url: %s", network.Proxy.Addr)
 			}
 
 			// set user and pass if not empty
-			if h.network.Proxy.User != "" && h.network.Proxy.Pass != "" {
-				proxyUrl.User = url.UserPassword(h.network.Proxy.User, h.network.Proxy.Pass)
+			if network.Proxy.User != "" && network.Proxy.Pass != "" {
+				proxyUrl.User = url.UserPassword(network.Proxy.User, network.Proxy.Pass)
 			}
 
 			var proxyDialer proxy.Dialer
 
 			switch proxyUrl.Scheme {
 			case "http", "https":
-				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, h.network.Server, h.network.Port)
-				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, h.network.TLSSkipVerify)
+				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, network.Server, network.Port)
+				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, network.TLSSkipVerify)
 
 			default:
 				h.log.Debug().Msgf("Using %s proxy: %s", proxyUrl.Scheme, proxyUrl.Host)
 				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
 				if err != nil {
-					return errors.Wrap(err, "could not create proxy dialer from url: %s", h.network.Proxy.Addr)
+					return errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
 				}
 			}
 
@@ -318,16 +324,16 @@ func (h *Handler) Run() (err error) {
 		}
 	}
 
-	if h.network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
-		if h.network.Auth.Account != "" && h.network.Auth.Password != "" {
-			client.SASLLogin = h.network.Auth.Account
-			client.SASLPassword = h.network.Auth.Password
+	if network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
+		if network.Auth.Account != "" && network.Auth.Password != "" {
+			client.SASLLogin = network.Auth.Account
+			client.SASLPassword = network.Auth.Password
 			client.SASLOptional = true
 			client.UseSASL = true
 		}
 	}
 
-	if h.network.TLS {
+	if network.TLS {
 		// In Go 1.22 old insecure ciphers was removed. A lot of old IRC networks still uses those, so we need to allow those.
 		unsafeCipherSuites := make([]uint16, 0, len(tls.InsecureCipherSuites())+len(tls.CipherSuites()))
 		for _, suite := range tls.InsecureCipherSuites() {
@@ -339,7 +345,7 @@ func (h *Handler) Run() (err error) {
 
 		client.UseTLS = true
 		client.TLSConfig = &tls.Config{
-			InsecureSkipVerify: h.network.TLSSkipVerify,
+			InsecureSkipVerify: network.TLSSkipVerify,
 			MinVersion:         tls.VersionTLS10,
 			CipherSuites:       unsafeCipherSuites,
 		}
@@ -349,7 +355,7 @@ func (h *Handler) Run() (err error) {
 	client.AddDisconnectCallback(h.onDisconnect)
 
 	client.AddCallback("MODE", h.handleMode)
-	if h.network.BotMode {
+	if network.BotMode {
 		client.AddCallback(ircevent.ERR_UMODEUNKNOWNFLAG, h.handleModeUnknownFlag)
 	}
 	client.AddCallback("INVITE", h.handleInvite)
@@ -374,9 +380,10 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
 
 	//h.setConnectionStatus()
+	h.m.Lock()
 	h.saslauthed = false
-
 	h.client = client
+	h.m.Unlock()
 
 	if err := func() error {
 		// count connect attempts
@@ -413,7 +420,7 @@ func (h *Handler) Run() (err error) {
 			},
 			retry.OnRetry(func(n uint, err error) {
 				if n > 0 {
-					h.log.Debug().Msgf("%s connect attempt %d", h.network.Name, n)
+					h.log.Debug().Msgf("%s connect attempt %d", network.Name, n)
 				}
 			}),
 			retry.Delay(time.Second*15),
@@ -462,7 +469,9 @@ func (h *Handler) isOurNick(nick string) bool {
 
 func (h *Handler) isOurCurrentNick(nick string) bool {
 	// soju just reports JOIN (366) messages with the wildcard.
-	return h.CurrentNick() == nick || (h.network.UseBouncer && nick == "*")
+	// CurrentNick() and usesBouncer() each take h.m independently (never nested)
+	// so this stays safe to call from the IRC callbacks.
+	return h.CurrentNick() == nick || (h.usesBouncer() && nick == "*")
 }
 
 func (h *Handler) setConnectionStatus() {
@@ -539,23 +548,27 @@ func (h *Handler) Restart() error {
 func (h *Handler) onConnect(m ircmsg.Message) {
 	h.setConnectionStatus()
 
-	func() {
-		h.m.Lock()
-		if h.haveDisconnected && h.clientState == ircLive {
-			h.log.Info().Msgf("network re-connected after unexpected disconnect: %s", h.network.Name)
+	networkName := h.GetNetwork().Name
 
-			h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
-				Subject: "IRC Reconnected",
-				Message: fmt.Sprintf("Network: %s", h.network.Name),
-			})
+	h.m.Lock()
+	reconnected := h.haveDisconnected && h.clientState == ircLive
+	if reconnected {
+		// reset haveDisconnected
+		h.haveDisconnected = false
+	}
+	h.m.Unlock()
 
-			// reset haveDisconnected
-			h.haveDisconnected = false
-		}
-		h.m.Unlock()
+	// notify outside the lock so we never hold h.m across the notification I/O
+	if reconnected {
+		h.log.Info().Msgf("network re-connected after unexpected disconnect: %s", networkName)
 
-		h.log.Info().Msgf("network connected to: %s", h.network.Name)
-	}()
+		h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
+			Subject: "IRC Reconnected",
+			Message: fmt.Sprintf("Network: %s", networkName),
+		})
+	}
+
+	h.log.Info().Msgf("network connected to: %s", networkName)
 
 	time.Sleep(1 * time.Second)
 
@@ -578,6 +591,7 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 	h.haveDisconnected = true
 
 	manuallyDisconnected := h.clientState == ircStopped
+	networkName := h.network.Name
 
 	h.m.Unlock()
 
@@ -590,7 +604,7 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 		// only send notification if we did not initiate disconnect/restart/stop
 		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
 			Subject: "IRC Disconnected unexpectedly",
-			Message: fmt.Sprintf("Network: %s", h.network.Name),
+			Message: fmt.Sprintf("Network: %s", networkName),
 		})
 	}
 
@@ -655,9 +669,13 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	) {
 		h.authenticate()
 
+		h.m.Lock()
 		h.failedNickServAttempts++
-		if h.failedNickServAttempts >= 3 {
-			h.log.Warn().Msgf("NickServ %d failed login attempts", h.failedNickServAttempts)
+		attempts := h.failedNickServAttempts
+		h.m.Unlock()
+
+		if attempts >= 3 {
+			h.log.Warn().Msgf("NickServ %d failed login attempts", attempts)
 			h.addConnectError("authentication failed: nick in use and not authenticated")
 
 			h.stateMachine.OnError("nickserv authentication failed: nick in use")
@@ -672,13 +690,35 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1], "invalid parameters", "help identify") {
 		h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
 
-		h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s %s", h.network.Auth.Account, h.network.Auth.Password))
+		net := h.GetNetwork()
+		h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s %s", net.Auth.Account, net.Auth.Password))
 	}
 }
 
 func (h *Handler) getClient() *ircevent.Connection {
-	client := h.client
-	return client
+	h.m.RLock()
+	defer h.m.RUnlock()
+	return h.client
+}
+
+// usesBouncer reports whether the network is configured to use a bouncer.
+func (h *Handler) usesBouncer() bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+	return h.network.UseBouncer
+}
+
+// botModeConfig returns whether bot mode is enabled and the negotiated bot-mode char.
+func (h *Handler) botModeConfig() (bool, string) {
+	h.m.RLock()
+	defer h.m.RUnlock()
+	return h.network.BotMode, h.botModeChar
+}
+
+func (h *Handler) setBotModeChar(char string) {
+	h.m.Lock()
+	defer h.m.Unlock()
+	h.botModeChar = char
 }
 
 func (h *Handler) Send(command string, params ...string) error {
@@ -692,26 +732,39 @@ func (h *Handler) Send(command string, params ...string) error {
 // botModeSupported checks if IRCv3 Bot Mode is supported by the server
 // See https://ircv3.net/specs/extensions/bot-mode
 func (h *Handler) botModeSupported() bool {
-	h.botModeChar = h.client.ISupport()["BOT"]
+	client := h.getClient()
+	if client == nil {
+		return false
+	}
 
-	return h.botModeChar != ""
+	char := client.ISupport()["BOT"]
+	h.setBotModeChar(char)
+
+	return char != ""
 }
 
 // setBotMode attempts to set Bot Mode on ourselves
 // See https://ircv3.net/specs/extensions/bot-mode
 func (h *Handler) setBotMode() {
-	h.client.Send("MODE", h.CurrentNick(), "+"+h.botModeChar)
+	client := h.getClient()
+	if client == nil {
+		return
+	}
+
+	_, char := h.botModeConfig()
+	client.Send("MODE", h.CurrentNick(), "+"+char)
 }
 
 // authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() {
 	h.m.RLock()
-	shouldSendNickserv := !h.authenticated && !h.saslauthed && h.network.Auth.Password != ""
+	password := h.network.Auth.Password
+	shouldSendNickserv := !h.authenticated && !h.saslauthed && password != ""
 	h.m.RUnlock()
 
 	if shouldSendNickserv {
 		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
-		h.NickServIdentify(h.network.Auth.Password)
+		h.NickServIdentify(password)
 	} else {
 		h.setAuthenticated()
 	}
@@ -884,7 +937,7 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	ircChannel.OnMsg(msg)
 
 	// publish to SSE stream
-	h.broadcastMessage(domain.IrcMessage{Network: h.network.ID, Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
+	h.broadcastMessage(domain.IrcMessage{Network: h.GetNetwork().ID, Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
 
 	//h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
 
@@ -935,7 +988,7 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 	ircChannel, found := h.channels.Get(channelName)
 	if !found {
 		// a user-defined extra channel has no indexer announce processor
-		ircChannel = NewChannel(h.log, h.network.ID, channelName, false, nil)
+		ircChannel = NewChannel(h.log, h.GetNetwork().ID, channelName, false, nil)
 		ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 		h.channels.Set(channelName, ircChannel)
 	}
@@ -1131,7 +1184,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 // PartChannel parts/leaves channel
 func (h *Handler) PartChannel(channel string) error {
 	// if using bouncer we do not want to part any channels
-	if h.network.UseBouncer {
+	if h.usesBouncer() {
 		h.log.Debug().Msgf("using bouncer, skip part channel %s", channel)
 		return nil
 	}
@@ -1471,7 +1524,7 @@ func (h *Handler) handleMode(msg ircmsg.Message) {
 		return
 	}
 
-	if h.network.BotMode && h.botModeChar != "" && h.isOurCurrentNick(nick) && strings.Contains(channel, "+"+h.botModeChar) {
+	if botModeEnabled, botModeChar := h.botModeConfig(); botModeEnabled && botModeChar != "" && h.isOurCurrentNick(nick) && strings.Contains(channel, "+"+botModeChar) {
 		h.authenticate()
 	}
 }

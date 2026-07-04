@@ -79,6 +79,8 @@ func TestChannel_IsValidAnnouncer(t *testing.T) {
 
 func TestChannel_IsValidAnnouncer_Exp_Flag(t *testing.T) {
 	featureflags.SetEnabled(domain.IRCFuzzyAnnouncer, true)
+	// reset the global flag so it does not leak into other tests / -count>1 runs
+	t.Cleanup(func() { featureflags.SetEnabled(domain.IRCFuzzyAnnouncer, false) })
 	type fields struct {
 		log        zerolog.Logger
 		announcers []string
