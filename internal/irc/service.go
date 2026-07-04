@@ -246,6 +246,7 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	var handlerChannels = make(map[string]struct{}, 0)
 	var channelsToLeave = make([]string, 0)
 	var channelsToJoin = make([]domain.IrcChannel, 0)
+	var channelsToUpdate = make([]domain.IrcChannel, 0)
 
 	// create map of expected channels (keyed lowercase to match handler storage)
 	for _, channel := range network.Channels {
@@ -266,9 +267,11 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		channelsToLeave = append(channelsToLeave, handlerChan.Name)
 	}
 
-	// check new channels against currentNetwork to see which to join
+	// check new channels against currentNetwork: join the new ones, reconcile the
+	// config (password/enabled) of the ones we already track
 	for _, channel := range network.Channels {
 		if _, ok := handlerChannels[strings.ToLower(channel.Name)]; ok {
+			channelsToUpdate = append(channelsToUpdate, channel)
 			continue
 		}
 
@@ -290,6 +293,12 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		s.log.Debug().Msgf("%s: join new channel %s", network.Server, joinChannel.Name)
 
 		handler.AddChannel(joinChannel)
+	}
+
+	// reconcile config changes (e.g. a channel password / +k key) on the fly,
+	// without restarting the network
+	for _, updateChannel := range channelsToUpdate {
+		handler.UpdateChannel(updateChannel)
 	}
 
 	// update network for currentNetwork
@@ -552,7 +561,7 @@ func (s *Service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 func (s *Service) GetMessageHistory(_ context.Context, networkID int64, channel string) ([]domain.IrcMessage, error) {
 	handler, found := s.networkHandlers.Get(networkID)
 	if !found {
-		return nil, errors.New("could not find network handler")
+		return nil, domain.ErrIRCNetworkHandlerNotFound
 	}
 
 	channelInstance, ok := handler.channels.Get(channel)

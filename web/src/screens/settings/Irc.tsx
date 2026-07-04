@@ -152,12 +152,18 @@ const IrcSettings = () => {
                 ...channel,
                 state: stateEvent.state,
                 monitoring: stateEvent.state === "Monitoring",
+                // a monitoring channel has no errors; otherwise take the reason
+                // from the event (falling back to what we already have)
+                connection_errors: stateEvent.state === "Monitoring"
+                  ? []
+                  : (stateEvent.connection_errors ?? channel.connection_errors),
               };
             })
           };
 
-          updatedNetwork.healthy = updatedNetwork.channels.every(channel => channel.state === "Monitoring");
-          updatedNetwork.connected_since = stateEvent.time;
+          // trust the backend-computed health carried on the event (announce
+          // channels only); don't recompute it from every channel's state here.
+          updatedNetwork.healthy = stateEvent.healthy;
 
           return updatedNetwork;
         });
@@ -446,15 +452,23 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
         className="grid grid-cols-12 gap-4 items-center py-4 "
         onClick={toggleView}
       >
-        <div className="col-span-5 sm:col-span-4 flex items-center md:px-6 pl-2 sm:pl-0">
+        <div className="col-span-5 sm:col-span-4 flex flex-col md:px-6 pl-2 sm:pl-0">
           <span className="relative inline-flex items-center">
             {network.enabled ? (
-              <IrcChannelStatePill state={channel.state} />
+              <IrcChannelStatePill state={channel.state} errors={channel.connection_errors} />
             ) : (
               <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
             )}
             {channel.name}
           </span>
+          {network.enabled && channel.connection_errors && channel.connection_errors.length > 0 && (
+            <span
+              className="ml-6 text-xs text-red-500 truncate"
+              title={channel.connection_errors.join(", ")}
+            >
+              {channel.connection_errors[0]}
+            </span>
+          )}
         </div>
         <div className="col-span-4 hidden sm:flex items-center md:px-6">
           <span title={simplifyDate(channel.monitoring_since)}>
@@ -479,7 +493,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   );
 };
 
-function IrcChannelStatePill({ state }: { state: IrcChannelState }) {
+function IrcChannelStatePill({ state, errors }: { state: IrcChannelState; errors?: string[] }) {
   const stateMap: Record<IrcChannelState, string> = {
     Idle: "Idle",
     AwaitingInvite: "Awaiting invite",
@@ -494,41 +508,46 @@ function IrcChannelStatePill({ state }: { state: IrcChannelState }) {
     Error: "Error",
     Unknown: "Unknown"
   }
+
+  // prefer the specific error reason (e.g. "wrong or missing channel password
+  // (+k)") over the bare state name so users can debug from the pill directly
+  const title = errors && errors.length > 0 ? errors.join(", ") : stateMap[state];
+
     switch (state) {
      case "Idle":
-       return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+       return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
       case "AwaitingInvite":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-teal-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-teal-500" title={title} />
       case "AwaitingInviteBot":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-300" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-300" title={title} />
       case "InviteFailed":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={title} />
       case "InviteFailedNoSuchNick":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-500" title={title} />
       case "Joining":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-blue-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-blue-500" title={title} />
       case "Monitoring":
         return (
           <span
             className="mr-3 flex h-3 w-3 relative"
-            title={stateMap[state]}
+            title={title}
           >
             <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
             <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
           </span>
         )
       case "Kicked":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-orange-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-orange-500" title={title} />
       case "Parted":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
       case "Disabled":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
       case "Error":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={title} />
       case "Unknown":
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
       default:
-        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={stateMap[state]} />
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
     }
 }
 

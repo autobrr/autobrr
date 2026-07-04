@@ -177,8 +177,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			channelName := strings.ToLower(channel.Name)
 
 			if ch, found := h.channels.Get(channelName); found {
-
-				ch.UpdateIdentity(channel.ID, channel.Enabled)
+				ch.Configure(channel.ID, channel.Enabled, channel.Password)
 
 				if ch.StateMachine() == nil {
 					ch.SetStateMachine(NewChannelStateMachine(ch, h, inviteCommand))
@@ -190,6 +189,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			}
 
 			ircChannel := NewChannel(h.log, network.ID, channelName, false, nil)
+			ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 
 			h.channels.Set(channelName, ircChannel)
@@ -354,7 +354,12 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
 	client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
 
-	client.AddCallback(ircevent.ERR_INVITEONLYCHAN, h.handleErrInviteOnly)
+	// surface failed JOIN attempts on the affected channel
+	client.AddCallback(ircevent.ERR_CHANNELISFULL, h.handleJoinError)  // 471
+	client.AddCallback(ircevent.ERR_INVITEONLYCHAN, h.handleJoinError) // 473
+	client.AddCallback(ircevent.ERR_BANNEDFROMCHAN, h.handleJoinError) // 474
+	client.AddCallback(ircevent.ERR_BADCHANNELKEY, h.handleJoinError)  // 475
+	client.AddCallback(ircevent.ERR_NEEDREGGEDNICK, h.handleJoinError) // 477
 	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
 
 	//h.setConnectionStatus()
@@ -1016,6 +1021,58 @@ func (h *Handler) RemoveChannel(name string) {
 	h.channels.Del(channelName)
 }
 
+// UpdateChannel re-applies the persisted config (enabled, password) to an
+// already-tracked channel and reconciles it on the fly - no network restart.
+//   - disabled: part the channel
+//   - enabled but not currently monitored (newly enabled, or a prior join failed
+//     e.g. on a wrong key): (re)join with the updated config
+//   - enabled and already monitored: the new config is stored for the next
+//     (re)connect; we do not disrupt an active channel by re-joining
+func (h *Handler) UpdateChannel(channel domain.IrcChannel) {
+	channelName := strings.ToLower(channel.Name)
+
+	ircChannel, found := h.channels.Get(channelName)
+	if !found {
+		// not tracked yet - treat as an add
+		h.AddChannel(channel)
+		return
+	}
+
+	wasEnabled := ircChannel.IsEnabled()
+	oldPassword := ircChannel.GetPassword()
+	monitoring := ircChannel.IsMonitoring()
+
+	ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
+
+	enabledChanged := channel.Enabled != wasEnabled
+	passwordChanged := channel.Password != oldPassword
+
+	switch {
+	case !enabledChanged && !passwordChanged:
+		// nothing actionable changed
+
+	case !channel.Enabled:
+		h.log.Debug().Msgf("channel %s disabled, parting", channelName)
+		if err := h.PartChannel(channelName); err != nil {
+			h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channelName)
+		}
+		ircChannel.ResetMonitoring()
+		if sm := ircChannel.StateMachine(); sm != nil {
+			sm.Reset()
+		}
+
+	case !monitoring:
+		h.log.Debug().Msgf("channel %s config changed, (re)joining", channelName)
+		if sm := ircChannel.StateMachine(); sm != nil {
+			sm.Reset()
+			sm.Start()
+		}
+
+	default:
+		h.log.Debug().Msgf("channel %s config updated while monitoring; applied for next reconnect", channelName)
+	}
+}
+
 // handleJoin listens for JOIN events. autobrr only cares about its own joins:
 // if we joined a channel we don't track, part it; other users' joins are ignored
 // (we don't track the channel user list).
@@ -1296,40 +1353,50 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	}
 }
 
-// handleErrInviteOnly listens for ircevent.ERR_INVITEONLYCHAN events
-func (h *Handler) handleErrInviteOnly(msg ircmsg.Message) {
+// joinErrorReason maps a JOIN-error numeric to a short human-readable cause.
+var joinErrorReason = map[string]string{
+	ircevent.ERR_CHANNELISFULL:  "channel is full (+l)",
+	ircevent.ERR_INVITEONLYCHAN: "channel is invite-only (+i)",
+	ircevent.ERR_BANNEDFROMCHAN: "banned from channel (+b)",
+	ircevent.ERR_BADCHANNELKEY:  "wrong or missing channel password (+k)",
+	ircevent.ERR_NEEDREGGEDNICK: "must be identified with services to join (+r)",
+}
+
+// handleJoinError handles the IRC error numerics for a failed JOIN and surfaces
+// the failure on the specific channel immediately, instead of leaving it in
+// Joining until the join timeout fires. Covers 471 (full), 473 (invite-only),
+// 474 (banned), 475 (bad key) and 477 (need registered nick).
+func (h *Handler) handleJoinError(msg ircmsg.Message) {
 	if len(msg.Params) < 2 {
 		return
 	}
 
-	// get channel
 	channel := strings.ToLower(msg.Params[1])
 
-	inviteOnlyErr := fmt.Sprintf("channel %s is invite-only", channel)
-	h.log.Warn().Str("channel", channel).Msg("channel is invite-only, awaiting invite")
-	h.addConnectError(inviteOnlyErr)
-	h.setChannelError(channel, inviteOnlyErr)
-	h.stateMachine.OnChannelError(channel, inviteOnlyErr)
+	// the server's trailing text (e.g. "Cannot join channel (+k)"), if present
+	serverReason := ""
+	if len(msg.Params) > 2 {
+		serverReason = msg.Params[len(msg.Params)-1]
+	}
 
-	// TODO track if we have sent invite command, and check if channel is part of that and if we have not sent or joined yet
+	cause := joinErrorReason[msg.Command]
+	if cause == "" {
+		cause = "join rejected"
+	}
 
-	//_, found := h.channels.Get(channel)
-	//if !found {
-	//	h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", msg.Nick(), channel)
-	//	return
-	//}
-	//
-	//h.log.Debug().Msgf("INVITE from %s, joining %s", msg.Nick(), channel)
-	//
-	//if err := h.Send("JOIN", channel); err != nil {
-	//	h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
-	//	return
-	//}
+	errMsg := fmt.Sprintf("could not join %s: %s", channel, cause)
+	if serverReason != "" {
+		errMsg = fmt.Sprintf("%s (%s)", errMsg, serverReason)
+	}
 
-	return
+	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
+
+	h.addConnectError(errMsg)
+	h.setChannelError(channel, errMsg)
+	h.stateMachine.OnChannelError(channel, errMsg)
 }
 
-// handleErrInviteOnly listens for ircevent.ERR_INVITEONLYCHAN events
+// handleErrNoSuchNick listens for ircevent.ERR_NOSUCHNICK events
 func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 	if len(msg.Params) < 2 {
 		return
@@ -1467,25 +1534,31 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 		return
 	}
 
+	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
+	netw.Healthy = h.computeHealthy()
+}
+
+// computeHealthy reports whether the network is healthy: the connection state
+// machine is healthy AND every enabled announce (default) channel is monitoring
+// without errors. Non-default channels (user-added extras) are surfaced
+// per-channel and deliberately do not gate network health, so one flaky extra
+// channel cannot flip the whole network red.
+func (h *Handler) computeHealthy() bool {
 	channelsHealthy := true
 
 	for _, channel := range h.channels.Iterator() {
 		snap := channel.Snapshot()
-		if !snap.Enabled {
+		if !snap.Enabled || !snap.DefaultChannel {
 			continue
 		}
 
 		if !snap.Monitoring || len(snap.ConnectionErrors) > 0 {
 			channelsHealthy = false
+			break
 		}
 	}
 
-	netw.Healthy = channelsHealthy
-
-	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
-
-	// Add state machine information for better visibility
-	netw.Healthy = h.stateMachine.IsHealthy() && channelsHealthy
+	return h.stateMachine.IsHealthy() && channelsHealthy
 }
 
 func (h *Handler) ReportHealth() {

@@ -115,6 +115,7 @@ type ChannelSnapshot struct {
 	ID               int64
 	Name             string
 	Enabled          bool
+	DefaultChannel   bool
 	Password         string
 	Monitoring       bool
 	MonitoringSince  time.Time
@@ -245,6 +246,13 @@ func (c *Channel) HasConnectionErrors() bool {
 	return len(c.ConnectionErrors) > 0
 }
 
+// ConnectionErrorsCopy returns a copy of the channel's connection errors.
+func (c *Channel) ConnectionErrorsCopy() []string {
+	c.m.RLock()
+	defer c.m.RUnlock()
+	return slices.Clone(c.ConnectionErrors)
+}
+
 func (c *Channel) SetMonitoring() {
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -301,14 +309,6 @@ func (c *Channel) Configure(id int64, enabled bool, password string) {
 	c.Password = password
 }
 
-// UpdateIdentity sets the persisted id and enabled flag, preserving other config.
-func (c *Channel) UpdateIdentity(id int64, enabled bool) {
-	c.m.Lock()
-	defer c.m.Unlock()
-	c.ID = id
-	c.Enabled = enabled
-}
-
 // Snapshot returns a consistent copy of the channel's health fields.
 func (c *Channel) Snapshot() ChannelSnapshot {
 	c.m.RLock()
@@ -317,6 +317,7 @@ func (c *Channel) Snapshot() ChannelSnapshot {
 		ID:               c.ID,
 		Name:             c.Name,
 		Enabled:          c.Enabled,
+		DefaultChannel:   c.DefaultChannel,
 		Password:         c.Password,
 		Monitoring:       c.Monitoring,
 		MonitoringSince:  c.MonitoringSince,

@@ -124,7 +124,9 @@ func (sm *ConnectionStateMachine) updateOperationalState() {
 
 	sm.handler.channels.ForEach(func(name string, ch *Channel) bool {
 		snap := ch.Snapshot()
-		if !snap.Enabled {
+		// only announce (default) channels drive the operational state; user-added
+		// extras are surfaced per-channel and must not flip the network unhealthy
+		if !snap.Enabled || !snap.DefaultChannel {
 			return true
 		}
 
@@ -173,7 +175,7 @@ func (sm *ConnectionStateMachine) allEnabledChannelsMonitoring() bool {
 
 	sm.handler.channels.ForEach(func(name string, ch *Channel) bool {
 		snap := ch.Snapshot()
-		if !snap.Enabled {
+		if !snap.Enabled || !snap.DefaultChannel {
 			return true
 		}
 

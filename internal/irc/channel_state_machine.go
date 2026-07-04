@@ -199,7 +199,15 @@ func (sm *ChannelStateMachine) isValidTransition(from, to ChannelState) bool {
 }
 
 func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
+	// Monitoring applies its channel-level effects (clears errors, sets the
+	// monitoring flag) BEFORE broadcasting, so the STATE event - and the network
+	// health it carries - reflect the settled state rather than the pre-join one.
+	if state == ChannelStateMonitoring {
+		sm.handleMonitoring()
+	}
+
 	sm.broadcastStateChange(state)
+
 	switch state {
 	case ChannelStateIdle:
 	case ChannelStateJoining:
@@ -213,7 +221,7 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 	case ChannelStateInviteFailedNoSuchNick:
 		sm.handleNoSuchNick()
 	case ChannelStateMonitoring:
-		sm.handleMonitoring()
+		// applied above, before the broadcast
 	case ChannelStateKicked:
 		sm.handleKicked()
 	case ChannelStateParted:
@@ -442,7 +450,8 @@ func (sm *ChannelStateMachine) handleMonitoring() {
 
 	sm.channel.SetMonitoring()
 	sm.log.Debug().Msg("monitoring channel")
-	// onStateEntry already broadcast the Monitoring state
+	// onStateEntry broadcasts the Monitoring state after this runs, so the event
+	// reflects the cleared errors / set monitoring flag
 }
 
 func (sm *ChannelStateMachine) OnParted() {
@@ -597,11 +606,13 @@ func (sm *ChannelStateMachine) SetInviteCommand(inviteCommand string) {
 // broadcastStateChange sends a STATE event via SSE
 func (sm *ChannelStateMachine) broadcastStateChange(newState ChannelState) {
 	msg := map[string]any{
-		"network": sm.channel.NetworkID,
-		"channel": sm.channel.Name,
-		"type":    "STATE",
-		"state":   newState.String(),
-		"time":    time.Now(),
+		"network":           sm.channel.NetworkID,
+		"channel":           sm.channel.Name,
+		"type":              "STATE",
+		"state":             newState.String(),
+		"connection_errors": sm.channel.ConnectionErrorsCopy(),
+		"healthy":           sm.handler.computeHealthy(),
+		"time":              time.Now(),
 	}
 
 	sm.handler.broadcastEvent("STATE", msg)

@@ -5,6 +5,7 @@ package irc
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 	"testing"
 
@@ -63,6 +64,39 @@ func (m *mockSSEServer) hasStateEvent(channel, state string) bool {
 	return false
 }
 
+// stateEventHealthy returns the healthy flag from a STATE event for channel/state.
+func stateEventHealthy(m *mockSSEServer, channel, state string) (healthy bool, found bool) {
+	for _, ev := range m.stateEvents() {
+		if ev["channel"] != channel || ev["state"] != state {
+			continue
+		}
+		if hv, ok := ev["healthy"].(bool); ok {
+			return hv, true
+		}
+	}
+	return false, false
+}
+
+// stateEventHasError reports whether a STATE event for channel/state carried a
+// connection_errors entry containing substr.
+func stateEventHasError(m *mockSSEServer, channel, state, substr string) bool {
+	for _, ev := range m.stateEvents() {
+		if ev["channel"] != channel || ev["state"] != state {
+			continue
+		}
+		errs, ok := ev["connection_errors"].([]any)
+		if !ok {
+			continue
+		}
+		for _, e := range errs {
+			if s, ok := e.(string); ok && strings.Contains(s, substr) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // newTestHandler builds a Handler wired up just enough to exercise the
 // disconnect/reconnect bookkeeping without a live IRC connection.
 func newTestHandler() (*Handler, *mockSSEServer) {
@@ -72,6 +106,7 @@ func newTestHandler() (*Handler, *mockSSEServer) {
 		sse:                 sseMock,
 		network:             &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "irc.example.test"},
 		notificationService: noopNotificationSender{},
+		definitions:         map[string]*domain.IndexerDefinition{},
 		channels:            haxmap.New[string, *Channel](),
 		clientState:         ircLive,
 	}

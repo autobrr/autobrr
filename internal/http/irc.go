@@ -280,6 +280,11 @@ func (h ircHandler) getMessageHistory(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if errors.Is(err, domain.ErrIRCNetworkHandlerNotFound) {
+			h.encoder.StatusResponse(w, http.StatusOK, make([]domain.IrcMessage, 0))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
