@@ -91,7 +91,7 @@ func NewService(log logger.Logger, sse sseServer, repo ircRepo, releaseSvc relea
 }
 
 func (s *Service) StartHandlers() {
-  ctx := context.Background()
+	ctx := context.Background()
 	networks, err := s.repo.FindActiveNetworks(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to list networks")
@@ -462,7 +462,7 @@ func (s *Service) listNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	return ret, nil
 }
 
-func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error) {
+func (s *Service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error) {
 	networks, err := s.ListNetworks(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to list networks")

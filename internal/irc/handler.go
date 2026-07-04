@@ -169,15 +169,15 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
 		for _, channel := range definition.IRC.Channels {
 			// some channels are defined in mixed case
-			channelName = strings.ToLower(channel.Name)
+			channelName := strings.ToLower(channel.Name)
 
 			ircChannel := NewChannel(h.log, h.network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 			ircChannel.SetInviteCommand(inviteCommand)
 
 			ircChannel.RegisterAnnouncers(channel.Announcers)
-      
-      for _, announcer := range channel.Announcers {
+
+			for _, announcer := range channel.Announcers {
 				announcer = strings.ToLower(announcer)
 				h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
 			}
