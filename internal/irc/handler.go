@@ -77,12 +77,6 @@ type Handler struct {
 
 	channels *haxmap.Map[string, *Channel]
 
-	// bots holds invite/announce bots. botsMu guards the fields of the stored
-	// *domain.IrcUser values, which are mutated from IRC callbacks and copied
-	// from the HTTP/health goroutine.
-	botsMu sync.RWMutex
-	bots   *haxmap.Map[string, *domain.IrcUser]
-
 	connectionErrors       []string
 	failedNickServAttempts int
 
@@ -107,7 +101,6 @@ func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, de
 		saslauthed:          false,
 		connectionErrors:    []string{},
 		channels:            haxmap.New[string, *Channel](),
-		bots:                haxmap.New[string, *domain.IrcUser](),
 	}
 
 	// init state machine
@@ -129,14 +122,6 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			cmd = strings.TrimSpace(cmd)
 
 			connectCommands = append(connectCommands, cmd)
-
-			parts := strings.Split(cmd, " ")
-			if len(parts) > 2 {
-				nick := strings.ToLower(parts[0])
-				h.log.Debug().Msgf("invite command: %s bot %s", cmd, nick)
-
-				h.bots.Set(nick, &domain.IrcUser{Nick: nick, State: domain.IrcUserStateUninitialized})
-			}
 		}
 	}
 
@@ -184,15 +169,10 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 			ircChannel.RegisterAnnouncers(channel.Announcers)
 
-			for _, announcer := range channel.Announcers {
-				announcer = strings.ToLower(announcer)
-				h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
-			}
-
 			h.channels.Set(channelName, ircChannel)
 		}
 
-		// look for user defined channels and add
+		// look for user-defined channels and add
 		for _, channel := range network.Channels {
 			channelName := strings.ToLower(channel.Name)
 
@@ -365,11 +345,9 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback("NICK", h.onNick)
 	client.AddCallback("KICK", h.onKick)
 	client.AddCallback("JOIN", h.handleJoin)
-	client.AddCallback("QUIT", h.handleQuit)
 
 	client.AddCallback("TOPIC", h.handleTopicChange)
 	client.AddCallback(ircevent.RPL_TOPIC, h.handleTopic)
-	client.AddCallback(ircevent.RPL_NAMREPLY, h.handleNames)
 	client.AddCallback(ircevent.RPL_ENDOFNAMES, h.handleJoined) // end of names
 
 	client.AddCallback(ircevent.RPL_LOGGEDIN, h.handleLoggedIn)
@@ -1038,82 +1016,28 @@ func (h *Handler) RemoveChannel(name string) {
 	h.channels.Del(channelName)
 }
 
-// handleJoin listens for JOIN events
+// handleJoin listens for JOIN events. autobrr only cares about its own joins:
+// if we joined a channel we don't track, part it; other users' joins are ignored
+// (we don't track the channel user list).
 func (h *Handler) handleJoin(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
 	nick := msg.Nick()
 
-	ircChannel, found := h.channels.Get(channel)
-	if !found {
-		if h.isOurCurrentNick(nick) {
-			h.log.Debug().Msgf("Joined unwanted channel %s, lets part it..", channel)
-
-			if err := h.PartChannel(channel); err != nil {
-				h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channel)
-			}
-		}
-
+	if !h.isOurCurrentNick(nick) {
 		return
 	}
 
-	if !h.isOurCurrentNick(nick) {
-		h.log.Trace().Msgf("JOIN channel %s other user: %s", channel, nick)
+	if _, found := h.channels.Get(channel); !found {
+		h.log.Debug().Msgf("Joined unwanted channel %s, lets part it..", channel)
 
-		ircChannel.SetUsers([]string{nick})
-
-		// TODO set or swap ircChannel on handler?
-		//h.channels.Swap(channel, ircChannel)
-
-		if h.setBotPresence(nick, true, domain.IrcUserStatePresent) {
-			h.stateMachine.OnBotJoined(strings.ToLower(nick))
+		if err := h.PartChannel(channel); err != nil {
+			h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channel)
 		}
 
 		return
 	}
 
 	h.log.Info().Msgf("Join channel %s", channel)
-}
-
-func (h *Handler) handleQuit(msg ircmsg.Message) {
-	nick := msg.Nick()
-	h.log.Trace().Msgf("QUIT event: %s params: %v", nick, msg.Params)
-
-	if !h.isOurCurrentNick(nick) {
-		h.setBotPresence(nick, false, domain.IrcUserStateNotPresent)
-
-		return
-	}
-}
-
-// setBotPresence updates the presence of a tracked bot under botsMu. It reports
-// whether a matching bot was found.
-func (h *Handler) setBotPresence(nick string, present bool, state domain.IrcUserState) bool {
-	h.botsMu.Lock()
-	defer h.botsMu.Unlock()
-
-	bot, ok := h.bots.Get(nick)
-	if !ok {
-		return false
-	}
-
-	bot.Present = present
-	bot.State = state
-	h.bots.Swap(nick, bot)
-
-	return true
-}
-
-// botsSnapshot returns a copy of the tracked bots for reporting.
-func (h *Handler) botsSnapshot() []domain.IrcUser {
-	h.botsMu.RLock()
-	defer h.botsMu.RUnlock()
-
-	out := make([]domain.IrcUser, 0, h.bots.Len())
-	h.bots.ForEach(func(_ string, u *domain.IrcUser) bool {
-		out = append(out, *u)
-		return true
-	})
-	return out
 }
 
 func (h *Handler) setChannelError(channelName, errMsg string) {
@@ -1143,23 +1067,13 @@ func (h *Handler) markPendingChannelErrors(errMsg string) {
 	}
 }
 
-// handlePart listens for PART events
+// handlePart listens for PART events. Only our own parts matter - other users'
+// parts are ignored.
 func (h *Handler) handlePart(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
 	nick := msg.Nick()
 
 	if !h.isOurCurrentNick(nick) {
-		h.log.Trace().Msgf("PART other user: %+v", msg)
-
-		ircChannel, found := h.channels.Get(channel)
-		if !found {
-			return
-		}
-
-		ircChannel.RemoveUser(nick)
-
-		h.setBotPresence(nick, false, domain.IrcUserStateNotPresent)
-
 		return
 	}
 
@@ -1239,29 +1153,6 @@ func (h *Handler) handleTopicChange(msg ircmsg.Message) {
 		h.channels.Swap(channel, ircChannel)
 
 		return
-	}
-}
-
-// handleNames listens for ircevent.RPL_NAMREPLY
-func (h *Handler) handleNames(msg ircmsg.Message) {
-	if len(msg.Params) < 3 {
-		return
-	}
-	channel := strings.ToLower(msg.Params[2])
-
-	if len(msg.Params) >= 3 {
-		names := strings.ToLower(msg.Params[3])
-
-		h.log.Trace().Msgf("CHANNEL NAMES START: %s %s", channel, names)
-
-		ircChannel, found := h.channels.Get(channel)
-		if found {
-			ircChannel.SetUsers(strings.Split(names, " "))
-
-			h.channels.Swap(channel, ircChannel)
-
-			h.log.Trace().Msgf("set names: %s", ircChannel.Name)
-		}
 	}
 }
 
@@ -1466,8 +1357,6 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 			}
 		}
 	}
-
-	h.setBotPresence(nick, false, domain.IrcUserStateNotPresent)
 }
 
 // NickServIdentify sends NickServ Identify commands
@@ -1590,11 +1479,6 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 			channelsHealthy = false
 		}
 	}
-
-	//h.bots.ForEach(func(botName string, user *User) bool {
-	//	netw.Bots = append(netw.Bots, domain.IrcUser{Nick: user.Nick})
-	//	return true
-	//})
 
 	netw.Healthy = channelsHealthy
 

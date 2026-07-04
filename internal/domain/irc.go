@@ -5,7 +5,6 @@ package domain
 
 import (
 	"encoding/json"
-	"strings"
 	"time"
 )
 
@@ -164,7 +163,6 @@ type IrcNetworkWithHealth struct {
 	ConnectedSince   time.Time              `json:"connected_since"`
 	ConnectionErrors []string               `json:"connection_errors"`
 	Healthy          bool                   `json:"healthy"`
-	Bots             []IrcUser              `json:"bots"`
 }
 
 func (in IrcNetworkWithHealth) MarshalJSON() ([]byte, error) {
@@ -189,7 +187,6 @@ type IrcChannelWithHealth struct {
 	MonitoringSince  time.Time `json:"monitoring_since"`
 	LastAnnounce     time.Time `json:"last_announce"`
 	ConnectionErrors []string  `json:"connection_errors"`
-	Announcers       []IrcUser `json:"announcers"`
 }
 
 func (cwh IrcChannelWithHealth) MarshalJSON() ([]byte, error) {
@@ -201,48 +198,6 @@ func (cwh IrcChannelWithHealth) MarshalJSON() ([]byte, error) {
 		Password: RedactString(cwh.Password),
 		Alias:    (*Alias)(&cwh),
 	})
-}
-
-type IrcUser struct {
-	Nick    string       `json:"nick"`
-	Mode    string       `json:"mode"`
-	Present bool         `json:"present"`
-	State   IrcUserState `json:"state"`
-}
-
-type IrcUserState string
-
-const (
-	IrcUserStatePresent       IrcUserState = "PRESENT"
-	IrcUserStateNotPresent    IrcUserState = "NOT_PRESENT"
-	IrcUserStateUninitialized IrcUserState = "UNINITIALIZED"
-)
-
-func (u *IrcUser) ParseMode(nick string) bool {
-	if len(nick) == 0 {
-		return false
-	}
-
-	index := strings.IndexAny(nick, "~!@+&")
-	if index != 0 {
-		return false
-	}
-
-	// Find where the mode prefix ends (could be multiple characters like "@@user")
-	modeEnd := 1
-	for modeEnd < len(nick) && strings.ContainsRune("~!@+&", rune(nick[modeEnd])) {
-		modeEnd++
-	}
-
-	// Ensure there's actually a nickname after the mode
-	if modeEnd >= len(nick) {
-		return false
-	}
-
-	u.Mode = nick[:modeEnd]
-	u.Nick = nick[modeEnd:]
-
-	return true
 }
 
 type ChannelHealth struct {

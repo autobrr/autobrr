@@ -73,7 +73,6 @@ func newTestHandler() (*Handler, *mockSSEServer) {
 		network:             &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "irc.example.test"},
 		notificationService: noopNotificationSender{},
 		channels:            haxmap.New[string, *Channel](),
-		bots:                haxmap.New[string, *domain.IrcUser](),
 		clientState:         ircLive,
 	}
 	h.stateMachine = NewConnectionStateMachine(h)

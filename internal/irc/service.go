@@ -487,7 +487,6 @@ func (s *Service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 			ProxyId:          n.ProxyId,
 			Connected:        false,
 			ConnectionErrors: []string{},
-			Bots:             make([]domain.IrcUser, 0),
 			Channels:         []domain.IrcChannelWithHealth{},
 		}
 
@@ -515,13 +514,10 @@ func (s *Service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 						MonitoringSince:  snap.MonitoringSince,
 						LastAnnounce:     snap.LastAnnounce,
 						ConnectionErrors: snap.ConnectionErrors,
-						Announcers:       channel.Announcers(),
 					}
 
 					netw.Channels = append(netw.Channels, ch)
 				}
-
-				netw.Bots = append(netw.Bots, handler.botsSnapshot()...)
 
 				// sort alphabetically so the ui doesn't jump around randomly between auto-refresh
 				sort.SliceStable(netw.Channels, func(i, j int) bool {
@@ -541,7 +537,6 @@ func (s *Service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 					MonitoringSince:  time.Time{},
 					LastAnnounce:     time.Time{},
 					ConnectionErrors: []string{},
-					Announcers:       []domain.IrcUser{},
 				}
 
 				netw.Channels = append(netw.Channels, ch)

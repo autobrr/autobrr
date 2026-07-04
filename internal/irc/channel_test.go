@@ -6,72 +6,35 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/featureflags"
 
-	"github.com/alphadose/haxmap"
 	"github.com/rs/zerolog"
 )
 
+func newAnnouncerChannel(announcers []string) *Channel {
+	c := &Channel{
+		log:        zerolog.Nop(),
+		announcers: make(map[string]struct{}),
+	}
+	c.RegisterAnnouncers(announcers)
+	return c
+}
+
 func TestChannel_IsValidAnnouncer(t *testing.T) {
-	type fields struct {
-		log        zerolog.Logger
-		announcers []string
-		users      []string
-	}
-	type args struct {
-		nick  string
-		users []string
-	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   bool
+		name       string
+		announcers []string
+		nick       string
+		want       bool
 	}{
-		{
-			name: "test1",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "announce-bot", users: []string{"announce-bot"}},
-			want: true,
-		},
-		{
-			name: "test2",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "announce-bot1", users: []string{"announce-bot1"}},
-			want: false,
-		},
-		{
-			name: "test3",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "announce-bot*"},
-			want: false,
-		},
-		{
-			name: "test3",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "mcbot"},
-			want: false,
-		},
+		{name: "exact match", announcers: []string{"announce-bot"}, nick: "announce-bot", want: true},
+		{name: "one char off", announcers: []string{"announce-bot"}, nick: "announce-bot1", want: false},
+		{name: "star variant", announcers: []string{"announce-bot"}, nick: "announce-bot*", want: false},
+		{name: "unrelated", announcers: []string{"announce-bot"}, nick: "mcbot", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Channel{
-				log:        tt.fields.log,
-				announcers: haxmap.New[string, *domain.IrcUser](),
-				users:      haxmap.New[string, *domain.IrcUser](),
-			}
-
-			c.RegisterAnnouncers(tt.fields.announcers)
-			c.SetUsers(tt.args.users)
-
-			if got := c.IsValidAnnouncer(tt.args.nick); got != tt.want {
-				t.Errorf("IsValidAnnouncer() = %v, want %v", got, tt.want)
+			c := newAnnouncerChannel(tt.announcers)
+			if got := c.IsValidAnnouncer(tt.nick); got != tt.want {
+				t.Errorf("IsValidAnnouncer(%q) = %v, want %v", tt.nick, got, tt.want)
 			}
 		})
 	}
@@ -81,67 +44,23 @@ func TestChannel_IsValidAnnouncer_Exp_Flag(t *testing.T) {
 	featureflags.SetEnabled(domain.IRCFuzzyAnnouncer, true)
 	// reset the global flag so it does not leak into other tests / -count>1 runs
 	t.Cleanup(func() { featureflags.SetEnabled(domain.IRCFuzzyAnnouncer, false) })
-	type fields struct {
-		log        zerolog.Logger
-		announcers []string
-		users      []string
-	}
-	type args struct {
-		nick  string
-		users []string
-	}
+
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   bool
+		name       string
+		announcers []string
+		nick       string
+		want       bool
 	}{
-		{
-			name: "test1",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "announce-bot", users: []string{"announce-bot"}},
-			want: true,
-		},
-		{
-			name: "test2",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "announce-bot1", users: []string{"announce-bot1"}},
-			want: true,
-		},
-		{
-			name: "test3",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "announce-bot*"},
-			want: true,
-		},
-		{
-			name: "test3",
-			fields: fields{
-				announcers: []string{"announce-bot"},
-			},
-			args: args{nick: "mcbot"},
-			want: false,
-		},
+		{name: "exact match", announcers: []string{"announce-bot"}, nick: "announce-bot", want: true},
+		{name: "one char off matches fuzzy", announcers: []string{"announce-bot"}, nick: "announce-bot1", want: true},
+		{name: "star variant matches fuzzy", announcers: []string{"announce-bot"}, nick: "announce-bot*", want: true},
+		{name: "unrelated still fails", announcers: []string{"announce-bot"}, nick: "mcbot", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Channel{
-				log:        tt.fields.log,
-				announcers: haxmap.New[string, *domain.IrcUser](),
-				users:      haxmap.New[string, *domain.IrcUser](),
-			}
-
-			c.RegisterAnnouncers(tt.fields.announcers)
-			c.SetUsers(tt.args.users)
-
-			if got := c.IsValidAnnouncer(tt.args.nick); got != tt.want {
-				t.Errorf("IsValidAnnouncer() = %v, want %v", got, tt.want)
+			c := newAnnouncerChannel(tt.announcers)
+			if got := c.IsValidAnnouncer(tt.nick); got != tt.want {
+				t.Errorf("IsValidAnnouncer(%q) = %v, want %v", tt.nick, got, tt.want)
 			}
 		})
 	}

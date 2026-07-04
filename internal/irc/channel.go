@@ -13,22 +13,10 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/featureflags"
 
-	"github.com/alphadose/haxmap"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
 	"github.com/sasha-s/go-deadlock"
 )
-
-type Msg struct {
-	ID   int64
-	Msg  string
-	Time time.Time
-	Type string
-	From struct {
-		Nick string
-		Mode string
-	}
-}
 
 const MaxChannelMessages = 1000
 
@@ -87,12 +75,12 @@ func (b *MessageBuffer) AddMessage(msg domain.IrcMessage) {
 // Channel holds the runtime state of a monitored IRC channel.
 //
 // Mutable scalar/slice fields (ID, Enabled, Password, Topic, Monitoring,
-// MonitoringSince, LastAnnounce, ConnectionErrors, inviteCommand) and the fields
-// of the announcer *domain.IrcUser values are guarded by m: they are written
-// from the IRC-callback and channel-state-machine goroutines and read from the
-// HTTP/health goroutine. NetworkID, Name, DefaultChannel, the haxmaps, Messages,
-// announceProcessor and stateMachine are set at construction (stateMachine
-// before the channel is made visible) and are treated as immutable.
+// MonitoringSince, LastAnnounce, ConnectionErrors, inviteCommand) and the
+// announcers set are guarded by m: they are written from the IRC-callback and
+// channel-state-machine goroutines and read from the HTTP/health goroutine.
+// NetworkID, Name, DefaultChannel, Messages, announceProcessor and stateMachine
+// are set at construction (stateMachine before the channel is made visible) and
+// are treated as immutable.
 type Channel struct {
 	m   deadlock.RWMutex
 	log zerolog.Logger
@@ -109,10 +97,12 @@ type Channel struct {
 	LastAnnounce     time.Time
 	inviteCommand    string
 
-	users              *haxmap.Map[string, *domain.IrcUser]
-	announcers         *haxmap.Map[string, *domain.IrcUser]
-	DefaultChannel     bool
-	AnnouncerInChannel bool
+	// announcers is the set of registered announcer nicks (from the indexer
+	// definition) that are allowed to announce in this channel. autobrr does not
+	// track the channel user list or announcer presence - it only validates that
+	// an announce line came from a known announcer.
+	announcers     map[string]struct{}
+	DefaultChannel bool
 
 	Messages *MessageBuffer
 
@@ -134,25 +124,23 @@ type ChannelSnapshot struct {
 
 func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel bool, announceProcessor announce.Processor) *Channel {
 	return &Channel{
-		m:                  deadlock.RWMutex{},
-		log:                log.With().Str("channel", name).Logger(),
-		ID:                 0,
-		NetworkID:          networkID,
-		Name:               name,
-		Enabled:            true,
-		Password:           "",
-		Topic:              "",
-		ConnectionErrors:   make([]string, 0),
-		Monitoring:         false,
-		MonitoringSince:    time.Time{},
-		LastAnnounce:       time.Time{},
-		inviteCommand:      "",
-		users:              haxmap.New[string, *domain.IrcUser](),
-		announcers:         haxmap.New[string, *domain.IrcUser](),
-		DefaultChannel:     defaultChannel,
-		AnnouncerInChannel: false,
-		announceProcessor:  announceProcessor,
-		Messages:           NewMessageBuffer(1000), // make opt-in?
+		m:                 deadlock.RWMutex{},
+		log:               log.With().Str("channel", name).Logger(),
+		ID:                0,
+		NetworkID:         networkID,
+		Name:              name,
+		Enabled:           true,
+		Password:          "",
+		Topic:             "",
+		ConnectionErrors:  make([]string, 0),
+		Monitoring:        false,
+		MonitoringSince:   time.Time{},
+		LastAnnounce:      time.Time{},
+		inviteCommand:     "",
+		announcers:        make(map[string]struct{}),
+		DefaultChannel:    defaultChannel,
+		announceProcessor: announceProcessor,
+		Messages:          NewMessageBuffer(1000), // make opt-in?
 	}
 }
 
@@ -195,66 +183,38 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	c.log.Debug().Str("nick", nick).Str("msg", cleanedMsg).Msg("got message")
 }
 
-// IsValidAnnouncer check if announcer is one from the list in the definition
+// IsValidAnnouncer reports whether nick is a registered announcer for this
+// channel. It is a plain membership check against the list from the indexer
+// definition - autobrr does not track channel membership or presence.
 func (c *Channel) IsValidAnnouncer(nick string) bool {
 	nick = strings.ToLower(nick)
 
-	c.m.Lock()
-	defer c.m.Unlock()
+	c.m.RLock()
+	defer c.m.RUnlock()
 
-	announcer, ok := c.announcers.Get(nick)
-	if ok {
-		if announcer.Present && announcer.State == domain.IrcUserStatePresent {
-			// announcer found and is present
-			return true
-		}
-
-		if !announcer.Present && announcer.State == domain.IrcUserStateUninitialized {
-			c.log.Trace().Str("nick", nick).Msg("announcer not present and uninitialized, setting to present")
-			announcer.Present = true
-			announcer.State = domain.IrcUserStatePresent
-			c.announcers.Set(nick, announcer)
-			return true
-		}
-
-		//if !announcer.Present {
-		//	c.log.Warn().Str("nick", nick).Msg("announcer not present")
-		//	return false
-		//}
-
+	if _, ok := c.announcers[nick]; ok {
 		return true
 	}
 
-	found := false
-
-	// experimental feature to allow for fuzzy announcer matching. This is not enabled by default because it will allow similar nicks to announce
+	// experimental feature to allow for fuzzy announcer matching. This is not
+	// enabled by default because it will allow similar nicks to announce.
 	if featureflags.IsEnabled(domain.IRCFuzzyAnnouncer) {
-		foundFunc := func(s string, user *domain.IrcUser) bool {
-			// if nick is not an expected announcer lets check for variants
-			if strings.HasPrefix(nick, user.Nick) && len(nick) == len(user.Nick)+1 {
-				found = true
-
+		for announcer := range c.announcers {
+			// nick is the announcer with one extra trailing character
+			if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 {
 				c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
-
-				return false // exit foreach on match
+				return true
 			}
 
-			// check if nick is a variant of announcer with * in front
-			if strings.HasSuffix(nick, "*") && strings.HasPrefix(nick, user.Nick) {
-				found = true
-
+			// nick is a variant of the announcer with a trailing *
+			if strings.HasSuffix(nick, "*") && strings.HasPrefix(nick, announcer) {
 				c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
-
-				return false // exit foreach on match
+				return true
 			}
-
-			return true
 		}
-
-		c.announcers.ForEach(foundFunc)
 	}
 
-	return found
+	return false
 }
 
 func (c *Channel) SetConnectionError(err string) {
@@ -365,37 +325,20 @@ func (c *Channel) Snapshot() ChannelSnapshot {
 	}
 }
 
-// Announcers returns a copy of the channel's announcers for reporting.
-func (c *Channel) Announcers() []domain.IrcUser {
-	c.m.RLock()
-	defer c.m.RUnlock()
-
-	out := make([]domain.IrcUser, 0, c.announcers.Len())
-	c.announcers.ForEach(func(_ string, u *domain.IrcUser) bool {
-		out = append(out, *u)
-		return true
-	})
-	return out
-}
-
 func (c *Channel) UpdateLastAnnounce() {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.LastAnnounce = time.Now()
 }
 
+// RegisterAnnouncers adds the given nicks to the set of announcers allowed to
+// announce in this channel.
 func (c *Channel) RegisterAnnouncers(announcers []string) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	for _, announcer := range announcers {
-		announcer = strings.ToLower(announcer)
-
-		c.announcers.Set(announcer, &domain.IrcUser{
-			Nick:    announcer,
-			Present: false,
-			State:   domain.IrcUserStateUninitialized,
-		})
+		c.announcers[strings.ToLower(announcer)] = struct{}{}
 	}
 }
 
@@ -427,60 +370,6 @@ func (c *Channel) SetTopic(topic string) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.Topic = topic
-}
-
-// SetUsers sets user and announcers on channel
-func (c *Channel) SetUsers(users []string) {
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	for _, nick := range users {
-		nick = strings.ToLower(nick)
-
-		u := &domain.IrcUser{Nick: nick}
-
-		// announcers usually have one of these as user mode, but not always
-		if strings.ContainsAny(nick, "~!@+&") {
-			c.log.Trace().Msgf("usermode %s", nick)
-
-			if ok := u.ParseMode(nick); !ok {
-				c.log.Error().Msgf("could not parse mode for nick %s", nick)
-				continue
-			}
-
-			// we only set special users
-			c.users.Set(nick, u)
-		}
-
-		// check if user is expected announcer/bot and add to announcers
-		if announcer, ok := c.announcers.Get(u.Nick); ok {
-			announcer.Present = true
-			announcer.State = domain.IrcUserStatePresent
-			announcer.Mode = u.Mode
-
-			c.announcers.Set(u.Nick, announcer)
-		}
-
-		// we are not interested in all users otherwise we would add them here
-		//c.users.Set(nick, u)
-	}
-}
-
-// RemoveUser remove user and handle announcer status if valid
-func (c *Channel) RemoveUser(nick string) {
-	nick = strings.ToLower(nick)
-
-	c.m.Lock()
-	defer c.m.Unlock()
-
-	// check if user is announcer/bot and remove from announcers
-	if announcer, ok := c.announcers.Get(nick); ok {
-		announcer.Present = false
-		announcer.State = domain.IrcUserStateNotPresent
-		c.announcers.Set(nick, announcer)
-	}
-
-	c.users.Del(nick)
 }
 
 func (c *Channel) QueueAnnounceLine(line string) error {

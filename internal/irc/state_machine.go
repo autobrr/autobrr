@@ -301,10 +301,6 @@ func (sm *ConnectionStateMachine) OnChannelJoined(channel string) {
 	}
 }
 
-func (sm *ConnectionStateMachine) OnBotJoined(botName string) {
-	// Channel state machines handle invite workflows now.
-}
-
 func (sm *ConnectionStateMachine) OnChannelError(channel, reason string) {
 	sm.log.Error().
 		Str("channel", channel).
