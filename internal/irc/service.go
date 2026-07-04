@@ -497,29 +497,31 @@ func (s *Service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 				handler.ReportStatus(&netw)
 
 				for _, channel := range handler.channels.Iterator() {
-					ch := domain.IrcChannelWithHealth{
-						ID:               channel.ID,
-						Enabled:          channel.Enabled,
-						Name:             channel.Name,
-						Password:         channel.Password,
-						Detached:         false,
-						State:            channel.stateMachine.state.String(),
-						Monitoring:       channel.Monitoring,
-						MonitoringSince:  channel.MonitoringSince,
-						LastAnnounce:     channel.LastAnnounce,
-						ConnectionErrors: slices.Clone(channel.ConnectionErrors),
+					snap := channel.Snapshot()
+
+					state := ""
+					if sm := channel.StateMachine(); sm != nil {
+						state = sm.CurrentState().String()
 					}
 
-					for _, announcer := range channel.announcers.Iterator() {
-						ch.Announcers = append(ch.Announcers, *announcer)
+					ch := domain.IrcChannelWithHealth{
+						ID:               snap.ID,
+						Enabled:          snap.Enabled,
+						Name:             snap.Name,
+						Password:         snap.Password,
+						Detached:         false,
+						State:            state,
+						Monitoring:       snap.Monitoring,
+						MonitoringSince:  snap.MonitoringSince,
+						LastAnnounce:     snap.LastAnnounce,
+						ConnectionErrors: snap.ConnectionErrors,
+						Announcers:       channel.Announcers(),
 					}
 
 					netw.Channels = append(netw.Channels, ch)
 				}
 
-				for _, bot := range handler.bots.Iterator() {
-					netw.Bots = append(netw.Bots, *bot)
-				}
+				netw.Bots = append(netw.Bots, handler.botsSnapshot()...)
 
 				// sort alphabetically so the ui doesn't jump around randomly between auto-refresh
 				sort.SliceStable(netw.Channels, func(i, j int) bool {

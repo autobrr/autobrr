@@ -123,18 +123,19 @@ func (sm *ConnectionStateMachine) updateOperationalState() {
 	errored := 0
 
 	sm.handler.channels.ForEach(func(name string, ch *Channel) bool {
-		if !ch.Enabled {
+		snap := ch.Snapshot()
+		if !snap.Enabled {
 			return true
 		}
 
 		enabled++
 
-		if ch.Monitoring && !ch.HasConnectionErrors() {
+		if snap.Monitoring && len(snap.ConnectionErrors) == 0 {
 			monitoring++
 			return true
 		}
 
-		if ch.HasConnectionErrors() {
+		if len(snap.ConnectionErrors) > 0 {
 			errored++
 		}
 
@@ -171,11 +172,12 @@ func (sm *ConnectionStateMachine) allEnabledChannelsMonitoring() bool {
 	allJoined := true
 
 	sm.handler.channels.ForEach(func(name string, ch *Channel) bool {
-		if !ch.Enabled {
+		snap := ch.Snapshot()
+		if !snap.Enabled {
 			return true
 		}
 
-		if !ch.Monitoring || ch.HasConnectionErrors() {
+		if !snap.Monitoring || len(snap.ConnectionErrors) > 0 {
 			allJoined = false
 			return false
 		}

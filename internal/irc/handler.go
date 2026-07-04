@@ -76,7 +76,12 @@ type Handler struct {
 	saslauthed       bool
 
 	channels *haxmap.Map[string, *Channel]
-	bots     *haxmap.Map[string, *domain.IrcUser]
+
+	// bots holds invite/announce bots. botsMu guards the fields of the stored
+	// *domain.IrcUser values, which are mutated from IRC callbacks and copied
+	// from the HTTP/health goroutine.
+	botsMu sync.RWMutex
+	bots   *haxmap.Map[string, *domain.IrcUser]
 
 	connectionErrors       []string
 	failedNickServAttempts int
@@ -191,8 +196,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 			if ch, found := h.channels.Get(channelName); found {
 
-				ch.ID = channel.ID
-				ch.Enabled = channel.Enabled
+				ch.UpdateIdentity(channel.ID, channel.Enabled)
 
 				if ch.StateMachine() == nil {
 					ch.SetStateMachine(NewChannelStateMachine(ch, h, inviteCommand))
@@ -891,14 +895,14 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 func (h *Handler) JoinChannels() {
 	h.log.Debug().Msg("Joining channels")
 	for _, channel := range h.channels.Iterator() {
-		if !channel.Enabled {
+		if !channel.IsEnabled() {
 			continue
 		}
 
 		if sm := channel.StateMachine(); sm != nil {
 			sm.Start()
 		} else {
-			if err := h.JoinChannel(channel.Name, channel.Password); err != nil {
+			if err := h.JoinChannel(channel.Name, channel.GetPassword()); err != nil {
 				h.log.Error().Stack().Err(err).Msgf("error joining channel %s", channel.Name)
 			}
 		}
@@ -936,16 +940,14 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 		h.channels.Set(channelName, ircChannel)
 	}
 
-	ircChannel.ID = channel.ID
-	ircChannel.Enabled = channel.Enabled
-	ircChannel.Password = channel.Password
+	ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
 
-	if !ircChannel.Enabled {
+	if !ircChannel.IsEnabled() {
 		h.log.Debug().Msgf("channel %s added but disabled, not joining", channelName)
 		return
 	}
 
-	if ircChannel.Monitoring {
+	if ircChannel.IsMonitoring() {
 		// already joined and monitored, nothing to do
 		return
 	}
@@ -957,7 +959,7 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 		return
 	}
 
-	if err := h.JoinChannel(ircChannel.Name, ircChannel.Password); err != nil {
+	if err := h.JoinChannel(ircChannel.Name, ircChannel.GetPassword()); err != nil {
 		h.log.Error().Stack().Err(err).Msgf("error joining channel %s", channelName)
 	}
 }
@@ -1009,12 +1011,7 @@ func (h *Handler) handleJoin(msg ircmsg.Message) {
 		// TODO set or swap ircChannel on handler?
 		//h.channels.Swap(channel, ircChannel)
 
-		botUser, foundBot := h.bots.Get(nick)
-		if foundBot {
-			botUser.Present = true
-			botUser.State = domain.IrcUserStatePresent
-			h.bots.Swap(nick, botUser)
-
+		if h.setBotPresence(nick, true, domain.IrcUserStatePresent) {
 			h.stateMachine.OnBotJoined(strings.ToLower(nick))
 		}
 
@@ -1029,17 +1026,41 @@ func (h *Handler) handleQuit(msg ircmsg.Message) {
 	h.log.Trace().Msgf("QUIT event: %s params: %v", nick, msg.Params)
 
 	if !h.isOurCurrentNick(nick) {
-		botUser, foundBot := h.bots.Get(nick)
-		if foundBot {
-			botUser.Present = false
-			botUser.State = domain.IrcUserStateNotPresent
-			h.bots.Swap(nick, botUser)
-
-			//h.stateMachine.OnBotJoined(strings.ToLower(msg.Nick()))
-		}
+		h.setBotPresence(nick, false, domain.IrcUserStateNotPresent)
 
 		return
 	}
+}
+
+// setBotPresence updates the presence of a tracked bot under botsMu. It reports
+// whether a matching bot was found.
+func (h *Handler) setBotPresence(nick string, present bool, state domain.IrcUserState) bool {
+	h.botsMu.Lock()
+	defer h.botsMu.Unlock()
+
+	bot, ok := h.bots.Get(nick)
+	if !ok {
+		return false
+	}
+
+	bot.Present = present
+	bot.State = state
+	h.bots.Swap(nick, bot)
+
+	return true
+}
+
+// botsSnapshot returns a copy of the tracked bots for reporting.
+func (h *Handler) botsSnapshot() []domain.IrcUser {
+	h.botsMu.RLock()
+	defer h.botsMu.RUnlock()
+
+	out := make([]domain.IrcUser, 0, h.bots.Len())
+	h.bots.ForEach(func(_ string, u *domain.IrcUser) bool {
+		out = append(out, *u)
+		return true
+	})
+	return out
 }
 
 func (h *Handler) setChannelError(channelName, errMsg string) {
@@ -1056,11 +1077,11 @@ func (h *Handler) setChannelError(channelName, errMsg string) {
 
 func (h *Handler) markPendingChannelErrors(errMsg string) {
 	for name, channel := range h.channels.Iterator() {
-		if !channel.Enabled {
+		if !channel.IsEnabled() {
 			continue
 		}
 
-		if channel.Monitoring {
+		if channel.IsMonitoring() {
 			continue
 		}
 
@@ -1084,12 +1105,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 		ircChannel.RemoveUser(nick)
 
-		botUser, foundBot := h.bots.Get(nick)
-		if foundBot {
-			botUser.Present = false
-			botUser.State = domain.IrcUserStateNotPresent
-			h.bots.Swap(nick, botUser)
-		}
+		h.setBotPresence(nick, false, domain.IrcUserStateNotPresent)
 
 		return
 	}
@@ -1381,29 +1397,24 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 	h.log.Debug().Str("nick", nick).Msgf("No such nick")
 
 	for _, channel := range h.channels.Iterator() {
-		if !channel.Enabled {
+		if !channel.IsEnabled() {
 			continue
 		}
 
-		if channel.inviteCommand != "" {
-			if strings.HasPrefix(strings.ToLower(channel.inviteCommand), nick) {
+		inviteCommand := channel.InviteCommand()
+		if inviteCommand != "" {
+			if strings.HasPrefix(strings.ToLower(inviteCommand), nick) {
 				h.log.Debug().Str("nick", nick).Msgf("No such nick, sending invite command")
 
 				// start retry loop of invite command here
-				channel.stateMachine.OnNoSuchNick(nick)
+				if sm := channel.StateMachine(); sm != nil {
+					sm.OnNoSuchNick(nick)
+				}
 			}
 		}
 	}
 
-	bot, ok := h.bots.Get(nick)
-	if !ok {
-		h.log.Debug().Str("nick", nick).Msgf("No such nick")
-		return
-	}
-	bot.Present = false
-	h.bots.Swap(nick, bot)
-
-	return
+	h.setBotPresence(nick, false, domain.IrcUserStateNotPresent)
 }
 
 // NickServIdentify sends NickServ Identify commands
@@ -1517,11 +1528,12 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	channelsHealthy := true
 
 	for _, channel := range h.channels.Iterator() {
-		if !channel.Enabled {
+		snap := channel.Snapshot()
+		if !snap.Enabled {
 			continue
 		}
 
-		if !channel.Monitoring || channel.HasConnectionErrors() {
+		if !snap.Monitoring || len(snap.ConnectionErrors) > 0 {
 			channelsHealthy = false
 		}
 	}

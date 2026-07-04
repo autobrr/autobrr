@@ -227,13 +227,17 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 }
 
 func (sm *ChannelStateMachine) Start() {
-	if !sm.channel.Enabled {
+	if !sm.channel.IsEnabled() {
 		sm.log.Debug().Msg("channel disabled, skipping join workflow")
 		sm.transition(ChannelStateDisabled)
 		return
 	}
 
-	if sm.inviteCommand != "" {
+	sm.m.RLock()
+	hasInvite := sm.inviteCommand != ""
+	sm.m.RUnlock()
+
+	if hasInvite {
 		sm.transition(ChannelStateAwaitingInvite)
 		return
 	}
@@ -269,7 +273,7 @@ func (sm *ChannelStateMachine) Reset() {
 // silent invite bot (no INVITE and no ERR_NOSUCHNICK) still falls through to the
 // backoff/retry loop instead of stalling in AwaitingInvite forever.
 func (sm *ChannelStateMachine) handleAwaitingInvite() {
-	if !sm.channel.Enabled {
+	if !sm.channel.IsEnabled() {
 		sm.log.Debug().Msg("channel disabled, skipping join workflow")
 		return
 	}
@@ -315,7 +319,7 @@ func (sm *ChannelStateMachine) onInviteTimeout(gen int) {
 }
 
 func (sm *ChannelStateMachine) runJoin() {
-	if !sm.channel.Enabled {
+	if !sm.channel.IsEnabled() {
 		sm.log.Debug().Msg("channel disabled, skipping join workflow")
 		return
 	}
@@ -336,7 +340,7 @@ func (sm *ChannelStateMachine) runJoin() {
 	}
 
 	sm.log.Debug().Msg("joining channel")
-	if err := sm.handler.JoinChannel(sm.channel.Name, sm.channel.Password); err != nil {
+	if err := sm.handler.JoinChannel(sm.channel.Name, sm.channel.GetPassword()); err != nil {
 		sm.enterError(err.Error())
 		return
 	}
