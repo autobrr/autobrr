@@ -1,3 +1,5 @@
+---
+version: 2
 #id: bithumen
 name: BitHUmen
 identifier: bithumen
@@ -22,10 +24,6 @@ irc:
   server: irc.atw-inter.net
   port: 6697
   tls: true
-  channels:
-    - "#bithumen"
-  announcers:
-    - bitHUmen
   settings:
     - name: nick
       type: text
@@ -52,49 +50,45 @@ irc:
       label: Invite command
       help: Invite auth with bithumen. Replace IRCKEY.
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '[NEW] Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1 by UPLOADER got released 5m 12s ago [ Film / Hun / 1080p | 6288MB in 2F ] - http://bithumen.be/t/1077029'
-          expect:
-            torrentName: Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1
-            uploader: UPLOADER
-            preTime: 5m 12s
-            category: Film / Hun / 1080p
-            torrentSize: 6288MB
-            baseUrl: http://bithumen.be/
-            torrentId: "1077029"
+  channels:
+    - name: "#bithumen"
+      announcers:
+        - bitHUmen
+      parse:
+        type: single
+        lines:
+          - pattern: '^\[NEW\]\s*(?:\[REQ\])?\s*(?P<releaseName>.*?)\s*(?:by (?P<uploader>\S*))?\s*(?:got released (?P<preTime>.*) ago)?\s*\[ (?P<category>[^\|]*) \|\s*(?P<torrentSize>[\d,.]*\s*\S*)\s*in\s*\d*F\s*\]\s*-\s*(?P<baseUrl>https?\:\/\/[^\/]+\/)t/(?P<torrentId>\d+)'
+            tests:
+              - line: '[NEW] Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1 by UPLOADER got released 5m 12s ago [ Film / Hun / 1080p | 6288MB in 2F ] - http://bithumen.be/t/1077029'
+                expect:
+                  releaseName: Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1
+                  uploader: UPLOADER
+                  preTime: 5m 12s
+                  category: Film / Hun / 1080p
+                  torrentSize: 6288MB
+                  baseUrl: http://bithumen.be/
+                  torrentId: "1077029"
 
-        - line: '[NEW] Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1 [ Film / Hun / 1080p | 6288MB in 2F ] - http://bithumen.be/t/1077029'
-          expect:
-            torrentName: Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1
-            uploader:
-            preTime:
-            category: Film / Hun / 1080p
-            torrentSize: 6288MB
-            baseUrl: http://bithumen.be/
-            torrentId: "1077029"
+              - line: '[NEW] Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1 [ Film / Hun / 1080p | 6288MB in 2F ] - http://bithumen.be/t/1077029'
+                expect:
+                  releaseName: Abigail.2024.1080p.iT.WEB-DL.DD+5.1.Atmos.H.264.HuN-No1
+                  uploader:
+                  preTime:
+                  category: Film / Hun / 1080p
+                  torrentSize: 6288MB
+                  baseUrl: http://bithumen.be/
+                  torrentId: "1077029"
 
-        - line: '[NEW] The.Dessert.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb by UPLOADER [ Sorozat / Eng / HD | 7975MB in 6F ] - http://bithumen.be/t/1077049'
-          expect:
-            torrentName: The.Dessert.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb
-            uploader: UPLOADER
-            preTime:
-            category: Sorozat / Eng / HD
-            torrentSize: 7975MB
-            baseUrl: http://bithumen.be/
-            torrentId: "1077049"
-        pattern: '^\[NEW\]\s*(?:\[REQ\])?\s*(.*?)\s*(?:by (\S*))?\s*(?:got released (.*) ago)?\s*\[ ([^\|]*) \|\s*([\d,.]*\s*\S*)\s*in\s*\d*F\s*\]\s*-\s*(https?\:\/\/[^\/]+\/)t/(\d+)'
-        vars:
-          - torrentName
-          - uploader
-          - preTime
-          - category
-          - torrentSize
-          - baseUrl
-          - torrentId
+              - line: '[NEW] The.Dessert.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb by UPLOADER [ Sorozat / Eng / HD | 7975MB in 6F ] - http://bithumen.be/t/1077049'
+                expect:
+                  releaseName: The.Dessert.S01.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb
+                  uploader: UPLOADER
+                  preTime:
+                  category: Sorozat / Eng / HD
+                  torrentSize: 7975MB
+                  baseUrl: http://bithumen.be/
+                  torrentId: "1077049"
 
-    match:
-      infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download/{{ .passkey }}/{{ .torrentId }}.torrent"
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download/{{ .passkey }}/{{ .torrentId }}.torrent"

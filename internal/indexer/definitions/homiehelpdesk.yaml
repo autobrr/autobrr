@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: HomieHelpDesk
 name: HomieHelpDesk
 identifier: homiehelpdesk
@@ -24,11 +25,6 @@ irc:
   server: irc.homiehelpdesk.net
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - BBot
-    - HHDBot
   settings:
     - name: nick
       type: text
@@ -48,39 +44,36 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: multi
-    lines:
-      - tests:
-          - line: '📢 [HHD] An anonymous user has uploaded: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA'
-            expect:
-              uploader: An anonymous user
-              torrentName: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA
-        pattern: '\[HHD\] (.+) has uploaded: (.+)'
-        vars:
-          - uploader
-          - torrentName
-      - tests:
-          - line: '📋 Category: TV | Type: WEB-DL | Size: 1.35 GiB | Rating: 8.5/10 (4 votes)'
-            expect:
-              category: TV
-              releaseTags: WEB-DL
-              torrentSize: "1.35 GiB"
-        pattern: 'Category: (.+) \| Type: (.+) \| Size: (.+) \| Rating: .+ \(.+ votes\)'
-        vars:
-          - category
-          - releaseTags
-          - torrentSize
-      - tests:
-          - line: '🔗 Download: https://homiehelpdesk.net/torrents/6803'
-            expect:
-              baseUrl: https://homiehelpdesk.net/
-              torrentId: "6803"
-        pattern: 'Download: (https?\:\/\/.+\/)torrents\/(\d+)'
-        vars:
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - BBot
+        - HHDBot
+      parse:
+        type: multi
+        lines:
+          - pattern: '\[HHD\] (?P<uploader>.+) has uploaded: (?P<releaseName>.+)'
+            tests:
+              - line: '📢 [HHD] An anonymous user has uploaded: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA'
+                expect:
+                  uploader: An anonymous user
+                  releaseName: Solo Camping for Two AKA Futari Solo Camp S01E06 1080p CR WEB-DL AAC 2.0 H.264-BiOMA
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+          - pattern: 'Category: (?P<category>.+) \| Type: (?P<releaseTags>.+) \| Size: (?P<torrentSize>.+) \| Rating: .+ \(.+ votes\)'
+            tests:
+              - line: '📋 Category: TV | Type: WEB-DL | Size: 1.35 GiB | Rating: 8.5/10 (4 votes)'
+                expect:
+                  category: TV
+                  releaseTags: WEB-DL
+                  torrentSize: "1.35 GiB"
+
+          - pattern: 'Download: (?P<baseUrl>https?\:\/\/.+\/)torrents\/(?P<torrentId>\d+)'
+            tests:
+              - line: '🔗 Download: https://homiehelpdesk.net/torrents/6803'
+                expect:
+                  baseUrl: https://homiehelpdesk.net/
+                  torrentId: "6803"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

@@ -8,39 +8,36 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/argon2id"
 
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
+type userService interface {
 	GetUserCount(ctx context.Context) (int, error)
-	Login(ctx context.Context, username, password string) (*domain.User, error)
+	FindByUsername(ctx context.Context, username string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
-	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
-	CreateHash(password string) (hash string, err error)
-	ComparePasswordAndHash(password string, hash string) (match bool, err error)
+	Update(ctx context.Context, req domain.UpdateUserRequest) error
 }
 
-type service struct {
+type Service struct {
 	log     zerolog.Logger
-	userSvc user.Service
+	userSvc userService
 }
 
-func NewService(log logger.Logger, userSvc user.Service) Service {
-	return &service{
+func NewService(log logger.Logger, userSvc userService) *Service {
+	return &Service{
 		log:     log.With().Str("module", "auth").Logger(),
 		userSvc: userSvc,
 	}
 }
 
-func (s *service) GetUserCount(ctx context.Context) (int, error) {
+func (s *Service) GetUserCount(ctx context.Context) (int, error) {
 	return s.userSvc.GetUserCount(ctx)
 }
 
-func (s *service) Login(ctx context.Context, username, password string) (*domain.User, error) {
+func (s *Service) Login(ctx context.Context, username, password string) (*domain.User, error) {
 	if username == "" || password == "" {
 		return nil, errors.New("empty credentials supplied")
 	}
@@ -70,7 +67,7 @@ func (s *service) Login(ctx context.Context, username, password string) (*domain
 	return u, nil
 }
 
-func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) error {
+func (s *Service) CreateUser(ctx context.Context, req domain.CreateUserRequest) error {
 	if req.Username == "" {
 		return errors.New("validation error: empty username supplied")
 	} else if req.Password == "" {
@@ -101,7 +98,7 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	return nil
 }
 
-func (s *service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error {
+func (s *Service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error {
 	if req.PasswordCurrent == "" {
 		return errors.New("validation error: empty current password supplied")
 	}
@@ -151,11 +148,11 @@ func (s *service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) 
 	return nil
 }
 
-func (s *service) ComparePasswordAndHash(password string, hash string) (match bool, err error) {
+func (s *Service) ComparePasswordAndHash(password string, hash string) (match bool, err error) {
 	return argon2id.ComparePasswordAndHash(password, hash)
 }
 
-func (s *service) CreateHash(password string) (hash string, err error) {
+func (s *Service) CreateHash(password string) (hash string, err error) {
 	if password == "" {
 		return "", errors.New("must supply non empty password to CreateHash")
 	}

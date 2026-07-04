@@ -758,7 +758,8 @@
       "proxyDesc": "Установите прокси для скачивания .torrent файлов и фидов.",
       "selectProxy": "Выберите прокси",
       "selectProxyPlaceholder": "Выберите прокси",
-      "chooseType": "Выберите тип"
+      "chooseType": "Выберите тип",
+      "editFeeds": "Редактировать RSS-фиды в разделе Настройки -> Фиды"
     },
     "releaseProfile": {
       "title": "Профиль дубликатов",

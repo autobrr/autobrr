@@ -4,42 +4,41 @@
 package scheduler
 
 import (
+	"context"
 	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/version"
 
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
-	Start()
-	Stop()
-	ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error)
-	AddJob(job cron.Job, spec string, identifier string) (int, error)
-	RemoveJobByIdentifier(id string) error
-	GetNextRun(id string) (time.Time, error)
+type notificationSender interface {
+	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
 }
 
-type service struct {
+type updateChecker interface {
+	CheckUpdateAvailable(ctx context.Context) (*version.Release, error)
+}
+
+type Service struct {
 	log             zerolog.Logger
 	config          *domain.Config
 	version         string
-	notificationSvc notification.Sender
-	updateSvc       *update.Service
+	notificationSvc notificationSender
+	updateSvc       updateChecker
 
 	cron *cron.Cron
 	jobs map[string]cron.EntryID
 	m    sync.RWMutex
 }
 
-func NewService(log logger.Logger, config *domain.Config, notificationSvc notification.Sender, updateSvc *update.Service) Service {
-	return &service{
+func NewService(log logger.Logger, config *domain.Config, notificationSvc notificationSender, updateSvc updateChecker) *Service {
+	return &Service{
 		log:             log.With().Str("module", "scheduler").Logger(),
 		config:          config,
 		notificationSvc: notificationSvc,
@@ -51,7 +50,7 @@ func NewService(log logger.Logger, config *domain.Config, notificationSvc notifi
 	}
 }
 
-func (s *service) Start() {
+func (s *Service) Start() error {
 	s.log.Debug().Msg("scheduler.Start")
 
 	// start scheduler
@@ -60,10 +59,10 @@ func (s *service) Start() {
 	// init jobs
 	go s.addAppJobs()
 
-	return
+	return nil
 }
 
-func (s *service) addAppJobs() {
+func (s *Service) addAppJobs() {
 	time.Sleep(5 * time.Second)
 
 	if s.config.CheckForUpdates {
@@ -88,14 +87,14 @@ func (s *service) addAppJobs() {
 	}
 }
 
-func (s *service) Stop() {
+func (s *Service) Stop() {
 	s.log.Debug().Msg("scheduler.Stop")
 	s.cron.Stop()
 	return
 }
 
 // ScheduleJob takes a time duration and adds a job
-func (s *service) ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error) {
+func (s *Service) ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error) {
 	id := s.cron.Schedule(cron.Every(interval), cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
 
 	s.log.Debug().Msgf("scheduler.ScheduleJob: job successfully added: %s id %d", identifier, id)
@@ -109,7 +108,7 @@ func (s *service) ScheduleJob(job cron.Job, interval time.Duration, identifier s
 }
 
 // AddJob takes a cron schedule and adds a job
-func (s *service) AddJob(job cron.Job, spec string, identifier string) (int, error) {
+func (s *Service) AddJob(job cron.Job, spec string, identifier string) (int, error) {
 	id, err := s.cron.AddJob(spec, cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
 
 	if err != nil {
@@ -126,7 +125,7 @@ func (s *service) AddJob(job cron.Job, spec string, identifier string) (int, err
 	return int(id), nil
 }
 
-func (s *service) RemoveJobByIdentifier(id string) error {
+func (s *Service) RemoveJobByIdentifier(id string) error {
 	s.m.Lock()
 	defer s.m.Unlock()
 
@@ -146,7 +145,7 @@ func (s *service) RemoveJobByIdentifier(id string) error {
 	return nil
 }
 
-func (s *service) GetNextRun(id string) (time.Time, error) {
+func (s *Service) GetNextRun(id string) (time.Time, error) {
 	entry := s.getEntryById(id)
 
 	if !entry.Valid() {
@@ -158,7 +157,7 @@ func (s *service) GetNextRun(id string) (time.Time, error) {
 	return entry.Next, nil
 }
 
-func (s *service) getEntryById(id string) cron.Entry {
+func (s *Service) getEntryById(id string) cron.Entry {
 	s.m.Lock()
 	defer s.m.Unlock()
 

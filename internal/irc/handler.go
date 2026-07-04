@@ -16,8 +16,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
@@ -63,10 +61,10 @@ type Handler struct {
 	m sync.RWMutex
 
 	log                 zerolog.Logger
-	sse                 *sse.Server
+	sse                 sseServer
 	network             *domain.IrcNetwork
-	releaseSvc          release.Processor
-	notificationService notification.Sender
+	releaseSvc          releaseService
+	notificationService notificationSender
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
@@ -90,7 +88,7 @@ type Handler struct {
 	stateMachine *ConnectionStateMachine
 }
 
-func NewHandler(log zerolog.Logger, sse *sse.Server, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc release.Processor, notificationSvc notification.Sender) *Handler {
+func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, notificationSvc notificationSender) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,
@@ -169,15 +167,20 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 		}
 
 		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
-		for _, channelName := range definition.IRC.Channels {
+		for _, channel := range definition.IRC.Channels {
 			// some channels are defined in mixed case
-			channelName = strings.ToLower(channelName)
+			channelName = strings.ToLower(channel.Name)
 
 			ircChannel := NewChannel(h.log, h.network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 			ircChannel.SetInviteCommand(inviteCommand)
 
-			ircChannel.RegisterAnnouncers(definition.IRC.Announcers)
+			ircChannel.RegisterAnnouncers(channel.Announcers)
+      
+      for _, announcer := range channel.Announcers {
+				announcer = strings.ToLower(announcer)
+				h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
+			}
 
 			h.channels.Set(channelName, ircChannel)
 		}
@@ -204,11 +207,6 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 
 			h.channels.Set(channelName, ircChannel)
-		}
-
-		for _, announcer := range definition.IRC.Announcers {
-			announcer = strings.ToLower(announcer)
-			h.bots.Set(announcer, &domain.IrcUser{Nick: announcer})
 		}
 	}
 }

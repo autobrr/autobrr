@@ -36,8 +36,13 @@ import commonEs from "./locales/es/common.json";
 import optionsEs from "./locales/es/options.json";
 import settingsEs from "./locales/es/settings.json";
 import filtersEs from "./locales/es/filters.json";
+import authCs from "./locales/cs/auth.json";
+import commonCs from "./locales/cs/common.json";
+import optionsCs from "./locales/cs/options.json";
+import settingsCs from "./locales/cs/settings.json";
+import filtersCs from "./locales/cs/filters.json";
 
-export const supportedLanguages = ["en", "de", "es", "fr", "ru", "no", "zh-CN"] as const;
+export const supportedLanguages = ["en", "de", "cs", "es", "fr", "ru", "no", "zh-CN"] as const;
 export type Language = (typeof supportedLanguages)[number];
 
 export const getInitialLanguage = (): Language => {
@@ -72,13 +77,17 @@ export const getInitialLanguage = (): Language => {
   if (lang.startsWith("no")) {
     return "no";
   }
-  
+
   if (lang.startsWith("de")) {
     return "de";
   }
 
   if (lang.startsWith("es")) {
     return "es";
+  }
+
+  if (lang.startsWith("cs")) {
+    return "cs";
   }
 
   return "en";
@@ -113,7 +122,7 @@ void i18n.use(initReactI18next).init({
       options: optionsNo,
       settings: settingsNo,
       filters: filtersNo
-    },    
+    },
     de: {
       common: commonDe,
       auth: authDe,
@@ -134,6 +143,13 @@ void i18n.use(initReactI18next).init({
       options: optionsEs,
       settings: settingsEs,
       filters: filtersEs
+    },
+    cs: {
+      common: commonCs,
+      auth: authCs,
+      options: optionsCs,
+      settings: settingsCs,
+      filters: filtersCs
     }
   },
   lng: getInitialLanguage(),

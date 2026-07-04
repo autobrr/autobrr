@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -49,7 +49,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.5
+        uses: pnpm/action-setup@v6.0.9
         with:
           package_json_file: web/package.json
 
@@ -91,7 +91,7 @@ jobs:
       CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -138,7 +138,7 @@ jobs:
       CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -188,7 +188,7 @@ jobs:
       CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -229,7 +229,7 @@ jobs:
         run: ls -la profile
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -266,7 +266,7 @@ jobs:
       GOOS: ${{ matrix.goos }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -307,7 +307,7 @@ jobs:
           fi
 
       - name: Cache builds
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/${{ matrix.goos }}
           key: ${{ env.cache_prefix }}-${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
@@ -355,7 +355,7 @@ jobs:
       flags: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -386,25 +386,25 @@ jobs:
           fi
 
       - name: Get Linux cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/linux
           key: ${{ env.cache_prefix }}-linux-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get FreeBSD cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/freebsd
           key: ${{ env.cache_prefix }}-freebsd-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Darwin cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/darwin
           key: ${{ env.cache_prefix }}-darwin-${{ env.sha_short }}${{ env.flags }}
 
       - name: Get Windows cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: dist/windows
           key: ${{ env.cache_prefix }}-windows-${{ env.sha_short }}${{ env.flags }}
@@ -440,83 +440,83 @@ jobs:
           - platform: linux/386
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/amd64
             runner: ubuntu-latest
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/amd64/v2
             runner: ubuntu-latest
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/amd64/v3
             runner: ubuntu-latest
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm/v6
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm/v7
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v8.2 # Neoverse + Raspberry Pi
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v8.4 # AWS Graviton3
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v9
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/arm64/v9.2 # Apple M4
             runner: ubuntu-24.04-arm
             qemu: false
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/ppc64le
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/riscv64
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: linux/s390x
             runner: ubuntu-latest
             qemu: true
-            file: ./ci.Dockerfile
+            file: ./distrib/docker/ci.Dockerfile
 
           - platform: windows/amd64
             # runner: windows-latest
             runner: ubuntu-latest
             qemu: true
-            file: ./ciwindows.Dockerfile
+            file: ./distrib/docker/ciwindows.Dockerfile
 
     runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -566,7 +566,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ${{ matrix.file || './ci.Dockerfile' }}
+          file: ${{ matrix.file || './distrib/docker/ci.Dockerfile' }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}

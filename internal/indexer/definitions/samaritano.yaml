@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: Samaritano
 name: Samaritano
 identifier: samaritano
@@ -23,10 +24,6 @@ irc:
   server: irc.samaritano.cc
   port: 6667
   tls: false
-  channels:
-    - "#samaritano"
-  announcers:
-    - Overlord
   settings:
     - name: nick
       type: text
@@ -46,35 +43,33 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: "[Filmes] [WEB-DL] [Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin] [TORRENT ID: 10837] [2.1 GiB] [tmdb-912649]"
-          expect:
-            category: Filmes
-            releaseTags: WEB-DL
-            torrentName: Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin
-            torrentId: "10837"
-            torrentSize: "2.1 GiB"
-            tags: 912649
-        - line: "[Series] [WEB-DL] [The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN] [TORRENT ID: 10840] [43.1 GiB] [tmdb-72710]"
-          expect:
-            category: Series
-            releaseTags: WEB-DL
-            torrentName: The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN
-            torrentId: "10840"
-            torrentSize: "43.1 GiB"
-            tags: 72710
-        pattern: '\[(?P<category>.+?)\] \[(?P<type>.+?)\] \[(?P<torrentName>.+?)\] \[TORRENT ID: (?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\](?: \[tmdb-(?P<tags>\d+)\])?'
-        vars:
-          - category
-          - releaseTags
-          - torrentName
-          - torrentId
-          - torrentSize
-          - tags
+  channels:
+    - name: "#samaritano"
+      announcers:
+        - Overlord
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<category>.+?)\] \[(?P<releaseTags>.+?)\] \[(?P<releaseName>.+?)\] \[TORRENT ID: (?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\](?: \[tmdb-(?P<tags>\d+)\])?'
+            tests:
+              - line: "[Filmes] [WEB-DL] [Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin] [TORRENT ID: 10837] [2.1 GiB] [tmdb-912649]"
+                expect:
+                  category: Filmes
+                  releaseTags: WEB-DL
+                  releaseName: Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin
+                  torrentId: "10837"
+                  torrentSize: "2.1 GiB"
+                  tags: 912649
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+              - line: "[Series] [WEB-DL] [The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN] [TORRENT ID: 10840] [43.1 GiB] [tmdb-72710]"
+                expect:
+                  category: Series
+                  releaseTags: WEB-DL
+                  releaseName: The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN
+                  torrentId: "10840"
+                  torrentSize: "43.1 GiB"
+                  tags: 72710
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

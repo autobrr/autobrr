@@ -191,8 +191,9 @@
     "german": "Deutsch",
     "norwegian": "Norsk",
     "russian": "Русский",
-    "simplifiedChinese": "简体中文",    
-    "spanish": "Español"
+    "simplifiedChinese": "简体中文",
+    "spanish": "Español",
+    "czech": "Čeština"
   },
   "toast": {
     "success": "Éxito",

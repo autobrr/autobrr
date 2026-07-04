@@ -12,7 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/whisparr"
 )
 
-func (s *service) whisparr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) whisparr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action WHISPARR")
 
 	// TODO validate data

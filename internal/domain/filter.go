@@ -4,7 +4,6 @@
 package domain
 
 import (
-	"context"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -19,28 +18,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/go-andiamo/splitter"
 )
-
-type FilterRepo interface {
-	ListFilters(ctx context.Context) ([]Filter, error)
-	Find(ctx context.Context, params FilterQueryParams) ([]*Filter, error)
-	FindByID(ctx context.Context, filterID int) (*Filter, error)
-	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*Filter, error)
-	FindExternalFiltersByID(ctx context.Context, filterId int) ([]FilterExternal, error)
-	Store(ctx context.Context, filter *Filter) error
-	Update(ctx context.Context, filter *Filter) error
-	UpdatePartial(ctx context.Context, filter FilterUpdate) error
-	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
-	Delete(ctx context.Context, filterID int) error
-	StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error
-	StoreIndexerConnections(ctx context.Context, filterID int, indexers []Indexer) error
-	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []FilterExternal) error
-	DeleteIndexerConnections(ctx context.Context, filterID int) error
-	DeleteFilterExternal(ctx context.Context, filterID int) error
-	GetFilterDownloadCount(ctx context.Context, filter *Filter) error
-	GetFilterNotifications(ctx context.Context, filterID int) ([]FilterNotification, error)
-	StoreFilterNotifications(ctx context.Context, filterID int, notifications []FilterNotification) error
-	DeleteFilterNotifications(ctx context.Context, filterID int) error
-}
 
 type FilterDownloads struct {
 	HourCount  int `json:"hour_count"`

@@ -4,26 +4,10 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"strings"
 	"time"
 )
-
-type IrcRepo interface {
-	StoreNetwork(ctx context.Context, network *IrcNetwork) error
-	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
-	StoreChannel(ctx context.Context, networkID int64, channel *IrcChannel) error
-	UpdateChannel(channel *IrcChannel) error
-	UpdateInviteCommand(networkID int64, invite string) error
-	StoreNetworkChannels(ctx context.Context, networkID int64, channels []IrcChannel) error
-	CheckExistingNetwork(ctx context.Context, network *IrcNetwork) (*IrcNetwork, error)
-	FindActiveNetworks(ctx context.Context) ([]IrcNetwork, error)
-	ListNetworks(ctx context.Context) ([]IrcNetwork, error)
-	ListChannels(networkID int64) ([]IrcChannel, error)
-	GetNetworkByID(ctx context.Context, id int64) (*IrcNetwork, error)
-	DeleteNetwork(ctx context.Context, id int64) error
-}
 
 type IrcChannel struct {
 	ID         int64  `json:"id"`

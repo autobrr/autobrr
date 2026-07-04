@@ -13,8 +13,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
@@ -22,43 +20,52 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
-	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
-	GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error)
-	GetNetworkByID(ctx context.Context, networkID int64) (*domain.IrcNetwork, error)
-	DeleteNetwork(ctx context.Context, networkID int64) error
+type ircRepo interface {
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
-	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
-
-	GetMessageHistory(ctx context.Context, networkID int64, channel string) ([]domain.IrcMessage, error)
-
-	StartHandlers()
-	StopHandlers()
-	StopAndRemoveNetwork(networkID int64) error
-	StopNetwork(networkID int64) error
-	RestartNetwork(ctx context.Context, networkID int64) error
-	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
+	UpdateChannel(channel *domain.IrcChannel) error
+	UpdateInviteCommand(networkID int64, invite string) error
+	StoreNetworkChannels(ctx context.Context, networkID int64, channels []domain.IrcChannel) error
+	CheckExistingNetwork(ctx context.Context, network *domain.IrcNetwork) (*domain.IrcNetwork, error)
+	FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
+	ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
+	ListChannels(networkID int64) ([]domain.IrcChannel, error)
+	GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error)
+	DeleteNetwork(ctx context.Context, id int64) error
 }
 
-type indexerSvc interface {
+type indexerService interface {
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 }
 
-type proxySvc interface {
+type notificationSender interface {
+	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
+}
+
+type releaseService interface {
+	Process(release *domain.Release)
+}
+
+type proxyService interface {
 	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
 }
 
-type service struct {
-	log zerolog.Logger
-	sse *sse.Server
+type sseServer interface {
+	Publish(id string, event *sse.Event)
+	CreateStreamWithOpts(id string, opts sse.StreamOpts) *sse.Stream
+	RemoveStream(id string)
+}
 
-	repo                domain.IrcRepo
-	releaseService      release.Processor
-	indexerService      indexerSvc
-	notificationService notification.Sender
-	proxyService        proxySvc
+type Service struct {
+	log zerolog.Logger
+	sse sseServer
+
+	repo                ircRepo
+	releaseService      releaseService
+	indexerService      indexerService
+	notificationService notificationSender
+	proxyService        proxyService
 
 	networkCache    *haxmap.Map[int64, *domain.IrcNetwork]
 	networkHandlers *haxmap.Map[int64, *Handler]
@@ -67,8 +74,10 @@ type service struct {
 	lock   sync.RWMutex
 }
 
-func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, releaseSvc release.Processor, indexerSvc indexerSvc, notificationSvc notification.Sender, proxySvc proxySvc) Service {
-	return &service{
+const sseMaxEntries = 1000
+
+func NewService(log logger.Logger, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, notificationSvc notificationSender, proxySvc proxyService) *Service {
+	return &Service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,
 		repo:                repo,
@@ -81,8 +90,8 @@ func NewService(log logger.Logger, sse *sse.Server, repo domain.IrcRepo, release
 	}
 }
 
-func (s *service) StartHandlers() {
-	ctx := context.Background()
+func (s *Service) StartHandlers() {
+  ctx := context.Background()
 	networks, err := s.repo.FindActiveNetworks(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to list networks")
@@ -127,7 +136,7 @@ func (s *service) StartHandlers() {
 	}
 }
 
-func (s *service) StopHandlers() {
+func (s *Service) StopHandlers() {
 	s.log.Info().Msg("stopping all irc handlers..")
 
 	for _, handler := range s.networkHandlers.Iterator() {
@@ -138,7 +147,7 @@ func (s *service) StopHandlers() {
 	s.log.Info().Msg("stopped all irc handlers")
 }
 
-func (s *service) startNetwork(network domain.IrcNetwork) error {
+func (s *Service) startNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers already, if so start it
 	if existingHandler, found := s.networkHandlers.Get(network.ID); found {
 		s.log.Debug().Msgf("starting network: %s", network.Name)
@@ -181,7 +190,7 @@ func (s *service) startNetwork(network domain.IrcNetwork) error {
 	return nil
 }
 
-func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error {
+func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error {
 	handler, found := s.networkHandlers.Get(network.ID)
 	if !found {
 		if err := s.startNetwork(*network); err != nil {
@@ -299,7 +308,7 @@ func (s *service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	return nil
 }
 
-func (s *service) RestartNetwork(ctx context.Context, networkID int64) error {
+func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
 	network, err := s.repo.GetNetworkByID(ctx, networkID)
 	if err != nil {
 		return err
@@ -312,7 +321,7 @@ func (s *service) RestartNetwork(ctx context.Context, networkID int64) error {
 	return s.restartNetwork(*network)
 }
 
-func (s *service) restartNetwork(network domain.IrcNetwork) error {
+func (s *Service) restartNetwork(network domain.IrcNetwork) error {
 	// look if we have the network in handlers, if so restart it
 	if err := s.StopNetwork(network.ID); err != nil {
 		return err
@@ -321,7 +330,7 @@ func (s *service) restartNetwork(network domain.IrcNetwork) error {
 	return s.startNetwork(network)
 }
 
-func (s *service) StopAndRemoveNetwork(networkID int64) error {
+func (s *Service) StopAndRemoveNetwork(networkID int64) error {
 	handler, found := s.networkHandlers.Get(networkID)
 	if found {
 		handler.Stop()
@@ -335,7 +344,7 @@ func (s *service) StopAndRemoveNetwork(networkID int64) error {
 	return nil
 }
 
-func (s *service) StopNetwork(networkID int64) error {
+func (s *Service) StopNetwork(networkID int64) error {
 	handler, found := s.networkHandlers.Get(networkID)
 	if found {
 		handler.Stop()
@@ -346,7 +355,7 @@ func (s *service) StopNetwork(networkID int64) error {
 	return nil
 }
 
-func (s *service) GetNetworkByID(ctx context.Context, networkID int64) (*domain.IrcNetwork, error) {
+func (s *Service) GetNetworkByID(ctx context.Context, networkID int64) (*domain.IrcNetwork, error) {
 	network, err := s.repo.GetNetworkByID(ctx, networkID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("failed to get network: %d", networkID)
@@ -363,7 +372,7 @@ func (s *service) GetNetworkByID(ctx context.Context, networkID int64) (*domain.
 	return network, nil
 }
 
-func (s *service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error {
+func (s *Service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error {
 	network, err := s.repo.GetNetworkByID(ctx, req.NetworkId)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("failed to get network: %d", req.NetworkId)
@@ -389,7 +398,7 @@ func (s *service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManu
 	return nil
 }
 
-func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+func (s *Service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	networks, err := s.repo.ListNetworks(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to list networks")
@@ -412,7 +421,7 @@ func (s *service) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 	return ret, nil
 }
 
-func (s *service) listNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
+func (s *Service) listNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	if s.networkCache.Len() > 0 {
 		s.log.Trace().Msgf("found %d networks in cache", s.networkCache.Len())
 
@@ -547,7 +556,7 @@ func (s *service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 	return ret, nil
 }
 
-func (s *service) GetMessageHistory(_ context.Context, networkID int64, channel string) ([]domain.IrcMessage, error) {
+func (s *Service) GetMessageHistory(_ context.Context, networkID int64, channel string) ([]domain.IrcMessage, error) {
 	handler, found := s.networkHandlers.Get(networkID)
 	if !found {
 		return nil, errors.New("could not find network handler")
@@ -563,7 +572,7 @@ func (s *service) GetMessageHistory(_ context.Context, networkID int64, channel 
 	return messages, nil
 }
 
-func (s *service) DeleteNetwork(ctx context.Context, networkID int64) error {
+func (s *Service) DeleteNetwork(ctx context.Context, networkID int64) error {
 	network, err := s.GetNetworkByID(ctx, networkID)
 	if err != nil {
 		s.log.Error().Err(err).Msgf("could not find network before delete: %d", networkID)
@@ -588,7 +597,7 @@ func (s *service) DeleteNetwork(ctx context.Context, networkID int64) error {
 	return nil
 }
 
-func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
+func (s *Service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error {
 	existingNetwork, err := s.GetNetworkByID(ctx, network.ID)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not find existing network")
@@ -665,7 +674,7 @@ func (s *service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	return nil
 }
 
-func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error {
+func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error {
 	existingNetwork, err := s.repo.CheckExistingNetwork(ctx, network)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not check for existing network")
@@ -754,7 +763,7 @@ func (s *service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 	return nil
 }
 
-func (s *service) StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error {
+func (s *Service) StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error {
 	if err := s.repo.StoreChannel(ctx, networkID, channel); err != nil {
 		return err
 	}
@@ -762,7 +771,7 @@ func (s *service) StoreChannel(ctx context.Context, networkID int64, channel *do
 	return nil
 }
 
-func (s *service) SendCmd(_ context.Context, req *domain.SendIrcCmdRequest) error {
+func (s *Service) SendCmd(_ context.Context, req *domain.SendIrcCmdRequest) error {
 	handler, found := s.networkHandlers.Get(req.NetworkId)
 	if !found {
 		return errors.New("could not find irc handler with id: %d", req.NetworkId)

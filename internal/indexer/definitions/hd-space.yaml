@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: hdspace
 name: HD-Space
 identifier: hd-space
@@ -24,10 +25,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#HD-Space"
-  announcers:
-    - hdspace
   settings:
     - name: nick
       type: text
@@ -47,41 +44,41 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'New Torrent in category [HDTV 1080] Show S03E06 2160p PMTP WEB-DL DDP5 1 DV HEVC-GROUP1 (4.52 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-          expect:
-            category: HDTV 1080
-            torrentName: Show S03E06 2160p PMTP WEB-DL DDP5 1 DV HEVC-GROUP1
-            torrentSize: 4.52 GB
-            baseUrl: https://hd-space.org/
-            torrentId: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-        - line: 'New Torrent in category [Blu-Ray] The Movie 2022 1080p Blu-ray AVC DTS-HD MA 5.1-GROUP2 (23.21 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-          expect:
-            category: Blu-Ray
-            torrentName: The Movie 2022 1080p Blu-ray AVC DTS-HD MA 5.1-GROUP2
-            torrentSize: 23.21 GB
-            baseUrl: https://hd-space.org/
-            torrentId: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-        - line: 'New Torrent in category [Blu-Ray] Other movie with long tittle 2013 2160 UHD EXTENDED Blu-ray HEVC TrueHD 7.1-GROUP3@HDSpace (88.20 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-          expect:
-            category: Blu-Ray
-            torrentName: Other movie with long tittle 2013 2160 UHD EXTENDED Blu-ray HEVC TrueHD 7.1-GROUP3@HDSpace
-            torrentSize: 88.20 GB
-            baseUrl: https://hd-space.org/
-            torrentId: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-        pattern: 'New Torrent in category \[([^\]]*)\] (.*) \(([^\)]*)\) uploaded! Download\: (https?\:\/\/[^\/]+\/).*[&\?]id=([a-f0-9]+)'
-        vars:
-          - category
-          - torrentName
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#HD-Space"
+      announcers:
+        - hdspace
+      parse:
+        type: single
+        lines:
+          - pattern: 'New Torrent in category \[(?P<category>[^\]]*)\] (?P<releaseName>.*) \((?P<torrentSize>[^\)]*)\) uploaded! Download\: (?P<baseUrl>https?\:\/\/[^\/]+\/).*[&\?]id=(?P<torrentId>[a-f0-9]+)'
+            tests:
+              - line: 'New Torrent in category [HDTV 1080] Show S03E06 2160p PMTP WEB-DL DDP5 1 DV HEVC-GROUP1 (4.52 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                expect:
+                  category: HDTV 1080
+                  releaseName: Show S03E06 2160p PMTP WEB-DL DDP5 1 DV HEVC-GROUP1
+                  torrentSize: 4.52 GB
+                  baseUrl: https://hd-space.org/
+                  torrentId: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
-    match:
-      infourl: "/index.php?page=torrent-details&id={{ .torrentId }}"
-      torrenturl: "/download.php?id={{ .torrentId }}&f={{ .torrentName }}.torrent&rsspid={{ .rsskey }}"
-      encode:
-        - torrentName
+              - line: 'New Torrent in category [Blu-Ray] The Movie 2022 1080p Blu-ray AVC DTS-HD MA 5.1-GROUP2 (23.21 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                expect:
+                  category: Blu-Ray
+                  releaseName: The Movie 2022 1080p Blu-ray AVC DTS-HD MA 5.1-GROUP2
+                  torrentSize: 23.21 GB
+                  baseUrl: https://hd-space.org/
+                  torrentId: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+              - line: 'New Torrent in category [Blu-Ray] Other movie with long tittle 2013 2160 UHD EXTENDED Blu-ray HEVC TrueHD 7.1-GROUP3@HDSpace (88.20 GB) uploaded! Download: https://hd-space.org/download.php?id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                expect:
+                  category: Blu-Ray
+                  releaseName: Other movie with long tittle 2013 2160 UHD EXTENDED Blu-ray HEVC TrueHD 7.1-GROUP3@HDSpace
+                  torrentSize: 88.20 GB
+                  baseUrl: https://hd-space.org/
+                  torrentId: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+        match:
+          infourl: "/index.php?page=torrent-details&id={{ .torrentId }}"
+          downloadurl: "/download.php?id={{ .torrentId }}&f={{ .releaseName }}.torrent&rsspid={{ .rsskey }}"
+          encode:
+            - releaseName

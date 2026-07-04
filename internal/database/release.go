@@ -25,7 +25,7 @@ type ReleaseRepo struct {
 	db  *DB
 }
 
-func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
+func NewReleaseRepo(log logger.Logger, db *DB) *ReleaseRepo {
 	return &ReleaseRepo{
 		log: log.With().Str("repo", "release").Logger(),
 		db:  db,
