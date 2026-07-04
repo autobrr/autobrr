@@ -339,7 +339,7 @@ func (s *Service) ProcessManual(_ context.Context, req *domain.ReleaseProcessReq
 		parseFailed := false
 
 		channelName := def.IRC.Channels[0].Name
-		channel, ok := def.IRC.ChannelsMap[channelName]
+		channel, ok := def.IRC.GetChannel(channelName)
 		if !ok {
 			return errors.New("no channel configured")
 		}

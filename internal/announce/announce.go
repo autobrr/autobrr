@@ -73,16 +73,21 @@ func (a *announceProcessor) Stop() {
 }
 
 func (a *announceProcessor) processQueue(channelName string, queue chan string) {
+	// the channel config is static for the life of the consumer, so resolve it once.
+	channel, ok := a.indexer.IRC.GetChannel(channelName)
+	if !ok {
+		a.log.Error().Msgf("announce: no channel found for name: %s", channelName)
+		return
+	}
+	if channel.Parse == nil {
+		a.log.Error().Msgf("announce: channel %s has no parse configuration", channelName)
+		return
+	}
+
 	for {
 		tmpVars := map[string]string{}
 		parseFailed := false
 		//patternParsed := false
-
-		channel, ok := a.indexer.IRC.ChannelsMap[channelName]
-		if !ok {
-			a.log.Error().Msgf("announce: no channel found for name: %s", channelName)
-			continue
-		}
 
 		for _, parseLine := range channel.Parse.Lines {
 			line, err := a.getNextLine(queue)
