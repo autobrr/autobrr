@@ -491,6 +491,11 @@ func (h *Handler) resetChannelState() {
 	for key, channel := range h.channels.Iterator() {
 		channel.ResetMonitoring()
 
+		// reset the channel state machine so it can rejoin on reconnect.
+		if sm := channel.StateMachine(); sm != nil {
+			sm.Reset()
+		}
+
 		h.channels.Set(key, channel)
 	}
 }
@@ -572,12 +577,9 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 
 	h.m.Unlock()
 
-	// reset channels monitored status
-	for name, channel := range h.channels.Iterator() {
-		channel.ResetMonitoring()
-
-		h.channels.Set(name, channel)
-	}
+	// reset channels monitored status and channel state machines so they
+	// rejoin cleanly on reconnect instead of getting stuck in Monitoring
+	h.resetChannelState()
 
 	// check if we are responsible for disconnect
 	if !manuallyDisconnected {

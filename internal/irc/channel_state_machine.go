@@ -217,6 +217,27 @@ func (sm *ChannelStateMachine) Start() {
 	sm.transition(ChannelStateJoining)
 }
 
+// Reset returns the state machine to its initial Idle state and clears the
+// invite/backoff bookkeeping. It is called when the connection drops so that a
+// channel can run its join workflow again on the next (re)connect.
+//
+// ChannelStateMonitoring has no outgoing transitions in validChannelTransitions,
+// so a channel that was being monitored when the connection dropped would
+// otherwise be stuck: Start() -> transition(Monitoring -> Joining) is rejected
+// as invalid and no JOIN is ever re-sent. The state is assigned directly (rather
+// than via transition()) precisely because Monitoring has no valid path back.
+func (sm *ChannelStateMachine) Reset() {
+	sm.m.Lock()
+	sm.state = ChannelStateIdle
+	sm.authAttempts = 0
+	sm.joinAfterInvite = false
+	sm.m.Unlock()
+
+	// broadcast outside the lock so the UI reflects the drop immediately
+	// instead of showing a stale Monitoring pill until the channel rejoins.
+	sm.broadcastStateChange(ChannelStateIdle)
+}
+
 func (sm *ChannelStateMachine) runJoinFlowLocked() {
 	if !sm.channel.Enabled {
 		sm.log.Debug().Msg("channel disabled, skipping join workflow")
