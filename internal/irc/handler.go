@@ -125,6 +125,19 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 		}
 	}
 
+	// Indexer definitions are matched to a network by server, not by network ID
+	// (see indexerService.GetIndexersByIRCNetwork). Several separate network
+	// instances can therefore share one server - e.g. the same tracker with
+	// different nicks/usernames - and each instance receives the definitions of
+	// *every* indexer on that server. We must only create/join the announce
+	// channels that are actually configured on THIS instance, otherwise one
+	// instance joins every sibling instance's channels. The channels stored on
+	// the network (network.Channels) are that authoritative per-instance set.
+	configuredChannels := make(map[string]struct{}, len(network.Channels))
+	for _, channel := range network.Channels {
+		configuredChannels[strings.ToLower(channel.Name)] = struct{}{}
+	}
+
 	// Networks can be shared by multiple indexers but channels are unique
 	// so let's add a new AnnounceProcessor per channel
 	for _, definition := range definitions {
@@ -162,6 +175,13 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 		for _, channel := range definition.IRC.Channels {
 			// some channels are defined in mixed case
 			channelName := strings.ToLower(channel.Name)
+
+			// skip announce channels not configured on this network instance -
+			// they belong to another instance sharing the same server.
+			if _, ok := configuredChannels[channelName]; !ok {
+				h.log.Trace().Msgf("skipping announce channel %s: not configured on this network instance", channelName)
+				continue
+			}
 
 			ircChannel := NewChannel(h.log, network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
