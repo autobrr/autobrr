@@ -3,24 +3,30 @@
 End-to-end tests for `internal/irc` that run the **real** `irc.Handler` against an
 **in-process** IRC server over a loopback socket - no Docker, no external binary.
 
-This is a **separate Go module** so its test-only dependency (the bundled test
-server) never ends up in the shipped autobrr binary. autobrr itself is resolved
-from the working tree via a `replace` directive, so the tests always exercise
-local changes.
+Everything here - the test server and the tests - is behind the
+`irc_integration_test` build tag, so it is compiled out of normal builds and
+never reaches the shipped autobrr binary. It is part of the main module (no extra
+dependencies over what autobrr already uses), so it runs with a single tagged
+`go test`.
 
 ## Running
 
-The tests are behind the `irc_integration_test` build tag:
-
 ```sh
-cd test/irc
-go test -tags irc_integration_test ./...
+# just the irc integration tests:
+go test -tags=irc_integration_test ./test/irc/...
 # with the race detector:
-go test -tags irc_integration_test -race ./...
+go test -tags=irc_integration_test -race ./test/irc/...
+# as part of the whole suite:
+go test -tags=irc_integration_test ./...
 ```
 
-Without the tag they are compiled out, so a plain `go test ./...` here (and the
-main module's test run) does nothing.
+Without the tag these packages contain no buildable files, so `go build ./...`,
+`go vet ./...` and a plain `go test ./...` skip them entirely.
+
+Note: `go list`/`go test` only *see* these packages when the tag is set — a
+plain `go list ./...` will not enumerate them. Tooling that discovers packages
+first (e.g. a per-package profiling script) must pass the tag to `go list` too:
+`go list -tags=irc_integration_test ./...`.
 
 ## Layout
 

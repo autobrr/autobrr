@@ -1,6 +1,8 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+//go:build irc_integration_test
+
 // Package harness wires the real internal/irc Handler up to the in-process test
 // ircd: it supplies the collaborators NewHandler needs (an SSE sink, a release
 // sink, a no-op notifier), drives the connection lifecycle, and exposes helpers

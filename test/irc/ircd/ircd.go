@@ -1,6 +1,8 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+//go:build irc_integration_test
+
 // Package ircd is a minimal, in-process IRC server for autobrr's integration
 // tests. It implements just enough of the protocol for the ergochat/irc-go
 // client (used by internal/irc) to register, authenticate (NONE / SASL PLAIN /
