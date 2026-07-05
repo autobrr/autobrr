@@ -256,7 +256,13 @@ func (sm *ConnectionStateMachine) cleanup() {
 }
 
 func (sm *ConnectionStateMachine) handleError() {
-	sm.log.Error().Str("state", sm.currentState.String()).Msg("error state reached")
+	// runs from onStateEntry in its own goroutine, concurrently with transition()
+	// writing currentState, so read it under the lock rather than racing the write
+	sm.m.RLock()
+	state := sm.currentState
+	sm.m.RUnlock()
+
+	sm.log.Error().Str("state", state.String()).Msg("error state reached")
 	sm.cleanup()
 }
 
