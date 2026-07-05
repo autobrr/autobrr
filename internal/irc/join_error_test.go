@@ -45,18 +45,18 @@ func TestHandleJoinError_SurfacesChannelError(t *testing.T) {
 		t.Error("STATE=Error broadcast should include connection_errors with the reason")
 	}
 
+	// a channel-scoped JOIN error must NOT leak into the network-level bucket - that
+	// bucket is reserved for network-wide failures (NickServ/SASL) and only clears
+	// on re-auth, so a per-channel join error there would never clear and would
+	// misrepresent an otherwise-healthy network. The reason lives on the channel.
 	h.m.RLock()
 	errs := slices.Clone(h.connectionErrors)
 	h.m.RUnlock()
 
-	found := false
 	for _, e := range errs {
-		if strings.Contains(e, "#locked") && strings.Contains(e, "+k") {
-			found = true
+		if strings.Contains(e, "#locked") {
+			t.Fatalf("channel join error must not be added to the network-level errors, got %v", errs)
 		}
-	}
-	if !found {
-		t.Fatalf("expected a network error mentioning #locked and +k, got %v", errs)
 	}
 }
 

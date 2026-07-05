@@ -225,16 +225,22 @@ func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 	case StateFullyOperational:
 		sm.log.Info().Msg("IRC connection fully operational")
 		sm.cleanup()
+		sm.handler.broadcastHealth()
 
 	case StatePartiallyOperational:
 		sm.log.Warn().Msg("IRC connection partially operational")
 		sm.cleanup()
+		sm.handler.broadcastHealth()
 
 	case StateError:
 		sm.handleError()
+		// surface the network-level failure reason to the UI in real time; the
+		// reason was recorded (addConnectError) before OnError drove us here
+		sm.handler.broadcastHealth()
 
 	case StateDisconnected:
 		sm.cleanup()
+		sm.handler.broadcastHealth()
 	default:
 		sm.log.Error().Str("state", state.String()).Msg("invalid state")
 	}

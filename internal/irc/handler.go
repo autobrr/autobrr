@@ -1429,7 +1429,13 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 
 	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
 
-	h.addConnectError(errMsg)
+	// A JOIN rejection is channel-scoped: record it on the channel (deduped and
+	// cleared when the channel recovers) and let it gate network health via the
+	// channel. It must NOT go into the network-level connectionErrors bucket, which
+	// is reserved for genuine network-wide failures (NickServ/SASL auth) and is only
+	// cleared on a successful (re)authentication - routing per-channel join errors
+	// there leaks them (they never clear on a no-auth network, and survive channel
+	// recovery, misrepresenting a healthy network as carrying stale errors).
 	h.setChannelError(channel, errMsg)
 	h.stateMachine.OnChannelError(channel, errMsg)
 }
@@ -1657,6 +1663,12 @@ func (h *Handler) addConnectError(message string) {
 	h.m.Lock()
 	defer h.m.Unlock()
 
+	// dedup: a repeated identical failure (e.g. NickServ resending the same
+	// "registered and protected" NOTICE several times) must not stack duplicates.
+	if slices.Contains(h.connectionErrors, message) {
+		return
+	}
+
 	h.connectionErrors = append(h.connectionErrors, message)
 }
 
@@ -1668,6 +1680,16 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	if !h.network.Enabled {
 		return
 	}
+
+	// Surface connection errors regardless of connection state. A network-level
+	// failure (e.g. a NickServ authentication failure) drives the network into
+	// Error and then Stop()s it - nilling the client and clearing connectedSince -
+	// so if we only reported errors while connected, the UI would show the network
+	// unhealthy with no reason at exactly the moment the reason matters. These
+	// errors survive Stop()/onDisconnect and are only cleared on a successful
+	// (re)authentication.
+	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
+
 	if h.client == nil {
 		return
 	}
@@ -1680,7 +1702,6 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 		return
 	}
 
-	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
 	netw.Healthy = h.computeHealthy()
 }
 
@@ -1707,15 +1728,26 @@ func (h *Handler) computeHealthy() bool {
 	return h.stateMachine.IsHealthy() && channelsHealthy
 }
 
-func (h *Handler) ReportHealth() {
-	//h.m.RLock()
-	//defer h.m.RUnlock()
-
+// broadcastHealth pushes the current network-level health and connection errors to
+// the UI via a HEALTH SSE event. Unlike the per-channel STATE events, this carries
+// the network-wide failure reason (e.g. a NickServ authentication failure that
+// stopped the whole network), so the UI can show WHY a network is unhealthy even
+// when no individual channel error explains it. Called on settled network state
+// transitions so the reason appears (and clears) in real time rather than only on
+// the next poll.
+func (h *Handler) broadcastHealth() {
+	h.m.RLock()
 	healthData := map[string]any{
 		"network":           h.network.ID,
-		"healthy":           false,
-		"connection_errors": []string{"Connection timeout"},
+		"healthy":           h.computeHealthy(),
+		"connection_errors": slices.Clone(h.connectionErrors),
 	}
+	h.m.RUnlock()
+
+	// connected_since is deliberately omitted: it is the zero time while the network
+	// is errored/stopped (exactly when this fires), which the UI would apply as a
+	// bogus connection time. The periodic status poll (ReportStatus) is the source
+	// of truth for connected_since.
 	h.broadcastEvent("HEALTH", healthData)
 }
 
