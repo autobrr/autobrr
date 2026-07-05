@@ -87,12 +87,16 @@ var validChannelTransitions = map[ChannelState][]ChannelState{
 	ChannelStateAwaitingInvite: {
 		ChannelStateMonitoring,
 		ChannelStateAwaitingInviteBot,
-		ChannelStateInviteFailed,
 		ChannelStateInviteFailedNoSuchNick,
 		ChannelStateJoining,
 		ChannelStateError,
 		ChannelStateKicked,
 		ChannelStateParted,
+	},
+	ChannelStateInviteFailed: {
+		// a rejection is a definitive "no": the channel parks here (no auto-retry)
+		// and recovers only via an explicit INVITE, a config change or a reconnect
+		ChannelStateJoining,
 	},
 	ChannelStateAwaitingInviteBot: {
 		ChannelStateAwaitingInvite,
@@ -101,11 +105,6 @@ var validChannelTransitions = map[ChannelState][]ChannelState{
 		ChannelStateJoining,
 		ChannelStateError,
 		ChannelStateKicked,
-	},
-	ChannelStateInviteFailed: {
-		ChannelStateAwaitingInviteBot,
-		ChannelStateJoining,
-		ChannelStateError,
 	},
 	ChannelStateInviteFailedNoSuchNick: {
 		ChannelStateAwaitingInviteBot,
@@ -217,7 +216,7 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 	case ChannelStateAwaitingInviteBot:
 		sm.handleWaitForInviteBot()
 	case ChannelStateInviteFailed:
-		sm.handleInviteFailed()
+		// entered by direct assignment in OnInviteFailed; parks with no entry action
 	case ChannelStateInviteFailedNoSuchNick:
 		sm.handleNoSuchNick()
 	case ChannelStateMonitoring:
@@ -316,14 +315,21 @@ func (sm *ChannelStateMachine) handleAwaitingInvite() {
 // attempt (gen), otherwise an INVITE/NOSUCHNICK/reset already moved us on.
 func (sm *ChannelStateMachine) onInviteTimeout(gen int) {
 	sm.m.Lock()
-	stale := sm.state != ChannelStateAwaitingInvite || sm.inviteGen != gen
-	sm.m.Unlock()
-	if stale {
+	if sm.state != ChannelStateAwaitingInvite || sm.inviteGen != gen {
+		sm.m.Unlock()
 		return
 	}
+	// Flip to the backoff state under the same lock that validated we are still on
+	// this invite attempt (AwaitingInvite -> AwaitingInviteBot is a valid
+	// transition). Doing this atomically - rather than releasing the lock and
+	// calling transition() - means a concurrent OnInviteFailed, which parks by
+	// direct assignment, cannot be overtaken and leave the channel retrying a bot
+	// that has already refused us.
+	sm.state = ChannelStateAwaitingInviteBot
+	sm.m.Unlock()
 
 	sm.log.Debug().Msg("no invite response received, retrying after backoff")
-	sm.transition(ChannelStateAwaitingInviteBot)
+	go sm.onStateEntry(ChannelStateAwaitingInviteBot)
 }
 
 func (sm *ChannelStateMachine) runJoin() {
@@ -389,14 +395,6 @@ func (sm *ChannelStateMachine) OnInvite(nick string) {
 	sm.transition(ChannelStateJoining)
 }
 
-func (sm *ChannelStateMachine) OnInviteFailed(msg string) {
-	sm.transition(ChannelStateInviteFailed)
-}
-
-func (sm *ChannelStateMachine) handleInviteFailed() {
-	sm.log.Debug().Msg("invite failed")
-}
-
 func (sm *ChannelStateMachine) handleWaitForInviteBot() {
 	sm.m.RLock()
 	attempts := sm.authAttempts
@@ -418,6 +416,37 @@ func (sm *ChannelStateMachine) handleWaitForInviteBot() {
 	}
 
 	sm.transition(ChannelStateAwaitingInvite)
+}
+
+// OnInviteFailed is called when a present invite bot answers our invite command
+// with a message instead of an actual INVITE (e.g. a bad IRC key, or an account
+// that is not registered on the tracker). It only acts while we are actively
+// awaiting an invite; the bot's reason is surfaced on the channel and the channel
+// parks in InviteFailed rather than retrying. This is the deliberate counterpart
+// to an *absent* bot (no-such-nick / silent timeout), which keeps retrying via
+// backoff because the bot may simply not be connected yet.
+func (sm *ChannelStateMachine) OnInviteFailed(reason string) {
+	sm.m.Lock()
+	if sm.state != ChannelStateAwaitingInvite {
+		sm.m.Unlock()
+		return
+	}
+	// Park by direct assignment (like OnParted/OnKicked) so the state check and the
+	// state change are atomic under one lock hold: a concurrently-firing
+	// onInviteTimeout cannot slip between a released check and the transition and
+	// flip the channel into the retry loop (which would spam a bot that already
+	// refused us). Bumping inviteGen neutralises that pending timeout so it no-ops
+	// when it resumes. The channel now recovers only if the bot invites us after
+	// all (OnInvite -> Joining), or the user changes the config / the connection is
+	// reset (both re-run the join workflow) - never on our own initiative, so we
+	// neither spin nor re-send a request the bot has already rejected.
+	sm.state = ChannelStateInviteFailed
+	sm.inviteGen++
+	sm.m.Unlock()
+
+	sm.channel.SetConnectionError(reason)
+	sm.log.Warn().Msg("invite request rejected by bot; parking channel until credentials are fixed or an invite arrives")
+	sm.broadcastStateChange(ChannelStateInviteFailed)
 }
 
 func (sm *ChannelStateMachine) OnNoSuchNick(nick string) {
@@ -454,13 +483,18 @@ func (sm *ChannelStateMachine) handleMonitoring() {
 	// reflects the cleared errors / set monitoring flag
 }
 
+// OnParted marks a monitored channel as parted when we leave it. The state is
+// assigned directly because Monitoring has no transition() path out.
 func (sm *ChannelStateMachine) OnParted() {
 	sm.m.Lock()
-	defer sm.m.Unlock()
-
-	if sm.state == ChannelStateMonitoring {
-		sm.state = ChannelStateIdle
+	if sm.state != ChannelStateMonitoring {
+		sm.m.Unlock()
+		return
 	}
+	sm.state = ChannelStateParted
+	sm.m.Unlock()
+
+	sm.broadcastStateChange(ChannelStateParted)
 }
 
 // OnKicked marks the channel as kicked and, deliberately, does NOT schedule any rejoining.

@@ -599,6 +599,10 @@ func (h *Handler) onNotice(msg ircmsg.Message) {
 	switch msg.Nick() {
 	case "NickServ":
 		h.handleNickServ(msg)
+	default:
+		// a NOTICE from an invite bot while a channel is still awaiting its
+		// invite is a rejection, not the invite itself (that arrives as INVITE)
+		h.handleInviteResponse(msg)
 	}
 }
 
@@ -825,11 +829,13 @@ func contains(s string, substr ...string) bool {
 
 // onNick handles NICK events
 func (h *Handler) onNick(msg ircmsg.Message) {
-	nick := msg.Nick()
-	h.log.Trace().Str("event", "NICK").Str("old_nick", nick).Str("new_nick", msg.Params[0]).Msg("user changed nick")
+	// NICK <newnick>
 	if len(msg.Params) < 1 {
 		return
 	}
+
+	nick := msg.Nick()
+	h.log.Trace().Str("event", "NICK").Str("old_nick", nick).Str("new_nick", msg.Params[0]).Msg("user changed nick")
 
 	if !h.isOurCurrentNick(nick) {
 		return
@@ -839,14 +845,16 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 }
 
 func (h *Handler) onKick(msg ircmsg.Message) {
+	// KICK <channel> <nick> [<reason>]
+	if len(msg.Params) < 2 {
+		return
+	}
+
 	nick := msg.Nick()
 	channelName := strings.ToLower(msg.Params[0])
 	affectedNick := msg.Params[1]
 	reason := strings.Join(msg.Params[2:], " ")
 	h.log.Trace().Str("event", "KICK").Str("nick", affectedNick).Str("kicked_by", nick).Str("channel", channelName).Str("reason", reason).Msg("kicked from channel")
-	if len(msg.Params) < 1 {
-		return
-	}
 
 	if !h.isOurCurrentNick(affectedNick) {
 		return
@@ -902,10 +910,12 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	}
 
 	if channel == h.CurrentNick() {
-		// this is a DM from another user
+		// this is a DM - possibly an invite bot answering our invite command
 		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanedMsg).Msg("got direct-message")
 
-		//h.SendMsg(nick, fmt.Sprintf("pingpong: %s", cleanedMsg))
+		// a DM from an invite bot while a channel is still awaiting its invite is
+		// a rejection, not the invite itself (that arrives as INVITE)
+		h.handleInviteResponse(msg)
 
 		// TODO create buffer with user/invite bot
 		return
@@ -991,6 +1001,12 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 	h.log.Debug().Msgf("adding and joining channel %s", channelName)
 
 	if sm := ircChannel.StateMachine(); sm != nil {
+		// Reset() first (mirrors UpdateChannel's re-join branch): Start() runs its
+		// transition from Idle, so a channel parked in a sticky state - InviteFailed
+		// or Parted, whose transition tables do not permit AwaitingInvite - is still
+		// re-driven through the join workflow instead of having the transition
+		// silently dropped as invalid.
+		sm.Reset()
 		sm.Start()
 		return
 	}
@@ -1141,11 +1157,13 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 		return
 	}
 
+	// clear the monitoring flag before OnParted so the Parted broadcast (and the
+	// network health it carries) reflect that we left the channel
+	ircChannel.ResetMonitoring()
+
 	if sm := ircChannel.StateMachine(); sm != nil {
 		sm.OnParted()
 	}
-
-	ircChannel.ResetMonitoring()
 
 	h.channels.Swap(channel, ircChannel)
 
@@ -1412,17 +1430,98 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 			continue
 		}
 
-		inviteCommand := channel.InviteCommand()
-		if inviteCommand != "" {
-			if strings.HasPrefix(strings.ToLower(inviteCommand), nick) {
-				h.log.Debug().Str("nick", nick).Msgf("No such nick, sending invite command")
+		if inviteBotNick(channel.InviteCommand()) == nick {
+			h.log.Debug().Str("nick", nick).Msgf("No such nick, sending invite command")
 
-				// start retry loop of invite command here
-				if sm := channel.StateMachine(); sm != nil {
-					sm.OnNoSuchNick(nick)
-				}
+			// start retry loop of invite command here
+			if sm := channel.StateMachine(); sm != nil {
+				sm.OnNoSuchNick(nick)
 			}
 		}
+	}
+}
+
+// inviteBotNick returns the nick an invite command is sent to: its first
+// whitespace-delimited token (sendInviteCommand PRIVMSGs that token), lowercased
+// for case-insensitive comparison. Matching the exact token - rather than a
+// prefix of the whole command - avoids parking a channel on a message from an
+// unrelated bot whose nick merely prefixes the real bot's (e.g. "voy" vs
+// "voyager", or "voyager" vs an invite command starting "voyager2").
+func inviteBotNick(inviteCommand string) string {
+	fields := strings.Fields(inviteCommand)
+	if len(fields) == 0 {
+		return ""
+	}
+	return strings.ToLower(fields[0])
+}
+
+// isChannelTarget reports whether an IRC message target names a channel rather
+// than a user. Channels start with one of the RFC/ISUPPORT CHANTYPES prefixes.
+func isChannelTarget(target string) bool {
+	if target == "" {
+		return false
+	}
+	switch target[0] {
+	case '#', '&', '+', '!':
+		return true
+	default:
+		return false
+	}
+}
+
+// handleInviteResponse treats a NOTICE or DM from an invite bot as a failed
+// invite. A successful invite always arrives as an INVITE event, so a plain
+// message from the bot while a channel is still AwaitingInvite means the request
+// was rejected (bad IRC key, account not registered on the tracker, etc.). The
+// bot's reason is surfaced on every channel awaiting an invite from that bot so
+// the user can see why the join is stuck, and the channel parks in InviteFailed
+// (a rejection is definitive; only an absent bot keeps retrying via backoff).
+//
+// The guards make this safe to call from the PRIVMSG and NOTICE hot paths: the
+// message must be addressed to us directly, not to a channel (a channel announce
+// is never matched - this also stops a bot that is both the announcer and the
+// invite bot from tripping a sibling channel), and only channels in
+// AwaitingInvite whose invite command targets this exact bot are touched, so
+// ordinary bot chatter cannot raise a false error.
+func (h *Handler) handleInviteResponse(msg ircmsg.Message) {
+	// a direct message from the bot is addressed to our nick; a channel message
+	// (announce, topic, etc.) targets the channel and must not be treated as an
+	// invite reply
+	if len(msg.Params) < 1 || isChannelTarget(msg.Params[0]) {
+		return
+	}
+
+	nick := strings.ToLower(msg.Nick())
+	if nick == "" || nick == "nickserv" {
+		return
+	}
+
+	reason := ""
+	if len(msg.Params) > 0 {
+		reason = strings.TrimSpace(msg.Params[len(msg.Params)-1])
+	}
+
+	for _, channel := range h.channels.Iterator() {
+		if !channel.IsEnabled() {
+			continue
+		}
+
+		sm := channel.StateMachine()
+		if sm == nil || sm.CurrentState() != ChannelStateAwaitingInvite {
+			continue
+		}
+
+		if botNick := inviteBotNick(channel.InviteCommand()); botNick == "" || botNick != nick {
+			continue
+		}
+
+		errMsg := fmt.Sprintf("invite rejected by %s", msg.Nick())
+		if reason != "" {
+			errMsg = fmt.Sprintf("%s: %s", errMsg, reason)
+		}
+
+		h.log.Warn().Str("bot", nick).Str("channel", channel.Name).Str("reason", reason).Msg("invite request rejected by bot")
+		sm.OnInviteFailed(errMsg)
 	}
 }
 
@@ -1469,20 +1568,45 @@ func (h *Handler) PreferredNick() string {
 func (h *Handler) handleMode(msg ircmsg.Message) {
 	h.log.Trace().Msgf("MODE: %+v", msg)
 
-	nick := msg.Params[0]
-	//channel := msg.Params[1]
-	channel := strings.ToLower(msg.Params[1])
+	// MODE <target> <modestring> [<args>...]
+	if len(msg.Params) < 2 {
+		return
+	}
 
-	// if our nick and user mode +r (Identifies the nick as being Registered (settable by services only)) then return
-	if h.isOurCurrentNick(nick) && strings.Contains(channel, "+r") {
+	target := msg.Params[0]
+	modes := msg.Params[1]
+
+	// if our nick is set +r (Identifies the nick as being Registered, settable by
+	// services only) then we're authenticated
+	if h.isOurCurrentNick(target) && modeAdds(modes, 'r') {
 		h.setAuthenticated()
 
 		return
 	}
 
-	if botModeEnabled, botModeChar := h.botModeConfig(); botModeEnabled && botModeChar != "" && h.isOurCurrentNick(nick) && strings.Contains(channel, "+"+botModeChar) {
+	if botModeEnabled, botModeChar := h.botModeConfig(); botModeEnabled && len(botModeChar) == 1 && h.isOurCurrentNick(target) && modeAdds(modes, botModeChar[0]) {
 		h.authenticate()
 	}
+}
+
+// modeAdds reports whether an IRC mode string adds the given flag: the flag
+// appears in a '+' section and is not subsequently removed. This is stricter
+// than a substring check, which could be tripped by an unrelated multi-char
+// mode string that merely contains "+<flag>".
+func modeAdds(modes string, flag byte) bool {
+	adding := false
+	added := false
+	for i := 0; i < len(modes); i++ {
+		switch modes[i] {
+		case '+':
+			adding = true
+		case '-':
+			adding = false
+		case flag:
+			added = adding
+		}
+	}
+	return added
 }
 
 // listens for ERR_UMODEUNKNOWNFLAG events
