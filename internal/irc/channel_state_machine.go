@@ -33,8 +33,16 @@ const (
 // so tests can shorten them; the caps/counts are fixed.
 const (
 	defaultInviteResponseTimeout = 30 * time.Second
-	defaultJoinConfirmTimeout    = 45 * time.Second
-	defaultErrorRetryBaseDelay   = 15 * time.Minute
+	// defaultInviteResponseGrace is how long we wait, after a present invite bot
+	// answers our request with a plain message, for a JOIN before concluding the
+	// bot refused us. Some trackers' bots acknowledge positively ("attempting to
+	// join you") and then have the server force-join us near-instantly, so we must
+	// not treat that first message as a rejection - the JOIN, not the message, is
+	// authoritative. Long enough to cover a force-join round trip, short enough to
+	// surface a genuine rejection promptly.
+	defaultInviteResponseGrace = 5 * time.Second
+	defaultJoinConfirmTimeout  = 45 * time.Second
+	defaultErrorRetryBaseDelay = 15 * time.Minute
 
 	maxErrorRetries    = 8
 	maxErrorRetryDelay = 6 * time.Hour
@@ -97,6 +105,7 @@ var validChannelTransitions = map[ChannelState][]ChannelState{
 		// a rejection is a definitive "no": the channel parks here (no auto-retry)
 		// and recovers only via an explicit INVITE, a config change or a reconnect
 		ChannelStateJoining,
+		ChannelStateMonitoring, // a late JOIN confirmation (force-join) should still recover
 	},
 	ChannelStateAwaitingInviteBot: {
 		ChannelStateAwaitingInvite,
@@ -149,23 +158,31 @@ type ChannelStateMachine struct {
 	joinGen       int // bumped on each Joining entry; guards stale join-timeout fires
 	errorAttempts int
 
+	// invite-response bookkeeping (guarded by m). A present invite bot that answers
+	// our request but has not (yet) joined us is only treated as a rejection once
+	// the grace timer elapses without a JOIN; see OnInviteBotResponse.
+	inviteResponded    bool
+	inviteRejectReason string
+
 	// tunable delays, immutable after construction (tests may set them before use)
-	inviteTimeout  time.Duration
-	joinTimeout    time.Duration
-	errorBaseDelay time.Duration
+	inviteTimeout       time.Duration
+	inviteResponseGrace time.Duration
+	joinTimeout         time.Duration
+	errorBaseDelay      time.Duration
 }
 
 func NewChannelStateMachine(channel *Channel, handler *Handler, inviteCommand string) *ChannelStateMachine {
 	return &ChannelStateMachine{
-		state:          ChannelStateIdle,
-		channel:        channel,
-		handler:        handler,
-		log:            handler.log.With().Str("channel", channel.Name).Str("component", "channel-state").Logger(),
-		inviteCommand:  strings.TrimSpace(inviteCommand),
-		authAttempts:   0,
-		inviteTimeout:  defaultInviteResponseTimeout,
-		joinTimeout:    defaultJoinConfirmTimeout,
-		errorBaseDelay: defaultErrorRetryBaseDelay,
+		state:               ChannelStateIdle,
+		channel:             channel,
+		handler:             handler,
+		log:                 handler.log.With().Str("channel", channel.Name).Str("component", "channel-state").Logger(),
+		inviteCommand:       strings.TrimSpace(inviteCommand),
+		authAttempts:        0,
+		inviteTimeout:       defaultInviteResponseTimeout,
+		inviteResponseGrace: defaultInviteResponseGrace,
+		joinTimeout:         defaultJoinConfirmTimeout,
+		errorBaseDelay:      defaultErrorRetryBaseDelay,
 	}
 }
 
@@ -216,7 +233,7 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 	case ChannelStateAwaitingInviteBot:
 		sm.handleWaitForInviteBot()
 	case ChannelStateInviteFailed:
-		// entered by direct assignment in OnInviteFailed; parks with no entry action
+		// entered by direct assignment in onInviteResponseTimeout; parks with no entry action
 	case ChannelStateInviteFailedNoSuchNick:
 		sm.handleNoSuchNick()
 	case ChannelStateMonitoring:
@@ -266,9 +283,11 @@ func (sm *ChannelStateMachine) Reset() {
 	sm.state = ChannelStateIdle
 	sm.authAttempts = 0
 	sm.errorAttempts = 0
-	sm.inviteGen++ // invalidate any pending invite-timeout callback
+	sm.inviteGen++ // invalidate any pending invite-timeout / grace callback
 	sm.joinGen++   // invalidate any pending join-timeout callback
 	sm.joinAfterInvite = false
+	sm.inviteResponded = false
+	sm.inviteRejectReason = ""
 	sm.m.Unlock()
 
 	// broadcast outside the lock so the UI reflects the drop immediately
@@ -295,6 +314,9 @@ func (sm *ChannelStateMachine) handleAwaitingInvite() {
 	sm.lastAttempt = time.Now()
 	sm.authAttempts++
 	sm.inviteGen++
+	// fresh attempt: forget any bot response recorded for a previous one
+	sm.inviteResponded = false
+	sm.inviteRejectReason = ""
 	gen := sm.inviteGen
 	attempt := sm.authAttempts
 	timeout := sm.inviteTimeout
@@ -312,19 +334,25 @@ func (sm *ChannelStateMachine) handleAwaitingInvite() {
 
 // onInviteTimeout fires when we have waited too long for a response to the invite
 // command. It only acts if the channel is still waiting for the same invite
-// attempt (gen), otherwise an INVITE/NOSUCHNICK/reset already moved us on.
+// attempt (gen), otherwise an INVITE/NOSUCHNICK/reset already moved us on. If the
+// bot HAS answered (inviteResponded), it defers entirely to the grace timer
+// (onInviteResponseTimeout): the bot is present, so this is a rejection to be
+// parked, not an absent bot to retry - retrying here would re-send the invite to a
+// bot that already answered and discard its reason. This matters when the bot
+// replies in the last inviteResponseGrace seconds of the timeout window, where
+// this timer would otherwise fire first.
 func (sm *ChannelStateMachine) onInviteTimeout(gen int) {
 	sm.m.Lock()
-	if sm.state != ChannelStateAwaitingInvite || sm.inviteGen != gen {
+	if sm.state != ChannelStateAwaitingInvite || sm.inviteGen != gen || sm.inviteResponded {
 		sm.m.Unlock()
 		return
 	}
 	// Flip to the backoff state under the same lock that validated we are still on
 	// this invite attempt (AwaitingInvite -> AwaitingInviteBot is a valid
 	// transition). Doing this atomically - rather than releasing the lock and
-	// calling transition() - means a concurrent OnInviteFailed, which parks by
-	// direct assignment, cannot be overtaken and leave the channel retrying a bot
-	// that has already refused us.
+	// calling transition() - means a concurrent onInviteResponseTimeout, which
+	// parks by direct assignment (and bumps inviteGen), cannot be overtaken and
+	// leave the channel retrying a bot that has already refused us.
 	sm.state = ChannelStateAwaitingInviteBot
 	sm.m.Unlock()
 
@@ -418,34 +446,75 @@ func (sm *ChannelStateMachine) handleWaitForInviteBot() {
 	sm.transition(ChannelStateAwaitingInvite)
 }
 
-// OnInviteFailed is called when a present invite bot answers our invite command
-// with a message instead of an actual INVITE (e.g. a bad IRC key, or an account
-// that is not registered on the tracker). It only acts while we are actively
-// awaiting an invite; the bot's reason is surfaced on the channel and the channel
-// parks in InviteFailed rather than retrying. This is the deliberate counterpart
-// to an *absent* bot (no-such-nick / silent timeout), which keeps retrying via
-// backoff because the bot may simply not be connected yet.
-func (sm *ChannelStateMachine) OnInviteFailed(reason string) {
+// OnInviteBotResponse is called when a present invite bot answers our invite
+// command with a plain NOTICE/DM instead of an actual INVITE. This is deliberately
+// NOT treated as an immediate failure: several trackers
+// acknowledge positively - "Attempting to join you to #chan" - and then have the
+// server force-join us near-instantly, so the JOIN, not the message, is the
+// authoritative signal of success. We record the bot's reason and arm a short
+// grace timer; whichever happens first decides the outcome:
+//   - a JOIN confirmation moves us to Monitoring (the grace fire then no-ops), or
+//   - the grace elapses with no join -> the bot answered but never let us in, a
+//     definitive rejection: park in InviteFailed with the reason (see
+//     onInviteResponseTimeout).
+//
+// It only acts while we are actively awaiting an invite. An *absent* bot never
+// calls this, so its silent invite timeout still routes to the backoff/retry loop
+// (the bot may simply not be connected yet).
+func (sm *ChannelStateMachine) OnInviteBotResponse(reason string) {
 	sm.m.Lock()
 	if sm.state != ChannelStateAwaitingInvite {
 		sm.m.Unlock()
 		return
 	}
-	// Park by direct assignment (like OnParted/OnKicked) so the state check and the
-	// state change are atomic under one lock hold: a concurrently-firing
-	// onInviteTimeout cannot slip between a released check and the transition and
-	// flip the channel into the retry loop (which would spam a bot that already
-	// refused us). Bumping inviteGen neutralises that pending timeout so it no-ops
-	// when it resumes. The channel now recovers only if the bot invites us after
-	// all (OnInvite -> Joining), or the user changes the config / the connection is
-	// reset (both re-run the join workflow) - never on our own initiative, so we
-	// neither spin nor re-send a request the bot has already rejected.
-	sm.state = ChannelStateInviteFailed
-	sm.inviteGen++
+	// keep the latest message as the reason we would surface on failure
+	sm.inviteRejectReason = reason
+	if sm.inviteResponded {
+		// grace already armed for this attempt; a repeat NOTICE just updates the reason
+		sm.m.Unlock()
+		return
+	}
+	sm.inviteResponded = true
+	gen := sm.inviteGen
+	grace := sm.inviteResponseGrace
 	sm.m.Unlock()
 
+	sm.log.Debug().Str("reason", reason).Msg("invite bot responded; waiting for join confirmation before deciding outcome")
+	time.AfterFunc(grace, func() { sm.onInviteResponseTimeout(gen) })
+}
+
+// onInviteResponseTimeout fires a short grace after a present invite bot answered
+// our request. If we are still awaiting an invite on the same attempt (no JOIN,
+// reset or new attempt in the meantime), the bot answered but refused us: this is
+// a definitive rejection, so park in InviteFailed with the bot's reason rather
+// than retrying (which would spam a bot that already said no). Parking by direct
+// assignment under one lock - and bumping inviteGen - keeps it atomic w.r.t. the
+// still-pending silent invite timeout, which then no-ops.
+func (sm *ChannelStateMachine) onInviteResponseTimeout(gen int) {
+	sm.m.Lock()
+	if sm.state != ChannelStateAwaitingInvite || sm.inviteGen != gen {
+		sm.m.Unlock()
+		return
+	}
+	reason := sm.inviteRejectReason
+	if reason == "" {
+		reason = "invite bot responded but did not grant access"
+	}
+	sm.state = ChannelStateInviteFailed
+	sm.inviteGen++
+	// Set the connection error while STILL holding sm.m. A racing late force-join
+	// (OnJoinSuccess -> transition(InviteFailed -> Monitoring)) must acquire sm.m in
+	// transition() only after we release it here, so its handleMonitoring - which
+	// clears this error - is guaranteed to run AFTER SetConnectionError rather than
+	// racing it (which would otherwise leave the channel Monitoring but flagged
+	// errored until the next reconnect). Deadlock-safe: the lock order is only ever
+	// sm.m -> channel.m (SetConnectionError takes channel.m and never re-enters sm;
+	// no path takes channel.m then sm.m - Channel.SetInviteCommand releases channel.m
+	// before entering the state machine).
 	sm.channel.SetConnectionError(reason)
-	sm.log.Warn().Msg("invite request rejected by bot; parking channel until credentials are fixed or an invite arrives")
+	sm.m.Unlock()
+
+	sm.log.Warn().Str("reason", reason).Msg("invite request rejected by bot; parking channel until credentials are fixed or an invite arrives")
 	sm.broadcastStateChange(ChannelStateInviteFailed)
 }
 
@@ -475,12 +544,24 @@ func (sm *ChannelStateMachine) handleMonitoring() {
 	// a successful join clears the retry/backoff bookkeeping
 	sm.authAttempts = 0
 	sm.errorAttempts = 0
+	sm.inviteResponded = false
+	sm.inviteRejectReason = ""
 	sm.m.Unlock()
 
 	sm.channel.SetMonitoring()
 	sm.log.Debug().Msg("monitoring channel")
 	// onStateEntry broadcasts the Monitoring state after this runs, so the event
 	// reflects the cleared errors / set monitoring flag
+
+	// Re-evaluate the network's operational state now that this channel's monitoring
+	// effects (flag set, errors cleared) have settled. handler.handleJoined calls
+	// OnChannelJoined inline right after OnJoinSuccess - i.e. BEFORE this async entry
+	// action runs - so on the stale pre-monitoring snapshot the connection SM can
+	// latch StateError (any Error/InviteFailed -> Monitoring recovery, e.g. a late
+	// force-join). This second notification lets it settle on the joined state.
+	if sm.handler != nil && sm.handler.stateMachine != nil {
+		sm.handler.stateMachine.OnChannelJoined(sm.channel.Name)
+	}
 }
 
 // OnParted marks a monitored channel as parted when we leave it. The state is

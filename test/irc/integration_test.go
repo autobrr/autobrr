@@ -258,3 +258,62 @@ func TestInviteLateAcceptRecovers(t *testing.T) {
 	bot.Invite("autobrr", "#inv")
 	inst.WaitForMonitoring("#inv", 15*time.Second)
 }
+
+// TestInvitePositiveAckForceJoin verifies the PTP / Hummingbird flow end to end:
+// the invite bot answers the invite command with a POSITIVE NOTICE ("attempting
+// to join you") and the server then force-joins us. The positive message must not
+// be mistaken for a rejection - the channel must reach Monitoring, and no invite
+// error may be surfaced. Regression test for a bot reply being treated as a
+// failure even though the join succeeds.
+func TestInvitePositiveAckForceJoin(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#inv", ircd.InviteOnly(), ircd.Announcer("Gatekeeper"))
+	srv.AddBot("Gatekeeper", func(b *ircd.Bot, from, text string) {
+		// acknowledge positively, then force-join - like Hummingbird
+		b.Notice(from, "Hello! Attempting to join you to #inv")
+		b.ForceJoin(from, "#inv")
+	})
+
+	def := harness.InviteDefinition("inv", "#inv", "Gatekeeper", "Gatekeeper")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#inv"))
+	net.InviteCommand = inviteCmd
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#inv", 15*time.Second)
+	// the whole network must report healthy (reached operational), not just the channel
+	inst.WaitForHealthy(15 * time.Second)
+
+	if reason := inst.LastError("#inv"); reason != "" {
+		t.Fatalf("a positive-ack force-join must not surface an error, got %q", reason)
+	}
+}
+
+// TestInviteRejectThenLateForceJoinRecovers exercises the network-recovery fix end
+// to end: the bot answers with a NOTICE (parking the channel in InviteFailed once
+// the grace elapses with no join) and only LATER force-joins us. The channel must
+// recover to Monitoring AND the network-level state machine must climb back out of
+// the transient error to healthy, rather than staying stuck until a reconnect.
+func TestInviteRejectThenLateForceJoinRecovers(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#inv", ircd.InviteOnly(), ircd.Announcer("Gatekeeper"))
+	srv.AddBot("Gatekeeper", func(b *ircd.Bot, from, text string) {
+		b.Notice(from, "Please hold, verifying your request...")
+		// force-join only AFTER the grace (prod default 5s) has parked the channel
+		go func() {
+			time.Sleep(7 * time.Second)
+			b.ForceJoin(from, "#inv")
+		}()
+	})
+
+	def := harness.InviteDefinition("inv", "#inv", "Gatekeeper", "Gatekeeper")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#inv"))
+	net.InviteCommand = inviteCmd
+
+	inst := harness.Start(t, net, harness.Defs(def))
+
+	// the bot answered but did not join in time -> parks
+	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
+	// the late force-join recovers the channel and the network returns to healthy
+	inst.WaitForMonitoring("#inv", 15*time.Second)
+	inst.WaitForHealthy(15 * time.Second)
+}

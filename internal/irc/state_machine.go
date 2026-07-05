@@ -49,7 +49,18 @@ var validTransitions = map[ConnectionState][]ConnectionState{
 	StateJoiningChannels:      {StateFullyOperational, StatePartiallyOperational, StateError, StateDisconnected},
 	StateFullyOperational:     {StatePartiallyOperational, StateError, StateDisconnected},
 	StatePartiallyOperational: {StateFullyOperational, StateError, StateDisconnected},
-	StateError:                {StateDisconnected, StateConnecting},
+	// Error is recoverable without a reconnect: when a channel that had failed
+	// rejoins (updateOperationalState re-runs on OnChannelJoined), the network must
+	// be able to climb back to operational. These channel-driven events only fire on
+	// a live connection, so a genuine connection-level error still ends in a
+	// disconnect/reconnect rather than a false recovery.
+	//
+	// INVARIANT this relies on: every ConnectionStateMachine.OnError caller must tear
+	// the connection down (Handler.Stop()) so no channel JOIN can arrive afterwards
+	// and falsely climb the network back out of a real connection-level error. All
+	// current callers do (they are pre-authentication auth failures + Stop()). Do not
+	// add an OnError path that leaves the socket live without also gating this climb.
+	StateError: {StateDisconnected, StateConnecting, StateFullyOperational, StatePartiallyOperational},
 }
 
 type ConnectionStateMachine struct {

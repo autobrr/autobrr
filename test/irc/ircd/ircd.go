@@ -270,6 +270,13 @@ func (b *Bot) Privmsg(nick, text string) {
 	b.srv.sendToNick(nick, fmt.Sprintf(":%s!%s PRIVMSG %s :%s", b.nick, userHost, nick, text))
 }
 
+// ForceJoin has the server push a client into a channel on the bot's behalf (see
+// Server.ForceJoin). It models a gatekeeper that acknowledges the invite command
+// and then force-joins you, rather than sending an INVITE you must act on yourself.
+func (b *Bot) ForceJoin(nick, channel string) {
+	b.srv.ForceJoin(nick, channel)
+}
+
 // ---- scripting helpers used by tests ----
 
 // Announce broadcasts a channel PRIVMSG as if fromNick (an announcer) posted it.
@@ -288,6 +295,32 @@ func (s *Server) Kick(channel, nick, by, reason string) {
 	s.mu.Lock()
 	delete(ch.members, strings.ToLower(nick))
 	s.mu.Unlock()
+}
+
+// ForceJoin pushes a client into a channel as if the server joined it (a
+// SAJOIN-style force-join): it adds the nick to the channel, echoes the JOIN and
+// sends the NAMES reply, bypassing the +i/+k/+r gate checks. This models a
+// tracker whose invite bot acknowledges the request and then has the server join
+// you, instead of sending an INVITE. No-op if the nick is not a connected client.
+func (s *Server) ForceJoin(nick, channel string) {
+	ch := s.getOrCreateChannel(channel)
+
+	s.mu.Lock()
+	c := s.conns[strings.ToLower(nick)]
+	if c == nil {
+		s.mu.Unlock()
+		return
+	}
+	ch.members[strings.ToLower(nick)] = c
+	ch.joins++
+	names := ch.namesList(nick)
+	s.mu.Unlock()
+
+	// echo the JOIN to the joiner (and any other members) and send NAMES, mirroring
+	// conn.joinOne so the handler's RPL_ENDOFNAMES join detection fires
+	s.broadcast(ch, fmt.Sprintf(":%s!%s JOIN %s", nick, userHost, ch.name), nil)
+	c.sendf(":%s 353 %s = %s :%s", serverName, nick, ch.name, strings.Join(names, " "))
+	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, nick, ch.name)
 }
 
 // sendToNick delivers a raw line to a registered client by nick (no-op if the

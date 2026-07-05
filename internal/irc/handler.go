@@ -1489,13 +1489,15 @@ func isChannelTarget(target string) bool {
 	}
 }
 
-// handleInviteResponse treats a NOTICE or DM from an invite bot as a failed
-// invite. A successful invite always arrives as an INVITE event, so a plain
-// message from the bot while a channel is still AwaitingInvite means the request
-// was rejected (bad IRC key, account not registered on the tracker, etc.). The
-// bot's reason is surfaced on every channel awaiting an invite from that bot so
-// the user can see why the join is stuck, and the channel parks in InviteFailed
-// (a rejection is definitive; only an absent bot keeps retrying via backoff).
+// handleInviteResponse routes a NOTICE or DM from an invite bot to the channels
+// awaiting an invite from that bot. A successful invite arrives as an INVITE
+// event (or, for some trackers, a server force-join), so a plain message from the
+// bot is only a *possible* rejection - not a definitive one. It is therefore NOT
+// failed immediately: the channel state machine records the bot's reason and waits
+// a short grace for a JOIN before concluding the request was refused (bad IRC key,
+// account not registered, etc.). This avoids false-failing bots like PTP's
+// Hummingbird that answer "attempting to join you" and then force-join us. See
+// ChannelStateMachine.OnInviteBotResponse.
 //
 // The guards make this safe to call from the PRIVMSG and NOTICE hot paths: the
 // message must be addressed to us directly, not to a channel (a channel announce
@@ -1540,8 +1542,8 @@ func (h *Handler) handleInviteResponse(msg ircmsg.Message) {
 			errMsg = fmt.Sprintf("%s: %s", errMsg, reason)
 		}
 
-		h.log.Warn().Str("bot", nick).Str("channel", channel.Name).Str("reason", reason).Msg("invite request rejected by bot")
-		sm.OnInviteFailed(errMsg)
+		h.log.Debug().Str("bot", nick).Str("channel", channel.Name).Str("reason", reason).Msg("invite bot responded; awaiting join confirmation")
+		sm.OnInviteBotResponse(errMsg)
 	}
 }
 

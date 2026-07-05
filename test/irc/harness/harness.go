@@ -90,12 +90,24 @@ func (i *Instance) LastError(channel string) string {
 	return i.sse.lastError(channel)
 }
 
+// WaitForHealthy blocks until a STATE event reports the network healthy (the
+// network-level ConnectionStateMachine reached an operational state and all
+// announce channels are monitoring), or fails. This asserts the whole-network
+// outcome, not just a single channel's state.
+func (i *Instance) WaitForHealthy(timeout time.Duration) {
+	i.t.Helper()
+	if !waitFor(i.sse.sawHealthy, timeout) {
+		i.t.Fatal("network never reported healthy")
+	}
+}
+
 // ---- SSE sink (also the state-observability hook) ----
 
 type stateEvent struct {
 	channel string
 	state   string
 	errors  []string
+	healthy bool
 }
 
 type sseCapture struct {
@@ -111,18 +123,30 @@ func (m *sseCapture) Publish(_ string, e *sse.Event) {
 		Channel          string   `json:"channel"`
 		State            string   `json:"state"`
 		ConnectionErrors []string `json:"connection_errors"`
+		Healthy          bool     `json:"healthy"`
 	}
 	if err := json.Unmarshal(e.Data, &payload); err != nil {
 		return
 	}
 	m.mu.Lock()
-	m.states = append(m.states, stateEvent{channel: payload.Channel, state: payload.State, errors: payload.ConnectionErrors})
+	m.states = append(m.states, stateEvent{channel: payload.Channel, state: payload.State, errors: payload.ConnectionErrors, healthy: payload.Healthy})
 	m.mu.Unlock()
 }
 
 // CreateStreamWithOpts / RemoveStream are unused by the handler; satisfy the interface.
 func (m *sseCapture) CreateStreamWithOpts(string, sse.StreamOpts) *sse.Stream { return nil }
 func (m *sseCapture) RemoveStream(string)                                     {}
+
+func (m *sseCapture) sawHealthy() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, s := range m.states {
+		if s.healthy {
+			return true
+		}
+	}
+	return false
+}
 
 func (m *sseCapture) hasState(channel, state string) bool {
 	m.mu.Lock()
