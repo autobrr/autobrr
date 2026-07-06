@@ -11,6 +11,7 @@ package harness
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -35,6 +36,10 @@ type Instance struct {
 type Options struct {
 	// Verbose routes handler logs to the test log at trace level. Off by default.
 	Verbose bool
+	// AllowRunError tolerates a non-nil error from Handler.Run instead of failing
+	// the test. Use it when the connection is expected to fail fatally (e.g. a ban
+	// that aborts registration): the handler still surfaces the reason and stops.
+	AllowRunError bool
 }
 
 // Start builds a Handler for network/defs, connects it to the (already running)
@@ -61,7 +66,7 @@ func Start(t testing.TB, network domain.IrcNetwork, defs []*domain.IndexerDefini
 
 	inst.Handler = irc.NewHandler(log, inst.sse, network, defs, inst.Releases, noopNotifier{})
 
-	if err := inst.Handler.Run(); err != nil {
+	if err := inst.Handler.Run(); err != nil && !o.AllowRunError {
 		t.Fatalf("harness: handler.Run: %v", err)
 	}
 	t.Cleanup(inst.Handler.Stop)
@@ -101,6 +106,25 @@ func (i *Instance) WaitForHealthy(timeout time.Duration) {
 	}
 }
 
+// WaitForNetworkError blocks until a network-level HEALTH event carries a
+// connection error containing substr, or fails. Use it to assert a network-wide
+// failure reason (e.g. a ban or auth failure) is surfaced to the UI.
+func (i *Instance) WaitForNetworkError(substr string, timeout time.Duration) {
+	i.t.Helper()
+	if !waitFor(func() bool { return i.sse.sawNetworkError(substr) }, timeout) {
+		i.t.Fatalf("network never surfaced an error containing %q", substr)
+	}
+}
+
+// WaitForStopped blocks until the handler has stopped (e.g. after a fatal
+// network-level failure such as a ban), or fails.
+func (i *Instance) WaitForStopped(timeout time.Duration) {
+	i.t.Helper()
+	if !waitFor(i.Handler.Stopped, timeout) {
+		i.t.Fatal("handler never stopped")
+	}
+}
+
 // ---- SSE sink (also the state-observability hook) ----
 
 type stateEvent struct {
@@ -111,26 +135,39 @@ type stateEvent struct {
 }
 
 type sseCapture struct {
-	mu     sync.Mutex
-	states []stateEvent
+	mu           sync.Mutex
+	states       []stateEvent
+	healthErrors []string // connection_errors observed on network-level HEALTH events
 }
 
 func (m *sseCapture) Publish(_ string, e *sse.Event) {
-	if string(e.Event) != "STATE" {
-		return
+	switch string(e.Event) {
+	case "STATE":
+		var payload struct {
+			Channel          string   `json:"channel"`
+			State            string   `json:"state"`
+			ConnectionErrors []string `json:"connection_errors"`
+			Healthy          bool     `json:"healthy"`
+		}
+		if err := json.Unmarshal(e.Data, &payload); err != nil {
+			return
+		}
+		m.mu.Lock()
+		m.states = append(m.states, stateEvent{channel: payload.Channel, state: payload.State, errors: payload.ConnectionErrors, healthy: payload.Healthy})
+		m.mu.Unlock()
+
+	case "HEALTH":
+		var payload struct {
+			ConnectionErrors []string `json:"connection_errors"`
+			Healthy          bool     `json:"healthy"`
+		}
+		if err := json.Unmarshal(e.Data, &payload); err != nil {
+			return
+		}
+		m.mu.Lock()
+		m.healthErrors = append(m.healthErrors, payload.ConnectionErrors...)
+		m.mu.Unlock()
 	}
-	var payload struct {
-		Channel          string   `json:"channel"`
-		State            string   `json:"state"`
-		ConnectionErrors []string `json:"connection_errors"`
-		Healthy          bool     `json:"healthy"`
-	}
-	if err := json.Unmarshal(e.Data, &payload); err != nil {
-		return
-	}
-	m.mu.Lock()
-	m.states = append(m.states, stateEvent{channel: payload.Channel, state: payload.State, errors: payload.ConnectionErrors, healthy: payload.Healthy})
-	m.mu.Unlock()
 }
 
 // CreateStreamWithOpts / RemoveStream are unused by the handler; satisfy the interface.
@@ -142,6 +179,17 @@ func (m *sseCapture) sawHealthy() bool {
 	defer m.mu.Unlock()
 	for _, s := range m.states {
 		if s.healthy {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *sseCapture) sawNetworkError(substr string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, e := range m.healthErrors {
+		if strings.Contains(e, substr) {
 			return true
 		}
 	}

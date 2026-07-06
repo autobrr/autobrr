@@ -102,6 +102,69 @@ func TestHandleJoinError_TooFewParams(t *testing.T) {
 	}
 }
 
+// TestHandleBannedStopsAndSurfacesReason verifies a 465 (ERR_YOUREBANNEDCREEP,
+// e.g. a G-Line) stops the network and surfaces the ban reason at the network
+// level (both stored for the poll and broadcast in real time), instead of silently
+// reconnecting into a ban loop.
+func TestHandleBannedStopsAndSurfacesReason(t *testing.T) {
+	h, sse := newTestHandler()
+
+	// a live state from which the connection SM can transition to Error
+	h.stateMachine.m.Lock()
+	h.stateMachine.currentState = StateConnected
+	h.stateMachine.m.Unlock()
+
+	msg := ircmsg.MakeMessage(nil, "irc.orpheus.network", ircevent.ERR_YOUREBANNEDCREEP,
+		"indokiwijuice|bot", "You are not welcome on this network. G-Lined: reconnect loop.")
+	h.handleBanned(msg)
+
+	// the ban reason is surfaced at the network level
+	h.m.RLock()
+	errs := slices.Clone(h.connectionErrors)
+	h.m.RUnlock()
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e, "banned from network") && strings.Contains(e, "G-Lined") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("ban reason should be surfaced in the network errors, got %v", errs)
+	}
+
+	// the network is stopped so it does not reconnect into the ban
+	if !h.Stopped() {
+		t.Fatal("network should be stopped after a 465 ban")
+	}
+
+	// and the reason is broadcast in real time (HEALTH event)
+	if !waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "banned from network") }, time.Second) {
+		t.Fatal("a ban should broadcast a HEALTH event carrying the reason")
+	}
+}
+
+// TestHandleBannedNoReason verifies a 465 with no trailing reason still stops the
+// network and records a generic ban error (no panic on short params).
+func TestHandleBannedNoReason(t *testing.T) {
+	h, _ := newTestHandler()
+	h.stateMachine.m.Lock()
+	h.stateMachine.currentState = StateConnected
+	h.stateMachine.m.Unlock()
+
+	// no params at all
+	h.handleBanned(ircmsg.MakeMessage(nil, "srv", ircevent.ERR_YOUREBANNEDCREEP))
+
+	h.m.RLock()
+	errs := slices.Clone(h.connectionErrors)
+	h.m.RUnlock()
+	if len(errs) != 1 || !strings.Contains(errs[0], "banned from network") {
+		t.Fatalf("expected a generic ban error, got %v", errs)
+	}
+	if !h.Stopped() {
+		t.Fatal("network should be stopped after a 465 ban")
+	}
+}
+
 // TestInitIndexersAppliesChannelPassword is a regression test for the +k channel:
 // a user-defined channel's persisted password must be applied on startup so the
 // JOIN is sent with the key.

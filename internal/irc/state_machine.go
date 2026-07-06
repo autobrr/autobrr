@@ -41,7 +41,14 @@ func (s ConnectionState) String() string {
 }
 
 var validTransitions = map[ConnectionState][]ConnectionState{
-	StateDisconnected:         {StateConnecting, StateConnected},
+	// StateError is reachable from Disconnected because the irc-go client auto-
+	// reconnects from inside Loop() without going back through Handler.Run() (so
+	// OnConnecting is never called and the SM stays Disconnected during the new
+	// registration). A fatal in-band failure on that reconnect - e.g. a 465 G-Line -
+	// calls OnError while still Disconnected; allowing the transition surfaces the
+	// reason in real time instead of logging a spurious invalid-transition. Safe per
+	// the StateError invariant below: every OnError caller also Stop()s.
+	StateDisconnected:         {StateConnecting, StateConnected, StateError},
 	StateConnecting:           {StateConnected, StateError, StateDisconnected},
 	StateConnected:            {StateAuthenticating, StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
 	StateAuthenticating:       {StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
@@ -225,11 +232,18 @@ func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 	case StateFullyOperational:
 		sm.log.Info().Msg("IRC connection fully operational")
 		sm.cleanup()
+		// a live operational connection means any prior network-wide error (ban,
+		// auth failure) is stale - drop it so it doesn't stick, especially on
+		// no-auth networks that never reach setAuthenticated
+		sm.handler.clearConnectErrors()
 		sm.handler.broadcastHealth()
 
 	case StatePartiallyOperational:
 		sm.log.Warn().Msg("IRC connection partially operational")
 		sm.cleanup()
+		// the network-level connection succeeded here too; remaining failures are
+		// per-channel, so clear stale network-wide errors
+		sm.handler.clearConnectErrors()
 		sm.handler.broadcastHealth()
 
 	case StateError:

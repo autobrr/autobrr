@@ -90,6 +90,57 @@ func TestNoneAuthJoinsDirectly(t *testing.T) {
 	inst.WaitForMonitoring("#none", 10*time.Second)
 }
 
+// TestBannedStopsAndSurfacesReason verifies end to end that a server ban (465
+// ERR_YOUREBANNEDCREEP, e.g. a G-Line) stops the network and surfaces the ban
+// reason to the UI via a network-level HEALTH event, rather than reconnecting into
+// a ban loop.
+func TestBannedStopsAndSurfacesReason(t *testing.T) {
+	const reason = "You are not welcome on this network. G-Lined: reconnect loop."
+	srv := ircd.New(t, ircd.Banned(reason))
+	srv.AddChannel("#none", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("none", "#none", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#none"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+
+	// the ban reason is surfaced at the network level...
+	inst.WaitForNetworkError("G-Lined", 10*time.Second)
+	// ...and the handler stops rather than reconnecting into the ban
+	inst.WaitForStopped(10 * time.Second)
+}
+
+// TestBannedAtRegistrationAbortsReconnectFast verifies the fatal-error
+// short-circuit of the reconnect backoff: a connect-time ban (465 sent before
+// registration completes) fails Connect(), but because handleBanned already
+// stopped the handler, the retry loop aborts IMMEDIATELY (returns Unrecoverable)
+// instead of waiting out the 15s reconnect backoff before noticing. The reason is
+// still surfaced and the handler ends stopped.
+func TestBannedAtRegistrationAbortsReconnectFast(t *testing.T) {
+	const reason = "You are not welcome on this network. G-Lined: reconnect loop."
+	srv := ircd.New(t, ircd.BannedAtRegistration(reason))
+	srv.AddChannel("#none", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("none", "#none", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#none"))
+
+	start := time.Now()
+	// Run returns an error here (the connect fails fatally); AllowRunError tolerates it
+	inst := harness.Start(t, net, harness.Defs(def), harness.Options{AllowRunError: true})
+	elapsed := time.Since(start)
+
+	// without the short-circuit, Run would block ~15s on the reconnect backoff
+	// before the retry loop noticed the Stop()
+	if elapsed > 10*time.Second {
+		t.Fatalf("Run blocked %s on a fatal ban; reconnect backoff was not short-circuited", elapsed)
+	}
+
+	inst.WaitForNetworkError("G-Lined", 5*time.Second)
+	if !inst.Handler.Stopped() {
+		t.Fatal("handler should be stopped after a connect-time ban")
+	}
+}
+
 // ---- kick
 
 // TestKickDoesNotRejoin verifies the deliberate policy that a kicked channel is

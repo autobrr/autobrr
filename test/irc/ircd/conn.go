@@ -192,6 +192,15 @@ func (c *conn) tryRegister() {
 	if c.sawCapLS && !c.capEnded {
 		return // still negotiating capabilities
 	}
+
+	// connect-time ban: reject with 465 before completing registration (no 001), so
+	// the client's Connect() fails - modelling a G-Line applied on connect.
+	if c.srv.banReason != "" && c.srv.banAtRegistration {
+		c.numeric(465, c.srv.banReason)
+		_ = c.nc.Close()
+		return
+	}
+
 	c.registered = true
 	c.srv.registerConn(c)
 
@@ -203,6 +212,16 @@ func (c *conn) tryRegister() {
 	c.sendf(":%s 375 %s :- %s Message of the Day -", serverName, c.nick, serverName)
 	c.sendf(":%s 372 %s :- in-process test ircd", serverName, c.nick)
 	c.sendf(":%s 376 %s :End of /MOTD command.", serverName, c.nick)
+
+	// modelled ban: registration succeeds, then the server K-Line/G-Lines us with a
+	// 465 and closes the link. Sending it post-welcome (rather than rejecting at
+	// registration) means the handler's Connect() succeeds and the 465 is delivered
+	// on the read loop - exercising handleBanned exactly as an in-session ban would,
+	// without tripping ircevent's connect-retry.
+	if c.srv.banReason != "" {
+		c.numeric(465, c.srv.banReason)
+		_ = c.nc.Close()
+	}
 }
 
 func (c *conn) handleJoin(msg ircmsg.Message) {

@@ -47,6 +47,14 @@ type Server struct {
 	// Off by default so tests that don't care about credentials just work.
 	requireValidSASL bool
 
+	// banReason, if set, makes the server reject every client with a 465
+	// (ERR_YOUREBANNEDCREEP) carrying this reason and then close the link -
+	// modelling a K-Line/G-Line. By default the ban is sent just AFTER the welcome
+	// (in-session); banAtRegistration sends it BEFORE registration completes
+	// (before 001), modelling a connect-time G-Line.
+	banReason         string
+	banAtRegistration bool
+
 	closed chan struct{}
 	wg     sync.WaitGroup
 }
@@ -63,6 +71,21 @@ func WithAccount(name, password string) Option {
 // account (see WithAccount). Use it to exercise the SASL-failure path.
 func RequireValidSASL() Option {
 	return func(s *Server) { s.requireValidSASL = true }
+}
+
+// Banned makes the server ban every client just after registration with a 465
+// (ERR_YOUREBANNEDCREEP) carrying reason, then close the connection - modelling an
+// in-session K-Line/G-Line. Use it to exercise the handler's ban handling.
+func Banned(reason string) Option {
+	return func(s *Server) { s.banReason = reason }
+}
+
+// BannedAtRegistration makes the server reject every client BEFORE registration
+// completes (a 465 in place of the welcome, then close) - modelling a connect-time
+// G-Line. This drives the handler's connect path, exercising the fatal-error
+// short-circuit of the reconnect backoff.
+func BannedAtRegistration(reason string) Option {
+	return func(s *Server) { s.banReason = reason; s.banAtRegistration = true }
 }
 
 // New starts a server on 127.0.0.1:0 and registers cleanup with tb.

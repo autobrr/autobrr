@@ -374,6 +374,9 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
 	client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
 
+	// the server has banned us (K-Line/G-Line); stop and surface the reason
+	client.AddCallback(ircevent.ERR_YOUREBANNEDCREEP, h.handleBanned) // 465
+
 	// surface failed JOIN attempts on the affected channel
 	client.AddCallback(ircevent.ERR_CHANNELISFULL, h.handleJoinError)  // 471
 	client.AddCallback(ircevent.ERR_INVITEONLYCHAN, h.handleJoinError) // 473
@@ -411,6 +414,20 @@ func (h *Handler) Run() (err error) {
 				if err := client.Connect(); err != nil {
 					h.log.Error().Err(err).Msg("client encountered connection error")
 					connectAttempts++
+
+					// A fatal in-band failure (a ban/G-Line, or a NickServ auth
+					// failure) is detected by its callback DURING registration and
+					// calls Stop() (setting ircStopped) before Connect() returns its
+					// error. Such a failure is not transient, so abort the reconnect
+					// loop immediately instead of waiting out the 15s backoff before
+					// the next attempt notices the stop.
+					h.m.RLock()
+					stopped := h.clientState == ircStopped
+					h.m.RUnlock()
+					if stopped {
+						return retry.Unrecoverable(err)
+					}
+
 					return err
 				}
 
@@ -790,6 +807,33 @@ func (h *Handler) handleSASLSuccess(_ ircmsg.Message) {
 	h.m.Lock()
 	h.saslauthed = true
 	h.m.Unlock()
+}
+
+// handleBanned handles ERR_YOUREBANNEDCREEP (465): the server has refused us with
+// a K-Line/G-Line ban and will close the link. This is a definitive, network-wide
+// rejection, so we surface the ban reason and STOP the network rather than letting
+// it reconnect - reconnecting cannot help and typically deepens the ban (the
+// example G-Line is literally "reconnect loop").
+func (h *Handler) handleBanned(msg ircmsg.Message) {
+	// the ban reason is the trailing parameter, e.g.
+	//   465 <nick> :You are not welcome on this network. G-Lined: reconnect loop.
+	reason := ""
+	if n := len(msg.Params); n > 0 {
+		reason = strings.TrimSpace(msg.Params[n-1])
+	}
+
+	errMsg := "banned from network"
+	if reason != "" {
+		errMsg = fmt.Sprintf("banned from network: %s", reason)
+	}
+
+	h.log.Error().Str("reason", reason).Msg("banned from network (465)")
+
+	h.addConnectError(errMsg)
+	h.stateMachine.OnError(errMsg)
+
+	// stop the network: reconnecting is futile and can worsen the ban
+	h.Stop()
 }
 
 func (h *Handler) handleSASLFail(_ ircmsg.Message) {
@@ -1672,6 +1716,18 @@ func (h *Handler) addConnectError(message string) {
 	h.connectionErrors = append(h.connectionErrors, message)
 }
 
+// clearConnectErrors drops any recorded network-level errors. It is called when
+// the network reaches an operational state: a live, operational connection means
+// any prior network-wide failure (a ban, a NickServ/SASL auth failure) no longer
+// applies. This is the clear path for networks that never authenticate (no
+// password/SASL/bot mode) and so never reach setAuthenticated, which also clears.
+func (h *Handler) clearConnectErrors() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.connectionErrors = []string{}
+}
+
 func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	h.m.RLock()
 	defer h.m.RUnlock()
@@ -1686,8 +1742,8 @@ func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	// Error and then Stop()s it - nilling the client and clearing connectedSince -
 	// so if we only reported errors while connected, the UI would show the network
 	// unhealthy with no reason at exactly the moment the reason matters. These
-	// errors survive Stop()/onDisconnect and are only cleared on a successful
-	// (re)authentication.
+	// errors survive Stop()/onDisconnect and are cleared when the network next
+	// reaches an operational state (clearConnectErrors) or re-authenticates.
 	netw.ConnectionErrors = slices.Clone(h.connectionErrors)
 
 	if h.client == nil {

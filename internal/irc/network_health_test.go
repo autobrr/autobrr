@@ -85,6 +85,29 @@ func TestAddConnectErrorDedups(t *testing.T) {
 	}
 }
 
+// TestOnErrorFromDisconnectedTransitions verifies a fatal error that arrives while
+// the SM is StateDisconnected - e.g. a 465 ban during an irc-go internal reconnect,
+// which does not go through Run()/OnConnecting - still drives the SM to Error and
+// broadcasts the reason in real time, instead of logging a spurious invalid
+// transition and dropping the health push.
+func TestOnErrorFromDisconnectedTransitions(t *testing.T) {
+	h, sse := newTestHandler()
+
+	h.stateMachine.m.Lock()
+	h.stateMachine.currentState = StateDisconnected
+	h.stateMachine.m.Unlock()
+
+	h.addConnectError("banned from network: G-Lined")
+	h.stateMachine.OnError("banned from network: G-Lined")
+
+	if !waitFor(func() bool { return h.stateMachine.GetState() == StateError }, time.Second) {
+		t.Fatalf("OnError from Disconnected should reach Error, got %s", h.stateMachine.GetState())
+	}
+	if !waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "G-Lined") }, time.Second) {
+		t.Fatal("OnError from Disconnected should broadcast the reason via a HEALTH event")
+	}
+}
+
 // TestReportStatusSurfacesErrorsWhenStopped is a regression test for the invisible
 // network failure: a NickServ auth failure drives the network to Error and Stop()s
 // it (client nilled, connectedSince cleared). ReportStatus must still surface the
@@ -145,5 +168,32 @@ func TestNetworkOperationalBroadcastsHealthy(t *testing.T) {
 		return found && healthy
 	}, time.Second) {
 		t.Fatal("reaching FullyOperational should broadcast a healthy HEALTH event")
+	}
+}
+
+// TestNetworkOperationalClearsStaleErrors is a regression test for sticky
+// network-level errors: a prior failure (e.g. a 465 ban) recorded in
+// connectionErrors must be cleared once the network reaches an operational state,
+// otherwise a no-auth network - which never calls setAuthenticated, the only other
+// clear path - would keep showing a healthy connection carrying a stale ban reason
+// after the ban lifts and the network reconnects.
+func TestNetworkOperationalClearsStaleErrors(t *testing.T) {
+	h, _ := newTestHandler()
+
+	// a stale network-level error from a previous (now-lifted) ban
+	h.addConnectError("banned from network: G-Lined: reconnect loop")
+
+	h.stateMachine.m.Lock()
+	h.stateMachine.currentState = StateJoiningChannels
+	h.stateMachine.m.Unlock()
+
+	h.stateMachine.transition(StateFullyOperational)
+
+	if !waitFor(func() bool {
+		h.m.RLock()
+		defer h.m.RUnlock()
+		return len(h.connectionErrors) == 0
+	}, time.Second) {
+		t.Fatal("reaching FullyOperational should clear stale network-level errors")
 	}
 }
