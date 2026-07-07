@@ -324,6 +324,7 @@ The following environment variables can be used:
 | `AUTOBRR__CUSTOM_DEFINITIONS`          | Path to custom indexer definitions                       | -                                        |
 | `AUTOBRR__CHECK_FOR_UPDATES`           | Enable update checks                                     | `true`                                   |
 | `AUTOBRR__DATABASE_TYPE`               | Database type (sqlite/postgres)                          | `sqlite`                                 |
+| `AUTOBRR__DATABASE_MAX_BACKUPS`        | Number of backups to keep                                | `5`                                      |
 | `AUTOBRR__DATABASE_DSN`                | Database connection string. Use this or individual vars  | -                                        |
 | `AUTOBRR__POSTGRES_HOST`               | PostgreSQL host                                          | -                                        |
 | `AUTOBRR__POSTGRES_PORT`               | PostgreSQL port                                          | `5432`                                   |
@@ -345,6 +346,9 @@ The following environment variables can be used:
 | `AUTOBRR__METRICS_HOST`                | Metrics listen address                                   | `127.0.0.1`                              |
 | `AUTOBRR__METRICS_PORT`                | Metrics listen port                                      | `9074`                                   |
 | `AUTOBRR__METRICS_BASIC_AUTH_USERS`    | Metrics basic auth users                                 | -                                        |
+| `AUTOBRR__PROFILING_ENABLED`           | Enable profiling                                         | `false`                                  |
+| `AUTOBRR__PROFILING_HOST`              | Profiling listen address                                 | `127.0.0.1`                              |
+| `AUTOBRR__PROFILING_PORT`              | Profiling listen port                                    | `6060`                                   |
 
 #### Docker secrets
 
