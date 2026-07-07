@@ -327,6 +327,7 @@ export const APIClient = {
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),
+    pruneDeprecatedIndexers: () => appClient.Post<{ removed: number }>("api/filters/indexers/prune-deprecated"),
     delete: (id: number) => appClient.Delete(`api/filters/${id}`),
     notifications: {
       get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
@@ -359,10 +360,12 @@ export const APIClient = {
     })
   },
   indexers: {
-    // returns indexer options for all currently present/enabled indexers
+    // returns all configured indexer rows (including archived/deprecated ones, flagged)
     getOptions: () => appClient.Get<Indexer[]>("api/indexer/options"),
     // returns indexer definitions for all currently present/enabled indexers
     getAll: () => appClient.Get<IndexerDefinition[]>("api/indexer"),
+    // returns metadata for removed/deprecated indexers
+    getDeprecations: () => appClient.Get<IndexerDeprecation[]>("api/indexer/deprecations"),
     // returns all possible indexer definitions
     getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", {

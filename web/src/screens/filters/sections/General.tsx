@@ -34,7 +34,8 @@ const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
 export const General = () => {
   const { t } = useTranslation(["options", "filters"]);
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
-  const indexerOptions = indexersQuery.data && indexersQuery.data.map(MapIndexer)
+  // exclude archived/deprecated indexers so they can no longer be selected on a filter
+  const indexerOptions = indexersQuery.data && indexersQuery.data.filter((indexer) => !indexer.archived).map(MapIndexer)
 
   const duplicateProfilesQuery = useSuspenseQuery(ReleaseProfileDuplicateList())
   const duplicateProfilesOptions = duplicateProfilesQuery.data && duplicateProfilesQuery.data.map(MapReleaseProfile)

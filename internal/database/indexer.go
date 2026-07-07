@@ -91,7 +91,7 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 
 func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "use_proxy", "proxy_id", "settings").
+		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "use_proxy", "proxy_id", "settings", "archived", "archived_at").
 		From("indexer").
 		OrderBy("name ASC")
 
@@ -114,10 +114,11 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 		var identifierExternal, implementation, baseURL sql.Null[string]
 		var proxyID sql.Null[int64]
+		var archivedAt sql.NullTime
 		var settings string
 		var settingsMap map[string]string
 
-		if err := rows.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &i.UseProxy, &proxyID, &settings); err != nil {
+		if err := rows.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &i.UseProxy, &proxyID, &settings, &i.Archived, &archivedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -125,6 +126,10 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 		i.Implementation = domain.IndexerImplementation(implementation.V)
 		i.BaseURL = baseURL.V
 		i.ProxyID = proxyID.V
+		if archivedAt.Valid {
+			t := archivedAt.Time
+			i.ArchivedAt = &t
+		}
 
 		if err = json.Unmarshal([]byte(settings), &settingsMap); err != nil {
 			return nil, errors.Wrap(err, "error unmarshal settings")
@@ -143,7 +148,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 
 func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "use_proxy", "proxy_id", "settings").
+		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "use_proxy", "proxy_id", "settings", "archived", "archived_at").
 		From("indexer").
 		Where(sq.Eq{"id": id})
 
@@ -161,8 +166,9 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 
 	var identifierExternal, implementation, baseURL, settings sql.Null[string]
 	var proxyID sql.Null[int64]
+	var archivedAt sql.NullTime
 
-	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &i.UseProxy, &proxyID, &settings); err != nil {
+	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &i.UseProxy, &proxyID, &settings, &i.Archived, &archivedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -174,6 +180,10 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	i.Implementation = domain.IndexerImplementation(implementation.V)
 	i.BaseURL = baseURL.V
 	i.ProxyID = proxyID.V
+	if archivedAt.Valid {
+		t := archivedAt.Time
+		i.ArchivedAt = &t
+	}
 
 	var settingsMap map[string]string
 	if err = json.Unmarshal([]byte(settings.V), &settingsMap); err != nil {
@@ -187,7 +197,7 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 
 func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "use_proxy", "proxy_id", "settings").
+		Select("id", "enabled", "name", "identifier", "identifier_external", "implementation", "base_url", "use_proxy", "proxy_id", "settings", "archived", "archived_at").
 		From("indexer")
 
 	if req.ID > 0 {
@@ -212,8 +222,9 @@ func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (
 
 	var identifierExternal, implementation, baseURL, settings sql.Null[string]
 	var proxyID sql.Null[int64]
+	var archivedAt sql.NullTime
 
-	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &i.UseProxy, &proxyID, &settings); err != nil {
+	if err := row.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &implementation, &baseURL, &i.UseProxy, &proxyID, &settings, &i.Archived, &archivedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -225,6 +236,10 @@ func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (
 	i.Implementation = domain.IndexerImplementation(implementation.V)
 	i.BaseURL = baseURL.V
 	i.ProxyID = proxyID.V
+	if archivedAt.Valid {
+		t := archivedAt.Time
+		i.ArchivedAt = &t
+	}
 
 	var settingsMap map[string]string
 	if err = json.Unmarshal([]byte(settings.V), &settingsMap); err != nil {
@@ -238,7 +253,7 @@ func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (
 
 func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "identifier", "identifier_external", "base_url", "use_proxy", "proxy_id", "settings").
+		Select("indexer.id", "enabled", "name", "identifier", "identifier_external", "base_url", "use_proxy", "proxy_id", "settings", "archived", "archived_at").
 		From("indexer").
 		Join("filter_indexer ON indexer.id = filter_indexer.indexer_id").
 		Where(sq.Eq{"filter_indexer.filter_id": id})
@@ -263,8 +278,9 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 		var settingsMap map[string]string
 		var identifierExternal, baseURL sql.Null[string]
 		var proxyID sql.Null[int64]
+		var archivedAt sql.NullTime
 
-		if err := rows.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &baseURL, &i.UseProxy, &proxyID, &settings); err != nil {
+		if err := rows.Scan(&i.ID, &i.Enabled, &i.Name, &i.Identifier, &identifierExternal, &baseURL, &i.UseProxy, &proxyID, &settings, &i.Archived, &archivedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -275,6 +291,10 @@ func (r *IndexerRepo) FindByFilterID(ctx context.Context, id int) ([]domain.Inde
 		i.IdentifierExternal = identifierExternal.V
 		i.BaseURL = baseURL.V
 		i.ProxyID = proxyID.V
+		if archivedAt.Valid {
+			t := archivedAt.Time
+			i.ArchivedAt = &t
+		}
 		i.Settings = settingsMap
 
 		indexers = append(indexers, i)
@@ -343,4 +363,127 @@ func (r *IndexerRepo) ToggleEnabled(ctx context.Context, indexerID int, enabled 
 	}
 
 	return nil
+}
+
+// ArchiveByIdentifier marks an orphaned indexer row as archived (a tombstone). Idempotent:
+// only touches rows that are not already archived, and never overwrites an existing
+// archived_at stamp.
+func (r *IndexerRepo) ArchiveByIdentifier(ctx context.Context, identifier string) error {
+	queryBuilder := r.db.squirrel.
+		Update("indexer").
+		Set("archived", true).
+		Set("archived_at", sq.Expr("COALESCE(archived_at, CURRENT_TIMESTAMP)")).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"identifier": identifier}).
+		Where(sq.Eq{"archived": false})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+// UnarchiveByIdentifier clears the archived flag, e.g. when a removed indexer's definition
+// comes back (a re-added custom definition). Idempotent.
+func (r *IndexerRepo) UnarchiveByIdentifier(ctx context.Context, identifier string) error {
+	queryBuilder := r.db.squirrel.
+		Update("indexer").
+		Set("archived", false).
+		Set("archived_at", nil).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"identifier": identifier}).
+		Where(sq.Eq{"archived": true})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+// UpsertDeprecation writes (or refreshes) the metadata for a deprecated indexer, keyed by
+// identifier so it survives even when the indexer row was hard-deleted.
+func (r *IndexerRepo) UpsertDeprecation(ctx context.Context, d domain.IndexerDeprecation) error {
+	queryBuilder := r.db.squirrel.
+		Insert("indexer_deprecation").
+		Columns("identifier", "name", "reason", "issue_url", "alias_of", "deprecated_at").
+		Values(d.Identifier, d.Name, d.Reason, d.IssueURL, toNullString(d.AliasOf), d.DeprecatedAt.Format(time.RFC3339)).
+		Suffix("ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name, reason = EXCLUDED.reason, issue_url = EXCLUDED.issue_url, alias_of = EXCLUDED.alias_of, deprecated_at = EXCLUDED.deprecated_at")
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+// ListDeprecations returns all known indexer deprecations, with a count of how many filters
+// still reference each one (its cleanup blast radius).
+func (r *IndexerRepo) ListDeprecations(ctx context.Context) ([]domain.IndexerDeprecation, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"d.identifier",
+			"d.name",
+			"d.reason",
+			"d.issue_url",
+			"d.alias_of",
+			"d.deprecated_at",
+			"(SELECT COUNT(*) FROM filter_indexer fi JOIN indexer i ON fi.indexer_id = i.id WHERE i.identifier = d.identifier) AS filter_count",
+		).
+		From("indexer_deprecation d").
+		OrderBy("d.name ASC")
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	deprecations := make([]domain.IndexerDeprecation, 0)
+	for rows.Next() {
+		var d domain.IndexerDeprecation
+		var name, reason, issueURL, aliasOf sql.Null[string]
+		var deprecatedAt sql.NullTime
+
+		if err := rows.Scan(&d.Identifier, &name, &reason, &issueURL, &aliasOf, &deprecatedAt, &d.FilterCount); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		d.Name = name.V
+		d.Reason = reason.V
+		d.IssueURL = issueURL.V
+		d.AliasOf = aliasOf.V
+		if deprecatedAt.Valid {
+			d.DeprecatedAt = deprecatedAt.Time
+		}
+
+		deprecations = append(deprecations, d)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
+	}
+
+	return deprecations, nil
 }

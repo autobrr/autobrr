@@ -3,16 +3,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { ArchiveBoxXMarkIcon } from "@heroicons/react/24/outline";
 import { Trans, useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { IndexerKeys } from "@api/query_keys";
-import { IndexersQueryOptions } from "@api/queries";
+import { FilterKeys, IndexerKeys } from "@api/query_keys";
+import { IndexerDeprecationsQueryOptions, IndexersOptionsQueryOptions, IndexersQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
+import { ExternalLink } from "@components/ExternalLink";
+import { DeleteModal } from "@components/modals";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptySimple } from "@components/emptystates";
@@ -241,4 +244,135 @@ function IndexerSettings() {
   );
 }
 
-export default IndexerSettings;
+function DeprecatedIndexers() {
+  const { t } = useTranslation("settings");
+  const queryClient = useQueryClient();
+
+  const cancelModalButtonRef = useRef(null);
+  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
+  const optionsQuery = useSuspenseQuery(IndexersOptionsQueryOptions());
+  const deprecationsQuery = useSuspenseQuery(IndexerDeprecationsQueryOptions());
+
+  // only the deprecated indexers this user actually still has a (tombstone) row for
+  const archived = useMemo(
+    () => (optionsQuery.data || []).filter((indexer) => indexer.archived),
+    [optionsQuery.data]
+  );
+
+  const metaByIdentifier = useMemo(
+    () => new Map((deprecationsQuery.data || []).map((d) => [d.identifier, d])),
+    [deprecationsQuery.data]
+  );
+
+  const totalFilterUsage = useMemo(
+    () => archived.reduce((sum, indexer) => sum + (metaByIdentifier.get(indexer.identifier)?.filter_count ?? 0), 0),
+    [archived, metaByIdentifier]
+  );
+
+  const pruneMutation = useMutation({
+    mutationFn: () => APIClient.filters.pruneDeprecatedIndexers(),
+    onSuccess: (res) => {
+      toast.custom((tt) => (
+        <Toast
+          type="success"
+          body={t("listScreens.indexers.deprecated.pruneSuccess", { count: res?.removed ?? 0 })}
+          t={tt}
+        />
+      ));
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+    },
+    onError: () => {
+      toast.custom((tt) => (
+        <Toast type="error" body={t("listScreens.indexers.deprecated.pruneError")} t={tt} />
+      ));
+    }
+  });
+
+  if (!archived.length) {
+    return null;
+  }
+
+  return (
+    <div className="pt-6">
+      <Section
+        title={t("listScreens.indexers.deprecated.title")}
+        description={t("listScreens.indexers.deprecated.description")}
+        rightSide={
+          totalFilterUsage > 0 ? (
+            <button
+              type="button"
+              onClick={toggleDeleteModal}
+              disabled={pruneMutation.isPending}
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            >
+              <ArchiveBoxXMarkIcon className="h-5 w-5 mr-1" />
+              {t("listScreens.indexers.deprecated.pruneAll")}
+            </button>
+          ) : undefined
+        }
+      >
+        <DeleteModal
+          isOpen={deleteModalIsOpen}
+          isLoading={pruneMutation.isPending}
+          toggle={toggleDeleteModal}
+          buttonRef={cancelModalButtonRef}
+          deleteAction={() => {
+            pruneMutation.mutate();
+            toggleDeleteModal();
+          }}
+          title={t("listScreens.indexers.deprecated.pruneTitle")}
+          text={t("listScreens.indexers.deprecated.pruneText")}
+        />
+
+        <div className="flex flex-col">
+          <ul className="min-w-full relative">
+            {archived.map((indexer) => {
+              const meta = metaByIdentifier.get(indexer.identifier);
+              const usage = meta?.filter_count ?? 0;
+              return (
+                <li
+                  key={indexer.id}
+                  className="grid grid-cols-12 gap-2 items-center border-b border-gray-200 dark:border-gray-700 py-3"
+                >
+                  <div className="col-span-12 sm:col-span-4 pl-0 sm:pl-3 flex items-center gap-x-2">
+                    <ArchiveBoxXMarkIcon className="h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden="true" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {meta?.name || indexer.name}
+                    </span>
+                  </div>
+                  <div className="col-span-8 sm:col-span-5 text-sm text-gray-500 dark:text-gray-400">
+                    {meta?.reason || t("listScreens.indexers.deprecated.removed")}
+                    {meta?.issue_url ? (
+                      <>
+                        {" "}
+                        <ExternalLink href={meta.issue_url} className="text-blue-600 dark:text-blue-400 hover:underline">
+                          {t("listScreens.indexers.deprecated.moreInfo")}
+                        </ExternalLink>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="col-span-4 sm:col-span-3 text-right pr-0 sm:pr-3 text-xs text-gray-500 dark:text-gray-400">
+                    {t("listScreens.indexers.deprecated.usedByFilters", { count: usage })}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+function IndexerSettingsPage() {
+  return (
+    <div className="lg:col-span-9">
+      <IndexerSettings />
+      <DeprecatedIndexers />
+    </div>
+  );
+}
+
+export default IndexerSettingsPage;

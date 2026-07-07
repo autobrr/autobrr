@@ -40,6 +40,7 @@ type filterRepo interface {
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error
 	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	DeleteArchivedIndexerConnections(ctx context.Context) (int64, error)
 	DeleteFilterExternal(ctx context.Context, filterID int) error
 	GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) error
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
@@ -421,6 +422,20 @@ func (s *Service) Delete(ctx context.Context, filterID int) error {
 	}
 
 	return nil
+}
+
+// PruneDeprecatedIndexers removes every filter connection to a deprecated (archived) indexer,
+// across all filters. User-initiated cleanup. Returns the number of connections removed.
+func (s *Service) PruneDeprecatedIndexers(ctx context.Context) (int64, error) {
+	removed, err := s.repo.DeleteArchivedIndexerConnections(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not prune deprecated indexers from filters")
+		return 0, err
+	}
+
+	s.log.Info().Msgf("pruned %d deprecated indexer connection(s) from filters", removed)
+
+	return removed, nil
 }
 
 func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {

@@ -867,7 +867,21 @@
       "implementation": "Implementation",
       "noItems": "No indexers",
       "addNewItem": "Add new indexer",
-      "updated": "{{name}} was updated successfully"
+      "updated": "{{name}} was updated successfully",
+      "deprecated": {
+        "title": "Deprecated indexers",
+        "description": "These indexers have been removed from autobrr. They can't be used or selected on filters. Their releases are kept and still show their name.",
+        "removed": "Removed indexer",
+        "moreInfo": "More info",
+        "usedByFilters_one": "Used by {{count}} filter",
+        "usedByFilters_other": "Used by {{count}} filters",
+        "pruneAll": "Remove from all filters",
+        "pruneTitle": "Remove deprecated indexers from filters",
+        "pruneText": "Are you sure you want to remove all deprecated indexers from your filters? Their releases are kept, but they will no longer be attached to any filter. This action cannot be undone.",
+        "pruneSuccess_one": "Removed {{count}} deprecated indexer connection from filters",
+        "pruneSuccess_other": "Removed {{count}} deprecated indexer connections from filters",
+        "pruneError": "Could not remove deprecated indexers from filters"
+      }
     },
     "proxies": {
       "title": "Proxies",

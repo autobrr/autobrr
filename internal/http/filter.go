@@ -27,6 +27,7 @@ type filterService interface {
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
+	PruneDeprecatedIndexers(ctx context.Context) (int64, error)
 }
 
 type filterHandler struct {
@@ -45,6 +46,8 @@ func (h filterHandler) Routes(r chi.Router) {
 	r.Get("/", h.getFilters)
 	r.Post("/", h.store)
 
+	r.Post("/indexers/prune-deprecated", h.pruneDeprecatedIndexers)
+
 	r.Route("/{filterID}", func(r chi.Router) {
 		r.Get("/", h.getByID)
 		r.Put("/", h.update)
@@ -53,7 +56,7 @@ func (h filterHandler) Routes(r chi.Router) {
 
 		r.Get("/duplicate", h.duplicate)
 		r.Put("/enabled", h.toggleEnabled)
-		
+
 		r.Route("/notifications", func(r chi.Router) {
 			r.Get("/", h.getFilterNotifications)
 			r.Put("/", h.updateFilterNotifications)
@@ -147,6 +150,16 @@ func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, filter)
+}
+
+func (h filterHandler) pruneDeprecatedIndexers(w http.ResponseWriter, r *http.Request) {
+	removed, err := h.service.PruneDeprecatedIndexers(r.Context())
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, map[string]int64{"removed": removed})
 }
 
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {

@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/regexcache"
@@ -30,6 +31,8 @@ type Indexer struct {
 	Proxy              *Proxy                `json:"proxy"`
 	ProxyID            int64                 `json:"proxy_id"`
 	Settings           map[string]string     `json:"settings,omitempty"`
+	Archived           bool                  `json:"archived"`
+	ArchivedAt         *time.Time            `json:"archived_at,omitempty"`
 }
 
 func (i Indexer) MarshalJSON() ([]byte, error) {
@@ -87,6 +90,22 @@ func (m IndexerMinimal) GetExternalIdentifier() string {
 	}
 
 	return m.Identifier
+}
+
+// IndexerDeprecation describes an indexer whose definition has been removed.
+// The canonical list lives in the embedded registry (internal/indexer/deprecations.go);
+// the boot reconcile projects these rows into the indexer_deprecation table so friendly
+// names and metadata survive even a hard-deleted indexer row.
+type IndexerDeprecation struct {
+	Identifier   string    `json:"identifier"`
+	Name         string    `json:"name"`
+	Reason       string    `json:"reason"`
+	IssueURL     string    `json:"issue_url"`
+	AliasOf      string    `json:"alias_of,omitempty"`
+	DeprecatedAt time.Time `json:"deprecated_at"`
+	// FilterCount is how many filters still reference this indexer. Computed on read
+	// (not stored / not set by the registry).
+	FilterCount int `json:"filter_count"`
 }
 
 type IndexerDefinition struct {

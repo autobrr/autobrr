@@ -25,6 +25,7 @@ type indexerService interface {
 	Delete(ctx context.Context, id int) error
 	TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
+	ListDeprecations(ctx context.Context) ([]domain.IndexerDeprecation, error)
 }
 
 type indexerHandler struct {
@@ -46,6 +47,7 @@ func (h indexerHandler) Routes(r chi.Router) {
 	r.Post("/", h.store)
 	r.Get("/", h.getAll)
 	r.Get("/options", h.list)
+	r.Get("/deprecations", h.deprecations)
 
 	r.Route("/{indexerID}", func(r chi.Router) {
 		r.Get("/", h.findByID)
@@ -132,6 +134,16 @@ func (h indexerHandler) list(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, indexers)
+}
+
+func (h indexerHandler) deprecations(w http.ResponseWriter, r *http.Request) {
+	deprecations, err := h.service.ListDeprecations(r.Context())
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, deprecations)
 }
 
 func (h indexerHandler) findByID(w http.ResponseWriter, r *http.Request) {

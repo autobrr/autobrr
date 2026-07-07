@@ -14,6 +14,18 @@ interface Indexer {
   use_proxy?: boolean;
   proxy_id?: number;
   settings: Array<IndexerSetting>;
+  archived?: boolean;
+  archived_at?: string;
+}
+
+interface IndexerDeprecation {
+  identifier: string;
+  name: string;
+  reason: string;
+  issue_url: string;
+  alias_of?: string;
+  deprecated_at: string;
+  filter_count: number;
 }
 
 interface IndexerMinimal {
