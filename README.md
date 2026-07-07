@@ -340,7 +340,7 @@ The following environment variables can be used:
 | `AUTOBRR__OIDC_ISSUER`                 | OIDC issuer URL                                          | -                                        |
 | `AUTOBRR__OIDC_CLIENT_ID`              | OIDC client ID                                           | -                                        |
 | `AUTOBRR__OIDC_CLIENT_SECRET`          | OIDC client secret                                       | -                                        |
-| `AUTOBRR__OIDC_REDIRECT_URL`           | OIDC callback URL                                        | `https://baseurl/api/auth/oidc/callback` |
+| `AUTOBRR__OIDC_REDIRECT_URL`           | OIDC callback URL                                        | -                                        |
 | `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` | Disable login form (only works when using external auth) | `false`                                  |
 | `AUTOBRR__METRICS_ENABLED`             | Enable Metrics server                                    | `false`                                  |
 | `AUTOBRR__METRICS_HOST`                | Metrics listen address                                   | `127.0.0.1`                              |
