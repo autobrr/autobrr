@@ -274,7 +274,7 @@ func (c *AppConfig) defaults() {
 		Port:                  7474,
 		CorsAllowedOrigins:    "*",
 		LogLevel:              "INFO",
-		LogPath:               "/config/logs",
+		LogPath:               "",
 		LogMaxSize:            10,
 		LogMaxBackups:         5,
 		BaseURL:               "/",

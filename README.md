@@ -317,7 +317,7 @@ The following environment variables can be used:
 | `AUTOBRR__PORT`                        | Listen port                                              | `7474`                                   |
 | `AUTOBRR__BASE_URL`                    | Base URL for reverse proxy                               | `/`                                      |
 | `AUTOBRR__LOG_LEVEL`                   | Log level (DEBUG, INFO, WARN, ERROR)                     | `INFO`                                   |
-| `AUTOBRR__LOG_PATH`                    | Log file location                                        | `/config/logs`                           |
+| `AUTOBRR__LOG_PATH`                    | Log file location                                        | -                                        |
 | `AUTOBRR__LOG_MAX_SIZE`                | Max size in MB before rotation                           | `10`                                     |
 | `AUTOBRR__LOG_MAX_BACKUPS`             | Number of rotated logs to keep                           | `5`                                      |
 | `AUTOBRR__SESSION_SECRET`              | Random string for session encryption                     | -                                        |
