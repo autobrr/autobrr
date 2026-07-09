@@ -66,16 +66,16 @@ func (a *announceProcessor) setupQueueConsumers() {
 }
 
 func (a *announceProcessor) processQueue(channelName string, queue chan string) {
+	channel, ok := a.indexer.IRC.ChannelsMap[channelName]
+	if !ok {
+		a.log.Error().Msgf("announce: no channel found for name: %s", channelName)
+		return
+	}
+
 	for {
 		tmpVars := map[string]string{}
 		parseFailed := false
 		//patternParsed := false
-
-		channel, ok := a.indexer.IRC.ChannelsMap[channelName]
-		if !ok {
-			a.log.Error().Msgf("announce: no channel found for name: %s", channelName)
-			continue
-		}
 
 		for _, parseLine := range channel.Parse.Lines {
 			line, err := a.getNextLine(queue)
