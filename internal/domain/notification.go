@@ -147,6 +147,20 @@ func (n *Notification) ClearFilterEvents() {
 	n.filters = nil
 }
 
+// Clone returns a shallow copy of the notification with an independent,
+// freshly allocated filters map. Global fields are copied by value; the Events
+// slice and EventSounds map are shared but must never be mutated in place. Use
+// it to rebuild sender state copy-on-write so a Send goroutine reading the
+// previous object's filters map never races with a concurrent update.
+func (n *Notification) Clone() *Notification {
+	c := *n
+	c.filters = make(map[int]NotificationEvents, len(n.filters))
+	for k, v := range n.filters {
+		c.filters[k] = v
+	}
+	return &c
+}
+
 func (n Notification) MarshalJSON() ([]byte, error) {
 	type Alias Notification
 	return json.Marshal(&struct {

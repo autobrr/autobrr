@@ -5,6 +5,7 @@ package notification
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -52,6 +53,7 @@ type Service struct {
 	log  zerolog.Logger
 	repo notificationRepo
 
+	mu            sync.RWMutex
 	notifications map[int]*domain.Notification
 	senders       map[int]Sender
 }
@@ -105,8 +107,13 @@ func (s *Service) Store(ctx context.Context, notification *domain.Notification) 
 		return err
 	}
 
-	// register sender
-	s.registerSender(notification)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// register a fresh canonical copy so the sender is never bound to the raw
+	// request object (whose private filters map is always nil) and so a newly
+	// created notification is tracked in s.notifications for later filter saves.
+	s.hydrateAndRegister(ctx, notification)
 
 	return nil
 }
@@ -133,8 +140,14 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 		return err
 	}
 
-	// register sender
-	s.registerSender(notification)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Rebuild the canonical object from the updated global config plus the
+	// persisted per-filter rows. The incoming object is decoded from JSON and
+	// its private filters map is always nil, so registering it directly would
+	// silently drop every per-filter mute/override until restart.
+	s.hydrateAndRegister(ctx, notification)
 
 	return nil
 }
@@ -146,8 +159,10 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	// delete sender
+	s.mu.Lock()
 	delete(s.senders, id)
+	delete(s.notifications, id)
+	s.mu.Unlock()
 
 	return nil
 }
@@ -168,48 +183,62 @@ func (s *Service) StoreFilterNotifications(ctx context.Context, filterID int, no
 		return err
 	}
 
-	if len(notifications) == 0 {
-		for _, notification := range s.notifications {
-			notification.RemoveFilterEvents(filterID)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// The affected notifications are those referenced in the new set plus any
+	// that currently hold an in-memory entry for this filter, so that removing
+	// a notification from the filter (present before, absent now) clears its
+	// stale per-filter events too.
+	affected := make(map[int]struct{})
+	for _, notification := range notifications {
+		if notification.NotificationID > 0 {
+			affected[notification.NotificationID] = struct{}{}
+		}
+	}
+	for id, n := range s.notifications {
+		if n.HasFilterNotifications(filterID) {
+			affected[id] = struct{}{}
 		}
 	}
 
-	for _, notification := range notifications {
-		if notification.NotificationID == 0 {
-			continue
+	for id := range affected {
+		base, ok := s.notifications[id]
+		if !ok {
+			// Not tracked in memory yet (e.g. created before the process last
+			// (re)loaded senders) - load it so its sender still gets the config.
+			loaded, err := s.repo.FindByID(ctx, id)
+			if err != nil {
+				s.log.Error().Err(err).Msgf("could not find notification by id: %v", id)
+				continue
+			}
+			base = loaded
 		}
-
-		n, ok := s.notifications[notification.NotificationID]
-		if ok {
-			n.SetFilterEvents(filterID, domain.NewNotificationEventsFromStrings(notification.Events))
-
-			s.registerSender(n)
-		}
+		s.hydrateAndRegister(ctx, base)
 	}
 
 	return nil
 }
 
 func (s *Service) DeleteFilterNotifications(ctx context.Context, filterID int) error {
-	notifications, err := s.repo.GetFilterNotifications(ctx, filterID)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find filter notifications for filter: %v", filterID)
-		return err
-	}
-
 	if err := s.repo.DeleteFilterNotifications(ctx, filterID); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete filter notifications for filter: %v", filterID)
 		return err
 	}
 
-	for _, notification := range notifications {
-		if notification.NotificationID == 0 {
-			continue
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Rebuild every notification that still holds this filter in memory so its
+	// per-filter events are dropped now that the rows are gone from the DB.
+	var ids []int
+	for id, n := range s.notifications {
+		if n.HasFilterNotifications(filterID) {
+			ids = append(ids, id)
 		}
-		n, ok := s.notifications[notification.NotificationID]
-		if ok {
-			n.RemoveFilterEvents(filterID)
-		}
+	}
+	for _, id := range ids {
+		s.hydrateAndRegister(ctx, s.notifications[id])
 	}
 
 	return nil
@@ -223,25 +252,38 @@ func (s *Service) registerSenders() {
 		return
 	}
 
-	for _, notificationSender := range notifications {
-		f, err := s.repo.GetNotificationFilters(ctx, notificationSender.ID)
-		if err != nil {
-			s.log.Error().Err(err).Msgf("could not find filter notifications for notification: %v", notificationSender.ID)
-			continue
-		}
-		for _, notification := range f {
-			notificationSender.SetFilterEvents(notification.FilterID, domain.NewNotificationEventsFromStrings(notification.Events))
-		}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-		s.notifications[notificationSender.ID] = &notificationSender
-
-		s.registerSender(&notificationSender)
+	for i := range notifications {
+		s.hydrateAndRegister(ctx, &notifications[i])
 	}
-
-	return
 }
 
-// registerSender registers an enabled notification via it's id
+// hydrateAndRegister builds a fresh canonical *domain.Notification from base
+// with its per-filter events reloaded from the database, stores it as the
+// authoritative object in s.notifications, and (re)registers its sender. The
+// previous object is never mutated (copy-on-write), so a concurrent Send
+// goroutine reading it cannot race. Callers must hold s.mu for writing.
+func (s *Service) hydrateAndRegister(ctx context.Context, base *domain.Notification) {
+	fresh := base.Clone()
+	fresh.ClearFilterEvents()
+
+	filterNotifications, err := s.repo.GetNotificationFilters(ctx, base.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msgf("could not find filter notifications for notification: %v", base.ID)
+	}
+
+	for _, fn := range filterNotifications {
+		fresh.SetFilterEvents(fn.FilterID, domain.NewNotificationEventsFromStrings(fn.Events))
+	}
+
+	s.notifications[base.ID] = fresh
+	s.registerSender(fresh)
+}
+
+// registerSender registers an enabled notification via it's id.
+// Callers must hold s.mu for writing.
 func (s *Service) registerSender(notification *domain.Notification) {
 	if !notification.Enabled {
 		delete(s.senders, notification.ID)
@@ -286,40 +328,21 @@ func (s *Service) registerSender(notification *domain.Notification) {
 
 // Send notifications
 func (s *Service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
-	if len(s.senders) == 0 {
-		s.log.Trace().Msg("no notification senders registered")
-		return
-	}
-
-	// Find interested senders first to avoid spawning goroutines for no reason
+	// Select interested senders under a read lock, then release it before any
+	// network I/O. Each sender's CanSendPayload already encodes the full
+	// per-(filter, notification) decision - mute, per-filter override, and the
+	// per-notification global fallback - so a single uniform pass is correct for
+	// both filter-scoped and global (FilterID == 0) events. Evaluating every
+	// sender independently ensures one notification's per-filter config (or
+	// mute) never suppresses another notification.
+	s.mu.RLock()
 	var interestedSenders []Sender
-
-	if payload.FilterID > 0 {
-		hasFilterSpecific := false
-		for _, sender := range s.senders {
-			if sender.HasFilterEvents(payload.FilterID) {
-				hasFilterSpecific = true
-				if sender.CanSendPayload(event, payload) {
-					interestedSenders = append(interestedSenders, sender)
-				}
-			}
-		}
-
-		if !hasFilterSpecific {
-			// Fall back to global if no specific filter notifications
-			for _, sender := range s.senders {
-				if sender.CanSendPayload(event, payload) {
-					interestedSenders = append(interestedSenders, sender)
-				}
-			}
-		}
-	} else {
-		for _, sender := range s.senders {
-			if sender.CanSendPayload(event, payload) {
-				interestedSenders = append(interestedSenders, sender)
-			}
+	for _, sender := range s.senders {
+		if sender.CanSendPayload(event, payload) {
+			interestedSenders = append(interestedSenders, sender)
 		}
 	}
+	s.mu.RUnlock()
 
 	if len(interestedSenders) == 0 {
 		s.log.Trace().Str("event", string(event)).Msg("no interested notification senders for event")
