@@ -203,6 +203,7 @@ var reservedSearch = map[string]*regexp.Regexp{
 	"r.source":        regexp.MustCompile(`(?i)(?:` + `source` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.codec":         regexp.MustCompile(`(?i)(?:` + `codec` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.hdr":           regexp.MustCompile(`(?i)(?:` + `hdr` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.type":          regexp.MustCompile(`(?i)(?:` + `type` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.filter":        regexp.MustCompile(`(?i)(?:` + `filter` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 }
 
