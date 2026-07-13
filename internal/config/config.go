@@ -237,11 +237,6 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 	return nil
 }
 
-type Config interface {
-	UpdateConfig() error
-	DynamicReload(log logger.Logger)
-}
-
 type AppConfig struct {
 	Config *domain.Config
 	m      *sync.Mutex
