@@ -77,4 +77,4 @@ irc:
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"
-          downloadurl: "/rss-download.php?uid={{ .userId }}&pk={{ .passkey }}&torrent={{ .torrentId }}"
+          downloadurl: "/rss-download.php?uid={{ .userId }}&pk={{ .rsskey }}&torrent={{ .torrentId }}"
