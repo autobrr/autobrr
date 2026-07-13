@@ -25,7 +25,7 @@ const testInviteGrace = 20 * time.Millisecond
 // Joining transition that a config change would. The invite-response grace is
 // shortened so tests resolve quickly.
 func addAwaitingInviteChannel(h *Handler, name, inviteCommand string) *ChannelStateMachine {
-	ch := NewChannel(zerolog.Nop(), h.network.ID, name, true, nil)
+	ch := NewChannel(zerolog.Nop(), h.network.ID, name, true, false, nil)
 	ch.inviteCommand = inviteCommand
 	sm := NewChannelStateMachine(ch, h, inviteCommand)
 	sm.inviteResponseGrace = testInviteGrace
@@ -384,7 +384,7 @@ func TestInviteTimeoutDefersToGraceAfterBotResponse(t *testing.T) {
 func TestNetworkRecoversFromErrorWhenChannelMonitors(t *testing.T) {
 	h, _ := newTestHandler()
 
-	ch := NewChannel(zerolog.Nop(), h.network.ID, "#chan", true, nil)
+	ch := NewChannel(zerolog.Nop(), h.network.ID, "#chan", true, false, nil)
 	sm := NewChannelStateMachine(ch, h, "")
 	ch.SetStateMachine(sm)
 	ch.SetConnectionError("could not join")

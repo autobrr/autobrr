@@ -184,7 +184,12 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 				continue
 			}
 
-			ircChannel := NewChannel(h.log, network.ID, channelName, true, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
+			skipCleanMessage := false
+			if channel.Parse != nil {
+				skipCleanMessage = channel.Parse.SkipCleanMessage
+			}
+
+			ircChannel := NewChannel(h.log, network.ID, channelName, true, skipCleanMessage, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 			ircChannel.SetInviteCommand(inviteCommand)
 
@@ -209,7 +214,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 				continue
 			}
 
-			ircChannel := NewChannel(h.log, network.ID, channelName, false, nil)
+			ircChannel := NewChannel(h.log, network.ID, channelName, false, false, nil)
 			ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 
@@ -1063,7 +1068,7 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 	ircChannel, found := h.channels.Get(channelName)
 	if !found {
 		// a user-defined extra channel has no indexer announce processor
-		ircChannel = NewChannel(h.log, h.GetNetwork().ID, channelName, false, nil)
+		ircChannel = NewChannel(h.log, h.GetNetwork().ID, channelName, false, false, nil)
 		ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 		h.channels.Set(channelName, ircChannel)
 	}

@@ -12,7 +12,7 @@ import (
 
 // newIdleSM builds a fresh Idle channel state machine (not yet monitoring).
 func newIdleSM(h *Handler, name, invite string) *ChannelStateMachine {
-	ch := NewChannel(zerolog.Nop(), h.network.ID, name, true, nil)
+	ch := NewChannel(zerolog.Nop(), h.network.ID, name, true, false, nil)
 	sm := NewChannelStateMachine(ch, h, invite)
 	ch.SetStateMachine(sm)
 	h.channels.Set(ch.Name, ch)
