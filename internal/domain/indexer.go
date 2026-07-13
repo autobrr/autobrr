@@ -121,7 +121,9 @@ func (i *IndexerDefinition) Prepare() {
 		i.IRC.ChannelsMap = map[string]*IndexerIRCV2Channel{}
 
 		for _, channel := range i.IRC.Channels {
-			i.IRC.ChannelsMap[channel.Name] = &IndexerIRCV2Channel{
+			// key by lowercase channel name: the IRC and announce layers
+			// canonicalize channel names to lowercase, so lookups use lowercase.
+			i.IRC.ChannelsMap[strings.ToLower(channel.Name)] = &IndexerIRCV2Channel{
 				Name:       channel.Name,
 				Announcers: channel.Announcers,
 				Parse:      channel.Parse,
@@ -245,7 +247,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 			}
 
 			d.IRC.Channels = append(d.IRC.Channels, channel)
-			d.IRC.ChannelsMap[channelName] = &channel
+			d.IRC.ChannelsMap[strings.ToLower(channelName)] = &channel
 		}
 	}
 
@@ -317,6 +319,14 @@ type IndexerIRCV2 struct {
 	Settings    []IndexerSetting                `json:"settings"`
 	Channels    []IndexerIRCV2Channel           `json:"channels"`
 	ChannelsMap map[string]*IndexerIRCV2Channel `json:"-"`
+}
+
+// GetChannel returns the channel config for the given name. The lookup is
+// case-insensitive: channel names are canonicalized to lowercase everywhere at
+// runtime, so callers may pass any casing.
+func (irc *IndexerIRCV2) GetChannel(name string) (*IndexerIRCV2Channel, bool) {
+	channel, ok := irc.ChannelsMap[strings.ToLower(name)]
+	return channel, ok
 }
 
 type IndexerIRCV2Channel struct {
@@ -626,7 +636,7 @@ func (p *IndexerIRCV2Parse) MapCustomVariables(vars map[string]string) error {
 }
 
 func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, vars map[string]string, rls *Release) error {
-	channel, ok := def.IRC.ChannelsMap[channelName]
+	channel, ok := def.IRC.GetChannel(channelName)
 	if !ok {
 		return errors.New("could not find channel: %s", channelName)
 	}
