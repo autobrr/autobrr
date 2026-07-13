@@ -34,7 +34,7 @@ func TestAppConfig_processLines(t *testing.T) {
 				m:      new(sync.Mutex),
 			},
 			args: args{[]string{}},
-			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},
+			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"INFO\"", "#", "# Options: \"ERROR\", \"WARN\", \"INFO\", \"DEBUG\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},
 		},
 		{
 			name: "update existing",
