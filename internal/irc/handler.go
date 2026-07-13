@@ -6,6 +6,7 @@ package irc
 import (
 	"crypto/tls"
 	"encoding/json"
+	stdErr "errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -425,6 +426,23 @@ func (h *Handler) Run() (err error) {
 					stopped := h.clientState == ircStopped
 					h.m.RUnlock()
 					if stopped {
+						return retry.Unrecoverable(err)
+					}
+
+					// A TLS certificate verification failure (expired or not yet
+					// valid cert, unknown CA, hostname mismatch) is not transient:
+					// every retry fails identically until the tracker fixes its
+					// certificate or the user enables TLSSkipVerify. Surface the
+					// reason and stop the network instead of burning the whole
+					// backoff schedule on a doomed loop.
+					if certErr, ok := stdErr.AsType[*tls.CertificateVerificationError](err); ok {
+						errMsg := fmt.Sprintf("TLS certificate verification failed: %v", certErr.Err)
+						h.log.Error().Str("reason", errMsg).Msg("stopping network: TLS certificate verification failed")
+
+						h.addConnectError(errMsg)
+						h.stateMachine.OnError(errMsg)
+						h.Stop()
+
 						return retry.Unrecoverable(err)
 					}
 
