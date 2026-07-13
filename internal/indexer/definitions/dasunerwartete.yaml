@@ -1,6 +1,6 @@
 ---
 version: 2
-#id: anthelion
+#id: dasunerwartete
 name: DasUnerwartete
 identifier: dasunerwartete
 description: DasUnerwartete (DU) is a GERMAN Private Torrent Tracker for MOVIES / TV / GENERAL.
@@ -14,11 +14,11 @@ supports:
   - rss
 # source: unknown
 settings:
-  - name: passkey
+  - name: rsskey
     type: secret
     required: true
-    label: Passkey
-    help: Check your profile.
+    label: RSS Key
+    help: Copy from a direct download RSS link. (Torrents > RSS Feed)
 
   - name: userId
     type: secret
@@ -40,13 +40,13 @@ irc:
 
     - name: auth.account
       type: text
-      required: true
+      required: false
       label: NickServ Account
       help: NickServ account. Make sure to group your user and bot.
 
     - name: auth.password
       type: secret
-      required: true
+      required: false
       label: NickServ Password
       help: NickServ password
 
@@ -77,4 +77,4 @@ irc:
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"
-          downloadurl: "/rss-download.php?uid={{ .userId }}&pk={{ .passkey }}&torrent={{ .torrentId }}"
+          downloadurl: "/rss-download.php?uid={{ .userId }}&pk={{ .rsskey }}&torrent={{ .torrentId }}"
