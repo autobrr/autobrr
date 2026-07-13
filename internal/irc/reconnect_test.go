@@ -117,7 +117,7 @@ func newTestHandler() (*Handler, *mockSSEServer) {
 // addMonitoredChannel registers a channel that is already joined and being
 // monitored, i.e. the steady state right before a connection drop.
 func addMonitoredChannel(h *Handler, name, inviteCommand string) *ChannelStateMachine {
-	ch := NewChannel(zerolog.Nop(), h.network.ID, name, true, nil)
+	ch := NewChannel(zerolog.Nop(), h.network.ID, name, true, false, nil)
 	sm := NewChannelStateMachine(ch, h, inviteCommand)
 	ch.SetStateMachine(sm)
 	h.channels.Set(ch.Name, ch)

@@ -19,11 +19,11 @@ func TestComputeHealthy(t *testing.T) {
 	h, _ := newTestHandler()
 	h.stateMachine.currentState = StateFullyOperational
 
-	announce := NewChannel(zerolog.Nop(), h.network.ID, "#announce", true, nil) // default
+	announce := NewChannel(zerolog.Nop(), h.network.ID, "#announce", true, false, nil) // default
 	announce.SetMonitoring()
 	h.channels.Set(announce.Name, announce)
 
-	extra := NewChannel(zerolog.Nop(), h.network.ID, "#extra", false, nil) // user-added
+	extra := NewChannel(zerolog.Nop(), h.network.ID, "#extra", false, false, nil) // user-added
 	extra.SetConnectionError("could not join #extra: wrong or missing channel password (+k)")
 	h.channels.Set(extra.Name, extra)
 
@@ -43,7 +43,7 @@ func TestComputeHealthy_ConnectionUnhealthy(t *testing.T) {
 	h, _ := newTestHandler()
 	h.stateMachine.currentState = StateError
 
-	announce := NewChannel(zerolog.Nop(), h.network.ID, "#announce", true, nil)
+	announce := NewChannel(zerolog.Nop(), h.network.ID, "#announce", true, false, nil)
 	announce.SetMonitoring()
 	h.channels.Set(announce.Name, announce)
 
@@ -59,11 +59,11 @@ func TestStateEventCarriesHealth(t *testing.T) {
 	h, sse := newTestHandler()
 	h.stateMachine.currentState = StateFullyOperational
 
-	announce := NewChannel(zerolog.Nop(), h.network.ID, "#announce", true, nil)
+	announce := NewChannel(zerolog.Nop(), h.network.ID, "#announce", true, false, nil)
 	announce.SetMonitoring()
 	h.channels.Set(announce.Name, announce)
 
-	extra := NewChannel(zerolog.Nop(), h.network.ID, "#extra", false, nil)
+	extra := NewChannel(zerolog.Nop(), h.network.ID, "#extra", false, false, nil)
 	sm := NewChannelStateMachine(extra, h, "")
 	extra.SetStateMachine(sm)
 	sm.state = ChannelStateJoining

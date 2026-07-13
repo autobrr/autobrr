@@ -101,8 +101,9 @@ type Channel struct {
 	// definition) that are allowed to announce in this channel. autobrr does not
 	// track the channel user list or announcer presence - it only validates that
 	// an announce line came from a known announcer.
-	announcers     map[string]struct{}
-	DefaultChannel bool
+	announcers       map[string]struct{}
+	DefaultChannel   bool
+	SkipCleanMessage bool
 
 	Messages *MessageBuffer
 
@@ -123,7 +124,7 @@ type ChannelSnapshot struct {
 	ConnectionErrors []string
 }
 
-func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel bool, announceProcessor announce.Processor) *Channel {
+func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel bool, skipCleanMessage bool, announceProcessor announce.Processor) *Channel {
 	return &Channel{
 		m:                 deadlock.RWMutex{},
 		log:               log.With().Str("channel", name).Logger(),
@@ -140,6 +141,7 @@ func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel
 		inviteCommand:     "",
 		announcers:        make(map[string]struct{}),
 		DefaultChannel:    defaultChannel,
+		SkipCleanMessage:  skipCleanMessage,
 		announceProcessor: announceProcessor,
 		Messages:          NewMessageBuffer(1000), // make opt-in?
 	}
@@ -155,8 +157,11 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	//channel := msg.Params[0]
 	message := msg.Params[1]
 
-	// clean message
-	cleanedMsg := cleanMessage(message)
+	// optionally skip clean message
+	cleanedMsg := message
+	if !c.SkipCleanMessage {
+		cleanedMsg = cleanMessage(message)
+	}
 
 	// Add message to history, maintaining maximum size
 	newMsg := domain.IrcMessage{
@@ -172,7 +177,6 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	// check if the message is from announce bot, if not return
 	if !c.IsValidAnnouncer(nick) {
 		c.log.Trace().Str("nick", nick).Str("msg", cleanedMsg).Msg("not a valid announcer, ignoring")
-
 		return
 	}
 
