@@ -348,6 +348,7 @@ type WebhookRelease struct {
 	Seeders          int          `json:"seeders,omitempty"`
 	Leechers         int          `json:"leechers,omitempty"`
 	MetaIMDB         string       `json:"meta_imdb,omitempty"`
+	MetaTMDB         int          `json:"meta_tmdb,omitempty"`
 }
 
 // WebhookIndexer contains indexer information
@@ -468,6 +469,7 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 			Seeders:          release.Seeders,
 			Leechers:         release.Leechers,
 			MetaIMDB:         release.MetaIMDB,
+			MetaTMDB:         release.MetaTMDB,
 		}
 	} else if payload.ReleaseName != "" {
 		// Fallback if full release object is missing but we have basic info in payload
