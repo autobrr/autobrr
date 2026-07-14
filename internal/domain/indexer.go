@@ -136,7 +136,6 @@ func (i *IndexerDefinition) Prepare() {
 				ch.Parse.parser = IRCParserRedacted{}
 			default:
 				ch.Parse.parser = DefaultIRCParser
-
 			}
 
 			// key by lowercase channel name: the IRC and announce layers
