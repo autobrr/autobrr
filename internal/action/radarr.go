@@ -12,7 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (s *service) radarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) radarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action RADARR")
 
 	// TODO validate data

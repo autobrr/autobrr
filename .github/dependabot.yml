@@ -19,6 +19,11 @@ updates:
       golang:
         patterns:
           - "*"
+    # Untagged submodule (no semver tags upstream); Dependabot's version
+    # discovery walks up to the v1 parent module and fails to resolve it.
+    # Pin/bump it manually with `go get .../postgresstore@latest`.
+    ignore:
+      - dependency-name: "github.com/alexedwards/scs/postgresstore"
 
   - package-ecosystem: npm
     directory: /web

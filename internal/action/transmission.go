@@ -22,7 +22,7 @@ const (
 var ErrReannounceTookTooLong = errors.New("ErrReannounceTookTooLong")
 var TrTrue = true
 
-func (s *service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Transmission: %s", action.Name)
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
@@ -196,7 +196,7 @@ func (s *service) transmission(ctx context.Context, action *domain.Action, relea
 	return rejections, nil
 }
 
-func (s *service) transmissionReannounce(ctx context.Context, action *domain.Action, tbt *transmissionrpc.Client, torrentId int64) error {
+func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Action, tbt *transmissionrpc.Client, torrentId int64) error {
 	interval := ReannounceInterval
 	if action.ReAnnounceInterval > 0 {
 		interval = int(action.ReAnnounceInterval)
@@ -266,7 +266,7 @@ func (s *service) transmissionReannounce(ctx context.Context, action *domain.Act
 	return nil
 }
 
-func (s *service) transmissionCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, tbt *transmissionrpc.Client) ([]string, error) {
+func (s *Service) transmissionCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, tbt *transmissionrpc.Client) ([]string, error) {
 	s.log.Trace().Msgf("action transmission: %s check rules", action.Name)
 
 	// check for active downloads and other rules

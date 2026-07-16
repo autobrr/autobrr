@@ -18,16 +18,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func NewFeedRepo(log logger.Logger, db *DB) domain.FeedRepo {
+type FeedRepo struct {
+	log zerolog.Logger
+	db  *DB
+}
+
+func NewFeedRepo(log logger.Logger, db *DB) *FeedRepo {
 	return &FeedRepo{
 		log: log.With().Str("repo", "feed").Logger(),
 		db:  db,
 	}
-}
-
-type FeedRepo struct {
-	log zerolog.Logger
-	db  *DB
 }
 
 func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {

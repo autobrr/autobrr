@@ -760,7 +760,8 @@
       "proxyDesc": "Définir un proxy pour les téléchargements de fichiers .torrent et les feeds.",
       "selectProxy": "Sélectionner un proxy",
       "selectProxyPlaceholder": "Sélectionner un proxy",
-      "chooseType": "Choisir un type"
+      "chooseType": "Choisir un type",
+      "editFeeds": "Modifier les flux RSS dans Paramètres -> Feeds"
     },
     "releaseProfile": {
       "title": "Profil de doublons",

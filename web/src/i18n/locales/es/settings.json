@@ -760,7 +760,8 @@
       "proxyDesc": "Establecer un proxy para descargas de archivos .torrent y feeds.",
       "selectProxy": "Seleccionar proxy",
       "selectProxyPlaceholder": "Seleccionar un proxy",
-      "chooseType": "Elige un tipo"
+      "chooseType": "Elige un tipo",
+      "editFeeds": "Editar feeds RSS en Configuración -> Feeds"
     },
     "releaseProfile": {
       "title": "Perfil de duplicados",

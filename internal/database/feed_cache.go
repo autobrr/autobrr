@@ -21,7 +21,7 @@ type FeedCacheRepo struct {
 	db  *DB
 }
 
-func NewFeedCacheRepo(log logger.Logger, db *DB) domain.FeedCacheRepo {
+func NewFeedCacheRepo(log logger.Logger, db *DB) *FeedCacheRepo {
 	return &FeedCacheRepo{
 		log: log.With().Str("module", "database").Str("repo", "feed_cache").Logger(),
 		db:  db,

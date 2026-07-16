@@ -36,28 +36,6 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type ReleaseRepo interface {
-	Store(ctx context.Context, release *Release) error
-	Update(ctx context.Context, r *Release) error
-	Find(ctx context.Context, params ReleaseQueryParams) (*FindReleasesResponse, error)
-	Get(ctx context.Context, req *GetReleaseRequest) (*Release, error)
-	GetIndexerOptions(ctx context.Context) ([]string, error)
-	Stats(ctx context.Context) (*ReleaseStats, error)
-	Delete(ctx context.Context, req *DeleteReleaseRequest) error
-	CheckSmartEpisodeCanDownload(ctx context.Context, p *SmartEpisodeParams) (bool, error)
-	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
-
-	GetActionStatus(ctx context.Context, req *GetReleaseActionStatusRequest) (*ReleaseActionStatus, error)
-	StoreReleaseActionStatus(ctx context.Context, status *ReleaseActionStatus) error
-
-	StoreDuplicateProfile(ctx context.Context, profile *DuplicateReleaseProfile) error
-	FindDuplicateReleaseProfiles(ctx context.Context) ([]*DuplicateReleaseProfile, error)
-	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
-	CheckIsDuplicateRelease(ctx context.Context, profile *DuplicateReleaseProfile, release *Release) (bool, error)
-
-	ReleaseCleanupJobRepo
-}
-
 type Release struct {
 	ID                                 int64                 `json:"id"`
 	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
@@ -137,6 +115,7 @@ type Release struct {
 	Filter                             *Filter               `json:"-"`
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
 	MetaIMDB                           string                `json:"-"`
+	MetaTMDB                           int                   `json:"-"`
 }
 
 // Hash return md5 hashed normalized release name
@@ -524,17 +503,6 @@ func (j *ReleaseCleanupJob) Validate() error {
 	}
 
 	return nil
-}
-
-// ReleaseCleanupJobRepo interface for managing cleanup jobs
-type ReleaseCleanupJobRepo interface {
-	ListCleanupJobs(ctx context.Context) ([]*ReleaseCleanupJob, error)
-	FindCleanupJobByID(ctx context.Context, id int) (*ReleaseCleanupJob, error)
-	StoreCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
-	UpdateCleanupJob(ctx context.Context, job *ReleaseCleanupJob) error
-	UpdateCleanupJobLastRun(ctx context.Context, job *ReleaseCleanupJob) error
-	CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error
-	DeleteCleanupJob(ctx context.Context, id int) error
 }
 
 type ReleaseFilterStatus string
@@ -1050,12 +1018,12 @@ func (r *Release) HasMagnetUri() bool {
 const MagnetURIPrefix = "magnet:?"
 
 // MapVars map vars from regex captures to fields on release
-func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) error {
-	if torrentName, err := getStringMapValue(varMap, "torrentName"); err != nil {
-		return errors.Wrap(err, "failed parsing required field")
-	} else {
-		r.TorrentName = html.UnescapeString(torrentName)
+func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error {
+	releaseName, err := getStringMapValueAlt(varMap, "releaseName", "torrentName")
+	if err != nil {
+		return errors.Wrap(err, "failed parsing required field: torrentName or releaseName")
 	}
+	r.TorrentName = html.UnescapeString(releaseName)
 
 	if torrentHash, err := getStringMapValue(varMap, "torrentHash"); err == nil {
 		r.TorrentHash = torrentHash
@@ -1087,15 +1055,6 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
-		// special handling for BHD to map their freeleech into percent
-		if def.Identifier == "beyondhd" {
-			if freeleechPercent == "Capped FL" {
-				freeleechPercent = "100%"
-			} else if strings.Contains(freeleechPercent, "% FL") {
-				freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
-			}
-		}
-
 		// remove % and trim spaces
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
@@ -1123,22 +1082,13 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	if downloadVolumeFactorVar, ok := varMap["downloadVolumeFactor"]; ok {
-		// special handling for BHD to map their freeleech into percent
-		//if def.Identifier == "beyondhd" {
-		//	if freeleechPercent == "Capped FL" {
-		//		freeleechPercent = "100%"
-		//	} else if strings.Contains(freeleechPercent, "% FL") {
-		//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
-		//	}
-		//}
-
 		//r.downloadVolumeFactor = downloadVolumeFactor
 
 		// Parse the value as decimal number
 		downloadVolumeFactor, parseErr := strconv.ParseFloat(downloadVolumeFactorVar, 64)
 		if parseErr == nil {
 			// Values below 0.0 and above 1.0 are rejected
-			if downloadVolumeFactor >= 0 || downloadVolumeFactor <= 1 {
+			if downloadVolumeFactor >= 0 && downloadVolumeFactor <= 1 {
 				// Multiply by 100 to convert from ratio to percentage and round it
 				// to the nearest integer value
 				downloadPercentage := math.Round(downloadVolumeFactor * 100)
@@ -1154,15 +1104,6 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 	}
 
 	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
-	//	// special handling for BHD to map their freeleech into percent
-	//	//if def.Identifier == "beyondhd" {
-	//	//	if freeleechPercent == "Capped FL" {
-	//	//		freeleechPercent = "100%"
-	//	//	} else if strings.Contains(freeleechPercent, "% FL") {
-	//	//		freeleechPercent = strings.Replace(freeleechPercent, " FL", "", -1)
-	//	//	}
-	//	//}
-	//
 	//	r.uploadVolumeFactor = uploadVolumeFactor
 	//
 	//	//freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
@@ -1189,8 +1130,8 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
 
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
-		if def.IRC != nil && def.IRC.Parse != nil && def.IRC.Parse.ForceSizeUnit != "" {
-			torrentSize = fmt.Sprintf("%s %s", torrentSize, def.IRC.Parse.ForceSizeUnit)
+		if forceSizeUnit != "" {
+			torrentSize = fmt.Sprintf("%s %s", torrentSize, forceSizeUnit)
 		}
 
 		size, parseErr := humanize.ParseBytes(torrentSize)
@@ -1265,8 +1206,19 @@ func (r *Release) MapVars(def *IndexerDefinition, varMap map[string]string) erro
 		r.Episode = episode
 	}
 
-	if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
-		r.MetaIMDB = metaImdb
+	if metaId, err := getStringMapValue(varMap, "imdb"); err == nil {
+		r.MetaIMDB = metaId
+		if !strings.HasPrefix(metaId, "tt") {
+			r.MetaIMDB = "tt" + metaId
+		} else {
+			r.MetaIMDB = metaId
+		}
+	}
+
+	if metaId, err := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); err == nil {
+		if tmdbId, err := strconv.Atoi(metaId); err == nil {
+			r.MetaTMDB = tmdbId
+		}
 	}
 
 	return nil
@@ -1283,6 +1235,21 @@ func getStringMapValue(stringMap map[string]string, key string) (string, error) 
 	}
 
 	return "", errors.New("key was not found in map: %q", lowerKey)
+}
+
+func getStringMapValueAlt(stringMap map[string]string, keys ...string) (string, error) {
+	for _, key := range keys {
+		lowerKey := strings.ToLower(key)
+
+		// case-insensitive match
+		for k, v := range stringMap {
+			if strings.ToLower(k) == lowerKey {
+				return v, nil
+			}
+		}
+	}
+
+	return "", errors.New("could not find any key in map: %v", keys)
 }
 
 func SplitAny(s string, seps string) []string {
@@ -1306,10 +1273,10 @@ func getUniqueTags(target []string, source []string) []string {
 
 	for _, t := range source {
 		found := false
-		norm := rls.MustNormalize(t)
+		normalized := rls.MustNormalize(t)
 
 		for _, s := range target {
-			if rls.MustNormalize(s) == norm {
+			if rls.MustNormalize(s) == normalized {
 				found = true
 				break
 			}

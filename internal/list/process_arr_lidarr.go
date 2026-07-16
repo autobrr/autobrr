@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *service) lidarr(ctx context.Context, list *domain.List) error {
+func (s *Service) lidarr(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("list", list.Name).Str("type", "lidarr").Int("client", list.ClientID).Logger()
 
 	l.Debug().Msgf("gathering titles...")
@@ -94,7 +94,7 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 	return nil
 }
 
-func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, []string, error) {
+func (s *Service) processLidarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, []string, error) {
 	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)

@@ -760,7 +760,8 @@
       "proxyDesc": "为下载 `.torrent` 文件和订阅源设置代理。",
       "selectProxy": "选择代理",
       "selectProxyPlaceholder": "选择一个代理",
-      "chooseType": "选择类型"
+      "chooseType": "选择类型",
+      "editFeeds": "在设置 -> 订阅源中编辑 RSS 订阅源"
     },
     "releaseProfile": {
       "title": "重复发布配置",

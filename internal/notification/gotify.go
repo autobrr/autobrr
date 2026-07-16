@@ -34,7 +34,7 @@ func (s *gotifySender) Name() string {
 	return "gotify"
 }
 
-func NewGotifySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewGotifySender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &gotifySender{
 		log:      log.With().Str("sender", "gotify").Str("name", settings.Name).Logger(),
 		Settings: settings,

@@ -4,7 +4,6 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -13,17 +12,6 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
-
-type ListRepo interface {
-	List(ctx context.Context) ([]*List, error)
-	FindByID(ctx context.Context, listID int64) (*List, error)
-	Store(ctx context.Context, listID *List) error
-	Update(ctx context.Context, listID *List) error
-	UpdateLastRefresh(ctx context.Context, list *List) error
-	ToggleEnabled(ctx context.Context, listID int64, enabled bool) error
-	Delete(ctx context.Context, listID int64) error
-	GetListFilters(ctx context.Context, listID int64) ([]ListFilter, error)
-}
 
 type ListType string
 

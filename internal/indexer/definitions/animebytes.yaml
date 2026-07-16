@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: animebytes
 name: AnimeBytes
 identifier: animebytes
@@ -24,10 +25,6 @@ irc:
   server: irc.animefriends.moe
   port: 7000
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - Satsuki
   settings:
     - name: nick
       type: text
@@ -54,162 +51,160 @@ irc:
       label: Invite command
       help: Invite auth with Satsuki, animebytes.tv/irc. Replace USERNAME and IRCKEY.
 
-  parse:
-    type: single
-    lines:
-      - tests:
-          - line: "Awesome Raw Novel - Light Novel  [2005] :: Raw / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || supernatural || Uploaded by: Test-Uploader"
-            expect:
-              torrentName: "Awesome Raw Novel"
-              title: "Awesome Raw Novel"
-              category: "Light Novel"
-              year: "2005"
-              releaseTags: "Raw / EPUB"
-              releaseGroup: ""
-              releaseEpisode: ""
-              freeleech:  ""
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00000"
-              torrentId: "00000"
-              tags: "supernatural"
-              uploader: "Test-Uploader"
-          - line: "Awesome Translated Novel - Light Novel  [2018] :: Translated (Translation Group) / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || adventure, comedy, fantasy, harem, school.life, magic, action || Uploaded by: UPLOADER"
-            expect:
-              torrentName: "Awesome Translated Novel"
-              title: "Awesome Translated Novel"
-              category: "Light Novel"
-              year: "2018"
-              releaseTags: "Translated (Translation Group) / EPUB"
-              releaseGroup: "Translation Group"
-              releaseEpisode: ""
-              freeleech: ""
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00000"
-              torrentId: "000000"
-              tags: "adventure, comedy, fantasy, harem, school.life, magic, action"
-              uploader: "UPLOADER"
-          - line: "Great BluRay SoftSubbed Anime - TV Series  [2020] :: Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech || https://animebytes.tv/torrents.php?id=00008&torrentid=000000 || comedy, drama, school.life, sports || Uploaded by: Uploader"
-            expect:
-              torrentName: "Great BluRay SoftSubbed Anime"
-              title: "Great BluRay SoftSubbed Anime"
-              category: "TV Series"
-              year: "2020"
-              releaseTags: "Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group)"
-              releaseGroup: "Sub Group"
-              releaseEpisode: ""
-              freeleech: "Freeleech"
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00008"
-              torrentId: "000000"
-              tags: "comedy, drama, school.life, sports"
-              uploader: "Uploader"
-          - line: "Awesome Translated Manga - Manga  [2019] :: Translated (Translation Group) / Digital / Ongoing || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || comedy, fantasy, school.life, shounen, slice.of.life"
-            expect:
-              torrentName: "Awesome Translated Manga"
-              title: "Awesome Translated Manga"
-              category: "Manga"
-              year: "2019"
-              releaseTags: "Translated (Translation Group) / Digital / Ongoing"
-              releaseGroup: "Translation Group"
-              releaseEpisode: ""
-              freeleech: ""
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00000"
-              torrentId: "000000"
-              tags: "comedy, fantasy, school.life, shounen, slice.of.life"
-              uploader: ""
-          - line: "Cool Movie - Movie  [2020] :: Blu-ray / MKV / h265 10-bit / 1929x804 / AC3 5.1 / Dual Audio / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=000000&torrentid=0000000 || drama, romance, slice.of.life || Uploaded by: Anon-Uploader"
-            expect:
-              torrentName: "Cool Movie"
-              title: "Cool Movie"
-              category: "Movie"
-              year: "2020"
-              releaseTags: "Blu-ray / MKV / h265 10-bit / 1929x804 / AC3 5.1 / Dual Audio / Softsubs (Sub Group)"
-              releaseGroup: "Sub Group"
-              releaseEpisode: ""
-              freeleech: ""
-              baseUrl: "https://animebytes.tv/"
-              groupId: "000000"
-              torrentId: "0000000"
-              tags: "drama, romance, slice.of.life"
-              uploader: "Anon-Uploader"
-          - line: "Awesome Live Action Special - Live Action TV Special  [2021] :: Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || manga || Uploaded by: Some-Uploader"
-            expect:
-              torrentName: "Awesome Live Action Special"
-              title: "Awesome Live Action Special"
-              category: "Live Action TV Special"
-              year: "2021"
-              releaseTags: "Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group)"
-              releaseGroup: "Sub Group"
-              releaseEpisode: ""
-              freeleech: ""
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00000"
-              torrentId: "00000"
-              tags: "manga"
-              uploader: "Some-Uploader"
-          - line: "Best Visual Novel - Visual Novel  [2006] :: Game / PC / Unarchived / Hentai (Censored) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || nukige || Uploaded by: Uploader"
-            expect:
-              torrentName: "Best Visual Novel"
-              title: "Best Visual Novel"
-              category: "Visual Novel"
-              year: "2006"
-              releaseTags: "Game / PC / Unarchived / Hentai (Censored)"
-              releaseGroup: ""
-              releaseEpisode: ""
-              freeleech: ""
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00000"
-              torrentId: "00000"
-              tags: "nukige"
-              uploader: "Uploader"
-          - line: "Artist Name - Album of awesome Music  [1991] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=00000&torrentid=000000 || ambient, folk || Uploaded by: Uploader"
-            expect:
-              torrentName: "Artist Name - Album of awesome Music"
-              title: "Artist Name - Album of awesome Music"
-              category: ""
-              year: "1991"
-              releaseTags: "MP3 / V0 (VBR) / CD"
-              releaseGroup: ""
-              releaseEpisode: ""
-              freeleech: ""
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00000"
-              torrentId: "000000"
-              tags: "ambient, folk"
-              uploader: "Uploader"
-          - line: "Awesome Series - TV Series  [2022] :: Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group) / Episode 1 / Freeleech || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || || Uploaded by: Uploader"
-            expect:
-              torrentName: "Awesome Series"
-              title: "Awesome Series"
-              category: "TV Series"
-              year: "2022"
-              releaseTags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group)"
-              releaseGroup: "Sub Group"
-              releaseEpisode: "1"
-              freeleech:  "Freeleech"
-              baseUrl: "https://animebytes.tv/"
-              groupId: "00000"
-              torrentId: "000000"
-              tags: ""
-              uploader: "Uploader"
-        pattern: '((.*?)+)(?: - (Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|))?[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?(?:Hardsubs|RAW|Softsubs|Translated) \((.*?)\).*?|.*?)(?: \/ Episode (\d+).*?)?(?: \/ )?(Freeleech)?(?:.?\|\|.?)(https.+\/)torrents.*\?id=(\d+)&torrentid=(\d+)(?:.?\|\|.?)?([A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (.*))?'
-        vars:
-          - torrentName
-          - title
-          - category
-          - year
-          - releaseTags
-          - releaseGroup
-          - releaseEpisode
-          - freeleech
-          - baseUrl
-          - groupId
-          - torrentId
-          - tags
-          - uploader
+  channels:
+    - name: "#announce"
+      announcers:
+        - Satsuki
+      parse:
+        type: single
+        lines:
+          - pattern: '(?P<releaseName>(?P<title>.*?)+)(?: - (?P<category>Visual Novel|Light Novel|TV S.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|))?[\s\p{Zs}]{2,}\[(?P<year>\d+)\] :: (?P<releaseTags>.*?(?:Hardsubs|RAW|Softsubs|Translated) \((?P<releaseGroup>.*?)\).*?|.*?)(?: \/ Episode (?P<releaseEpisode>\d+).*?)?(?: \/ )?(?P<freeleech>Freeleech)?(?:.?\|\|.?)(?P<baseUrl>https.+\/)torrents.*\?id=(?P<groupId>\d+)&torrentid=(?P<torrentId>\d+)(?:.?\|\|.?)?(?P<tags>[A-Za-z,. ]+\w)?(?:.?\|\|.?)?(?:Uploaded by: (?P<uploader>.*))?'
+            tests:
+              - line: "Awesome Raw Novel - Light Novel  [2005] :: Raw / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || supernatural || Uploaded by: Test-Uploader"
+                expect:
+                  releaseName: "Awesome Raw Novel"
+                  title: "Awesome Raw Novel"
+                  category: "Light Novel"
+                  year: "2005"
+                  releaseTags: "Raw / EPUB"
+                  releaseGroup: ""
+                  releaseEpisode: ""
+                  freeleech: ""
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00000"
+                  torrentId: "00000"
+                  tags: "supernatural"
+                  uploader: "Test-Uploader"
 
-    match:
-      infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
-      torrenturl: "/torrent/{{ .torrentId }}/download/{{ .passkey }}"
-      torrentname: "{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} {{ if .releaseEpisode }}{{ printf \"- %02s \" .releaseEpisode }}{{ end }} {{ if .year }}[{{ .year }}]{{ end }}{{ print \"[\" .releaseTags \"]\" | replace \" / \" \"][\" }}"
+              - line: "Awesome Translated Novel - Light Novel  [2018] :: Translated (Translation Group) / EPUB || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || adventure, comedy, fantasy, harem, school.life, magic, action || Uploaded by: UPLOADER"
+                expect:
+                  releaseName: "Awesome Translated Novel"
+                  title: "Awesome Translated Novel"
+                  category: "Light Novel"
+                  year: "2018"
+                  releaseTags: "Translated (Translation Group) / EPUB"
+                  releaseGroup: "Translation Group"
+                  releaseEpisode: ""
+                  freeleech: ""
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00000"
+                  torrentId: "000000"
+                  tags: "adventure, comedy, fantasy, harem, school.life, magic, action"
+                  uploader: "UPLOADER"
+
+              - line: "Great BluRay SoftSubbed Anime - TV Series  [2020] :: Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech || https://animebytes.tv/torrents.php?id=00008&torrentid=000000 || comedy, drama, school.life, sports || Uploaded by: Uploader"
+                expect:
+                  releaseName: "Great BluRay SoftSubbed Anime"
+                  title: "Great BluRay SoftSubbed Anime"
+                  category: "TV Series"
+                  year: "2020"
+                  releaseTags: "Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group)"
+                  releaseGroup: "Sub Group"
+                  releaseEpisode: ""
+                  freeleech: "Freeleech"
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00008"
+                  torrentId: "000000"
+                  tags: "comedy, drama, school.life, sports"
+                  uploader: "Uploader"
+
+              - line: "Awesome Translated Manga - Manga  [2019] :: Translated (Translation Group) / Digital / Ongoing || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || comedy, fantasy, school.life, shounen, slice.of.life"
+                expect:
+                  releaseName: "Awesome Translated Manga"
+                  title: "Awesome Translated Manga"
+                  category: "Manga"
+                  year: "2019"
+                  releaseTags: "Translated (Translation Group) / Digital / Ongoing"
+                  releaseGroup: "Translation Group"
+                  releaseEpisode: ""
+                  freeleech: ""
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00000"
+                  torrentId: "000000"
+                  tags: "comedy, fantasy, school.life, shounen, slice.of.life"
+                  uploader: ""
+
+              - line: "Cool Movie - Movie  [2020] :: Blu-ray / MKV / h265 10-bit / 1929x804 / AC3 5.1 / Dual Audio / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=000000&torrentid=0000000 || drama, romance, slice.of.life || Uploaded by: Anon-Uploader"
+                expect:
+                  releaseName: "Cool Movie"
+                  title: "Cool Movie"
+                  category: "Movie"
+                  year: "2020"
+                  releaseTags: "Blu-ray / MKV / h265 10-bit / 1929x804 / AC3 5.1 / Dual Audio / Softsubs (Sub Group)"
+                  releaseGroup: "Sub Group"
+                  releaseEpisode: ""
+                  freeleech: ""
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "000000"
+                  torrentId: "0000000"
+                  tags: "drama, romance, slice.of.life"
+                  uploader: "Anon-Uploader"
+
+              - line: "Awesome Live Action Special - Live Action TV Special  [2021] :: Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || manga || Uploaded by: Some-Uploader"
+                expect:
+                  releaseName: "Awesome Live Action Special"
+                  title: "Awesome Live Action Special"
+                  category: "Live Action TV Special"
+                  year: "2021"
+                  releaseTags: "Web / MKV / h264 / 848x480 / AAC 2.0 / Softsubs (Sub Group)"
+                  releaseGroup: "Sub Group"
+                  releaseEpisode: ""
+                  freeleech: ""
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00000"
+                  torrentId: "00000"
+                  tags: "manga"
+                  uploader: "Some-Uploader"
+
+              - line: "Best Visual Novel - Visual Novel  [2006] :: Game / PC / Unarchived / Hentai (Censored) || https://animebytes.tv/torrents.php?id=00000&torrentid=00000 || nukige || Uploaded by: Uploader"
+                expect:
+                  releaseName: "Best Visual Novel"
+                  title: "Best Visual Novel"
+                  category: "Visual Novel"
+                  year: "2006"
+                  releaseTags: "Game / PC / Unarchived / Hentai (Censored)"
+                  releaseGroup: ""
+                  releaseEpisode: ""
+                  freeleech: ""
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00000"
+                  torrentId: "00000"
+                  tags: "nukige"
+                  uploader: "Uploader"
+
+              - line: "Artist Name - Album of awesome Music  [1991] :: MP3 / V0 (VBR) / CD || https://animebytes.tv/torrents2.php?id=00000&torrentid=000000 || ambient, folk || Uploaded by: Uploader"
+                expect:
+                  releaseName: "Artist Name - Album of awesome Music"
+                  title: "Artist Name - Album of awesome Music"
+                  category: ""
+                  year: "1991"
+                  releaseTags: "MP3 / V0 (VBR) / CD"
+                  releaseGroup: ""
+                  releaseEpisode: ""
+                  freeleech: ""
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00000"
+                  torrentId: "000000"
+                  tags: "ambient, folk"
+                  uploader: "Uploader"
+
+              - line: "Awesome Series - TV Series  [2022] :: Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group) / Episode 1 / Freeleech || https://animebytes.tv/torrents.php?id=00000&torrentid=000000 || || Uploaded by: Uploader"
+                expect:
+                  releaseName: "Awesome Series"
+                  title: "Awesome Series"
+                  category: "TV Series"
+                  year: "2022"
+                  releaseTags: "Web / MKV / h264 / 1080p / AAC 2.0 / Softsubs (Sub Group)"
+                  releaseGroup: "Sub Group"
+                  releaseEpisode: "1"
+                  freeleech: "Freeleech"
+                  baseUrl: "https://animebytes.tv/"
+                  groupId: "00000"
+                  torrentId: "000000"
+                  tags: ""
+                  uploader: "Uploader"
+
+        match:
+          infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
+          downloadurl: "/torrent/{{ .torrentId }}/download/{{ .passkey }}"
+          releasename: "{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .releaseName }} {{ if .releaseEpisode }}{{ printf \"- %02s \" .releaseEpisode }}{{ end }} {{ if .year }}[{{ .year }}]{{ end }}{{ print \"[\" .releaseTags \"]\" | replace \" / \" \"][\" }}"

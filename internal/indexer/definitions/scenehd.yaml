@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: scenehd
 name: SceneHD
 identifier: scenehd
@@ -24,10 +25,6 @@ irc:
   server: irc.scenehd.org
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - SceneHD
   settings:
     - name: nick
       type: text
@@ -54,23 +51,22 @@ irc:
       label: Invite command
       help: Invite auth with SceneHD. Replace IRCKEY with your IRC key
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '[NEW] Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP [TV/720] https://scenehd.org/details.php?id=00000'
-          expect:
-            torrentName: Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP
-            category: TV/720
-            baseUrl: https://scenehd.org/
-            torrentId: "00000"
-        pattern: '\[NEW\] (.+) \[(.+)\] (https?\:\/\/.+\/).*id=(\d+)'
-        vars:
-          - torrentName
-          - category
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - SceneHD
+      parse:
+        type: single
+        lines:
+          - pattern: '\[NEW\] (?P<releaseName>.+) \[(?P<category>.+)\] (?P<baseUrl>https?\:\/\/.+\/).*id=(?P<torrentId>\d+)'
+            tests:
+              - line: '[NEW] Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP [TV/720] https://scenehd.org/details.php?id=00000'
+                expect:
+                  releaseName: Some.Show.S08E20.EXTENDED.720p.BluRay.X264-GROUP
+                  category: TV/720
+                  baseUrl: https://scenehd.org/
+                  torrentId: "00000"
 
-    match:
-      infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
