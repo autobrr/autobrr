@@ -218,7 +218,7 @@ func Test_client_Push_invalid_download_client(t *testing.T) {
 		Hostname: ts.URL,
 	})
 
-	rejections, err := client.Push(context.Background(), Release{
+	rejections, err := client.Push(context.Background(), ReleasePushRequest{
 		Title:            "Example",
 		DownloadUrl:      "https://example.invalid/release.torrent",
 		Size:             0,
