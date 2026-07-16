@@ -114,6 +114,7 @@ type Release struct {
 	Filter                             *Filter               `json:"-"`
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
 	MetaIMDB                           string                `json:"-"`
+	MetaTMDB                           int                   `json:"-"`
 }
 
 // Hash return md5 hashed normalized release name
@@ -1204,8 +1205,19 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		r.Episode = episode
 	}
 
-	if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
-		r.MetaIMDB = metaImdb
+	if metaId, err := getStringMapValue(varMap, "imdb"); err == nil {
+		r.MetaIMDB = metaId
+		if !strings.HasPrefix(metaId, "tt") {
+			r.MetaIMDB = "tt" + metaId
+		} else {
+			r.MetaIMDB = metaId
+		}
+	}
+
+	if metaId, err := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); err == nil {
+		if tmdbId, err := strconv.Atoi(metaId); err == nil {
+			r.MetaTMDB = tmdbId
+		}
 	}
 
 	return nil

@@ -140,11 +140,26 @@ func (i *IndexerDefinition) Prepare() {
 		i.IRC.ChannelsMap = map[string]*IndexerIRCV2Channel{}
 
 		for _, channel := range i.IRC.Channels {
-			i.IRC.ChannelsMap[channel.Name] = &IndexerIRCV2Channel{
+			ch := &IndexerIRCV2Channel{
 				Name:       channel.Name,
 				Announcers: channel.Announcers,
 				Parse:      channel.Parse,
 			}
+
+			switch i.Identifier {
+			case "ggn":
+				ch.Parse.parser = IRCParserGazelleGames{}
+			case "ops":
+				ch.Parse.parser = IRCParserOrpheus{}
+			case "redacted":
+				ch.Parse.parser = IRCParserRedacted{}
+			default:
+				ch.Parse.parser = DefaultIRCParser
+			}
+
+			// key by lowercase channel name: the IRC and announce layers
+			// canonicalize channel names to lowercase, so lookups use lowercase.
+			i.IRC.ChannelsMap[strings.ToLower(channel.Name)] = ch
 		}
 	}
 }
@@ -263,8 +278,19 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 				},
 			}
 
+			switch i.Identifier {
+			case "ggn":
+				channel.Parse.parser = IRCParserGazelleGames{}
+			case "ops":
+				channel.Parse.parser = IRCParserOrpheus{}
+			case "redacted":
+				channel.Parse.parser = IRCParserRedacted{}
+			default:
+				channel.Parse.parser = DefaultIRCParser
+			}
+
 			d.IRC.Channels = append(d.IRC.Channels, channel)
-			d.IRC.ChannelsMap[channelName] = &channel
+			d.IRC.ChannelsMap[strings.ToLower(channelName)] = &channel
 		}
 	}
 
@@ -313,6 +339,26 @@ type FeedSettings struct {
 	Settings    []IndexerSetting `json:"settings"`
 }
 
+/*
+Indexer definition v1 / custom / legacy
+*/
+
+type IndexerIRCParse struct {
+	Type          string                `json:"type"`
+	ForceSizeUnit string                `json:"forcesizeunit"`
+	Lines         []IndexerIRCParseLine `json:"lines"`
+	Match         IndexerIRCParseMatch  `json:"match"`
+	Mappings      IRCMappings           `json:"mappings"`
+}
+
+type IndexerIRCParseMatch struct {
+	TorrentURL  string   `json:"torrenturl"`
+	TorrentName string   `json:"torrentname"`
+	MagnetURI   string   `json:"magneturi"`
+	InfoURL     string   `json:"infourl"`
+	Encode      []string `json:"encode"`
+}
+
 type IndexerIRC struct {
 	Network     string            `json:"network"`
 	Server      string            `json:"server"`
@@ -338,6 +384,14 @@ type IndexerIRCV2 struct {
 	ChannelsMap map[string]*IndexerIRCV2Channel `json:"-"`
 }
 
+// GetChannel returns the channel config for the given name. The lookup is
+// case-insensitive: channel names are canonicalized to lowercase everywhere at
+// runtime, so callers may pass any casing.
+func (irc *IndexerIRCV2) GetChannel(name string) (*IndexerIRCV2Channel, bool) {
+	channel, ok := irc.ChannelsMap[strings.ToLower(name)]
+	return channel, ok
+}
+
 type IndexerIRCV2Channel struct {
 	Name       string             `json:"name"`
 	Announcers []string           `json:"announcers"`
@@ -351,6 +405,8 @@ type IndexerIRCV2Parse struct {
 	Lines            []IndexerIRCParseLine  `json:"lines"`
 	Match            IndexerIRCV2ParseMatch `json:"match"`
 	Mappings         IRCMappings            `json:"mappings"`
+
+	parser IRCParser
 }
 
 type IndexerIRCV2ParseMatch struct {
@@ -359,14 +415,6 @@ type IndexerIRCV2ParseMatch struct {
 	MagnetURI   string   `json:"magnetURI"`
 	InfoURL     string   `json:"infoURL"`
 	Encode      []string `json:"encode"`
-}
-
-type IndexerIRCParse struct {
-	Type          string                `json:"type"`
-	ForceSizeUnit string                `json:"forcesizeunit"`
-	Lines         []IndexerIRCParseLine `json:"lines"`
-	Match         IndexerIRCParseMatch  `json:"match"`
-	Mappings      IRCMappings           `json:"mappings"`
 }
 
 type LineTest struct {
@@ -487,14 +535,6 @@ func parseLineMatchRegexp(pattern string, tmpVars map[string]string, line string
 	}
 
 	return true, nil
-}
-
-type IndexerIRCParseMatch struct {
-	TorrentURL  string   `json:"torrenturl"`
-	TorrentName string   `json:"torrentname"`
-	MagnetURI   string   `json:"magneturi"`
-	InfoURL     string   `json:"infourl"`
-	Encode      []string `json:"encode"`
 }
 
 func parseTemplateURL(baseURL, sourceURL string, vars map[string]string, basename string) (*url.URL, error) {
@@ -645,7 +685,7 @@ func (p *IndexerIRCV2Parse) MapCustomVariables(vars map[string]string) error {
 }
 
 func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, vars map[string]string, rls *Release) error {
-	channel, ok := def.IRC.ChannelsMap[channelName]
+	channel, ok := def.IRC.GetChannel(channelName)
 	if !ok {
 		return errors.New("could not find channel: %s", channelName)
 	}
@@ -680,163 +720,7 @@ func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, va
 		return errors.Wrap(err, "could not parse release name")
 	}
 
-	var parser IRCParser
-
-	switch def.Identifier {
-	case "ggn":
-		parser = IRCParserGazelleGames{}
-	case "ops":
-		parser = IRCParserOrpheus{}
-	case "redacted":
-		parser = IRCParserRedacted{}
-	default:
-		parser = IRCParserDefault{}
-	}
-
-	if err := parser.Parse(rls, vars); err != nil {
-		return errors.Wrap(err, "could not parse release")
-	}
-
-	if v, ok := def.SettingsMap["cookie"]; ok {
-		rls.RawCookie = v
-	}
-
-	return nil
-}
-
-/*
- indexer definition v1
-*/
-
-func (p *IndexerIRCParseMatch) ParseURLs(baseURL string, vars map[string]string, rls *Release) error {
-	// handle url encode of values
-	for _, e := range p.Encode {
-		if v, ok := vars[e]; ok {
-			// url encode  value
-			t := url.QueryEscape(v)
-			vars[e] = t
-		}
-	}
-
-	if p.InfoURL != "" {
-		infoURL, err := parseTemplateURL(baseURL, p.InfoURL, vars, "infourl")
-		if err != nil {
-			return err
-		}
-
-		rls.InfoURL = infoURL.String()
-	}
-
-	if p.TorrentURL != "" {
-		downloadURL, err := parseTemplateURL(baseURL, p.TorrentURL, vars, "torrenturl")
-		if err != nil {
-			return err
-		}
-
-		rls.DownloadURL = downloadURL.String()
-	}
-
-	if p.MagnetURI != "" {
-		magnetURI, err := parseTemplateURL("magnet:", p.MagnetURI, vars, "magneturi")
-		if err != nil {
-			return err
-		}
-
-		rls.MagnetURI = magnetURI.String()
-	}
-
-	return nil
-}
-
-func (p *IndexerIRCParseMatch) ParseTorrentName(vars map[string]string, rls *Release) error {
-	if p.TorrentName != "" {
-		// setup text template to inject variables into
-		tmplName, err := template.New("torrentname").Funcs(sprig.TxtFuncMap()).Parse(p.TorrentName)
-		if err != nil {
-			return err
-		}
-
-		var nameBytes bytes.Buffer
-		if err := tmplName.Execute(&nameBytes, &vars); err != nil {
-			return errors.New("could not write torrent name template output")
-		}
-
-		rls.TorrentName = nameBytes.String()
-	}
-
-	return nil
-}
-
-func (p *IndexerIRCParse) MapCustomVariables(vars map[string]string) error {
-	for varsKey, varsKeyMap := range p.Mappings {
-		varsValue, ok := vars[varsKey]
-		if !ok {
-			continue
-		}
-
-		keyValueMap, ok := varsKeyMap[varsValue]
-		if !ok {
-			continue
-		}
-
-		for k, v := range keyValueMap {
-			vars[k] = v
-		}
-	}
-
-	return nil
-}
-
-func (p *IndexerIRCParse) Parse(def *IndexerDefinition, vars map[string]string, rls *Release) error {
-	channel, ok := def.IRC.ChannelsMap[""]
-	if !ok {
-		return errors.New("could not find default channel")
-	}
-
-	if err := p.MapCustomVariables(vars); err != nil {
-		return errors.Wrap(err, "could not map custom variables for release")
-	}
-
-	if err := rls.MapVars(vars, channel.Parse.ForceSizeUnit); err != nil {
-		return errors.Wrap(err, "could not map variables for release")
-	}
-
-	// merge vars from regex captures on announce and vars from settings
-	mergedVars := mergeVars(vars, def.SettingsMap)
-
-	baseUrl := def.BaseURL
-	if baseUrl == "" {
-		if len(def.URLS) == 0 {
-			return errors.New("could not find a valid indexer baseUrl")
-		}
-
-		baseUrl = def.URLS[0]
-	}
-
-	// parse urls
-	if err := channel.Parse.Match.ParseURLs(baseUrl, mergedVars, rls); err != nil {
-		return errors.Wrap(err, "could not parse urls for release")
-	}
-
-	// parse torrent name
-	if err := channel.Parse.Match.ParseTorrentName(mergedVars, rls); err != nil {
-		return errors.Wrap(err, "could not parse release name")
-	}
-
-	var parser IRCParser
-
-	switch def.Identifier {
-	case "ggn":
-		parser = IRCParserGazelleGames{}
-	case "ops":
-		parser = IRCParserOrpheus{}
-	case "redacted":
-		parser = IRCParserRedacted{}
-	default:
-		parser = IRCParserDefault{}
-	}
-
-	if err := parser.Parse(rls, vars); err != nil {
+	if err := p.parser.Parse(rls, vars); err != nil {
 		return errors.Wrap(err, "could not parse release")
 	}
 

@@ -201,7 +201,7 @@ func (f *FeedItem) parseAttributes() {
 				f.UploadVolumeFactor = parsedFloat
 				break
 			}
-		case "imdb":
+		case "imdb", "imdbid":
 			if f.ImdbId == "" {
 				if !strings.HasPrefix(attr.Value, "tt") {
 					f.ImdbId = "tt" + attr.Value
@@ -215,7 +215,7 @@ func (f *FeedItem) parseAttributes() {
 				f.TvdbId = attr.Value
 				break
 			}
-		case "tmdb":
+		case "tmdb", "tmdbid":
 			if f.TmdbId == "" {
 				f.TmdbId = attr.Value
 				break

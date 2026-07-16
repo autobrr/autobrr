@@ -13,6 +13,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/alexedwards/scs/postgresstore v0.0.0-20250417082927-ab20b3feb5e9
 	github.com/alexedwards/scs/v2 v2.9.0
+	github.com/alphadose/haxmap v1.4.1
 	github.com/anacrolix/torrent v1.61.0
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.4.0

@@ -181,6 +181,7 @@
     "channelsDesc": "Channels to join.",
     "channelsUpdateDesc": "Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.",
     "channelPassword": "Channel password",
+    "channelEnabled": "Enable/disable channel",
     "remove": "Remove",
     "noChannels": "No channels!",
     "addChannel": "Add Channel",
