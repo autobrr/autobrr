@@ -26,7 +26,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Trouble.in.Paradise-GROUP in Trouble in Paradise",
+					"releaseName": "Trouble.in.Paradise-GROUP in Trouble in Paradise",
 				},
 			},
 			want: want{
@@ -39,7 +39,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "F.I.L.F. Game Walkthrough v.0.18 in F.I.L.F.",
+					"releaseName": "F.I.L.F. Game Walkthrough v.0.18 in F.I.L.F.",
 				},
 			},
 			want: want{
@@ -52,7 +52,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Ni no Kuni: Dominion of the Dark Djinn in Ni no Kuni: Dominion of the Dark Djinn",
+					"releaseName": "Ni no Kuni: Dominion of the Dark Djinn in Ni no Kuni: Dominion of the Dark Djinn",
 				},
 			},
 			want: want{
@@ -65,7 +65,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Year 2 Remastered by Insaneintherainmusic",
+					"releaseName": "Year 2 Remastered by Insaneintherainmusic",
 					"category":    "OST",
 				},
 			},
@@ -79,7 +79,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Lanota - Version 2.23.1 in Lanota",
+					"releaseName": "Lanota - Version 2.23.1 in Lanota",
 					"category":    "iOS",
 				},
 			},
@@ -93,7 +93,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "After Inc. - Version 1.7.1",
+					"releaseName": "After Inc. - Version 1.7.1",
 					"category":    "iOS",
 				},
 			},
@@ -107,7 +107,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Through the Ages - Version 2.19.1128",
+					"releaseName": "Through the Ages - Version 2.19.1128",
 					"category":    "iOS",
 				},
 			},
@@ -121,7 +121,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Through the Ages - Version 2.19.1128 in Through the Ages",
+					"releaseName": "Through the Ages - Version 2.19.1128 in Through the Ages",
 					"category":    "iOS",
 				},
 			},
@@ -135,7 +135,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Asphalt 8: Airborne+ - Version 2.6.0b in Asphalt 8: Airborne",
+					"releaseName": "Asphalt 8: Airborne+ - Version 2.6.0b in Asphalt 8: Airborne",
 					"category":    "iOS",
 				},
 			},
@@ -149,7 +149,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Through the Ages - Version 2025-10-12 in Group",
+					"releaseName": "Through the Ages - Version 2025-10-12 in Group",
 					"category":    "iOS",
 				},
 			},
@@ -163,7 +163,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Korean_Drone_Flying_Tour_Han_River_NSW-SUXXORS in Korean Drone Flying Tour Han River",
+					"releaseName": "Korean_Drone_Flying_Tour_Han_River_NSW-SUXXORS in Korean Drone Flying Tour Han River",
 					"category":    "Switch",
 				},
 			},
@@ -177,7 +177,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Carmen_Sandiego_Update_v1.4.0_NSW-VENOM - Update - Version 1.4.0 in Carmen Sandiego",
+					"releaseName": "Carmen_Sandiego_Update_v1.4.0_NSW-VENOM - Update - Version 1.4.0 in Carmen Sandiego",
 					"category":    "Switch",
 				},
 			},
@@ -191,7 +191,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Colin McRae Rally 3 - Version 1.1 in Colin McRae Rally 3",
+					"releaseName": "Colin McRae Rally 3 - Version 1.1 in Colin McRae Rally 3",
 					"category":    "Windows",
 				},
 			},
@@ -205,7 +205,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Soulstone Survivors - Version 1.1.5 (83772) in Soulstone Survivors",
+					"releaseName": "Soulstone Survivors - Version 1.1.5 (83772) in Soulstone Survivors",
 					"category":    "Windows",
 				},
 			},
@@ -219,7 +219,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Digger: Galactic Treasures - Version 1.07",
+					"releaseName": "Digger: Galactic Treasures - Version 1.07",
 					"category":    "Windows",
 				},
 			},
@@ -233,7 +233,7 @@ func TestIRCParserGazelleGames_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "GazelleGames", "ggn", "GazelleGames"}),
 				vars: map[string]string{
-					"torrentName": "Bee.Simulator.The.Hive-RUNE - Version Unknown in Bee Simulator: The Hive",
+					"releaseName": "Bee.Simulator.The.Hive-RUNE - Version Unknown in Bee Simulator: The Hive",
 					"category":    "Windows",
 				},
 			},
@@ -273,7 +273,7 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops", "Orpheus"}),
 				vars: map[string]string{
-					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] WEB/FLAC/24bit Lossless",
+					"releaseName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] WEB/FLAC/24bit Lossless",
 					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",
 					"year":        "2023",
 					"releaseTags": "WEB/FLAC/24bit Lossless",
@@ -289,7 +289,7 @@ func TestIRCParserOrpheus_Parse(t *testing.T) {
 			args: args{
 				rls: NewRelease(IndexerMinimal{0, "Orpheus", "ops", "Orpheus"}),
 				vars: map[string]string{
-					"torrentName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] CD/FLAC/Lossless",
+					"releaseName": "Busta Rhymes – BEACH BALL (feat. BIA) – [2023] [Single] CD/FLAC/Lossless",
 					"title":       "Busta Rhymes – BEACH BALL (feat. BIA)",
 					"year":        "2023",
 					"releaseTags": "CD/FLAC/Lossless",

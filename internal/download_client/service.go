@@ -6,7 +6,6 @@ package download_client
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -20,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/nzbget"
 	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
@@ -33,29 +33,24 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
+type downloadClientRepo interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
 	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
 	Store(ctx context.Context, client *domain.DownloadClient) error
 	Update(ctx context.Context, client *domain.DownloadClient) error
 	Delete(ctx context.Context, clientID int32) error
-	Test(ctx context.Context, client domain.DownloadClient) error
-
-	GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error)
-	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
 }
-
-type service struct {
+type Service struct {
 	log       zerolog.Logger
-	repo      domain.DownloadClientRepo
+	repo      downloadClientRepo
 	subLogger *log.Logger
 
 	cache *ClientCache
 	m     sync.RWMutex
 }
 
-func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
-	s := &service{
+func NewService(log logger.Logger, repo downloadClientRepo) *Service {
+	s := &Service{
 		log:  log.With().Str("module", "download_client").Logger(),
 		repo: repo,
 
@@ -68,7 +63,7 @@ func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
 	return s
 }
 
-func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
+func (s *Service) List(ctx context.Context) ([]domain.DownloadClient, error) {
 	clients, err := s.repo.List(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not list download clients")
@@ -78,7 +73,7 @@ func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
 	return clients, nil
 }
 
-func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
+func (s *Service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
 	client := s.cache.Get(id)
 	if client != nil {
 		return client, nil
@@ -95,7 +90,7 @@ func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClien
 	return client, nil
 }
 
-func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error) {
+func (s *Service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error) {
 	data := make([]*domain.ArrTag, 0)
 
 	client, err := s.GetClient(ctx, id)
@@ -105,7 +100,7 @@ func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 	}
 
 	switch client.Type {
-	case "RADARR":
+	case domain.DownloadClientTypeRadarr:
 		arrClient := client.Client.(*radarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
@@ -123,7 +118,7 @@ func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 
 		return data, nil
 
-	case "SONARR":
+	case domain.DownloadClientTypeSonarr:
 		arrClient := client.Client.(*sonarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
@@ -146,7 +141,7 @@ func (s *service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 	}
 }
 
-func (s *service) Store(ctx context.Context, client *domain.DownloadClient) error {
+func (s *Service) Store(ctx context.Context, client *domain.DownloadClient) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
@@ -164,7 +159,7 @@ func (s *service) Store(ctx context.Context, client *domain.DownloadClient) erro
 	return err
 }
 
-func (s *service) Update(ctx context.Context, client *domain.DownloadClient) error {
+func (s *Service) Update(ctx context.Context, client *domain.DownloadClient) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
@@ -203,7 +198,7 @@ func (s *service) Update(ctx context.Context, client *domain.DownloadClient) err
 	return err
 }
 
-func (s *service) Delete(ctx context.Context, clientID int32) error {
+func (s *Service) Delete(ctx context.Context, clientID int32) error {
 	if err := s.repo.Delete(ctx, clientID); err != nil {
 		s.log.Error().Err(err).Msgf("could not delete download client: %v", clientID)
 		return err
@@ -214,7 +209,7 @@ func (s *service) Delete(ctx context.Context, clientID int32) error {
 	return nil
 }
 
-func (s *service) Test(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) Test(ctx context.Context, client domain.DownloadClient) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
@@ -252,7 +247,7 @@ func (s *service) Test(ctx context.Context, client domain.DownloadClient) error 
 }
 
 // GetClient get client from cache or repo and attach downloadClient implementation
-func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error) {
+func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error) {
 	l := s.log.With().Str("cache", "download-client").Logger()
 
 	client := s.cache.Get(clientId)
@@ -285,6 +280,7 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Host:          clientHost,
 			Username:      client.Username,
 			Password:      client.Password,
+			APIKey:        client.Settings.APIKey,
 			TLSSkipVerify: client.TLSSkipVerify,
 			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
 			BasicUser:     client.Settings.Auth.Username,
@@ -322,12 +318,12 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		})
 
 	case domain.DownloadClientTypeTransmission:
-		scheme := "http"
-		if client.TLS {
-			scheme = "https"
+		clientHost, err := client.BuildLegacyHost()
+		if err != nil {
+			return nil, errors.Wrap(err, "error building Transmission host url: %v", client.Host)
 		}
 
-		transmissionURL, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+		transmissionURL, err := url.Parse(clientHost)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not parse transmission url")
 		}
@@ -378,52 +374,57 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 
 	case domain.DownloadClientTypeLidarr:
 		client.Client = lidarr.New(lidarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeRadarr:
 		client.Client = radarr.New(radarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeReadarr:
 		client.Client = readarr.New(readarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeSonarr:
 		client.Client = sonarr.New(sonarr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeWhisparr:
 		client.Client = whisparr.New(whisparr.Config{
-			Hostname:  client.Host,
-			APIKey:    client.Settings.APIKey,
-			Log:       zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
-			BasicAuth: client.Settings.Auth.Enabled,
-			Username:  client.Settings.Auth.Username,
-			Password:  client.Settings.Auth.Password,
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
 	case domain.DownloadClientTypeSabnzbd:
@@ -433,6 +434,13 @@ func (s *service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Log:       nil,
 			BasicUser: client.Settings.Auth.Username,
 			BasicPass: client.Settings.Auth.Password,
+		})
+
+	case domain.DownloadClientTypeNzbget:
+		client.Client = nzbget.New(nzbget.Options{
+			Host:     client.Host,
+			Username: client.Username,
+			Password: client.Password,
 		})
 	}
 

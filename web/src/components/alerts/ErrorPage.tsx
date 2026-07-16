@@ -5,6 +5,7 @@
 
 import StackTracey from "stacktracey";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
 import { ExternalLink } from "@components/ExternalLink";
 
 type ErrorPageProps = {
@@ -13,7 +14,8 @@ type ErrorPageProps = {
 }
 
 export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
-  let pageTitle = "We caught an unrecoverable error!";
+  const { t } = useTranslation("common");
+  let pageTitle = t("errorPage.unrecoverable");
   let errorLine: string, summary ="";
 
   if (error instanceof Error) {
@@ -27,7 +29,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
     });
 
     if (error.cause === "OFFLINE") {
-      pageTitle = "Connection to Autobrr failed! Check the application state and verify your connectivity.";
+      pageTitle = t("errorPage.offline");
     }
 
     errorLine = error.toString();
@@ -43,20 +45,20 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
           {pageTitle}
         </h1>
         <h3 className="text-xl leading-6 text-gray-700 dark:text-gray-400 mb-4">
-          Please consider reporting this error to our
+          {t("errorPage.reportPrefix")}
           {" "}
           <ExternalLink
             href="https://github.com/autobrr/autobrr"
             className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
           >
-            GitHub page
+            {t("errorPage.github")}
           </ExternalLink>
-          {" or to "}
+          {" "}{t("errorPage.reportMiddle")}{" "}
           <ExternalLink
             href="https://discord.autobrr.com"
             className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
           >
-            our official Discord channel
+            {t("errorPage.discord")}
           </ExternalLink>
           .
         </h3>
@@ -82,8 +84,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
             </pre>
           ) : null}
           <span className="block text-gray-800 mb-2 text-md">
-            You can try resetting the page state using the button provided below or restarting your autobrr application.
-            However, this is not guaranteed to fix the error.
+            {t("errorPage.recoveryHint")}
           </span>
           <button
             type="button"
@@ -94,7 +95,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
             }}
           >
             <ArrowPathIcon className="-ml-0.5 mr-2 h-5 w-5"/>
-            Reset page state
+            {t("errorPage.reset")}
           </button>
         </div>
       </div>

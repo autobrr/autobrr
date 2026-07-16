@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { useTranslation } from "react-i18next";
+
 import { DocsLink } from "@components/ExternalLink";
 import { TextAreaAutoResize } from "@components/inputs/input";
 import { MultiSelect, SwitchGroup, TextField } from "@components/inputs";
@@ -15,69 +17,72 @@ import {
   FilterWideGridGapClass
 } from "@screens/filters/sections/_components.tsx";
 
-const SeasonsAndEpisodes = () => (
-  <FilterSection
-    title="Seasons, Episodes and Date"
-    subtitle="Set season, episode, year, months and day match constraints."
-  >
+const SeasonsAndEpisodes = () => {
+  const { t } = useTranslation("filters");
+
+  return (
+    <FilterSection
+      title={t("moviesTv.seasonEpisode.title")}
+      subtitle={t("moviesTv.seasonEpisode.subtitle")}
+    >
     <FilterLayout>
       <TextField
         name="seasons"
-        label="Seasons"
+        label={t("moviesTv.seasonEpisode.seasons")}
         columns={6}
-        placeholder="eg. 1,3,2-6"
+        placeholder={t("moviesTv.seasonEpisode.seasonsPlaceholder")}
         tooltip={
           <div>
-            <p>See docs for information about how to <b>only</b> grab season packs:</p>
+            <p>{t("moviesTv.seasonEpisode.seasonsTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters/examples#only-season-packs" />
           </div>
         }
       />
       <TextField
         name="episodes"
-        label="Episodes"
+        label={t("moviesTv.seasonEpisode.episodes")}
         columns={6}
-        placeholder="eg. 2,4,10-20"
+        placeholder={t("moviesTv.seasonEpisode.episodesPlaceholder")}
         tooltip={
           <div>
-            <p>See docs for information about how to <b>only</b> grab episodes:</p>
+            <p>{t("moviesTv.seasonEpisode.episodesTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters/examples#only-episodes-skip-season-packs"/>
           </div>
         }
       />
-      <p className="col-span-12 -mb-1 text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">Daily Shows</p>
+      <p className="col-span-12 -mb-1 text-sm font-bold text-gray-800 dark:text-gray-100 tracking-wide">{t("moviesTv.seasonEpisode.dailyShows")}</p>
       <TextField
         name="years"
-        label="Years"
+        label={t("moviesTv.years")}
         columns={4}
-        placeholder="eg. 2018,2019-2021"
+        placeholder={t("moviesTv.yearsPlaceholder")}
         tooltip={
           <div>
-            <p>This field takes a range of years and/or comma separated single years.</p>
+            <p>{t("moviesTv.yearsTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#tvmovies"/>
           </div>
         }
       />
       <TextField
         name="months"
-        label="Months"
+        label={t("moviesTv.seasonEpisode.months")}
         columns={4}
-        placeholder="eg. 4,2-9"
+        placeholder={t("moviesTv.seasonEpisode.monthsPlaceholder")}
         tooltip={
           <div>
-            <p>This field takes a range of years and/or comma separated single months.</p>
+            <p>{t("moviesTv.seasonEpisode.monthsTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#tvmovies"/>
           </div>
         }
       />
       <TextField
         name="days"
-        label="Days"
+        label={t("moviesTv.seasonEpisode.days")}
         columns={4}
-        placeholder="eg. 1,15-30"
+        placeholder={t("moviesTv.seasonEpisode.daysPlaceholder")}
         tooltip={
           <div>
-            <p>This field takes a range of years and/or comma separated single days.</p>
+            <p>{t("moviesTv.seasonEpisode.daysTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#tvmovies"/>
           </div>
         }
@@ -85,28 +90,32 @@ const SeasonsAndEpisodes = () => (
       <div className="col-span-12 sm:col-span-6">
         <SwitchGroup
           name="smart_episode"
-          label="Smart Episode"
-          description="Do not match episodes older than the last one matched."
+          label={t("moviesTv.seasonEpisode.smartEpisode")}
+          description={t("moviesTv.seasonEpisode.smartEpisodeDescription")}
         />
       </div>
     </FilterLayout>
   </FilterSection>
-);
+  );
+};
 
-const Quality = () => (
-  <FilterSection
-    title="Quality"
-    subtitle="Set resolution, source, codec and related match constraints."
-  >
+const Quality = () => {
+  const { t } = useTranslation("filters");
+
+  return (
+    <FilterSection
+      title={t("moviesTv.quality.title")}
+      subtitle={t("moviesTv.quality.subtitle")}
+    >
     <FilterLayout gap={FilterWideGridGapClass}>
       <MultiSelect
         name="resolutions"
         options={CONSTS.RESOLUTION_OPTIONS}
-        label="resolutions"
+        label={t("moviesTv.quality.resolutions")}
         columns={6}
         tooltip={
           <div>
-            <p>Will match releases which contain any of the selected resolutions.</p>
+            <p>{t("moviesTv.quality.resolutionsTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
@@ -114,11 +123,11 @@ const Quality = () => (
       <MultiSelect
         name="sources"
         options={CONSTS.SOURCES_OPTIONS}
-        label="sources"
+        label={t("moviesTv.quality.sources")}
         columns={6}
         tooltip={
           <div>
-            <p>Will match releases which contain any of the selected sources.</p>
+            <p>{t("moviesTv.quality.sourcesTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
@@ -129,11 +138,11 @@ const Quality = () => (
       <MultiSelect
         name="codecs"
         options={CONSTS.CODECS_OPTIONS}
-        label="codecs"
+        label={t("moviesTv.quality.codecs")}
         columns={6}
         tooltip={
           <div>
-            <p>Will match releases which contain any of the selected codecs.</p>
+            <p>{t("moviesTv.quality.codecsTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
@@ -141,11 +150,11 @@ const Quality = () => (
       <MultiSelect
         name="containers"
         options={CONSTS.CONTAINER_OPTIONS}
-        label="containers"
+        label={t("moviesTv.quality.containers")}
         columns={6}
         tooltip={
           <div>
-            <p>Will match releases which contain any of the selected containers.</p>
+            <p>{t("moviesTv.quality.containersTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
@@ -156,11 +165,11 @@ const Quality = () => (
       <MultiSelect
         name="match_hdr"
         options={CONSTS.HDR_OPTIONS}
-        label="Match HDR"
+        label={t("moviesTv.quality.matchHdr")}
         columns={6}
         tooltip={
           <div>
-            <p>Will match releases which contain any of the selected HDR designations.</p>
+            <p>{t("moviesTv.quality.matchHdrTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
@@ -168,11 +177,11 @@ const Quality = () => (
       <MultiSelect
         name="except_hdr"
         options={CONSTS.HDR_OPTIONS}
-        label="Except HDR"
+        label={t("moviesTv.quality.exceptHdr")}
         columns={6}
         tooltip={
           <div>
-            <p>Won't match releases which contain any of the selected HDR designations (takes priority over Match HDR).</p>
+            <p>{t("moviesTv.quality.exceptHdrTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
@@ -183,11 +192,11 @@ const Quality = () => (
       <MultiSelect
         name="match_other"
         options={CONSTS.OTHER_OPTIONS}
-        label="Match Other"
+        label={t("moviesTv.quality.matchOther")}
         columns={6}
         tooltip={
           <div>
-            <p>Will match releases which contain any of the selected designations.</p>
+            <p>{t("moviesTv.quality.matchOtherTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
@@ -195,43 +204,47 @@ const Quality = () => (
       <MultiSelect
         name="except_other"
         options={CONSTS.OTHER_OPTIONS}
-        label="Except Other"
+        label={t("moviesTv.quality.exceptOther")}
         columns={6}
         tooltip={
           <div>
-            <p>Won't match releases which contain any of the selected Other designations (takes priority over Match Other).</p>
+            <p>{t("moviesTv.quality.exceptOtherTooltip")}</p>
             <DocsLink href="https://autobrr.com/filters#quality" />
           </div>
         }
       />
     </FilterLayout>
   </FilterSection>
-);
+  );
+};
 
-export const MoviesTv = () => (
-  <FilterPage>
+export const MoviesTv = () => {
+  const { t } = useTranslation("filters");
+
+  return (
+    <FilterPage>
     <FilterSection>
       <FilterLayout>
         <TextAreaAutoResize
           name="shows"
-          label="Movies / Shows"
+          label={t("moviesTv.title")}
           columns={8}
-          placeholder="eg. Movie,Show 1,Show?2"
+          placeholder={t("moviesTv.placeholder")}
           tooltip={
             <div>
-              <p>You can use basic filtering like wildcards <code>*</code> or replace single characters with <code>?</code></p>
+              <p>{t("moviesTv.wildcardTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters#tvmovies" />
             </div>
           }
         />
         <TextField
           name="years"
-          label="Years"
+          label={t("moviesTv.years")}
           columns={4}
-          placeholder="eg. 2018,2019-2021"
+          placeholder={t("moviesTv.yearsPlaceholder")}
           tooltip={
             <div>
-              <p>This field takes a range of years and/or comma separated single years.</p>
+              <p>{t("moviesTv.yearsTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters#tvmovies" />
             </div>
           }
@@ -242,4 +255,5 @@ export const MoviesTv = () => (
     <SeasonsAndEpisodes />
     <Quality />
   </FilterPage>
-);
+  );
+};

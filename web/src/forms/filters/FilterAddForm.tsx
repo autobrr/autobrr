@@ -10,6 +10,7 @@ import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues } from "formik";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
@@ -19,6 +20,7 @@ import Toast from "@components/notifications/Toast";
 import { AddFormProps } from "@forms/_shared";
 
 export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
+  const { t } = useTranslation("filters");
   const inputRef = useRef(null)
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -27,7 +29,7 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
     onSuccess: (filter) => {
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`Filter ${filter.name} was added`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("addForm.added", { name: filter.name })} t={toastInstance} />);
 
       if (filter.id) {
         navigate({ to: "/filters/$filterId", params: { filterId: filter.id }})
@@ -40,7 +42,7 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
   const validate = (values: FormikValues) => {
     const errors = {} as FormikErrors<FormikValues>;
     if (!values.name) {
-      errors.name = "Required";
+      errors.name = t("addForm.required");
     }
     return errors;
   };
@@ -80,9 +82,9 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                         <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
                           <div className="flex items-start justify-between space-x-3">
                             <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">Create filter</DialogTitle>
+                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("addForm.title")}</DialogTitle>
                               <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Add new filter.
+                                {t("addForm.subtitle")}
                               </p>
                             </div>
                             <div className="h-7 flex items-center">
@@ -91,7 +93,7 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                                 className="light:bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                                 onClick={toggle}
                               >
-                                <span className="sr-only">Close panel</span>
+                                <span className="sr-only">{t("addForm.closePanel")}</span>
                                 <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                               </button>
                             </div>
@@ -107,7 +109,7 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                                 htmlFor="name"
                                 className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
                               >
-                                Name
+                                {t("addForm.name")}
                                 <span className="text-red-500"> *</span>
                               </label>
                             </div>
@@ -145,13 +147,13 @@ export function FilterAddForm({ isOpen, toggle }: AddFormProps) {
                             className="bg-white dark:bg-gray-800 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                             onClick={toggle}
                           >
-                            Cancel
+                            {t("addForm.cancel")}
                           </button>
                           <button
                             type="submit"
                             className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                           >
-                            Create
+                            {t("addForm.create")}
                           </button>
                         </div>
                       </div>

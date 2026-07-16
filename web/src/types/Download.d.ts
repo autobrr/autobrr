@@ -15,7 +15,8 @@ type DownloadClientType =
   "LIDARR" |
   "WHISPARR" |
   "READARR" |
-  "SABNZBD";
+  "SABNZBD" |
+  "NZBGET";
 
 // export enum DownloadClientTypeEnum {
 //     QBITTORRENT = "QBITTORRENT",

@@ -15,7 +15,7 @@ import (
 	"github.com/autobrr/go-deluge"
 )
 
-func (s *service) deluge(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) deluge(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action Deluge: %s", action.Name)
 
 	var err error
@@ -43,7 +43,7 @@ func (s *service) deluge(ctx context.Context, action *domain.Action, release dom
 	return rejections, err
 }
 
-func (s *service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.DelugeClient, client *domain.DownloadClient, action *domain.Action) ([]string, error) {
+func (s *Service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.DelugeClient, client *domain.DownloadClient, action *domain.Action) ([]string, error) {
 	s.log.Trace().Msgf("action Deluge: %v check rules", action.Name)
 
 	// check for active downloads and other rules
@@ -88,7 +88,7 @@ func (s *service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.De
 	return nil, nil
 }
 
-func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
 	//downloadClient := client.Client.(*deluge.Client)
 	downloadClient := deluge.NewV1(deluge.Settings{
 		Hostname:             client.Host,
@@ -218,7 +218,7 @@ func delugeSetOrCreateTorrentLabel(ctx context.Context, plugin *deluge.LabelPlug
 	return nil
 }
 
-func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
 	//downloadClient := client.Client.(*deluge.ClientV2)
 	downloadClient := deluge.NewV2(deluge.Settings{
 		Hostname:             client.Host,
@@ -324,13 +324,13 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 	return nil, nil
 }
 
-func (s *service) prepareDelugeOptions(action *domain.Action) (deluge.Options, error) {
+func (s *Service) prepareDelugeOptions(action *domain.Action) (deluge.Options, error) {
 	// set options
 	options := deluge.Options{}
 
-	if action.Paused {
-		options.AddPaused = &action.Paused
-	}
+	// always set; to override client default
+	options.AddPaused = &action.Paused
+
 	if action.SavePath != "" {
 		options.DownloadLocation = &action.SavePath
 	}

@@ -4,6 +4,7 @@
  */
 
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 import { DocsLink } from "@components/ExternalLink";
 import { ActionContentLayoutOptions, ActionPriorityOptions } from "@domain/constants";
@@ -18,13 +19,14 @@ import {
   TextField
 } from "@components/inputs";
 
-export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
+export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <>
     <FilterSection
-      title="Instance"
-      subtitle={
-        <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
-      }
+      title={t("actionComponents.instance.title")}
+      subtitle={t("actionComponents.instance.subtitle")}
     >
       <FilterLayout>
         <FilterHalfRow>
@@ -39,12 +41,12 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
       <FilterLayout>
         <TextField
           name={`actions.${idx}.category`}
-          label="Category"
+          label={t("actionComponents.common.category")}
           columns={6}
-          placeholder="eg. category"
+          placeholder={t("actionComponents.common.categoryPlaceholder")}
           tooltip={
             <div>
-              <p>The field can use macros to transform/add values from metadata:</p>
+              <p>{t("actionComponents.qbittorrent.macrosTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters/macros" />
             </div>
           }
@@ -52,12 +54,12 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
 
         <TextField
           name={`actions.${idx}.tags`}
-          label="Tags"
+          label={t("actionComponents.qbittorrent.tags")}
           columns={6}
-          placeholder="eg. tag1,tag2"
+          placeholder={t("actionComponents.qbittorrent.tagsPlaceholder")}
           tooltip={
             <div>
-              <p>The field can use macros to transform/add values from metadata:</p>
+              <p>{t("actionComponents.qbittorrent.macrosTooltip")}</p>
               <DocsLink href="https://autobrr.com/filters/macros" />
             </div>
           }
@@ -68,13 +70,13 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
         <FilterHalfRow>
           <TextAreaAutoResize
             name={`actions.${idx}.save_path`}
-            label="Save path"
-            placeholder="eg. /full/path/to/save_folder"
+            label={t("actionComponents.common.savePath")}
+            placeholder={t("actionComponents.qbittorrent.savePathPlaceholder")}
             tooltip={
               <div>
-                <p>Set a custom save path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
+                <p>{t("actionComponents.qbittorrent.savePathTooltip")}</p>
                 <br />
-                <p>The field can use macros to transform/add values from metadata:</p>
+                <p>{t("actionComponents.qbittorrent.macrosTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters/macros" />
               </div>
             }
@@ -83,13 +85,13 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
         <FilterHalfRow>
           <TextAreaAutoResize
             name={`actions.${idx}.download_path`}
-            label="Download path"
-            placeholder="eg. /full/path/to/download_folder"
+            label={t("actionComponents.qbittorrent.downloadPath")}
+            placeholder={t("actionComponents.qbittorrent.downloadPathPlaceholder")}
             tooltip={
               <div>
-                <p>Set a custom download (incomplete) path for this action. Automatic Torrent Management will take care of this if using qBittorrent with categories.</p>
+                <p>{t("actionComponents.qbittorrent.downloadPathTooltip")}</p>
                 <br />
-                <p>The field can use macros to transform/add values from metadata:</p>
+                <p>{t("actionComponents.qbittorrent.macrosTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters/macros" />
               </div>
             }
@@ -98,36 +100,36 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
       </FilterLayout>
 
       <CollapsibleSection
-        title="Rules"
-        subtitle="Configure your torrent client rules"
+        title={t("actionComponents.qbittorrent.rulesTitle")}
+        subtitle={t("actionComponents.qbittorrent.rulesSubtitle")}
         childClassName={FilterWideGridGapClass}
       >
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.ignore_rules`}
-            label="Ignore existing client rules"
+            label={t("actionComponents.qbittorrent.ignoreRules")}
             description={
               <p>
-                Choose to ignore rules set in <Link className="text-blue-400 visited:text-blue-400" to="/settings/clients">Client Settings</Link>.
+                {t("actionComponents.qbittorrent.ignoreRulesDescription")} <Link className="text-blue-400 visited:text-blue-400" to="/settings/clients">Client Settings</Link>.
               </p>
             }
             className="py-2 pb-4"
           />
           <Select
             name={`actions.${idx}.content_layout`}
-            label="Content Layout"
-            optionDefaultText="Select content layout"
+            label={t("actionComponents.qbittorrent.contentLayout")}
+            optionDefaultText={t("actionComponents.qbittorrent.contentLayoutDefault")}
             options={ActionContentLayoutOptions}
             className="py-2 pb-4"
           />
           <Select
             name={`actions.${idx}.priority`}
-            label="Priority"
-            optionDefaultText="Disabled"
+            label={t("actionComponents.qbittorrent.priority")}
+            optionDefaultText={t("actionComponents.qbittorrent.priorityDefault")}
             options={ActionPriorityOptions}
             tooltip={
               <div>
-                <p>Torrent Queueing will be enabled for you if it is disabled. Ensure you set your preferred limits for it in your client.</p>
+                <p>{t("actionComponents.qbittorrent.priorityTooltip")}</p>
               </div>
             }
           />
@@ -136,89 +138,90 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => (
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.paused`}
-            label="Add paused"
-            description="Add torrent as paused"
+            label={t("actionComponents.common.addPaused")}
+            description={t("actionComponents.common.addPausedDescription")}
           />
           <SwitchGroup
             name={`actions.${idx}.skip_hash_check`}
-            label="Skip hash check"
-            description="Add torrent and skip hash check"
+            label={t("actionComponents.common.skipHashCheck")}
+            description={t("actionComponents.common.skipHashCheckDescription")}
             className="pt-4 sm:pt-4"
           />
           <SwitchGroup
             name={`actions.${idx}.first_last_piece_prio`}
-            label="Download first and last pieces first"
-            description="Add torrent and download first and last pieces first"
+            label={t("actionComponents.qbittorrent.firstLastPiece")}
+            description={t("actionComponents.qbittorrent.firstLastPieceDescription")}
             className="pt-6 sm:pt-10"
           />
         </FilterHalfRow>
       </CollapsibleSection>
 
       <CollapsibleSection
-        title="Limits"
-        subtitle="Configure your speed/ratio/seed time limits"
+        title={t("actionComponents.common.limitsTitle")}
+        subtitle={t("actionComponents.common.limitsSubtitle")}
       >
         <FilterLayout>
           <NumberField
             name={`actions.${idx}.limit_download_speed`}
-            label="Limit download speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.limitDownloadKib")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
           <NumberField
             name={`actions.${idx}.limit_upload_speed`}
-            label="Limit upload speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.limitUploadKib")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterLayout>
 
         <FilterLayout>
           <NumberField
             name={`actions.${idx}.limit_ratio`}
-            label="Ratio limit"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.ratioLimit")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
             step={0.25}
             isDecimal
           />
           <NumberField
             name={`actions.${idx}.limit_seed_time`}
-            label="Seed time limit (minutes)"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.seedTimeMinutes")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterLayout>
       </CollapsibleSection>
 
       <CollapsibleSection
         noBottomBorder
-        title="Announce"
-        subtitle="Set number of reannounces (if needed), delete after Y announce failures, etc."
+        title={t("actionComponents.common.announceTitle")}
+        subtitle={t("actionComponents.common.announceSubtitle")}
         childClassName={FilterWideGridGapClass}
       >
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.reannounce_skip`}
-            label="Disable reannounce"
-            description="Reannounce is enabled by default. Disable if it's not needed"
+            label={t("actionComponents.common.disableReannounce")}
+            description={t("actionComponents.common.disableReannounceDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
             name={`actions.${idx}.reannounce_interval`}
-            label="Reannounce interval. Run every X seconds"
-            placeholder="7 is default and recommended"
+            label={t("actionComponents.common.reannounceInterval")}
+            placeholder={t("actionComponents.common.reannounceIntervalPlaceholder")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.reannounce_delete`}
-            label="Delete stalled"
-            description="Delete stalled torrents after Y attempts"
+            label={t("actionComponents.common.deleteStalled")}
+            description={t("actionComponents.common.deleteStalledDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
             name={`actions.${idx}.reannounce_max_attempts`}
-            label="Run reannounce Y times"
+            label={t("actionComponents.common.reannounceMaxAttempts")}
           />
         </FilterHalfRow>
       </CollapsibleSection>
     </FilterSection>
   </>
-);
+  );
+};

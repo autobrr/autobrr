@@ -20,6 +20,19 @@ Thumbs.db
 .idea
 .vscode
 
+# AI agents - local tool state/config; shared guidance belongs in AGENTS.md
+.claude/
+CLAUDE.local.md
+.cursor/
+.windsurf/
+.gemini/
+.codex/
+.aider*
+.cline*
+.roo/
+.opencode/
+.continue/
+
 # Package manager
 node_modules/
 .pnp.*
@@ -34,6 +47,9 @@ yarn.lock
 .pnpm-store
 # If needed, package-lock.json shall be added manually using an explicit git add command
 package-lock.json
+
+# Docker
+config/
 
 # Others
 web/build

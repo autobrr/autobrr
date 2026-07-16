@@ -83,6 +83,7 @@ func BuildTitle(event domain.NotificationEvent) string {
 		domain.NotificationEventPushError:          "Push Error",
 		domain.NotificationEventIRCDisconnected:    "IRC Disconnected",
 		domain.NotificationEventIRCReconnected:     "IRC Reconnected",
+		domain.NotificationEventReleaseNew:         "New Release",
 		domain.NotificationEventTest:               "Test",
 	}
 

@@ -4,25 +4,9 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"time"
 )
-
-type IrcRepo interface {
-	StoreNetwork(ctx context.Context, network *IrcNetwork) error
-	UpdateNetwork(ctx context.Context, network *IrcNetwork) error
-	StoreChannel(ctx context.Context, networkID int64, channel *IrcChannel) error
-	UpdateChannel(channel *IrcChannel) error
-	UpdateInviteCommand(networkID int64, invite string) error
-	StoreNetworkChannels(ctx context.Context, networkID int64, channels []IrcChannel) error
-	CheckExistingNetwork(ctx context.Context, network *IrcNetwork) (*IrcNetwork, error)
-	FindActiveNetworks(ctx context.Context) ([]IrcNetwork, error)
-	ListNetworks(ctx context.Context) ([]IrcNetwork, error)
-	ListChannels(networkID int64) ([]IrcChannel, error)
-	GetNetworkByID(ctx context.Context, id int64) (*IrcNetwork, error)
-	DeleteNetwork(ctx context.Context, id int64) error
-}
 
 type IrcChannel struct {
 	ID         int64  `json:"id"`
@@ -70,25 +54,27 @@ func (ia IRCAuth) MarshalJSON() ([]byte, error) {
 }
 
 type IrcNetwork struct {
-	ID             int64        `json:"id"`
-	Name           string       `json:"name"`
-	Enabled        bool         `json:"enabled"`
-	Server         string       `json:"server"`
-	Port           int          `json:"port"`
-	TLS            bool         `json:"tls"`
-	Pass           string       `json:"pass"`
-	Nick           string       `json:"nick"`
-	Auth           IRCAuth      `json:"auth,omitempty"`
-	InviteCommand  string       `json:"invite_command"`
-	UseBouncer     bool         `json:"use_bouncer"`
-	BouncerAddr    string       `json:"bouncer_addr"`
-	UseProxy       bool         `json:"use_proxy"`
-	ProxyId        int64        `json:"proxy_id"`
-	Proxy          *Proxy       `json:"proxy"`
-	BotMode        bool         `json:"bot_mode"`
-	Channels       []IrcChannel `json:"channels"`
-	Connected      bool         `json:"connected"`
-	ConnectedSince *time.Time   `json:"connected_since"`
+	ID               int64        `json:"id"`
+	Name             string       `json:"name"`
+	Enabled          bool         `json:"enabled"`
+	Server           string       `json:"server"`
+	Port             int          `json:"port"`
+	TLS              bool         `json:"tls"`
+	TLSSkipVerify    bool         `json:"tls_skip_verify"`
+	Pass             string       `json:"pass"`
+	Nick             string       `json:"nick"`
+	Auth             IRCAuth      `json:"auth,omitempty"`
+	InviteCommand    string       `json:"invite_command"`
+	UseBouncer       bool         `json:"use_bouncer"`
+	BouncerAddr      string       `json:"bouncer_addr"`
+	UseProxy         bool         `json:"use_proxy"`
+	ProxyId          int64        `json:"proxy_id"`
+	Proxy            *Proxy       `json:"proxy"`
+	BotMode          bool         `json:"bot_mode"`
+	Channels         []IrcChannel `json:"channels"`
+	Connected        bool         `json:"connected"`
+	ConnectedSince   *time.Time   `json:"connected_since"`
+	ConnectionErrors []string     `json:"connection_errors"`
 }
 
 func (in IrcNetwork) MarshalJSON() ([]byte, error) {
@@ -102,30 +88,81 @@ func (in IrcNetwork) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// DetermineIfRestartIsRequired diff currentState and desiredState to determine if restart is required to reach the desired state
+func (in IrcNetwork) DetermineIfRestartIsRequired(desiredState *IrcNetwork) ([]string, bool) {
+	var fieldsChanged []string
+
+	if in.Server != desiredState.Server {
+		fieldsChanged = append(fieldsChanged, "server")
+	}
+	if in.Port != desiredState.Port {
+		fieldsChanged = append(fieldsChanged, "port")
+	}
+	if in.TLS != desiredState.TLS {
+		fieldsChanged = append(fieldsChanged, "tls")
+	}
+	if in.TLSSkipVerify != desiredState.TLSSkipVerify {
+		fieldsChanged = append(fieldsChanged, "tls skip verify")
+	}
+	if in.Pass != desiredState.Pass {
+		fieldsChanged = append(fieldsChanged, "pass")
+	}
+	if in.InviteCommand != desiredState.InviteCommand {
+		fieldsChanged = append(fieldsChanged, "invite command")
+	}
+	if in.UseBouncer != desiredState.UseBouncer {
+		fieldsChanged = append(fieldsChanged, "use bouncer")
+	}
+	if in.BouncerAddr != desiredState.BouncerAddr {
+		fieldsChanged = append(fieldsChanged, "bouncer addr")
+	}
+	if in.BotMode != desiredState.BotMode {
+		fieldsChanged = append(fieldsChanged, "bot mode")
+	}
+	if in.UseProxy != desiredState.UseProxy {
+		fieldsChanged = append(fieldsChanged, "use proxy")
+	}
+	if in.ProxyId != desiredState.ProxyId {
+		fieldsChanged = append(fieldsChanged, "proxy id")
+	}
+	if in.Auth.Mechanism != desiredState.Auth.Mechanism {
+		fieldsChanged = append(fieldsChanged, "auth mechanism")
+	}
+	if in.Auth.Account != desiredState.Auth.Account {
+		fieldsChanged = append(fieldsChanged, "auth account")
+	}
+	if in.Auth.Password != desiredState.Auth.Password {
+		fieldsChanged = append(fieldsChanged, "auth password")
+	}
+
+	return fieldsChanged, len(fieldsChanged) > 0
+}
+
 type IrcNetworkWithHealth struct {
-	ID               int64               `json:"id"`
-	Name             string              `json:"name"`
-	Enabled          bool                `json:"enabled"`
-	Server           string              `json:"server"`
-	Port             int                 `json:"port"`
-	TLS              bool                `json:"tls"`
-	Pass             string              `json:"pass"`
-	Nick             string              `json:"nick"`
-	Auth             IRCAuth             `json:"auth,omitempty"`
-	InviteCommand    string              `json:"invite_command"`
-	UseBouncer       bool                `json:"use_bouncer"`
-	BouncerAddr      string              `json:"bouncer_addr"`
-	BotMode          bool                `json:"bot_mode"`
-	CurrentNick      string              `json:"current_nick"`
-	PreferredNick    string              `json:"preferred_nick"`
-	UseProxy         bool                `json:"use_proxy"`
-	ProxyId          int64               `json:"proxy_id"`
-	Proxy            *Proxy              `json:"proxy"`
-	Channels         []ChannelWithHealth `json:"channels"`
-	Connected        bool                `json:"connected"`
-	ConnectedSince   time.Time           `json:"connected_since"`
-	ConnectionErrors []string            `json:"connection_errors"`
-	Healthy          bool                `json:"healthy"`
+	ID               int64                  `json:"id"`
+	Name             string                 `json:"name"`
+	Enabled          bool                   `json:"enabled"`
+	Server           string                 `json:"server"`
+	Port             int                    `json:"port"`
+	TLS              bool                   `json:"tls"`
+	TLSSkipVerify    bool                   `json:"tls_skip_verify"`
+	Pass             string                 `json:"pass"`
+	Nick             string                 `json:"nick"`
+	Auth             IRCAuth                `json:"auth,omitempty"`
+	InviteCommand    string                 `json:"invite_command"`
+	UseBouncer       bool                   `json:"use_bouncer"`
+	BouncerAddr      string                 `json:"bouncer_addr"`
+	BotMode          bool                   `json:"bot_mode"`
+	CurrentNick      string                 `json:"current_nick"`
+	PreferredNick    string                 `json:"preferred_nick"`
+	UseProxy         bool                   `json:"use_proxy"`
+	ProxyId          int64                  `json:"proxy_id"`
+	Proxy            *Proxy                 `json:"proxy"`
+	Channels         []IrcChannelWithHealth `json:"channels"`
+	Connected        bool                   `json:"connected"`
+	ConnectedSince   time.Time              `json:"connected_since"`
+	ConnectionErrors []string               `json:"connection_errors"`
+	Healthy          bool                   `json:"healthy"`
 }
 
 func (in IrcNetworkWithHealth) MarshalJSON() ([]byte, error) {
@@ -139,19 +176,21 @@ func (in IrcNetworkWithHealth) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type ChannelWithHealth struct {
-	ID              int64     `json:"id"`
-	Enabled         bool      `json:"enabled"`
-	Name            string    `json:"name"`
-	Password        string    `json:"password"`
-	Detached        bool      `json:"detached"`
-	Monitoring      bool      `json:"monitoring"`
-	MonitoringSince time.Time `json:"monitoring_since"`
-	LastAnnounce    time.Time `json:"last_announce"`
+type IrcChannelWithHealth struct {
+	ID               int64     `json:"id"`
+	Enabled          bool      `json:"enabled"`
+	Name             string    `json:"name"`
+	Password         string    `json:"password"`
+	Detached         bool      `json:"detached"`
+	State            string    `json:"state"`
+	Monitoring       bool      `json:"monitoring"`
+	MonitoringSince  time.Time `json:"monitoring_since"`
+	LastAnnounce     time.Time `json:"last_announce"`
+	ConnectionErrors []string  `json:"connection_errors"`
 }
 
-func (cwh ChannelWithHealth) MarshalJSON() ([]byte, error) {
-	type Alias ChannelWithHealth
+func (cwh IrcChannelWithHealth) MarshalJSON() ([]byte, error) {
+	type Alias IrcChannelWithHealth
 	return json.Marshal(&struct {
 		*Alias
 		Password string `json:"password"`
@@ -185,9 +224,11 @@ type SendIrcCmdRequest struct {
 }
 
 type IrcMessage struct {
+	Network int64     `json:"network"`
 	Channel string    `json:"channel"`
 	Nick    string    `json:"nick"`
 	Message string    `json:"msg"`
+	Type    string    `json:"type"`
 	Time    time.Time `json:"time"`
 }
 

@@ -7,6 +7,7 @@ import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
 import { AuthContext, AuthInfo } from "@utils/Context";
 import { ColumnFilter } from "@tanstack/react-table";
+import { IrcEvent } from "@hooks/useIrcEvents";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
@@ -341,6 +342,10 @@ export const APIClient = {
     create: (feed: FeedCreate) => appClient.Post("api/feeds", {
       body: feed
     }),
+    fetchCapsDraft: (feed: FeedCapsRequest) => appClient.Post<unknown>("api/feeds/caps", {
+      body: feed
+    }),
+    fetchCaps: (id: number) => appClient.Get<FeedCaps>(`api/feeds/${id}/caps`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, {
       body: { enabled }
     }),
@@ -391,6 +396,14 @@ export const APIClient = {
     reprocessAnnounce: (networkId: number, channel: string, msg: string) => appClient.Post(`api/irc/network/${networkId}/channel/${channel}/announce/process`, {
       body: { msg: msg }
     }),
+    getChannelHistory: (networkId: number, channel: string, limit?: number) =>
+      appClient.Get<IrcEvent[]>(`api/irc/network/${networkId}/channel/${channel}/history`, {
+        queryString: { limit }
+      }),
+    allEvents: () => new EventSource(
+      `${sseBaseUrl()}api/irc/events?stream=irc`,
+      { withCredentials: true }
+    ),
     events: (network: string) => new EventSource(
       `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
       { withCredentials: true }
@@ -415,7 +428,14 @@ export const APIClient = {
     delete: (id: number) => appClient.Delete(`api/notification/${id}`),
     test: (notification: ServiceNotification) => appClient.Post("api/notification/test", {
       body: notification
-    })
+    }),
+    getPushoverSounds: (apiToken: string) => {
+      // Don't make request if token is redacted or empty
+      if (!apiToken || apiToken === "<redacted>" || apiToken === "") {
+        return Promise.reject(new Error("API token is required"));
+      }
+      return appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`);
+    }
   },
   lists: {
     list: () => appClient.Get<List[]>("api/lists"),
@@ -461,13 +481,13 @@ export const APIClient = {
         if (!filter.value)
           return;
 
-        if (filter.id == "indexer.identifier") {
+        if (filter.id == "indexer.identifier" || filter.id == "indexer_identifier") {
           if (typeof filter.value === "string") {
             params["indexer"].push(filter.value);
-          }
-        } else if (filter.id == "indexer_identifier") {
-          if (typeof filter.value === "string") {
-            params["indexer"].push(filter.value);
+          } else if (Array.isArray(filter.value)) {
+            for (const v of filter.value) {
+              if (typeof v === "string") params["indexer"].push(v);
+            }
           }
         } else if (filter.id === "action_status") {
           if (typeof filter.value === "string") {
@@ -506,6 +526,22 @@ export const APIClient = {
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
     ),
+    cleanupJobs: {
+      list: () => appClient.Get<ReleaseCleanupJob[]>("api/release/cleanup-jobs"),
+      getByID: (id: number) => appClient.Get<ReleaseCleanupJob>(`api/release/cleanup-jobs/${id}`),
+      store: (job: ReleaseCleanupJob) => appClient.Post("api/release/cleanup-jobs", {
+        body: job
+      }),
+      update: (job: ReleaseCleanupJob) => appClient.Put(`api/release/cleanup-jobs/${job.id}`, {
+        body: job
+      }),
+      delete: (id: number) => appClient.Delete(`api/release/cleanup-jobs/${id}`),
+      toggleEnabled: (id: number, enabled: boolean) => appClient.Patch(
+        `api/release/cleanup-jobs/${id}/enabled`,
+        { body: { enabled } }
+      ),
+      forceRun: (id: number) => appClient.Post(`api/release/cleanup-jobs/${id}/run`)
+    },
     profiles: {
       duplicates: {
         list: () => appClient.Get<ReleaseProfileDuplicate[]>(`api/release/profiles/duplicate`),

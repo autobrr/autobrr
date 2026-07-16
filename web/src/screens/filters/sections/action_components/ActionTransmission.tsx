@@ -5,14 +5,16 @@
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection, FilterWideGridGapClass } from "../_components";
 import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { useTranslation } from "react-i18next";
 
-export const Transmission = ({ idx, action, clients }: ClientActionProps) => (
+export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <>
     <FilterSection
-      title="Instance"
-      subtitle={
-        <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
-      }
+      title={t("actionComponents.instance.title")}
+      subtitle={t("actionComponents.instance.subtitle")}
     >
       <FilterLayout>
         <FilterHalfRow>
@@ -25,95 +27,96 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => (
         <FilterHalfRow>
           <TextField
             name={`actions.${idx}.label`}
-            label="Torrent Label"
+            label={t("actionComponents.transmission.label")}
             columns={6}
-            placeholder="eg. label1"
+            placeholder={t("actionComponents.transmission.labelPlaceholder")}
           />
         </FilterHalfRow>
       </FilterLayout>
 
       <TextAreaAutoResize
         name={`actions.${idx}.save_path`}
-        label="Save path"
+        label={t("actionComponents.common.savePath")}
         columns={6}
-        placeholder="eg. /full/path/to/download_folder"
+        placeholder={t("actionComponents.common.savePathPlaceholder")}
       />
 
       <FilterLayout className="pb-6">
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.paused`}
-            label="Add paused"
-            description="Add torrent as paused"
+            label={t("actionComponents.common.addPaused")}
+            description={t("actionComponents.common.addPausedDescription")}
           />
         </FilterHalfRow>
       </FilterLayout>
 
       <CollapsibleSection
-        title="Limits"
-        subtitle="Configure your speed/ratio/seed time limits"
+        title={t("actionComponents.common.limitsTitle")}
+        subtitle={t("actionComponents.common.limitsSubtitle")}
       >
         <FilterLayout>
           <NumberField
             name={`actions.${idx}.limit_download_speed`}
-            label="Limit download speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.limitDownloadKib")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
           <NumberField
             name={`actions.${idx}.limit_upload_speed`}
-            label="Limit upload speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.limitUploadKib")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterLayout>
 
         <FilterLayout>
           <NumberField
             name={`actions.${idx}.limit_ratio`}
-            label="Ratio limit"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.ratioLimit")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
             step={0.25}
             isDecimal
           />
           <NumberField
             name={`actions.${idx}.limit_seed_time`}
-            label="Seed time limit (minutes)"
-            placeholder="Takes any number (0 is no limit)"
+            label={t("actionComponents.common.seedTimeMinutes")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterLayout>
       </CollapsibleSection>
 
       <CollapsibleSection
         noBottomBorder
-        title="Announce"
-        subtitle="Set number of reannounces (if needed), delete after Y announce failures, etc."
+        title={t("actionComponents.common.announceTitle")}
+        subtitle={t("actionComponents.common.announceSubtitle")}
         childClassName={FilterWideGridGapClass}
       >
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.reannounce_skip`}
-            label="Disable reannounce"
-            description="Reannounce is enabled by default. Disable if it's not needed"
+            label={t("actionComponents.common.disableReannounce")}
+            description={t("actionComponents.common.disableReannounceDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
             name={`actions.${idx}.reannounce_interval`}
-            label="Reannounce interval. Run every X seconds"
-            placeholder="7 is default and recommended"
+            label={t("actionComponents.common.reannounceInterval")}
+            placeholder={t("actionComponents.common.reannounceIntervalPlaceholder")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <SwitchGroup
             name={`actions.${idx}.reannounce_delete`}
-            label="Delete stalled"
-            description="Delete stalled torrents after Y attempts"
+            label={t("actionComponents.common.deleteStalled")}
+            description={t("actionComponents.common.deleteStalledDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
             name={`actions.${idx}.reannounce_max_attempts`}
-            label="Run reannounce Y times"
+            label={t("actionComponents.common.reannounceMaxAttempts")}
           />
         </FilterHalfRow>
       </CollapsibleSection>
     </FilterSection>
   </>
-);
+  );
+};

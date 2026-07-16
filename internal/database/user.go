@@ -20,7 +20,7 @@ type UserRepo struct {
 	db  *DB
 }
 
-func NewUserRepo(log logger.Logger, db *DB) domain.UserRepo {
+func NewUserRepo(log logger.Logger, db *DB) *UserRepo {
 	return &UserRepo{
 		log: log.With().Str("repo", "user").Logger(),
 		db:  db,

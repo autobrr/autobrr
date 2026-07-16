@@ -4,6 +4,7 @@
  */
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { downloadsPerUnitOptions } from "@domain/constants";
 import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
@@ -31,6 +32,7 @@ const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
 );
 
 export const General = () => {
+  const { t } = useTranslation(["options", "filters"]);
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
   const indexerOptions = indexersQuery.data && indexersQuery.data.map(MapIndexer)
 
@@ -43,113 +45,113 @@ export const General = () => {
     <FilterPage>
       <FilterSection>
         <FilterLayout>
-          <TextField name="name" label="Filter name" columns={6} placeholder="eg. Filter 1" />
+          <TextField name="name" label={t("filters:general.filterName")} columns={6} placeholder={t("filters:general.filterNamePlaceholder")} />
 
           <MultiSelect
             name="announce_types"
-            options={CONSTS.AnnounceTypeOptions}
-            label="announce types"
+            options={CONSTS.getAnnounceTypeOptions(t)}
+            label={t("filters:general.announceTypes")}
             columns={3}
             tooltip={
               <div>
-                <p>NEW! Match releases which contain any of the selected announce types.</p>
+                <p>{t("filters:general.announceTypesTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters#announce-type" />
               </div>
             }
           />
 
-          <IndexerMultiSelect name="indexers" options={indexerOptions} label="Indexers" columns={3} />
+          <IndexerMultiSelect name="indexers" options={indexerOptions} label={t("filters:general.indexers")} columns={3} />
         </FilterLayout>
       </FilterSection>
 
       <FilterSection
-        title="Rules"
-        subtitle="Specify rules on how torrents should be handled/selected."
+        title={t("filters:general.rulesTitle")}
+        subtitle={t("filters:general.rulesSubtitle")}
       >
         <FilterLayout>
           <TextField
             name="min_size"
-            label="Min size"
+            label={t("filters:general.minSize")}
             columns={6}
-            placeholder="eg. 100MiB, 80GB"
+            placeholder={t("filters:general.sizePlaceholder")}
             tooltip={
               <div>
-                <p>Supports units such as MB, MiB, GB, etc.</p>
+                <p>{t("filters:general.sizeTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
           />
           <TextField
             name="max_size"
-            label="Max size"
+            label={t("filters:general.maxSize")}
             columns={6}
-            placeholder="eg. 100MiB, 80GB"
+            placeholder={t("filters:general.sizePlaceholder")}
             tooltip={
               <div>
-                <p>Supports units such as MB, MiB, GB, etc.</p>
+                <p>{t("filters:general.sizeTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
           />
           <NumberField
             name="delay"
-            label="Delay"
-            placeholder="Number of seconds to delay actions"
+            label={t("filters:general.delay")}
+            placeholder={t("filters:general.delayPlaceholder")}
             tooltip={
               <div>
-                <p>Number of seconds to wait before running actions.</p>
+                <p>{t("filters:general.delayTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
           />
           <NumberField
             name="priority"
-            label="Priority"
-            placeholder="Higher number = higher priority"
+            label={t("filters:general.priority")}
+            placeholder={t("filters:general.priorityPlaceholder")}
             tooltip={
               <div>
-                <p>Filters are checked in order of priority. Higher number = higher priority.</p>
+                <p>{t("filters:general.priorityTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
           />
           <NumberField
             name="max_downloads"
-            label="Max downloads"
-            placeholder="Takes any number (0 is infinite)"
+            label={t("filters:general.maxDownloads")}
+            placeholder={t("filters:general.maxDownloadsPlaceholder")}
             tooltip={
               <div>
-                <p>Number of max downloads as specified by the respective unit.</p>
+                <p>{t("filters:general.maxDownloadsTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
           />
           <Select
             name="max_downloads_unit"
-            label="Max downloads per"
+            label={t("filters:general.maxDownloadsPer")}
             options={downloadsPerUnitOptions}
-            optionDefaultText="Select unit"
+            optionDefaultText={t("filters:general.selectUnit")}
             tooltip={
               <div>
-                <p>The unit of time for counting the maximum downloads per filter.</p>
+                <p>{t("filters:general.maxDownloadsPerTooltip")}</p>
                 <DocsLink href="https://autobrr.com/filters#rules" />
               </div>
             }
           />
           <Select
             name={`release_profile_duplicate_id`}
-            label="Skip Duplicates profile"
-            optionDefaultText="Select profile"
-            options={[{label: "Select profile", value: null}, ...duplicateProfilesOptions]}
-            tooltip={<div><p>Select the skip duplicate profile.</p></div>}
+            label={t("filters:general.skipDuplicatesProfile")}
+            optionDefaultText={t("filters:general.selectProfile")}
+            options={[{label: t("filters:general.selectProfile"), value: null}, ...duplicateProfilesOptions]}
+            tooltip={<div><p>{t("filters:general.skipDuplicatesProfileTooltip")}</p></div>}
           />
         </FilterLayout>
 
         <FilterLayout>
           <SwitchGroup
             name="enabled"
-            label="Enabled"
-            description="Enable or disable this filter."
+            label={t("filters:general.enabled")}
+            description={t("filters:general.enabledDescription")}
             className="pb-2 col-span-12 sm:col-span-6"
           />
         </FilterLayout>

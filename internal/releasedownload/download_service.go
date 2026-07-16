@@ -44,19 +44,24 @@ func (e *RetriableError) Error() string {
 
 var _ error = (*RetriableError)(nil)
 
-type DownloadService struct {
-	log  zerolog.Logger
-	repo domain.ReleaseRepo
-
-	indexerRepo domain.IndexerRepo
-
-	proxySvc proxy.Service
+type proxyService interface {
+	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
 }
 
-func NewDownloadService(log logger.Logger, repo domain.ReleaseRepo, indexerRepo domain.IndexerRepo, proxySvc proxy.Service) *DownloadService {
+type indexerRepo interface {
+	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
+}
+
+type DownloadService struct {
+	log zerolog.Logger
+
+	indexerRepo indexerRepo
+	proxySvc    proxyService
+}
+
+func NewDownloadService(log logger.Logger, indexerRepo indexerRepo, proxySvc proxyService) *DownloadService {
 	return &DownloadService{
 		log:         log.With().Str("module", "release-download").Logger(),
-		repo:        repo,
 		indexerRepo: indexerRepo,
 		proxySvc:    proxySvc,
 	}

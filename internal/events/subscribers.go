@@ -7,27 +7,37 @@ import (
 	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/asaskevich/EventBus"
 	"github.com/rs/zerolog"
 )
 
+type feedService interface {
+	FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error)
+	Delete(ctx context.Context, id int) error
+}
+
+type notificationSender interface {
+	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
+}
+
+type releaseService interface {
+	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
+}
+
 type Subscriber struct {
 	log      zerolog.Logger
 	eventbus EventBus.Bus
 
-	feedSvc         feed.Service
-	notificationSvc notification.Sender
-	releaseSvc      release.Service
+	feedSvc         feedService
+	notificationSvc notificationSender
+	releaseSvc      releaseService
 }
 
-func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feed.Service, notificationSvc notification.Sender, releaseSvc release.Service) Subscriber {
-	s := Subscriber{
+func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feedService, notificationSvc notificationSender, releaseSvc releaseService) *Subscriber {
+	s := &Subscriber{
 		log:             log.With().Str("module", "events").Logger(),
 		eventbus:        eventbus,
 		feedSvc:         feedSvc,
@@ -40,14 +50,14 @@ func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feed.Servi
 	return s
 }
 
-func (s Subscriber) Register() {
+func (s *Subscriber) Register() {
 	s.eventbus.Subscribe(domain.EventReleaseStoreActionStatus, s.handleReleaseActionStatus)
 	s.eventbus.Subscribe(domain.EventReleasePushStatus, s.handleReleasePushStatus)
 	s.eventbus.Subscribe(domain.EventNotificationSend, s.handleSendNotification)
 	s.eventbus.Subscribe(domain.EventIndexerDelete, s.handleIndexerDelete)
 }
 
-func (s Subscriber) handleReleaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
+func (s *Subscriber) handleReleaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
 	s.log.Trace().Str("event", domain.EventReleaseStoreActionStatus).Msgf("store action status: '%+v'", actionStatus)
 
 	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
@@ -56,7 +66,7 @@ func (s Subscriber) handleReleaseActionStatus(actionStatus *domain.ReleaseAction
 	}
 }
 
-func (s Subscriber) handleReleasePushStatus(actionStatus *domain.ReleaseActionStatus) {
+func (s *Subscriber) handleReleasePushStatus(actionStatus *domain.ReleaseActionStatus) {
 	s.log.Trace().Str("event", domain.EventReleasePushStatus).Msgf("events: 'release:push' '%+v'", actionStatus)
 
 	if err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus); err != nil {
@@ -64,14 +74,14 @@ func (s Subscriber) handleReleasePushStatus(actionStatus *domain.ReleaseActionSt
 	}
 }
 
-func (s Subscriber) handleSendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
+func (s *Subscriber) handleSendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
 	s.log.Trace().Str("event", domain.EventNotificationSend).Msgf("send notification events: '%v' '%+v'", *event, payload)
 
 	s.notificationSvc.Send(*event, *payload)
 }
 
 // handleIndexerDelete handle feed cleanup via event because feed service can't be imported in indexer service
-func (s Subscriber) handleIndexerDelete(indexer *domain.Indexer) {
+func (s *Subscriber) handleIndexerDelete(indexer *domain.Indexer) {
 	s.log.Trace().Str("event", domain.EventIndexerDelete).Msgf("events: 'indexer:delete' '%d'", indexer.ID)
 
 	ctx := context.Background()

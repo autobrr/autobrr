@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *service) trakt(ctx context.Context, list *domain.List) error {
+func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "trakt").Str("list", list.Name).Logger()
 
 	if list.URL == "" {

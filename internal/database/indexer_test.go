@@ -21,7 +21,7 @@ func getMockIndexer() domain.Indexer {
 		Name:           "indexer1",
 		Identifier:     "indexer1",
 		Enabled:        true,
-		Implementation: "meh",
+		Implementation: domain.IndexerImplementationIRC,
 		BaseURL:        "ok",
 		Settings:       nil,
 	}

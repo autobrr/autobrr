@@ -66,12 +66,14 @@ type Macro struct {
 	LogScore                  int
 	MagnetURI                 string
 	MetaIMDB                  string
+	MetaTMDB                  int
 	Origin                    string
 	Other                     []string
 	PreTime                   string
 	Protocol                  string
 	Proper                    bool
 	Region                    string
+	ReleaseTags               string
 	Repack                    bool
 	Resolution                string
 	Season                    int
@@ -146,12 +148,14 @@ func NewMacro(release Release) Macro {
 		LogScore:                  release.LogScore,
 		MagnetURI:                 release.MagnetURI,
 		MetaIMDB:                  release.MetaIMDB,
+		MetaTMDB:                  release.MetaTMDB,
 		Origin:                    release.Origin,
 		Other:                     release.Other,
 		PreTime:                   release.PreTime,
 		Protocol:                  release.Protocol.String(),
 		Proper:                    release.Proper,
 		Region:                    release.Region,
+		ReleaseTags:               release.ReleaseTags,
 		Repack:                    release.Repack,
 		Resolution:                release.Resolution,
 		Season:                    release.Season,

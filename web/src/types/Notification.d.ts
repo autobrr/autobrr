@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR";
+type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR" | "WEBHOOK";
 type NotificationEvent =
   "PUSH_APPROVED"
   | "PUSH_REJECTED"
   | "PUSH_ERROR"
   | "IRC_DISCONNECTED"
   | "IRC_RECONNECTED"
-  | "APP_UPDATE_AVAILABLE";
+  | "APP_UPDATE_AVAILABLE"
+  | "RELEASE_NEW";
 
 interface ServiceNotification {
   id: number;
@@ -24,9 +25,13 @@ interface ServiceNotification {
   channel?: string;
   priority?: number;
   topic?: string;
+  sound?: string;
+  event_sounds?: Record<string, string>;
   host?: string;
   username?: string;
   password?: string;
+  method?: string;
+  headers?: string;
   used_by_filters?: NotificationFilter[];
 }
 
@@ -38,4 +43,4 @@ interface NotificationFilter {
   events: NotificationFilterEvent[];
 }
 
-type NotificationFilterEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR";
+type NotificationFilterEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR" | "RELEASE_NEW";

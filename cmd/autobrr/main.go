@@ -4,7 +4,8 @@
 package main
 
 import (
-	"log"
+	"context"
+	stdlog "log"
 	"os"
 	"os/signal"
 	"runtime/pprof"
@@ -18,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/diagnostics"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
@@ -36,6 +38,7 @@ import (
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
+	"github.com/autobrr/autobrr/pkg/featureflags"
 	"github.com/autobrr/autobrr/pkg/sqlite3store"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
@@ -55,6 +58,10 @@ var (
 	date    = ""
 )
 
+func init() {
+	featureflags.Register(domain.IRCFuzzyAnnouncer, false)
+}
+
 func main() {
 	var configPath, profilePath string
 	pflag.StringVar(&configPath, "config", "", "path to configuration directory")
@@ -62,6 +69,8 @@ func main() {
 	pflag.Parse()
 
 	shutdownFunc, isPGO := pgoRun(profilePath)
+
+	ctx := context.Background()
 
 	// read config
 	cfg := config.New(configPath, version)
@@ -90,6 +99,7 @@ func main() {
 	// setup server-sent-events
 	serverEvents := sse.New()
 	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
+	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
 
 	// register SSE hook on logger
 	log.RegisterSSEWriter(serverEvents)
@@ -125,11 +135,17 @@ func main() {
 		sessionManager.Store = postgresstore.New(db.Handler)
 	}
 
+	// setup OIDC
+	oidcService := auth.NewOIDCService(log, cfg.Config)
+	if err := oidcService.Discover(ctx); err != nil {
+		log.Fatal().Err(err).Msg("could not init OIDC service")
+	}
+
 	// setup repos
 	var (
 		apikeyRepo         = database.NewAPIRepo(log, db)
 		downloadClientRepo = database.NewDownloadClientRepo(log, db)
-		actionRepo         = database.NewActionRepo(log, db, downloadClientRepo)
+		actionRepo         = database.NewActionRepo(log, db)
 		filterRepo         = database.NewFilterRepo(log, db)
 		feedRepo           = database.NewFeedRepo(log, db)
 		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
@@ -152,12 +168,12 @@ func main() {
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
 		indexerAPIService     = indexer.NewAPIService(log, proxyService)
-		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
+		downloadService       = releasedownload.NewDownloadService(log, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
-		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService)
+		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService, schedulingService, bus)
 		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
 		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
@@ -188,6 +204,7 @@ func main() {
 			IrcService:            ircService,
 			ListService:           listService,
 			NotificationService:   notificationService,
+			OIDCService:           oidcService,
 			ProxyService:          proxyService,
 			ReleaseService:        releaseService,
 			UpdateService:         updateService,
@@ -215,7 +232,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, listService, schedulingService, updateService)
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return
@@ -248,11 +265,11 @@ func pgoRun(file string) (func(), bool) {
 
 	f, err := os.Create(file)
 	if err != nil {
-		log.Fatalf("could not create CPU profile: %v", err)
+		stdlog.Fatalf("could not create CPU profile: %v", err)
 	}
 
 	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatalf("could not create CPU profile: %v", err)
+		stdlog.Fatalf("could not create CPU profile: %v", err)
 	}
 
 	return func() {

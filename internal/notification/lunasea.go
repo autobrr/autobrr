@@ -45,7 +45,7 @@ func (s *lunaSeaSender) rewriteWebhookURL(url string) string {
 	return lunaWebhook.ReplaceAllString(url, "/custom/")
 } // `custom` is not mentioned in their docs, so I thought this would be a good idea to add to avoid user errors
 
-func NewLunaSeaSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewLunaSeaSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &lunaSeaSender{
 		log:      log.With().Str("sender", "lunasea").Str("name", settings.Name).Logger(),
 		Settings: settings,
