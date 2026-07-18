@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -164,6 +165,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -221,6 +223,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -288,6 +291,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -331,6 +335,7 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -383,6 +388,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 

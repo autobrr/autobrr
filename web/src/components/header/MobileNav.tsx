@@ -8,12 +8,15 @@ import { DisclosurePanel } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
+import { AuthContext } from "@utils/Context";
 
 import { NAV_ROUTES } from "./_shared";
 import type { RightNavProps } from "./_shared";
 
 export const MobileNav = (props: RightNavProps) => {
   const { t } = useTranslation("common");
+  const auth = AuthContext.get();
+  const authDisabled = auth.authMethod === 'disabled';
 
   return (
     <DisclosurePanel className="border-b border-gray-300 dark:border-gray-700 md:hidden">
@@ -42,15 +45,17 @@ export const MobileNav = (props: RightNavProps) => {
             }}
           </Link>
         ))}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            props.logoutMutation();
-          }}
-          className="w-full shadow-xs border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium text-left"
-        >
-          {t("userMenu.logout")}
-        </button>
+        {!authDisabled && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              props.logoutMutation();
+            }}
+            className="w-full shadow-xs border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium text-left"
+          >
+            {t("userMenu.logout")}
+          </button>
+        )}
       </div>
     </DisclosurePanel>
   );

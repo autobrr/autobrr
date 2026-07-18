@@ -242,6 +242,12 @@ export const SettingsReleasesRoute = createRoute({
 export const SettingsAccountRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'account',
+  beforeLoad: async () => {
+    // Account (username/password) management is unavailable when built-in auth is disabled.
+    if (AuthContext.get().authMethod === 'disabled') {
+      throw redirect({ to: SettingsRoute.to });
+    }
+  },
   component: AccountSettings
 });
 

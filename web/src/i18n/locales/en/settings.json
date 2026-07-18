@@ -504,6 +504,7 @@
     "create": "Create",
     "listTitle": "API keys",
     "listDescription": "Manage your autobrr API keys here.",
+    "authDisabledNotice": "API keys are unavailable while built-in authentication is disabled. Requests that pass your reverse proxy and CIDR allowlist can use the autobrr API directly.",
     "addNew": "Add new",
     "noItems": "No API keys",
     "createCta": "Create API key",

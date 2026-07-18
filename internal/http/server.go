@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -31,6 +32,10 @@ type Server struct {
 	config         *config.AppConfig
 	allowedOrigins []string
 	sessionManager *scs.SessionManager
+
+	// authDisabledAllowedPrefixes is parsed once at startup from
+	// config.AuthDisabledAllowedCIDRs, rather than on every request.
+	authDisabledAllowedPrefixes []netip.Prefix
 
 	actionService         actionService
 	apiService            apikeyService
@@ -122,6 +127,15 @@ func NewServer(deps Deps) *Server {
 		srv.allowedOrigins = strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
 	}
 
+	if deps.Config.Config.IsAuthDisabled() {
+		prefixes, err := deps.Config.Config.ParseAuthDisabledAllowedCIDRs()
+		if err != nil {
+			srv.log.Error().Err(err).Msg("auth disabled: invalid authDisabledAllowedCIDRs, denying all requests")
+		} else {
+			srv.authDisabledAllowedPrefixes = prefixes
+		}
+	}
+
 	return srv
 }
 
@@ -160,6 +174,8 @@ func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
+	// Must run before RealIP so forwarded headers cannot bypass the allowlist.
+	r.Use(s.RequireAuthDisabledIPAllowlist)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(LoggerMiddleware(&s.log))

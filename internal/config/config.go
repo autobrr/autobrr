@@ -289,6 +289,10 @@ func (c *AppConfig) defaults() {
 		MetricsHost:           "127.0.0.1",
 		MetricsPort:           9074,
 		MetricsBasicAuthUsers: "",
+
+		AuthDisabled:               false,
+		IAcknowledgeThisIsABadIdea: false,
+		AuthDisabledAllowedCIDRs:   []string{},
 	}
 }
 
@@ -447,6 +451,36 @@ func (c *AppConfig) loadFromEnv() {
 	if v := GetEnvStr("METRICS_BASIC_AUTH_USERS"); v != "" {
 		c.Config.MetricsBasicAuthUsers = v
 	}
+
+	// Auth disabled configuration
+	if v := GetEnvStr("AUTH_DISABLED"); v != "" {
+		c.Config.AuthDisabled = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := GetEnvStr("I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"); v != "" {
+		c.Config.IAcknowledgeThisIsABadIdea = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := GetEnvStr("AUTH_DISABLED_ALLOWED_CIDRS"); v != "" {
+		c.Config.AuthDisabledAllowedCIDRs = splitEnvList(v)
+	}
+}
+
+// splitEnvList splits a comma or whitespace separated env var value into a
+// slice of trimmed, non-empty entries.
+func splitEnvList(v string) []string {
+	fields := strings.FieldsFunc(v, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+
+	entries := make([]string, 0, len(fields))
+	for _, f := range fields {
+		if f = strings.TrimSpace(f); f != "" {
+			entries = append(entries, f)
+		}
+	}
+
+	return entries
 }
 
 func GetEnvStr(key string) string {

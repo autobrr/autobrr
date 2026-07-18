@@ -126,6 +126,16 @@ func main() {
 	log.Info().Msgf("Using database: %s", db.Driver)
 	log.Debug().Msgf("GOMEMLIMIT: %d bytes", memLimit)
 
+	switch {
+	case cfg.Config.IsAuthDisabled():
+		if err := cfg.Config.ValidateAuthDisabledConfig(); err != nil {
+			log.Fatal().Err(err).Msg("Authentication is disabled but authDisabledAllowedCIDRs is invalid or empty")
+		}
+		log.Warn().Strs("authDisabledAllowedCIDRs", cfg.Config.AuthDisabledAllowedCIDRs).Msg("Authentication is disabled via AUTOBRR__AUTH_DISABLED. Access is restricted to authDisabledAllowedCIDRs. Make sure autobrr is behind a reverse proxy with its own authentication.")
+	case cfg.Config.AuthDisabled != cfg.Config.IAcknowledgeThisIsABadIdea:
+		log.Warn().Msg("Only one of AUTOBRR__AUTH_DISABLED and AUTOBRR__I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA is set. Authentication remains enabled. Set both to disable authentication.")
+	}
+
 	// session manager
 	sessionManager := scs.New()
 	switch db.Driver {

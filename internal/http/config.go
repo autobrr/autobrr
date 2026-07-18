@@ -28,6 +28,7 @@ type configJson struct {
 	LogMaxBackups   int    `json:"log_max_backups"`
 	BaseURL         string `json:"base_url"`
 	CheckForUpdates bool   `json:"check_for_updates"`
+	AuthMode        string `json:"auth_mode"`
 	Version         string `json:"version"`
 	Commit          string `json:"commit"`
 	Date            string `json:"date"`
@@ -54,6 +55,19 @@ func newConfigHandler(encoder encoder, versionInfo buildInfo, cfg *config.AppCon
 	}
 }
 
+// authMode reports how authentication is currently configured, for the frontend
+// to key its login/logout/account UI off of.
+func authMode(cfg *domain.Config) string {
+	switch {
+	case cfg.IsAuthDisabled():
+		return "disabled"
+	case cfg.OIDCEnabled:
+		return "oidc"
+	default:
+		return "builtin"
+	}
+}
+
 func (h configHandler) Routes(r chi.Router) {
 	r.Get("/", h.getConfig)
 	r.Patch("/", h.updateConfig)
@@ -71,6 +85,7 @@ func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 		BaseURL:         h.cfg.Config.BaseURL,
 		Database:        h.cfg.Config.DatabaseType,
 		CheckForUpdates: h.cfg.Config.CheckForUpdates,
+		AuthMode:        authMode(h.cfg.Config),
 		Version:         h.versionInfo.version,
 		Commit:          h.versionInfo.commit,
 		Date:            h.versionInfo.date,

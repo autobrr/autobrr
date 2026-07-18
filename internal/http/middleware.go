@@ -5,7 +5,9 @@ package http
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"net/netip"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -17,6 +19,11 @@ import (
 
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if token := r.Header.Get("X-API-Token"); token != "" {
 			// check header
 			if !s.apiService.ValidateAPIKey(r.Context(), token) {
@@ -55,6 +62,60 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+// builtInHealthEndpoints are reachable from loopback even when the request's
+// source IP is not in AuthDisabledAllowedCIDRs, so container/orchestrator health
+// checks running on the same host keep working.
+var builtInHealthEndpoints = []string{"/api/healthz/liveness", "/api/healthz/readiness"}
+
+func isBuiltInHealthEndpoint(path string) bool {
+	for _, p := range builtInHealthEndpoints {
+		if strings.HasSuffix(path, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// RequireAuthDisabledIPAllowlist restricts access to AuthDisabledAllowedCIDRs when
+// authentication is disabled. It must run before middleware.RealIP so that
+// X-Forwarded-For/X-Real-IP headers cannot be used to spoof past the restriction -
+// it always checks the real TCP peer that opened the connection.
+func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			host = r.RemoteAddr
+		}
+
+		addr, err := netip.ParseAddr(host)
+		if err != nil {
+			s.log.Error().Msgf("auth disabled: could not parse remote address %q", r.RemoteAddr)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		if addr.IsLoopback() && isBuiltInHealthEndpoint(r.URL.Path) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		for _, prefix := range s.authDisabledAllowedPrefixes {
+			if prefix.Contains(addr) {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		s.log.Warn().Msgf("auth disabled: rejected request from %s: not in authDisabledAllowedCIDRs", host)
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 	})
 }
 

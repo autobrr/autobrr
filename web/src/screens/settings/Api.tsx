@@ -4,7 +4,7 @@
  */
 
 import { useRef } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
@@ -13,8 +13,9 @@ import { DeleteModal } from "@components/modals";
 import { APIKeyAddForm } from "@forms/settings/APIKeyAddForm";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { WarningAlert } from "@components/alerts";
 import { APIClient } from "@api/APIClient";
-import { ApikeysQueryOptions } from "@api/queries";
+import { ApikeysQueryOptions, ConfigQueryOptions } from "@api/queries";
 import { ApiKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
@@ -27,7 +28,23 @@ function APISettings() {
   const { t } = useTranslation("settings");
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
+  const { data: config } = useQuery(ConfigQueryOptions());
+  const authDisabled = config?.auth_mode === "disabled";
+
   const apikeysQuery = useSuspenseQuery(ApikeysQueryOptions())
+
+  if (authDisabled) {
+    return (
+      <Section
+        title={t("forms.apiKey.listTitle")}
+        description={t("forms.apiKey.listDescription")}
+      >
+        <div className="sm:px-2">
+          <WarningAlert text={t("forms.apiKey.authDisabledNotice")} />
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <Section
