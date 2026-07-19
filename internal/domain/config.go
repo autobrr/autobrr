@@ -51,20 +51,25 @@ type Config struct {
 	MetricsPort             int    `toml:"metricsPort"`
 	MetricsBasicAuthUsers   string `toml:"metricsBasicAuthUsers"`
 
-	// AuthDisabled disables all authentication when both AuthDisabled and
-	// IAcknowledgeThisIsABadIdea are set. Intended only for deployments behind
-	// a reverse proxy that handles authentication itself. Use IsAuthDisabled()
-	// to check whether auth is actually disabled.
-	AuthDisabled               bool     `toml:"authDisabled"`
-	IAcknowledgeThisIsABadIdea bool     `toml:"I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"`
-	AuthDisabledAllowedCIDRs   []string `toml:"authDisabledAllowedCIDRs"`
+	// AuthDisabled disables all authentication when AuthDisabled is set and
+	// AuthDisabledAcknowledgement is set to AuthDisabledAcknowledgementValue.
+	// Intended only for deployments behind a reverse proxy that handles
+	// authentication itself. Use IsAuthDisabled() to check whether auth is
+	// actually disabled.
+	AuthDisabled                bool     `toml:"authDisabled"`
+	AuthDisabledAcknowledgement string   `toml:"authDisabledAcknowledgement"`
+	AuthDisabledAllowedCIDRs    []string `toml:"authDisabledAllowedCIDRs"`
 }
 
-// IsAuthDisabled reports whether authentication is disabled. Both AuthDisabled
-// and IAcknowledgeThisIsABadIdea must be set, so an operator cannot disable
-// auth without explicitly acknowledging the risk.
+// AuthDisabledAcknowledgementValue is the exact value AuthDisabledAcknowledgement
+// must be set to in order to disable authentication.
+const AuthDisabledAcknowledgementValue = "I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"
+
+// IsAuthDisabled reports whether authentication is disabled. AuthDisabled must
+// be set and AuthDisabledAcknowledgement must equal AuthDisabledAcknowledgementValue,
+// so an operator cannot disable auth without explicitly acknowledging the risk.
 func (c *Config) IsAuthDisabled() bool {
-	return c.AuthDisabled && c.IAcknowledgeThisIsABadIdea
+	return c.AuthDisabled && c.AuthDisabledAcknowledgement == AuthDisabledAcknowledgementValue
 }
 
 // ParseAuthDisabledAllowedCIDRs parses AuthDisabledAllowedCIDRs into netip.Prefix values.

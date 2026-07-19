@@ -18,9 +18,9 @@ import (
 
 func newAuthDisabledTestServer(cidrs []string) *Server {
 	cfg := &domain.Config{
-		AuthDisabled:               true,
-		IAcknowledgeThisIsABadIdea: true,
-		AuthDisabledAllowedCIDRs:   cidrs,
+		AuthDisabled:                true,
+		AuthDisabledAcknowledgement: domain.AuthDisabledAcknowledgementValue,
+		AuthDisabledAllowedCIDRs:    cidrs,
 	}
 
 	// mirrors what NewServer does: parse once up front rather than per request.

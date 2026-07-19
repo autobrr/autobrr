@@ -11,22 +11,23 @@ import (
 
 func TestConfig_IsAuthDisabled(t *testing.T) {
 	tests := []struct {
-		name                       string
-		authDisabled               bool
-		iAcknowledgeThisIsABadIdea bool
-		want                       bool
+		name            string
+		authDisabled    bool
+		acknowledgement string
+		want            bool
 	}{
-		{"both false", false, false, false},
-		{"only authDisabled", true, false, false},
-		{"only acknowledge", false, true, false},
-		{"both true", true, true, true},
+		{"both unset", false, "", false},
+		{"only authDisabled", true, "", false},
+		{"only acknowledgement", false, AuthDisabledAcknowledgementValue, false},
+		{"both set", true, AuthDisabledAcknowledgementValue, true},
+		{"wrong acknowledgement value", true, "yes", false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &Config{
-				AuthDisabled:               tt.authDisabled,
-				IAcknowledgeThisIsABadIdea: tt.iAcknowledgeThisIsABadIdea,
+				AuthDisabled:                tt.authDisabled,
+				AuthDisabledAcknowledgement: tt.acknowledgement,
 			}
 			assert.Equal(t, tt.want, c.IsAuthDisabled())
 		})
@@ -71,36 +72,36 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 
 	t.Run("auth disabled requires allowlist", func(t *testing.T) {
 		c := &Config{
-			AuthDisabled:               true,
-			IAcknowledgeThisIsABadIdea: true,
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
 		}
 		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "authDisabledAllowedCIDRs is required when authentication is disabled")
 	})
 
 	t.Run("auth disabled with invalid CIDR entry", func(t *testing.T) {
 		c := &Config{
-			AuthDisabled:               true,
-			IAcknowledgeThisIsABadIdea: true,
-			AuthDisabledAllowedCIDRs:   []string{"not-a-cidr"},
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthDisabledAllowedCIDRs:    []string{"not-a-cidr"},
 		}
 		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid IP in authDisabledAllowedCIDRs: not-a-cidr")
 	})
 
 	t.Run("auth disabled with oidc enabled is rejected", func(t *testing.T) {
 		c := &Config{
-			AuthDisabled:               true,
-			IAcknowledgeThisIsABadIdea: true,
-			AuthDisabledAllowedCIDRs:   []string{"127.0.0.1/32"},
-			OIDCEnabled:                true,
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthDisabledAllowedCIDRs:    []string{"127.0.0.1/32"},
+			OIDCEnabled:                 true,
 		}
 		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "authDisabled cannot be used together with oidcEnabled")
 	})
 
 	t.Run("fully valid config", func(t *testing.T) {
 		c := &Config{
-			AuthDisabled:               true,
-			IAcknowledgeThisIsABadIdea: true,
-			AuthDisabledAllowedCIDRs:   []string{"127.0.0.1/32", "192.168.0.0/16"},
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthDisabledAllowedCIDRs:    []string{"127.0.0.1/32", "192.168.0.0/16"},
 		}
 		assert.NoError(t, c.ValidateAuthDisabledConfig())
 	})

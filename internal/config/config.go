@@ -290,9 +290,9 @@ func (c *AppConfig) defaults() {
 		MetricsPort:           9074,
 		MetricsBasicAuthUsers: "",
 
-		AuthDisabled:               false,
-		IAcknowledgeThisIsABadIdea: false,
-		AuthDisabledAllowedCIDRs:   []string{},
+		AuthDisabled:                false,
+		AuthDisabledAcknowledgement: "",
+		AuthDisabledAllowedCIDRs:    []string{},
 	}
 }
 
@@ -457,8 +457,8 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.AuthDisabled = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
-	if v := GetEnvStr("I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"); v != "" {
-		c.Config.IAcknowledgeThisIsABadIdea = strings.EqualFold(strings.ToLower(v), "true")
+	if v := GetEnvStr("AUTH_DISABLED_ACKNOWLEDGEMENT"); v != "" {
+		c.Config.AuthDisabledAcknowledgement = v
 	}
 
 	if v := GetEnvStr("AUTH_DISABLED_ALLOWED_CIDRS"); v != "" {
