@@ -44,7 +44,7 @@ type notificationSender interface {
 }
 
 type releaseService interface {
-	Process(release *domain.Release)
+	Process(ctx context.Context, release *domain.Release)
 }
 
 type proxyService interface {

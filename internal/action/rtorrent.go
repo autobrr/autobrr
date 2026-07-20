@@ -11,10 +11,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/autobrr/go-rtorrent"
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Debug().Msgf("action rTorrent: %s", action.Name)
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msgf("action rTorrent: %s", action.Name)
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
@@ -64,7 +67,7 @@ func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release d
 			return nil, errors.Wrap(err, "could not add torrent from magnet: %s", release.MagnetURI)
 		}
 
-		s.log.Info().Msgf("torrent from magnet successfully added to client: '%s'", client.Name)
+		l.Info().Msgf("torrent from magnet successfully added to client: '%s'", client.Name)
 
 		return nil, nil
 	}
@@ -111,7 +114,7 @@ func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release d
 		return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentTmpFile)
 	}
 
-	s.log.Info().Msgf("torrent successfully added to client: '%s'", client.Name)
+	l.Info().Msgf("torrent successfully added to client: '%s'", client.Name)
 
 	return rejections, nil
 }

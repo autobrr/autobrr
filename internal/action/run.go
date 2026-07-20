@@ -17,13 +17,20 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
+	l := s.log.With().Str("trace_id", release.TraceID).Str("action", action.Name).Str("release", release.TorrentName).Logger()
+
+	// executors are only invoked from here, so they pick this logger up with zerolog.Ctx
+	ctx = l.WithContext(ctx)
+
 	defer func() {
 		errors.RecoverPanic(recover(), &err)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("recovering from panic in run action %s", action.Name)
+			l.Error().Err(err).Msgf("recovering from panic in run action %s", action.Name)
 		}
 	}()
 
@@ -113,7 +120,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	if err != nil {
-		s.log.Error().Err(err).Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
+		l.Error().Err(err).Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
 
 		payload.Event = domain.NotificationEventPushError
 		payload.Status = domain.ReleasePushStatusErr
@@ -158,11 +165,13 @@ func (s *Service) test(name string) {
 }
 
 func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+	l := zerolog.Ctx(ctx)
+
 	if release.HasMagnetUri() {
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 
-	s.log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
+	l.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
 
 	if len(release.TorrentDataRawBytes) < 1 {
 		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
@@ -202,17 +211,19 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 
-	s.log.Info().Msgf("saved file to watch folder: %v", newFileName)
+	l.Info().Msgf("saved file to watch folder: %v", newFileName)
 
 	return nil
 }
 
 func (s *Service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
-	s.log.Trace().Msgf("action WEBHOOK: '%s' file: %s", action.Name, release.TorrentName)
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msgf("action WEBHOOK: '%s' file: %s", action.Name, release.TorrentName)
 	if len(action.WebhookData) > 1024 {
-		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData[:1024])
+		l.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData[:1024])
 	} else {
-		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
+		l.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
@@ -232,9 +243,9 @@ func (s *Service) webhook(ctx context.Context, action *domain.Action, release do
 	defer sharedhttp.DrainAndClose(res)
 
 	if len(action.WebhookData) > 256 {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))
+		l.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))
 	} else {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData, time.Since(start))
+		l.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData, time.Since(start))
 	}
 
 	return nil

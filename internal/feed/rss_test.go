@@ -560,6 +560,7 @@ func TestRSSJob_processItem(t *testing.T) {
 			got := j.processItem(tt.args.item)
 			if got != nil {
 				got.Timestamp = now // override to match
+				got.TraceID = ""    // random per release, override to match
 			}
 
 			assert.Equal(t, tt.want, got)

@@ -63,7 +63,7 @@ type proxyService interface {
 }
 
 type releaseService interface {
-	ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error
+	ProcessMultipleFromIndexer(ctx context.Context, releases []*domain.Release, indexer domain.IndexerMinimal) error
 }
 
 type feedInstance struct {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -61,7 +62,12 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			log := logger.With().Logger()
+			// the hlog ctx logger carries the request_id field; fall back if
+			// this middleware is mounted without hlog.NewHandler
+			log := *hlog.FromRequest(r)
+			if log.GetLevel() == zerolog.Disabled {
+				log = logger.With().Logger()
+			}
 
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 

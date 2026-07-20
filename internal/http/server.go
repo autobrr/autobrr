@@ -20,6 +20,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 )
 
 type Server struct {
@@ -159,7 +160,8 @@ func (s *Server) tryToServe(addr, protocol string) error {
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
+	r.Use(hlog.NewHandler(s.log))
+	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(LoggerMiddleware(&s.log))

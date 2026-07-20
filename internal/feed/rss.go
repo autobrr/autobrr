@@ -107,7 +107,7 @@ func (j *RSSJob) process(ctx context.Context) error {
 	}
 
 	// process all new releases
-	go j.ReleaseSvc.ProcessMultipleFromIndexer(releases, j.Feed.Indexer)
+	go j.ReleaseSvc.ProcessMultipleFromIndexer(context.WithoutCancel(ctx), releases, j.Feed.Indexer)
 
 	return nil
 }

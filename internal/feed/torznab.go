@@ -32,7 +32,7 @@ type jobFeedCacheRepo interface {
 }
 
 type jobReleaseSvc interface {
-	ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error
+	ProcessMultipleFromIndexer(ctx context.Context, releases []*domain.Release, indexer domain.IndexerMinimal) error
 }
 
 type TorznabJob struct {
@@ -117,7 +117,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	}
 
 	// process all new releases
-	go j.ReleaseSvc.ProcessMultipleFromIndexer(releases, j.Feed.Indexer)
+	go j.ReleaseSvc.ProcessMultipleFromIndexer(context.WithoutCancel(ctx), releases, j.Feed.Indexer)
 
 	return nil
 }

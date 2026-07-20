@@ -12,10 +12,13 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/Hellseher/go-shellquote"
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
-	s.log.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
@@ -42,11 +45,11 @@ func (s *Service) execCmd(ctx context.Context, action *domain.Action, release do
 		return errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
 	}
 
-	s.log.Trace().Msgf("executed command: '%s'", string(output))
+	l.Trace().Msgf("executed command: '%s'", string(output))
 
 	duration := time.Since(start)
 
-	s.log.Info().Msgf("executed command: '%s', args: '%s' %s,%s, total time %v", cmd, args, release.TorrentName, release.Indexer.Name, duration)
+	l.Info().Msgf("executed command: '%s', args: '%s' %s,%s, total time %v", cmd, args, release.TorrentName, release.Indexer.Name, duration)
 
 	return nil
 }

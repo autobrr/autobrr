@@ -10,10 +10,14 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Trace().Msg("action SONARR")
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("action SONARR")
 
 	// TODO validate data
 
@@ -66,12 +70,12 @@ func (s *Service) sonarr(ctx context.Context, action *domain.Action, release dom
 	}
 
 	if rejections != nil {
-		s.log.Debug().Msgf("sonarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+		l.Debug().Msgf("sonarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
 
 		return rejections, nil
 	}
 
-	s.log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	l.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
 
 	return nil, nil
 }

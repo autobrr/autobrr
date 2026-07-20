@@ -424,7 +424,7 @@ func (s *Service) Delete(ctx context.Context, filterID int) error {
 }
 
 func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
-	l := s.log.With().Str("method", "CheckFilter").Logger()
+	l := s.log.With().Str("method", "CheckFilter").Str("trace_id", release.TraceID).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 	l.Debug().Msgf("checking filter: %s with release %s", f.Name, release.TorrentName)
 
@@ -585,7 +585,7 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	}()
 
 	// do additional size check against indexer api or torrent for size
-	l := s.log.With().Str("method", "AdditionalSizeCheck").Logger()
+	l := s.log.With().Str("method", "AdditionalSizeCheck").Str("trace_id", release.TraceID).Str("release", release.TorrentName).Logger()
 
 	l.Debug().Msgf("(%s) additional api size check required", f.Name)
 
@@ -652,7 +652,7 @@ func (s *Service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 	}()
 
 	// do additional check against indexer api
-	l := s.log.With().Str("method", "AdditionalUploaderCheck").Logger()
+	l := s.log.With().Str("method", "AdditionalUploaderCheck").Str("trace_id", release.TraceID).Str("release", release.TorrentName).Logger()
 
 	// if uploader was fetched before during size check we check it and return early
 	if release.Uploader != "" {
@@ -731,7 +731,7 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 	}()
 
 	// do additional check against indexer api
-	l := s.log.With().Str("method", "AdditionalRecordLabelCheck").Logger()
+	l := s.log.With().Str("method", "AdditionalRecordLabelCheck").Str("trace_id", release.TraceID).Str("release", release.TorrentName).Logger()
 
 	// if record label was fetched before during size check or uploader check we check it and return early
 	if release.RecordLabel != "" {
@@ -819,7 +819,7 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 	}()
 
 	for _, external := range externalFilters {
-		l := s.log.With().Str("method", "RunExternalFilters").Str("filter", f.Name).Str("external_filter", external.Name).Logger()
+		l := s.log.With().Str("method", "RunExternalFilters").Str("trace_id", release.TraceID).Str("filter", f.Name).Str("external_filter", external.Name).Logger()
 
 		if !external.Enabled {
 			l.Debug().Msgf("external filter not enabled, skipping...")
@@ -934,7 +934,7 @@ func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	// Create a buffer to store the output
 	outputBuffer := make([]byte, 4096)
 
-	execLogger := s.log.With().Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
+	execLogger := s.log.With().Str("trace_id", release.TraceID).Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
 
 	for {
 		// Read the output into the buffer
@@ -965,9 +965,9 @@ func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, rel
 }
 
 func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
-	l := s.log.With().Str("method", "webhook").Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
+	l := s.log.With().Str("method", "webhook").Str("trace_id", release.TraceID).Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
 
-	s.log.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
+	l.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
 
 	if external.WebhookHost == "" {
 		return 0, errors.New("external filter: missing host for webhook")

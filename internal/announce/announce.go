@@ -4,6 +4,7 @@
 package announce
 
 import (
+	"context"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -17,7 +18,7 @@ type Processor interface {
 }
 
 type releaseService interface {
-	Process(release *domain.Release)
+	Process(ctx context.Context, release *domain.Release)
 }
 
 type announceProcessor struct {
@@ -89,30 +90,34 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 		parseFailed := false
 		//patternParsed := false
 
+		// one trace id per announce, which can span multiple lines
+		traceID := domain.NewTraceID()
+		l := a.log.With().Str("trace_id", traceID).Logger()
+
 		for _, parseLine := range channel.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
-				a.log.Error().Err(err).Msg("could not get line from queue")
+				l.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
 
-			a.log.Trace().Str("line", line).Msg("announce: process line")
+			l.Trace().Str("line", line).Msg("announce: process line")
 
 			if !a.indexer.Enabled {
-				a.log.Warn().Msgf("indexer disabled, skipping further processing")
+				l.Warn().Msgf("indexer disabled, skipping further processing")
 			}
 
 			// check should ignore
 			match, err := parseLine.ParseLine(tmpVars, line, parseLine.Ignore)
 			if err != nil {
-				a.log.Error().Err(err).Str("line", line).Msgf("error parsing extract for line")
+				l.Error().Err(err).Str("line", line).Msgf("error parsing extract for line")
 
 				parseFailed = true
 				break
 			}
 
 			if !match {
-				a.log.Debug().Str("pattern", parseLine.Pattern).Str("line", line).Msg("line did not match expected regex pattern")
+				l.Debug().Str("pattern", parseLine.Pattern).Str("line", line).Msg("line did not match expected regex pattern")
 				parseFailed = true
 				break
 			}
@@ -123,16 +128,17 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 		}
 
 		rls := domain.NewRelease(domain.IndexerMinimal{ID: a.indexer.ID, Name: a.indexer.Name, Identifier: a.indexer.Identifier, IdentifierExternal: a.indexer.IdentifierExternal})
+		rls.TraceID = traceID
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched
 		if err := channel.Parse.Parse(a.indexer, channelName, tmpVars, rls); err != nil {
-			a.log.Error().Err(err).Msg("announce: could not parse announce for release")
+			l.Error().Err(err).Msg("announce: could not parse announce for release")
 			continue
 		}
 
 		// process release in a new go routine
-		go a.releaseSvc.Process(rls)
+		go a.releaseSvc.Process(context.Background(), rls)
 	}
 }
 

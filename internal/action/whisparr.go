@@ -10,10 +10,14 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/whisparr"
+
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) whisparr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Trace().Msg("action WHISPARR")
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("action WHISPARR")
 
 	// TODO validate data
 
@@ -57,12 +61,12 @@ func (s *Service) whisparr(ctx context.Context, action *domain.Action, release d
 	}
 
 	if rejections != nil {
-		s.log.Debug().Msgf("whisparr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+		l.Debug().Msgf("whisparr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
 
 		return rejections, nil
 	}
 
-	s.log.Debug().Msgf("whisparr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	l.Debug().Msgf("whisparr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
 
 	return nil, nil
 }

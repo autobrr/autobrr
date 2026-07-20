@@ -17,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 )
 
 type metricsManager interface {
@@ -81,7 +82,8 @@ func (s MetricsServer) tryToServe(addr, protocol string) error {
 func (s MetricsServer) Handler() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
+	r.Use(hlog.NewHandler(s.log))
+	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(LoggerMiddleware(&s.log))

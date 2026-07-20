@@ -31,6 +31,8 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
 	"github.com/robfig/cron/v3"
+	"github.com/rs/xid"
+	"github.com/rs/zerolog/hlog"
 	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -38,6 +40,7 @@ import (
 
 type Release struct {
 	ID                                 int64                 `json:"id"`
+	TraceID                            string                `json:"-"`
 	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
 	Rejections                         []string              `json:"rejections"`
 	Indexer                            IndexerMinimal        `json:"indexer"`
@@ -593,8 +596,27 @@ type GetReleaseActionStatusRequest struct {
 	Id int
 }
 
+// NewTraceID returns a unique id used to correlate log lines for a single
+// release across the announce, release, filter and action layers. It uses the
+// same xid format as zerolog's hlog request ids, so http-originated flows can
+// share ids with request logging.
+func NewTraceID() string {
+	return xid.New().String()
+}
+
+// TraceIDFromCtx returns the hlog request id embedded in ctx, so releases
+// processed in response to an http request share their trace id with the
+// request log. It returns a fresh id when ctx carries none.
+func TraceIDFromCtx(ctx context.Context) string {
+	if id, ok := hlog.IDFromCtx(ctx); ok {
+		return id.String()
+	}
+	return NewTraceID()
+}
+
 func NewRelease(indexer IndexerMinimal) *Release {
 	r := &Release{
+		TraceID:        NewTraceID(),
 		Indexer:        indexer,
 		FilterStatus:   ReleaseStatusFilterPending,
 		Rejections:     []string{},

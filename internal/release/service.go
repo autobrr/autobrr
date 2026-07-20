@@ -322,7 +322,7 @@ func (s *Service) ForceRunCleanupJob(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *Service) ProcessManual(_ context.Context, req *domain.ReleaseProcessReq) error {
+func (s *Service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error {
 	// get indexer definition with data
 	def, ok := s.indexerSvc.GetMappedDefinitionByName(req.IndexerIdentifier)
 	if !ok {
@@ -330,6 +330,7 @@ func (s *Service) ProcessManual(_ context.Context, req *domain.ReleaseProcessReq
 	}
 
 	rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier, IdentifierExternal: def.IdentifierExternal})
+	rls.TraceID = domain.TraceIDFromCtx(ctx)
 
 	switch req.IndexerImplementation {
 	case string(domain.IndexerImplementationIRC):
@@ -374,25 +375,29 @@ func (s *Service) ProcessManual(_ context.Context, req *domain.ReleaseProcessReq
 	}
 
 	// process
-	go s.Process(rls)
+	go s.Process(context.WithoutCancel(ctx), rls)
 
 	return nil
 }
 
-func (s *Service) Process(release *domain.Release) {
+func (s *Service) Process(ctx context.Context, release *domain.Release) {
 	if release == nil {
 		return
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Error().Msgf("recovering from panic in release process %s error: %v", release.TorrentName, r)
+			s.log.Error().Str("trace_id", release.TraceID).Msgf("recovering from panic in release process %s error: %v", release.TorrentName, r)
 			//err := errors.New("panic in release process: %s", release.TorrentName)
 			return
 		}
 	}()
 
-	ctx := context.Background()
+	if release.TraceID == "" {
+		release.TraceID = domain.TraceIDFromCtx(ctx)
+	}
+
+	l := s.log.With().Str("trace_id", release.TraceID).Str("indexer", release.Indexer.Identifier).Str("release", release.TorrentName).Logger()
 
 	s.publishEventReleaseNew(release)
 
@@ -401,17 +406,17 @@ func (s *Service) Process(release *domain.Release) {
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, release.Indexer.Identifier)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", release.Indexer.Name)
+		l.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", release.Indexer.Name)
 		return
 	}
 
 	if len(filters) == 0 {
-		s.log.Debug().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
+		l.Debug().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
 		return
 	}
 
 	if err := s.processRelease(ctx, release, filters); err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
+		l.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
 		return
 	}
 }
@@ -420,7 +425,7 @@ func (s *Service) processRelease(ctx context.Context, release *domain.Release, f
 	defer func(release *domain.Release) {
 		err := release.CleanupTemporaryFiles()
 		if err != nil {
-			s.log.Error().Err(err).Msgf("release.Process: error cleaning up temporary files for indexer: %s", release.Indexer.Name)
+			s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.Process: error cleaning up temporary files for indexer: %s", release.Indexer.Name)
 		}
 	}(release)
 
@@ -438,7 +443,10 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 	// loop over and check filters
 	for _, f := range filters {
-		l := s.log.With().Str("indexer", release.Indexer.Identifier).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
+		l := s.log.With().Str("trace_id", release.TraceID).Str("indexer", release.Indexer.Identifier).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
+
+		// make the logger available to downstream services via ctx
+		ctx := l.WithContext(ctx)
 
 		// save filter on release
 		release.Filter = f
@@ -470,13 +478,13 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		active := true
 		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active, false)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
+			l.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
 			return err
 		}
 
 		// if no actions, continue to next filter
 		if len(actions) == 0 {
-			s.log.Warn().Msgf("release.Process: no active actions found for filter '%s', trying next one..", f.Name)
+			l.Warn().Msgf("release.Process: no active actions found for filter '%s', trying next one..", f.Name)
 			continue
 		}
 
@@ -504,7 +512,7 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 			actionStatus := domain.NewReleaseActionStatus(act, release)
 
 			if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
-				s.log.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
+				l.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
 			}
 
 			if idx == 0 {
@@ -535,7 +543,7 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 			rejections = status.Rejections
 
 			if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-				s.log.Error().Err(err).Msgf("release.Process: error storing action status for filter: %s", release.FilterName)
+				l.Error().Err(err).Msgf("release.Process: error storing action status for filter: %s", release.FilterName)
 			}
 
 			if len(rejections) > 0 {
@@ -566,18 +574,18 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 	return nil
 }
 
-func (s *Service) ProcessMultiple(releases []*domain.Release) {
+func (s *Service) ProcessMultiple(ctx context.Context, releases []*domain.Release) {
 	s.log.Debug().Msgf("process (%d) new releases from feed", len(releases))
 
 	for _, rls := range releases {
 		if rls == nil {
 			continue
 		}
-		s.Process(rls)
+		s.Process(ctx, rls)
 	}
 }
 
-func (s *Service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error {
+func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*domain.Release, indexer domain.IndexerMinimal) error {
 	s.log.Debug().Msgf("process (%d) new releases from feed %s", len(releases), indexer.Name)
 
 	defer func() {
@@ -587,8 +595,6 @@ func (s *Service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 			return
 		}
 	}()
-
-	ctx := context.Background()
 
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, indexer.Identifier)
@@ -617,10 +623,14 @@ func (s *Service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 			continue
 		}
 
+		if release.TraceID == "" {
+			release.TraceID = domain.NewTraceID()
+		}
+
 		s.publishEventReleaseNew(release)
 
 		if err := s.processRelease(ctx, release, filters); err != nil {
-			s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error processing filters for indexer: %s", indexer.Name)
+			s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.ProcessMultipleFromIndexer: error processing filters for indexer: %s", indexer.Name)
 			return nil
 		}
 	}
@@ -638,7 +648,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 
 	rejections, err := s.actionSvc.RunAction(ctx, action, release)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("release.runAction: error running actions for filter: %s", release.FilterName)
+		s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.runAction: error running actions for filter: %s", release.FilterName)
 
 		status.Status = domain.ReleasePushStatusErr
 		status.Rejections = []string{err.Error()}
@@ -659,19 +669,22 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 }
 
 func (s *Service) retryAction(ctx context.Context, action *domain.Action, release *domain.Release) error {
+	l := s.log.With().Str("trace_id", release.TraceID).Str("release", release.TorrentName).Logger()
+	ctx = l.WithContext(ctx)
+
 	// add action status as pending
 	status := domain.NewReleaseActionStatus(action, release)
 
 	if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-		s.log.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
+		l.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
 	}
 
 	actionStatus, err := s.runAction(ctx, action, release, status)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("release.retryAction: error running actions for filter: %s", release.FilterName)
+		l.Error().Err(err).Msgf("release.retryAction: error running actions for filter: %s", release.FilterName)
 
 		if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
-			s.log.Error().Err(err).Msgf("release.retryAction: error storing filterAction status for filter: %s", release.FilterName)
+			l.Error().Err(err).Msgf("release.retryAction: error storing filterAction status for filter: %s", release.FilterName)
 			return err
 		}
 
@@ -679,7 +692,7 @@ func (s *Service) retryAction(ctx context.Context, action *domain.Action, releas
 	}
 
 	if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
-		s.log.Error().Err(err).Msgf("release.retryAction: error storing filterAction status for filter: %s", release.FilterName)
+		l.Error().Err(err).Msgf("release.retryAction: error storing filterAction status for filter: %s", release.FilterName)
 		return err
 	}
 
@@ -717,13 +730,17 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 		return errors.Wrap(err, "retry error: could not get filter action for release")
 	}
 
+	// stored releases have no trace id; reuse the http request id so the
+	// replay correlates with the request log
+	release.TraceID = domain.TraceIDFromCtx(ctx)
+
 	// run filterAction
 	if err := s.retryAction(ctx, filterAction, release); err != nil {
-		s.log.Error().Err(err).Msgf("release.Retry: error re-running action: %s", filterAction.Name)
+		s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.Retry: error re-running action: %s", filterAction.Name)
 		return err
 	}
 
-	s.log.Info().Msgf("successfully replayed action %s for release %s", filterAction.Name, release.TorrentName)
+	s.log.Info().Str("trace_id", release.TraceID).Msgf("successfully replayed action %s for release %s", filterAction.Name, release.TorrentName)
 
 	return nil
 }
