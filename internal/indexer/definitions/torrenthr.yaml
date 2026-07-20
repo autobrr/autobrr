@@ -12,13 +12,13 @@ protocol: torrent
 supports:
   - irc
   - rss
-# source: unknown
+# source: UNIT3D
 settings:
-  - name: passkey
+  - name: rsskey
     type: secret
     required: true
-    label: Passkey
-    help: "Copy the torrent passkey for your account"
+    label: RSS key (RID)
+    help: "Go to your profile, General > RSS key, and copy the RSS Key (RID)"
 
 irc:
   network: THR
@@ -58,16 +58,16 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: 'Novi torrent uploadan \-> Ime: (?P<releaseName>.*) \.:\. Kategorija: (?P<category>.*) \.:\. Velicina: (?P<torrentSize>.*) \.:\. URL: https?\:\/\/(?P<baseUrl>[^\/]+\/).*[&amp;\?]id=(?P<torrentId>\d+)'
+          - pattern: 'Novi torrent uploadan \-> Ime: (?P<releaseName>.*) \.:\. Kategorija: (?P<category>.*) \.:\. Velicina: (?P<torrentSize>.*) \.:\. URL: (?P<baseUrl>https?\:\/\/.+\/).+\/(?P<torrentId>\d+)'
             tests:
-              - line: 'Novi torrent uploadan -> Ime: A.torrent.name.here.WEBRip.x264-tina .:. Kategorija: Serije/SD .:. Velicina: 283.94 MB .:. URL: http://www.torrenthr.org/details.php?id=000000'
+              - line: 'Novi torrent uploadan -> Ime: A.torrent.name.here.WEBRip.x264-tina .:. Kategorija: Filmovi/HD .:. Velicina: 6.70 GB .:. URL: https://www.torrenthr.org/torrents/000000'
                 expect:
                   releaseName: A.torrent.name.here.WEBRip.x264-tina
-                  category: Serije/SD
-                  torrentSize: 283.94 MB
-                  baseUrl: www.torrenthr.org/
+                  category: Filmovi/HD
+                  torrentSize: 6.70 GB
+                  baseUrl: https://www.torrenthr.org/
                   torrentId: "000000"
 
         match:
-          infourl: "/details.php?id={{ .torrentId }}"
-          downloadurl: "/rssdownload.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
