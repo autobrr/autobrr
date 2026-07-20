@@ -587,7 +587,7 @@ func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
 }
 
 func (s *Service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
-	s.log.Debug().Msgf("create torznab job: %s", f.Name)
+	s.log.Debug().Str("feed", f.Name).Msg("create torznab job")
 
 	if f.URL == "" {
 		return nil, errors.New("torznab feed requires URL")
@@ -598,7 +598,7 @@ func (s *Service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
 
 	// setup torznab Client
 	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
@@ -610,14 +610,14 @@ func (s *Service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
 }
 
 func (s *Service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
-	s.log.Debug().Msgf("create newznab job: %s", f.Name)
+	s.log.Debug().Str("feed", f.Name).Msg("create newznab job")
 
 	if f.URL == "" {
 		return nil, errors.New("newznab feed requires URL")
 	}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
 
 	// setup newznab Client
 	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
@@ -629,7 +629,7 @@ func (s *Service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
 }
 
 func (s *Service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
-	s.log.Debug().Msgf("create rss job: %s", f.Name)
+	s.log.Debug().Str("feed", f.Name).Msg("create rss job")
 
 	if f.URL == "" {
 		return nil, errors.New("rss feed requires URL")
@@ -640,7 +640,7 @@ func (s *Service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
 
 	// create job
 	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
@@ -670,12 +670,13 @@ func (s *Service) createCleanupJob() error {
 }
 
 func (s *Service) stopFeedJob(id int) error {
+	jobKey := feedKey{id}.ToString()
 	// remove job from scheduler
-	if err := s.scheduler.RemoveJobByIdentifier(feedKey{id}.ToString()); err != nil {
+	if err := s.scheduler.RemoveJobByIdentifier(jobKey); err != nil {
 		return errors.Wrap(err, "stop job failed")
 	}
 
-	s.log.Debug().Msgf("stop feed job: %d", id)
+	s.log.Debug().Int("feed_id", id).Str("job", jobKey).Msg("stop feed job")
 
 	return nil
 }

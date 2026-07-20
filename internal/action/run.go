@@ -22,7 +22,7 @@ import (
 )
 
 func (s *Service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
-	l := s.log.With().Str("trace_id", release.TraceID).Str("action", action.Name).Str("release", release.TorrentName).Logger()
+	l := s.log.With().Str("trace_id", release.TraceID).Str("action", action.Name).Str("action_type", string(action.Type)).Str("release", release.TorrentName).Logger()
 
 	// executors are only invoked from here, so they pick this logger up with zerolog.Ctx
 	ctx = l.WithContext(ctx)
@@ -30,7 +30,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	defer func() {
 		errors.RecoverPanic(recover(), &err)
 		if err != nil {
-			l.Error().Err(err).Msgf("recovering from panic in run action %s", action.Name)
+			l.Error().Err(err).Msg("recovering from panic in run action")
 		}
 	}()
 
@@ -120,7 +120,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	if err != nil {
-		l.Error().Err(err).Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
+		l.Error().Err(err).Msg("process action failed")
 
 		payload.Event = domain.NotificationEventPushError
 		payload.Status = domain.ReleasePushStatusErr
@@ -161,7 +161,7 @@ func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.A
 }
 
 func (s *Service) test(name string) {
-	s.log.Info().Msgf("action TEST: %v", name)
+	s.log.Info().Str("name", name).Msg("action test")
 }
 
 func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
@@ -171,7 +171,7 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 
-	l.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
+	l.Trace().Str("watch_folder", action.WatchFolder).Str("file", release.TorrentTmpFile).Msg("action watch_folder")
 
 	if len(release.TorrentDataRawBytes) < 1 {
 		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
@@ -211,7 +211,7 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 
-	l.Info().Msgf("saved file to watch folder: %v", newFileName)
+	l.Info().Str("file", newFileName).Msg("saved file to watch folder")
 
 	return nil
 }
@@ -219,11 +219,11 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 func (s *Service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
 	l := zerolog.Ctx(ctx)
 
-	l.Trace().Msgf("action WEBHOOK: '%s' file: %s", action.Name, release.TorrentName)
+	l.Trace().Msg("action webhook")
 	if len(action.WebhookData) > 1024 {
-		l.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData[:1024])
+		l.Trace().Str("host", action.WebhookHost).Str("payload", action.WebhookData[:1024]).Msg("webhook action")
 	} else {
-		l.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
+		l.Trace().Str("host", action.WebhookHost).Str("payload", action.WebhookData).Msg("webhook action")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
@@ -243,9 +243,9 @@ func (s *Service) webhook(ctx context.Context, action *domain.Action, release do
 	defer sharedhttp.DrainAndClose(res)
 
 	if len(action.WebhookData) > 256 {
-		l.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))
+		l.Info().Str("host", action.WebhookHost).Str("payload", action.WebhookData[:256]).Dur("duration", time.Since(start)).Msg("webhook action executed")
 	} else {
-		l.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData, time.Since(start))
+		l.Info().Str("host", action.WebhookHost).Str("payload", action.WebhookData).Dur("duration", time.Since(start)).Msg("webhook action executed")
 	}
 
 	return nil

@@ -18,7 +18,7 @@ import (
 func (s *Service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
 	l := zerolog.Ctx(ctx)
 
-	l.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
+	l.Debug().Msg("running Exec action")
 
 	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
@@ -45,11 +45,11 @@ func (s *Service) execCmd(ctx context.Context, action *domain.Action, release do
 		return errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
 	}
 
-	l.Trace().Msgf("executed command: '%s'", string(output))
+	l.Trace().Str("output", string(output)).Msg("executed command")
 
 	duration := time.Since(start)
 
-	l.Info().Msgf("executed command: '%s', args: '%s' %s,%s, total time %v", cmd, args, release.TorrentName, release.Indexer.Name, duration)
+	l.Info().Str("cmd", cmd).Strs("args", args).Str("indexer", release.Indexer.Identifier).Dur("duration", duration).Msg("executed command")
 
 	return nil
 }

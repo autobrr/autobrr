@@ -79,11 +79,11 @@ func (s *Service) FindByID(ctx context.Context, id int32) (*domain.DownloadClien
 		return client, nil
 	}
 
-	s.log.Trace().Msgf("cache miss for client id %d, continue to repo lookup", id)
+	s.log.Trace().Int32("client_id", id).Msg("cache miss for client, continue to repo lookup")
 
 	client, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find download client by id: %v", id)
+		s.log.Error().Err(err).Int32("client_id", id).Msg("could not find download client by id")
 		return nil, err
 	}
 
@@ -95,7 +95,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 
 	client, err := s.GetClient(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find download client by id: %v", id)
+		s.log.Error().Err(err).Int32("client_id", id).Msg("could not find download client")
 		return data, nil
 	}
 
@@ -104,7 +104,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 		arrClient := client.Client.(*radarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("could not get tags from radarr: %v", id)
+			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from radarr")
 			return data, nil
 		}
 
@@ -122,7 +122,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 		arrClient := client.Client.(*sonarr.Client)
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("could not get tags from sonarr: %v", id)
+			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from sonarr")
 			return data, nil
 		}
 
@@ -150,7 +150,7 @@ func (s *Service) Store(ctx context.Context, client *domain.DownloadClient) erro
 	// store
 	err := s.repo.Store(ctx, client)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store download client: %+v", client)
+		s.log.Error().Err(err).Interface("client", client).Msg("could not store download client")
 		return err
 	}
 
@@ -167,7 +167,7 @@ func (s *Service) Update(ctx context.Context, client *domain.DownloadClient) err
 
 	existingClient, err := s.FindByID(ctx, client.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find download client by id: %v", client.ID)
+		s.log.Error().Err(err).Int32("client_id", client.ID).Msg("could not find download client")
 		return err
 	}
 
@@ -189,7 +189,7 @@ func (s *Service) Update(ctx context.Context, client *domain.DownloadClient) err
 
 	// update
 	if err := s.repo.Update(ctx, client); err != nil {
-		s.log.Error().Err(err).Msgf("could not update download client: %+v", client)
+		s.log.Error().Err(err).Interface("client", client).Msg("could not update download client")
 		return err
 	}
 
@@ -200,7 +200,7 @@ func (s *Service) Update(ctx context.Context, client *domain.DownloadClient) err
 
 func (s *Service) Delete(ctx context.Context, clientID int32) error {
 	if err := s.repo.Delete(ctx, clientID); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete download client: %v", clientID)
+		s.log.Error().Err(err).Int32("client_id", clientID).Msg("could not delete download client")
 		return err
 	}
 
@@ -219,7 +219,7 @@ func (s *Service) Test(ctx context.Context, client domain.DownloadClient) error 
 	if client.ID > 0 {
 		existingClient, err := s.FindByID(ctx, client.ID)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("could not find download client by id: %v", client.ID)
+			s.log.Error().Err(err).Int32("client_id", client.ID).Msg("could not find download client")
 			return err
 		}
 
@@ -248,11 +248,11 @@ func (s *Service) Test(ctx context.Context, client domain.DownloadClient) error 
 
 // GetClient get client from cache or repo and attach downloadClient implementation
 func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error) {
-	l := s.log.With().Str("cache", "download-client").Logger()
+	l := s.log.With().Str("cache", "download-client").Int32("client_id", clientId).Logger()
 
 	client := s.cache.Get(clientId)
 	if client == nil {
-		l.Trace().Msgf("cache miss for client id %d, continue to repo lookup", clientId)
+		l.Trace().Msg("cache miss for client, continue to repo lookup")
 
 		var err error
 		client, err = s.repo.FindByID(ctx, clientId)
@@ -263,11 +263,11 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 
 	// if we have the client return it
 	if client.Client != nil {
-		l.Trace().Msgf("cache hit for client id %d %s", clientId, client.Name)
+		l.Trace().Str("client", client.Name).Msg("cache hit for client")
 		return client, nil
 	}
 
-	l.Trace().Msgf("init cache client id %d %s", clientId, client.Name)
+	l.Trace().Str("client", client.Name).Msg("init cache client")
 
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
@@ -444,7 +444,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		})
 	}
 
-	l.Trace().Msgf("set cache client id %d %s", clientId, client.Name)
+	l.Trace().Str("client", client.Name).Msg("set cache client")
 
 	s.cache.Set(clientId, client)
 

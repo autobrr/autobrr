@@ -17,7 +17,7 @@ import (
 func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
-	l.Debug().Msgf("action rTorrent: %s", action.Name)
+	l.Debug().Msg("running rTorrent action")
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
@@ -67,7 +67,7 @@ func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release d
 			return nil, errors.Wrap(err, "could not add torrent from magnet: %s", release.MagnetURI)
 		}
 
-		l.Info().Msgf("torrent from magnet successfully added to client: '%s'", client.Name)
+		l.Info().Str("client", client.Name).Msg("release successfully added to client")
 
 		return nil, nil
 	}
@@ -114,7 +114,7 @@ func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release d
 		return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentTmpFile)
 	}
 
-	l.Info().Msgf("torrent successfully added to client: '%s'", client.Name)
+	l.Info().Str("client", client.Name).Msg("release successfully added to client")
 
 	return rejections, nil
 }

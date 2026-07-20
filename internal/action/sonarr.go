@@ -17,7 +17,7 @@ import (
 func (s *Service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
-	l.Trace().Msg("action SONARR")
+	l.Trace().Msg("running Sonarr action")
 
 	// TODO validate data
 
@@ -70,12 +70,12 @@ func (s *Service) sonarr(ctx context.Context, action *domain.Action, release dom
 	}
 
 	if rejections != nil {
-		l.Debug().Msgf("sonarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+		l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Strs("rejections", rejections).Msg("client rejected the release")
 
 		return rejections, nil
 	}
 
-	l.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Msg("release successfully added to client")
 
 	return nil, nil
 }

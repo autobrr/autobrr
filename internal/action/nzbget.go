@@ -16,7 +16,7 @@ import (
 func (s *Service) nzbget(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
-	l.Trace().Msg("action NZBGet")
+	l.Trace().Msg("running NZBGet action")
 
 	if release.Protocol != domain.ReleaseProtocolNzb {
 		return nil, errors.New("action type: %s invalid protocol: %s", action.Type, release.Protocol)
@@ -39,9 +39,7 @@ func (s *Service) nzbget(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.Wrap(err, "could not add nzb to nzbget")
 	}
 
-	l.Trace().Msgf("nzb successfully added to client: '%+v'", resp)
-
-	l.Info().Msgf("nzb successfully added to client: '%s'", client.Name)
+	l.Info().Str("client", client.Name).Int("nzb_id", resp.NzbID).Msg("release successfully added to client")
 
 	return nil, nil
 }

@@ -6,7 +6,6 @@ package release
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -195,14 +194,14 @@ func (s *Service) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanu
 	}
 
 	if err := s.repo.StoreCleanupJob(ctx, job); err != nil {
-		s.log.Error().Err(err).Msg("error storing cleanup job")
+		s.log.Error().Err(err).Interface("data", job).Msg("error storing cleanup job")
 		return err
 	}
 
 	// Start job if enabled
 	if job.Enabled {
 		if err := s.startCleanupJob(job); err != nil {
-			s.log.Error().Err(err).Msgf("error starting cleanup job: %s", job.Name)
+			s.log.Error().Err(err).Str("job", job.Name).Msg("error starting cleanup job")
 			return err
 		}
 	}
@@ -232,7 +231,7 @@ func (s *Service) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseClean
 	// Only restart if job is/was enabled (touching scheduler only when needed)
 	if currentJob.Enabled || job.Enabled {
 		if err := s.restartCleanupJob(job); err != nil {
-			s.log.Error().Err(err).Msgf("error restarting cleanup job: %s", job.Name)
+			s.log.Error().Err(err).Str("job", job.Name).Msg("error restarting cleanup job")
 			return err
 		}
 	}
@@ -247,19 +246,19 @@ func (s *Service) DeleteCleanupJob(ctx context.Context, id int) error {
 		return err
 	}
 
-	s.log.Debug().Msgf("deleting cleanup job: %s", job.Name)
+	s.log.Debug().Str("job", job.Name).Msg("deleting cleanup job")
 
 	// Only stop if it's actually running
 	if job.Enabled {
 		if err := s.stopCleanupJob(id); err != nil {
-			s.log.Error().Err(err).Msgf("error stopping cleanup job: %s id: %d", job.Name, id)
+			s.log.Error().Err(err).Str("job", job.Name).Int("job_id", id).Msg("error stopping cleanup job")
 			return err
 		}
 	}
 
 	// Delete from database
 	if err := s.repo.DeleteCleanupJob(ctx, id); err != nil {
-		s.log.Error().Err(err).Msgf("error deleting cleanup job: %s", job.Name)
+		s.log.Error().Err(err).Str("job", job.Name).Msg("error deleting cleanup job")
 		return err
 	}
 
@@ -275,9 +274,9 @@ func (s *Service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled b
 
 	// Check if already in desired state
 	if job.Enabled == enabled {
-		s.log.Debug().Msgf("cleanup job already %s: %s",
-			map[bool]string{true: "enabled", false: "disabled"}[enabled],
-			job.Name)
+		currentStatus := map[bool]string{true: "enabled", false: "disabled"}[enabled]
+
+		s.log.Debug().Str("state", currentStatus).Str("job", job.Name).Msg("cleanup job already in desired state")
 		return nil
 	}
 
@@ -294,7 +293,7 @@ func (s *Service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled b
 			s.log.Error().Err(err).Msg("error starting cleanup job")
 			return err
 		}
-		s.log.Debug().Msgf("cleanup job started: %s", job.Name)
+		s.log.Debug().Str("job", job.Name).Msg("cleanup job started")
 		return nil
 	}
 
@@ -302,7 +301,7 @@ func (s *Service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled b
 		s.log.Error().Err(err).Msg("error stopping cleanup job")
 		return err
 	}
-	s.log.Debug().Msgf("cleanup job stopped: %s", job.Name)
+	s.log.Debug().Str("job", job.Name).Msg("cleanup job stopped")
 	return nil
 }
 
@@ -313,7 +312,7 @@ func (s *Service) ForceRunCleanupJob(ctx context.Context, id int) error {
 		return err
 	}
 
-	s.log.Info().Msgf("manually triggering cleanup job: %s", job.Name)
+	s.log.Info().Str("job", job.Name).Msg("manually triggering cleanup job")
 
 	cleanupJob := NewCleanupJob(s.log.With().Str("job", job.Name).Logger(), s.repo, job)
 
@@ -385,9 +384,11 @@ func (s *Service) Process(ctx context.Context, release *domain.Release) {
 		return
 	}
 
+	l := s.log.With().Str("trace_id", release.TraceID).Str("indexer", release.Indexer.Identifier).Str("release", release.TorrentName).Logger()
+
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Error().Str("trace_id", release.TraceID).Msgf("recovering from panic in release process %s error: %v", release.TorrentName, r)
+			l.Error().Any("err", r).Str("trace_id", release.TraceID).Msg("recovering from panic in release process")
 			//err := errors.New("panic in release process: %s", release.TorrentName)
 			return
 		}
@@ -397,8 +398,6 @@ func (s *Service) Process(ctx context.Context, release *domain.Release) {
 		release.TraceID = domain.TraceIDFromCtx(ctx)
 	}
 
-	l := s.log.With().Str("trace_id", release.TraceID).Str("indexer", release.Indexer.Identifier).Str("release", release.TorrentName).Logger()
-
 	s.publishEventReleaseNew(release)
 
 	// TODO check in config for "Save all releases"
@@ -406,17 +405,17 @@ func (s *Service) Process(ctx context.Context, release *domain.Release) {
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, release.Indexer.Identifier)
 	if err != nil {
-		l.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", release.Indexer.Name)
+		l.Error().Err(err).Msg("release.Process: error finding filters for indexer")
 		return
 	}
 
 	if len(filters) == 0 {
-		l.Debug().Msgf("no active filters found for indexer: %s", release.Indexer.Name)
+		l.Debug().Msg("no active filters found for indexer")
 		return
 	}
 
 	if err := s.processRelease(ctx, release, filters); err != nil {
-		l.Error().Err(err).Msgf("release.Process: error processing filters for indexer: %s", release.Indexer.Name)
+		l.Error().Err(err).Msg("release.Process: error processing filters for indexer")
 		return
 	}
 }
@@ -425,7 +424,7 @@ func (s *Service) processRelease(ctx context.Context, release *domain.Release, f
 	defer func(release *domain.Release) {
 		err := release.CleanupTemporaryFiles()
 		if err != nil {
-			s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.Process: error cleaning up temporary files for indexer: %s", release.Indexer.Name)
+			s.log.Error().Err(err).Str("trace_id", release.TraceID).Msg("release.Process: error cleaning up temporary files for indexer")
 		}
 	}(release)
 
@@ -446,7 +445,7 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		l := s.log.With().Str("trace_id", release.TraceID).Str("indexer", release.Indexer.Identifier).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 		// make the logger available to downstream services via ctx
-		ctx := l.WithContext(ctx)
+		subCtx := l.WithContext(ctx)
 
 		// save filter on release
 		release.Filter = f
@@ -459,32 +458,32 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		release.SkipDuplicateProfileName = ""
 
 		// test filter
-		match, err := s.filterSvc.CheckFilter(ctx, f, release)
+		match, err := s.filterSvc.CheckFilter(subCtx, f, release)
 		if err != nil {
-			l.Error().Err(err).Msg("release.Process: error checking filter")
+			l.Error().Err(err).Msg("release.processFilters: error checking filter")
 			return err
 		}
 
 		if !match || f.RejectReasons.Len() > 0 {
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s, no match. rejections: %s", release.Indexer.Name, release.FilterName, release.TorrentName, f.RejectReasons.String())
+			l.Trace().Str("rejections", f.RejectReasons.String()).Msg("filter rejected release")
 
-			l.Debug().Msgf("filter %s rejected release: %s with reasons: %s", f.Name, release.TorrentName, f.RejectReasons.StringTruncated())
+			l.Debug().Str("rejections", f.RejectReasons.StringTruncated()).Msg("filter rejected release")
 			continue
 		}
 
-		l.Info().Msgf("Matched '%s' (%s) for %s", release.TorrentName, release.FilterName, release.Indexer.Name)
+		l.Info().Msg("filter matched!")
 
 		// found matching filter, lets find the filter actions and attach
 		active := true
-		actions, err := s.actionSvc.FindByFilterID(ctx, f.ID, &active, false)
+		actions, err := s.actionSvc.FindByFilterID(subCtx, f.ID, &active, false)
 		if err != nil {
-			l.Error().Err(err).Msgf("release.Process: error finding actions for filter: %s", f.Name)
+			l.Error().Err(err).Msg("release.processFilters: error finding actions for filter")
 			return err
 		}
 
 		// if no actions, continue to next filter
 		if len(actions) == 0 {
-			l.Warn().Msgf("release.Process: no active actions found for filter '%s', trying next one..", f.Name)
+			l.Warn().Msg("release.processFilters: no active actions found for filter, trying next one..")
 			continue
 		}
 
@@ -492,8 +491,8 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		if release.ID == 0 {
 			release.FilterStatus = domain.ReleaseStatusFilterApproved
 
-			if err = s.Store(ctx, release); err != nil {
-				l.Error().Err(err).Msgf("release.Process: error writing release to database: %+v", release)
+			if err = s.Store(subCtx, release); err != nil {
+				l.Error().Err(err).Interface("release_data", release).Msg("release.processFilters: error writing release to database")
 				return err
 			}
 		}
@@ -504,46 +503,46 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 		for idx, act := range actions {
 			// only run enabled actions
 			if !act.Enabled {
-				l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s action '%s' not enabled, skip", release.Indexer.Name, release.FilterName, release.TorrentName, act.Name)
+				l.Trace().Str("action", act.Name).Msg("release.processFilters: action is disabled, skipping..")
 				continue
 			}
 
 			// add action status as pending
 			actionStatus := domain.NewReleaseActionStatus(act, release)
 
-			if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
-				l.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
+			if err := s.StoreReleaseActionStatus(subCtx, actionStatus); err != nil {
+				l.Error().Err(err).Msg("release.processFilters: error storing action status for filter")
 			}
 
 			if idx == 0 {
 				// sleep for the delay period specified in the filter before running actions
 				delay := release.Filter.Delay
 				if delay > 0 {
-					l.Debug().Msgf("release.Process: delaying processing of '%s' (%s) for %s by %d seconds as specified in the filter", release.TorrentName, release.FilterName, release.Indexer.Name, delay)
+					l.Debug().Int("delay", delay).Msg("release.processFilters: delaying processing as specified in the filter")
 					time.Sleep(time.Duration(delay) * time.Second)
 				}
 			}
 
-			l.Trace().Msgf("release.Process: indexer: %s, filter: %s release: %s , run action: %s", release.Indexer.Name, release.FilterName, release.TorrentName, act.Name)
+			l.Trace().Str("action", act.Name).Msg("release.processFilters: run action")
 
 			// keep track of action clients to avoid sending the same thing all over again
 			_, tried := triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}]
 			if tried {
-				l.Debug().Msgf("release.Process: indexer: %s, filter: %s release: %s action client already tried, skip", release.Indexer.Name, release.FilterName, release.TorrentName)
+				l.Debug().Msg("release.processFilters: action client already tried for this release, skipping..")
 				continue
 			}
 
 			// run action
-			status, err := s.runAction(ctx, act, release, actionStatus)
+			status, err := s.runAction(subCtx, act, release, actionStatus)
 			if err != nil {
-				l.Error().Err(err).Msgf("release.Process: error running actions for filter: %s", release.FilterName)
+				l.Error().Err(err).Msg("release.processFilters: error running filter action")
 				//continue
 			}
 
 			rejections = status.Rejections
 
-			if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-				l.Error().Err(err).Msgf("release.Process: error storing action status for filter: %s", release.FilterName)
+			if err := s.StoreReleaseActionStatus(subCtx, status); err != nil {
+				l.Error().Err(err).Msg("release.processFilters: error storing action status")
 			}
 
 			if len(rejections) > 0 {
@@ -551,15 +550,15 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 				triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}] = struct{}{}
 
 				// log something and fire events
-				l.Debug().Str("action", act.Name).Str("action_type", string(act.Type)).Msgf("release rejected: %s", strings.Join(rejections, ", "))
+				l.Debug().Str("action", act.Name).Str("action_type", string(act.Type)).Strs("rejections", rejections).Msg("action rejected release")
 			}
 
 			// if no rejections consider action approved, run next
 			continue
 		}
 
-		if err = s.Update(ctx, release); err != nil {
-			l.Error().Err(err).Msgf("release.Process: error updating release: %v", release.TorrentName)
+		if err = s.Update(subCtx, release); err != nil {
+			l.Error().Err(err).Msg("release.processFilters: error updating release")
 		}
 
 		// if we have rejections from arr, continue to next filter
@@ -575,7 +574,7 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 }
 
 func (s *Service) ProcessMultiple(ctx context.Context, releases []*domain.Release) {
-	s.log.Debug().Msgf("process (%d) new releases from feed", len(releases))
+	s.log.Debug().Int("count", len(releases)).Msg("process new releases from feed")
 
 	for _, rls := range releases {
 		if rls == nil {
@@ -586,11 +585,11 @@ func (s *Service) ProcessMultiple(ctx context.Context, releases []*domain.Releas
 }
 
 func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*domain.Release, indexer domain.IndexerMinimal) error {
-	s.log.Debug().Msgf("process (%d) new releases from feed %s", len(releases), indexer.Name)
+	s.log.Debug().Str("indexer", indexer.Name).Int("count", len(releases)).Msg("process new releases from feed")
 
 	defer func() {
 		if r := recover(); r != nil {
-			s.log.Error().Msgf("recovering from panic in release process %s error: %v", "", r)
+			s.log.Error().Any("err", r).Msg("recovering from panic in release process")
 			//err := errors.New("panic in release process: %s", release.TorrentName)
 			return
 		}
@@ -599,7 +598,7 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, indexer.Identifier)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error finding filters for indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("release.ProcessMultipleFromIndexer: error finding filters for indexer")
 		return err
 	}
 
@@ -614,7 +613,7 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 			s.publishEventReleaseNew(release)
 		}
 
-		s.log.Debug().Msgf("no active filters found for indexer: %s skipping filter processing", indexer.Name)
+		s.log.Debug().Str("indexer", indexer.Name).Msg("no active filters found for indexer: skipping filter processing")
 		return domain.ErrNoActiveFiltersFoundForIndexer
 	}
 
@@ -630,7 +629,7 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 		s.publishEventReleaseNew(release)
 
 		if err := s.processRelease(ctx, release, filters); err != nil {
-			s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.ProcessMultipleFromIndexer: error processing filters for indexer: %s", indexer.Name)
+			s.log.Error().Err(err).Str("trace_id", release.TraceID).Str("indexer", indexer.Name).Msg("release.ProcessMultipleFromIndexer: error processing filters for indexer")
 			return nil
 		}
 	}
@@ -648,7 +647,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 
 	rejections, err := s.actionSvc.RunAction(ctx, action, release)
 	if err != nil {
-		s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.runAction: error running actions for filter: %s", release.FilterName)
+		s.log.Error().Err(err).Str("trace_id", release.TraceID).Str("filter", release.FilterName).Msg("release.runAction: error running actions for filter")
 
 		status.Status = domain.ReleasePushStatusErr
 		status.Rejections = []string{err.Error()}
@@ -669,22 +668,22 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 }
 
 func (s *Service) retryAction(ctx context.Context, action *domain.Action, release *domain.Release) error {
-	l := s.log.With().Str("trace_id", release.TraceID).Str("release", release.TorrentName).Logger()
+	l := s.log.With().Str("trace_id", release.TraceID).Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
 	ctx = l.WithContext(ctx)
 
 	// add action status as pending
 	status := domain.NewReleaseActionStatus(action, release)
 
 	if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-		l.Error().Err(err).Msgf("release.runAction: error storing action for filter: %s", release.FilterName)
+		l.Error().Err(err).Msg("release.retryAction: error storing action status")
 	}
 
 	actionStatus, err := s.runAction(ctx, action, release, status)
 	if err != nil {
-		l.Error().Err(err).Msgf("release.retryAction: error running actions for filter: %s", release.FilterName)
+		l.Error().Err(err).Msg("release.retryAction: error running actions")
 
 		if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
-			l.Error().Err(err).Msgf("release.retryAction: error storing filterAction status for filter: %s", release.FilterName)
+			l.Error().Err(err).Msg("release.retryAction: error storing action status")
 			return err
 		}
 
@@ -692,7 +691,7 @@ func (s *Service) retryAction(ctx context.Context, action *domain.Action, releas
 	}
 
 	if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
-		l.Error().Err(err).Msgf("release.retryAction: error storing filterAction status for filter: %s", release.FilterName)
+		l.Error().Err(err).Msg("release.retryAction: error storing action status")
 		return err
 	}
 
@@ -736,11 +735,11 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 
 	// run filterAction
 	if err := s.retryAction(ctx, filterAction, release); err != nil {
-		s.log.Error().Err(err).Str("trace_id", release.TraceID).Msgf("release.Retry: error re-running action: %s", filterAction.Name)
+		s.log.Error().Err(err).Str("trace_id", release.TraceID).Str("action", filterAction.Name).Msg("release.Retry: error re-running action")
 		return err
 	}
 
-	s.log.Info().Str("trace_id", release.TraceID).Msgf("successfully replayed action %s for release %s", filterAction.Name, release.TorrentName)
+	s.log.Info().Str("trace_id", release.TraceID).Str("action", filterAction.Name).Str("release", release.TorrentName).Msg("successfully replayed action for release")
 
 	return nil
 }
@@ -782,7 +781,7 @@ func (s *Service) startCleanupJob(job *domain.ReleaseCleanupJob) error {
 	s.cleanupJobs[identifierKey] = id
 	s.m.Unlock()
 
-	s.log.Debug().Msgf("successfully started cleanup job: %s (schedule: %s)", job.Name, job.Schedule)
+	s.log.Debug().Str("job", job.Name).Str("job_id", identifierKey).Str("schedule", job.Schedule).Msg("successfully started cleanup job")
 
 	return nil
 }
@@ -800,13 +799,13 @@ func (s *Service) stopCleanupJob(id int) error {
 	delete(s.cleanupJobs, identifierKey)
 	s.m.Unlock()
 
-	s.log.Debug().Msgf("stopped cleanup job: %d", id)
+	s.log.Debug().Str("job_id", identifierKey).Msg("stopped cleanup job")
 
 	return nil
 }
 
 func (s *Service) restartCleanupJob(job *domain.ReleaseCleanupJob) error {
-	s.log.Debug().Msgf("restarting cleanup job: %s", job.Name)
+	s.log.Debug().Str("job", job.Name).Msg("restarting cleanup job")
 
 	// Stop job
 	if err := s.stopCleanupJob(job.ID); err != nil {
@@ -821,7 +820,7 @@ func (s *Service) restartCleanupJob(job *domain.ReleaseCleanupJob) error {
 			return err
 		}
 
-		s.log.Debug().Msgf("restarted cleanup job: %s", job.Name)
+		s.log.Debug().Str("job", job.Name).Msg("restarted cleanup job")
 	}
 
 	return nil
@@ -846,18 +845,18 @@ func (s *Service) startCleanupJobs(jobs []*domain.ReleaseCleanupJob) error {
 		return nil
 	}
 
-	s.log.Debug().Msgf("starting %d cleanup jobs", len(jobs))
+	s.log.Debug().Int("count", len(jobs)).Msg("starting cleanup jobs")
 
 	// Start in background to not block startup
 	go func(jobs []*domain.ReleaseCleanupJob) {
 		for _, job := range jobs {
 			if !job.Enabled {
-				s.log.Trace().Msgf("cleanup job disabled, skipping... %s", job.Name)
+				s.log.Trace().Str("job", job.Name).Msg("cleanup job disabled, skipping...")
 				continue
 			}
 
 			if err := s.startCleanupJob(job); err != nil {
-				s.log.Error().Err(err).Msgf("failed to initialize cleanup job: %s", job.Name)
+				s.log.Error().Err(err).Str("job", job.Name).Msg("failed to initialize cleanup job")
 				continue
 			}
 		}

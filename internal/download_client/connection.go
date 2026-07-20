@@ -104,7 +104,7 @@ func (s *Service) testQbittorrentConnection(ctx context.Context, client domain.D
 		return errors.Wrap(err, "error getting torrents: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for qBittorrent: success")
+	s.log.Debug().Msg("test client connection for qBittorrent: success")
 
 	return nil
 }
@@ -161,7 +161,7 @@ func (s *Service) testDelugeConnection(ctx context.Context, client domain.Downlo
 		return errors.New("unsupported deluge client version: %s", client.Type)
 	}
 
-	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", version)
+	s.log.Debug().Str("version", version).Msg("test client connection for Deluge: success")
 
 	return nil
 }
@@ -198,9 +198,7 @@ func (s *Service) testRTorrentConnection(ctx context.Context, client domain.Down
 		return errors.Wrap(err, "error logging into client: %s", client.Host)
 	}
 
-	s.log.Trace().Msgf("test client connection for rTorrent: got client: %s", name)
-
-	s.log.Debug().Msg("test client connection for rTorrent: success")
+	s.log.Debug().Str("name", name).Msg("test client connection for rTorrent: success")
 
 	return nil
 }
@@ -235,9 +233,7 @@ func (s *Service) testTransmissionConnection(ctx context.Context, client domain.
 		return errors.Wrap(err, "error getting rpc info: %v", client.Host)
 	}
 
-	s.log.Trace().Msgf("test client connection for Transmission: got version: %v", version)
-
-	s.log.Debug().Msgf("test client connection for Transmission: success")
+	s.log.Debug().Int64("version", version).Msg("test client connection for Transmission: success")
 
 	return nil
 }
@@ -257,7 +253,7 @@ func (s *Service) testRadarrConnection(ctx context.Context, client domain.Downlo
 		return errors.Wrap(err, "radarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Radarr: success")
+	s.log.Debug().Msg("test client connection for Radarr: success")
 
 	return nil
 }
@@ -277,7 +273,7 @@ func (s *Service) testSonarrConnection(ctx context.Context, client domain.Downlo
 		return errors.Wrap(err, "sonarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Sonarr: success")
+	s.log.Debug().Msg("test client connection for Sonarr: success")
 
 	return nil
 }
@@ -297,7 +293,7 @@ func (s *Service) testLidarrConnection(ctx context.Context, client domain.Downlo
 		return errors.Wrap(err, "lidarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Lidarr: success")
+	s.log.Debug().Msg("test client connection for Lidarr: success")
 
 	return nil
 }
@@ -317,7 +313,7 @@ func (s *Service) testWhisparrConnection(ctx context.Context, client domain.Down
 		return errors.Wrap(err, "whisparr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for whisparr: success")
+	s.log.Debug().Msg("test client connection for whisparr: success")
 
 	return nil
 }
@@ -337,7 +333,7 @@ func (s *Service) testReadarrConnection(ctx context.Context, client domain.Downl
 		return errors.Wrap(err, "readarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for readarr: success")
+	s.log.Debug().Msg("test client connection for readarr: success")
 
 	return nil
 }
@@ -364,7 +360,7 @@ func (s *Service) testPorlaConnection(client domain.DownloadClient) error {
 		commitHash = commitHash[:8]
 	}
 
-	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, commitHash)
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for porla: success")
 
 	return nil
 }
@@ -384,7 +380,7 @@ func (s *Service) testSabnzbdConnection(ctx context.Context, client domain.Downl
 		return errors.Wrap(err, "error getting version from sabnzbd")
 	}
 
-	s.log.Debug().Msgf("test client connection for sabnzbd: success got version: %s", version.Version)
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for sabnzbd: success")
 
 	return nil
 }
@@ -402,7 +398,7 @@ func (s *Service) testNzbgetConnection(ctx context.Context, client domain.Downlo
 		return errors.Wrap(err, "error getting version from nzbget")
 	}
 
-	s.log.Debug().Msgf("test client connection for nzbget: success - version: %s", version)
+	s.log.Debug().Str("version", version).Msg("test client connection for nzbget: success")
 
 	return nil
 }

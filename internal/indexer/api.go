@@ -54,15 +54,15 @@ func NewAPIService(log logger.Logger, proxySvc proxySvc) *APIService {
 func (s *APIService) GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error) {
 	client, err := s.getApiClient(indexer)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("could not get api client for: %s", indexer)
+		s.log.Error().Err(err).Str("indexer", indexer).Msg("could not get indexer api client")
 		return nil, errors.Wrap(err, "could not get torrent via api for indexer: %s", indexer)
 	}
 
-	s.log.Trace().Str("method", "GetTorrentByID").Msgf("%s fetching torrent from api...", indexer)
+	s.log.Trace().Str("method", "GetTorrentByID").Str("indexer", indexer).Str("torrent_id", torrentID).Msg("fetching torrent from indexer api...")
 
 	torrent, err := client.GetTorrentByID(ctx, torrentID)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("could not get torrent: %s from: %s", torrentID, indexer)
+		s.log.Error().Stack().Err(err).Str("indexer", indexer).Str("torrent_id", torrentID).Msg("could not get torrent from indexer api")
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (s *APIService) GetTorrentByID(ctx context.Context, indexer string, torrent
 		return nil, errors.New("could not get torrent: %s from: %s", torrentID, indexer)
 	}
 
-	s.log.Trace().Str("method", "GetTorrentByID").Msgf("%s api successfully fetched torrent: %+v", indexer, torrent)
+	s.log.Trace().Str("method", "GetTorrentByID").Str("indexer", indexer).Interface("torrent", torrent).Msg("indexer api successfully fetched torrent")
 
 	return torrent, nil
 }
@@ -83,7 +83,7 @@ func (s *APIService) TestConnection(ctx context.Context, req domain.IndexerTestA
 
 	success, err := client.TestAPI(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error testing connection for api: %s", req.Identifier)
+		s.log.Error().Err(err).Str("indexer", req.Identifier).Msgf("error testing connection for indexer api")
 		return false, err
 	}
 
@@ -95,7 +95,7 @@ func (s *APIService) AddClient(indexer string, settings map[string]string, proxy
 
 	var proxyHttpClient *http.Client
 	if proxyID > 0 && useProxy {
-		s.log.Trace().Str("indexer", indexer).Msgf("api.Service.AddClient: attaching proxy: %d", proxyID)
+		s.log.Trace().Str("indexer", indexer).Int64("proxy_id", proxyID).Msg("api.Service.AddClient: attaching proxy to indexer api client")
 
 		p, err := s.proxySvc.FindByID(context.Background(), proxyID)
 		if err != nil {
@@ -161,7 +161,7 @@ func (s *APIService) getApiClient(indexer string) (apiClient, error) {
 func (s *APIService) getClientForTest(req domain.IndexerTestApiRequest) (apiClient, error) {
 	var proxyHttpClient *http.Client
 	if req.ProxyID > 0 && req.UseProxy {
-		s.log.Trace().Str("indexer", req.Identifier).Msgf("api.Service.AddClient: attaching proxy: %d", req.ProxyID)
+		s.log.Trace().Str("indexer", req.Identifier).Int64("proxy_id", req.ProxyID).Msg("api.Service.AddClient: attaching proxy to indexer api client")
 
 		p, err := s.proxySvc.FindByID(context.Background(), req.ProxyID)
 		if err != nil {

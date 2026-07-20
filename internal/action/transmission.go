@@ -26,7 +26,7 @@ var TrTrue = true
 func (s *Service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
-	l.Debug().Msgf("action Transmission: %s", action.Name)
+	l.Debug().Msg("running Transmission action")
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
@@ -110,10 +110,10 @@ func (s *Service) transmission(ctx context.Context, action *domain.Action, relea
 				return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
 			}
 
-			l.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
+			l.Debug().Str("hash", *torrent.HashString).Str("client", client.Name).Msg("set label for torrent successful to client")
 		}
 
-		l.Info().Msgf("torrent from magnet with hash %v successfully added to client: '%s'", torrent.HashString, client.Name)
+		l.Info().Str("hash", *torrent.HashString).Str("client", client.Name).Msg("release successfully added to client")
 
 		return nil, nil
 	}
@@ -173,13 +173,13 @@ func (s *Service) transmission(ctx context.Context, action *domain.Action, relea
 			p.SeedIdleMode = &seedIdleMode
 		}
 
-		l.Trace().Msgf("transmission torrent set payload: %+v for torrent hash %s client: %s", p, *torrent.HashString, client.Name)
+		l.Trace().Interface("set_payload", p).Str("hash", *torrent.HashString).Str("client", client.Name).Msg("transmission torrent set payload")
 
 		if err := tbt.TorrentSet(ctx, p); err != nil {
 			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, client.Host)
 		}
 
-		l.Debug().Msgf("set label for torrent hash %s successful to client: '%s'", *torrent.HashString, client.Name)
+		l.Debug().Str("hash", *torrent.HashString).Str("client", client.Name).Msg("set label for torrent successful to client")
 	}
 
 	if !action.Paused && !action.ReAnnounceSkip {
@@ -194,7 +194,7 @@ func (s *Service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, nil
 	}
 
-	l.Info().Msgf("torrent with hash %s successfully added to client: '%s'", *torrent.HashString, client.Name)
+	l.Info().Str("hash", *torrent.HashString).Str("client", client.Name).Msg("release successfully added to client")
 
 	return rejections, nil
 }
@@ -215,7 +215,7 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 	attempts := 0
 
 	for attempts <= maxAttempts {
-		l.Debug().Msgf("re-announce %d attempt: %d/%d", torrentId, attempts, maxAttempts)
+		l.Debug().Int64("client_torrent_id", torrentId).Int("attempt", attempts).Int("max_attempts", maxAttempts).Msg("re-announce attempt")
 
 		// add delay for next run
 		time.Sleep(time.Duration(interval) * time.Second)
@@ -232,7 +232,7 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 		for _, tracker := range t[0].TrackerStats {
 			tracker := tracker
 
-			l.Trace().Msgf("transmission tracker: %+v", tracker)
+			l.Trace().Interface("tracker", tracker).Msg("transmission tracker")
 
 			if tracker.IsBackup {
 				continue
@@ -249,7 +249,7 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 			}
 		}
 
-		l.Debug().Msgf("transmission re-announce not working yet, lets re-announce %d again attempt: %d/%d", torrentId, attempts, maxAttempts)
+		l.Debug().Int64("client_torrent_id", torrentId).Int("attempt", attempts).Int("max_attempts", maxAttempts).Msg("transmission re-announce not working yet, re-announce again attempt")
 
 		if err := tbt.TorrentReannounceIDs(ctx, []int64{torrentId}); err != nil {
 			return errors.Wrap(err, "failed to reannounce")
@@ -259,7 +259,7 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 	}
 
 	if attempts == maxAttempts && action.ReAnnounceDelete {
-		l.Info().Msgf("re-announce for %v took too long, deleting torrent", torrentId)
+		l.Info().Int64("client_torrent_id", torrentId).Msg("re-announce took too long, deleting torrent")
 
 		if err := tbt.TorrentRemove(ctx, transmissionrpc.TorrentRemovePayload{IDs: []int64{torrentId}}); err != nil {
 			return errors.Wrap(err, "could not delete torrent: %v from client after max re-announce attempts reached", torrentId)
@@ -274,7 +274,7 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 func (s *Service) transmissionCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, tbt *transmissionrpc.Client) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
-	l.Trace().Msgf("action transmission: %s check rules", action.Name)
+	l.Trace().Msg("action transmission check rules")
 
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {

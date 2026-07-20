@@ -79,19 +79,18 @@ func (j *NewznabJob) process(ctx context.Context) error {
 	// get feed
 	items, err := j.getFeed(ctx)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return errors.Wrap(err, "error getting feed items")
 	}
 
-	j.Log.Debug().Msgf("found (%d) new items to process", len(items))
-
 	if len(items) == 0 {
+		j.Log.Debug().Int("items_count", len(items)).Msg("found zero new items to process")
 		return nil
 	}
 
+	j.Log.Debug().Int("items_count", len(items)).Msg("found new items to process")
+
 	releases, err := j.processItems(items)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error processing items")
 		return errors.Wrap(err, "error processing items")
 	}
 
@@ -110,7 +109,7 @@ func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, 
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
-					j.Log.Debug().Msgf("item is older than feed max age, skipping: %s", item.Title)
+					j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", item.PubDate.Time).Msgf("item is older than feed max age, skipping")
 					continue
 				}
 			}
@@ -173,26 +172,26 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 		j.Client.WithHTTPClient(proxyClient)
 
-		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
+		j.Log.Debug().Str("proxy", j.Feed.Proxy.Name).Msg("using proxy for feed")
 	}
 
 	// get feed
 	feed, err := j.Client.Search(ctx, "", j.Feed.Categories)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
 	}
 
 	if err := j.Repo.UpdateLastRunWithData(ctx, j.Feed.ID, feed.Raw); err != nil {
-		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
+		j.Log.Error().Err(err).Msg("error updating last run for feed")
 	}
-
-	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Items))
 
 	items := make([]newznab.FeedItem, 0)
 	if len(feed.Items) == 0 {
+		j.Log.Trace().Int("items_count", len(feed.Items)).Msg("feed refresh found zero items")
 		return items, nil
 	}
+
+	j.Log.Trace().Int("items_count", len(feed.Items)).Msg("feed refresh found new items")
 
 	//sort.SliceStable(feed.Channel.Items, func(i, j int) bool {
 	//	return feed.Channel.Items[i].PubDate.After(feed.Channel.Items[j].PubDate.Time)
@@ -204,7 +203,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 	for _, item := range feed.Items {
 		if item.GUID == "" {
-			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
+			j.Log.Error().Str("title", item.Title).Msg("item missing GUID")
 			continue
 		}
 
@@ -217,7 +216,6 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 
 	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
 	if err != nil {
-		j.Log.Error().Err(err).Msg("could not get existing items from cache")
 		return nil, errors.Wrap(err, "could not get existing items from cache")
 	}
 
@@ -228,11 +226,11 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	for _, guid := range guids {
 		item := guidItemMap[guid]
 		if existingGuids[guid] {
-			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
+			j.Log.Trace().Str("item", item.Title).Msg("cache item exists, skipping release..")
 			continue
 		}
 
-		j.Log.Debug().Msgf("found new release: %s", item.Title)
+		j.Log.Debug().Str("item", item.Title).Msg("found new release")
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),

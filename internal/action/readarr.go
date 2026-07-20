@@ -17,7 +17,7 @@ import (
 func (s *Service) readarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
-	l.Trace().Msg("action READARR")
+	l.Trace().Msg("running Readarr action")
 
 	// TODO validate data
 
@@ -61,12 +61,12 @@ func (s *Service) readarr(ctx context.Context, action *domain.Action, release do
 	}
 
 	if rejections != nil {
-		l.Debug().Msgf("readarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+		l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Strs("rejections", rejections).Msg("client rejected the release")
 
 		return rejections, nil
 	}
 
-	l.Debug().Msgf("readarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	l.Info().Str("indexer", r.Indexer).Str("host", client.Host).Msg("release successfully added to client")
 
 	return nil, nil
 }
