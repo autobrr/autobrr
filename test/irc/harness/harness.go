@@ -10,6 +10,7 @@
 package harness
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -245,7 +246,7 @@ func newReleaseSink() *ReleaseSink {
 }
 
 // Process implements the handler's releaseService.
-func (s *ReleaseSink) Process(release *domain.Release) {
+func (s *ReleaseSink) Process(_ context.Context, release *domain.Release) {
 	s.mu.Lock()
 	s.releases = append(s.releases, release)
 	s.mu.Unlock()
