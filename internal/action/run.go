@@ -46,7 +46,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	switch action.Type {
 	case domain.ActionTypeTest:
-		s.test(action.Name)
+		s.test(ctx)
 
 	case domain.ActionTypeExec:
 		err = s.execCmd(ctx, action, *release)
@@ -55,7 +55,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 		err = s.watchFolder(ctx, action, *release)
 
 	case domain.ActionTypeWebhook:
-		err = s.webhook(ctx, action, *release)
+		err = s.webhook(ctx, action)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		rejections, err = s.deluge(ctx, action, *release)
@@ -160,8 +160,12 @@ func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.A
 	return nil
 }
 
-func (s *Service) test(name string) {
-	s.log.Info().Str("name", name).Msg("action test")
+func (s *Service) test(ctx context.Context) {
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running Test action")
+
+	l.Info().Msg("test action success")
 }
 
 func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
@@ -171,7 +175,7 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 
-	l.Trace().Str("watch_folder", action.WatchFolder).Str("file", release.TorrentTmpFile).Msg("action watch_folder")
+	l.Debug().Str("watch_folder", action.WatchFolder).Str("file", release.TorrentTmpFile).Msg("running Watch Folder action")
 
 	if len(release.TorrentDataRawBytes) < 1 {
 		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
@@ -216,15 +220,12 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 	return nil
 }
 
-func (s *Service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
+func (s *Service) webhook(ctx context.Context, action *domain.Action) error {
 	l := zerolog.Ctx(ctx)
 
-	l.Trace().Msg("action webhook")
-	if len(action.WebhookData) > 1024 {
-		l.Trace().Str("host", action.WebhookHost).Str("payload", action.WebhookData[:1024]).Msg("webhook action")
-	} else {
-		l.Trace().Str("host", action.WebhookHost).Str("payload", action.WebhookData).Msg("webhook action")
-	}
+	l.Debug().Msg("running Webhook action")
+
+	l.Trace().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 1024)).Msg("running Webhook action")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
 	if err != nil {
@@ -242,11 +243,14 @@ func (s *Service) webhook(ctx context.Context, action *domain.Action, release do
 
 	defer sharedhttp.DrainAndClose(res)
 
-	if len(action.WebhookData) > 256 {
-		l.Info().Str("host", action.WebhookHost).Str("payload", action.WebhookData[:256]).Dur("duration", time.Since(start)).Msg("webhook action executed")
-	} else {
-		l.Info().Str("host", action.WebhookHost).Str("payload", action.WebhookData).Dur("duration", time.Since(start)).Msg("webhook action executed")
-	}
+	l.Info().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 256)).Dur("duration", time.Since(start)).Msg("webhook action executed")
 
 	return nil
+}
+
+func truncString(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max]
 }
