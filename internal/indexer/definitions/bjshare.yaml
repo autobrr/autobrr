@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: BJ-Share
 name: BJ-Share
 identifier: BJ-Share
@@ -23,10 +24,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#BJ.Announce"
-  announcers:
-    - BJAnnounce
   settings:
     - name: nick
       type: text
@@ -53,77 +50,75 @@ irc:
       label: Invite command
       help: Invite auth with BJAnnounce. Replace IRCKEY. Go to your Profile tab, Settings > API keys > Define a name > Set IRC > Copy the API key > Save Configuration.
 
-  parse:
-    type: single
-    lines:
-    - tests:
-      - line: "[Seriados] [749581] [SeriesName.S01E04.1080p.WEB-DL.DDP2.0.H.264.DUAL-ReLeASe.mkv] [2023] [2.72 GiB] [FREE: no] [INTERNAL: no] [UploaderOne] [GroupOne]"
-        expect:
-          category: Seriados
-          torrentId: "749581"
-          torrentName: "SeriesName.S01E04.1080p.WEB-DL.DDP2.0.H.264.DUAL-ReLeASe.mkv"
-          year: "2023"
-          torrentSize: "2.72 GiB"
-          freeleech: "no"
-          internal: "no"
-          uploader: "UploaderOne"
-          releaseGroup: "GroupOne"
-      - line: "[Filmes] [749623] [MovieName.2025.2160p.WEB-DL.DD5.1.DV.HDR.H.265-ReLeASe.mkv] [2025] [24.84 GiB] [FREE: YES] [INTERNAL: YES] [UploaderTwo] [GroupTwo]"
-        expect:
-          category: Filmes
-          torrentId: "749623"
-          torrentName: "MovieName.2025.2160p.WEB-DL.DD5.1.DV.HDR.H.265-ReLeASe.mkv"
-          year: "2025"
-          torrentSize: "24.84 GiB"
-          freeleech: "YES"
-          internal: "YES"
-          uploader: "UploaderTwo"
-          releaseGroup: "GroupTwo"
-      - line: "[Seriados] [749689] [SeriesName.S01.1080p.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe] [2024] [32.53 GiB] [FREE: YES] [INTERNAL: YES] [UploaderThree] [GroupThree]"
-        expect:
-          category: Seriados
-          torrentId: "749689"
-          torrentName: "SeriesName.S01.1080p.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe"
-          year: "2024"
-          torrentSize: "32.53 GiB"
-          freeleech: "YES"
-          internal: "YES"
-          uploader: "UploaderThree"
-          releaseGroup: "GroupThree"
-      - line: "[Filmes Adultos] [749691] [Porn Megapack] [2025] [112.73 GiB] [FREE: YES] [INTERNAL: no] [UploaderOne] [GroupTwo]"
-        expect:
-          category: Filmes Adultos
-          torrentId: "749691"
-          torrentName: "Porn Megapack"
-          year: "2025"
-          torrentSize: "112.73 GiB"
-          freeleech: "YES"
-          internal: "no"
-          uploader: "UploaderOne"
-          releaseGroup: "GroupTwo"
-      - line: "[Seriados] [749692] [SeriesName.S01.720p.MAZN.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe] [2024] [21.54 GiB] [FREE: YES] [INTERNAL: YES] [UploaderTwo] [GroupOne]"
-        expect:
-          category: Seriados
-          torrentId: "749692"
-          torrentName: "SeriesName.S01.720p.MAZN.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe"
-          year: "2024"
-          torrentSize: "21.54 GiB"
-          freeleech: "YES"
-          internal: "YES"
-          uploader: "UploaderTwo"
-          releaseGroup: "GroupOne"
-      pattern: '^\[(.*)\] \[(\d+)\] \[(.*)\] \[(\d+)\] \[(.*)\] \[FREE: (.*)\] \[INTERNAL: (.*)\] \[(.*)\] \[(.*)\]$'
-      vars:
-        - category
-        - torrentId
-        - torrentName
-        - year
-        - torrentSize
-        - freeleech
-        - internal
-        - uploader
-        - releaseGroup
+  channels:
+    - name: "#BJ.Announce"
+      announcers:
+        - BJAnnounce
+      parse:
+        type: single
+        lines:
+          - pattern: '^\[(?P<category>.*)\] \[(?P<torrentId>\d+)\] \[(?P<releaseName>.*)\] \[(?P<year>\d+)\] \[(?P<torrentSize>.*)\] \[FREE: (?P<freeleech>.*)\] \[INTERNAL: (?P<internal>.*)\] \[(?P<uploader>.*)\] \[(?P<releaseGroup>.*)\]$'
+            tests:
+              - line: "[Seriados] [749581] [SeriesName.S01E04.1080p.WEB-DL.DDP2.0.H.264.DUAL-ReLeASe.mkv] [2023] [2.72 GiB] [FREE: no] [INTERNAL: no] [UploaderOne] [GroupOne]"
+                expect:
+                  category: Seriados
+                  torrentId: "749581"
+                  releaseName: "SeriesName.S01E04.1080p.WEB-DL.DDP2.0.H.264.DUAL-ReLeASe.mkv"
+                  year: "2023"
+                  torrentSize: "2.72 GiB"
+                  freeleech: "no"
+                  internal: "no"
+                  uploader: "UploaderOne"
+                  releaseGroup: "GroupOne"
 
-    match:
-      infourl: "/torrents.php?torrentid={{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .apikey }}"
+              - line: "[Filmes] [749623] [MovieName.2025.2160p.WEB-DL.DD5.1.DV.HDR.H.265-ReLeASe.mkv] [2025] [24.84 GiB] [FREE: YES] [INTERNAL: YES] [UploaderTwo] [GroupTwo]"
+                expect:
+                  category: Filmes
+                  torrentId: "749623"
+                  releaseName: "MovieName.2025.2160p.WEB-DL.DD5.1.DV.HDR.H.265-ReLeASe.mkv"
+                  year: "2025"
+                  torrentSize: "24.84 GiB"
+                  freeleech: "YES"
+                  internal: "YES"
+                  uploader: "UploaderTwo"
+                  releaseGroup: "GroupTwo"
+
+              - line: "[Seriados] [749689] [SeriesName.S01.1080p.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe] [2024] [32.53 GiB] [FREE: YES] [INTERNAL: YES] [UploaderThree] [GroupThree]"
+                expect:
+                  category: Seriados
+                  torrentId: "749689"
+                  releaseName: "SeriesName.S01.1080p.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe"
+                  year: "2024"
+                  torrentSize: "32.53 GiB"
+                  freeleech: "YES"
+                  internal: "YES"
+                  uploader: "UploaderThree"
+                  releaseGroup: "GroupThree"
+
+              - line: "[Filmes Adultos] [749691] [Porn Megapack] [2025] [112.73 GiB] [FREE: YES] [INTERNAL: no] [UploaderOne] [GroupTwo]"
+                expect:
+                  category: Filmes Adultos
+                  torrentId: "749691"
+                  releaseName: "Porn Megapack"
+                  year: "2025"
+                  torrentSize: "112.73 GiB"
+                  freeleech: "YES"
+                  internal: "no"
+                  uploader: "UploaderOne"
+                  releaseGroup: "GroupTwo"
+
+              - line: "[Seriados] [749692] [SeriesName.S01.720p.MAZN.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe] [2024] [21.54 GiB] [FREE: YES] [INTERNAL: YES] [UploaderTwo] [GroupOne]"
+                expect:
+                  category: Seriados
+                  torrentId: "749692"
+                  releaseName: "SeriesName.S01.720p.MAZN.WEB-DL.DDP5.1.H.264.DUAL-ReLeASe"
+                  year: "2024"
+                  torrentSize: "21.54 GiB"
+                  freeleech: "YES"
+                  internal: "YES"
+                  uploader: "UploaderTwo"
+                  releaseGroup: "GroupOne"
+
+        match:
+          infourl: "/torrents.php?torrentid={{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .apikey }}"

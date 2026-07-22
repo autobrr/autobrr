@@ -34,7 +34,7 @@ func (s *ntfySender) Name() string {
 	return "ntfy"
 }
 
-func NewNtfySender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewNtfySender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &ntfySender{
 		log:      log.With().Str("sender", "ntfy").Str("name", settings.Name).Logger(),
 		Settings: settings,

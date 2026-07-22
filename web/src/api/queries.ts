@@ -84,7 +84,9 @@ export const IrcQueryOptions = () =>
     queryKey: IrcKeys.lists(),
     queryFn: () => APIClient.irc.getNetworks(),
     refetchOnWindowFocus: false,
-    refetchInterval: 3000 // Refetch every 3 seconds
+    // SSE STATE/HEALTH events drive instant updates; poll as a fallback so the
+    // list self-heals if an event is missed (e.g. during an SSE reconnect).
+    refetchInterval: 5000
   });
 
 export const FeedsQueryOptions = () =>

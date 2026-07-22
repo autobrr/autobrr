@@ -52,7 +52,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
   return (
     <>
-      {ind && ind.irc && ind.irc.settings && (
+      {ind && ind.implementation == "irc" && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
           <div className="px-4">
             <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.settingsIrcTitle")}</DialogTitle>
@@ -103,7 +103,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
     return (
       <Fragment>
-        {ind && ind.torznab && ind.torznab.settings && (
+        {ind && ind.implementation == "torznab" && ind.feed && ind.feed.settings && (
           <div className="">
             <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.torznabTitle")}</DialogTitle>
@@ -154,7 +154,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
     return (
       <Fragment>
-        {ind && ind.newznab && ind.newznab.settings && (
+        {ind && ind.implementation == "newznab" && ind.feed && ind.feed.settings && (
           <div className="">
             <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.newznabTitle")}</DialogTitle>
@@ -184,18 +184,6 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             <PasswordFieldWide name="feed.api_key" label={t("forms.indexer.apiKey")} help={t("forms.indexer.apiKey")} required={true} />
 
-            {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
-              switch (f.type) {
-              case "text": {
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f, t)} />;
-              }
-              case "secret": {
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f, t)} />;
-              }
-              }
-              return null;
-            })}
-
             <FeedCategoriesDraftSection feedType="NEWZNAB" />
           </div>
         )}
@@ -209,7 +197,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
   if (indexer !== "") {
     return (
       <Fragment>
-        {ind && ind.rss && ind.rss.settings && (
+        {ind && ind.implementation == "rss" && ind.feed && ind.feed.settings && (
           <div className="">
             <div className="pt-4 px-4">
               <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.rssTitle")}</DialogTitle>
@@ -220,7 +208,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
             <TextFieldWide name="name" label={t("forms.indexer.name")} defaultValue="" />
 
-            {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
+            {ind.feed.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
               case "text": {
                 return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f, t)} />;
@@ -469,135 +457,146 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
 
   const onSubmit = (formData: FormikValues) => {
     const ind = data && data.find(i => i.identifier === formData.identifier);
-    if (!ind)
+    if (!ind) {
+      console.error("could not find indexer: ", formData.identifier, " in ", data, " - ", formData);
       return;
+    }
 
-    if (formData.implementation === "torznab") {
-      const createFeed: FeedCreate = {
-        name: formData.name,
-        enabled: false,
-        type: "TORZNAB",
-        url: formData.feed.url,
-        api_key: formData.feed.api_key,
-        interval: 30,
-        timeout: 60,
-        indexer_id: 0,
-        categories: formData.feed.categories ?? [],
-        capabilities: formData.feed.capabilities ?? null,
-        settings: formData.feed.settings
-      };
+    switch (formData.implementation) {
+      case "torznab": {
+        const createFeed: FeedCreate = {
+          name: formData.name,
+          enabled: false,
+          type: "TORZNAB",
+          url: formData.feed.url,
+          api_key: formData.feed.api_key,
+          interval: 30,
+          timeout: 60,
+          indexer_id: 0,
+          categories: formData.feed.categories ?? [],
+          capabilities: formData.feed.capabilities ?? null,
+          settings: formData.feed.settings
+        };
 
-      mutation.mutate(formData as Indexer, {
-        onSuccess: (indexer) => {
-          // @eslint-ignore
-          createFeed.indexer_id = indexer.id;
+        mutation.mutate(formData as Indexer, {
+          onSuccess: (indexer) => {
+            // @eslint-ignore
+            createFeed.indexer_id = indexer.id;
 
-          feedMutation.mutate(createFeed);
-        }
-      });
-      return;
-
-    } else if (formData.implementation === "newznab") {
-      formData.url = formData.feed.url;
-
-      const createFeed: FeedCreate = {
-        name: formData.name,
-        enabled: false,
-        type: "NEWZNAB",
-        url: formData.feed.newznab_url,
-        api_key: formData.feed.api_key,
-        interval: 30,
-        timeout: 60,
-        indexer_id: 0,
-        categories: formData.feed.categories ?? [],
-        capabilities: formData.feed.capabilities ?? null,
-        settings: formData.feed.settings
-      };
-
-      mutation.mutate(formData as Indexer, {
-        onSuccess: (indexer) => {
-          // @eslint-ignore
-          createFeed.indexer_id = indexer.id;
-
-          feedMutation.mutate(createFeed);
-        }
-      });
-      return;
-
-    } else if (formData.implementation === "rss") {
-      const createFeed: FeedCreate = {
-        name: formData.name,
-        enabled: false,
-        type: "RSS",
-        url: formData.feed.url,
-        interval: 30,
-        timeout: 60,
-        indexer_id: 0,
-        settings: formData.feed.settings
-      };
-
-      mutation.mutate(formData as Indexer, {
-        onSuccess: (indexer) => {
-          // @eslint-ignore
-          createFeed.indexer_id = indexer.id;
-
-          feedMutation.mutate(createFeed);
-        }
-      });
-      return;
-
-    } else if (formData.implementation === "irc") {
-      const channels: IrcChannel[] = [];
-      if (ind.irc?.channels.length) {
-        let channelPass = "";
-        if (formData.irc && formData.irc.channels && formData.irc?.channels?.password !== "") {
-          channelPass = formData.irc.channels.password;
-        }
-
-        ind.irc.channels.forEach(element => {
-          channels.push({
-            id: 0,
-            enabled: true,
-            name: element,
-            password: channelPass,
-            detached: false,
-            monitoring: false
-          });
+            feedMutation.mutate(createFeed);
+          }
         });
+        return;
       }
 
-      const network: IrcNetworkCreate = {
-        name: ind.irc.network,
-        pass: formData.irc.pass || "",
-        enabled: false,
-        connected: false,
-        server: ind.irc.server,
-        port: ind.irc.port,
-        tls: ind.irc.tls,
-        tls_skip_verify: false,
-        nick: formData.irc.nick,
-        auth: {
-          mechanism: "NONE"
-          // account: formData.irc.auth.account,
-          // password: formData.irc.auth.password
-        },
-        invite_command: formData.irc.invite_command,
-        channels: channels
-      };
+      case "newznab": {
+        formData.url = formData.feed.url;
 
-      if (formData.irc.auth) {
-        if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
-          network.auth.mechanism = "SASL_PLAIN";
-          network.auth.account = formData.irc.auth.account;
-          network.auth.password = formData.irc.auth.password;
-        }
+        const createFeed: FeedCreate = {
+          name: formData.name,
+          enabled: false,
+          type: "NEWZNAB",
+          url: formData.feed.newznab_url,
+          api_key: formData.feed.api_key,
+          interval: 30,
+          timeout: 60,
+          indexer_id: 0,
+          categories: formData.feed.categories ?? [],
+          capabilities: formData.feed.capabilities ?? null,
+          settings: formData.feed.settings
+        };
+
+        mutation.mutate(formData as Indexer, {
+          onSuccess: (indexer) => {
+            // @eslint-ignore
+            createFeed.indexer_id = indexer.id;
+
+            feedMutation.mutate(createFeed);
+          }
+        });
+        return;
       }
 
-      mutation.mutate(formData as Indexer, {
-        onSuccess: () => {
-          ircMutation.mutate(network);
+      case "rss": {
+        const createFeed: FeedCreate = {
+          name: formData.name,
+          enabled: false,
+          type: "RSS",
+          url: formData.feed.url,
+          interval: 30,
+          timeout: 60,
+          indexer_id: 0,
+          settings: formData.feed.settings
+        };
+
+        mutation.mutate(formData as Indexer, {
+          onSuccess: (indexer) => {
+            // @eslint-ignore
+            createFeed.indexer_id = indexer.id;
+
+            feedMutation.mutate(createFeed);
+          }
+        });
+        return;
+      }
+
+      case "irc": {
+        const channels: IrcChannel[] = [];
+        if (ind.irc?.channels.length) {
+          let channelPass = "";
+          if (formData.irc && formData.irc.channels && formData.irc?.channels?.password !== "") {
+            channelPass = formData.irc.channels.password;
+          }
+
+          ind.irc.channels.forEach(element => {
+            channels.push({
+              id: 0,
+              enabled: true,
+              name: element.name,
+              password: channelPass,
+              detached: false,
+              monitoring: false
+            });
+          });
         }
-      });
+
+        const network: IrcNetworkCreate = {
+          name: ind.irc.network,
+          pass: formData.irc.pass || "",
+          enabled: false,
+          connected: false,
+          server: ind.irc.server,
+          port: ind.irc.port,
+          tls: ind.irc.tls,
+          tls_skip_verify: false,
+          nick: formData.irc.nick,
+          auth: {
+            mechanism: "NONE"
+            // account: formData.irc.auth.account,
+            // password: formData.irc.auth.password
+          },
+          invite_command: formData.irc.invite_command,
+          channels: channels
+        };
+
+        if (formData.irc.auth) {
+          if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
+            network.auth.mechanism = "SASL_PLAIN";
+            network.auth.account = formData.irc.auth.account;
+            network.auth.password = formData.irc.auth.password;
+          }
+        }
+
+        mutation.mutate(formData as Indexer, {
+          onSuccess: () => {
+            ircMutation.mutate(network);
+          }
+        });
+        return;
+      }
+      default: {
+        console.error("unknown implementation: ", formData.implementation);
+      }
     }
   };
 
@@ -1070,32 +1069,54 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
 
           {renderSettingFields(indexer.settings)}
 
-          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-            <div className="flex justify-between px-4">
-              <div className="space-y-1">
-                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                  {t("forms.indexer.proxy")}
-                </DialogTitle>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t("forms.indexer.proxyDesc")}
-                </p>
+          {indexer.implementation == "irc" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+              <div className="flex justify-between px-4">
+                <div className="space-y-1">
+                  <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                    {t("forms.indexer.proxy")}
+                  </DialogTitle>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t("forms.indexer.proxyDesc")}
+                  </p>
+                </div>
+                <SwitchButton name="use_proxy" />
               </div>
-              <SwitchButton name="use_proxy" />
-            </div>
 
-            {values.use_proxy === true && (
-              <div className="py-4 pt-6">
-                <SelectField<number>
-                  name="proxy_id"
-                  label={t("forms.indexer.selectProxy")}
-                  placeholder={t("forms.indexer.selectProxyPlaceholder")}
-                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
-                />
-              </div>
-            )}
-          </div>
+              {values.use_proxy === true && (
+                <div className="py-4 pt-6">
+                  <SelectField<number>
+                    name="proxy_id"
+                    label={t("forms.indexer.selectProxy")}
+                    placeholder={t("forms.indexer.selectProxyPlaceholder")}
+                    options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {(indexer.implementation === "torznab" || indexer.implementation === "newznab" || indexer.implementation === "rss") && (
+            <div className="py-4 pt-6">
+              <FeedSettingsBanner />
+            </div>
+          )}
+
         </div>
       )}
     </SlideOver>
+  );
+}
+
+function FeedSettingsBanner() {
+  const { t } = useTranslation("settings");
+  return (
+    <div className="px-4">
+      <span className="w-full block px-2 py-2 bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-900 text-sm rounded-sm">
+        <span className="font-semibold">
+          {t("forms.indexer.editFeeds")}
+        </span>
+      </span>
+    </div>
   );
 }

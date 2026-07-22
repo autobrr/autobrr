@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *service) anilist(ctx context.Context, list *domain.List) error {
+func (s *Service) anilist(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "anilist").Str("list", list.Name).Logger()
 
 	if list.URL == "" {

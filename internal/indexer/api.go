@@ -21,7 +21,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type APIService interface {
+type apiService interface {
 	TestConnection(ctx context.Context, req domain.IndexerTestApiRequest) (bool, error)
 	GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error)
 	AddClient(indexer string, settings map[string]string, proxyID int64, useProxy bool) error
@@ -37,21 +37,21 @@ type proxySvc interface {
 	FindByID(ctx context.Context, proxyID int64) (*domain.Proxy, error)
 }
 
-type apiService struct {
+type APIService struct {
 	log        zerolog.Logger
 	apiClients map[string]apiClient
 	proxySvc   proxySvc
 }
 
-func NewAPIService(log logger.Logger, proxySvc proxySvc) APIService {
-	return &apiService{
+func NewAPIService(log logger.Logger, proxySvc proxySvc) *APIService {
+	return &APIService{
 		log:        log.With().Str("module", "indexer-api").Logger(),
 		apiClients: make(map[string]apiClient),
 		proxySvc:   proxySvc,
 	}
 }
 
-func (s *apiService) GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error) {
+func (s *APIService) GetTorrentByID(ctx context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error) {
 	client, err := s.getApiClient(indexer)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Msgf("could not get api client for: %s", indexer)
@@ -75,7 +75,7 @@ func (s *apiService) GetTorrentByID(ctx context.Context, indexer string, torrent
 	return torrent, nil
 }
 
-func (s *apiService) TestConnection(ctx context.Context, req domain.IndexerTestApiRequest) (bool, error) {
+func (s *APIService) TestConnection(ctx context.Context, req domain.IndexerTestApiRequest) (bool, error) {
 	client, err := s.getClientForTest(req)
 	if err != nil {
 		return false, errors.New("could not init api client: %s", req.Identifier)
@@ -90,7 +90,7 @@ func (s *apiService) TestConnection(ctx context.Context, req domain.IndexerTestA
 	return success, nil
 }
 
-func (s *apiService) AddClient(indexer string, settings map[string]string, proxyID int64, useProxy bool) error {
+func (s *APIService) AddClient(indexer string, settings map[string]string, proxyID int64, useProxy bool) error {
 	s.log.Trace().Str("indexer", indexer).Msg("api.Service.AddClient: init api client")
 
 	var proxyHttpClient *http.Client
@@ -149,7 +149,7 @@ func (s *apiService) AddClient(indexer string, settings map[string]string, proxy
 	return nil
 }
 
-func (s *apiService) getApiClient(indexer string) (apiClient, error) {
+func (s *APIService) getApiClient(indexer string) (apiClient, error) {
 	client, ok := s.apiClients[indexer]
 	if !ok {
 		return nil, errors.New("could not find api client for: %s", indexer)
@@ -158,7 +158,7 @@ func (s *apiService) getApiClient(indexer string) (apiClient, error) {
 	return client, nil
 }
 
-func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClient, error) {
+func (s *APIService) getClientForTest(req domain.IndexerTestApiRequest) (apiClient, error) {
 	var proxyHttpClient *http.Client
 	if req.ProxyID > 0 && req.UseProxy {
 		s.log.Trace().Str("indexer", req.Identifier).Msgf("api.Service.AddClient: attaching proxy: %d", req.ProxyID)
@@ -210,7 +210,7 @@ func (s *apiService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 	}
 }
 
-func (s *apiService) RemoveClient(indexer string) error {
+func (s *APIService) RemoveClient(indexer string) error {
 	_, ok := s.apiClients[indexer]
 	if ok {
 		delete(s.apiClients, indexer)

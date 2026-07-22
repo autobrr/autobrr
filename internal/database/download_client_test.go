@@ -369,7 +369,7 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Delete_Clears_Client_From_Actions [%s]", dbType), func(t *testing.T) {
-			actionRepo := NewActionRepo(log, db, repo)
+			actionRepo := NewActionRepo(log, db)
 			filterRepo := NewFilterRepo(log, db)
 
 			mockClient := getMockDownloadClient()

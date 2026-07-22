@@ -17,16 +17,14 @@ import (
 )
 
 type ActionRepo struct {
-	log        zerolog.Logger
-	db         *DB
-	clientRepo domain.DownloadClientRepo
+	log zerolog.Logger
+	db  *DB
 }
 
-func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
+func NewActionRepo(log logger.Logger, db *DB) *ActionRepo {
 	return &ActionRepo{
-		log:        log.With().Str("repo", "action").Logger(),
-		db:         db,
-		clientRepo: clientRepo,
+		log: log.With().Str("repo", "action").Logger(),
+		db:  db,
 	}
 }
 

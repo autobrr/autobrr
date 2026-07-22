@@ -31,7 +31,7 @@ func clampPeriod(n int) int {
 	return n
 }
 
-func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
+func NewFilterRepo(log logger.Logger, db *DB) *FilterRepo {
 	return &FilterRepo{
 		log: log.With().Str("repo", "filter").Logger(),
 		db:  db,

@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: tracker01
 name: MyAnonamouse
 identifier: myanonamouse
@@ -24,10 +25,6 @@ irc:
   server: irc.myanonamouse.net
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - MouseBot
   settings:
     - name: nick
       type: text
@@ -47,50 +44,45 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )'
-          expect:
-            torrentName: Some famous book
-            author: Author name
-            category: Ebooks - Science Fiction
-            torrentSize: 1.00 MiB
-            tags: epub, mobi
-            language: English
-            baseUrl: https://www.myanonamouse.net/
-            torrentId: "000000"
-            releaseTags: ""
-        - line: 'New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP'
-          expect:
-            torrentName: Some famous book
-            author: Author name
-            category: Ebooks - Science Fiction
-            torrentSize: 2.11 MiB
-            tags: epub, mobi
-            language: English
-            baseUrl: https://www.myanonamouse.net/
-            torrentId: "000000"
-            releaseTags: VIP
-        pattern: 'New Torrent: (.*) By: (.*) Category: \( (.*) \) Size: \( (.*) \) Filetype: \( (.*) \) Language: \( (.*) \) Link: \( (https?\:\/\/[^\/]+\/).*?(\d+)\s*\)\s*(VIP)?'
-        vars:
-          - torrentName
-          - author
-          - category
-          - torrentSize
-          - tags
-          - language
-          - baseUrl
-          - torrentId
-          - releaseTags
+  channels:
+    - name: "#announce"
+      announcers:
+        - MouseBot
+      parse:
+        type: single
+        lines:
+          - pattern: 'New Torrent: (?P<releaseName>.*) By: (?P<author>.*) Category: \( (?P<category>.*) \) Size: \( (?P<torrentSize>.*) \) Filetype: \( (?P<tags>.*) \) Language: \( (?P<language>.*) \) Link: \( (?P<baseUrl>https?\:\/\/[^\/]+\/).*?(?P<torrentId>\d+)\s*\)\s*(?P<releaseTags>VIP)?'
+            tests:
+              - line: 'New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 1.00 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 )'
+                expect:
+                  releaseName: Some famous book
+                  author: Author name
+                  category: Ebooks - Science Fiction
+                  torrentSize: 1.00 MiB
+                  tags: epub, mobi
+                  language: English
+                  baseUrl: https://www.myanonamouse.net/
+                  torrentId: "000000"
+                  releaseTags: ""
 
-    mappings:
-      releaseTags:
-        "VIP":
-          freeleech: VIP
+              - line: 'New Torrent: Some famous book By: Author name Category: ( Ebooks - Science Fiction ) Size: ( 2.11 MiB ) Filetype: ( epub, mobi ) Language: ( English ) Link: ( https://www.myanonamouse.net/t/000000 ) VIP'
+                expect:
+                  releaseName: Some famous book
+                  author: Author name
+                  category: Ebooks - Science Fiction
+                  torrentSize: 2.11 MiB
+                  tags: epub, mobi
+                  language: English
+                  baseUrl: https://www.myanonamouse.net/
+                  torrentId: "000000"
+                  releaseTags: VIP
 
-    match:
-      infourl: "/t/{{ .torrentId }}"
-      torrenturl: "/tor/download.php?tid={{ .torrentId }}"
-      torrentname: "{{ .torrentName }} by {{ .author }} [{{ .language }} / {{ .tags }}]"
+        mappings:
+          releaseTags:
+            "VIP":
+              freeleech: VIP
+
+        match:
+          infourl: "/t/{{ .torrentId }}"
+          downloadurl: "/tor/download.php?tid={{ .torrentId }}"
+          releasename: "{{ .releaseName }} by {{ .author }} [{{ .language }} / {{ .tags }}]"

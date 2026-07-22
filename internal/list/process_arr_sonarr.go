@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *service) sonarr(ctx context.Context, list *domain.List) error {
+func (s *Service) sonarr(ctx context.Context, list *domain.List) error {
 	var arrType string
 	if list.Type == domain.ListTypeWhisparr {
 		arrType = "whisparr"
@@ -66,7 +66,7 @@ func (s *service) sonarr(ctx context.Context, list *domain.List) error {
 	return nil
 }
 
-func (s *service) processSonarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
+func (s *Service) processSonarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
 	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)

@@ -6,12 +6,16 @@ package collector
 import (
 	"context"
 
-	"github.com/autobrr/autobrr/internal/filter"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type filterService interface {
+	ListFilters(ctx context.Context) ([]domain.Filter, error)
+}
+
 type filterCollector struct {
-	filterService filter.Service
+	filterService filterService
 
 	totalCount   *prometheus.Desc
 	enabledCount *prometheus.Desc
@@ -41,7 +45,7 @@ func (collector *filterCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(collector.enabledCount, prometheus.GaugeValue, float64(enabled))
 }
 
-func NewFilterCollector(filterService filter.Service) *filterCollector {
+func NewFilterCollector(filterService filterService) *filterCollector {
 	return &filterCollector{
 		filterService: filterService,
 		totalCount: prometheus.NewDesc(

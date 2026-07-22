@@ -12,7 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-func (s *service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action SONARR")
 
 	// TODO validate data

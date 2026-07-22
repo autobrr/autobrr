@@ -11,7 +11,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/nzbget"
 )
 
-func (s *service) nzbget(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) nzbget(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Trace().Msg("action NZBGet")
 
 	if release.Protocol != domain.ReleaseProtocolNzb {
