@@ -23,9 +23,9 @@ import (
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+	"github.com/autobrr/go-torrent/bencode"
+	"github.com/autobrr/go-torrent/metainfo"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go/v4"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/publicsuffix"
@@ -319,7 +319,11 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 
 		r.TorrentTmpFile = tmpFile.Name()
 		r.TorrentHash = meta.HashInfoBytes().String()
-		r.Size = uint64(torrentMetaInfo.TotalLength())
+		// A malformed torrent can carry negative file lengths; keep the
+		// announce-derived size rather than storing a wrapped uint64.
+		if size := torrentMetaInfo.TotalLength(); size > 0 {
+			r.Size = uint64(size)
+		}
 
 		return nil
 	}
