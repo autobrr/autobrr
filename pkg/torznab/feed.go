@@ -202,7 +202,7 @@ func (f *FeedItem) parseAttributes() {
 				break
 			}
 		case "imdb", "imdbid":
-			if f.ImdbId == "" {
+			if f.ImdbId == "" && attr.Value != "" {
 				if !strings.HasPrefix(attr.Value, "tt") {
 					f.ImdbId = "tt" + attr.Value
 				} else {

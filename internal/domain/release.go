@@ -1209,13 +1209,11 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		r.Episode = episode
 	}
 
-	if metaId, err := getStringMapValue(varMap, "imdb"); err == nil {
-		r.MetaIMDB = metaId
+	if metaId, err := getStringMapValue(varMap, "imdb"); err == nil && metaId != "" {
 		if !strings.HasPrefix(metaId, "tt") {
-			r.MetaIMDB = "tt" + metaId
-		} else {
-			r.MetaIMDB = metaId
+			metaId = "tt" + metaId
 		}
+		r.MetaIMDB = metaId
 	}
 
 	if metaId, err := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); err == nil {
