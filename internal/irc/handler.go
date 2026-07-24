@@ -989,16 +989,13 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
 	message := msg.Params[1]
 
-	// clean message
-	cleanedMsg := cleanMessage(message)
-
 	if message == "CLIENTINFO" {
 		return
 	}
 
 	if channel == h.CurrentNick() {
 		// this is a DM - possibly an invite bot answering our invite command
-		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanedMsg).Msg("got direct-message")
+		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanMessage(message)).Msg("got direct-message")
 
 		// a DM from an invite bot while a channel is still awaiting its invite is
 		// a rejection, not the invite itself (that arrives as INVITE)
@@ -1014,14 +1011,13 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 		return
 	}
 
-	ircChannel.OnMsg(msg)
+	ircMsg, ok := ircChannel.OnMsg(msg)
+	if !ok {
+		return
+	}
 
 	// publish to SSE stream
-	h.broadcastMessage(domain.IrcMessage{Network: h.GetNetwork().ID, Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
-
-	//h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
-
-	return
+	h.broadcastMessage(ircMsg)
 }
 
 // JoinChannels sends multiple join commands
