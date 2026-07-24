@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: spd
 name: SpeedApp
 identifier: speedapp
@@ -23,10 +24,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#speedapp"
-  announcers:
-    - speedapp-announcer
   settings:
     - name: nick
       type: text
@@ -46,32 +43,31 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: New! (Movies HD-RO) - Some.File.2022.1080p.WEB-DL.DDP5.1.Atmos.H.264.mkv - (5.14 GB) - https://speedapp.io/browse/00000/t/some-file-2022-1080p-web-dl-ddp5-1-atmos-h-264-mkv
-          expect:
-            category: Movies HD-RO
-            torrentName: Some.File.2022.1080p.WEB-DL.DDP5.1.Atmos.H.264.mkv
-            torrentSize: 5.14 GB
-            baseUrl: https://speedapp.io/
-            torrentId: "00000"
-        - line: New! (XXX HD) - Some.XXX.21.05.19.famous.actress.XXX.1080p.MP4-WRB - (841.64 MB) - https://speedapp.io/browse/000000/t/some-xxx-21-05-19-famous-actress-xxx-1080p-mp4-wrb
-          expect:
-            category: XXX HD
-            torrentName: Some.XXX.21.05.19.famous.actress.XXX.1080p.MP4-WRB
-            torrentSize: 841.64 MB
-            baseUrl: https://speedapp.io/
-            torrentId: "000000"
-        pattern: 'New! \((.+)\) - (.+) - \((.+)\) - (https?:\/\/.+\/)browse\/(\d+)\/t\/.+'
-        vars:
-          - category
-          - torrentName
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#speedapp"
+      announcers:
+        - speedapp-announcer
+      parse:
+        type: single
+        lines:
+          - pattern: 'New! \((?P<category>.+)\) - (?P<releaseName>.+) - \((?P<torrentSize>.+)\) - (?P<baseUrl>https?:\/\/.+\/)browse\/(?P<torrentId>\d+)\/t\/.+'
+            tests:
+              - line: New! (Movies HD-RO) - Some.File.2022.1080p.WEB-DL.DDP5.1.Atmos.H.264.mkv - (5.14 GB) - https://speedapp.io/browse/00000/t/some-file-2022-1080p-web-dl-ddp5-1-atmos-h-264-mkv
+                expect:
+                  category: Movies HD-RO
+                  releaseName: Some.File.2022.1080p.WEB-DL.DDP5.1.Atmos.H.264.mkv
+                  torrentSize: 5.14 GB
+                  baseUrl: https://speedapp.io/
+                  torrentId: "00000"
 
-    match:
-      infourl: "/browse/{{ .torrentId }}/t/{{ .torrentName }}"
-      torrenturl: "/rss/download/{{ .torrentId }}/{{ .torrentName }}.torrent?passkey={{ .passkey }}"
+              - line: New! (XXX HD) - Some.XXX.21.05.19.famous.actress.XXX.1080p.MP4-WRB - (841.64 MB) - https://speedapp.io/browse/000000/t/some-xxx-21-05-19-famous-actress-xxx-1080p-mp4-wrb
+                expect:
+                  category: XXX HD
+                  releaseName: Some.XXX.21.05.19.famous.actress.XXX.1080p.MP4-WRB
+                  torrentSize: 841.64 MB
+                  baseUrl: https://speedapp.io/
+                  torrentId: "000000"
+
+        match:
+          infourl: "/browse/{{ .torrentId }}/t/{{ .releaseName }}"
+          downloadurl: "/rss/download/{{ .torrentId }}/{{ .releaseName }}.torrent?passkey={{ .passkey }}"

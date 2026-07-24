@@ -19,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/diagnostics"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
@@ -37,6 +38,7 @@ import (
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
+	"github.com/autobrr/autobrr/pkg/featureflags"
 	"github.com/autobrr/autobrr/pkg/sqlite3store"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
@@ -55,6 +57,10 @@ var (
 	commit  = ""
 	date    = ""
 )
+
+func init() {
+	featureflags.Register(domain.IRCFuzzyAnnouncer, false)
+}
 
 func main() {
 	var configPath, profilePath string
@@ -93,6 +99,7 @@ func main() {
 	// setup server-sent-events
 	serverEvents := sse.New()
 	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
+	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
 
 	// register SSE hook on logger
 	log.RegisterSSEWriter(serverEvents)
@@ -138,7 +145,7 @@ func main() {
 	var (
 		apikeyRepo         = database.NewAPIRepo(log, db)
 		downloadClientRepo = database.NewDownloadClientRepo(log, db)
-		actionRepo         = database.NewActionRepo(log, db, downloadClientRepo)
+		actionRepo         = database.NewActionRepo(log, db)
 		filterRepo         = database.NewFilterRepo(log, db)
 		feedRepo           = database.NewFeedRepo(log, db)
 		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
@@ -161,7 +168,7 @@ func main() {
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
 		indexerAPIService     = indexer.NewAPIService(log, proxyService)
-		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
+		downloadService       = releasedownload.NewDownloadService(log, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
 		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)

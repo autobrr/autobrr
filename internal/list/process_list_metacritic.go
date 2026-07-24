@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *service) metacritic(ctx context.Context, list *domain.List) error {
+func (s *Service) metacritic(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "metacritic").Str("list", list.Name).Logger()
 
 	if list.URL == "" {

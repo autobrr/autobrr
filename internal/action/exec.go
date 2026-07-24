@@ -14,7 +14,7 @@ import (
 	"github.com/Hellseher/go-shellquote"
 )
 
-func (s *service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
+func (s *Service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
 	s.log.Debug().Msgf("action exec: %s release: %s", action.Name, release.TorrentName)
 
 	// check if program exists

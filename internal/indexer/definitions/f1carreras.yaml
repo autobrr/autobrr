@@ -1,0 +1,79 @@
+---
+version: 2
+#id: f1carreras
+name: F1Carreras
+identifier: f1carreras
+description: F1Carreras (F1C) is a private torrent tracker for F1 and motorsports.
+language: en-us
+urls:
+  - https://f1carreras.xyz/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_autobrr
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#f1carreras_announce"
+      announcers:
+        - F1C-Announce
+      parse:
+        type: single
+        lines:
+          # <announceType>|<id>|<category>|<Type>|<resolution>|<releasename>|<size>|<uploader>
+          - pattern: 'NEW\|(?P<torrentId>\d+)\|(?P<category>.+)\|(?P<releaseTags>.+)\|(?P<resolution>.+)?\|(?P<releaseName>.+)\|(?P<torrentSize>.+)\|Uploaded by (?P<uploader>.+)'
+            tests:
+              - line: NEW|5308|Movies|WEB-DL|1080p|Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]|10 GB|Uploaded by uploader1
+                expect:
+                  torrentId: "5308"
+                  category: Movies
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  releaseName: Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]
+                  torrentSize: "10 GB"
+                  uploader: uploader1
+
+              - line: NEW|5311|MotoGP|WEB-DL||MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC|7.1 GB|Uploaded by uploader2
+                expect:
+                  torrentId: "5311"
+                  category: MotoGP
+                  releaseTags: WEB-DL
+                  resolution: ""
+                  releaseName: MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC
+                  torrentSize: "7.1 GB"
+                  uploader: uploader2
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

@@ -758,7 +758,8 @@
       "proxyDesc": "Einen Proxy für Downloads von Torrentdateien und Feeds festlegen.",
       "selectProxy": "Proxy wählen",
       "selectProxyPlaceholder": "Einen Proxy wählen",
-      "chooseType": "Typ wählen"
+      "chooseType": "Typ wählen",
+      "editFeeds": "RSS-Feeds unter Einstellungen -> Feeds bearbeiten"
     },
     "releaseProfile": {
       "title": "Duplikatprofil",

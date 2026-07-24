@@ -181,6 +181,7 @@
     "channelsDesc": "Channels to join.",
     "channelsUpdateDesc": "Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.",
     "channelPassword": "Channel password",
+    "channelEnabled": "Enable/disable channel",
     "remove": "Remove",
     "noChannels": "No channels!",
     "addChannel": "Add Channel",
@@ -758,7 +759,8 @@
       "proxyDesc": "Set a proxy to be used for downloads of .torrent files and feeds.",
       "selectProxy": "Select proxy",
       "selectProxyPlaceholder": "Select a proxy",
-      "chooseType": "Choose a type"
+      "chooseType": "Choose a type",
+      "editFeeds": "Edit feeds in Settings -> Feeds"
     },
     "releaseProfile": {
       "title": "Duplicate Profile",

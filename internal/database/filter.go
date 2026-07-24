@@ -19,31 +19,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type EngineQuery struct {
-	engine   string
-	sqlite   string
-	postgres string
-}
-
-func NewEngineQuery(engine string, sqlite, postgres string) *EngineQuery {
-	return &EngineQuery{
-		engine:   engine,
-		sqlite:   sqlite,
-		postgres: postgres,
-	}
-}
-
-func (q *EngineQuery) Get() string {
-	switch q.engine {
-	case "sqlite":
-		return q.sqlite
-	case "postgres":
-		return q.postgres
-	}
-
-	return ""
-}
-
 type FilterRepo struct {
 	log zerolog.Logger
 	db  *DB
@@ -52,7 +27,7 @@ type FilterRepo struct {
 	filterDownloadQuery *EngineQuery
 }
 
-func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
+func NewFilterRepo(log logger.Logger, db *DB) *FilterRepo {
 	return &FilterRepo{
 		log:                 log.With().Str("repo", "filter").Logger(),
 		db:                  db,

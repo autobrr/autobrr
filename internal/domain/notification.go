@@ -4,33 +4,9 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"time"
 )
-
-type NotificationRepo interface {
-	List(ctx context.Context) ([]Notification, error)
-	Find(ctx context.Context, params NotificationQueryParams) ([]Notification, int, error)
-	FindByID(ctx context.Context, id int) (*Notification, error)
-	Store(ctx context.Context, notification *Notification) error
-	Update(ctx context.Context, notification *Notification) error
-	Delete(ctx context.Context, notificationID int) error
-
-	GetNotificationFilters(ctx context.Context, notificationID int) ([]FilterNotification, error)
-	GetFilterNotifications(ctx context.Context, filterID int) ([]FilterNotification, error)
-	StoreFilterNotifications(ctx context.Context, filterID int, notifications []FilterNotification) error
-	DeleteFilterNotifications(ctx context.Context, filterID int) error
-}
-
-type NotificationSender interface {
-	Send(event NotificationEvent, payload NotificationPayload) error
-	CanSend(event NotificationEvent) bool
-	CanSendPayload(event NotificationEvent, payload NotificationPayload) bool
-	IsEnabled() bool
-	Name() string
-	HasFilterEvents(filterID int) bool
-}
 
 type Notification struct {
 	ID            int                  `json:"id"`
@@ -372,6 +348,7 @@ type WebhookRelease struct {
 	Seeders          int          `json:"seeders,omitempty"`
 	Leechers         int          `json:"leechers,omitempty"`
 	MetaIMDB         string       `json:"meta_imdb,omitempty"`
+	MetaTMDB         int          `json:"meta_tmdb,omitempty"`
 }
 
 // WebhookIndexer contains indexer information
@@ -492,6 +469,7 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 			Seeders:          release.Seeders,
 			Leechers:         release.Leechers,
 			MetaIMDB:         release.MetaIMDB,
+			MetaTMDB:         release.MetaTMDB,
 		}
 	} else if payload.ReleaseName != "" {
 		// Fallback if full release object is missing but we have basic info in payload

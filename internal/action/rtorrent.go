@@ -13,7 +13,7 @@ import (
 	"github.com/autobrr/go-rtorrent"
 )
 
-func (s *service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
 	s.log.Debug().Msgf("action rTorrent: %s", action.Name)
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)

@@ -5,12 +5,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import type { FieldProps } from "formik";
-import type { FieldArrayRenderProps } from "formik";
+import type { FieldArrayRenderProps, FieldProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Select from "react-select";
-import { DialogTitle } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
@@ -33,14 +31,17 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => {
   const { t } = useTranslation("settings");
 
   return (
-  <div className="px-4">
-    <FieldArray name="channels">
-      {({ remove, push }: FieldArrayRenderProps) => (
-        <div className="flex flex-col space-y-2">
-          {channels && channels.length > 0 ? (
+    <div className="px-4">
+      <FieldArray name="channels">
+        {({ remove, push }: FieldArrayRenderProps) => (
+          <div className="flex flex-col space-y-2">
+            {channels && channels.length > 0 ? (
               channels.map((_, index) => (
                 <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
+                    <div className="shrink-0" title={t("forms.irc.channelEnabled")}>
+                      <SwitchButton name={`channels.${index}.enabled`} defaultValue={true}/>
+                    </div>
                     <Field name={`channels.${index}.name`}>
                       {({ field, meta }: FieldProps) => (
                         <input
@@ -83,39 +84,40 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => {
                     onClick={() => remove(index)}
                   >
                     <span className="sr-only">{t("forms.irc.remove")}</span>
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
                   </button>
                 </div>
               ))
-          ) : (
-            <span className="text-center text-sm text-grey-darker dark:text-white">
+            ) : (
+              <span className="text-center text-sm text-grey-darker dark:text-white">
               {t("forms.irc.noChannels")}
             </span>
-          )}
-          <button
-            type="button"
-            className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center"
-            onClick={() => push({ name: "", password: "" })}
-          >
-            {t("forms.irc.addChannel")}
-          </button>
-        </div>
-      )}
-    </FieldArray>
-  </div>
+            )}
+            <button
+              type="button"
+              className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center"
+              onClick={() => push({ name: "", password: "", enabled: true })}
+            >
+              {t("forms.irc.addChannel")}
+            </button>
+          </div>
+        )}
+      </FieldArray>
+    </div>
   );
 };
+
 interface IrcNetworkAddFormValues {
-    name: string;
-    enabled: boolean;
-    server : string;
-    port: number;
-    tls: boolean;
-    tls_skip_verify: boolean;
-    pass: string;
-    nick: string;
-    auth: IrcAuth;
-    channels: IrcChannel[];
+  name: string;
+  enabled: boolean;
+  server: string;
+  port: number;
+  tls: boolean;
+  tls_skip_verify: boolean;
+  pass: string;
+  nick: string;
+  auth: IrcAuth;
+  channels: IrcChannel[];
 }
 
 export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
@@ -127,11 +129,11 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
-      toast.custom((toastInstance) => <Toast type="success" body={t("forms.irc.added")} t={toastInstance} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.irc.added")} t={toastInstance}/>);
       toggle();
     },
     onError: () => {
-      toast.custom((toastInstance) => <Toast type="error" body={t("forms.irc.addFailed")} t={toastInstance} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.irc.addFailed")} t={toastInstance}/>);
     }
   });
 
@@ -167,7 +169,8 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     >
       {(values) => (
         <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-          <div className="flex justify-center dark:bg-red-300 text-sm font-bold text-center p-4 py-8 dark:text-red-800"><span className="flex"><ExclamationTriangleIcon className="mr-2 h-6 w-6" /> {t("forms.irc.addWarning")}</span></div>
+          <div className="flex justify-center dark:bg-red-300 text-sm font-bold text-center p-4 py-8 dark:text-red-800">
+            <span className="flex"><ExclamationTriangleIcon className="mr-2 h-6 w-6"/> {t("forms.irc.addWarning")}</span></div>
 
           <TextFieldWide
             name="name"
@@ -176,7 +179,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
             required={true}
           />
 
-          <SwitchGroupWide name="enabled" label={t("forms.irc.enabled")} />
+          <SwitchGroupWide name="enabled" label={t("forms.irc.enabled")}/>
           <TextFieldWide
             name="server"
             label={t("forms.irc.server")}
@@ -189,7 +192,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
             placeholder={t("forms.irc.portPlaceholder")}
             required={true}
           />
-          <SwitchGroupWide name="tls" label={t("forms.irc.tls")} />
+          <SwitchGroupWide name="tls" label={t("forms.irc.tls")}/>
           {values.tls && (
             <SwitchGroupWide name="tls_skip_verify" label={t("forms.irc.skipTls")}/>
           )}
@@ -214,17 +217,17 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
             name="auth.password"
             label={t("forms.irc.authPassword")}
           />
-          <PasswordFieldWide name="invite_command" label={t("forms.irc.inviteCommand")} />
+          <PasswordFieldWide name="invite_command" label={t("forms.irc.inviteCommand")}/>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.channelsDesc")}
               </p>
             </div>
 
-            <ChannelsFieldArray channels={values.channels} />
+            <ChannelsFieldArray channels={values.channels}/>
           </div>
         </div>
       )}
@@ -255,30 +258,26 @@ const validateNetwork = (values: FormikValues, requiredMessage: string) => {
 };
 
 interface IrcNetworkUpdateFormValues {
-    id: number;
-    name: string;
-    enabled: boolean;
-    server: string;
-    port: number;
-    tls: boolean;
-    tls_skip_verify: boolean;
-    pass: string;
-    nick: string;
-    auth?: IrcAuth;
-    invite_command: string;
-    use_bouncer: boolean;
-    bouncer_addr: string;
-    bot_mode: boolean;
-    channels: Array<IrcChannel>;
-    use_proxy: boolean;
-    proxy_id: number;
+  id: number;
+  name: string;
+  enabled: boolean;
+  server: string;
+  port: number;
+  tls: boolean;
+  tls_skip_verify: boolean;
+  pass: string;
+  nick: string;
+  auth?: IrcAuth;
+  invite_command: string;
+  use_bouncer: boolean;
+  bouncer_addr: string;
+  bot_mode: boolean;
+  channels: Array<IrcChannel>;
+  use_proxy: boolean;
+  proxy_id: number;
 }
 
-export function IrcNetworkUpdateForm({
-  isOpen,
-  toggle,
-  data: network
-}: UpdateFormProps<IrcNetwork>) {
+export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFormProps<IrcNetwork>) {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
@@ -398,9 +397,9 @@ export function IrcNetworkUpdateForm({
           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
             <div className="flex justify-between px-4">
               <div className="space-y-1">
-                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                   {t("forms.irc.proxy")}
-                </DialogTitle>
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {t("forms.irc.proxyDesc")}
                 </p>
@@ -422,7 +421,7 @@ export function IrcNetworkUpdateForm({
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.identification")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.identification")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.identificationDesc")}
               </p>
@@ -452,7 +451,7 @@ export function IrcNetworkUpdateForm({
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.channelsUpdateDesc")}
               </p>
@@ -523,8 +522,7 @@ export function SelectField<T>({ name, label, options, placeholder }: SelectFiel
               onChange={(newValue: unknown) => {
                 if (newValue) {
                   setFieldValue(field.name, (newValue as { value: number }).value);
-                }
-                else {
+                } else {
                   setFieldValue(field.name, 0)
                 }
               }}

@@ -17,7 +17,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/proxy"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
@@ -49,7 +48,7 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, timeout time.Duration, slots chan struct{}) RefreshFeedJob {
+func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc releaseService, timeout time.Duration, slots chan struct{}) RefreshFeedJob {
 	return &RSSJob{
 		Feed:       feed,
 		Name:       name,

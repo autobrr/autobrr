@@ -135,6 +135,14 @@ func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, 
 		rls.InfoURL = item.GUID
 
 		rls.ParseString(item.Title)
+
+		rls.MetaIMDB = item.ImdbId
+		if item.TmdbId != "" {
+			if tmdbId, err := strconv.Atoi(item.TmdbId); err == nil {
+				rls.MetaTMDB = tmdbId
+			}
+		}
+
 		rls.Size = item.Size
 
 		if item.Enclosure != nil && item.Enclosure.Type == "application/x-nzb" {
