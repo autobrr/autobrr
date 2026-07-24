@@ -142,6 +142,28 @@ func TestSanitizeLogFile(t *testing.T) {
 			expected: "\"module\":\"irc\" PRIVMSG NickServ IDENTIFY REDACTED",
 		},
 		{
+			// the form actually put on the wire: the command is one trailing
+			// parameter, so the logged line carries a colon
+			name:     "nickserv_identify_bare",
+			input:    "\"module\":\"irc\" --> PRIVMSG NickServ :IDENTIFY zAPEJEA8ryYnpj3AiE3KJ",
+			expected: "\"module\":\"irc\" --> PRIVMSG NickServ :IDENTIFY REDACTED",
+		},
+		{
+			name:     "nickserv_identify_account_qualified",
+			input:    "\"module\":\"irc\" --> PRIVMSG NickServ :IDENTIFY user|bot zAPEJEA8ryYnpj3AiE3KJ",
+			expected: "\"module\":\"irc\" --> PRIVMSG NickServ :IDENTIFY REDACTED",
+		},
+		{
+			name:     "nickserv_identify_account_with_dash",
+			input:    "\"module\":\"irc\" --> PRIVMSG NickServ :IDENTIFY user-bot zAPEJEA8ryYnpj3AiE3KJ",
+			expected: "\"module\":\"irc\" --> PRIVMSG NickServ :IDENTIFY REDACTED",
+		},
+		{
+			name:     "nickserv_identify_json_quoted",
+			input:    "{\"level\":\"debug\",\"module\":\"irc\",\"message\":\"--> PRIVMSG NickServ :IDENTIFY user-bot hunter2\"}",
+			expected: "{\"level\":\"debug\",\"module\":\"irc\",\"message\":\"--> PRIVMSG NickServ :IDENTIFY REDACTED\"}",
+		},
+		{
 			input:    "\"module\":\"action\" \\\"host\\\":\\\"subdomain.domain.com:42069/subfolder\\\", \\n   \\\"user\\\":\\\"AUserName\\\", \\n   \\\"password\\\":\\\"p4ssw0!rd\\\", \\n",
 			expected: "\"module\":\"action\" \\\"host\\\":\\\"REDACTED\\\", \\n   \\\"user\\\":\\\"REDACTED\\\", \\n   \\\"password\\\":\\\"REDACTED\\\", \\n",
 		},

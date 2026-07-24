@@ -39,7 +39,11 @@ var (
 			repl:    "${1}REDACTED_USER:REDACTED_PW@",
 		},
 		{
-			pattern: regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
+			// The IRC client logs the raw line, where the whole command is one
+			// trailing parameter: "PRIVMSG NickServ :IDENTIFY [account] <password>".
+			// Both argument forms have to be covered, and the optional account is
+			// redacted along with the password rather than being spliced back in.
+			pattern: regexp.MustCompile(`(NickServ :?IDENTIFY )[^\s"\\]+(\s+[^\s"\\]+)?`),
 			repl:    "${1}REDACTED",
 		},
 		{
