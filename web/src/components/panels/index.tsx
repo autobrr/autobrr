@@ -42,9 +42,17 @@ export function SlideOverShell({ isOpen, toggle, initialFocus, zIndexClass, chil
       <Drawer.Portal>
         <Drawer.Backdrop
           className={classNames("fixed inset-0", zIndexClass ?? "")}
-          onClick={toggle}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggle();
+          }}
         />
-        <Drawer.Viewport className={classNames("fixed inset-0 flex justify-end pointer-events-none", zIndexClass ?? "")}>
+        {/* Clicks bubble through the React portal to ancestors (e.g. the expandable
+            network row an update form is mounted in), so stop them at the boundary. */}
+        <Drawer.Viewport
+          className={classNames("fixed inset-0 flex justify-end pointer-events-none", zIndexClass ?? "")}
+          onClick={(e) => e.stopPropagation()}
+        >
           <Drawer.Popup
             initialFocus={initialFocus}
             className="pointer-events-auto h-full w-screen max-w-2xl shadow-xl [transform:translateX(var(--drawer-swipe-movement-x))] transition-transform ease-in-out duration-500 sm:duration-700 data-starting-style:[transform:translateX(100%)] data-ending-style:[transform:translateX(100%)]"
