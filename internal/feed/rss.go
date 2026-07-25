@@ -40,7 +40,6 @@ type RSSJob struct {
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
 	Timeout    time.Duration
-	Slots      chan struct{}
 
 	attempts int
 	errors   []error
@@ -48,7 +47,7 @@ type RSSJob struct {
 	JobID int
 }
 
-func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc releaseService, timeout time.Duration, slots chan struct{}) RefreshFeedJob {
+func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc releaseService, timeout time.Duration) RefreshFeedJob {
 	return &RSSJob{
 		Feed:       feed,
 		Name:       name,
@@ -58,7 +57,6 @@ func NewRSSJob(feed *domain.Feed, name string, log zerolog.Logger, url string, r
 		CacheRepo:  cacheRepo,
 		ReleaseSvc: releaseSvc,
 		Timeout:    timeout,
-		Slots:      slots,
 	}
 }
 
@@ -76,15 +74,6 @@ func (j *RSSJob) Run() {
 }
 
 func (j *RSSJob) RunE(ctx context.Context) error {
-	if j.Slots != nil {
-		select {
-		case j.Slots <- struct{}{}:
-			defer func() { <-j.Slots }()
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
 	if err := j.process(ctx); err != nil {
 		j.Log.Err(err).Msg("rss feed process error")
 		return err

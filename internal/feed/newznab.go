@@ -28,7 +28,6 @@ type NewznabJob struct {
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
-	Slots      chan struct{}
 
 	attempts int
 	errors   []error
@@ -41,7 +40,7 @@ type newznabClient interface {
 	Search(ctx context.Context, query string, categories []int) (*newznab.SearchResponse, error)
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc, slots chan struct{}) RefreshFeedJob {
+func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
 	return &NewznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -51,7 +50,6 @@ func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url strin
 		Repo:       repo,
 		CacheRepo:  cacheRepo,
 		ReleaseSvc: releaseSvc,
-		Slots:      slots,
 	}
 }
 
@@ -69,15 +67,6 @@ func (j *NewznabJob) Run() {
 }
 
 func (j *NewznabJob) RunE(ctx context.Context) error {
-	if j.Slots != nil {
-		select {
-		case j.Slots <- struct{}{}:
-			defer func() { <-j.Slots }()
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
 	if err := j.process(ctx); err != nil {
 		j.Log.Err(err).Msg("newznab process error")
 		return err

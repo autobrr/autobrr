@@ -44,7 +44,6 @@ type TorznabJob struct {
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
-	Slots      chan struct{}
 
 	attempts int
 	errors   []error
@@ -62,7 +61,7 @@ type torznabClient interface {
 	Search(ctx context.Context, query string, categories []int) (*torznab.SearchResponse, error)
 }
 
-func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc, slots chan struct{}) RefreshFeedJob {
+func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
 	return &TorznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -72,7 +71,6 @@ func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url strin
 		Repo:       repo,
 		CacheRepo:  cacheRepo,
 		ReleaseSvc: releaseSvc,
-		Slots:      slots,
 	}
 }
 
@@ -90,15 +88,6 @@ func (j *TorznabJob) Run() {
 }
 
 func (j *TorznabJob) RunE(ctx context.Context) error {
-	if j.Slots != nil {
-		select {
-		case j.Slots <- struct{}{}:
-			defer func() { <-j.Slots }()
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-
 	if err := j.process(ctx); err != nil {
 		j.Log.Err(err).Int("attempts", j.attempts).Msg("torznab process error")
 		return err

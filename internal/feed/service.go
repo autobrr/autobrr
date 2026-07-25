@@ -52,7 +52,7 @@ type feedCacheRepo interface {
 }
 
 type schedulerService interface {
-	ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error)
+	ScheduleJobJittered(job cron.Job, interval time.Duration, identifier string) (int, error)
 	AddJob(job cron.Job, spec string, identifier string) (int, error)
 	RemoveJobByIdentifier(id string) error
 	GetNextRun(id string) (time.Time, error)
@@ -96,7 +96,6 @@ type Service struct {
 	releaseSvc releaseService
 	proxySvc   proxyService
 	scheduler  schedulerService
-  feedSlots  chan struct{}
 }
 
 func NewService(log logger.Logger, repo feedRepo, cacheRepo feedCacheRepo, releaseSvc releaseService, proxySvc proxyService, scheduler schedulerService) *Service {
@@ -108,7 +107,6 @@ func NewService(log logger.Logger, repo feedRepo, cacheRepo feedCacheRepo, relea
 		releaseSvc: releaseSvc,
 		proxySvc:   proxySvc,
 		scheduler:  scheduler,
-		feedSlots:  make(chan struct{}, 1),
 	}
 }
 
@@ -577,7 +575,7 @@ func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
 	identifierKey := feedKey{fi.Feed.ID}.ToString()
 
 	// schedule job
-	id, err := s.scheduler.ScheduleJob(job, fi.CronSchedule, identifierKey)
+	id, err := s.scheduler.ScheduleJobJittered(job, fi.CronSchedule, identifierKey)
 	if err != nil {
 		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}
@@ -606,7 +604,7 @@ func (s *Service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
 	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
 
 	// create job
-	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc, s.feedSlots)
+	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
 	return job, nil
 }
@@ -625,7 +623,7 @@ func (s *Service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
 	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
 
 	// create job
-	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc, s.feedSlots)
+	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
 	return job, nil
 }
@@ -645,7 +643,7 @@ func (s *Service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
 	l := s.log.With().Str("feed", f.Name).Str("implementation", f.Implementation).Logger()
 
 	// create job
-	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout, s.feedSlots)
+	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
 
 	return job, nil
 }
