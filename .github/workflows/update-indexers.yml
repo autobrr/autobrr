@@ -36,6 +36,9 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Install Python dependencies
+      run: pip install pyyaml
+
     - name: Update indexers list
       run: |
         # Verify source paths exist before running script
