@@ -455,12 +455,9 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	}
 
 	if len(toCache) > 0 {
-		go func(items []domain.FeedCacheItem) {
-			ctx := context.Background()
-			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
-				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
-			}
-		}(toCache)
+		if err := j.CacheRepo.PutMany(ctx, toCache); err != nil {
+			j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+		}
 	}
 
 	// send to filters
