@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: ptf
 name: PTFiles
 identifier: ptf
@@ -24,10 +25,6 @@ irc:
   server: irc.p2p-network.net
   port: 6697
   tls: true
-  channels:
-    - "#PTF-Announce"
-  announcers:
-    - PTF
   settings:
     - name: nick
       type: text
@@ -47,37 +44,35 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '[New TV/HD Episodes Torrent] Ancient.Aliens.S19E06.720p.HEVC.x265-MeGusta - 408.52 MiB - https://ptfiles.net/details.php?id=475999'
-          expect:
-            freeleech: ""
-            category: TV/HD Episodes
-            torrentName: Ancient.Aliens.S19E06.720p.HEVC.x265-MeGusta
-            torrentSize: 408.52 MiB
-            baseUrl: https://ptfiles.net/
-            torrentId: "475999"
-        - line: '[FREE][New Movies/1080p HD Torrent] Dead.for.a.Dollar.2022.1080p.BluRay.REMUX.AVC.DTS-HD.MA.5.1-xwMaRio - 26.32 GiB - https://ptfiles.net/details.php?id=476519'
-          expect:
-            freeleech: FREE
-            category: Movies/1080p HD
-            torrentName: Dead.for.a.Dollar.2022.1080p.BluRay.REMUX.AVC.DTS-HD.MA.5.1-xwMaRio
-            torrentSize: 26.32 GiB
-            baseUrl: https://ptfiles.net/
-            torrentId: "476519"
-        pattern: '^\s*(?:\[([^\]]*)])?\s*\[New ([^\]]*) Torrent] (.*) - (.*) -\s*(https?\:\/\/[^\/]+\/).*[&amp;\?]id=(\d+)$'
-        vars:
-          - freeleech
-          - category
-          - torrentName
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#PTF-Announce"
+      announcers:
+        - PTFBot
+      parse:
+        type: single
+        lines:
+          - pattern: '^\s*(?:\[(?P<freeleech>[^\]]*)])?\s*\[New (?P<category>[^\]]*) Torrent] (?P<releaseName>.*) - (?P<torrentSize>.*) -\s*(?P<baseUrl>https?\:\/\/[^\/]+\/).*[&amp;\?]id=(?P<torrentId>\d+)$'
+            tests:
+              - line: '[New TV/HD Episodes Torrent] Ancient.Aliens.S19E06.720p.HEVC.x265-MeGusta - 408.52 MiB - https://ptfiles.net/details.php?id=475999'
+                expect:
+                  freeleech: ""
+                  category: TV/HD Episodes
+                  releaseName: Ancient.Aliens.S19E06.720p.HEVC.x265-MeGusta
+                  torrentSize: 408.52 MiB
+                  baseUrl: https://ptfiles.net/
+                  torrentId: "475999"
 
-    match:
-      infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/dl.php/{{ .torrentId }}/{{ .passkey }}/{{ .torrentName }}.torrent"
-      encode:
-        - torrentName
+              - line: '[FREE][New Movies/1080p HD Torrent] Dead.for.a.Dollar.2022.1080p.BluRay.REMUX.AVC.DTS-HD.MA.5.1-xwMaRio - 26.32 GiB - https://ptfiles.net/details.php?id=476519'
+                expect:
+                  freeleech: FREE
+                  category: Movies/1080p HD
+                  releaseName: Dead.for.a.Dollar.2022.1080p.BluRay.REMUX.AVC.DTS-HD.MA.5.1-xwMaRio
+                  torrentSize: 26.32 GiB
+                  baseUrl: https://ptfiles.net/
+                  torrentId: "476519"
+
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/dl.php/{{ .torrentId }}/{{ .passkey }}/{{ .releaseName }}.torrent"
+          encode:
+            - releaseName

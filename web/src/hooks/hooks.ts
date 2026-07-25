@@ -25,7 +25,7 @@ const getInitialState = (query: string, defaultState?: boolean) => {
   }
 
   // A default value has not been provided, and you are rendering on the server, warn of a possible hydration mismatch when defaulting to false.
-  if (process.env.NODE_ENV !== "production") {
+  if (import.meta.env.DEV) {
     console.warn(
       "`useMedia` When server side rendering, defaultState should be defined to prevent a hydration mismatches."
     );

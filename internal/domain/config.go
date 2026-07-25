@@ -16,7 +16,6 @@ type Config struct {
 	LogMaxBackups           int    `toml:"logMaxBackups"`
 	BaseURL                 string `toml:"baseUrl"`
 	BaseURLModeLegacy       bool   `toml:"baseUrlModeLegacy"`
-	SessionSecret           string `toml:"sessionSecret"`
 	CustomDefinitions       string `toml:"customDefinitions"`
 	CheckForUpdates         bool   `toml:"checkForUpdates"`
 	DatabaseType            string `toml:"databaseType"`

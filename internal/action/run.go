@@ -19,7 +19,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
-func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
+func (s *Service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
 	defer func() {
 		errors.RecoverPanic(recover(), &err)
 		if err != nil {
@@ -83,6 +83,9 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeSabnzbd:
 		rejections, err = s.sabnzbd(ctx, action, *release)
 
+	case domain.ActionTypeNzbget:
+		rejections, err = s.nzbget(ctx, action, *release)
+
 	default:
 		return nil, errors.New("unsupported action type: %s", action.Type)
 	}
@@ -102,6 +105,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		Protocol:       release.Protocol,
 		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
+		Release:        release,
 	}
 
 	if action.Client != nil {
@@ -128,7 +132,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	return rejections, err
 }
 
-func (s *service) CheckActionPreconditions(ctx context.Context, action *domain.Action, release *domain.Release) error {
+func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.Action, release *domain.Release) error {
 	if err := s.downloadSvc.ResolveMagnetURI(ctx, release); err != nil {
 		return errors.Wrap(err, "could not resolve magnet uri: %s", release.MagnetURI)
 	}
@@ -149,11 +153,11 @@ func (s *service) CheckActionPreconditions(ctx context.Context, action *domain.A
 	return nil
 }
 
-func (s *service) test(name string) {
+func (s *Service) test(name string) {
 	s.log.Info().Msgf("action TEST: %v", name)
 }
 
-func (s *service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
 	if release.HasMagnetUri() {
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
@@ -203,7 +207,7 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 	return nil
 }
 
-func (s *service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
+func (s *Service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
 	s.log.Trace().Msgf("action WEBHOOK: '%s' file: %s", action.Name, release.TorrentName)
 	if len(action.WebhookData) > 1024 {
 		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData[:1024])
@@ -226,7 +230,6 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	}
 
 	defer sharedhttp.DrainAndClose(res)
-
 
 	if len(action.WebhookData) > 256 {
 		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))

@@ -6,7 +6,6 @@ package download_client
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/nzbget"
 	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
@@ -30,7 +30,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *service) testConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testConnection(ctx context.Context, client domain.DownloadClient) error {
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
 		return s.testQbittorrentConnection(ctx, client)
@@ -65,12 +65,15 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 	case domain.DownloadClientTypeSabnzbd:
 		return s.testSabnzbdConnection(ctx, client)
 
+	case domain.DownloadClientTypeNzbget:
+		return s.testNzbgetConnection(ctx, client)
+
 	default:
 		return errors.New("unsupported client: %s", client.Type)
 	}
 }
 
-func (s *service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
 	clientHost, err := client.BuildLegacyHost()
 	if err != nil {
 		return errors.Wrap(err, "error building qBittorrent host url: %s", client.Host)
@@ -81,6 +84,7 @@ func (s *service) testQbittorrentConnection(ctx context.Context, client domain.D
 		TLSSkipVerify: client.TLSSkipVerify,
 		Username:      client.Username,
 		Password:      client.Password,
+		APIKey:        client.Settings.APIKey,
 		Log:           s.subLogger,
 	}
 
@@ -105,7 +109,7 @@ func (s *service) testQbittorrentConnection(ctx context.Context, client domain.D
 	return nil
 }
 
-func (s *service) testDelugeConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testDelugeConnection(ctx context.Context, client domain.DownloadClient) error {
 	settings := deluge.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
@@ -162,7 +166,7 @@ func (s *service) testDelugeConnection(ctx context.Context, client domain.Downlo
 	return nil
 }
 
-func (s *service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
 	cfg := rtorrent.Config{
 		Addr:          client.Host,
 		TLSSkipVerify: client.TLSSkipVerify,
@@ -201,18 +205,18 @@ func (s *service) testRTorrentConnection(ctx context.Context, client domain.Down
 	return nil
 }
 
-func (s *service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
-	scheme := "http"
-	if client.TLS {
-		scheme = "https"
-	}
-
-	u, err := url.Parse(fmt.Sprintf("%s://%s:%d/transmission/rpc", scheme, client.Host, client.Port))
+func (s *Service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
+	clientHost, err := client.BuildLegacyHost()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error building Transmission host url: %v", client.Host)
 	}
 
-	tbt, err := transmission.New(u, &transmission.Config{
+	transmissionURL, err := url.Parse(clientHost)
+	if err != nil {
+		return errors.Wrap(err, "could not parse transmission url")
+	}
+
+	tbt, err := transmission.New(transmissionURL, &transmission.Config{
 		UserAgent:     "autobrr",
 		Username:      client.Username,
 		Password:      client.Password,
@@ -238,14 +242,15 @@ func (s *service) testTransmissionConnection(ctx context.Context, client domain.
 	return nil
 }
 
-func (s *service) testRadarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testRadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := radarr.New(radarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -257,14 +262,15 @@ func (s *service) testRadarrConnection(ctx context.Context, client domain.Downlo
 	return nil
 }
 
-func (s *service) testSonarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testSonarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := sonarr.New(sonarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -276,14 +282,15 @@ func (s *service) testSonarrConnection(ctx context.Context, client domain.Downlo
 	return nil
 }
 
-func (s *service) testLidarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testLidarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := lidarr.New(lidarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -295,14 +302,15 @@ func (s *service) testLidarrConnection(ctx context.Context, client domain.Downlo
 	return nil
 }
 
-func (s *service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := whisparr.New(whisparr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -314,14 +322,15 @@ func (s *service) testWhisparrConnection(ctx context.Context, client domain.Down
 	return nil
 }
 
-func (s *service) testReadarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testReadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := readarr.New(readarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Auth.Enabled,
-		Username:  client.Settings.Auth.Username,
-		Password:  client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.subLogger,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -333,7 +342,7 @@ func (s *service) testReadarrConnection(ctx context.Context, client domain.Downl
 	return nil
 }
 
-func (s *service) testPorlaConnection(client domain.DownloadClient) error {
+func (s *Service) testPorlaConnection(client domain.DownloadClient) error {
 	p := porla.NewClient(porla.Config{
 		Hostname:      client.Host,
 		TLSSkipVerify: client.TLSSkipVerify,
@@ -360,7 +369,7 @@ func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 	return nil
 }
 
-func (s *service) testSabnzbdConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testSabnzbdConnection(ctx context.Context, client domain.DownloadClient) error {
 	opts := sabnzbd.Options{
 		Addr:      client.Host,
 		ApiKey:    client.Settings.APIKey,
@@ -376,6 +385,24 @@ func (s *service) testSabnzbdConnection(ctx context.Context, client domain.Downl
 	}
 
 	s.log.Debug().Msgf("test client connection for sabnzbd: success got version: %s", version.Version)
+
+	return nil
+}
+
+func (s *Service) testNzbgetConnection(ctx context.Context, client domain.DownloadClient) error {
+	nzb := nzbget.New(nzbget.Options{
+		Host:     client.Host,
+		Username: client.Username,
+		Password: client.Password,
+		Log:      s.subLogger,
+	})
+
+	version, err := nzb.Version(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error getting version from nzbget")
+	}
+
+	s.log.Debug().Msgf("test client connection for nzbget: success - version: %s", version)
 
 	return nil
 }

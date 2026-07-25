@@ -64,7 +64,7 @@ func Test_client_Push(t *testing.T) {
 		config Config
 	}
 	type args struct {
-		release Release
+		release ReleasePushRequest
 	}
 	tests := []struct {
 		name       string
@@ -85,7 +85,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP.torrent",
 				Size:             0,
@@ -107,7 +107,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/Some.Old.Movie.1996.Remastered.1080p.BluRay.REMUX.AVC.MULTI.TrueHD.Atmos.7.1-NOGROUP.torrent",
 				Size:             0,
@@ -129,7 +129,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "Minx 1 epi 9 2160p",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/Minx.1.epi.9.2160p.torrent",
 				Size:             0,
@@ -235,5 +235,46 @@ func Test_client_Test(t *testing.T) {
 
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func Test_client_Push_invalid_download_client(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	mux := http.NewServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`[{
+			"propertyName": "DownloadClient",
+			"errorMessage": "Download client does not exist.",
+			"errorCode": "InvalidValue",
+			"attemptedValue": "bad-client",
+			"severity": "Error"
+		}]`))
+	})
+
+	client := New(Config{
+		Hostname: ts.URL,
+	})
+
+	rejections, err := client.Push(context.Background(), ReleasePushRequest{
+		Title:            "Example",
+		DownloadUrl:      "https://example.invalid/release.torrent",
+		Size:             0,
+		Indexer:          "test",
+		DownloadProtocol: "torrent",
+		Protocol:         "torrent",
+		PublishDate:      "2024-01-01T00:00:00Z",
+		DownloadClient:   "bad-client",
+	})
+
+	assert.Nil(t, rejections)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid configuration")
+		assert.Contains(t, err.Error(), "Download client does not exist.")
 	}
 }

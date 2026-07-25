@@ -3,12 +3,17 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { FC, Fragment, useRef } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { ClipboardDocumentIcon, EllipsisHorizontalIcon, ForwardIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { ListKeys } from "@api/query_keys";
+import { FeedKeys, ListKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
@@ -16,11 +21,12 @@ import { ListsQueryOptions } from "@api/queries";
 import { Section } from "@screens/settings/_components";
 import { EmptySimple } from "@components/emptystates";
 import { ListAddForm, ListUpdateForm } from "@forms";
-import { FC } from "react";
-import { Link } from "@tanstack/react-router";
 import { ListTypeNameMap } from "@domain/constants";
+import { classNames, IsErrorWithMessage } from "@utils";
+import { DeleteModal } from "@components/modals";
 
 function ListsSettings() {
+  const { t } = useTranslation("settings");
   const [addFormIsOpen, toggleAddList] = useToggle(false);
 
   const listsQuery = useSuspenseQuery(ListsQueryOptions())
@@ -28,16 +34,16 @@ function ListsSettings() {
 
   return (
     <Section
-      title="Lists"
-      description="Lists can automatically update your filters from arrs or other sources."
+      title={t("listScreens.lists.title")}
+      description={t("listScreens.lists.description")}
       rightSide={
         <button
           type="button"
           onClick={toggleAddList}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 cursor-pointer border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
-          Add new
+          {t("listScreens.common.addNew")}
         </button>
       }
     >
@@ -50,22 +56,22 @@ function ListsSettings() {
               <div
                 className="col-span-2 sm:col-span-1 pl-0 sm:pl-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
-                Enabled
+                {t("listScreens.common.enabled")}
               </div>
               <div
                 className="col-span-6 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
-                Name
+                {t("listScreens.common.name")}
               </div>
               <div
                 className="hidden sm:flex col-span-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
-                Filters
+                {t("listScreens.lists.filters")}
               </div>
               <div
                 className="hidden sm:flex col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
               >
-                Type
+                {t("listScreens.common.type")}
               </div>
             </li>
             {lists.map((list) => (
@@ -74,9 +80,9 @@ function ListsSettings() {
           </ul>
         ) : (
           <EmptySimple
-            title="No lists"
+            title={t("listScreens.lists.noItems")}
             subtitle=""
-            buttonText="Add new list"
+            buttonText={t("listScreens.lists.addNewItem")}
             buttonAction={toggleAddList}
           />
         )}
@@ -106,7 +112,10 @@ interface ListItemProps {
 }
 
 function ListItem({ list }: ListItemProps) {
+  const { t } = useTranslation("settings");
+  const cancelModalButtonRef = useRef(null);
   const [isOpen, toggleUpdate] = useToggle(false);
+  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const queryClient = useQueryClient();
 
@@ -115,10 +124,21 @@ function ListItem({ list }: ListItemProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
 
-      toast.custom(t => <Toast type="success" body={`List ${list.name} was ${list.enabled ? "disabled" : "enabled"} successfully.`} t={t} />);
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={t("listScreens.lists.toggleSuccess", {
+            name: list.name,
+            state: list.enabled
+              ? t("listScreens.lists.disabledState")
+              : t("listScreens.lists.enabledState")
+          })}
+          t={toastInstance}
+        />
+      ));
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="List state could not be updated" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("listScreens.lists.toggleError")} t={toastInstance} />);
     }
   });
 
@@ -128,6 +148,41 @@ function ListItem({ list }: ListItemProps) {
       enabled: newState
     });
   };
+
+  const refreshMutation = useMutation({
+    mutationFn: (id: number) => APIClient.lists.refreshList(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
+      toast.custom((toastInstance) => (
+        <Toast type="success" body={t("listScreens.lists.refreshSuccess", { name: list?.name })} t={toastInstance} />
+      ));
+    },
+    onError: (error: unknown) => {
+      let errorMessage = t("listScreens.common.unknownError");
+      if (IsErrorWithMessage(error)) {
+        errorMessage = error.message;
+      }
+
+      toast.custom((toastInstance) => (
+        <Toast
+          type="error"
+          body={t("listScreens.lists.refreshError", { name: list?.name, error: errorMessage })}
+          t={toastInstance}
+        />
+      ), {
+        duration: 10000
+      });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (listID: number) => APIClient.lists.delete(listID),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
+
+      toast.custom((toastInstance) => <Toast type="success" body={t("listScreens.lists.deleted", { name: list.name })} t={toastInstance}/>);
+    }
+  });
 
   return (
     <li>
@@ -151,12 +206,133 @@ function ListItem({ list }: ListItemProps) {
           {ListTypeNameMap[list.type]}
         </div>
         <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
-          <span
-            className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer"
-            onClick={toggleUpdate}
-          >
-            Edit
-          </span>
+
+          <Menu as="div">
+            <DeleteModal
+              isOpen={deleteModalIsOpen}
+              isLoading={deleteMutation.isPending}
+              toggle={toggleDeleteModal}
+              buttonRef={cancelModalButtonRef}
+              deleteAction={() => {
+                deleteMutation.mutate(list.id);
+                toggleDeleteModal();
+              }}
+              title={t("listScreens.lists.removeTitle", { name: list.name })}
+              text={t("listScreens.lists.removeText")}
+            />
+            <MenuButton className="px-4 py-2 cursor-pointer">
+              <EllipsisHorizontalIcon
+                className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
+                aria-hidden="true"
+              />
+            </MenuButton>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+                        >
+              <MenuItems
+                anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+                className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
+              >
+                <div className="px-1 py-1">
+                  <MenuItem>
+                    {({ focus }) => (
+                      <button
+                        className={classNames(
+                          focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                          "font-medium cursor-pointer group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                        )}
+                        onClick={() => toggleUpdate()}
+                      >
+                        <PencilSquareIcon
+                          className={classNames(
+                            focus ? "text-white" : "text-blue-500",
+                            "w-5 h-5 mr-2"
+                          )}
+                          aria-hidden="true"
+                        />
+                        {t("listScreens.common.edit")}
+                      </button>
+                    )}
+                  </MenuItem>
+                  <MenuItem>
+                    {({ focus }) => (
+                      <button
+                        className={classNames(
+                          focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                          "font-medium cursor-pointer group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                        )}
+                        onClick={() => {
+                          navigator.clipboard.writeText(String(list.id));
+                          toast.custom((toastInstance) => (
+                            <Toast type="success" body={t("listScreens.lists.copyIdSuccess", { id: list.id })} t={toastInstance} />
+                          ));
+                        }}
+                      >
+                        <ClipboardDocumentIcon
+                          className={classNames(
+                            focus ? "text-white" : "text-blue-500",
+                            "w-5 h-5 mr-2"
+                          )}
+                          aria-hidden="true"
+                        />
+                        {t("listScreens.lists.copyId")}
+                      </button>
+                    )}
+                  </MenuItem>
+                </div>
+                <div className="px-1 py-1">
+                  <MenuItem>
+                    {({ focus }) => (
+                      <button
+                        onClick={() => refreshMutation.mutate(list.id)}
+                        className={classNames(
+                          focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                          "font-medium cursor-pointer group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                        )}
+                      >
+                        <ForwardIcon
+                          className={classNames(
+                            focus ? "text-white" : "text-blue-500",
+                            "w-5 h-5 mr-2"
+                          )}
+                          aria-hidden="true"
+                        />
+                        {t("listScreens.lists.refresh")}
+                      </button>
+                    )}
+                  </MenuItem>
+                </div>
+                <div className="px-1 py-1">
+                  <MenuItem>
+                    {({ focus }) => (
+                      <button
+                        className={classNames(
+                          focus ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
+                          "font-medium cursor-pointer group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                        )}
+                        onClick={() => toggleDeleteModal()}
+                      >
+                        <TrashIcon
+                          className={classNames(
+                            focus ? "text-white" : "text-red-500",
+                            "w-5 h-5 mr-2"
+                          )}
+                          aria-hidden="true"
+                        />
+                        {t("listScreens.lists.delete")}
+                      </button>
+                    )}
+                  </MenuItem>
+                </div>
+              </MenuItems>
+            </Transition>
+          </Menu>
         </div>
       </div>
     </li>

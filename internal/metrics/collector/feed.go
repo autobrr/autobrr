@@ -6,12 +6,16 @@ package collector
 import (
 	"context"
 
-	"github.com/autobrr/autobrr/internal/feed"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type feedService interface {
+	Find(ctx context.Context) ([]domain.Feed, error)
+}
+
 type feedCollector struct {
-	feedService feed.Service
+	feedService feedService
 
 	totalCount       *prometheus.Desc
 	enabledCount     *prometheus.Desc
@@ -52,7 +56,7 @@ func (collector *feedCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(collector.enabledCount, prometheus.GaugeValue, float64(enabled))
 }
 
-func NewFeedCollector(feedService feed.Service) *feedCollector {
+func NewFeedCollector(feedService feedService) *feedCollector {
 	return &feedCollector{
 		feedService: feedService,
 		totalCount: prometheus.NewDesc(

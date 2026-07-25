@@ -28,12 +28,14 @@ type Config struct {
 	Username  string
 	Password  string
 
+	TLSSkipVerify bool
+
 	Log *log.Logger
 }
 
 type ClientInterface interface {
 	Test(ctx context.Context) (*SystemStatusResponse, error)
-	Push(ctx context.Context, release Release) ([]string, error)
+	Push(ctx context.Context, release ReleasePushRequest) ([]string, error)
 }
 
 type Client struct {
@@ -44,9 +46,14 @@ type Client struct {
 }
 
 func New(config Config) *Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
+
 	httpClient := &http.Client{
 		Timeout:   time.Second * 120,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
 	c := &Client{
@@ -82,7 +89,7 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
+func (c *Client) Push(ctx context.Context, release ReleasePushRequest) ([]string, error) {
 	status, res, err := c.postBody(ctx, "release/push", release)
 	if err != nil {
 		return nil, errors.Wrap(err, "error push release")
@@ -96,6 +103,17 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 
+		for _, response := range badRequestResponses {
+			if strings.EqualFold(response.PropertyName, "DownloadClient") || strings.EqualFold(response.PropertyName, "DownloadClientId") {
+				rejections := make([]string, 0, len(badRequestResponses))
+				for _, r := range badRequestResponses {
+					rejections = append(rejections, r.String())
+				}
+
+				return nil, errors.New("radarr push failed due to invalid configuration: %s", strings.Join(rejections, "; "))
+			}
+		}
+
 		rejections := []string{}
 		for _, response := range badRequestResponses {
 			rejections = append(rejections, response.String())
@@ -104,7 +122,7 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		return rejections, nil
 	}
 
-	pushResponse := make([]PushResponse, 0)
+	pushResponse := make([]ReleasePushResponse, 0)
 	if err = json.Unmarshal(res, &pushResponse); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}

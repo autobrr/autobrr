@@ -1,0 +1,234 @@
+{
+    "appName": "autobrr",
+    "nav": {
+      "dashboard": "Domů",
+      "filters": "Filtry",
+      "releases": "Releasy",
+      "settings": "Nastavení",
+      "logs": "Logy",
+      "docs": "Dokumentace"
+    },
+    "userMenu": {
+      "account": "Účet",
+      "settings": "Nastavení",
+      "logout": "Odhlásit se"
+    },
+    "forms": {
+      "chooseOption": "Vyberte možnost"
+    },
+    "input": {
+      "invalidRegex": "Neplatný regex"
+    },
+    "keyField": {
+      "show": "Zobrazit",
+      "copyToClipboard": "Kopírovat do schránky",
+      "copySuccess": "API klíč byl zkopírován do schránky!",
+      "copyFailed": "Nepodařilo se zkopírovat API klíč."
+    },
+    "modal": {
+      "remove": "Odstranit",
+      "cancel": "Zrušit",
+      "forceRun": "Vynutit spuštění",
+      "confirmationPhrase": "Rozumím",
+      "forceRunPlaceholder": "Zadejte '{{phrase}}' pro aktivaci tlačítka"
+    },
+    "header": {
+      "logoutSuccess": "Byli jste odhlášeni. Nashledanou!",
+      "openMainMenu": "Otevřít hlavní menu",
+      "newUpdateAvailable": "Je dostupná nová aktualizace!",
+      "listRefreshFailed": "Selhalo obnovení seznamu!",
+      "multipleListRefreshesFailed": "Selhalo obnovení několika seznamů!"
+    },
+    "logs": {
+      "title": "Logy",
+      "filterPlaceholder": "Zadej regex pro vyfiltrování logů...",
+      "clearTitle": "Vyčistit výpis logů",
+      "cleared": "Log byl vyčistěn z výpisu.",
+      "filesTitle": "Logové soubory",
+      "filesDescription": "Stáhnout staré logové soubory.",
+      "columns": {
+        "name": "Název",
+        "lastModified": "Poslední změna",
+        "size": "Velikost"
+      },
+      "noOldFiles": "Žádné staré logové soubory",
+      "sanitizing": "Logový soubor se čistí. Počkejte prosím...",
+      "sanitizingShort": "Čištění logu...",
+      "downloadFile": "Stáhnout soubor",
+      "options": {
+        "scrollOnNewMessage": "Skrolovat automaticky dolů při nové zprávě",
+        "indentLogLines": "Zarovnat logové řádky",
+        "indentLogLinesDescription": "Zarovnat každý logový řádek podle počáteční pozice.",
+        "hideWrappedText": "Nezobrazovat celý text řádků",
+        "hideWrappedTextDescription": "Skrýt text, který by byl zlomen na více řádků."
+      }
+    },
+    "releaseTable": {
+      "noResults": "Nic nenalezeno",
+      "error": "Chyba",
+      "details": "Detaily",
+      "downloadTorrent": "Stáhnout torrent soubor",
+      "visitTorrentInfo": "Otevřít torrentinfo stránku",
+      "actionReplayed": "{{action}} zopakováno",
+      "retry": "Zkusit znovu",
+      "action": "Akce",
+      "labels": {
+        "category": "Kategorie",
+        "size": "Velikost",
+        "misc": "Různé"
+      },
+      "columns": {
+        "age": "Stáří",
+        "release": "Release",
+        "links": "Odkazy",
+        "actions": "Akce",
+        "indexer": "Indexer"
+      },
+      "status": {
+        "error": "chyba",
+        "rejected": "odmítnuto",
+        "approved": "schváleno",
+        "pending": "čeká"
+      },
+      "fields": {
+        "release": "Release",
+        "indexer": "Indexer",
+        "protocol": "Protokol",
+        "implementation": "Implementace",
+        "announceType": "Typ oznámení",
+        "category": "Kategorie",
+        "uploader": "Uploader",
+        "size": "Velikost",
+        "title": "Název",
+        "year": "Rok",
+        "season": "Sezóna",
+        "episode": "Epizoda",
+        "resolution": "Rozlišení",
+        "source": "Zdroj",
+        "codec": "Kodek",
+        "hdr": "HDR",
+        "group": "Skupina",
+        "container": "Kontejner",
+        "origin": "Původ",
+        "type": "Typ",
+        "client": "Klient",
+        "filter": "Filtr",
+        "time": "Čas",
+        "rejected": "Odmítnuto"
+      },
+      "previous": "Předchozí",
+      "next": "Další",
+      "prev": "Předchozí",
+      "first": "První",
+      "last": "Poslední",
+      "itemsPerPage": "Položek na stránku",
+      "entries": "{{count}} položek",
+      "pageOf": "Stránka {{page}} z {{total}}",
+      "pagination": "Navigace",
+      "toggleView": "Změnit zobrazení",
+      "goIncognito": "Přejít do anonymního režimu"
+    },
+    "releaseSearch": {
+      "title": "Releasy",
+      "descriptionPrefix": "Hledání používá speciální syntax pro filtrování. Prosím",
+      "clickHere": "klikněte zde",
+      "descriptionSuffix": "pro tipy, jak získat relevantní výsledky.",
+      "searchTips": "Tipy pro hledání",
+      "wildcardIntro": "Můžete použít <strong>2</strong> speciální <highlight>znaky</highlight> pro filtrování.",
+      "percentRule": "- Procento (<code1 />) - pro nalezení <italic>sekvence</italic> znaků (ekvivalent <code2 /> v Regexu)",
+      "underscoreRule": "- Podtržítko (<code1 />) - pro nalezení <italic>jednoho</italic> znaku (ekvivalent <code2 /> v Regexu)",
+      "keywordFaceting": "Autobrr dále podporuje <highlight>klíčová slova</highlight>.",
+      "supportedKeywords": "Klíčová slova jsou: <category>kategorie</category>, <codec>kodek</codec>, <episode>epizoda</episode>, <filter>filtr</filter>, <group>skupina</group>, <hdr>hdr</hdr>, <resolution>rozlišení</resolution>, <season>sezóna</season>, <source>zdroj</source>, <title>název</title> a <year>rok</year>.",
+      "examples": "Příklady:",
+      "exampleYearResolution": "všechny 1080p z roku 2022",
+      "exampleGroupHdr": "všechny Dolby Vision releasy od konkrétní skupiny, např. Framestor",
+      "exampleMovieTitle": "všechny releasy začínající na \"Movie Title\" v 1080p",
+      "exampleShowEpisode": "všechny releasy začínající na \"The Show\" související s S05E03",
+      "exampleCollectionSpace": "všechny releasy obsahující \"collection hd\" - v stejném pořadí - a s mezerou!",
+      "exampleCollectionWildcard": "všechny releasy obsahující \"collection\" AND \"hd\" - v stejném pořadí - ale s hvězdičkou (tzv. wildcard znakem) mezi nimi, např. mezera NEBO tečka NEBO jakýkoli jiný znak",
+      "docsPrefix": "Jako vždycky, prosím, se podívejte na naši",
+      "docsLink": "dokumentaci k hledání",
+      "docsSuffix": "stránku pro získání nejnovějších příkladů a informací."
+    },
+    "releaseFilters": {
+      "all": "Vše",
+      "searchPlaceholder": "Hledat releasy...",
+      "indexer": "Indexer",
+      "indexersCount": "{{count}} indexerů",
+      "clearSelection": "Vyčistit výběr",
+      "pushStatus": "Status odeslání"
+    },
+    "activityTable": {
+      "title": "Nedávná aktivita",
+      "loading": "Načítání...",
+      "noRecentActivity": "Žádné nedávné aktivity",
+      "columns": {
+        "age": "Stáří",
+        "release": "Release",
+        "actions": "Akce",
+        "indexer": "Indexer"
+      }
+    },
+    "dashboardStats": {
+      "title": "Statistiky",
+      "filteredReleases": "Filtrované releasy",
+      "approvedPushes": "Schválené odeslání",
+      "rejectedPushes": "Odmítnuté odeslání",
+      "erroredPushes": "Chybné odeslání"
+    },
+    "theme": {
+      "light": "Světlý",
+      "dark": "Tmavý",
+      "system": "Systémový",
+      "toggleLightToDark": "Světlý režim (klikněte pro tmavý)",
+      "toggleDarkToSystem": "Tmavý režim (klikněte pro systémový)",
+      "toggleSystemToLight": "Systémový režim (klikněte pro světlý)"
+    },
+    "language": {
+      "label": "Jazyk",
+      "english": "Angličtina",
+      "french": "Francouzština",
+      "german": "Němčina",
+      "norwegian": "Norština",
+      "russian": "Ruština",
+      "simplifiedChinese": "Čínština (zjednodušená)",
+      "spanish": "Španělština",
+      "czech": "Čeština"
+    },
+    "toast": {
+      "success": "Úspěch",
+      "error": "Chyba",
+      "warning": "Upozornění",
+      "info": "Informace",
+      "close": "Zavřít"
+    },
+    "warning": {
+      "defaultTitle": "Upozornění!",
+      "srOnly": "Informace"
+    },
+    "errorPage": {
+      "unrecoverable": "Vyskytla se neopravitelná chyba!",
+      "offline": "Připojení k Autobrr selhalo! Zkontrolujte stav aplikace a ověřte své připojení.",
+      "reportPrefix": "Prosím, zvažte nahlášení této chyby na naší",
+      "github": "GitHub stránce",
+      "discord": "našem oficiálním Discord kanálu",
+      "reportMiddle": "nebo na",
+      "recoveryHint": "Můžete zkusit resetovat stav stránky pomocí tlačítka níže nebo restartovat Autobrr. Nicméně to nezaručuje opravení chyby.",
+      "reset": "Resetovat stav stránky"
+    },
+    "notFound": {
+      "status404": "Chyba 404 Stránka nebyla nalezena",
+      "title": "Oops, vypadá to, že je tu příliš mnoho brr!",
+      "bugPrefix": "V případě, že si myslíte, že se jedná o chybu, neváhejte nám to nahlásit.",
+      "reportPrefix": "Prosím, nahlaste tuto chybu na naší",
+      "github": "GitHub stránce",
+      "discord": "našem oficiálním Discord kanálu",
+      "reportMiddle": "nebo na",
+      "backOnTrack": "Pokud si myslíte, že se jedná o chybu, neváhejte nám to nahlásit.",
+      "backToDashboard": "Zpět na úvodní stránku",
+      "filterStatus404": "Chyba 404",
+      "filterTitlePrefix": "Filtr s id",
+      "filterTitleSuffix": "nebyl nalezen",
+      "backToFilters": "Zpět na filtry"
+    }
+  }

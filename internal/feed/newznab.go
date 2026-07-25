@@ -5,6 +5,8 @@ package feed
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
 	"slices"
 	"strconv"
 	"time"
@@ -22,7 +24,7 @@ type NewznabJob struct {
 	Name       string
 	Log        zerolog.Logger
 	URL        string
-	Client     newznab.Client
+	Client     newznabClient
 	Repo       jobFeedRepo
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
@@ -33,7 +35,12 @@ type NewznabJob struct {
 	JobID int
 }
 
-func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznab.Client, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
+type newznabClient interface {
+	WithHTTPClient(client *http.Client)
+	Search(ctx context.Context, query string, categories []int) (*newznab.SearchResponse, error)
+}
+
+func NewNewznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client newznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
 	return &NewznabJob{
 		Feed:       feed,
 		Name:       name,
@@ -116,15 +123,26 @@ func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, 
 		rls.TorrentName = item.Title
 		rls.InfoURL = item.GUID
 
-		// parse size bytes string
-		rls.ParseSizeBytesString(item.Size)
-
 		rls.ParseString(item.Title)
 
-		if item.Enclosure != nil {
-			if item.Enclosure.Type == "application/x-nzb" {
-				rls.DownloadURL = item.Enclosure.Url
+		rls.MetaIMDB = item.ImdbId
+		if item.TmdbId != "" {
+			if tmdbId, err := strconv.Atoi(item.TmdbId); err == nil {
+				rls.MetaTMDB = tmdbId
 			}
+		}
+
+		rls.Size = item.Size
+
+		if item.Enclosure != nil && item.Enclosure.Type == "application/x-nzb" {
+			rls.DownloadURL = item.Enclosure.Url
+			if rls.Size == 0 && item.Enclosure.Length > item.Size {
+				rls.Size = item.Enclosure.Length
+			}
+		}
+
+		if len(item.Categories) == 1 {
+			rls.Category = item.Categories[0].Name
 		}
 
 		// map newznab categories ID and Name into rls.Categories
@@ -147,13 +165,19 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 			return nil, errors.Wrap(err, "could not get proxy client")
 		}
 
+		if j.Feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
+		}
+
 		j.Client.WithHTTPClient(proxyClient)
 
 		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
 	}
 
 	// get feed
-	feed, err := j.Client.GetFeed(ctx)
+	feed, err := j.Client.Search(ctx, "", j.Feed.Categories)
 	if err != nil {
 		j.Log.Error().Err(err).Msgf("error fetching feed items")
 		return nil, errors.Wrap(err, "error fetching feed items")
@@ -163,10 +187,10 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
 	}
 
-	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Channel.Items))
+	j.Log.Debug().Msgf("refreshing feed: %s, found (%d) items", j.Name, len(feed.Items))
 
 	items := make([]newznab.FeedItem, 0)
-	if len(feed.Channel.Items) == 0 {
+	if len(feed.Items) == 0 {
 		return items, nil
 	}
 
@@ -178,7 +202,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	guidItemMap := make(map[string]*newznab.FeedItem)
 	var guids []string
 
-	for _, item := range feed.Channel.Items {
+	for _, item := range feed.Items {
 		if item.GUID == "" {
 			j.Log.Error().Msgf("missing GUID from feed: %s", j.Feed.Name)
 			continue
@@ -222,12 +246,9 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 	}
 
 	if len(toCache) > 0 {
-		go func(items []domain.FeedCacheItem) {
-			ctx := context.Background()
-			if err := j.CacheRepo.PutMany(ctx, items); err != nil {
-				j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
-			}
-		}(toCache)
+		if err := j.CacheRepo.PutMany(ctx, toCache); err != nil {
+			j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
+		}
 	}
 
 	// send to filters

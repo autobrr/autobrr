@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment } from "react";
 import { Form, Formik, FormikValues } from "formik";
-import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { AddFormProps } from "@forms/_shared";
 import { DEBUG } from "@components/debug.tsx";
@@ -18,9 +17,10 @@ import { APIClient } from "@api/APIClient";
 import { ProxyKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { SlideOver } from "@components/panels";
+import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
 
 export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -28,11 +28,11 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body="Proxy added!" t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.added")} t={toastInstance} />);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Proxy could not be added" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.proxy.addFailed")} t={toastInstance} />);
     }
   });
 
@@ -59,113 +59,87 @@ export function ProxyAddForm({ isOpen, toggle }: AddFormProps) {
   }
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        static
-        className="fixed inset-0 overflow-hidden"
-        open={isOpen}
-        onClose={toggle}
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <Formik
+        enableReinitialize={true}
+        initialValues={initialValues}
+        onSubmit={onSubmit}
       >
-        <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
-            <TransitionChild
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
-            >
-              <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={initialValues}
-                  onSubmit={onSubmit}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add proxy
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Add proxy to be used with Indexers or IRC.
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                          <TextFieldWide name="name" label="Name" defaultValue="" required={true} />
-                          <SwitchGroupWide name="enabled" label="Enabled" />
-                          <SelectFieldBasic
-                            name="type"
-                            label="Proxy type"
-                            options={ProxyTypeOptions}
-                            tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
-                            help="Usually SOCKS5"
-                          />
-                          <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
-                        </div>
-
-                        <div>
-                          <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off" />
-                          <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
-                        </div>
-                      </div>
-
-                      <div
-                        className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={() => testProxy(values)}
-                          >
-                            Test
-                          </button>
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </div>
-
-                      <DEBUG values={values}/>
-                    </Form>
-                  )}
-                </Formik>
+        {({ values }) => (
+          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="space-y-1">
+                    <SlideOverTitle>
+                      {t("forms.proxy.addTitle")}
+                    </SlideOverTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-200">
+                      {t("forms.proxy.addDescription")}
+                    </p>
+                  </div>
+                  <div className="h-7 flex items-center">
+                    <button
+                      type="button"
+                      className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      onClick={toggle}
+                    >
+                      <span className="sr-only">{t("forms.proxy.closePanel")}</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-            </TransitionChild>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </Transition>
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                <TextFieldWide name="name" label={t("forms.proxy.name")} defaultValue="" required={true} />
+                <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")} />
+                <SelectFieldBasic
+                  name="type"
+                  label={t("forms.proxy.proxyType")}
+                  options={ProxyTypeOptions}
+                  tooltip={<span>{t("forms.proxy.proxyTypeTooltip")}</span>}
+                  help={t("forms.proxy.proxyTypeHelp")}
+                />
+                <TextFieldWide name="addr" label={t("forms.proxy.addr")} required={true} help={t("forms.proxy.addrHelp")} autoComplete="off"/>
+              </div>
+
+              <div>
+                <TextFieldWide name="user" label={t("forms.proxy.user")} help={t("forms.proxy.userHelp")} autoComplete="off" />
+                <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} autoComplete="off"/>
+              </div>
+
+              <DEBUG values={values}/>
+            </div>
+
+            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+              <div className="space-x-3 flex justify-end">
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={() => testProxy(values)}
+                >
+                  {t("forms.proxy.test")}
+                </button>
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={toggle}
+                >
+                  {t("forms.proxy.cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                >
+                  {t("forms.proxy.save")}
+                </button>
+              </div>
+            </div>
+          </Form>
+        )}
+      </Formik>
+    </SlideOverShell>
   );
 }
 
@@ -177,6 +151,7 @@ interface UpdateFormProps<T> {
 }
 
 export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
@@ -184,11 +159,11 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`Proxy ${data.name} updated!`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.updated", { name: data.name })} t={toastInstance} />);
       toggle();
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Proxy could not be updated" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.proxy.updateFailed")} t={toastInstance} />);
     }
   });
 
@@ -201,7 +176,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
 
-      toast.custom((t) => <Toast type="success" body={`Proxy ${data.name} was deleted.`} t={t}/>);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.deleted", { name: data.name })} t={toastInstance}/>);
     }
   });
 
@@ -228,7 +203,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
   return (
     <SlideOver<Proxy>
-      title="Proxy"
+      title={t("forms.proxy.title")}
       initialValues={initialValues}
       onSubmit={onSubmit}
       deleteAction={deleteFn}
@@ -240,22 +215,22 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       {() => (
         <div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            <TextFieldWide name="name" label="Name" defaultValue="" required={true}/>
-            <SwitchGroupWide name="enabled" label="Enabled"/>
+            <TextFieldWide name="name" label={t("forms.proxy.name")} defaultValue="" required={true}/>
+            <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")}/>
             <SelectFieldBasic
               name="type"
-              label="Proxy type"
+              label={t("forms.proxy.proxyType")}
               required={true}
               options={ProxyTypeOptions}
-              tooltip={<span>Proxy type. Commonly SOCKS5.</span>}
-              help="Usually SOCKS5"
+              tooltip={<span>{t("forms.proxy.proxyTypeTooltip")}</span>}
+              help={t("forms.proxy.proxyTypeHelp")}
             />
-            <TextFieldWide name="addr" label="Addr" required={true} help="Addr: scheme://ip:port or scheme://domain" autoComplete="off"/>
+            <TextFieldWide name="addr" label={t("forms.proxy.addr")} required={true} help={t("forms.proxy.addrHelp")} autoComplete="off"/>
           </div>
 
           <div>
-            <TextFieldWide name="user" label="User" help="auth: username" autoComplete="off"/>
-            <PasswordFieldWide name="pass" label="Pass" help="auth: password" autoComplete="off"/>
+            <TextFieldWide name="user" label={t("forms.proxy.user")} help={t("forms.proxy.userHelp")} autoComplete="off"/>
+            <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} autoComplete="off"/>
           </div>
         </div>
       )}

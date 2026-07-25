@@ -6,12 +6,16 @@ package collector
 import (
 	"context"
 
-	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type ircService interface {
+	GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetworkWithHealth, error)
+}
+
 type ircCollector struct {
-	ircService irc.Service
+	ircService ircService
 
 	totalCount                    *prometheus.Desc
 	enabledCount                  *prometheus.Desc
@@ -79,7 +83,7 @@ func (collector *ircCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(collector.healthyCount, prometheus.GaugeValue, float64(healthy))
 }
 
-func NewIRCCollector(ircService irc.Service) *ircCollector {
+func NewIRCCollector(ircService ircService) *ircCollector {
 	return &ircCollector{
 		ircService: ircService,
 		totalCount: prometheus.NewDesc(

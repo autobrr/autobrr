@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func NewAPIRepo(log logger.Logger, db *DB) domain.APIRepo {
+func NewAPIRepo(log logger.Logger, db *DB) *APIRepo {
 	return &APIRepo{
 		log: log.With().Str("repo", "api").Logger(),
 		db:  db,

@@ -1,0 +1,104 @@
+---
+version: 2
+#id: seedpool
+name: SeedPool (Music)
+identifier: seedpool_music
+description: SeedPool is a private torrent tracker for 0DAY / GENERAL
+language: en-us
+urls:
+  - https://seedpool.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to Settings > RSS Keys and then copy RSS Key (RID)"
+
+irc:
+  network: SeedPool
+  server: irc.seedpool.org
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+    
+    - name: pass
+      type: secret
+      required: false
+      label: Network password (passkey)
+      help: Your profile > Settings > Passkey
+
+  channels:
+    - name: "#music"
+      announcers:
+        - SeedServ
+      parse:
+        type: single
+        lines:
+          - pattern: '^【 (?:(?P<tags>.*?)? )?(?P<category>\w+) 】 (?P<releaseName>.*?) (?:〔(?P<releaseTags>\w+)?.*?〕 )?჻   (?P<uploader>.*?)@(?P<baseUrl>https:\/\/.*?\/)torrents/(?P<torrentId>\d+) ჻ (?P<torrentSize>.*?)(?: ჻ (?P<origin>iNTERNAL))?(?: ჻ (?P<freeleech>★))?\s*$'
+            tests:
+              - line: 【 Drum & Bass Music 】 Kronotype-Under_The_Moon-(JTA051)-WEB-2026-PTC 〔MPEG/44.1 kHz〕 ჻   seedpool@https://seedpool.org/torrents/000000 ჻ 21.61 MiB
+                expect:
+                  tags: Drum & Bass
+                  category: Music
+                  releaseName: Kronotype-Under_The_Moon-(JTA051)-WEB-2026-PTC
+                  releaseTags: MPEG
+                  uploader: seedpool
+                  baseUrl: https://seedpool.org/
+                  torrentId: "000000"
+                  torrentSize: 21.61 MiB
+                  origin: ""
+                  freeleech: ""
+
+              - line: 【 Ambient Music 】 Velv.93-Maidstone-(STRLP121)-16BIT-WEB-FLAC-2026-ENRiCH 〔FLAC/44.1 kHz〕 ჻   seedpool@https://seedpool.org/torrents/000000 ჻ 240.39 MiB
+                expect:
+                  tags: Ambient
+                  category: Music
+                  releaseName: Velv.93-Maidstone-(STRLP121)-16BIT-WEB-FLAC-2026-ENRiCH
+                  releaseTags: FLAC
+                  uploader: seedpool
+                  baseUrl: https://seedpool.org/
+                  torrentId: "000000"
+                  torrentSize: 240.39 MiB
+                  origin: ""
+                  freeleech: ""
+
+              - line: 【 Music 】 Gierto - Laguna (Original Mix) FLAC 44.1kHz 16Bits 2018-seedpool 〔FLAC/44.1 kHz〕 ჻   seedpool@https://seedpool.org/torrents/000000 ჻ 48.88 MiB ჻ iNTERNAL ჻ ★
+                expect:
+                  tags: ""
+                  category: Music
+                  releaseName: Gierto - Laguna (Original Mix) FLAC 44.1kHz 16Bits 2018-seedpool
+                  releaseTags: FLAC
+                  uploader: seedpool
+                  baseUrl: https://seedpool.org/
+                  torrentId: "000000"
+                  torrentSize: 48.88 MiB
+                  origin: "iNTERNAL"
+                  freeleech: "★"
+
+              - line: 【 Music 】 Sufjan Stevens - The Avalanche (2006) [CD FLAC] ჻   nironix@https://seedpool.org/torrents/000000 ჻ 459.02 MiB
+                expect:
+                  tags: ""
+                  category: Music
+                  releaseName: Sufjan Stevens - The Avalanche (2006) [CD FLAC]
+                  releaseTags: ""
+                  uploader: nironix
+                  baseUrl: https://seedpool.org/
+                  torrentId: "000000"
+                  torrentSize: 459.02 MiB
+                  origin: ""
+                  freeleech: ""
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

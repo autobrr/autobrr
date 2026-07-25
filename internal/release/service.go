@@ -5,38 +5,73 @@ package release
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/filter"
-	"github.com/autobrr/autobrr/internal/indexer"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/asaskevich/EventBus"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
-	Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error)
+// releaseCleanupJobRepo interface for managing cleanup jobs
+type releaseCleanupJobRepo interface {
+	ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error)
+	FindCleanupJobByID(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error)
+	StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	UpdateCleanupJobLastRun(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error
+	DeleteCleanupJob(ctx context.Context, id int) error
+}
+
+type releaseRepo interface {
+	Store(ctx context.Context, release *domain.Release) error
+	Update(ctx context.Context, r *domain.Release) error
+	Find(ctx context.Context, params domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error)
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
-	GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
-	Store(ctx context.Context, release *domain.Release) error
-	Update(ctx context.Context, release *domain.Release) error
-	StoreReleaseActionStatus(ctx context.Context, actionStatus *domain.ReleaseActionStatus) error
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
-	Process(release *domain.Release)
-	ProcessMultiple(releases []*domain.Release)
-	ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error
-	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
-	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
+	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
+	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
 
-	StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
+	GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error)
+	StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error
+
+	StoreDuplicateProfile(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
+
+	releaseCleanupJobRepo
+}
+
+type actionService interface {
+	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
+	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
+	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error)
+}
+
+type filterService interface {
+	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error)
+	CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
+}
+
+type indexerService interface {
+	GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error)
+	GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, bool)
+}
+
+type schedulerService interface {
+	AddJob(job cron.Job, spec string, identifier string) (int, error)
+	RemoveJobByIdentifier(id string) error
+	GetNextRun(id string) (time.Time, error)
 }
 
 type actionClientTypeKey struct {
@@ -44,78 +79,254 @@ type actionClientTypeKey struct {
 	ClientID int32
 }
 
-type service struct {
-	log  zerolog.Logger
-	repo domain.ReleaseRepo
-
-	actionSvc  action.Service
-	filterSvc  filter.Service
-	indexerSvc indexer.Service
+// cleanupJobKey creates a unique identifier for controlling cleanup jobs in the scheduler
+type cleanupJobKey struct {
+	id int
 }
 
-func NewService(log logger.Logger, repo domain.ReleaseRepo, actionSvc action.Service, filterSvc filter.Service, indexerSvc indexer.Service) Service {
-	return &service{
-		log:        log.With().Str("module", "release").Logger(),
-		repo:       repo,
-		actionSvc:  actionSvc,
-		filterSvc:  filterSvc,
-		indexerSvc: indexerSvc,
+// ToString creates a string of the unique id to be used for controlling jobs in the scheduler
+func (k cleanupJobKey) ToString() string {
+	return fmt.Sprintf("release-cleanup-%d", k.id)
+}
+
+type Service struct {
+	log         zerolog.Logger
+	m           sync.RWMutex
+	cleanupJobs map[string]int
+	bus         EventBus.Bus
+
+	repo       releaseRepo
+	actionSvc  actionService
+	filterSvc  filterService
+	indexerSvc indexerService
+	scheduler  schedulerService
+}
+
+func NewService(log logger.Logger, repo releaseRepo, actionSvc actionService, filterSvc filterService, indexerSvc indexerService, scheduler schedulerService, bus EventBus.Bus) *Service {
+	return &Service{
+		log:         log.With().Str("module", "release").Logger(),
+		cleanupJobs: map[string]int{},
+		bus:         bus,
+		repo:        repo,
+		actionSvc:   actionSvc,
+		filterSvc:   filterSvc,
+		indexerSvc:  indexerSvc,
+		scheduler:   scheduler,
 	}
 }
 
-func (s *service) Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
+func (s *Service) Find(ctx context.Context, query domain.ReleaseQueryParams) (*domain.FindReleasesResponse, error) {
 	return s.repo.Find(ctx, query)
 }
 
-func (s *service) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
+func (s *Service) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
 	return s.repo.Get(ctx, req)
 }
 
-func (s *service) GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error) {
+func (s *Service) GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error) {
 	return s.repo.GetActionStatus(ctx, req)
 }
 
-func (s *service) GetIndexerOptions(ctx context.Context) ([]string, error) {
+func (s *Service) GetIndexerOptions(ctx context.Context) ([]string, error) {
 	return s.repo.GetIndexerOptions(ctx)
 }
 
-func (s *service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
+func (s *Service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 	return s.repo.Stats(ctx)
 }
 
-func (s *service) Store(ctx context.Context, release *domain.Release) error {
+func (s *Service) Store(ctx context.Context, release *domain.Release) error {
 	return s.repo.Store(ctx, release)
 }
 
-func (s *service) Update(ctx context.Context, release *domain.Release) error {
+func (s *Service) Update(ctx context.Context, release *domain.Release) error {
 	return s.repo.Update(ctx, release)
 }
 
-func (s *service) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
+func (s *Service) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
 	return s.repo.StoreReleaseActionStatus(ctx, status)
 }
 
-func (s *service) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
+func (s *Service) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
 	return s.repo.Delete(ctx, req)
 }
 
-func (s *service) FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error) {
+func (s *Service) FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error) {
 	return s.repo.FindDuplicateReleaseProfiles(ctx)
 }
 
-func (s *service) StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error {
+func (s *Service) StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error {
 	return s.repo.StoreDuplicateProfile(ctx, profile)
 }
 
-func (s *service) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error {
+func (s *Service) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error {
 	return s.repo.DeleteReleaseProfileDuplicate(ctx, id)
 }
 
-func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error {
-	// get indexer definition with data
-	def, err := s.indexerSvc.GetMappedDefinitionByName(req.IndexerIdentifier)
+func (s *Service) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error) {
+	jobs, err := s.repo.ListCleanupJobs(ctx)
 	if err != nil {
+		return nil, err
+	}
+
+	// Enrich with next run time from scheduler
+	for i, job := range jobs {
+		if job.Enabled {
+			nextRun, err := s.scheduler.GetNextRun(cleanupJobKey{id: job.ID}.ToString())
+			if err == nil {
+				job.NextRun = nextRun
+				jobs[i] = job
+			}
+		}
+	}
+
+	return jobs, nil
+}
+
+func (s *Service) GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error) {
+	return s.repo.FindCleanupJobByID(ctx, id)
+}
+
+func (s *Service) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	// Validate before storing
+	if err := job.Validate(); err != nil {
+		s.log.Error().Err(err).Msg("cleanup job validation failed")
 		return err
+	}
+
+	if err := s.repo.StoreCleanupJob(ctx, job); err != nil {
+		s.log.Error().Err(err).Msg("error storing cleanup job")
+		return err
+	}
+
+	// Start job if enabled
+	if job.Enabled {
+		if err := s.startCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msgf("error starting cleanup job: %s", job.Name)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	// Validate before updating
+	if err := job.Validate(); err != nil {
+		s.log.Error().Err(err).Msg("cleanup job validation failed")
+		return err
+	}
+
+	// Get current state before updating
+	currentJob, err := s.repo.FindCleanupJobByID(ctx, job.ID)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	if err := s.repo.UpdateCleanupJob(ctx, job); err != nil {
+		s.log.Error().Err(err).Msg("error updating cleanup job")
+		return err
+	}
+
+	// Only restart if job is/was enabled (touching scheduler only when needed)
+	if currentJob.Enabled || job.Enabled {
+		if err := s.restartCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msgf("error restarting cleanup job: %s", job.Name)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) DeleteCleanupJob(ctx context.Context, id int) error {
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	s.log.Debug().Msgf("deleting cleanup job: %s", job.Name)
+
+	// Only stop if it's actually running
+	if job.Enabled {
+		if err := s.stopCleanupJob(id); err != nil {
+			s.log.Error().Err(err).Msgf("error stopping cleanup job: %s id: %d", job.Name, id)
+			return err
+		}
+	}
+
+	// Delete from database
+	if err := s.repo.DeleteCleanupJob(ctx, id); err != nil {
+		s.log.Error().Err(err).Msgf("error deleting cleanup job: %s", job.Name)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error {
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	// Check if already in desired state
+	if job.Enabled == enabled {
+		s.log.Debug().Msgf("cleanup job already %s: %s",
+			map[bool]string{true: "enabled", false: "disabled"}[enabled],
+			job.Name)
+		return nil
+	}
+
+	// Update database
+	if err := s.repo.CleanupJobToggleEnabled(ctx, id, enabled); err != nil {
+		s.log.Error().Err(err).Msg("error toggling cleanup job enabled")
+		return err
+	}
+
+	// Handle scheduler side effects
+	if enabled {
+		job.Enabled = true
+		if err := s.startCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msg("error starting cleanup job")
+			return err
+		}
+		s.log.Debug().Msgf("cleanup job started: %s", job.Name)
+		return nil
+	}
+
+	if err := s.stopCleanupJob(id); err != nil {
+		s.log.Error().Err(err).Msg("error stopping cleanup job")
+		return err
+	}
+	s.log.Debug().Msgf("cleanup job stopped: %s", job.Name)
+	return nil
+}
+
+func (s *Service) ForceRunCleanupJob(ctx context.Context, id int) error {
+	job, err := s.repo.FindCleanupJobByID(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup job")
+		return err
+	}
+
+	s.log.Info().Msgf("manually triggering cleanup job: %s", job.Name)
+
+	cleanupJob := NewCleanupJob(s.log.With().Str("job", job.Name).Logger(), s.repo, job)
+
+	cleanupJob.Run()
+
+	return nil
+}
+
+func (s *Service) ProcessManual(_ context.Context, req *domain.ReleaseProcessReq) error {
+	// get indexer definition with data
+	def, ok := s.indexerSvc.GetMappedDefinitionByName(req.IndexerIdentifier)
+	if !ok {
+		return domain.ErrIndexerNotFound
 	}
 
 	rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier, IdentifierExternal: def.IdentifierExternal})
@@ -127,8 +338,14 @@ func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 		tmpVars := map[string]string{}
 		parseFailed := false
 
-		for idx, parseLine := range def.IRC.Parse.Lines {
-			match, err := indexer.ParseLine(&s.log, parseLine.Pattern, parseLine.Vars, tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
+		channelName := def.IRC.Channels[0].Name
+		channel, ok := def.IRC.GetChannel(channelName)
+		if !ok {
+			return errors.New("no channel configured")
+		}
+
+		for idx, parseLine := range channel.Parse.Lines {
+			match, err := parseLine.ParseLine(tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
 			if err != nil {
 				parseFailed = true
 				break
@@ -147,8 +364,7 @@ func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 		rls.Protocol = domain.ReleaseProtocol(def.Protocol)
 
 		// on lines matched
-		err = def.IRC.Parse.Parse(def, tmpVars, rls)
-		if err != nil {
+		if err := channel.Parse.Parse(def, channelName, tmpVars, rls); err != nil {
 			return err
 		}
 
@@ -163,7 +379,7 @@ func (s *service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 	return nil
 }
 
-func (s *service) Process(release *domain.Release) {
+func (s *Service) Process(release *domain.Release) {
 	if release == nil {
 		return
 	}
@@ -178,9 +394,9 @@ func (s *service) Process(release *domain.Release) {
 
 	ctx := context.Background()
 
+	s.publishEventReleaseNew(release)
+
 	// TODO check in config for "Save all releases"
-	// TODO cross-seed check
-	// TODO dupe checks
 
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, release.Indexer.Identifier)
@@ -200,7 +416,7 @@ func (s *service) Process(release *domain.Release) {
 	}
 }
 
-func (s *service) processRelease(ctx context.Context, release *domain.Release, filters []*domain.Filter) error {
+func (s *Service) processRelease(ctx context.Context, release *domain.Release, filters []*domain.Filter) error {
 	defer func(release *domain.Release) {
 		err := release.CleanupTemporaryFiles()
 		if err != nil {
@@ -215,7 +431,7 @@ func (s *service) processRelease(ctx context.Context, release *domain.Release, f
 	return nil
 }
 
-func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, release *domain.Release) error {
+func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, release *domain.Release) error {
 	// keep track of action clients to avoid sending the same thing all over again
 	// save both client type and client id to potentially try another client of same type
 	triedActionClients := map[actionClientTypeKey]struct{}{}
@@ -350,7 +566,7 @@ func (s *service) processFilters(ctx context.Context, filters []*domain.Filter, 
 	return nil
 }
 
-func (s *service) ProcessMultiple(releases []*domain.Release) {
+func (s *Service) ProcessMultiple(releases []*domain.Release) {
 	s.log.Debug().Msgf("process (%d) new releases from feed", len(releases))
 
 	for _, rls := range releases {
@@ -361,7 +577,7 @@ func (s *service) ProcessMultiple(releases []*domain.Release) {
 	}
 }
 
-func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error {
+func (s *Service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer domain.IndexerMinimal) error {
 	s.log.Debug().Msgf("process (%d) new releases from feed %s", len(releases), indexer.Name)
 
 	defer func() {
@@ -377,12 +593,22 @@ func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 	// get filters by priority
 	filters, err := s.filterSvc.FindByIndexerIdentifier(ctx, indexer.Identifier)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("release.Process: error finding filters for indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error finding filters for indexer: %s", indexer.Name)
 		return err
 	}
 
+	// TODO check in config for "Save all releases"
+
 	if len(filters) == 0 {
-		s.log.Debug().Msgf("no active filters found for indexer: %s skipping rest..", indexer.Name)
+		// Send RELEASE_NEW notification for ALL incoming releases (before filter checking)
+		for _, release := range releases {
+			if release == nil {
+				continue
+			}
+			s.publishEventReleaseNew(release)
+		}
+
+		s.log.Debug().Msgf("no active filters found for indexer: %s skipping filter processing", indexer.Name)
 		return domain.ErrNoActiveFiltersFoundForIndexer
 	}
 
@@ -390,6 +616,8 @@ func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 		if release == nil {
 			continue
 		}
+
+		s.publishEventReleaseNew(release)
 
 		if err := s.processRelease(ctx, release, filters); err != nil {
 			s.log.Error().Err(err).Msgf("release.ProcessMultipleFromIndexer: error processing filters for indexer: %s", indexer.Name)
@@ -400,7 +628,7 @@ func (s *service) ProcessMultipleFromIndexer(releases []*domain.Release, indexer
 	return nil
 }
 
-func (s *service) runAction(ctx context.Context, action *domain.Action, release *domain.Release, status *domain.ReleaseActionStatus) (*domain.ReleaseActionStatus, error) {
+func (s *Service) runAction(ctx context.Context, action *domain.Action, release *domain.Release, status *domain.ReleaseActionStatus) (*domain.ReleaseActionStatus, error) {
 	// add action status as pending
 	//status := domain.NewReleaseActionStatus(action, release)
 	//
@@ -430,7 +658,7 @@ func (s *service) runAction(ctx context.Context, action *domain.Action, release 
 	return status, nil
 }
 
-func (s *service) retryAction(ctx context.Context, action *domain.Action, release *domain.Release) error {
+func (s *Service) retryAction(ctx context.Context, action *domain.Action, release *domain.Release) error {
 	// add action status as pending
 	status := domain.NewReleaseActionStatus(action, release)
 
@@ -458,7 +686,7 @@ func (s *service) retryAction(ctx context.Context, action *domain.Action, releas
 	return nil
 }
 
-func (s *service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error {
+func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error {
 	// get release
 	release, err := s.Get(ctx, &domain.GetReleaseRequest{Id: req.ReleaseId})
 	if err != nil {
@@ -496,6 +724,127 @@ func (s *service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	}
 
 	s.log.Info().Msgf("successfully replayed action %s for release %s", filterAction.Name, release.TorrentName)
+
+	return nil
+}
+
+func (s *Service) publishEventReleaseNew(release *domain.Release) {
+	payload := &domain.NotificationPayload{
+		Event:          domain.NotificationEventReleaseNew,
+		ReleaseName:    release.TorrentName,
+		Indexer:        release.Indexer.Name,
+		InfoHash:       release.TorrentHash,
+		Size:           release.Size,
+		Protocol:       release.Protocol,
+		Implementation: release.Implementation,
+		Timestamp:      time.Now(),
+		Release:        release,
+	}
+	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
+}
+
+func (s *Service) startCleanupJob(job *domain.ReleaseCleanupJob) error {
+	// If it's not enabled, we should not start it
+	if !job.Enabled {
+		return errors.New("cleanup job %s not enabled", job.Name)
+	}
+
+	// Create the cleanup job instance
+	cleanupJob := NewCleanupJob(s.log.With().Str("job", job.Name).Logger(), s.repo, job)
+
+	identifierKey := cleanupJobKey{id: job.ID}.ToString()
+
+	// Schedule job using cron schedule
+	id, err := s.scheduler.AddJob(cleanupJob, job.Schedule, identifierKey)
+	if err != nil {
+		return errors.Wrap(err, "add cleanup job %s failed", identifierKey)
+	}
+
+	// Add to job map
+	s.m.Lock()
+	s.cleanupJobs[identifierKey] = id
+	s.m.Unlock()
+
+	s.log.Debug().Msgf("successfully started cleanup job: %s (schedule: %s)", job.Name, job.Schedule)
+
+	return nil
+}
+
+func (s *Service) stopCleanupJob(id int) error {
+	identifierKey := cleanupJobKey{id: id}.ToString()
+
+	// Remove job from scheduler
+	if err := s.scheduler.RemoveJobByIdentifier(identifierKey); err != nil {
+		return errors.Wrap(err, "stop cleanup job failed")
+	}
+
+	// Remove from job map
+	s.m.Lock()
+	delete(s.cleanupJobs, identifierKey)
+	s.m.Unlock()
+
+	s.log.Debug().Msgf("stopped cleanup job: %d", id)
+
+	return nil
+}
+
+func (s *Service) restartCleanupJob(job *domain.ReleaseCleanupJob) error {
+	s.log.Debug().Msgf("restarting cleanup job: %s", job.Name)
+
+	// Stop job
+	if err := s.stopCleanupJob(job.ID); err != nil {
+		s.log.Error().Err(err).Msg("error stopping cleanup job")
+		return err
+	}
+
+	// Start job if enabled
+	if job.Enabled {
+		if err := s.startCleanupJob(job); err != nil {
+			s.log.Error().Err(err).Msg("error starting cleanup job")
+			return err
+		}
+
+		s.log.Debug().Msgf("restarted cleanup job: %s", job.Name)
+	}
+
+	return nil
+}
+
+func (s *Service) StartCleanupJobs() error {
+	ctx := context.TODO()
+
+	// Get all cleanup jobs from database
+	jobs, err := s.repo.ListCleanupJobs(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding cleanup jobs")
+		return err
+	}
+
+	return s.startCleanupJobs(jobs)
+}
+
+func (s *Service) startCleanupJobs(jobs []*domain.ReleaseCleanupJob) error {
+	if len(jobs) == 0 {
+		s.log.Debug().Msg("found 0 cleanup jobs to start")
+		return nil
+	}
+
+	s.log.Debug().Msgf("starting %d cleanup jobs", len(jobs))
+
+	// Start in background to not block startup
+	go func(jobs []*domain.ReleaseCleanupJob) {
+		for _, job := range jobs {
+			if !job.Enabled {
+				s.log.Trace().Msgf("cleanup job disabled, skipping... %s", job.Name)
+				continue
+			}
+
+			if err := s.startCleanupJob(job); err != nil {
+				s.log.Error().Err(err).Msgf("failed to initialize cleanup job: %s", job.Name)
+				continue
+			}
+		}
+	}(jobs)
 
 	return nil
 }

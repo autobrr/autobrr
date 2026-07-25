@@ -8,6 +8,7 @@ import { Field } from "formik";
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import type { FieldProps } from "formik";
+import { useTranslation } from "react-i18next";
 
 import { OptionBasicTyped } from "@domain/constants";
 import * as common from "@components/inputs/common";
@@ -27,6 +28,7 @@ interface SelectFieldProps<T> {
 }
 
 export function SelectFieldCreatable<T>({ name, label, help, placeholder, tooltip, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -60,7 +62,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -94,6 +96,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
 }
 
 export function SelectField<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -121,7 +124,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -155,6 +158,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
 }
 
 export function SelectFieldBasic<T>({ name, label, help, placeholder, required, tooltip, defaultValue, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -187,7 +191,7 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
