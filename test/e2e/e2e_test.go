@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/playwright-community/playwright-go"
+	"github.com/mxschmitt/playwright-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -332,8 +332,9 @@ func testNotifications(t *testing.T, page playwright.Page) error {
 	// Fill webhook URL
 	assert.NoError(t, page.Locator("input#webhook").Fill(discordWebhook), "could not fill webhook URL")
 
-	// Select an event (using the first event checkbox)
-	assert.NoError(t, page.Locator("input#events-PUSH_APPROVED").Click(), "could not select event")
+	// Select an event (using the first event checkbox). The Checkbox component
+	// renders a headlessui Switch, so this is a button and not an input.
+	assert.NoError(t, page.Locator("button#events-PUSH_APPROVED").Click(), "could not select event")
 
 	// Wait for form to be ready
 	time.Sleep(time.Millisecond * 500)
