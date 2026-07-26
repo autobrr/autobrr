@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package action
 
 import (
@@ -8,23 +11,25 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	delugeClient "github.com/gdm85/go-libdeluge"
+	"github.com/autobrr/go-deluge"
+	"github.com/rs/zerolog"
 )
 
-func (s *service) deluge(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Debug().Msgf("action Deluge: %s", action.Name)
+func (s *Service) deluge(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running Deluge action")
 
 	var err error
 
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
-		s.log.Error().Stack().Err(err).Msgf("error finding client: %d", action.ClientID)
-		return nil, err
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
 	}
+	action.Client = client
 
-	if client == nil {
-		return nil, errors.New("could not find client by id: %d", action.ClientID)
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
 	var rejections []string
@@ -40,12 +45,14 @@ func (s *service) deluge(ctx context.Context, action *domain.Action, release dom
 	return rejections, err
 }
 
-func (s *service) delugeCheckRulesCanDownload(deluge delugeClient.DelugeClient, client *domain.DownloadClient, action *domain.Action) ([]string, error) {
-	s.log.Trace().Msgf("action Deluge: %v check rules", action.Name)
+func (s *Service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.DelugeClient, client *domain.DownloadClient, action *domain.Action) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("check rules")
 
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
-		activeDownloads, err := deluge.TorrentsStatus(delugeClient.StateDownloading, nil)
+		activeDownloads, err := del.TorrentsStatus(ctx, deluge.StateDownloading, nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not fetch downloading torrents")
 		}
@@ -55,7 +62,7 @@ func (s *service) delugeCheckRulesCanDownload(deluge delugeClient.DelugeClient, 
 
 			// if max active downloads reached, check speed and if lower than threshold add anyway
 			if len(activeDownloads) >= client.Settings.Rules.MaxActiveDownloads {
-				s.log.Debug().Msg("max active downloads reached, skipping")
+				l.Debug().Msg("max active downloads reached, skipping")
 
 				rejections := []string{"max active downloads reached, skipping"}
 				return rejections, nil
@@ -85,30 +92,31 @@ func (s *service) delugeCheckRulesCanDownload(deluge delugeClient.DelugeClient, 
 	return nil, nil
 }
 
-func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
-	settings := delugeClient.Settings{
+func (s *Service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	//downloadClient := client.Client.(*deluge.Client)
+	downloadClient := deluge.NewV1(deluge.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
 		Login:                client.Username,
 		Password:             client.Password,
 		DebugServerResponses: true,
-		ReadWriteTimeout:     time.Second * 20,
-	}
-
-	deluge := delugeClient.NewV1(settings)
+		ReadWriteTimeout:     time.Second * 60,
+	})
 
 	// perform connection to Deluge server
-	err := deluge.Connect()
+	err := downloadClient.Connect(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not connect to client %s at %s", client.Name, client.Host)
 	}
 
-	defer deluge.Close()
+	defer downloadClient.Close()
 
 	// perform connection to Deluge server
-	rejections, err := s.delugeCheckRulesCanDownload(deluge, client, action)
+	rejections, err := s.delugeCheckRulesCanDownload(ctx, downloadClient, client, action)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error checking client rules: %s", action.Name)
+		l.Error().Err(err).Msg("error checking client rules")
 		return nil, err
 	}
 	if rejections != nil {
@@ -121,41 +129,38 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 			return nil, errors.Wrap(err, "could not prepare options")
 		}
 
-		s.log.Trace().Msgf("action Deluge options: %+v", options)
+		l.Trace().Interface("options", options).Msg("action deluge options")
 
-		torrentHash, err := deluge.AddTorrentMagnet(release.MagnetURI, &options)
+		torrentHash, err := downloadClient.AddTorrentMagnet(ctx, release.MagnetURI, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.TorrentURL, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
 		if action.Label != "" {
-			labelPluginActive, err := deluge.LabelPlugin()
+			labelPluginActive, err := downloadClient.LabelPlugin(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not load label plugin for client: %s", client.Name)
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
-				err = labelPluginActive.SetTorrentLabel(torrentHash, action.Label)
-				if err != nil {
+				if err := delugeSetOrCreateTorrentLabel(ctx, labelPluginActive, client.Name, torrentHash, action.Label); err != nil {
 					return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
 				}
 			}
 		}
 
-		s.log.Info().Msgf("torrent from magnet with hash %s successfully added to client: '%s'", torrentHash, client.Name)
+		l.Info().Str("hash", torrentHash).Str("client", client.Name).Msg("release successfully added to client")
 
 		return nil, nil
 	} else {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
-			return nil, err
+		if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
 		// encode file to base64 before sending to deluge
 		encodedFile := base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes)
 		if encodedFile == "" {
-			return nil, errors.Wrap(err, "could not encode torrent file")
+			return nil, errors.New("could not encode torrent file for release: %s", release.TorrentName)
 		}
 
 		options, err := s.prepareDelugeOptions(action)
@@ -163,58 +168,80 @@ func (s *service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 			return nil, errors.Wrap(err, "could not prepare options")
 		}
 
-		s.log.Trace().Msgf("action Deluge options: %+v", options)
+		l.Trace().Interface("options", options).Msg("action deluge options")
 
-		torrentHash, err := deluge.AddTorrentFile(release.TorrentHash, encodedFile, &options)
+		torrentHash, err := downloadClient.AddTorrentFile(ctx, release.TorrentHash+".torrent", encodedFile, &options)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentName, client.Name)
 		}
 
 		if action.Label != "" {
-			labelPluginActive, err := deluge.LabelPlugin()
+			labelPluginActive, err := downloadClient.LabelPlugin(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not load label plugin for client: %s", client.Name)
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
-				err = labelPluginActive.SetTorrentLabel(torrentHash, action.Label)
-				if err != nil {
-					return nil, errors.Wrap(err, "could not set label: %v on client: %s", action.Label, client.Name)
+				if err := delugeSetOrCreateTorrentLabel(ctx, labelPluginActive, client.Name, torrentHash, action.Label); err != nil {
+					return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
 				}
 			}
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", torrentHash, client.Name)
+		l.Info().Str("hash", torrentHash).Str("client", client.Name).Msg("release successfully added to client")
 	}
 
 	return nil, nil
 }
 
-func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
-	settings := delugeClient.Settings{
+// delugeSetOrCreateTorrentLabel set torrent label if it exists or create label if it does not
+func delugeSetOrCreateTorrentLabel(ctx context.Context, plugin *deluge.LabelPlugin, clientName string, hash string, label string) error {
+	err := plugin.SetTorrentLabel(ctx, hash, label)
+	if err != nil {
+		// if label does not exist the client will throw an RPC error.
+		// We can parse that and check for specific error for Unknown Label and then create the label
+		var rpcErr deluge.RPCError
+		if errors.As(err, &rpcErr) && rpcErr.ExceptionMessage == "Unknown Label" {
+			if addErr := plugin.AddLabel(ctx, label); addErr != nil {
+				return errors.Wrap(addErr, "could not add label: %s on client: %s", label, clientName)
+			}
+
+			if err = plugin.SetTorrentLabel(ctx, hash, label); err != nil {
+				return errors.Wrap(err, "could not set label: %s on client: %s", label, clientName)
+			}
+		} else {
+			return errors.Wrap(err, "could not set label: %s on client: %s", label, clientName)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	//downloadClient := client.Client.(*deluge.ClientV2)
+	downloadClient := deluge.NewV2(deluge.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
 		Login:                client.Username,
 		Password:             client.Password,
 		DebugServerResponses: true,
-		ReadWriteTimeout:     time.Second * 20,
-	}
-
-	deluge := delugeClient.NewV2(settings)
+		ReadWriteTimeout:     time.Second * 60,
+	})
 
 	// perform connection to Deluge server
-	err := deluge.Connect()
+	err := downloadClient.Connect(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not connect to client %s at %s", client.Name, client.Host)
 	}
 
-	defer deluge.Close()
+	defer downloadClient.Close()
 
 	// perform connection to Deluge server
-	rejections, err := s.delugeCheckRulesCanDownload(deluge, client, action)
+	rejections, err := s.delugeCheckRulesCanDownload(ctx, downloadClient, client, action)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error checking client rules: %s", action.Name)
+		l.Error().Err(err).Msg("error checking client rules")
 		return nil, err
 	}
 	if rejections != nil {
@@ -227,41 +254,38 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 			return nil, errors.Wrap(err, "could not prepare options")
 		}
 
-		s.log.Trace().Msgf("action Deluge options: %+v", options)
+		l.Trace().Interface("options", options).Msg("action deluge options")
 
-		torrentHash, err := deluge.AddTorrentMagnet(release.MagnetURI, &options)
+		torrentHash, err := downloadClient.AddTorrentMagnet(ctx, release.MagnetURI, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.TorrentURL, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
 		if action.Label != "" {
-			labelPluginActive, err := deluge.LabelPlugin()
+			labelPluginActive, err := downloadClient.LabelPlugin(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not load label plugin for client: %s", client.Name)
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
-				err = labelPluginActive.SetTorrentLabel(torrentHash, action.Label)
-				if err != nil {
+				if err := delugeSetOrCreateTorrentLabel(ctx, labelPluginActive, client.Name, torrentHash, action.Label); err != nil {
 					return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
 				}
 			}
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", torrentHash, client.Name)
+		l.Info().Str("hash", torrentHash).Str("client", client.Name).Msg("torrent successfully added to client")
 
 		return nil, nil
 	} else {
-		if err := release.DownloadTorrentFileCtx(ctx); err != nil {
-			s.log.Error().Err(err).Msgf("could not download torrent file for release: %s", release.TorrentName)
-			return nil, err
+		if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
 		// encode file to base64 before sending to deluge
 		encodedFile := base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes)
 		if encodedFile == "" {
-			return nil, errors.Wrap(err, "could not encode torrent file")
+			return nil, errors.New("could not encode torrent file for release: %s", release.TorrentName)
 		}
 
 		// set options
@@ -270,42 +294,39 @@ func (s *service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 			return nil, errors.Wrap(err, "could not prepare options")
 		}
 
-		s.log.Trace().Msgf("action Deluge options: %+v", options)
+		l.Trace().Interface("options", options).Msg("action deluge options")
 
-		torrentHash, err := deluge.AddTorrentFile(release.TorrentHash, encodedFile, &options)
+		torrentHash, err := downloadClient.AddTorrentFile(ctx, release.TorrentHash+".torrent", encodedFile, &options)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Name)
 		}
 
 		if action.Label != "" {
-			labelPluginActive, err := deluge.LabelPlugin()
+			labelPluginActive, err := downloadClient.LabelPlugin(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "could not load label plugin for client: %s", client.Name)
 			}
 
 			if labelPluginActive != nil {
-				// TODO first check if label exists, if not, add it, otherwise set
-				err = labelPluginActive.SetTorrentLabel(torrentHash, action.Label)
-				if err != nil {
+				if err := delugeSetOrCreateTorrentLabel(ctx, labelPluginActive, client.Name, torrentHash, action.Label); err != nil {
 					return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, client.Name)
 				}
 			}
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", torrentHash, client.Name)
+		l.Info().Str("hash", torrentHash).Str("client", client.Name).Msg("torrent successfully added to client")
 	}
 
 	return nil, nil
 }
 
-func (s *service) prepareDelugeOptions(action *domain.Action) (delugeClient.Options, error) {
-
+func (s *Service) prepareDelugeOptions(action *domain.Action) (deluge.Options, error) {
 	// set options
-	options := delugeClient.Options{}
+	options := deluge.Options{}
 
-	if action.Paused {
-		options.AddPaused = &action.Paused
-	}
+	// always set; to override client default
+	options.AddPaused = &action.Paused
+
 	if action.SavePath != "" {
 		options.DownloadLocation = &action.SavePath
 	}
@@ -316,6 +337,9 @@ func (s *service) prepareDelugeOptions(action *domain.Action) (delugeClient.Opti
 	if action.LimitUploadSpeed > 0 {
 		maxUL := int(action.LimitUploadSpeed)
 		options.MaxUploadSpeed = &maxUL
+	}
+	if action.SkipHashCheck {
+		options.V2.SeedMode = &action.SkipHashCheck
 	}
 
 	return options, nil

@@ -1,6 +1,10 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
+	"fmt"
 	"net/http"
 	"runtime/debug"
 	"strings"
@@ -8,9 +12,11 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func (s Server) IsAuthenticated(next http.Handler) http.Handler {
+func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if token := r.Header.Get("X-API-Token"); token != "" {
 			// check header
@@ -20,19 +26,32 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 			}
 
 		} else if key := r.URL.Query().Get("apikey"); key != "" {
-			// check query param lke ?apikey=TOKEN
+			// check query param like ?apikey=TOKEN
 			if !s.apiService.ValidateAPIKey(r.Context(), key) {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 		} else {
 			// check session
-			session, _ := s.cookieStore.Get(r, "user_session")
-
-			// Check if user is authenticated
-			if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			authenticated := s.sessionManager.GetBool(r.Context(), "authenticated")
+			if !authenticated {
+				s.log.Debug().Msg("session not authenticated")
+				if err := s.sessionManager.Destroy(r.Context()); err != nil {
+					s.log.Error().Err(err).Msg("failed to destroy session")
+				}
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
+			}
+
+			deadline := s.sessionManager.Deadline(r.Context())
+			if time.Until(deadline) <= 7*24*time.Hour {
+				s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
+
+				if err := s.sessionManager.RenewToken(r.Context()); err != nil {
+					s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+					return
+				}
 			}
 		}
 
@@ -43,7 +62,12 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			log := logger.With().Logger()
+			// the hlog ctx logger carries the request_id field; fall back if
+			// this middleware is mounted without hlog.NewHandler
+			log := *hlog.FromRequest(r)
+			if log.GetLevel() == zerolog.Disabled {
+				log = logger.With().Logger()
+			}
 
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
@@ -86,4 +110,46 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 		}
 		return http.HandlerFunc(fn)
 	}
+}
+
+// BasicAuth implements a simple middleware handler for adding basic http auth to a route.
+func BasicAuth(realm string, users string) func(next http.Handler) http.Handler {
+	creds := map[string]string{}
+
+	userCreds := strings.Split(users, ",")
+	for _, cred := range userCreds {
+		credParts := strings.Split(cred, ":")
+		if len(credParts) != 2 {
+			//s.log.Warn().Msgf("Invalid metrics basic auth credentials: %s", cred)
+			continue
+		}
+
+		creds[credParts[0]] = credParts[1]
+	}
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			username, password, ok := r.BasicAuth()
+			if !ok {
+				basicAuthFailed(w, realm)
+				return
+			}
+
+			// Validate username and password using htpasswd data
+			if hashedPassword, exists := creds[username]; exists {
+				// Use bcrypt to validate the password
+				if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password)); err == nil {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			basicAuthFailed(w, realm)
+		})
+	}
+}
+
+func basicAuthFailed(w http.ResponseWriter, realm string) {
+	w.Header().Add("WWW-Authenticate", fmt.Sprintf(`Basic realm="%s"`, realm))
+	w.WriteHeader(http.StatusUnauthorized)
 }

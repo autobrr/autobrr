@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { useEffect, useState } from "react";
 
 export function useToggle(initialValue = false): [boolean, () => void] {
@@ -7,7 +12,7 @@ export function useToggle(initialValue = false): [boolean, () => void] {
   return [value, toggle];
 }
 
-const isBrowser = typeof window !== "undefined";
+const isBrowser = typeof(window) !== "undefined";
 
 const getInitialState = (query: string, defaultState?: boolean) => {
   // Prevent a React hydration mismatch when a default value is provided by not defaulting to window.matchMedia(query).matches.
@@ -20,7 +25,7 @@ const getInitialState = (query: string, defaultState?: boolean) => {
   }
 
   // A default value has not been provided, and you are rendering on the server, warn of a possible hydration mismatch when defaulting to false.
-  if (process.env.NODE_ENV !== "production") {
+  if (import.meta.env.DEV) {
     console.warn(
       "`useMedia` When server side rendering, defaultState should be defined to prevent a hydration mismatches."
     );

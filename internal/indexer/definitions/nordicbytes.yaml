@@ -1,0 +1,70 @@
+---
+version: 2
+#id: nordicbytes
+name: NordicBytes
+identifier: nordicbytes
+description: NordicBytes (NBy) is a NORDIC private torrent tracker for MOVIES / TV / GENERAL.
+language: en-us
+urls:
+  - https://nordicbytes.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key
+    help: "Click the cog icon in the top right corner, RSS key is located in the sidebar."
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Username of bot must be set to username|bot.
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#nordicbytes"
+      announcers:
+        - "NordicBytes"
+      parse:
+        type: single
+        lines:
+          - pattern: ':\[N\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<resolution>.*)\]-\[(?P<torrentSize>.*)\]-\[(?P<releaseName>.*)\]-\[(?P<uploader>.*)\]-\[(?P<baseUrl>.*\/)(?:.*\/)(?P<torrentId>.*)\]-\[FL: (?P<freeleech>.*)\]-\[DU: .*\];'
+            tests:
+              - line: ':[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://nordicbytes.org/torrents/0000]-[FL: 0]-[DU: 0];'
+                expect:
+                  category: Movies
+                  releaseTags: Encode
+                  resolution: 720p
+                  torrentSize: 797 MiB
+                  releaseName: Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP
+                  uploader: Anonymous
+                  baseUrl: https://nordicbytes.org/
+                  torrentId: "0000"
+                  freeleech: "0"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

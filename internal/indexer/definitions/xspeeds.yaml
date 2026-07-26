@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: xspeeds
 name: XSpeeds
 identifier: xspeeds
@@ -11,23 +12,19 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: custom
+# source: custom
 settings:
   - name: passkey
     type: secret
     required: true
-    label: Passkey
-    help: "Go to your profile and copy your Passkey"
+    label: Secret key
+    help: "Go to https://www.xspeeds.eu/getrss.php and select Feed Type: Download Link, then Generate Feed. Copy the VALUE between secret_key=VALUE&feedtype."
 
 irc:
   network: XSpeeds
   server: irc.xspeeds.eu
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - Announce
   settings:
     - name: nick
       type: text
@@ -47,62 +44,92 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  categories:
-    - 4K Movies
-    - 4K TV
-    - 4K TV Boxsets
-    - Anime
-    - Audiobooks
-    - Blu-Ray
-    - Books Magazines
-    - Cams/TS
-    - Documentaries
-    - DVDR
-    - Foreign
-    - Kids
-    - Mac Games
-    - MMA
-    - Movie Boxsets
-    - Movies
-    - Music
-    - Music Videos
-    - Nintendo
-    - Other
-    - PC Games
-    - Pictures
-    - Playstation
-    - PPV
-    - Soaps
-    - Sports / MotorSports
-    - Sports / Olympics
-    - Sports / UK Football
-    - TOTM
-    - TV Boxsets
-    - TV Boxsets / HD Boxsets
-    - TV Boxsets / HEVC Boxsets
-    - TV-HD
-    - TV-HD / HEVC
-    - TV-SD
-    - Wii Games
-    - Wrestling
-    - Xbox Games
+  # categories:
+  #   - 4K Movies
+  #   - 4K TV
+  #   - 4K TV Boxsets
+  #   - Anime
+  #   - Audiobooks
+  #   - Blu-Ray
+  #   - Books Magazines
+  #   - Cams/TS
+  #   - Documentaries
+  #   - DVDR
+  #   - Foreign
+  #   - Kids
+  #   - Mac Games
+  #   - MMA
+  #   - Movie Boxsets
+  #   - Movies
+  #   - Music
+  #   - Music Videos
+  #   - Nintendo
+  #   - Other
+  #   - PC Games
+  #   - Pictures
+  #   - Playstation
+  #   - PPV
+  #   - Soaps
+  #   - Sports / MotorSports
+  #   - Sports / Olympics
+  #   - Sports / UK Football
+  #   - TOTM
+  #   - TOTW (x2 upload)
+  #   - TV Boxsets
+  #   - TV Boxsets / HD Boxsets
+  #   - TV Boxsets / HEVC Boxsets
+  #   - TV-HD
+  #   - TV-HD / HEVC
+  #   - TV-SD
+  #   - Wii Games
+  #   - Wrestling
+  #   - Xbox Games
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "xspeeds.eu - New Torrent: ( The.Best.Show.S03E07.720p.BluRay.x264-GROUP ) Size: ( 1.96 GB )  Category: ( TV-HD ) Uploader: ( uploader1 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
-          - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.1080p.HEVC.x265-GROUP1 ) Size: ( 1.04 GB )  Category: ( HEVC ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
-          - "xspeeds.eu - New Torrent: ( Some.Show.S21E06.XviD-GROUP2 ) Size: ( 861.32 MB )  Category: ( TV-SD ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )"
-        pattern: '\s*xspeeds.eu - New Torrent: \( (.*) \) Size: \( ([^)]*) \)\s*Category: \( ([^)]*) \) Uploader: \( ([^)]*) \) Link: \( (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+) \)'
-        vars:
-          - torrentName
-          - torrentSize
-          - category
-          - uploader
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - Announce
+      parse:
+        type: single
+        lines:
+          - pattern: '\s*xspeeds.eu - New Torrent: \( (?P<releaseName>.*) \) Size: \( (?P<torrentSize>.*) \)\s*Category: \( (?P<category>.*) \) Uploader: \( (?P<uploader>.*) \) Link: \( (?P<baseUrl>https?\:\/\/[^\/]+\/).*[&\?]id=(?P<torrentId>\d+) \)'
+            tests:
+              - line: 'xspeeds.eu - New Torrent: ( The.Best.Show.S03E07.720p.BluRay.x264-GROUP ) Size: ( 1.96 GB )  Category: ( TV-HD ) Uploader: ( uploader1 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )'
+                expect:
+                  releaseName: The.Best.Show.S03E07.720p.BluRay.x264-GROUP
+                  torrentSize: 1.96 GB
+                  category: TV-HD
+                  uploader: uploader1
+                  baseUrl: https://www.xspeeds.eu/
+                  torrentId: "0000000"
 
-    match:
-      infourl: "/details.php?id={{ .torrentId }}"
-      torrenturl: "/download.php?type=rss&secret_key={{ .passkey }}&id={{ .torrentId }}"
+              - line: 'xspeeds.eu - New Torrent: ( Some.Show.S21E06.1080p.HEVC.x265-GROUP1 ) Size: ( 1.04 GB )  Category: ( HEVC ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )'
+                expect:
+                  releaseName: Some.Show.S21E06.1080p.HEVC.x265-GROUP1
+                  torrentSize: 1.04 GB
+                  category: HEVC
+                  uploader: uploader2
+                  baseUrl: https://www.xspeeds.eu/
+                  torrentId: "0000000"
+
+              - line: 'xspeeds.eu - New Torrent: ( Some.Show.S21E06.XviD-GROUP2 ) Size: ( 861.32 MB )  Category: ( TV-SD ) Uploader: ( uploader2 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )'
+                expect:
+                  releaseName: Some.Show.S21E06.XviD-GROUP2
+                  torrentSize: 861.32 MB
+                  category: TV-SD
+                  uploader: uploader2
+                  baseUrl: https://www.xspeeds.eu/
+                  torrentId: "0000000"
+
+              - line: 'xspeeds.eu - New Torrent: ( TOTW.Show.1-6.Boxset.iNTERNAL.1080P.BluRay.H265-GRP3 ) Size: ( 46.03 GB )  Category: ( TOTW (x2 upload) ) Uploader: ( uploader3 ) Link: ( https://www.xspeeds.eu/details.php?id=0000000 )'
+                expect:
+                  releaseName: TOTW.Show.1-6.Boxset.iNTERNAL.1080P.BluRay.H265-GRP3
+                  torrentSize: 46.03 GB
+                  category: TOTW (x2 upload)
+                  uploader: uploader3
+                  baseUrl: https://www.xspeeds.eu/
+                  torrentId: "0000000"
+
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download.php?type=rss&secret_key={{ .passkey }}&id={{ .torrentId }}"

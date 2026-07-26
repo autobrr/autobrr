@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -14,20 +17,281 @@ import (
 )
 
 type ActionRepo struct {
-	log        zerolog.Logger
-	db         *DB
-	clientRepo domain.DownloadClientRepo
+	log zerolog.Logger
+	db  *DB
 }
 
-func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
+func NewActionRepo(log logger.Logger, db *DB) *ActionRepo {
 	return &ActionRepo{
-		log:        log.With().Str("repo", "action").Logger(),
-		db:         db,
-		clientRepo: clientRepo,
+		log: log.With().Str("repo", "action").Logger(),
+		db:  db,
 	}
 }
 
-func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domain.Action, error) {
+func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error) {
+	if withClient {
+		return r.findByFilterIDWithClient(ctx, filterID, active)
+	}
+
+	return r.findByFilterID(ctx, filterID, active)
+}
+
+func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"a.id",
+			"a.name",
+			"a.type",
+			"a.enabled",
+			"a.exec_cmd",
+			"a.exec_args",
+			"a.watch_folder",
+			"a.category",
+			"a.tags",
+			"a.label",
+			"a.save_path",
+			"a.download_path",
+			"a.paused",
+			"a.ignore_rules",
+			"a.first_last_piece_prio",
+			"a.skip_hash_check",
+			"a.content_layout",
+			"a.priority",
+			"a.limit_download_speed",
+			"a.limit_upload_speed",
+			"a.limit_ratio",
+			"a.limit_seed_time",
+			"a.reannounce_skip",
+			"a.reannounce_delete",
+			"a.reannounce_interval",
+			"a.reannounce_max_attempts",
+			"a.webhook_host",
+			"a.webhook_type",
+			"a.webhook_method",
+			"a.webhook_data",
+			"a.external_client_id",
+			"a.external_client",
+			"a.client_id",
+		).
+		From("action a").
+		Where(sq.Eq{"a.filter_id": filterID})
+
+	if active != nil {
+		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	actions := make([]*domain.Action, 0)
+	for rows.Next() {
+		var a domain.Action
+
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+		var limitUl, limitDl, limitSeedTime sql.NullInt64
+		var limitRatio sql.NullFloat64
+
+		var externalClientID, clientID sql.NullInt32
+		var paused, ignoreRules sql.NullBool
+
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		a.ExecCmd = execCmd.String
+		a.ExecArgs = execArgs.String
+		a.WatchFolder = watchFolder.String
+		a.Category = category.String
+		a.Tags = tags.String
+		a.Label = label.String
+		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
+		a.Paused = paused.Bool
+		a.IgnoreRules = ignoreRules.Bool
+		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+		a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
+
+		a.LimitDownloadSpeed = limitDl.Int64
+		a.LimitUploadSpeed = limitUl.Int64
+		a.LimitRatio = limitRatio.Float64
+		a.LimitSeedTime = limitSeedTime.Int64
+
+		a.WebhookHost = webhookHost.String
+		a.WebhookType = webhookType.String
+		a.WebhookMethod = webhookMethod.String
+		a.WebhookData = webhookData.String
+
+		a.ExternalDownloadClientID = externalClientID.Int32
+		a.ExternalDownloadClient = externalClient.String
+		a.ClientID = clientID.Int32
+
+		actions = append(actions, &a)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "row error")
+	}
+
+	return actions, nil
+}
+
+func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"a.id",
+			"a.name",
+			"a.type",
+			"a.enabled",
+			"a.exec_cmd",
+			"a.exec_args",
+			"a.watch_folder",
+			"a.category",
+			"a.tags",
+			"a.label",
+			"a.save_path",
+			"a.download_path",
+			"a.paused",
+			"a.ignore_rules",
+			"a.first_last_piece_prio",
+			"a.skip_hash_check",
+			"a.content_layout",
+			"a.priority",
+			"a.limit_download_speed",
+			"a.limit_upload_speed",
+			"a.limit_ratio",
+			"a.limit_seed_time",
+			"a.reannounce_skip",
+			"a.reannounce_delete",
+			"a.reannounce_interval",
+			"a.reannounce_max_attempts",
+			"a.webhook_host",
+			"a.webhook_type",
+			"a.webhook_method",
+			"a.webhook_data",
+			"a.external_client_id",
+			"a.external_client",
+			"a.client_id",
+			"c.id",
+			"c.name",
+			"c.type",
+			"c.enabled",
+			"c.host",
+			"c.port",
+			"c.tls",
+			"c.tls_skip_verify",
+			"c.username",
+			"c.password",
+			"c.settings",
+		).
+		From("action a").
+		Join("client c ON a.client_id = c.id").
+		Where(sq.Eq{"a.filter_id": filterID})
+
+	if active != nil {
+		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	actions := make([]*domain.Action, 0)
+	for rows.Next() {
+		var a domain.Action
+		var c domain.DownloadClient
+
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+		var limitUl, limitDl, limitSeedTime sql.NullInt64
+		var limitRatio sql.NullFloat64
+
+		var externalClientID, clientID sql.NullInt32
+		var paused, ignoreRules sql.NullBool
+
+		var clientClientId, clientPort sql.Null[int32]
+		var clientName, clientType, clientHost, clientUsername, clientPassword, clientSettings sql.Null[string]
+		var clientEnabled, clientTLS, clientTLSSkip sql.Null[bool]
+
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &clientClientId, &clientName, &clientType, &clientEnabled, &clientHost, &clientPort, &clientTLS, &clientTLSSkip, &clientUsername, &clientPassword, &clientSettings); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		a.ExecCmd = execCmd.String
+		a.ExecArgs = execArgs.String
+		a.WatchFolder = watchFolder.String
+		a.Category = category.String
+		a.Tags = tags.String
+		a.Label = label.String
+		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
+		a.Paused = paused.Bool
+		a.IgnoreRules = ignoreRules.Bool
+		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+		a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
+
+		a.LimitDownloadSpeed = limitDl.Int64
+		a.LimitUploadSpeed = limitUl.Int64
+		a.LimitRatio = limitRatio.Float64
+		a.LimitSeedTime = limitSeedTime.Int64
+
+		a.WebhookHost = webhookHost.String
+		a.WebhookType = webhookType.String
+		a.WebhookMethod = webhookMethod.String
+		a.WebhookData = webhookData.String
+
+		a.ExternalDownloadClientID = externalClientID.Int32
+		a.ExternalDownloadClient = externalClient.String
+		a.ClientID = clientID.Int32
+
+		c.ID = clientClientId.V
+		c.Name = clientName.V
+		c.Type = domain.DownloadClientType(clientType.V)
+		c.Enabled = clientEnabled.V
+		c.Host = clientHost.V
+		c.Port = int(clientPort.V)
+		c.TLS = clientTLS.V
+		c.TLSSkipVerify = clientTLSSkip.V
+		c.Username = clientUsername.V
+		c.Password = clientPassword.V
+		// c.Settings = clientSettings.String
+
+		if a.ClientID > 0 {
+			if clientSettings.Valid {
+				if err := json.Unmarshal([]byte(clientSettings.V), &c.Settings); err != nil {
+					return nil, errors.Wrap(err, "could not unmarshal download client settings: %v", clientSettings.V)
+				}
+			}
+
+			a.Client = &c
+		}
+
+		actions = append(actions, &a)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "row error")
+	}
+
+	return actions, nil
+}
+
+func (r *ActionRepo) FindByFilterIDTx(ctx context.Context, filterID int, active *bool) ([]*domain.Action, error) {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return nil, err
@@ -35,25 +299,28 @@ func (r *ActionRepo) FindByFilterID(ctx context.Context, filterID int) ([]*domai
 
 	defer tx.Rollback()
 
-	actions, err := r.findByFilterID(ctx, tx, filterID)
+	actions, err := r.findByFilterIDTx(ctx, tx, filterID, active)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, action := range actions {
-		if action.ClientID != 0 {
+		if action.ClientID > 0 {
 			client, err := r.attachDownloadClient(ctx, tx, action.ClientID)
 			if err != nil {
 				return nil, err
 			}
-			action.Client = *client
+
+			if client != nil {
+				action.Client = client
+			}
 		}
 	}
 
 	return actions, nil
 }
 
-func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) ([]*domain.Action, error) {
+func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int, active *bool) ([]*domain.Action, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -67,10 +334,13 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 			"tags",
 			"label",
 			"save_path",
+			"download_path",
 			"paused",
 			"ignore_rules",
+			"first_last_piece_prio",
 			"skip_hash_check",
 			"content_layout",
+			"priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -83,10 +353,16 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 			"webhook_type",
 			"webhook_method",
 			"webhook_data",
+			"external_client_id",
+			"external_client",
 			"client_id",
 		).
 		From("action").
 		Where(sq.Eq{"filter_id": filterID})
+
+	if active != nil {
+		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
+	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -104,15 +380,14 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 
-		var clientID sql.NullInt32
-		// filterID
+		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.SkipHashCheck, &contentLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -123,9 +398,11 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		a.Tags = tags.String
 		a.Label = label.String
 		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
 		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+		a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
 
 		a.LimitDownloadSpeed = limitDl.Int64
 		a.LimitUploadSpeed = limitUl.Int64
@@ -137,18 +414,21 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, tx *Tx, filterID int) (
 		a.WebhookMethod = webhookMethod.String
 		a.WebhookData = webhookData.String
 
+		a.ExternalDownloadClientID = externalClientID.Int32
+		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
 
 		actions = append(actions, &a)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "row error")
 	}
 
 	return actions, nil
 }
-func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID int32) (*domain.DownloadClient, error) {
 
+func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID int32) (*domain.DownloadClient, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -180,6 +460,11 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			r.log.Warn().Int32("client_id", clientID).Msg("no download client")
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
@@ -206,8 +491,13 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"tags",
 			"label",
 			"save_path",
+			"download_path",
 			"paused",
 			"ignore_rules",
+			"first_last_piece_prio",
+			"skip_hash_check",
+			"content_layout",
+			"priority",
 			"limit_download_speed",
 			"limit_upload_speed",
 			"limit_ratio",
@@ -220,6 +510,8 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"webhook_type",
 			"webhook_method",
 			"webhook_data",
+			"external_client_id",
+			"external_client",
 			"client_id",
 		).
 		From("action")
@@ -229,7 +521,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -240,13 +532,13 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, webhookHost, webhookType, webhookMethod, webhookData sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
-		var clientID sql.NullInt32
+		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -254,8 +546,11 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.Tags = tags.String
 		a.Label = label.String
 		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
+		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+		a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
 
 		a.LimitDownloadSpeed = limitDl.Int64
 		a.LimitUploadSpeed = limitUl.Int64
@@ -267,33 +562,134 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.WebhookMethod = webhookMethod.String
 		a.WebhookData = webhookData.String
 
+		a.ExternalDownloadClientID = externalClientID.Int32
+		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
 
 		actions = append(actions, a)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows error")
+
+		if err := rows.Err(); err != nil {
+			return nil, errors.Wrap(err, "rows error")
+		}
 	}
 
 	return actions, nil
 }
 
-func (r *ActionRepo) Delete(actionID int) error {
+func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"type",
+			"enabled",
+			"exec_cmd",
+			"exec_args",
+			"watch_folder",
+			"category",
+			"tags",
+			"label",
+			"save_path",
+			"download_path",
+			"paused",
+			"ignore_rules",
+			"first_last_piece_prio",
+			"skip_hash_check",
+			"content_layout",
+			"priority",
+			"limit_download_speed",
+			"limit_upload_speed",
+			"limit_ratio",
+			"limit_seed_time",
+			"reannounce_skip",
+			"reannounce_delete",
+			"reannounce_interval",
+			"reannounce_max_attempts",
+			"webhook_host",
+			"webhook_type",
+			"webhook_method",
+			"webhook_data",
+			"external_client_id",
+			"external_client",
+			"client_id",
+			"filter_id",
+		).
+		From("action").
+		Where(sq.Eq{"id": req.Id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	var a domain.Action
+
+	var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+	var limitUl, limitDl, limitSeedTime sql.NullInt64
+	var limitRatio sql.NullFloat64
+	var externalClientID, clientID, filterID sql.NullInt32
+	var paused, ignoreRules sql.NullBool
+
+	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &filterID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	a.ExecCmd = execCmd.String
+	a.ExecArgs = execArgs.String
+	a.WatchFolder = watchFolder.String
+	a.Category = category.String
+	a.Tags = tags.String
+	a.Label = label.String
+	a.SavePath = savePath.String
+	a.DownloadPath = downloadPath.String
+	a.Paused = paused.Bool
+	a.IgnoreRules = ignoreRules.Bool
+	a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
+	a.PriorityLayout = domain.PriorityLayout(priorityLayout.String)
+
+	a.LimitDownloadSpeed = limitDl.Int64
+	a.LimitUploadSpeed = limitUl.Int64
+	a.LimitRatio = limitRatio.Float64
+	a.LimitSeedTime = limitSeedTime.Int64
+
+	a.WebhookHost = webhookHost.String
+	a.WebhookType = webhookType.String
+	a.WebhookMethod = webhookMethod.String
+	a.WebhookData = webhookData.String
+
+	a.ExternalDownloadClientID = externalClientID.Int32
+	a.ExternalDownloadClient = externalClient.String
+	a.ClientID = clientID.Int32
+	a.FilterID = int(filterID.Int32)
+
+	return &a, nil
+}
+
+func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest) error {
 	queryBuilder := r.db.squirrel.
 		Delete("action").
-		Where(sq.Eq{"id": actionID})
+		Where(sq.Eq{"id": req.ActionId})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.Exec(query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.delete: %v", actionID)
+	r.log.Debug().Int("action_id", req.ActionId).Msg("action delete")
 
 	return nil
 }
@@ -308,37 +704,17 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("action delete by filter")
 
 	return nil
 }
 
-func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.Action, error) {
-	execCmd := toNullString(action.ExecCmd)
-	execArgs := toNullString(action.ExecArgs)
-	watchFolder := toNullString(action.WatchFolder)
-	category := toNullString(action.Category)
-	tags := toNullString(action.Tags)
-	label := toNullString(action.Label)
-	savePath := toNullString(action.SavePath)
-	contentLayout := toNullString(string(action.ContentLayout))
-	webhookHost := toNullString(action.WebhookHost)
-	webhookData := toNullString(action.WebhookData)
-	webhookType := toNullString(action.WebhookType)
-	webhookMethod := toNullString(action.WebhookMethod)
-
-	limitDL := toNullInt64(action.LimitDownloadSpeed)
-	limitUL := toNullInt64(action.LimitUploadSpeed)
-	limitRatio := toNullFloat64(action.LimitRatio)
-	limitSeedTime := toNullInt64(action.LimitSeedTime)
-	clientID := toNullInt32(action.ClientID)
-	filterID := toNullInt32(int32(action.FilterID))
-
+func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 	queryBuilder := r.db.squirrel.
 		Insert("action").
 		Columns(
@@ -352,10 +728,13 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"tags",
 			"label",
 			"save_path",
+			"download_path",
 			"paused",
 			"ignore_rules",
+			"first_last_piece_prio",
 			"skip_hash_check",
 			"content_layout",
+			"priority",
 			"limit_upload_speed",
 			"limit_download_speed",
 			"limit_ratio",
@@ -368,6 +747,8 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			"webhook_type",
 			"webhook_method",
 			"webhook_data",
+			"external_client_id",
+			"external_client",
 			"client_id",
 			"filter_id",
 		).
@@ -375,102 +756,89 @@ func (r *ActionRepo) Store(ctx context.Context, action domain.Action) (*domain.A
 			action.Name,
 			action.Type,
 			action.Enabled,
-			execCmd,
-			execArgs,
-			watchFolder,
-			category,
-			tags,
-			label,
-			savePath,
+			toNullString(action.ExecCmd),
+			toNullString(action.ExecArgs),
+			toNullString(action.WatchFolder),
+			toNullString(action.Category),
+			toNullString(action.Tags),
+			toNullString(action.Label),
+			toNullString(action.SavePath),
+			toNullString(action.DownloadPath),
 			action.Paused,
 			action.IgnoreRules,
+			action.FirstLastPiecePrio,
 			action.SkipHashCheck,
-			contentLayout,
-			limitUL,
-			limitDL,
-			limitRatio,
-			limitSeedTime,
+			toNullString(string(action.ContentLayout)),
+			toNullString(string(action.PriorityLayout)),
+			toNullInt64(action.LimitUploadSpeed),
+			toNullInt64(action.LimitDownloadSpeed),
+			toNullFloat64(action.LimitRatio),
+			toNullInt64(action.LimitSeedTime),
 			action.ReAnnounceSkip,
 			action.ReAnnounceDelete,
 			action.ReAnnounceInterval,
 			action.ReAnnounceMaxAttempts,
-			webhookHost,
-			webhookType,
-			webhookMethod,
-			webhookData,
-			clientID,
-			filterID,
+			toNullString(action.WebhookHost),
+			toNullString(action.WebhookType),
+			toNullString(action.WebhookMethod),
+			toNullString(action.WebhookData),
+			toNullInt32(action.ExternalDownloadClientID),
+			toNullString(action.ExternalDownloadClient),
+			toNullInt32(action.ClientID),
+			toNullInt32(int32(action.FilterID)),
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	// return values
 	var retID int64
 
-	err := queryBuilder.QueryRowContext(ctx).Scan(&retID)
-	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.store: added new %v", retID)
 	action.ID = int(retID)
 
-	return &action, nil
+	r.log.Debug().Int64("action_id", retID).Msg("action store: added new")
+
+	return nil
 }
 
 func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.Action, error) {
-	execCmd := toNullString(action.ExecCmd)
-	execArgs := toNullString(action.ExecArgs)
-	watchFolder := toNullString(action.WatchFolder)
-	category := toNullString(action.Category)
-	tags := toNullString(action.Tags)
-	label := toNullString(action.Label)
-	savePath := toNullString(action.SavePath)
-	contentLayout := toNullString(string(action.ContentLayout))
-	webhookHost := toNullString(action.WebhookHost)
-	webhookType := toNullString(action.WebhookType)
-	webhookMethod := toNullString(action.WebhookMethod)
-	webhookData := toNullString(action.WebhookData)
-
-	limitDL := toNullInt64(action.LimitDownloadSpeed)
-	limitUL := toNullInt64(action.LimitUploadSpeed)
-	limitRatio := toNullFloat64(action.LimitRatio)
-	limitSeedTime := toNullInt64(action.LimitSeedTime)
-
-	clientID := toNullInt32(action.ClientID)
-	filterID := toNullInt32(int32(action.FilterID))
-
-	var err error
-
 	queryBuilder := r.db.squirrel.
 		Update("action").
 		Set("name", action.Name).
 		Set("type", action.Type).
 		Set("enabled", action.Enabled).
-		Set("exec_cmd", execCmd).
-		Set("exec_args", execArgs).
-		Set("watch_folder", watchFolder).
-		Set("category", category).
-		Set("tags", tags).
-		Set("label", label).
-		Set("save_path", savePath).
+		Set("exec_cmd", toNullString(action.ExecCmd)).
+		Set("exec_args", toNullString(action.ExecArgs)).
+		Set("watch_folder", toNullString(action.WatchFolder)).
+		Set("category", toNullString(action.Category)).
+		Set("tags", toNullString(action.Tags)).
+		Set("label", toNullString(action.Label)).
+		Set("save_path", toNullString(action.SavePath)).
+		Set("download_path", toNullString(action.DownloadPath)).
 		Set("paused", action.Paused).
 		Set("ignore_rules", action.IgnoreRules).
+		Set("first_last_piece_prio", action.FirstLastPiecePrio).
 		Set("skip_hash_check", action.SkipHashCheck).
-		Set("content_layout", contentLayout).
-		Set("limit_upload_speed", limitUL).
-		Set("limit_download_speed", limitDL).
-		Set("limit_ratio", limitRatio).
-		Set("limit_seed_time", limitSeedTime).
+		Set("content_layout", toNullString(string(action.ContentLayout))).
+		Set("priority", toNullString(string(action.PriorityLayout))).
+		Set("limit_upload_speed", toNullInt64(action.LimitUploadSpeed)).
+		Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
+		Set("limit_ratio", toNullFloat64(action.LimitRatio)).
+		Set("limit_seed_time", toNullInt64(action.LimitSeedTime)).
 		Set("reannounce_skip", action.ReAnnounceSkip).
 		Set("reannounce_delete", action.ReAnnounceDelete).
 		Set("reannounce_interval", action.ReAnnounceInterval).
 		Set("reannounce_max_attempts", action.ReAnnounceMaxAttempts).
-		Set("webhook_host", webhookHost).
-		Set("webhook_type", webhookType).
-		Set("webhook_method", webhookMethod).
-		Set("webhook_data", webhookData).
-		Set("client_id", clientID).
-		Set("filter_id", filterID).
+		Set("webhook_host", toNullString(action.WebhookHost)).
+		Set("webhook_type", toNullString(action.WebhookType)).
+		Set("webhook_method", toNullString(action.WebhookMethod)).
+		Set("webhook_data", toNullString(action.WebhookData)).
+		Set("external_client_id", toNullInt32(action.ExternalDownloadClientID)).
+		Set("external_client", toNullString(action.ExternalDownloadClient)).
+		Set("client_id", toNullInt32(action.ClientID)).
+		Set("filter_id", toNullInt32(int32(action.FilterID))).
 		Where(sq.Eq{"id": action.ID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -478,145 +846,173 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
-	if err != nil {
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.update: %v", action.ID)
+	r.log.Debug().Int("action_id", action.ID).Msg("action update")
 
 	return &action, nil
 }
 
-func (r *ActionRepo) StoreFilterActions(ctx context.Context, actions []*domain.Action, filterID int64) ([]*domain.Action, error) {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}
 
 	defer tx.Rollback()
 
-	deleteQueryBuilder := r.db.squirrel.
-		Delete("action").
-		Where(sq.Eq{"filter_id": filterID})
-
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
-	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
-	}
-	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
-	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
-	}
-
 	for _, action := range actions {
-		execCmd := toNullString(action.ExecCmd)
-		execArgs := toNullString(action.ExecArgs)
-		watchFolder := toNullString(action.WatchFolder)
-		category := toNullString(action.Category)
-		tags := toNullString(action.Tags)
-		label := toNullString(action.Label)
-		savePath := toNullString(action.SavePath)
-		contentLayout := toNullString(string(action.ContentLayout))
-		webhookHost := toNullString(action.WebhookHost)
-		webhookType := toNullString(action.WebhookType)
-		webhookMethod := toNullString(action.WebhookMethod)
-		webhookData := toNullString(action.WebhookData)
+		action := action
 
-		limitDL := toNullInt64(action.LimitDownloadSpeed)
-		limitUL := toNullInt64(action.LimitUploadSpeed)
-		limitRatio := toNullFloat64(action.LimitRatio)
-		limitSeedTime := toNullInt64(action.LimitSeedTime)
-		clientID := toNullInt32(action.ClientID)
+		if action.ID > 0 {
+			queryBuilder := r.db.squirrel.
+				Update("action").
+				Set("name", action.Name).
+				Set("type", action.Type).
+				Set("enabled", action.Enabled).
+				Set("exec_cmd", toNullString(action.ExecCmd)).
+				Set("exec_args", toNullString(action.ExecArgs)).
+				Set("watch_folder", toNullString(action.WatchFolder)).
+				Set("category", toNullString(action.Category)).
+				Set("tags", toNullString(action.Tags)).
+				Set("label", toNullString(action.Label)).
+				Set("save_path", toNullString(action.SavePath)).
+				Set("download_path", toNullString(action.DownloadPath)).
+				Set("paused", action.Paused).
+				Set("ignore_rules", action.IgnoreRules).
+				Set("first_last_piece_prio", action.FirstLastPiecePrio).
+				Set("skip_hash_check", action.SkipHashCheck).
+				Set("content_layout", toNullString(string(action.ContentLayout))).
+				Set("priority", toNullString(string(action.PriorityLayout))).
+				Set("limit_upload_speed", toNullInt64(action.LimitUploadSpeed)).
+				Set("limit_download_speed", toNullInt64(action.LimitDownloadSpeed)).
+				Set("limit_ratio", toNullFloat64(action.LimitRatio)).
+				Set("limit_seed_time", toNullInt64(action.LimitSeedTime)).
+				Set("reannounce_skip", action.ReAnnounceSkip).
+				Set("reannounce_delete", action.ReAnnounceDelete).
+				Set("reannounce_interval", action.ReAnnounceInterval).
+				Set("reannounce_max_attempts", action.ReAnnounceMaxAttempts).
+				Set("webhook_host", toNullString(action.WebhookHost)).
+				Set("webhook_type", toNullString(action.WebhookType)).
+				Set("webhook_method", toNullString(action.WebhookMethod)).
+				Set("webhook_data", toNullString(action.WebhookData)).
+				Set("external_client_id", toNullInt32(action.ExternalDownloadClientID)).
+				Set("external_client", toNullString(action.ExternalDownloadClient)).
+				Set("client_id", toNullInt32(action.ClientID)).
+				Set("filter_id", toNullInt64(filterID)).
+				Where(sq.Eq{"id": action.ID})
 
-		queryBuilder := r.db.squirrel.
-			Insert("action").
-			Columns(
-				"name",
-				"type",
-				"enabled",
-				"exec_cmd",
-				"exec_args",
-				"watch_folder",
-				"category",
-				"tags",
-				"label",
-				"save_path",
-				"paused",
-				"ignore_rules",
-				"skip_hash_check",
-				"content_layout",
-				"limit_upload_speed",
-				"limit_download_speed",
-				"limit_ratio",
-				"limit_seed_time",
-				"reannounce_skip",
-				"reannounce_delete",
-				"reannounce_interval",
-				"reannounce_max_attempts",
-				"webhook_host",
-				"webhook_type",
-				"webhook_method",
-				"webhook_data",
-				"client_id",
-				"filter_id",
-			).
-			Values(
-				action.Name,
-				action.Type,
-				action.Enabled,
-				execCmd,
-				execArgs,
-				watchFolder,
-				category,
-				tags,
-				label,
-				savePath,
-				action.Paused,
-				action.IgnoreRules,
-				action.SkipHashCheck,
-				contentLayout,
-				limitUL,
-				limitDL,
-				limitRatio,
-				limitSeedTime,
-				action.ReAnnounceSkip,
-				action.ReAnnounceDelete,
-				action.ReAnnounceInterval,
-				action.ReAnnounceMaxAttempts,
-				webhookHost,
-				webhookType,
-				webhookMethod,
-				webhookData,
-				clientID,
-				filterID,
-			).
-			Suffix("RETURNING id").RunWith(tx)
+			query, args, err := queryBuilder.ToSql()
+			if err != nil {
+				return nil, errors.Wrap(err, "error building query")
+			}
 
-		// return values
-		var retID int
+			if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+				return nil, errors.Wrap(err, "error executing query")
+			}
 
-		err = queryBuilder.QueryRowContext(ctx).Scan(&retID)
-		if err != nil {
-			return nil, errors.Wrap(err, "error executing query")
+			r.log.Trace().Int("action_id", action.ID).Msg("action store filter actions: update")
+
+		} else {
+			queryBuilder := r.db.squirrel.
+				Insert("action").
+				Columns(
+					"name",
+					"type",
+					"enabled",
+					"exec_cmd",
+					"exec_args",
+					"watch_folder",
+					"category",
+					"tags",
+					"label",
+					"save_path",
+					"download_path",
+					"paused",
+					"ignore_rules",
+					"first_last_piece_prio",
+					"skip_hash_check",
+					"content_layout",
+					"priority",
+					"limit_upload_speed",
+					"limit_download_speed",
+					"limit_ratio",
+					"limit_seed_time",
+					"reannounce_skip",
+					"reannounce_delete",
+					"reannounce_interval",
+					"reannounce_max_attempts",
+					"webhook_host",
+					"webhook_type",
+					"webhook_method",
+					"webhook_data",
+					"external_client_id",
+					"external_client",
+					"client_id",
+					"filter_id",
+				).
+				Values(
+					action.Name,
+					action.Type,
+					action.Enabled,
+					toNullString(action.ExecCmd),
+					toNullString(action.ExecArgs),
+					toNullString(action.WatchFolder),
+					toNullString(action.Category),
+					toNullString(action.Tags),
+					toNullString(action.Label),
+					toNullString(action.SavePath),
+					toNullString(action.DownloadPath),
+					action.Paused,
+					action.IgnoreRules,
+					action.FirstLastPiecePrio,
+					action.SkipHashCheck,
+					toNullString(string(action.ContentLayout)),
+					toNullString(string(action.PriorityLayout)),
+					toNullInt64(action.LimitUploadSpeed),
+					toNullInt64(action.LimitDownloadSpeed),
+					toNullFloat64(action.LimitRatio),
+					toNullInt64(action.LimitSeedTime),
+					action.ReAnnounceSkip,
+					action.ReAnnounceDelete,
+					action.ReAnnounceInterval,
+					action.ReAnnounceMaxAttempts,
+					toNullString(action.WebhookHost),
+					toNullString(action.WebhookType),
+					toNullString(action.WebhookMethod),
+					toNullString(action.WebhookData),
+					toNullInt32(action.ExternalDownloadClientID),
+					toNullString(action.ExternalDownloadClient),
+					toNullInt32(action.ClientID),
+					toNullInt64(filterID),
+				).
+				Suffix("RETURNING id").RunWith(tx)
+
+			// return values
+			var retID int
+
+			if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+				return nil, errors.Wrap(err, "error executing query")
+			}
+
+			action.ID = retID
+
+			r.log.Trace().Int("action_id", action.ID).Msg("action store filter actions: store")
 		}
 
-		action.ID = retID
-
-		r.log.Debug().Msgf("action.StoreFilterActions: store '%v' type: '%v' on filter: %v", action.Name, action.Type, filterID)
+		r.log.Debug().Str("action", action.Name).Str("action_type", string(action.Type)).Int64("filter_id", filterID).Msg("store filter action")
 	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "error updating filter actions")
-
 	}
 
 	return actions, nil
 }
 
 func (r *ActionRepo) ToggleEnabled(actionID int) error {
-	var err error
-
 	queryBuilder := r.db.squirrel.
 		Update("action").
 		Set("enabled", sq.Expr("NOT enabled")).
@@ -627,12 +1023,18 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.Exec(query, args...)
+	result, err := r.db.Handler.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.toggleEnabled: %v", actionID)
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	r.log.Debug().Int("action_id", actionID).Msg("action toggle enabled")
 
 	return nil
 }

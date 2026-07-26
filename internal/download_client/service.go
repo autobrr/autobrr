@@ -1,45 +1,61 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package download_client
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
+	"net/http"
+	"net/url"
 	"sync"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/pkg/arr/lidarr"
+	"github.com/autobrr/autobrr/pkg/arr/radarr"
+	"github.com/autobrr/autobrr/pkg/arr/readarr"
+	"github.com/autobrr/autobrr/pkg/arr/sonarr"
+	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/nzbget"
+	"github.com/autobrr/autobrr/pkg/porla"
+	"github.com/autobrr/autobrr/pkg/sabnzbd"
+	"github.com/autobrr/autobrr/pkg/transmission"
+	"github.com/autobrr/autobrr/pkg/whisparr"
 
+	"github.com/autobrr/go-deluge"
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-rtorrent"
 	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/icholy/digest"
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
+type downloadClientRepo interface {
 	List(ctx context.Context) ([]domain.DownloadClient, error)
 	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
-	Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
-	Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error)
-	Delete(ctx context.Context, clientID int) error
-	Test(ctx context.Context, client domain.DownloadClient) error
-
-	GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached
+	Store(ctx context.Context, client *domain.DownloadClient) error
+	Update(ctx context.Context, client *domain.DownloadClient) error
+	Delete(ctx context.Context, clientID int32) error
 }
-
-type service struct {
+type Service struct {
 	log       zerolog.Logger
-	repo      domain.DownloadClientRepo
+	repo      downloadClientRepo
 	subLogger *log.Logger
 
-	qbitClients map[int32]*domain.DownloadClientCached
-	m           sync.RWMutex
+	cache *ClientCache
+	m     sync.RWMutex
 }
 
-func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
-	s := &service{
+func NewService(log logger.Logger, repo downloadClientRepo) *Service {
+	s := &Service{
 		log:  log.With().Str("module", "download_client").Logger(),
 		repo: repo,
 
-		qbitClients: map[int32]*domain.DownloadClientCached{},
-		m:           sync.RWMutex{},
+		cache: NewClientCache(),
+		m:     sync.RWMutex{},
 	}
 
 	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
@@ -47,7 +63,7 @@ func NewService(log logger.Logger, repo domain.DownloadClientRepo) Service {
 	return s
 }
 
-func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
+func (s *Service) List(ctx context.Context) ([]domain.DownloadClient, error) {
 	clients, err := s.repo.List(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not list download clients")
@@ -57,71 +73,168 @@ func (s *service) List(ctx context.Context) ([]domain.DownloadClient, error) {
 	return clients, nil
 }
 
-func (s *service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
+func (s *Service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
+	client := s.cache.Get(id)
+	if client != nil {
+		return client, nil
+	}
+
+	s.log.Trace().Int32("client_id", id).Msg("cache miss for client, continue to repo lookup")
+
 	client, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find download client by id: %v", id)
+		s.log.Error().Err(err).Int32("client_id", id).Msg("could not find download client by id")
 		return nil, err
 	}
 
 	return client, nil
 }
 
-func (s *service) Store(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
-	// basic validation of client
-	if err := client.Validate(); err != nil {
-		return nil, err
-	}
+func (s *Service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error) {
+	data := make([]*domain.ArrTag, 0)
 
-	// store
-	c, err := s.repo.Store(ctx, client)
+	client, err := s.GetClient(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store download client: %+v", client)
-		return nil, err
+		s.log.Error().Err(err).Int32("client_id", id).Msg("could not find download client")
+		return data, nil
 	}
 
-	return c, err
+	switch client.Type {
+	case domain.DownloadClientTypeRadarr:
+		arrClient := client.Client.(*radarr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from radarr")
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	case domain.DownloadClientTypeSonarr:
+		arrClient := client.Client.(*sonarr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from sonarr")
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	default:
+		return data, nil
+	}
 }
 
-func (s *service) Update(ctx context.Context, client domain.DownloadClient) (*domain.DownloadClient, error) {
+func (s *Service) Store(ctx context.Context, client *domain.DownloadClient) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
-		return nil, err
-	}
-
-	// update
-	c, err := s.repo.Update(ctx, client)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("could not update download client: %+v", client)
-		return nil, err
-	}
-
-	if client.Type == domain.DownloadClientTypeQbittorrent {
-		s.m.Lock()
-		delete(s.qbitClients, int32(client.ID))
-		s.m.Unlock()
-	}
-
-	return c, err
-}
-
-func (s *service) Delete(ctx context.Context, clientID int) error {
-	if err := s.repo.Delete(ctx, clientID); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete download client: %v", clientID)
 		return err
 	}
 
-	s.m.Lock()
-	delete(s.qbitClients, int32(clientID))
-	s.m.Unlock()
+	// store
+	err := s.repo.Store(ctx, client)
+	if err != nil {
+		s.log.Error().Err(err).Interface("client", client).Msg("could not store download client")
+		return err
+	}
+
+	s.cache.Set(client.ID, client)
+
+	return err
+}
+
+func (s *Service) Update(ctx context.Context, client *domain.DownloadClient) error {
+	// basic validation of client
+	if err := client.Validate(); err != nil {
+		return err
+	}
+
+	existingClient, err := s.FindByID(ctx, client.ID)
+	if err != nil {
+		s.log.Error().Err(err).Int32("client_id", client.ID).Msg("could not find download client")
+		return err
+	}
+
+	if domain.IsRedactedString(client.Password) {
+		client.Password = existingClient.Password
+	}
+
+	if domain.IsRedactedString(client.Settings.APIKey) {
+		client.Settings.APIKey = existingClient.Settings.APIKey
+	}
+
+	if domain.IsRedactedString(client.Settings.Auth.Password) {
+		client.Settings.Auth.Password = existingClient.Settings.Auth.Password
+	}
+
+	if domain.IsRedactedString(client.Settings.Basic.Password) {
+		client.Settings.Basic.Password = existingClient.Settings.Basic.Password
+	}
+
+	// update
+	if err := s.repo.Update(ctx, client); err != nil {
+		s.log.Error().Err(err).Interface("client", client).Msg("could not update download client")
+		return err
+	}
+
+	s.cache.Set(client.ID, client)
+
+	return err
+}
+
+func (s *Service) Delete(ctx context.Context, clientID int32) error {
+	if err := s.repo.Delete(ctx, clientID); err != nil {
+		s.log.Error().Err(err).Int32("client_id", clientID).Msg("could not delete download client")
+		return err
+	}
+
+	s.cache.Pop(clientID)
 
 	return nil
 }
 
-func (s *service) Test(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) Test(ctx context.Context, client domain.DownloadClient) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
+	}
+
+	// check for existing client to get settings from
+	if client.ID > 0 {
+		existingClient, err := s.FindByID(ctx, client.ID)
+		if err != nil {
+			s.log.Error().Err(err).Int32("client_id", client.ID).Msg("could not find download client")
+			return err
+		}
+
+		if domain.IsRedactedString(client.Password) {
+			client.Password = existingClient.Password
+		}
+		if domain.IsRedactedString(client.Settings.APIKey) {
+			client.Settings.APIKey = existingClient.Settings.APIKey
+		}
+		if domain.IsRedactedString(client.Settings.Auth.Password) {
+			client.Settings.Auth.Password = existingClient.Settings.Auth.Password
+		}
+		if domain.IsRedactedString(client.Settings.Basic.Password) {
+			client.Settings.Basic.Password = existingClient.Settings.Basic.Password
+		}
 	}
 
 	// test
@@ -133,53 +246,208 @@ func (s *service) Test(ctx context.Context, client domain.DownloadClient) error 
 	return nil
 }
 
-func (s *service) GetCachedClient(ctx context.Context, clientId int32) *domain.DownloadClientCached {
+// GetClient get client from cache or repo and attach downloadClient implementation
+func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error) {
+	l := s.log.With().Str("cache", "download-client").Int32("client_id", clientId).Logger()
 
-	// check if client exists in cache
-	s.m.RLock()
-	cached, ok := s.qbitClients[clientId]
-	s.m.RUnlock()
-
-	if ok {
-		return cached
-	}
-
-	// get client for action
-	client, err := s.FindByID(ctx, clientId)
-	if err != nil {
-		return nil
-	}
-
+	client := s.cache.Get(clientId)
 	if client == nil {
-		return nil
+		l.Trace().Msg("cache miss for client, continue to repo lookup")
+
+		var err error
+		client, err = s.repo.FindByID(ctx, clientId)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not find client repo.FindByID")
+		}
 	}
 
-	qbtSettings := qbittorrent.Config{
-		Host:          client.BuildLegacyHost(),
-		Username:      client.Username,
-		Password:      client.Password,
-		TLSSkipVerify: client.TLSSkipVerify,
+	// if we have the client return it
+	if client.Client != nil {
+		l.Trace().Str("client", client.Name).Msg("cache hit for client")
+		return client, nil
 	}
 
-	// setup sub logger adapter which is compatible with *log.Logger
-	qbtSettings.Log = zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel)
+	l.Trace().Str("client", client.Name).Msg("init cache client")
 
-	// only set basic auth if enabled
-	if client.Settings.Basic.Auth {
-		qbtSettings.BasicUser = client.Settings.Basic.Username
-		qbtSettings.BasicPass = client.Settings.Basic.Password
+	switch client.Type {
+	case domain.DownloadClientTypeQbittorrent:
+		clientHost, err := client.BuildLegacyHost()
+		if err != nil {
+			return nil, errors.Wrap(err, "error building qBittorrent host url: %v", client.Host)
+		}
+
+		client.Client = qbittorrent.NewClient(qbittorrent.Config{
+			Host:          clientHost,
+			Username:      client.Username,
+			Password:      client.Password,
+			APIKey:        client.Settings.APIKey,
+			TLSSkipVerify: client.TLSSkipVerify,
+			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "qBittorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			BasicUser:     client.Settings.Auth.Username,
+			BasicPass:     client.Settings.Auth.Password,
+		})
+
+	case domain.DownloadClientTypePorla:
+		client.Client = porla.NewClient(porla.Config{
+			Hostname:      client.Host,
+			AuthToken:     client.Settings.APIKey,
+			TLSSkipVerify: client.TLSSkipVerify,
+			BasicUser:     client.Settings.Auth.Username,
+			BasicPass:     client.Settings.Auth.Password,
+			Log:           s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(),
+		})
+
+	case domain.DownloadClientTypeDelugeV1:
+		client.Client = deluge.NewV1(deluge.Settings{
+			Hostname:             client.Host,
+			Port:                 uint(client.Port),
+			Login:                client.Username,
+			Password:             client.Password,
+			DebugServerResponses: true,
+			ReadWriteTimeout:     time.Second * 60,
+		})
+
+	case domain.DownloadClientTypeDelugeV2:
+		client.Client = deluge.NewV2(deluge.Settings{
+			Hostname:             client.Host,
+			Port:                 uint(client.Port),
+			Login:                client.Username,
+			Password:             client.Password,
+			DebugServerResponses: true,
+			ReadWriteTimeout:     time.Second * 60,
+		})
+
+	case domain.DownloadClientTypeTransmission:
+		clientHost, err := client.BuildLegacyHost()
+		if err != nil {
+			return nil, errors.Wrap(err, "error building Transmission host url: %v", client.Host)
+		}
+
+		transmissionURL, err := url.Parse(clientHost)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not parse transmission url")
+		}
+
+		tbt, err := transmission.New(transmissionURL, &transmission.Config{
+			UserAgent:     "autobrr",
+			Username:      client.Username,
+			Password:      client.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "error logging into transmission client: %s", client.Host)
+		}
+		client.Client = tbt
+
+	case domain.DownloadClientTypeRTorrent:
+		if client.Settings.Auth.Type == domain.DownloadClientAuthTypeDigest {
+			cfg := rtorrent.Config{
+				Addr:          client.Host,
+				TLSSkipVerify: client.TLSSkipVerify,
+				BasicUser:     client.Settings.Auth.Username,
+				BasicPass:     client.Settings.Auth.Password,
+				Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "rTorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			}
+
+			httpClient := &http.Client{
+				Transport: &digest.Transport{
+					Username: client.Settings.Auth.Username,
+					Password: client.Settings.Auth.Password,
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: client.TLSSkipVerify},
+					},
+				},
+			}
+
+			// override client
+			client.Client = rtorrent.NewClientWithOpts(cfg, rtorrent.WithCustomClient(httpClient))
+
+		} else {
+			client.Client = rtorrent.NewClient(rtorrent.Config{
+				Addr:          client.Host,
+				TLSSkipVerify: client.TLSSkipVerify,
+				BasicUser:     client.Settings.Auth.Username,
+				BasicPass:     client.Settings.Auth.Password,
+				Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "rTorrent").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			})
+		}
+
+	case domain.DownloadClientTypeLidarr:
+		client.Client = lidarr.New(lidarr.Config{
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+
+	case domain.DownloadClientTypeRadarr:
+		client.Client = radarr.New(radarr.Config{
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+
+	case domain.DownloadClientTypeReadarr:
+		client.Client = readarr.New(readarr.Config{
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+
+	case domain.DownloadClientTypeSonarr:
+		client.Client = sonarr.New(sonarr.Config{
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+
+	case domain.DownloadClientTypeWhisparr:
+		client.Client = whisparr.New(whisparr.Config{
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+
+	case domain.DownloadClientTypeSabnzbd:
+		client.Client = sabnzbd.New(sabnzbd.Options{
+			Addr:      client.Host,
+			ApiKey:    client.Settings.APIKey,
+			Log:       s.log.With().Str("type", "Sabnzbd").Str("client", client.Name).Logger(),
+			BasicUser: client.Settings.Auth.Username,
+			BasicPass: client.Settings.Auth.Password,
+		})
+
+	case domain.DownloadClientTypeNzbget:
+		client.Client = nzbget.New(nzbget.Options{
+			Host:     client.Host,
+			Username: client.Username,
+			Password: client.Password,
+			Log:      s.log.With().Str("type", "Nzbget").Str("client", client.Name).Logger(),
+		})
 	}
 
-	qc := &domain.DownloadClientCached{
-		Dc:  client,
-		Qbt: qbittorrent.NewClient(qbtSettings),
-	}
+	l.Trace().Str("client", client.Name).Msg("set cache client")
 
-	cached = qc
+	s.cache.Set(clientId, client)
 
-	s.m.Lock()
-	s.qbitClients[clientId] = cached
-	s.m.Unlock()
-
-	return cached
+	return client, nil
 }

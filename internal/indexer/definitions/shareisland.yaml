@@ -1,0 +1,92 @@
+---
+version: 2
+# source: UNIT3D
+name: ShareIsland
+identifier: shareisland
+description: ShareIsland (SHRI) is an Italian private torrent tracker for Movies, TV and general.
+language: it-IT
+urls:
+  - https://shareisland.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to your profile tab, Settings > RSS Key, copy RSS Key"
+
+irc:
+  network: ShareIsland
+  server: irc.shareisland.org
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Site username_BOT or username
+
+    - name: auth.account
+      type: text
+      required: true
+      label: Account
+      help: Site username
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: IRC Key
+      help: "Go to your profile tab, Settings > IRC Key, copy IRC Key"
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - ShareBot
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<announceTypeEnum>[^\]]+)\]-\[(?P<category>[^\]]+)\]-\[(?P<releaseTags>[^\]]+)\]-\[(?P<releaseName>.+)\]-\[Internal: (?P<internal>[^\]]+)\]-\[FL: (?P<freeleechPercent>\d+)%\]-\[DU: (?P<doubleUp>[^\]]+)\]-\[Size: (?P<torrentSize>[^\]]+)\]-\[Uploader: (?P<uploader>[^\]]+)\]-\[URL: (?P<baseUrl>https?:\/\/[^\/]+\/)[^\d]*(?P<torrentId>\d+)\]'
+            tests:
+              - line: "[New]-[Movie]-[WEB-DL]-[Marty Supreme 2025 ITA - ENG 1080p AMZN WEB-DL DD+ 5.1 H.264-cinepth]-[Internal: Yes]-[FL: 0%]-[DU: No]-[Size: 11.14 GiB]-[Uploader: Ovebello]-[URL: https://shareisland.org/torrents/107745]"
+                expect:
+                  announceTypeEnum: New
+                  category: Movie
+                  releaseTags: WEB-DL
+                  releaseName: Marty Supreme 2025 ITA - ENG 1080p AMZN WEB-DL DD+ 5.1 H.264-cinepth
+                  internal: "Yes"
+                  freeleechPercent: "0"
+                  doubleUp: "No"
+                  torrentSize: 11.14 GiB
+                  uploader: Ovebello
+                  baseUrl: https://shareisland.org/
+                  torrentId: "107745"
+
+              - line: "[Featured]-[Movie]-[WEB-DL]-[Buen Camino 2025 ITA - ENG 1080p NF WEB-DL DD+ 5.1 H.264-iSlaNd]-[Internal: Yes]-[FL: 100%]-[DU: Yes]-[Size: 3.93 GiB]-[Uploader: Fabriz]-[URL: https://shareisland.org/torrents/107256]"
+                expect:
+                  announceTypeEnum: Featured
+                  category: Movie
+                  releaseTags: WEB-DL
+                  releaseName: Buen Camino 2025 ITA - ENG 1080p NF WEB-DL DD+ 5.1 H.264-iSlaNd
+                  internal: "Yes"
+                  freeleechPercent: "100"
+                  doubleUp: "Yes"
+                  torrentSize: 3.93 GiB
+                  uploader: Fabriz
+                  baseUrl: https://shareisland.org/
+                  torrentId: "107256"
+
+        mappings:
+          announceTypeEnum:
+            "New":
+              announceType: NEW
+            "Featured":
+              announceType: PROMO
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

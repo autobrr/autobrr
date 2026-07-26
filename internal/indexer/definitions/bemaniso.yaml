@@ -1,0 +1,75 @@
+---
+version: 2
+#id: bemaniso
+name: Bemaniso
+identifier: bemaniso
+description: Bemaniso is a private tracker for Bemani which is a series of music and rhythm games by Konami
+language: en-us
+urls:
+  - https://bemaniso.ws/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+# source: gazelle
+settings:
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
+irc:
+  network: Bemaniso
+  server: irc.bemaniso.ws
+  port: 6667
+  tls: false
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+  channels:
+    - name: "#bemaniso"
+      announcers:
+        - "cindy"
+      parse:
+        type: single
+        lines:
+          - pattern: '(?P<releaseName>.*) -? (?P<releaseTags>.*) (?:.*id=(?P<torrentInfoId>\d+)) / (?:.*id=(?P<torrentId>\d+)) - (?P<tags>.*)'
+            tests:
+              - line: Torrent Name Here  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - ps2, ddr
+                expect:
+                  releaseName: Torrent Name Here
+                  releaseTags: '-'
+                  torrentInfoId: "00000"
+                  torrentId: "00001"
+                  tags: ps2, ddr
+
+              - line: Big Vs. 2 Small  - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - arcade, gundam, exvs
+                expect:
+                  releaseName: Big Vs. 2 Small
+                  releaseTags: '-'
+                  torrentInfoId: "00000"
+                  torrentId: "00001"
+                  tags: arcade, gundam, exvs
+
+              - line: Cool title [2000] [DJ Mix] - FLAC / Lossless / Log / 100% / Cue / CD - https://bemaniso.ws/torrents.php?id=00000 / https://bemaniso.ws/torrents.php?action=download&id=00001 - eurobeat
+                expect:
+                  releaseName: Cool title [2000] [DJ Mix]
+                  releaseTags: FLAC / Lossless / Log / 100% / Cue / CD -
+                  torrentInfoId: "00000"
+                  torrentId: "00001"
+                  tags: eurobeat
+
+        match:
+          infourl: "/torrents.php?id={{ .torrentInfoId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

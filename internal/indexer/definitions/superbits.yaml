@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: superbits
 name: SuperBits
 identifier: superbits
@@ -6,12 +7,13 @@ description: Superbits is a SWEDISH private torrent tracker for MOVIES / TV / 0D
 language: en-us
 urls:
   - https://superbits.org/
+  - https://login.superbits.org/
 privacy: private
 protocol: torrent
 supports:
   - irc
   - rss
-source: rartracker
+# source: rartracker
 settings:
   - name: passkey
     type: secret
@@ -24,10 +26,6 @@ irc:
   server: irc.superbits.org
   port: 6697
   tls: true
-  channels:
-    - "#autodl"
-  announcers:
-    - SuperBits
   settings:
     - name: nick
       type: text
@@ -47,22 +45,35 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "-[archive Film 1080]2[A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP]3[000000]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]"
-          - "-[new TV]2[Some.Show.S05E05.720p.WEB.h264-GROUP]3[000000]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]"
-        pattern: '\-\[(.*)\]2\[(.*)\]3\[(\d+)\]4\[Size\:\s(.*)\]5\[FL\:\s(no|yes)\]6\[Scene\:\s(no|yes)\](?:7\[Pred\s(.*)\sago\])?'
-        vars:
-          - category
-          - torrentName
-          - torrentId
-          - torrentSize
-          - freeleech
-          - scene
-          - preTime
+  channels:
+    - name: "#autodl"
+      announcers:
+        - SuperBits
+      parse:
+        type: single
+        lines:
+          - pattern: '\-\[(?P<category>.*)\]2\[(?P<releaseName>.*)\]3\[(?P<torrentId>\d+)\]4\[Size\:\s(?P<torrentSize>.*)\]5\[FL\:\s(?P<freeleech>no|yes)\]6\[Scene\:\s(?P<scene>no|yes)\](?:7\[Pred\s(?P<preTime>.*)\sago\])?'
+            tests:
+              - line: '-[archive Film 1080]2[A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP]3[000000]4[Size: 4.41 GB]5[FL: no]6[Scene: yes]'
+                expect:
+                  category: archive Film 1080
+                  releaseName: A.Movie.1985.FRENCH.1080p.BluRay.x264-GROUP
+                  torrentId: "000000"
+                  torrentSize: 4.41 GB
+                  freeleech: "no"
+                  scene: "yes"
+                  preTime: ""
 
-    match:
-      infourl: "/torrent/{{ .torrentId }}/"
-      torrenturl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"
+              - line: '-[new TV]2[Some.Show.S05E05.720p.WEB.h264-GROUP]3[000000]4[Size: 964.04 MB]5[FL: no]6[Scene: yes]7[Pred 1m 30s ago]'
+                expect:
+                  category: new TV
+                  releaseName: Some.Show.S05E05.720p.WEB.h264-GROUP
+                  torrentId: "000000"
+                  torrentSize: 964.04 MB
+                  freeleech: "no"
+                  scene: "yes"
+                  preTime: 1m 30s
+
+        match:
+          infourl: "/torrent/{{ .torrentId }}/"
+          downloadurl: "/download.php?id={{ .torrentId }}&passkey={{ .passkey }}"

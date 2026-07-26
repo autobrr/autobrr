@@ -1,35 +1,45 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
-
-func NewFeedRepo(log logger.Logger, db *DB) domain.FeedRepo {
-	return &FeedRepo{
-		log: log.With().Str("repo", "feed").Logger(),
-		db:  db,
-	}
-}
 
 type FeedRepo struct {
 	log zerolog.Logger
 	db  *DB
 }
 
-func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+func NewFeedRepo(log logger.Logger, db *DB) *FeedRepo {
+	return &FeedRepo{
+		log: log.With().Str("repo", "feed").Logger(),
+		db:  db,
+	}
+}
+
+func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
+			"i.id",
 			"i.identifier",
+			"i.identifier_external",
+			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -37,22 +47,35 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.categories",
+			"f.capabilities",
 			"f.api_key",
 			"f.cookie",
+			"f.tls_skip_verify",
 			"f.settings",
 			"f.created_at",
 			"f.updated_at",
+			"f.indexer_id",
 		).
 		From("feed f").
-		Join("indexer i ON f.indexer_id = i.id").
-		Where(sq.Eq{"f.id": id})
+		LeftJoin("indexer i ON f.indexer_id = i.id")
+
+	if params.FeedID != 0 {
+		queryBuilder = queryBuilder.Where(sq.Eq{"f.id": params.FeedID})
+	} else if params.IndexerID != 0 {
+		queryBuilder = queryBuilder.Where(sq.Eq{"f.indexer_id": params.IndexerID})
+	} else if params.IndexerIdentifier != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"i.identifier": params.IndexerIdentifier})
+	} else {
+		return nil, errors.New("invalid params")
+	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -60,9 +83,35 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	var f domain.Feed
 
 	var apiKey, cookie, settings sql.NullString
+	var indexerID, indexerProxyID sql.NullInt64
+	var indexerIdentifier, indexerIdentifierExternal, indexerName sql.NullString
+	var capabilitiesJSONString sql.NullString
+	var indexerUseProxy sql.NullBool
+	var categoriesText []string
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &indexerID, &indexerIdentifier, &indexerIdentifierExternal, &indexerName, &indexerUseProxy, &indexerProxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, pq.Array(&categoriesText), &capabilitiesJSONString, &apiKey, &cookie, &f.TLSSkipVerify, &settings, &f.CreatedAt, &f.UpdatedAt, &f.IndexerID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	if len(categoriesText) > 0 {
+		categories, err := parseCategoryIDs(categoriesText)
+		if err != nil {
+			return nil, err
+		}
+		f.Categories = categories
+	}
+
+	if indexerID.Valid {
+		f.Indexer.ID = int(indexerID.Int64)
+		f.Indexer.Identifier = indexerIdentifier.String
+		f.Indexer.IdentifierExternal = indexerIdentifierExternal.String
+		f.Indexer.Name = indexerName.String
+		f.UseProxy = indexerUseProxy.Bool
+		f.ProxyID = indexerProxyID.Int64
 	}
 
 	f.ApiKey = apiKey.String
@@ -77,14 +126,28 @@ func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 		f.Settings = &settingsJson
 	}
 
+	if capabilitiesJSONString.Valid {
+		var capabilitiesJson domain.FeedCapabilities
+		if err = json.Unmarshal([]byte(capabilitiesJSONString.String), &capabilitiesJson); err != nil {
+			return nil, errors.Wrap(err, "error unmarshal capabilities")
+		}
+
+		f.Capabilities = &capabilitiesJson
+	}
+
 	return &f, nil
 }
 
-func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
+func (r *FeedRepo) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
+			"i.id",
 			"i.identifier",
+			"i.identifier_external",
+			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -92,22 +155,25 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.categories",
+			"f.capabilities",
 			"f.api_key",
 			"f.cookie",
+			"f.tls_skip_verify",
 			"f.settings",
 			"f.created_at",
 			"f.updated_at",
 		).
 		From("feed f").
 		Join("indexer i ON f.indexer_id = i.id").
-		Where(sq.Eq{"i.name": indexer})
+		Where(sq.Eq{"f.id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -115,20 +181,46 @@ func (r *FeedRepo) FindByIndexerIdentifier(ctx context.Context, indexer string) 
 	var f domain.Feed
 
 	var apiKey, cookie, settings sql.NullString
+	var proxyID sql.NullInt64
+	var capabilitiesJSONString sql.NullString
+	var categoriesText []string
 
-	if err := row.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+	if err := row.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, pq.Array(&categoriesText), &capabilitiesJSONString, &apiKey, &cookie, &f.TLSSkipVerify, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
 		return nil, errors.Wrap(err, "error scanning row")
 	}
 
+	if len(categoriesText) > 0 {
+		categories, err := parseCategoryIDs(categoriesText)
+		if err != nil {
+			return nil, err
+		}
+		f.Categories = categories
+	}
+
+	f.ProxyID = proxyID.Int64
 	f.ApiKey = apiKey.String
 	f.Cookie = cookie.String
 
-	var settingsJson domain.FeedSettingsJSON
-	if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
-		return nil, errors.Wrap(err, "error unmarshal settings")
+	if settings.Valid {
+		var settingsJson domain.FeedSettingsJSON
+		if err = json.Unmarshal([]byte(settings.String), &settingsJson); err != nil {
+			return nil, errors.Wrap(err, "error unmarshal settings")
+		}
+
+		f.Settings = &settingsJson
 	}
 
-	f.Settings = &settingsJson
+	if capabilitiesJSONString.Valid {
+		var capabilitiesJson domain.FeedCapabilities
+		if err = json.Unmarshal([]byte(capabilitiesJSONString.String), &capabilitiesJson); err != nil {
+			return nil, errors.Wrap(err, "error unmarshal capabilities")
+		}
+		f.Capabilities = &capabilitiesJson
+	}
 
 	return &f, nil
 }
@@ -137,7 +229,12 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"f.id",
+			"i.id",
 			"i.identifier",
+			"i.identifier_external",
+			"i.name",
+			"i.use_proxy",
+			"i.proxy_id",
 			"f.name",
 			"f.type",
 			"f.enabled",
@@ -145,10 +242,12 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			"f.interval",
 			"f.timeout",
 			"f.max_age",
+			"f.categories",
+			"f.capabilities",
 			"f.api_key",
 			"f.cookie",
+			"f.tls_skip_verify",
 			"f.last_run",
-			"f.last_run_data",
 			"f.settings",
 			"f.created_at",
 			"f.updated_at",
@@ -162,7 +261,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -173,15 +272,26 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 	for rows.Next() {
 		var f domain.Feed
 
-		var apiKey, cookie, lastRunData, settings sql.NullString
+		var apiKey, cookie, settings sql.NullString
 		var lastRun sql.NullTime
+		var capabilitiesJSONString sql.NullString
+		var proxyID sql.NullInt64
+		var categoriesText []string
 
-		if err := rows.Scan(&f.ID, &f.Indexer, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, &apiKey, &cookie, &lastRun, &lastRunData, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Indexer.ID, &f.Indexer.Identifier, &f.Indexer.IdentifierExternal, &f.Indexer.Name, &f.UseProxy, &proxyID, &f.Name, &f.Type, &f.Enabled, &f.URL, &f.Interval, &f.Timeout, &f.MaxAge, pq.Array(&categoriesText), &capabilitiesJSONString, &apiKey, &cookie, &f.TLSSkipVerify, &lastRun, &settings, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
+		if len(categoriesText) > 0 {
+			categories, err := parseCategoryIDs(categoriesText)
+			if err != nil {
+				return nil, err
+			}
+			f.Categories = categories
+		}
+
+		f.ProxyID = proxyID.Int64
 		f.LastRun = lastRun.Time
-		f.LastRunData = lastRunData.String
 		f.ApiKey = apiKey.String
 		f.Cookie = cookie.String
 
@@ -198,6 +308,14 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 			f.Settings = &settingsJson
 		}
 
+		if capabilitiesJSONString.Valid {
+			var capabilitiesJson domain.FeedCapabilities
+			if err = json.Unmarshal([]byte(capabilitiesJSONString.String), &capabilitiesJson); err != nil {
+				return nil, errors.Wrap(err, "error unmarshal capabilities")
+			}
+			f.Capabilities = &capabilitiesJson
+		}
+
 		feeds = append(feeds, f)
 	}
 
@@ -206,9 +324,7 @@ func (r *FeedRepo) Find(ctx context.Context) ([]domain.Feed, error) {
 
 func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, error) {
 	queryBuilder := r.db.squirrel.
-		Select(
-			"last_run_data",
-		).
+		Select("last_run_data").
 		From("feed").
 		Where(sq.Eq{"id": id})
 
@@ -217,7 +333,7 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 		return "", errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return "", errors.Wrap(err, "error executing query")
 	}
@@ -225,6 +341,10 @@ func (r *FeedRepo) GetLastRunDataByID(ctx context.Context, id int) (string, erro
 	var data sql.NullString
 
 	if err := row.Scan(&data); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", domain.ErrRecordNotFound
+		}
+
 		return "", errors.Wrap(err, "error scanning row")
 	}
 
@@ -237,6 +357,11 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 		return errors.Wrap(err, "error marshaling feed settings json data")
 	}
 
+	capabilities, err := json.Marshal(feed.Capabilities)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed capabilities json data")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("feed").
 		Columns(
@@ -246,7 +371,10 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			"url",
 			"interval",
 			"timeout",
+			"categories",
+			"capabilities",
 			"api_key",
+			"tls_skip_verify",
 			"indexer_id",
 			"settings",
 		).
@@ -257,11 +385,14 @@ func (r *FeedRepo) Store(ctx context.Context, feed *domain.Feed) error {
 			feed.URL,
 			feed.Interval,
 			feed.Timeout,
+			pq.Array(formatCategoryIDs(feed.Categories)),
+			capabilities,
 			feed.ApiKey,
+			feed.TLSSkipVerify,
 			feed.IndexerID,
 			settings,
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	var retID int
 
@@ -280,6 +411,11 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		return errors.Wrap(err, "error marshaling feed settings json data")
 	}
 
+	capabilities, err := json.Marshal(feed.Capabilities)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed capabilities json data")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("feed").
 		Set("name", feed.Name).
@@ -289,8 +425,11 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		Set("interval", feed.Interval).
 		Set("timeout", feed.Timeout).
 		Set("max_age", feed.MaxAge).
+		Set("categories", pq.Array(formatCategoryIDs(feed.Categories))).
+		Set("capabilities", capabilities).
 		Set("api_key", feed.ApiKey).
 		Set("cookie", feed.Cookie).
+		Set("tls_skip_verify", feed.TLSSkipVerify).
 		Set("settings", settings).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": feed.ID})
@@ -300,9 +439,46 @@ func (r *FeedRepo) Update(ctx context.Context, feed *domain.Feed) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *FeedRepo) UpdateCapabilities(ctx context.Context, feedID int, caps *domain.FeedCapabilities) error {
+	capabilities, err := json.Marshal(caps)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling feed capabilities json data")
+	}
+
+	queryBuilder := r.db.squirrel.
+		Update("feed").
+		Set("capabilities", capabilities).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"id": feedID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -319,9 +495,15 @@ func (r *FeedRepo) UpdateLastRun(ctx context.Context, feedID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -339,9 +521,15 @@ func (r *FeedRepo) UpdateLastRunWithData(ctx context.Context, feedID int, data s
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -360,9 +548,15 @@ func (r *FeedRepo) ToggleEnabled(ctx context.Context, id int, enabled bool) erro
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	return nil
@@ -378,12 +572,51 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Info().Msgf("feed.delete: successfully deleted: %v", id)
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	r.log.Debug().Int("feed_id", id).Msg("feed successfully deleted")
 
 	return nil
+}
+
+func parseCategoryIDs(values []string) ([]int, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	parsed := make([]int, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		id, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid category id")
+		}
+		parsed = append(parsed, id)
+	}
+
+	return parsed, nil
+}
+
+func formatCategoryIDs(values []int) []string {
+	if len(values) == 0 {
+		return []string{}
+	}
+
+	formatted := make([]string, 0, len(values))
+	for _, value := range values {
+		formatted = append(formatted, strconv.Itoa(value))
+	}
+
+	return formatted
 }

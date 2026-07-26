@@ -1,21 +1,29 @@
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
-import format from "date-fns/format";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
-import { APIClient } from "../api/APIClient";
-import { Checkbox } from "../components/Checkbox";
-import { classNames, simplifyDate } from "../utils";
-import { SettingsContext } from "../utils/Context";
-import { EmptySimple } from "../components/emptystates";
+import { useTranslation } from "react-i18next";
 import {
   Cog6ToothIcon,
-  DocumentArrowDownIcon
+  DocumentArrowDownIcon,
+  TrashIcon
 } from "@heroicons/react/24/outline";
-import { useQuery } from "react-query";
-import { Menu, Transition } from "@headlessui/react";
-import { baseUrl } from "../utils";
-import { RingResizeSpinner } from "@/components/Icons";
+import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
+import { format } from "date-fns/format";
 
+import { APIClient } from "@api/APIClient";
+import { Checkbox } from "@components/Checkbox";
+import { baseUrl, classNames, simplifyDate } from "@utils";
+import { SettingsContext } from "@utils/Context";
+import { EmptySimple } from "@components/emptystates";
+import { RingResizeSpinner } from "@components/Icons";
+import { toast } from "@components/hot-toast";
+import Toast from "@components/notifications/Toast";
 
 type LogEvent = {
   time: string;
@@ -23,28 +31,44 @@ type LogEvent = {
   message: string;
 };
 
-type LogLevel = "TRACE" | "DEBUG" | "INFO" | "ERROR" | "WARN";
+type LogLevel = "TRC" | "DBG" | "INF" | "ERR" | "WRN" | "FTL" | "PNC";
 
 const LogColors: Record<LogLevel, string> = {
-  "TRACE": "text-purple-300",
-  "DEBUG": "text-yellow-500",
-  "INFO": "text-green-500",
-  "ERROR": "text-red-500",
-  "WARN": "text-yellow-500"
+  "TRC": "text-purple-300",
+  "DBG": "text-yellow-500",
+  "INF": "text-green-500",
+  "ERR": "text-red-500",
+  "WRN": "text-yellow-500",
+  "FTL": "text-red-500",
+  "PNC": "text-red-600"
 };
 
 export const Logs = () => {
+  const { t } = useTranslation("common");
   const [settings] = SettingsContext.use();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
+  const [, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
+  const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end", inline: "end" });
-  };
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      }
+    };
+    if (settings.scrollOnNewLog)
+      scrollToBottom();
+  }, [filteredLogs, settings.scrollOnNewLog]);
+
+  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
+  useEffect(() => {
+    setLogs([]);
+  }, [settings.scrollOnNewLog]);
 
   useEffect(() => {
     const es = APIClient.events.logs();
@@ -52,9 +76,6 @@ export const Logs = () => {
     es.onmessage = (event) => {
       const newData = JSON.parse(event.data) as LogEvent;
       setLogs((prevState) => [...prevState, newData]);
-
-      if (settings.scrollOnNewLog)
-        scrollToBottom();
     };
 
     return () => es.close();
@@ -63,55 +84,67 @@ export const Logs = () => {
   useEffect(() => {
     if (!searchFilter.length) {
       setFilteredLogs(logs);
+      setIsInvalidRegex(false);
       return;
     }
-    
-    const newLogs: LogEvent[] = [];
-    logs.forEach((log) => {
-      if (log.message.indexOf(searchFilter) !== -1)
-        newLogs.push(log);
-    });
 
-    setFilteredLogs(newLogs);
+    try {
+      const pattern = new RegExp(searchFilter, "i");
+      setRegexPattern(pattern);
+      const newLogs = logs.filter(log => pattern.test(log.message));
+      setFilteredLogs(newLogs);
+      setIsInvalidRegex(false);
+    } catch (error) {
+      // Handle regex errors by showing nothing when the regex pattern is invalid
+      setFilteredLogs([]);
+      setIsInvalidRegex(true);
+    }
   }, [logs, searchFilter]);
+
+  const handleClearLogs = () => {
+    setLogs([]);
+    toast.custom((toastInstance) => <Toast type="success" body={t("logs.cleared")} t={toastInstance} />);
+  };
 
   return (
     <main>
-      <header className="pt-10 pb-5">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white">Logs</h1>
-        </div>
-      </header>
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-black dark:text-white">{t("logs.title")}</h1>
+      </div>
 
-
-      <div className="max-w-screen-xl mx-auto pb-12 px-2 sm:px-4 lg:px-8">
-        <div className="flex justify-center py-4">
-          <ExclamationTriangleIcon
-            className="h-5 w-5 text-yellow-400"
-            aria-hidden="true"
-          />
-          <p className="ml-2 text-sm text-black dark:text-gray-400">This page shows only new logs, i.e. no history.</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-4 lg:px-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-2 sm:px-4 pt-3 sm:pt-4 pb-3 sm:pb-4">
           <div className="flex relative mb-3">
             <DebounceInput
               minLength={2}
               debounceTimeout={200}
-              onChange={(event) => setSearchFilter(event.target.value.toLowerCase().trim())}
-              id="filter"
-              type="text"
-              autoComplete="off"
+              onChange={(event) => {
+                const inputValue = event.target.value.toLowerCase().trim();
+                setSearchFilter(inputValue);
+              }}
               className={classNames(
                 "focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700",
-                "block w-full dark:bg-gray-900 shadow-sm dark:text-gray-100 sm:text-sm rounded-md"
+                "block w-full dark:bg-gray-900 shadow-xs dark:text-gray-100 sm:text-sm rounded-md"
               )}
-              placeholder="Enter a string to filter logs by..."
+              placeholder={t("logs.filterPlaceholder")}
             />
-
+            {isInvalidRegex && (
+              <div className="absolute mt-1.5 right-28 items-center text-xs text-red-500">
+                <ExclamationCircleIcon className="h-6 w-6 inline mr-1" />
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleClearLogs}
+              className="px-4 py-2"
+              title={t("logs.clearTitle")}
+            >
+              <TrashIcon className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400" aria-hidden="true" />
+            </button>
             <LogsDropdown />
           </div>
 
-          <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto">
+          <div className="overflow-y-auto px-2 rounded-lg h-[60vh] min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto" ref={messagesEndRef}>
             {filteredLogs.map((entry, idx) => (
               <div
                 key={idx}
@@ -122,9 +155,9 @@ export const Logs = () => {
               >
                 <span
                   title={entry.time}
-                  className="font-mono text-gray-500 dark:text-gray-600 mr-2 h-full"
+                  className="font-mono text-gray-500 dark:text-gray-600 h-full"
                 >
-                  {format(new Date(entry.time), "HH:mm:ss.SSS")}
+                  {format(new Date(entry.time), "HH:mm:ss")}
                 </span>
                 {entry.level in LogColors ? (
                   <span
@@ -133,22 +166,20 @@ export const Logs = () => {
                       "font-mono font-semibold h-full"
                     )}
                   >
-                    {entry.level}
-                    {" "}
+                    {` ${entry.level} `}
                   </span>
                 ) : null}
-                <span className="ml-2 text-black dark:text-gray-300">
+                <span className="text-black dark:text-gray-300">
                   {entry.message}
                 </span>
               </div>
             ))}
-            <div className="mt-6" ref={messagesEndRef} />
           </div>
         </div>
       </div>
 
-      <div className="max-w-screen-xl mx-auto pb-10 px-2 sm:px-4 lg:px-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg px-4 sm:px-6 pt-3 sm:pt-4">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-10 px-2 sm:px-4 lg:px-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-250 dark:border-gray-775 px-4 sm:px-6 pt-3 sm:pt-4">
           <LogFiles />
         </div>
       </div>
@@ -158,46 +189,42 @@ export const Logs = () => {
 };
 
 export const LogFiles = () => {
-  const { isLoading, data } = useQuery(
-    ["log-files"],
-    () => APIClient.logs.files(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
-    }
-  );
+  const { t } = useTranslation("common");
+  const { data } = useSuspenseQuery({
+    queryKey: ["log-files"],
+    queryFn: () => APIClient.logs.files(),
+    retry: false,
+    refetchOnWindowFocus: false
+  });
 
   return (
     <div>
       <div className="mt-2">
-        <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Log files</h2>
+        <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">{t("logs.filesTitle")}</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Download old log files.
+          {t("logs.filesDescription")}
         </p>
       </div>
 
-      {data && data.files.length > 0 ? (
-        <section className="py-3 light:bg-white dark:bg-gray-800 light:shadow sm:rounded-md">
-          <ol className="min-w-full relative">
-            <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
-              <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Name
-              </div>
-              <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Last modified
-              </div>
-              <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Size
-              </div>
-            </li>
+      {data && data.files && data.files.length > 0 ? (
+        <ul className="py-3 min-w-full relative">
+          <li className="grid grid-cols-12 mb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="hidden sm:block col-span-5 px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {t("logs.columns.name")}
+            </div>
+            <div className="col-span-8 sm:col-span-4 px-1 sm:px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {t("logs.columns.lastModified")}
+            </div>
+            <div className="col-span-3 sm:col-span-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {t("logs.columns.size")}
+            </div>
+          </li>
 
-            {data && data.files.map((f, idx) => <LogFilesItem key={idx} file={f} />)}
-          </ol>
-        </section>
+          {data.files.map((f, idx) => <LogFilesItem key={idx} file={f} />)}
+        </ul>
       ) : (
         <EmptySimple
-          title="No old log files"
+          title={t("logs.noOldFiles")}
           subtitle=""
         />
       )}
@@ -210,10 +237,17 @@ interface LogFilesItemProps {
 }
 
 const LogFilesItem = ({ file }: LogFilesItemProps) => {
+  const { t } = useTranslation("common");
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownload = async () => {
     setIsDownloading(true);
+
+    // Add a custom toast before the download starts
+    const toastId = toast.custom((toastInstance) => (
+      <Toast type="info" body={t("logs.sanitizing")} t={toastInstance} />
+    ));
+
     const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -222,12 +256,14 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
     link.download = file.filename;
     link.click();
     URL.revokeObjectURL(url);
+
+    // Dismiss the custom toast after the download is complete
+    toast.dismiss(toastId);
+
     setIsDownloading(false);
   };
-  
 
   return (
-
     <li className="text-gray-500 dark:text-gray-400">
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-4 sm:col-span-5 px-2 py-0 truncate hidden sm:block sm:text-sm text-md font-medium text-gray-900 dark:text-gray-200">
@@ -248,7 +284,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
                 "text-gray-900 dark:text-gray-300",
                 "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
               )}
-              title={!isDownloading ? "Download file" : "Sanitizing log..."}
+              title={!isDownloading ? t("logs.downloadFile") : t("logs.sanitizingShort")}
               onClick={handleDownload}
             >
               {!isDownloading ? (
@@ -273,6 +309,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
 // interface LogsDropdownProps {}
 
 const LogsDropdown = () => {
+  const { t } = useTranslation("common");
   const [settings, setSettings] = SettingsContext.use();
 
   const onSetValue = (
@@ -285,12 +322,12 @@ const LogsDropdown = () => {
 
   return (
     <Menu as="div">
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <Cog6ToothIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -300,41 +337,41 @@ const LogsDropdown = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
-          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+        <MenuItems
+          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-hidden"
         >
           <div className="p-3">
-            <Menu.Item>
-              {({ active }) => (
+            <MenuItem>
+              {() => (
                 <Checkbox
-                  label="Scroll to bottom on new message"
+                  label={t("logs.options.scrollOnNewMessage")}
                   value={settings.scrollOnNewLog}
                   setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
+            </MenuItem>
+            <MenuItem>
+              {() => (
                 <Checkbox
-                  label="Indent log lines"
-                  description="Indent each log line according to their respective starting position."
+                  label={t("logs.options.indentLogLines")}
+                  description={t("logs.options.indentLogLinesDescription")}
                   value={settings.indentLogLines}
                   setValue={(newValue) => onSetValue("indentLogLines", newValue)}
                 />
               )}
-            </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
+            </MenuItem>
+            <MenuItem>
+              {() => (
                 <Checkbox
-                  label="Hide wrapped text"
-                  description="Hides text that is meant to be wrapped."
+                  label={t("logs.options.hideWrappedText")}
+                  description={t("logs.options.hideWrappedTextDescription")}
                   value={settings.hideWrappedText}
                   setValue={(newValue) => onSetValue("hideWrappedText", newValue)}
                 />
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );

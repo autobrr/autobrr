@@ -1,15 +1,18 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package jsonrpc
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 type Client interface {
@@ -50,6 +53,9 @@ func (e *RPCError) Error() string {
 	return strconv.Itoa(e.Code) + ":" + e.Message
 }
 
+// HTTPError carries the http status code of a response that could not be
+// decoded as an rpc response, so callers can react to throttling or auth
+// failures the server reports outside the rpc envelope.
 type HTTPError struct {
 	Code int
 	err  error
@@ -57,6 +63,10 @@ type HTTPError struct {
 
 func (e *HTTPError) Error() string {
 	return e.err.Error()
+}
+
+func (e *HTTPError) Unwrap() error {
+	return e.err
 }
 
 type rpcClient struct {
@@ -163,7 +173,6 @@ func (c *rpcClient) newRequest(ctx context.Context, req interface{}) (*http.Requ
 }
 
 func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCResponse, error) {
-
 	httpRequest, err := c.newRequest(ctx, request)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create rpc http request")
@@ -174,7 +183,7 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 		return nil, errors.Wrap(err, "error during rpc http request")
 	}
 
-	defer httpResponse.Body.Close()
+	defer sharedhttp.DrainAndClose(httpResponse)
 
 	var rpcResponse *RPCResponse
 	decoder := json.NewDecoder(httpResponse.Body)
@@ -184,21 +193,13 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 
 	if err != nil {
 		if httpResponse.StatusCode >= 400 {
-			return nil, errors.Wrap(err, fmt.Sprintf("rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode))
+			// the body was not an rpc response, so the status code is the only
+			// thing that tells the caller why the call failed
+			return nil, &HTTPError{
+				Code: httpResponse.StatusCode,
+				err:  errors.Wrap(err, "rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode),
+			}
 		}
-		//	if res.StatusCode == http.StatusUnauthorized {
-		//		return nil, errors.New("unauthorized: bad credentials")
-		//	} else if res.StatusCode == http.StatusForbidden {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusTooManyRequests {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusBadRequest {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusNotFound {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusServiceUnavailable {
-		//		return nil, nil
-		//	}
 	}
 
 	if rpcResponse == nil {

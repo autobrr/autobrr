@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package argon2id
 
 import (
@@ -7,6 +10,7 @@ import (
 )
 
 func TestCreateHash(t *testing.T) {
+	t.Parallel()
 	hashRX, err := regexp.Compile(`^\$argon2id\$v=19\$m=65536,t=1,p=2\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$`)
 	if err != nil {
 		t.Fatal(err)
@@ -32,6 +36,7 @@ func TestCreateHash(t *testing.T) {
 }
 
 func TestComparePasswordAndHash(t *testing.T) {
+	t.Parallel()
 	hash, err := CreateHash("pa$$word", DefaultParams)
 	if err != nil {
 		t.Fatal(err)
@@ -57,6 +62,7 @@ func TestComparePasswordAndHash(t *testing.T) {
 }
 
 func TestDecodeHash(t *testing.T) {
+	t.Parallel()
 	hash, err := CreateHash("pa$$word", DefaultParams)
 	if err != nil {
 		t.Fatal(err)
@@ -72,6 +78,7 @@ func TestDecodeHash(t *testing.T) {
 }
 
 func TestCheckHash(t *testing.T) {
+	t.Parallel()
 	hash, err := CreateHash("pa$$word", DefaultParams)
 	if err != nil {
 		t.Fatal(err)
@@ -90,6 +97,7 @@ func TestCheckHash(t *testing.T) {
 }
 
 func TestStrictDecoding(t *testing.T) {
+	t.Parallel()
 	// "bug" valid hash: $argon2id$v=19$m=65536,t=1,p=2$UDk0zEuIzbt0x3bwkf8Bgw$ihSfHWUJpTgDvNWiojrgcN4E0pJdUVmqCEdRZesx9tE
 	ok, _, err := CheckHash("bug", "$argon2id$v=19$m=65536,t=1,p=2$UDk0zEuIzbt0x3bwkf8Bgw$ihSfHWUJpTgDvNWiojrgcN4E0pJdUVmqCEdRZesx9tE")
 	if err != nil {

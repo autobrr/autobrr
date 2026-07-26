@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: pb
 name: Pornbay
 identifier: pornbay
@@ -11,7 +12,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -30,11 +31,6 @@ irc:
   server: irc.digitalirc.org
   port: 6697
   tls: true
-  channels:
-    - "#pornbay-announce"
-  announcers:
-    - "PB-Announcer"
-    - "Llamab1t"
   settings:
     - name: nick
       type: text
@@ -54,21 +50,35 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000"
-          - "[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000"
-        pattern: '\[(.+)\] (.*) \[([0-9]+?.*?) - Uploader: (.+)\] - (https:\/\/.+\/)torrents.php\?id=(\d+)'
-        vars:
-          - category
-          - torrentName
-          - torrentSize
-          - uploader
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#pornbay-announce"
+      announcers:
+        - "PB-Announcer"
+        - "Llamab1t"
+        - "Llamab3t"
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<category>.+?)\] (?P<releaseName>\[?.*\]?.*) \[(?P<torrentSize>[0-9]+?.*?) - Uploader: (?P<uploader>.+)\] - (?P<baseUrl>https:\/\/.+\/)torrents.php\?id=(?P<torrentId>\d+)'
+            tests:
+              - line: '[XXX-Cateogry] [SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p] [4.77 GB - Uploader: Tester] - https://pornbay.org/torrents.php?id=000000'
+                expect:
+                  category: XXX-Cateogry
+                  releaseName: '[SomeXXXSite] Wow So Much Come [2015-05-30, 3K, 1500p]'
+                  torrentSize: 4.77 GB
+                  uploader: Tester
+                  baseUrl: https://pornbay.org/
+                  torrentId: "000000"
 
-    match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+              - line: '[XXX-Category-2] SomeXXXSite - Some Name [1.35 GB - Uploader: someUploader] - https://pornbay.org/torrents.php?id=000000'
+                expect:
+                  category: XXX-Category-2
+                  releaseName: SomeXXXSite - Some Name
+                  torrentSize: 1.35 GB
+                  uploader: someUploader
+                  baseUrl: https://pornbay.org/
+                  torrentId: "000000"
+
+        match:
+          infourl: "/torrents.php?id={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

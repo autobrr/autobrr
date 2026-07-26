@@ -7,9 +7,29 @@ on:
       - "develop"
     tags:
       - 'v*'
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/images/**'
+      - 'config.toml'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '**.md'
   pull_request:
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/images/**'
+      - 'config.toml'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '**.md'
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  NODE_VERSION: '24.15.0'
 
 permissions:
+  id-token: write
   contents: write
   packages: write
 
@@ -19,180 +39,603 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
-          node-version: 18
-          cache: 'yarn'
-          cache-dependency-path: web/yarn.lock
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Build web
-        run: |
-          cd web && yarn install
-          CI= yarn build
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          package_json_file: web/package.json
+
+      # It can not be done before installing pnpm
+      - name: Set up cache
+        uses: actions/setup-node@v7
+        with:
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Fetch web dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web frontend
+        working-directory: web
+        run: CI= pnpm run build
 
       - name: Upload web production build
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: web/dist
 
   test:
-    name: Test
+    name: Test ubuntu-latest
     runs-on: ubuntu-latest
-    needs: web
+    services:
+      test_postgres:
+        image: postgres:12.10
+        ports:
+          - "5437:5432"
+        env:
+          POSTGRES_USER: testdb
+          POSTGRES_PASSWORD: testdb
+          POSTGRES_DB: autobrr
+        options: --health-cmd pg_isready --health-interval 1s --health-timeout 5s --health-retries 60
+    env:
+      CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Download web production build
-        uses: actions/download-artifact@v3
-        with:
-          name: web-dist
-          path: web/dist
-
-      # 1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.20.3'
+          go-version-file: go.mod
           cache: true
+
+      - name: Create Profile environment
+        run:
+          |
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list -tags=integration,irc_integration_test "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" -tags=integration,irc_integration_test "$pkg"\ndone' | tee -a profile.sh;
+          chmod +x profile.sh;
+          mkdir profile;
 
       - name: Test
-        run: go test -v ./...
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
 
-  goreleaserbuild:
-    name: Build Go binaries
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    needs: [web, test]
+      - name: Upload pprof
+        uses: actions/upload-artifact@v7
+        with:
+          name: pprof-test-ubuntu-latest
+          path: profile
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests.xml"
+        if: always()
+
+  testother:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ macos-latest, windows-latest ]
+    name: Test ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+      CGO_ENABLED: 0
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Create Profile environment
+        shell: bash
+        run:
+          |
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" "$pkg"\ndone' | tee -a profile.sh;
+          chmod +x profile.sh;
+          mkdir profile;
+
+      - name: Profile
+        shell: bash
+        run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v7
+        with:
+          name: pprof-test-${{ matrix.os }}
+          path: profile
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "unit-tests.xml"
+        if: always() && startsWith(matrix.os, 'windows') == false
+
+  pgo:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+    name: Automatic PGO run ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: [ web ]
+    env:
+      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
+      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
+      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
+      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
+      CGO_ENABLED: 0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Download web production build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: web/dist
 
-#     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.20.3'
+          go-version-file: go.mod
           cache: true
+
+      - name: Generate Profile
+        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v7
+        with:
+          name: pprof-pgo-${{ matrix.os }}
+          path: cpu-${{ matrix.os }}.pprof
+
+  goprofilecombine:
+    name: Combine pprof profiles
+    runs-on: ubuntu-latest
+    needs: [ pgo, test, testother ]
+    steps:
+      - name: Download pprof profiles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: pprof-*
+          merge-multiple: true
+          path: profile
+
+      - name: List contents
+        run: ls -la profile
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Merge Profiles
+        run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
+
+      - name: Upload pprof
+        uses: actions/upload-artifact@v7
+        with:
+          name: pprof
+          path: cpu.pprof
+
+  prepare:
+    needs: [ web, goprofilecombine ]
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            goos: linux
+          - runner: ubuntu-latest
+            goos: freebsd
+          - runner: macos-latest
+            goos: darwin
+          - runner: windows-latest
+            goos: windows
+    runs-on: ${{ matrix.runner }}
+    name: Build distribution binaries ${{ matrix.goos }} ${{ matrix.runner }}
+    env:
+      flags: ""
+      GOOS: ${{ matrix.goos }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Download pprof profile
+        uses: actions/download-artifact@v8
+        with:
+          name: pprof
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          echo "flags=--nightly" >> $GITHUB_ENV
+
+      - name: Get short SHA
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Set cache prefix
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "cache_prefix=release" >> $GITHUB_ENV
+          else
+            echo "cache_prefix=push" >> $GITHUB_ENV
+          fi
+
+      - name: Cache builds
+        uses: actions/cache@v6
+        with:
+          path: dist/${{ matrix.goos }}
+          key: ${{ env.cache_prefix }}-${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
+          enableCrossOsArchive: ${{ matrix.runner == 'windows-latest' && 'true' || 'false'}}
+
+      - name: Run GoReleaser snapshot build
+        if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser-pro
+          version: "~> v2"
+          args: release --clean --skip=validate,publish --snapshot --split ${{ env.flags }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
       - name: Run GoReleaser build
-        uses: goreleaser/goreleaser-action@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: goreleaser/goreleaser-action@v7
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --rm-dist --skip-publish
+          distribution: goreleaser-pro
+          version: "~> v2"
+          args: release --clean --split ${{ env.flags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
       - name: Upload assets
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
-          name: autobrr
-          path: dist/*
+          name: autobrr-${{ matrix.goos }}
+          path: |
+            dist/${{ matrix.goos }}/*.tar.gz
+            dist/${{ matrix.goos }}/*.zip
+            dist/${{ matrix.goos }}/*.apk
+            dist/${{ matrix.goos }}/*.deb
+            dist/${{ matrix.goos }}/*.rpm
 
-  goreleaser:
-    name: Build & publish binaries and images
-    if: startsWith(github.ref, 'refs/tags/')
+  release:
+    name: Merge and publish distribution binaries
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: [web, test]
+    needs: prepare
+    env:
+      flags: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Download web production build
-        uses: actions/download-artifact@v3
-        with:
-          name: web-dist
-          path: web/dist
-
-#     1.20 is the last version to support Windows < 10, Server < 2016, and MacOS < 1.15.
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v7
         with:
-          go-version: '1.20.3'
+          go-version-file: go.mod
           cache: true
 
-      - name: Run GoReleaser build and publish tags
-        uses: goreleaser/goreleaser-action@v3
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --rm-dist
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # copy the caches from prepare
+      - if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          echo "flags=--nightly" >> $GITHUB_ENV
 
-      - name: Upload assets
-        uses: actions/upload-artifact@v3
-        with:
-          name: autobrr
-          path: dist/*
+      - name: Get short SHA
+        shell: bash
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-  docker:
-    name: Build and publish Docker images
-    runs-on: ubuntu-latest
-    needs: [web, test]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Set cache prefix
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "cache_prefix=release" >> $GITHUB_ENV
+          else
+            echo "cache_prefix=push" >> $GITHUB_ENV
+          fi
+
+      - name: Get Linux cache
+        uses: actions/cache@v6
         with:
-          fetch-depth: 0
+          path: dist/linux
+          key: ${{ env.cache_prefix }}-linux-${{ env.sha_short }}${{ env.flags }}
+
+      - name: Get FreeBSD cache
+        uses: actions/cache@v6
+        with:
+          path: dist/freebsd
+          key: ${{ env.cache_prefix }}-freebsd-${{ env.sha_short }}${{ env.flags }}
+
+      - name: Get Darwin cache
+        uses: actions/cache@v6
+        with:
+          path: dist/darwin
+          key: ${{ env.cache_prefix }}-darwin-${{ env.sha_short }}${{ env.flags }}
+
+      - name: Get Windows cache
+        uses: actions/cache@v6
+        with:
+          path: dist/windows
+          key: ${{ env.cache_prefix }}-windows-${{ env.sha_short }}${{ env.flags }}
+          enableCrossOsArchive: true
 
       - name: Download web production build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: web-dist
           path: web/dist
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+      - name: Create web dist tarball
+        run: tar -czf web-dist.tar.gz -C . web/dist
+
+      # release
+      - name: Merge and publish GoReleaser build
+        uses: goreleaser/goreleaser-action@v7
         with:
-          registry: ghcr.io
+          distribution: goreleaser-pro
+          version: "~> v2"
+          args: continue --merge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
+  docker:
+    name: Build Docker images
+    needs: [ web, goprofilecombine ]
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/386
+            runner: ubuntu-latest
+            qemu: true
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/amd64/v2
+            runner: ubuntu-latest
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/amd64/v3
+            runner: ubuntu-latest
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/arm/v6
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/arm/v7
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/arm64/v8.2 # Neoverse + Raspberry Pi
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/arm64/v8.4 # AWS Graviton3
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/arm64/v9
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/arm64/v9.2 # Apple M4
+            runner: ubuntu-24.04-arm
+            qemu: false
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/ppc64le
+            runner: ubuntu-latest
+            qemu: true
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/riscv64
+            runner: ubuntu-latest
+            qemu: true
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: linux/s390x
+            runner: ubuntu-latest
+            qemu: true
+            file: ./distrib/docker/ci.Dockerfile
+
+          - platform: windows/amd64
+            # runner: windows-latest
+            runner: ubuntu-latest
+            qemu: true
+            file: ./distrib/docker/ciwindows.Dockerfile
+
+    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download web production build
+        uses: actions/download-artifact@v8
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Download pprof profile
+        uses: actions/download-artifact@v8
+        with:
+          name: pprof
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/autobrr/autobrr
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},prefix=v
+            type=semver,pattern={{major}}.{{minor}},prefix=v
+            type=ref,event=branch
+            type=ref,event=pr
+          flavor: |
+            latest=auto
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        if: matrix.qemu == true
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v4
+
+      - name: Supported Architectures
+        run: docker buildx ls
 
       - name: Build and publish image
         id: docker_build
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./ci.Dockerfile
-          platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-          push: ${{ github.repository_owner == 'autobrr' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          file: ${{ matrix.file || './distrib/docker/ci.Dockerfile' }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=${{ (github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && 'true' || 'false' }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-            REVISION=${{ github.event.pull_request.head.sha }}
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+            REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Export image digest
+        id: digest-prep
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.docker_build.outputs.digest }}"
+          echo "manifest-hash=${digest#sha256:}" >> "$GITHUB_OUTPUT"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - name: Upload image digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-digests-${{ steps.digest-prep.outputs.manifest-hash }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  docker-merge:
+    name: Publish Docker multi-arch manifest
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    needs: [ docker ]
+    steps:
+      - name: Download image digests
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: docker-digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},prefix=v
+            type=semver,pattern={{major}}.{{minor}},prefix=v
+            type=ref,event=branch
+            type=ref,event=pr
+          flavor: |
+            latest=auto
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.meta.outputs.version }}

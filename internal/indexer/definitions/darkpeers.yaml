@@ -1,0 +1,87 @@
+---
+version: 2
+#id: darkpeers
+name: DarkPeers
+identifier: darkpeers
+description: DarkPeers (DP) is a private torrent tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://darkpeers.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to My Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: DarkPeers
+  server: irc.darkpeers.org
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - DP
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<announceTypeEnum>.*)\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<releaseName>.*)\]-\[Size: (?P<torrentSize>.*)\]-\[Link: (?P<baseUrl>https.*\/).*\/(?P<torrentId>\d+)\]-\[FL: (?P<freeleechPercent>\d+)\%\]-\[DU: (\d+)\]'
+            tests:
+              - line: '[New-upload]-[Movies]-[WEB-DL]-[Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE]-[Size: 4.79 GiB]-[Link: https://darkpeers.org/torrents/1704]-[FL: 100%]-[DU: 0]'
+                expect:
+                  announceTypeEnum: New-upload
+                  category: Movies
+                  releaseTags: WEB-DL
+                  releaseName: Out.of.Season.2023.NORDiC.1080p.WEB-DL.DD5.1.H264-RARE
+                  torrentSize: 4.79 GiB
+                  baseUrl: https://darkpeers.org/
+                  torrentId: "1704"
+                  freeleechPercent: "100"
+
+              - line: '[Featured]-[Movies]-[WEB-DL]-[The Addams Family 1991 1080p AMZN WEB-DL DD+ 5.1 H.264-GPRS]-[Size: 6.81 GiB]-[Link: https://darkpeers.org/torrents/38364]-[FL: 100%]-[DU: 1]'
+                expect:
+                  announceTypeEnum: Featured
+                  category: Movies
+                  releaseTags: WEB-DL
+                  releaseName: The Addams Family 1991 1080p AMZN WEB-DL DD+ 5.1 H.264-GPRS
+                  torrentSize: 6.81 GiB
+                  baseUrl: https://darkpeers.org/
+                  torrentId: "38364"
+                  freeleechPercent: "100"
+
+        mappings:
+          announceTypeEnum:
+            "New-upload":
+              announceType: NEW
+            "Featured":
+              announceType: PROMO
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

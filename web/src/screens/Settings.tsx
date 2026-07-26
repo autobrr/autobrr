@@ -1,33 +1,46 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import {
+  BarsArrowDownIcon,
   BellIcon,
   ChatBubbleLeftRightIcon,
   CogIcon,
   FolderArrowDownIcon,
+  GlobeAltIcon,
   KeyIcon,
   RectangleStackIcon,
   RssIcon,
-  Square3Stack3DIcon
+  Square3Stack3DIcon,
+  UserCircleIcon
 } from "@heroicons/react/24/outline";
+import { Link, Outlet } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
-import { classNames } from "../utils";
+import { classNames } from "@utils";
 
 interface NavTabType {
-  name: string;
+  labelKey: string;
   href: string;
   icon: typeof CogIcon;
+  exact?: boolean;
 }
 
 const subNavigation: NavTabType[] = [
-  { name: "Application", href: "", icon: CogIcon },
-  { name: "Logs", href: "logs", icon: Square3Stack3DIcon },
-  { name: "Indexers", href: "indexers", icon: KeyIcon },
-  { name: "IRC", href: "irc", icon: ChatBubbleLeftRightIcon },
-  { name: "Feeds", href: "feeds", icon: RssIcon },
-  { name: "Clients", href: "clients", icon: FolderArrowDownIcon },
-  { name: "Notifications", href: "notifications", icon: BellIcon },
-  { name: "API keys", href: "api-keys", icon: KeyIcon },
-  { name: "Releases", href: "releases", icon: RectangleStackIcon }
+  { labelKey: "nav.application", href: "/settings", icon: CogIcon, exact: true },
+  { labelKey: "nav.logs", href: "/settings/logs", icon: Square3Stack3DIcon },
+  { labelKey: "nav.indexers", href: "/settings/indexers", icon: KeyIcon },
+  { labelKey: "nav.irc", href: "/settings/irc", icon: ChatBubbleLeftRightIcon },
+  { labelKey: "nav.feeds", href: "/settings/feeds", icon: RssIcon },
+  { labelKey: "nav.lists", href: "/settings/lists", icon: BarsArrowDownIcon },
+  { labelKey: "nav.clients", href: "/settings/clients", icon: FolderArrowDownIcon },
+  { labelKey: "nav.notifications", href: "/settings/notifications", icon: BellIcon },
+  { labelKey: "nav.apiKeys", href: "/settings/api", icon: KeyIcon },
+  { labelKey: "nav.proxies", href: "/settings/proxies", icon: GlobeAltIcon },
+  { labelKey: "nav.releases", href: "/settings/releases", icon: RectangleStackIcon },
+  { labelKey: "nav.account", href: "/settings/account", icon: UserCircleIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];
@@ -37,28 +50,39 @@ interface NavLinkProps {
 }
 
 function SubNavLink({ item }: NavLinkProps) {
-  const { pathname } = useLocation();
-  const splitLocation = pathname.split("/");
+  const { t } = useTranslation("settings");
+  // const { pathname } = useLocation();
+  // const splitLocation = pathname.split("/");
 
   // we need to clean the / if it's a base root path
   return (
-    <NavLink
-      key={item.name}
+    <Link
+      key={item.href}
       to={item.href}
-      end
-      className={({ isActive }) => classNames(
-        "border-transparent text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-300 group border-l-4 px-3 py-2 flex items-center text-sm font-medium",
-        isActive ?
-          "font-bold bg-blue-50 dark:bg-gray-700 border-sky-500 dark:border-blue-500 text-sky-700 dark:text-white hover:bg-blue-100 dark:hover:bg-gray-500 hover:text-sky-700 dark:hover:text-gray-200" : ""
-      )}
-      aria-current={splitLocation[2] === item.href ? "page" : undefined}
+      activeOptions={{ exact: item.exact }}
+      search={{}}
+      params={{}}
+      // aria-current={splitLocation[2] === item.href ? "page" : undefined}
     >
-      <item.icon
-        className="text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300 flex-shrink-0 -ml-1 mr-3 h-6 w-6"
-        aria-hidden="true"
-      />
-      <span className="truncate">{item.name}</span>
-    </NavLink>
+      {({ isActive }) => {
+        return (
+          <span className={
+            classNames(
+              "transition group border-l-4 px-3 py-2 flex items-center text-sm font-medium",
+              isActive
+                ? "font-bold bg-blue-100 dark:bg-gray-700 border-sky-500 dark:border-blue-500 text-sky-700 dark:text-gray-200 hover:bg-blue-200 dark:hover:bg-gray-600 hover:text-sky-900 dark:hover:text-white"
+                : "border-transparent text-gray-900 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-300"
+            )
+          }>
+            <item.icon
+              className="text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 shrink-0 -ml-1 mr-3 h-6 w-6"
+              aria-hidden="true"
+            />
+            <span className="truncate">{t(item.labelKey)}</span>
+          </span>
+        )
+      }}
+    </Link>
   );
 }
 
@@ -68,34 +92,33 @@ interface SidebarNavProps {
 
 function SidebarNav({ subNavigation }: SidebarNavProps) {
   return (
-    <aside className="py-2 lg:col-span-3">
+    <aside className="py-2 lg:col-span-3 border-b lg:border-b-0 lg:border-r border-gray-150 dark:border-gray-725">
       <nav className="space-y-1">
         {subNavigation.map((item) => (
-          <SubNavLink item={item} key={item.href}/>
+          <SubNavLink key={item.href} item={item} />
         ))}
       </nav>
     </aside>
   );
 }
 
-export default function Settings() {
+export function Settings() {
+  const { t } = useTranslation("settings");
+
   return (
     <main>
-      <header className="py-10">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white">Settings</h1>
-        </div>
-      </header>
+      <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 className="text-3xl font-bold text-black dark:text-white">{t("title")}</h1>
+      </div>
 
-      <div className="max-w-screen-xl mx-auto pb-6 px-4 sm:px-6 lg:pb-16 lg:px-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-          <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
+      <div className="max-w-(--breakpoint-xl) mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-table border border-gray-250 dark:border-gray-775">
+          <div className="lg:grid lg:grid-cols-12">
             <SidebarNav subNavigation={subNavigation}/>
-            <Outlet />
+              <Outlet />
           </div>
         </div>
       </div>
     </main>
   );
 }
-

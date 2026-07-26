@@ -1,501 +1,465 @@
-import * as React from "react";
-import { useQuery } from "react-query";
-import { CellProps, Column, useFilters, usePagination, useSortBy, useTable } from "react-table";
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useSearch, useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  ColumnDef,
+  Column,
+  RowData,
+  PaginationState,
+  ColumnFiltersState,
+  OnChangeFn,
+} from "@tanstack/react-table";
 import {
   ChevronDoubleLeftIcon,
   ChevronDoubleRightIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  EyeIcon,
+  EyeSlashIcon
 } from "@heroicons/react/24/solid";
 
-import { APIClient } from "../../api/APIClient";
-import { EmptyListState } from "../../components/emptystates";
+import { ReleasesListQueryOptions } from "@api/queries";
+import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
+import { RingResizeSpinner } from "@components/Icons";
+import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
+import { EmptyListState } from "@components/emptystates";
+import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
+import { SettingsContext } from "@utils/Context";
 
-import * as Icons from "../../components/Icons";
-import * as DataTable from "../../components/data-table";
-
-import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./Filters";
-import { classNames } from "../../utils";
-import { ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
-import { Tooltip } from "../../components/tooltips/Tooltip";
-
-type TableState = {
-    queryPageIndex: number;
-    queryPageSize: number;
-    totalCount: number;
-    queryFilters: ReleaseFilter[];
-};
-
-const initialState: TableState = {
-  queryPageIndex: 0,
-  queryPageSize: 10,
-  totalCount: 0,
-  queryFilters: []
-};
-
-enum ActionType {
-    PAGE_CHANGED = "PAGE_CHANGED",
-    PAGE_SIZE_CHANGED = "PAGE_SIZE_CHANGED",
-    TOTAL_COUNT_CHANGED = "TOTAL_COUNT_CHANGED",
-    FILTER_CHANGED = "FILTER_CHANGED"
+declare module '@tanstack/react-table' {
+  //allows us to define custom properties for our columns
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    filterVariant?: 'text' | 'range' | 'select' | 'search' | 'actionPushStatus' | 'indexerSelect';
+  }
 }
 
-type Actions =
-    | { type: ActionType.FILTER_CHANGED; payload: ReleaseFilter[]; }
-    | { type: ActionType.PAGE_CHANGED; payload: number; }
-    | { type: ActionType.PAGE_SIZE_CHANGED; payload: number; }
-    | { type: ActionType.TOTAL_COUNT_CHANGED; payload: number; };
-
-const TableReducer = (state: TableState, action: Actions): TableState => {
-  switch (action.type) {
-  case ActionType.PAGE_CHANGED:
-    return { ...state, queryPageIndex: action.payload };
-  case ActionType.PAGE_SIZE_CHANGED:
-    return { ...state, queryPageSize: action.payload };
-  case ActionType.FILTER_CHANGED:
-    return { ...state, queryFilters: action.payload };
-  case ActionType.TOTAL_COUNT_CHANGED:
-    return { ...state, totalCount: action.payload };
-  default:
-    throw new Error(`Unhandled action type: ${action}`);
-  }
+const EmptyReleaseList = () => {
+  const { t } = useTranslation("common");
+  return (
+  <div
+    className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+    <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+      <thead className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
+      <tr>
+        <th>
+          <div className="flex items-center justify-between">
+            <span className="h-10"/>
+          </div>
+        </th>
+      </tr>
+      </thead>
+    </table>
+    <div className="flex items-center justify-center py-52">
+      <EmptyListState text={t("releaseTable.noResults")}/>
+    </div>
+  </div>
+  );
 };
 
+function Filter({ column }: { column: Column<Release, unknown> }) {
+  const { filterVariant } = column.columnDef.meta ?? {}
+
+  switch (filterVariant) {
+    case "search":
+      return <SearchColumnFilter column={column}/>
+
+    case "indexerSelect":
+      return <IndexerSelectColumnFilter column={column}/>
+
+    case "actionPushStatus":
+      return <PushStatusSelectColumnFilter column={column}/>
+
+    default:
+      return null;
+  }
+}
+
 export const ReleaseTable = () => {
-  const columns = React.useMemo(() => [
+  const { t } = useTranslation("common");
+  const search = useSearch({
+    from: "/auth/authenticated-routes/releases" as const,
+  });
+  const navigate = useNavigate({ from: "/releases" });
+
+  // Derive column filters from URL search params
+  const columnFilters = useMemo<ColumnFiltersState>(() => {
+    const filters: ColumnFiltersState = [];
+    if (search.q) filters.push({ id: "name", value: search.q });
+    if (search.action_status) filters.push({ id: "action_status", value: search.action_status });
+    if (search.indexer) filters.push({ id: "indexer_identifier", value: search.indexer.split(",") });
+    return filters;
+  }, [search.q, search.action_status, search.indexer]);
+
+  // Derive pagination from URL search params
+  const pagination = useMemo<PaginationState>(() => ({
+    pageIndex: search.page ?? 0,
+    pageSize: search.pageSize ?? 10,
+  }), [search.page, search.pageSize]);
+
+  // Write column filter changes back to URL
+  const onColumnFiltersChange = useCallback<OnChangeFn<ColumnFiltersState>>((updaterOrValue) => {
+    const newFilters = typeof updaterOrValue === "function"
+      ? updaterOrValue(columnFilters)
+      : updaterOrValue;
+
+    const q = (newFilters.find(f => f.id === "name")?.value as string) || undefined;
+    const action_status = (newFilters.find(f => f.id === "action_status")?.value as string) || undefined;
+    const indexerValues = newFilters.find(f => f.id === "indexer_identifier")?.value;
+    const indexer = Array.isArray(indexerValues) && indexerValues.length > 0
+      ? indexerValues.join(",")
+      : undefined;
+
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        q,
+        action_status: action_status as "PUSH_APPROVED" | "PUSH_REJECTED" | "PENDING" | "PUSH_ERROR" | "" | undefined,
+        indexer,
+        // Reset to first page when filters change
+        page: undefined,
+      }),
+      replace: true,
+    });
+  }, [columnFilters, navigate]);
+
+  // Write pagination changes back to URL
+  const onPaginationChange = useCallback<OnChangeFn<PaginationState>>((updaterOrValue) => {
+    const newPagination = typeof updaterOrValue === "function"
+      ? updaterOrValue(pagination)
+      : updaterOrValue;
+
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        // Only set page/pageSize if not at defaults, to keep URLs clean
+        page: newPagination.pageIndex === 0 ? undefined : newPagination.pageIndex,
+        pageSize: newPagination.pageSize === 10 ? undefined : newPagination.pageSize,
+      }),
+      replace: false,
+    });
+  }, [pagination, navigate]);
+
+  const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
     {
-      Header: "Age",
-      accessor: "timestamp",
-      Cell: DataTable.AgeCell
+      header: t("releaseTable.columns.age"),
+      accessorKey: "timestamp",
+      cell: AgeCell
     },
     {
-      Header: "Release",
-      accessor: "torrent_name",
-      Cell: (props: CellProps<Release>) => {
-        return (
-          <div
-            className={classNames(
-              "flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
-              "max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]"
-            )}
-          >
-            <Tooltip
-              label={props.cell.value}
-              maxWidth="max-w-[90vw]"
-            >
-              <span className="whitespace-pre-wrap break-words">
-                {String(props.cell.value)}
-              </span>
-            </Tooltip>
-            {props.row.original.info_url && (
-              <a
-                rel="noopener noreferrer"
-                target="_blank"
-                href={props.row.original.info_url}
-                className="max-w-[90vw] mr-2"
-              >
-                <ArrowTopRightOnSquareIcon className="h-5 w-5 text-blue-400 hover:text-blue-500 dark:text-blue-500 dark:hover:text-blue-600" aria-hidden="true" />
-              </a>
-            )}
-          </div>
-        );
+      header: t("releaseTable.columns.release"),
+      accessorKey: "name",
+      cell: NameCell,
+      meta: {
+        filterVariant: 'search',
       },
-      Filter: SearchColumnFilter
     },
     {
-      Header: "Actions",
-      accessor: "action_status",
-      Cell: DataTable.ReleaseStatusCell,
-      Filter: PushStatusSelectColumnFilter
+      header: t("releaseTable.columns.links"),
+      accessorFn: (row) => ({ download_url: row.download_url, info_url: row.info_url }),
+      id: "links",
+      cell: LinksCell
     },
     {
-      Header: "Indexer",
-      accessor: "indexer",
-      Cell: DataTable.IndexerCell,
-      Filter: IndexerSelectColumnFilter,
-      filter: "equal"
-    }
-  ] as Column<Release>[], []);
-
-  const [{ queryPageIndex, queryPageSize, totalCount, queryFilters }, dispatch] =
-        React.useReducer(TableReducer, initialState);
-
-  const { isLoading, error, data, isSuccess } = useQuery(
-    ["releases", queryPageIndex, queryPageSize, queryFilters],
-    () => APIClient.release.findQuery(queryPageIndex * queryPageSize, queryPageSize, queryFilters),
+      header: t("releaseTable.columns.actions"),
+      accessorKey: "action_status",
+      cell: ReleaseStatusCell,
+      meta: {
+        filterVariant: 'actionPushStatus',
+      },
+    },
     {
-      keepPreviousData: true,
-      staleTime: 5000
+      header: t("releaseTable.columns.indexer"),
+      accessorKey: "indexer.identifier",
+      cell: IndexerCell,
+      meta: {
+        filterVariant: 'indexerSelect',
+      },
     }
-  );
+  ], [t]);
 
-  // Use the state and functions returned from useTable to build your UI
   const {
-    getTableProps,
-    getTableBodyProps,
-    headerGroups,
-    prepareRow,
-    page, // Instead of using 'rows', we'll use page,
-    // which has only the rows for the active page
+    isLoading,
+    error,
+    data,
+    dataUpdatedAt,
+  } = useQuery(ReleasesListQueryOptions(pagination.pageIndex * pagination.pageSize, pagination.pageSize, columnFilters));
 
-    // The rest of these things are super handy, too ;)
-    canPreviousPage,
-    canNextPage,
-    pageOptions,
-    pageCount,
-    gotoPage,
-    nextPage,
-    previousPage,
-    setPageSize,
-    state: { pageIndex, pageSize, filters }
-  } = useTable(
-    {
-      columns,
-      data: data && isSuccess ? data.data : [],
-      initialState: {
-        pageIndex: queryPageIndex,
-        pageSize: queryPageSize,
-        filters: []
-      },
-      manualPagination: true,
-      manualFilters: true,
-      manualSortBy: true,
-      pageCount: isSuccess ? Math.ceil(totalCount / queryPageSize) : 0,
-      autoResetSortBy: false,
-      autoResetExpanded: false,
-      autoResetPage: false
-    },
-    useFilters,
-    useSortBy,
-    usePagination
-  );
+  const [modifiedData, setModifiedData] = useState<Release[]>([]);
+  const [settings, setSettings] = SettingsContext.use();
 
-  React.useEffect(() => {
-    dispatch({ type: ActionType.PAGE_CHANGED, payload: pageIndex });
-  }, [pageIndex]);
-
-  React.useEffect(() => {
-    dispatch({ type: ActionType.PAGE_SIZE_CHANGED, payload: pageSize });
-    gotoPage(0);
-  }, [pageSize, gotoPage]);
-
-  React.useEffect(() => {
-    if (data?.count) {
-      dispatch({
-        type: ActionType.TOTAL_COUNT_CHANGED,
-        payload: data.count
+  useEffect(() => {
+    if (settings.incognitoMode && data?.data) {
+      const randomIsoNames = RandomLinuxIsos(data.data.length);
+      const randomTorrentSiteNames = RandomIsoTracker(data.data.length);
+      const newData: Release[] = data.data.map((item, index) => {
+        const siteName = randomTorrentSiteNames[index % randomTorrentSiteNames.length];
+        return {
+          ...item,
+          name: randomIsoNames[index],
+          indexer: {
+            id: 0,
+            name: siteName,
+            identifier: siteName,
+            identifier_external: siteName,
+          },
+          category: "Linux ISOs",
+          size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
+          source: "",
+          container: "",
+          codec: "",
+          resolution: "",
+        };
       });
+      setModifiedData(newData);
+    } else {
+      setModifiedData([]);
     }
-  }, [data?.count]);
+  }, [settings.incognitoMode, data?.data, dataUpdatedAt]);
 
-  React.useEffect(() => {
-    dispatch({ type: ActionType.FILTER_CHANGED, payload: filters });
-  }, [filters]);
+  const toggleReleaseNames = () => {
+    setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
+  };
 
-  if (error)
-    return <p>Error</p>;
+  const defaultData = React.useMemo(() => [], [])
+  const displayData = settings.incognitoMode ? modifiedData : [...(data?.data ?? defaultData)];
 
-  if (isLoading)
+  const tableInstance = useReactTable({
+    columns,
+    data: displayData,
+    getCoreRowModel: getCoreRowModel(),
+    manualFiltering: true,
+    manualPagination: true,
+    manualSorting: true,
+    rowCount: data?.count,
+    state: {
+      columnFilters,
+      pagination,
+    },
+    initialState: {
+      pagination
+    },
+    onPaginationChange,
+    onColumnFiltersChange,
+  });
+
+  // Manage your own state
+  // const [state, setState] = React.useState(tableInstance.initialState)
+
+  // Override the state managers for the table to your own
+  // tableInstance.setOptions(prev => ({
+  //   ...prev,
+  //   state,
+  //   onStateChange: setState,
+  //   // These are just table options, so if things
+  //   // need to change based on your state, you can
+  //   // derive them here
+  //
+  //   // Just for fun, let's debug everything if the pageIndex
+  //   // is greater than 2
+  //   // debugTable: state.pagination.pageIndex > 2,
+  // }))
+
+  if (error) {
+    return <p>{t("releaseTable.error")}</p>;
+  }
+
+  if (isLoading) {
     return (
-      <div className="flex flex-col animate-pulse">
+      <div>
         <div className="flex mb-6 flex-col sm:flex-row">
-          {headerGroups.map((headerGroup) =>
-            headerGroup.headers.map((column) => (
-              column.Filter ? (
-                <React.Fragment key={column.id}>{column.render("Filter")}</React.Fragment>
+          {tableInstance.getHeaderGroups().map((headerGroup) =>
+            headerGroup.headers.map((header) => (
+              header.column.getCanFilter() ? (
+                <Filter key={header.column.id} column={header.column}/>
               ) : null
             ))
           )}
         </div>
-        <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
-          <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-
-                <th
-
-                  scope="col"
-                  className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
-
-                >
-                  <div className="flex items-center justify-between">
-                    {/* Add a sort direction indicator */}
-                    <span className="h-4">
-                    </span>
-                  </div>
-                </th>
-
-              </tr>
-
-
-            </thead>
-            <tbody className=" divide-gray-200 dark:divide-gray-700">
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
-              </tr>
-              <tr className="flex justify-between py-4 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap text-center">
-                  <p className="text-black dark:text-white">Loading release table...</p>
-                </td>
-              </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-              <tr className="flex justify-between py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300 max-w-[96px] sm:max-w-[216px] md:max-w-[360px] lg:max-w-[640px] xl:max-w-[840px]">
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-                <td className="first:pl-5 pl-3 pr-3 whitespace-nowrap ">&nbsp;</td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between flex-1 sm:hidden">
-              <DataTable.Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</DataTable.Button>
-              <DataTable.Button onClick={() => nextPage()} disabled={!canNextPage}>Next</DataTable.Button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div className="flex items-baseline gap-x-2">
-                <span className="text-sm text-gray-700 dark:text-gray-500">
-                Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
-                </span>
-                <label>
-                  <span className="sr-only bg-gray-700">Items Per Page</span>
-                  <select
-                    className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                    value={pageSize}
-                    onChange={e => {
-                      setPageSize(Number(e.target.value));
-                    }}
-                  >
-                    {[5, 10, 20, 50].map(pageSize => (
-                      <option key={pageSize} value={pageSize}>
-                      Show {pageSize}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div>
-                <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <DataTable.PageButton
-                    className="rounded-l-md"
-                    onClick={() => gotoPage(0)}
-                    disabled={!canPreviousPage}
-                  >
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">First</span>
-                    <ChevronDoubleLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    onClick={() => previousPage()}
-                    disabled={!canPreviousPage}
-                  >
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Previous</span>
-                    <ChevronLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    onClick={() => nextPage()}
-                    disabled={!canNextPage}>
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Next</span>
-                    <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                  </DataTable.PageButton>
-                  <DataTable.PageButton
-                    className="rounded-r-md"
-                    onClick={() => gotoPage(pageCount - 1)}
-                    disabled={!canNextPage}
-                  >
-                    <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Last</span>
-                    <ChevronDoubleRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                  </DataTable.PageButton>
-                </nav>
-              </div>
-            </div>
+        <div
+          className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-lg rounded-md mt-4">
+          <div className="bg-gray-100 dark:bg-gray-850 border-b border-gray-200 dark:border-gray-750">
+            <div className="flex h-10"/>
+          </div>
+          <div className="flex items-center justify-center py-64">
+            <RingResizeSpinner className="text-blue-500 size-24"/>
           </div>
         </div>
       </div>
-    );
+    )
+  }
 
-  if (!data)
-    return <EmptyListState text="No recent activity" />;
-
-  // Render the UI for your table
   return (
     <div className="flex flex-col">
       <div className="flex mb-6 flex-col sm:flex-row">
-        {headerGroups.map((headerGroup) =>
-          headerGroup.headers.map((column) => (
-            column.Filter ? (
-              <React.Fragment key={column.id}>{column.render("Filter")}</React.Fragment>
+        {tableInstance.getHeaderGroups().map((headerGroup) =>
+          headerGroup.headers.map((header) => (
+            header.column.getCanFilter() ? (
+              <Filter key={header.column.id} column={header.column}/>
             ) : null
           ))
         )}
       </div>
-      <div className="bg-white shadow-lg dark:bg-gray-800 rounded-md overflow-auto">
-        <table {...getTableProps()} className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            {headerGroups.map((headerGroup) => {
-              const { key: rowKey, ...rowRest } = headerGroup.getHeaderGroupProps();
-              return (
-                <tr key={rowKey} {...rowRest}>
-                  {headerGroup.headers.map((column) => {
-                    const { key: columnKey, ...columnRest } = column.getHeaderProps(column.getSortByToggleProps());
-                    return (
-                    // Add the sorting props to control sorting. For this example
-                    // we can add them into the header props
+      <div className="relative">
+        {displayData.length === 0
+          ? <EmptyReleaseList/>
+          : (
+            <div
+              className="bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 shadow-table rounded-md overflow-auto">
+              <table className="min-w-full rounded-md divide-y divide-gray-200 dark:divide-gray-750">
+                <thead className="bg-gray-100 dark:bg-gray-850">
+                {tableInstance.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
                       <th
-                        key={`${rowKey}-${columnKey}`}
+                        key={header.id}
                         scope="col"
-                        className="first:pl-5 pl-3 pr-3 py-3 first:rounded-tl-md last:rounded-tr-md text-xs font-medium tracking-wider text-left text-gray-500 uppercase group"
-                        {...columnRest}
+                        colSpan={header.colSpan}
+                        className="first:pl-5 first:rounded-tl-md last:rounded-tr-md pl-3 pr-3 py-3 text-xs font-medium tracking-wider text-left uppercase group text-gray-600 dark:text-gray-400"
                       >
                         <div className="flex items-center justify-between">
-                          <>{column.render("Header")}</>
-                          {/* Add a sort direction indicator */}
-                          <span>
-                            {column.isSorted ? (
-                              column.isSortedDesc ? (
-                                <Icons.SortDownIcon className="w-4 h-4 text-gray-400" />
-                              ) : (
-                                <Icons.SortUpIcon className="w-4 h-4 text-gray-400" />
-                              )
-                            ) : (
-                              <Icons.SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100" />
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
                             )}
-                          </span>
+                          {/*<>{header.render("Header")}</>*/}
+                          {/*/!* Add a sort direction indicator *!/*/}
+                          {/*<span>*/}
+                          {/*  {header.isSorted ? (*/}
+                          {/*    header.isSortedDesc ? (*/}
+                          {/*      <SortDownIcon className="w-4 h-4 text-gray-400"/>*/}
+                          {/*    ) : (*/}
+                          {/*      <SortUpIcon className="w-4 h-4 text-gray-400"/>*/}
+                          {/*    )*/}
+                          {/*  ) : (*/}
+                          {/*    <SortIcon className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100"/>*/}
+                          {/*  )}*/}
+                          {/*</span>*/}
                         </div>
                       </th>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </thead>
-          <tbody
-            {...getTableBodyProps()}
-            className="divide-y divide-gray-200 dark:divide-gray-700"
-          >
-            {page.map((row) => {
-              prepareRow(row);
+                    ))}
+                  </tr>
+                ))}
+                </thead>
 
-              const { key: bodyRowKey, ...bodyRowRest } = row.getRowProps();
-              return (
-                <tr key={bodyRowKey} {...bodyRowRest}>
-                  {row.cells.map((cell) => {
-                    const { key: cellRowKey, ...cellRowRest } = cell.getCellProps();
-                    return (
+                <tbody className="divide-y divide-gray-150 dark:divide-gray-750">
+                {tableInstance.getRowModel().rows.map((row) => (
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
                       <td
-                        key={cellRowKey}
+                        key={cell.id}
                         className="first:pl-5 pl-3 pr-3 whitespace-nowrap"
                         role="cell"
-                        {...cellRowRest}
                       >
-                        <>{cell.render("Cell")}</>
+                        <>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </>
                       </td>
-                    );
+                    ))}
+                  </tr>
+                ))}
+                </tbody>
+              </table>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between flex-1 sm:hidden">
+                  <TableButton onClick={() => tableInstance.previousPage()} disabled={!tableInstance.getCanPreviousPage()}>{t("releaseTable.previous")}</TableButton>
+                  <TableButton onClick={() => tableInstance.nextPage()} disabled={!tableInstance.getCanNextPage()}>{t("releaseTable.next")}</TableButton>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div className="flex items-baseline gap-x-2">
+                  <span className="text-sm text-gray-700 dark:text-gray-500">
+                  {t("releaseTable.pageOf", {
+                    page: tableInstance.getState().pagination.pageIndex + 1,
+                    total: tableInstance.getPageCount()
                   })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between flex-1 sm:hidden">
-            <DataTable.Button onClick={() => previousPage()} disabled={!canPreviousPage}>Previous</DataTable.Button>
-            <DataTable.Button onClick={() => nextPage()} disabled={!canNextPage}>Next</DataTable.Button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div className="flex items-baseline gap-x-2">
-              <span className="text-sm text-gray-700 dark:text-gray-500">
-                Page <span className="font-medium">{pageIndex + 1}</span> of <span className="font-medium">{pageOptions.length}</span>
-              </span>
-              <label>
-                <span className="sr-only bg-gray-700">Items Per Page</span>
-                <select
-                  className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-sm cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-500 focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                  value={pageSize}
-                  onChange={e => {
-                    setPageSize(Number(e.target.value));
-                  }}
+                  </span>
+                    <label>
+                      <span className="sr-only bg-gray-700">{t("releaseTable.itemsPerPage")}</span>
+                      <select
+                        className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-xs cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50"
+                        value={tableInstance.getState().pagination.pageSize}
+                        onChange={e => {
+                          tableInstance.setPageSize(Number(e.target.value));
+                        }}
+                      >
+                        {[5, 10, 20, 50].map(pageSize => (
+                          <option key={pageSize} value={pageSize}>
+                            {t("releaseTable.entries", { count: pageSize })}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div>
+                    <nav className="inline-flex -space-x-px rounded-md shadow-xs" aria-label={t("releaseTable.pagination")}>
+                      <TablePageButton
+                        className="rounded-l-md"
+                        onClick={() => tableInstance.firstPage()}
+                        disabled={!tableInstance.getCanPreviousPage()}
+                      >
+                        <span className="sr-only">{t("releaseTable.first")}</span>
+                        <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true"/>
+                      </TablePageButton>
+                      <TablePageButton
+                        className="pl-1 pr-2"
+                        onClick={() => tableInstance.previousPage()}
+                        disabled={!tableInstance.getCanPreviousPage()}
+                      >
+                        <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true"/>
+                        <span>{t("releaseTable.prev")}</span>
+                      </TablePageButton>
+                      <TablePageButton
+                      className="pl-2 pr-1"
+                      onClick={() => tableInstance.nextPage()}
+                      disabled={!tableInstance.getCanNextPage()}>
+                        <span>{t("releaseTable.next")}</span>
+                        <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true"/>
+                      </TablePageButton>
+                      <TablePageButton
+                        className="rounded-r-md"
+                        onClick={() => tableInstance.lastPage()}
+                        disabled={!tableInstance.getCanNextPage()}
+                      >
+                        <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true"/>
+                        <span className="sr-only">{t("releaseTable.last")}</span>
+                      </TablePageButton>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -bottom-11 right-0 p-2">
+                <button
+                  onClick={toggleReleaseNames}
+                  className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
+                  aria-label={t("releaseTable.toggleView")}
+                  title={t("releaseTable.goIncognito")}
                 >
-                  {[5, 10, 20, 50].map(pageSize => (
-                    <option key={pageSize} value={pageSize}>
-                      Show {pageSize}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  {settings.incognitoMode ? (
+                    <EyeIcon className="h-4 w-4"/>
+                  ) : (
+                    <EyeSlashIcon className="h-4 w-4"/>
+                  )}
+                </button>
+              </div>
             </div>
-            <div>
-              <nav className="inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <DataTable.PageButton
-                  className="rounded-l-md"
-                  onClick={() => gotoPage(0)}
-                  disabled={!canPreviousPage}
-                >
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">First</span>
-                  <ChevronDoubleLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                </DataTable.PageButton>
-                <DataTable.PageButton
-                  onClick={() => previousPage()}
-                  disabled={!canPreviousPage}
-                >
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Previous</span>
-                  <ChevronLeftIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                </DataTable.PageButton>
-                <DataTable.PageButton
-                  onClick={() => nextPage()}
-                  disabled={!canNextPage}>
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Next</span>
-                  <ChevronRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                </DataTable.PageButton>
-                <DataTable.PageButton
-                  className="rounded-r-md"
-                  onClick={() => gotoPage(pageCount - 1)}
-                  disabled={!canNextPage}
-                >
-                  <span className="sr-only text-gray-400 dark:text-gray-500 dark:bg-gray-700">Last</span>
-                  <ChevronDoubleRightIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-                </DataTable.PageButton>
-              </nav>
-            </div>
-          </div>
-        </div>
+          )}
       </div>
     </div>
   );

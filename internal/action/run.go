@@ -1,9 +1,11 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package action
 
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,26 +16,26 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
-func (s *service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+func (s *Service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
+	l := s.log.With().Str("trace_id", release.TraceID).Str("action", action.Name).Str("action_type", string(action.Type)).Str("release", release.TorrentName).Logger()
 
-	var (
-		err        error
-		rejections []string
-	)
+	// executors are only invoked from here, so they pick this logger up with zerolog.Ctx
+	ctx = l.WithContext(ctx)
 
 	defer func() {
-		if r := recover(); r != nil {
-			s.log.Error().Msgf("recovering from panic in run action %s error: %v", action.Name, r)
-			err = errors.New("panic in action: %s", action.Name)
-			return
+		errors.RecoverPanic(recover(), &err)
+		if err != nil {
+			l.Error().Err(err).Msg("recovering from panic in run action")
 		}
 	}()
 
-	// if set, try to resolve MagnetURI before parsing macros
-	// to allow webhook and exec to get the magnet_uri
-	if err := release.ResolveMagnetUri(ctx); err != nil {
+	// Check preconditions: download torrent file if needed
+	if err := s.CheckActionPreconditions(ctx, action, release); err != nil {
 		return nil, err
 	}
 
@@ -44,7 +46,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	switch action.Type {
 	case domain.ActionTypeTest:
-		s.test(action.Name)
+		s.test(ctx)
 
 	case domain.ActionTypeExec:
 		err = s.execCmd(ctx, action, *release)
@@ -53,7 +55,7 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 		err = s.watchFolder(ctx, action, *release)
 
 	case domain.ActionTypeWebhook:
-		err = s.webhook(ctx, action, *release)
+		err = s.webhook(ctx, action)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		rejections, err = s.deluge(ctx, action, *release)
@@ -88,46 +90,37 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeSabnzbd:
 		rejections, err = s.sabnzbd(ctx, action, *release)
 
-	default:
-		s.log.Warn().Msgf("unsupported action type: %v", action.Type)
-		return rejections, err
-	}
+	case domain.ActionTypeNzbget:
+		rejections, err = s.nzbget(ctx, action, *release)
 
-	rlsActionStatus := &domain.ReleaseActionStatus{
-		ReleaseID:  release.ID,
-		Status:     domain.ReleasePushStatusApproved,
-		Action:     action.Name,
-		Type:       action.Type,
-		Client:     action.Client.Name,
-		Filter:     release.Filter.Name,
-		FilterID:   int64(release.Filter.ID),
-		Rejections: []string{},
-		Timestamp:  time.Now(),
+	default:
+		return nil, errors.New("unsupported action type: %s", action.Type)
 	}
 
 	payload := &domain.NotificationPayload{
-		Event:       domain.NotificationEventPushApproved,
-		ReleaseName: release.TorrentName,
-		Filter:      release.Filter.Name,
-		Indexer:     release.Indexer,
-		InfoHash:    release.TorrentHash,
-
+		Event:          domain.NotificationEventPushApproved,
+		ReleaseName:    release.TorrentName,
+		Filter:         release.FilterName,
+		FilterID:       release.FilterID,
+		Indexer:        release.Indexer.Name,
+		InfoHash:       release.TorrentHash,
 		Size:           release.Size,
 		Status:         domain.ReleasePushStatusApproved,
 		Action:         action.Name,
 		ActionType:     action.Type,
-		ActionClient:   action.Client.Name,
 		Rejections:     []string{},
-		Protocol:       domain.ReleaseProtocolTorrent,
+		Protocol:       release.Protocol,
 		Implementation: release.Implementation,
 		Timestamp:      time.Now(),
+		Release:        release,
+	}
+
+	if action.Client != nil {
+		payload.ActionClient = action.Client.Name
 	}
 
 	if err != nil {
-		s.log.Error().Err(err).Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
-
-		rlsActionStatus.Status = domain.ReleasePushStatusErr
-		rlsActionStatus.Rejections = []string{err.Error()}
+		l.Error().Err(err).Msg("process action failed")
 
 		payload.Event = domain.NotificationEventPushError
 		payload.Status = domain.ReleasePushStatusErr
@@ -135,33 +128,56 @@ func (s *service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	if rejections != nil {
-		rlsActionStatus.Status = domain.ReleasePushStatusRejected
-		rlsActionStatus.Rejections = rejections
-
 		payload.Event = domain.NotificationEventPushRejected
 		payload.Status = domain.ReleasePushStatusRejected
 		payload.Rejections = rejections
 	}
 
-	// send event for actions
-	s.bus.Publish("release:push", rlsActionStatus)
-
 	// send separate event for notifications
-	s.bus.Publish("events:notification", &payload.Event, payload)
+	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
 
 	return rejections, err
 }
 
-func (s *service) test(name string) {
-	s.log.Info().Msgf("action TEST: %v", name)
+func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.Action, release *domain.Release) error {
+	if err := s.downloadSvc.ResolveMagnetURI(ctx, release); err != nil {
+		return errors.Wrap(err, "could not resolve magnet uri: %s", release.MagnetURI)
+	}
+
+	// parse all macros in one go
+	if action.CheckMacrosNeedRawDataBytes(release) {
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+			return errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
+		}
+	}
+
+	// the path macros hand a file to an external script or webhook, so those
+	// need the in-memory torrent written to disk first
+	if action.CheckMacrosNeedTorrentTmpFile(release) {
+		if err := release.WriteTemporaryFile(); err != nil {
+			return errors.Wrap(err, "could not write torrent file for release: %s", release.TorrentName)
+		}
+	}
+
+	return nil
 }
 
-func (s *service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+func (s *Service) test(ctx context.Context) {
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running Test action")
+
+	l.Info().Msg("test action success")
+}
+
+func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+	l := zerolog.Ctx(ctx)
+
 	if release.HasMagnetUri() {
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 
-	s.log.Trace().Msgf("action WATCH_FOLDER: %v torrent: %v", action.WatchFolder, release.TorrentName)
+	l.Debug().Str("watch_folder", action.WatchFolder).Str("release", release.TorrentName).Msg("running Watch Folder action")
 
 	if len(release.TorrentDataRawBytes) < 1 {
 		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
@@ -177,8 +193,9 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 
 	// if watchFolderArgs does not contain .torrent, create
 	if !strings.HasSuffix(action.WatchFolder, ".torrent") {
-		tmpFileName := release.TorrentHash
-		newFileName = filepath.Join(action.WatchFolder, tmpFileName+".torrent")
+		// the torrent is no longer backed by a tmp file, so name it after the
+		// infohash which is unique and set alongside the raw bytes
+		newFileName = filepath.Join(action.WatchFolder, release.TorrentHash+".torrent")
 	} else {
 		dir, _ = filepath.Split(action.WatchFolder)
 	}
@@ -200,26 +217,17 @@ func (s *service) watchFolder(ctx context.Context, action *domain.Action, releas
 		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 
-	s.log.Info().Msgf("saved file to watch folder: %v", newFileName)
+	l.Info().Str("file", newFileName).Msg("saved file to watch folder")
 
 	return nil
 }
 
-func (s *service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
-	s.log.Trace().Msgf("action WEBHOOK: '%v' file: %v", action.Name, release.TorrentName)
-	if len(action.WebhookData) > 1024 {
-		s.log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData[:1024])
-	} else {
-		s.log.Trace().Msgf("webhook action '%v' - host: %v data: %v", action.Name, action.WebhookHost, action.WebhookData)
-	}
+func (s *Service) webhook(ctx context.Context, action *domain.Action) error {
+	l := zerolog.Ctx(ctx)
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
+	l.Debug().Msg("running Webhook action")
 
-	client := http.Client{Transport: t, Timeout: 15 * time.Second}
+	l.Trace().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 1024)).Msg("running Webhook action")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
 	if err != nil {
@@ -229,18 +237,22 @@ func (s *service) webhook(ctx context.Context, action *domain.Action, release do
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
 
-	res, err := client.Do(req)
+	start := time.Now()
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "could not make request for webhook")
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
-	if len(action.WebhookData) > 256 {
-		s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData[:256])
-	} else {
-		s.log.Info().Msgf("successfully ran webhook action: '%v' to: %v payload: %v", action.Name, action.WebhookHost, action.WebhookData)
-	}
+	l.Info().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 256)).Dur("duration", time.Since(start)).Msg("webhook action executed")
 
 	return nil
+}
+
+func truncString(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max]
 }

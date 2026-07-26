@@ -1,14 +1,13 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package announce
 
 import (
-	"bytes"
-	"net/url"
-	"regexp"
+	"context"
 	"strings"
-	"text/template"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/release"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
@@ -18,18 +17,22 @@ type Processor interface {
 	AddLineToQueue(channel string, line string) error
 }
 
+type releaseService interface {
+	Process(ctx context.Context, release *domain.Release)
+}
+
 type announceProcessor struct {
 	log     zerolog.Logger
 	indexer *domain.IndexerDefinition
 
-	releaseSvc release.Service
+	releaseSvc releaseService
 
 	queues map[string]chan string
 }
 
-func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexer *domain.IndexerDefinition) Processor {
+func NewAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition) Processor {
 	ap := &announceProcessor{
-		log:        log.With().Str("module", "announce_processor").Logger(),
+		log:        log.With().Str("module", "announce_processor").Str("indexer", indexer.Name).Str("network", indexer.IRC.Network).Logger(),
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
 	}
@@ -44,10 +47,10 @@ func NewAnnounceProcessor(log zerolog.Logger, releaseSvc release.Service, indexe
 func (a *announceProcessor) setupQueues() {
 	queues := make(map[string]chan string)
 	for _, channel := range a.indexer.IRC.Channels {
-		channel = strings.ToLower(channel)
+		channelName := strings.ToLower(channel.Name)
 
-		queues[channel] = make(chan string, 128)
-		a.log.Trace().Msgf("announce: setup queue: %v", channel)
+		queues[channelName] = make(chan string, 128)
+		a.log.Trace().Str("channel", channelName).Msg("setup channel queue")
 	}
 
 	a.queues = queues
@@ -56,39 +59,65 @@ func (a *announceProcessor) setupQueues() {
 func (a *announceProcessor) setupQueueConsumers() {
 	for queueName, queue := range a.queues {
 		go func(name string, q chan string) {
-			a.log.Trace().Msgf("announce: setup queue consumer: %v", name)
-			a.processQueue(q)
-			a.log.Trace().Msgf("announce: queue consumer stopped: %v", name)
+			a.log.Trace().Str("channel", name).Msg("announce: setup queue consumer")
+			a.processQueue(name, q)
+			a.log.Trace().Str("channel", name).Msg("announce: queue consumer stopped")
 		}(queueName, queue)
 	}
 }
 
-func (a *announceProcessor) processQueue(queue chan string) {
+func (a *announceProcessor) Stop() {
+	for name, queue := range a.queues {
+		close(queue)
+		a.log.Trace().Str("channel", name).Msg("announce: stopped queue")
+	}
+}
+
+func (a *announceProcessor) processQueue(channelName string, queue chan string) {
+	// the channel config is static for the life of the consumer, so resolve it once.
+	channel, ok := a.indexer.IRC.GetChannel(channelName)
+	if !ok {
+		a.log.Error().Str("channel", channelName).Msg("no channel found")
+		return
+	}
+	if channel.Parse == nil {
+		a.log.Error().Str("channel", channelName).Msg("channel has no parse configuration")
+		return
+	}
+
 	for {
 		tmpVars := map[string]string{}
 		parseFailed := false
 		//patternParsed := false
 
-		for _, parseLine := range a.indexer.IRC.Parse.Lines {
+		// one trace id per announce, which can span multiple lines
+		traceID := domain.NewTraceID()
+		l := a.log.With().Str("trace_id", traceID).Logger()
+
+		for _, parseLine := range channel.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
-				a.log.Error().Err(err).Msg("could not get line from queue")
+				l.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
-			a.log.Trace().Msgf("announce: process line: %v", line)
+
+			l.Trace().Str("line", line).Msg("announce: process line")
+
+			if !a.indexer.Enabled {
+				l.Warn().Msg("indexer disabled, skipping further processing")
+			}
 
 			// check should ignore
-
-			match, err := a.parseLine(parseLine.Pattern, parseLine.Vars, tmpVars, line, parseLine.Ignore)
+			match, err := parseLine.ParseLine(tmpVars, line, parseLine.Ignore)
 			if err != nil {
-				a.log.Error().Err(err).Msgf("error parsing extract for line: %v", line)
+				l.Error().Err(err).Str("line", line).Msg("error parsing extract for line")
 
 				parseFailed = true
 				break
 			}
 
 			if !match {
-				a.log.Debug().Msgf("line not matching expected regex pattern: %v", line)
+				l.Debug().Str("pattern", parseLine.Pattern).Str("line", line).Msg("line did not match expected regex pattern")
 				parseFailed = true
 				break
 			}
@@ -98,17 +127,18 @@ func (a *announceProcessor) processQueue(queue chan string) {
 			continue
 		}
 
-		rls := domain.NewRelease(a.indexer.Identifier)
+		rls := domain.NewRelease(domain.IndexerMinimal{ID: a.indexer.ID, Name: a.indexer.Name, Identifier: a.indexer.Identifier, IdentifierExternal: a.indexer.IdentifierExternal})
+		rls.TraceID = traceID
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched
-		if err := a.onLinesMatched(a.indexer, tmpVars, rls); err != nil {
-			a.log.Error().Err(err).Msg("error match line")
+		if err := channel.Parse.Parse(a.indexer, channelName, tmpVars, rls); err != nil {
+			l.Error().Err(err).Msg("announce: could not parse announce for release")
 			continue
 		}
 
 		// process release in a new go routine
-		go a.releaseSvc.Process(rls)
+		go a.releaseSvc.Process(context.Background(), rls)
 	}
 }
 
@@ -127,208 +157,12 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 	channel = strings.ToLower(channel)
 	queue, ok := a.queues[channel]
 	if !ok {
-		return errors.New("no queue for channel (%v) found", channel)
+		return errors.New("no queue for channel (%s) found", channel)
 	}
 
 	queue <- line
-	a.log.Trace().Msgf("announce: queued line: %v", line)
+
+	a.log.Trace().Str("line", line).Msg("announce: queued line")
 
 	return nil
-}
-
-func (a *announceProcessor) parseLine(pattern string, vars []string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
-	if len(vars) > 0 {
-		return a.parseExtract(pattern, vars, tmpVars, line)
-	}
-
-	return a.parseMatchRegexp(pattern, tmpVars, line, ignore)
-}
-
-func (a *announceProcessor) parseExtract(pattern string, vars []string, tmpVars map[string]string, line string) (bool, error) {
-
-	rxp, err := regExMatch(pattern, line)
-	if err != nil {
-		a.log.Debug().Msgf("did not match expected line: %v", line)
-	}
-
-	if rxp == nil {
-		return false, nil
-	}
-
-	// extract matched
-	for i, v := range vars {
-		value := ""
-
-		if rxp[i] != "" {
-			value = rxp[i]
-			// tmpVars[v] = rxp[i]
-		}
-
-		tmpVars[v] = value
-	}
-	return true, nil
-}
-
-func (a *announceProcessor) parseMatchRegexp(pattern string, tmpVars map[string]string, line string, ignore bool) (bool, error) {
-	var re = regexp.MustCompile(`(?mi)` + pattern)
-
-	groupNames := re.SubexpNames()
-	for _, match := range re.FindAllStringSubmatch(line, -1) {
-		for groupIdx, group := range match {
-			// if line should be ignored then lets return
-			if ignore {
-				return true, nil
-			}
-
-			name := groupNames[groupIdx]
-			if name == "" {
-				name = "raw"
-			}
-			tmpVars[name] = group
-		}
-	}
-
-	return true, nil
-}
-
-// onLinesMatched process vars into release
-func (a *announceProcessor) onLinesMatched(def *domain.IndexerDefinition, vars map[string]string, rls *domain.Release) error {
-	// map variables from regex capture onto release struct
-	if err := rls.MapVars(def, vars); err != nil {
-		a.log.Error().Err(err).Msg("announce: could not map vars for release")
-		return err
-	}
-
-	// parse fields
-	// run before ParseMatch to not potentially use a reconstructed TorrentName
-	rls.ParseString(rls.TorrentName)
-
-	// set baseUrl to default domain
-	baseUrl := def.URLS[0]
-
-	// override baseUrl
-	if def.BaseURL != "" {
-		baseUrl = def.BaseURL
-	}
-
-	// merge vars from regex captures on announce and vars from settings
-	mergedVars := mergeVars(vars, def.SettingsMap)
-
-	// parse torrentUrl
-	matched, err := def.IRC.Parse.ParseMatch(baseUrl, mergedVars)
-	if err != nil {
-		a.log.Error().Err(err).Msgf("announce: %v", err)
-		return err
-	}
-
-	if matched != nil {
-		rls.TorrentURL = matched.TorrentURL
-
-		if matched.InfoURL != "" {
-			rls.InfoURL = matched.InfoURL
-		}
-
-		// only used by few indexers
-		if matched.TorrentName != "" {
-			rls.TorrentName = matched.TorrentName
-		}
-	}
-
-	// handle optional cookies
-	if v, ok := def.SettingsMap["cookie"]; ok {
-		rls.RawCookie = v
-	}
-
-	return nil
-}
-
-func (a *announceProcessor) processTorrentUrl(match string, vars map[string]string, extraVars map[string]string, encode []string) (string, error) {
-	tmpVars := map[string]string{}
-
-	// copy vars to new tmp map
-	for k, v := range vars {
-		tmpVars[k] = v
-	}
-
-	// merge extra vars with vars
-	for k, v := range extraVars {
-		tmpVars[k] = v
-	}
-
-	// handle url encode of values
-	for _, e := range encode {
-		if v, ok := tmpVars[e]; ok {
-			// url encode  value
-			t := url.QueryEscape(v)
-			tmpVars[e] = t
-		}
-	}
-
-	// setup text template to inject variables into
-	tmpl, err := template.New("torrenturl").Parse(match)
-	if err != nil {
-		a.log.Error().Err(err).Msg("could not create torrent url template")
-		return "", err
-	}
-
-	var b bytes.Buffer
-	if err := tmpl.Execute(&b, &tmpVars); err != nil {
-		a.log.Error().Err(err).Msg("could not write torrent url template output")
-		return "", err
-	}
-
-	a.log.Trace().Msg("torrenturl processed")
-
-	return b.String(), nil
-}
-
-// mergeVars merge maps
-func mergeVars(data ...map[string]string) map[string]string {
-	tmpVars := map[string]string{}
-
-	for _, vars := range data {
-		// copy vars to new tmp map
-		for k, v := range vars {
-			tmpVars[k] = v
-		}
-	}
-	return tmpVars
-}
-
-func removeElement(s []string, i int) ([]string, error) {
-	// s is [1,2,3,4,5,6], i is 2
-
-	// perform bounds checking first to prevent a panic!
-	if i >= len(s) || i < 0 {
-		return nil, errors.New("Index is out of range. Index is %d with slice length %d", i, len(s))
-	}
-
-	// This creates a new slice by creating 2 slices from the original:
-	// s[:i] -> [1, 2]
-	// s[i+1:] -> [4, 5, 6]
-	// and joining them together using `append`
-	return append(s[:i], s[i+1:]...), nil
-}
-
-func regExMatch(pattern string, value string) ([]string, error) {
-
-	rxp, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, err
-	}
-
-	matches := rxp.FindStringSubmatch(value)
-	if matches == nil {
-		return nil, nil
-	}
-
-	res := make([]string, 0)
-	if matches != nil {
-		res, err = removeElement(matches, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return res, nil
 }

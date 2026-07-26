@@ -1,8 +1,10 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package notification
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +14,9 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
@@ -45,96 +49,126 @@ const (
 
 type discordSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
+
+	httpClient *http.Client
 }
 
-func NewDiscordSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *discordSender) Name() string {
+	return "discord"
+}
+
+func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &discordSender{
-		log:      log.With().Str("sender", "discord").Logger(),
+		log:      log.With().Str("sender", "discord").Str("name", settings.Name).Logger(),
 		Settings: settings,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
-func (a *discordSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
+func (s *discordSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	m := DiscordMessage{
 		Content: nil,
-		Embeds:  []DiscordEmbeds{a.buildEmbed(event, payload)},
+		Embeds:  []DiscordEmbeds{s.buildEmbed(event, payload)},
 	}
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, a.Settings.Webhook, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, s.Settings.Webhook, bytes.NewBuffer(jsonData))
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	//req.Header.Set("User-Agent", "autobrr")
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
+	// TODO retryable http on status 429
 
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
-	}
+	defer sharedhttp.DrainAndClose(res)
 
-	defer res.Body.Close()
-
-	a.log.Trace().Msgf("discord status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
-	if res.StatusCode >= 300 {
-		a.log.Error().Err(err).Msgf("discord client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
+		// Limit error body reading to prevent memory issues
+		limitedReader := io.LimitReader(res.Body, 4096) // 4KB limit
+		body, err := io.ReadAll(limitedReader)
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
-	a.log.Debug().Msg("notification successfully sent to discord")
+	s.log.Debug().Str("event", string(event)).Msg("notification successfully sent to discord")
 
 	return nil
 }
 
-func (a *discordSender) CanSend(event domain.NotificationEvent) bool {
-	if a.isEnabled() && a.isEnabledEvent(event) {
+func (s *discordSender) CanSend(event domain.NotificationEvent) bool {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (a *discordSender) isEnabled() bool {
-	if a.Settings.Enabled && a.Settings.Webhook != "" {
-		return true
+func (s *discordSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
 	}
-	return false
-}
 
-func (a *discordSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range a.Settings.Events {
-		if e == string(event) {
+	if payload.FilterID > 0 {
+		if s.Settings.FilterMuted(payload.FilterID) {
+			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
+			return false
+		}
+
+		// Check if the filter has custom notifications configured
+		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
 			return true
+		}
+
+		// If the filter has custom notifications but the event is not enabled, don't fall back to global
+		if s.Settings.HasFilterNotifications(payload.FilterID) {
+			return false
 		}
 	}
 
+	// Fall back to global events for non-filter events or filters without custom notifications
+	if s.isEnabledEvent(event) {
+		return true
+	}
+
 	return false
 }
 
-func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domain.NotificationPayload) DiscordEmbeds {
+func (s *discordSender) HasFilterEvents(filterID int) bool {
+	if s.Settings.HasFilterNotifications(filterID) {
+		return true
+	}
+	return false
+}
+
+func (s *discordSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
+}
+
+func (s *discordSender) isEnabledEvent(event domain.NotificationEvent) bool {
+	return s.Settings.EventEnabled(string(event))
+}
+
+func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domain.NotificationPayload) DiscordEmbeds {
 
 	color := LIGHT_BLUE
 	switch event {
@@ -198,6 +232,30 @@ func (a *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		f := DiscordEmbedsFields{
 			Name:   "Action client",
 			Value:  payload.ActionClient,
+			Inline: true,
+		}
+		fields = append(fields, f)
+	}
+	if payload.Size > 0 {
+		f := DiscordEmbedsFields{
+			Name:   "Size",
+			Value:  humanize.Bytes(payload.Size),
+			Inline: true,
+		}
+		fields = append(fields, f)
+	}
+	if len(payload.Protocol) != 0 {
+		f := DiscordEmbedsFields{
+			Name:   "Protocol",
+			Value:  payload.Protocol.String(),
+			Inline: true,
+		}
+		fields = append(fields, f)
+	}
+	if len(payload.Implementation) != 0 {
+		f := DiscordEmbedsFields{
+			Name:   "Implementation",
+			Value:  payload.Implementation.String(),
 			Inline: true,
 		}
 		fields = append(fields, f)

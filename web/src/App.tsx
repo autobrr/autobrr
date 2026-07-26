@@ -1,57 +1,57 @@
-import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from "react-query";
-import { ReactQueryDevtools } from "react-query/devtools";
-import { ErrorBoundary } from "react-error-boundary";
-import { toast, Toaster } from "react-hot-toast";
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-import { LocalRouter } from "./domain/routes";
-import { AuthContext, SettingsContext } from "./utils/Context";
-import { ErrorPage } from "./components/alerts";
-import Toast from "./components/notifications/Toast";
-import { Portal } from "react-portal";
+import { useEffect } from "react";
+import { RouterProvider } from "@tanstack/react-router"
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@components/hot-toast";
+import { Router } from "@app/routes";
+import i18n from "@app/i18n";
+import { routerBasePath } from "@utils";
+import { queryClient } from "@api/QueryClient";
+import { SettingsContext, isDarkTheme } from "@utils/Context";
+import { Portal } from "@components/portal";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // The retries will have exponential delay.
-      // See https://tanstack.com/query/v4/docs/guides/query-retries#retry-delay
-      // delay = Math.min(1000 * 2 ** attemptIndex, 30000)
-      retry: true,
-      useErrorBoundary: true
-    },
-    mutations: {
-      onError: (error) => {
-        // Use a format string to convert the error object to a proper string without much hassle.
-        const message = (
-          typeof (error) === "object" && typeof ((error as Error).message) ?
-            (error as Error).message :
-            `${error}`
-        );
-        toast.custom((t) => <Toast type="error" body={message} t={t} />);
-      }
-    }
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof Router
   }
-});
+}
 
 export function App() {
-  const { reset } = useQueryErrorResetBoundary();
-
-  const authContext = AuthContext.useValue();
   const settings = SettingsContext.useValue();
 
+  useEffect(() => {
+    const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleThemeChange = () => {
+      const settings = SettingsContext.get();
+      if (settings.theme === "system") {
+        // Re-apply theme when OS preference changes
+        const dark = isDarkTheme("system");
+        document.documentElement.classList.toggle("dark", dark);
+      }
+    };
+
+    themeMediaQuery.addEventListener("change", handleThemeChange);
+    return () => themeMediaQuery.removeEventListener("change", handleThemeChange);
+  }, []);
+
+  useEffect(() => {
+    void i18n.changeLanguage(settings.language);
+    document.documentElement.lang = settings.language;
+  }, [settings.language]);
+
   return (
-    <ErrorBoundary
-      onReset={reset}
-      fallbackRender={ErrorPage}
-    >
-      <QueryClientProvider client={queryClient}>
-        <Portal>
-          <Toaster position="top-right" />
-        </Portal>
-        <LocalRouter isLoggedIn={authContext.isLoggedIn} />
-        {settings.debug ? (
-          <ReactQueryDevtools initialIsOpen={false} />
-        ) : null}
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <Portal>
+        <Toaster position="top-right" />
+      </Portal>
+      <RouterProvider
+        basepath={routerBasePath()}
+        router={Router}
+      />
+    </QueryClientProvider>
   );
 }

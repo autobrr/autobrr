@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package database
 
 import (
@@ -17,7 +20,7 @@ type UserRepo struct {
 	db  *DB
 }
 
-func NewUserRepo(log logger.Logger, db *DB) domain.UserRepo {
+func NewUserRepo(log logger.Logger, db *DB) *UserRepo {
 	return &UserRepo{
 		log: log.With().Str("repo", "user").Logger(),
 		db:  db,
@@ -32,7 +35,7 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 		return 0, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return 0, errors.Wrap(err, "error executing query")
 	}
@@ -46,7 +49,6 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 }
 
 func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
-
 	queryBuilder := r.db.squirrel.
 		Select("id", "username", "password").
 		From("users").
@@ -57,7 +59,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -65,8 +67,8 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 	var user domain.User
 
 	if err := row.Scan(&user.ID, &user.Username, &user.Password); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
 		}
 
 		return nil, errors.Wrap(err, "error scanning row")
@@ -76,9 +78,6 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 }
 
 func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) error {
-
-	var err error
-
 	queryBuilder := r.db.squirrel.
 		Insert("users").
 		Columns("username", "password").
@@ -89,7 +88,7 @@ func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) erro
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -97,25 +96,49 @@ func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) erro
 	return err
 }
 
-func (r *UserRepo) Update(ctx context.Context, user domain.User) error {
+func (r *UserRepo) Update(ctx context.Context, user domain.UpdateUserRequest) error {
+	queryBuilder := r.db.squirrel.Update("users")
 
-	var err error
+	if user.UsernameNew != "" {
+		queryBuilder = queryBuilder.Set("username", user.UsernameNew)
+	}
 
-	queryBuilder := r.db.squirrel.
-		Update("users").
-		Set("username", user.Username).
-		Set("password", user.Password).
-		Where(sq.Eq{"username": user.Username})
+	if user.PasswordNewHash != "" {
+		queryBuilder = queryBuilder.Set("password", user.PasswordNewHash)
+	}
+
+	queryBuilder = queryBuilder.Where(sq.Eq{"username": user.UsernameCurrent})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	return err
+	return nil
+}
+
+func (r *UserRepo) Delete(ctx context.Context, username string) error {
+	queryBuilder := r.db.squirrel.
+		Delete("users").
+		Where(sq.Eq{"username": username})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	// Execute the query.
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	r.log.Debug().Str("username", username).Msg("successfully deleted user")
+
+	return nil
 }

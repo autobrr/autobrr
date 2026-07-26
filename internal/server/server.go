@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package server
 
 import (
@@ -6,37 +9,74 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/feed"
-	"github.com/autobrr/autobrr/internal/indexer"
-	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/scheduler"
-	"github.com/autobrr/autobrr/internal/update"
 
 	"github.com/rs/zerolog"
 )
+
+type serviceStarter interface {
+	Start() error
+}
+
+type serviceStopper interface {
+	Stop()
+}
+
+type schedulerService interface {
+	serviceStarter
+	serviceStopper
+}
+
+type feedService interface {
+	serviceStarter
+}
+
+type indexerService interface {
+	serviceStarter
+}
+
+type ircService interface {
+	StartHandlers()
+	StopHandlers()
+}
+
+type listService interface {
+	serviceStarter
+}
+
+type releaseService interface {
+	StartCleanupJobs() error
+}
+
+type updateService interface {
+	CheckUpdates(ctx context.Context)
+}
 
 type Server struct {
 	log    zerolog.Logger
 	config *domain.Config
 
-	indexerService indexer.Service
-	ircService     irc.Service
-	feedService    feed.Service
-	scheduler      scheduler.Service
-	updateService  *update.Service
+	indexerService indexerService
+	ircService     ircService
+	feedService    feedService
+	releaseService releaseService
+	scheduler      schedulerService
+	listService    listService
+	updateService  updateService
 
 	stopWG sync.WaitGroup
 	lock   sync.Mutex
 }
 
-func NewServer(log logger.Logger, config *domain.Config, ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Service, scheduler scheduler.Service, updateSvc *update.Service) *Server {
+func NewServer(log logger.Logger, config *domain.Config, ircSvc ircService, indexerSvc indexerService, feedSvc feedService, releaseSvc releaseService, listSvc listService, scheduler schedulerService, updateSvc updateService) *Server {
 	return &Server{
 		log:            log.With().Str("module", "server").Logger(),
 		config:         config,
 		indexerService: indexerSvc,
 		ircService:     ircSvc,
 		feedService:    feedSvc,
+		releaseService: releaseSvc,
+		listService:    listSvc,
 		scheduler:      scheduler,
 		updateService:  updateSvc,
 	}
@@ -61,6 +101,14 @@ func (s *Server) Start() error {
 	if err := s.feedService.Start(); err != nil {
 		s.log.Error().Err(err).Msg("Could not start feed service")
 	}
+
+	// start release cleanup scheduler
+	if err := s.releaseService.StartCleanupJobs(); err != nil {
+		s.log.Error().Err(err).Msg("Could not start release cleanup scheduler")
+	}
+
+	// start lists background updater
+	go s.listService.Start()
 
 	return nil
 }

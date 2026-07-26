@@ -1,8 +1,10 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package notification
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
 )
@@ -40,15 +43,25 @@ type notifiarrMessageData struct {
 
 type notifiarrSender struct {
 	log      zerolog.Logger
-	Settings domain.Notification
+	Settings *domain.Notification
 	baseUrl  string
+
+	httpClient *http.Client
 }
 
-func NewNotifiarrSender(log zerolog.Logger, settings domain.Notification) domain.NotificationSender {
+func (s *notifiarrSender) Name() string {
+	return "notifiarr"
+}
+
+func NewNotifiarrSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &notifiarrSender{
-		log:      log.With().Str("sender", "notifiarr").Logger(),
+		log:      log.With().Str("sender", "notifiarr").Str("name", settings.Name).Logger(),
 		Settings: settings,
 		baseUrl:  "https://notifiarr.com/api/v1/notification/autobrr",
+		httpClient: &http.Client{
+			Timeout:   time.Second * 30,
+			Transport: sharedhttp.Transport,
+		},
 	}
 }
 
@@ -60,46 +73,36 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 
 	jsonData, err := json.Marshal(m)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client could not marshal data: %v", m)
-		return errors.Wrap(err, "could not marshal data: %+v", m)
+		return errors.Wrap(err, "could not marshal json request for event: %v payload: %v", event, payload)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, s.baseUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
-		return errors.Wrap(err, "could not create request")
+		return errors.Wrap(err, "could not create request for event: %v payload: %v", event, payload)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
 	req.Header.Set("X-API-Key", s.Settings.APIKey)
 
-	t := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-	}
-
-	client := http.Client{Transport: t, Timeout: 30 * time.Second}
-	res, err := client.Do(req)
+	res, err := s.httpClient.Do(req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
-		return errors.Wrap(err, "could not make request: %+v", req)
+		return errors.Wrap(err, "client request error for event: %v payload: %v", event, payload)
 	}
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", event)
-		return errors.Wrap(err, "could not read data")
-	}
+	defer sharedhttp.DrainAndClose(res)
 
-	defer res.Body.Close()
-
-	s.log.Trace().Msgf("notifiarr status: %v response: %v", res.StatusCode, string(body))
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
-		s.log.Error().Err(err).Msgf("notifiarr client request error: %v", string(body))
-		return errors.New("bad status: %v body: %v", res.StatusCode, string(body))
+		// Limit error body reading to prevent memory issues
+		limitedReader := io.LimitReader(res.Body, 4096) // 4KB limit
+		body, err := io.ReadAll(limitedReader)
+		if err != nil {
+			return errors.Wrap(err, "could not read body for event: %v payload: %v", event, payload)
+		}
+
+		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
 	}
 
 	s.log.Debug().Msg("notification successfully sent to notifiarr")
@@ -108,32 +111,55 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 }
 
 func (s *notifiarrSender) CanSend(event domain.NotificationEvent) bool {
-	if s.isEnabled() && s.isEnabledEvent(event) {
+	if s.IsEnabled() && s.isEnabledEvent(event) {
 		return true
 	}
 	return false
 }
 
-func (s *notifiarrSender) isEnabled() bool {
-	if s.Settings.Enabled {
-		if s.Settings.APIKey == "" {
-			s.log.Warn().Msg("notifiarr missing api key")
+func (s *notifiarrSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+	if !s.IsEnabled() {
+		return false
+	}
+
+	if payload.FilterID > 0 {
+		if s.Settings.FilterMuted(payload.FilterID) {
+			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
 			return false
 		}
 
+		// Check if the filter has custom notifications configured
+		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
+			return true
+		}
+
+		// If the filter has custom notifications but the event is not enabled, don't fall back to global
+		if s.Settings.HasFilterNotifications(payload.FilterID) {
+			return false
+		}
+	}
+
+	// Fall back to global events for non-filter events or filters without custom notifications
+	if s.isEnabledEvent(event) {
+		return true
+	}
+
+	return false
+}
+
+func (s *notifiarrSender) HasFilterEvents(filterID int) bool {
+	if s.Settings.HasFilterNotifications(filterID) {
 		return true
 	}
 	return false
 }
 
-func (s *notifiarrSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	for _, e := range s.Settings.Events {
-		if e == string(event) {
-			return true
-		}
-	}
+func (s *notifiarrSender) IsEnabled() bool {
+	return s.Settings.IsEnabled()
+}
 
-	return false
+func (s *notifiarrSender) isEnabledEvent(event domain.NotificationEvent) bool {
+	return s.Settings.EventEnabled(string(event))
 }
 
 func (s *notifiarrSender) buildMessage(payload domain.NotificationPayload) notifiarrMessageData {

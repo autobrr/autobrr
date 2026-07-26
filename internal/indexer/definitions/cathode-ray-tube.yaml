@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: crt
 name: Cathode-Ray Tube
 identifier: crt
@@ -11,7 +12,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -30,10 +31,6 @@ irc:
   server: irc.dejatoons.net
   port: 6697
   tls: true
-  channels:
-    - "#CRT"
-  announcers:
-    - Johnny5
   settings:
     - name: nick
       type: text
@@ -53,20 +50,31 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "New Torrent ~ Some Cool Movie (1950) ~ Movies ~ 10.20 GiB ~ https://www.crt.test/torrents.php?id=1234"
-          - "New Torrent ~ Some Show: With a Subtitle - Seasons 1-2 (2001-2002) ~ TV ~ 33.44 GiB ~ https://www.crt.test/torrents.php?id=5678"
-        pattern: New Torrent ~ (.*) ~ (.*) ~ (.*) ~ (https:\/\/.+)\/torrents\.php\?id=(\d+)
-        vars:
-          - torrentName
-          - category
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#CRT"
+      announcers:
+        - Johnny5
+      parse:
+        type: single
+        lines:
+          - pattern: New Torrent ~ (?P<releaseName>.*) ~ (?P<category>.*) ~ (?P<torrentSize>.*) ~ (?P<baseUrl>https:\/\/.+)\/torrents\.php\?id=(?P<torrentId>\d+)
+            tests:
+              - line: New Torrent ~ Some Cool Movie (1950) ~ Movies ~ 10.20 GiB ~ https://www.crt.test/torrents.php?id=1234
+                expect:
+                  releaseName: Some Cool Movie (1950)
+                  category: Movies
+                  torrentSize: 10.20 GiB
+                  baseUrl: https://www.crt.test
+                  torrentId: "1234"
 
-    match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+              - line: 'New Torrent ~ Some Show: With a Subtitle - Seasons 1-2 (2001-2002) ~ TV ~ 33.44 GiB ~ https://www.crt.test/torrents.php?id=5678'
+                expect:
+                  releaseName: 'Some Show: With a Subtitle - Seasons 1-2 (2001-2002)'
+                  category: TV
+                  torrentSize: 33.44 GiB
+                  baseUrl: https://www.crt.test
+                  torrentId: "5678"
+
+        match:
+          infourl: "/torrents.php?id={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

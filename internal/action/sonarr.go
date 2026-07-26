@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package action
 
 import (
@@ -5,52 +8,61 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/sonarr"
+
+	"github.com/rs/zerolog"
 )
 
-func (s *service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Trace().Msg("action SONARR")
+func (s *Service) sonarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("running Sonarr action")
 
 	// TODO validate data
 
-	// get client for action
-	client, err := s.clientSvc.FindByID(ctx, action.ClientID)
+	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
-		return nil, errors.Wrap(err, "sonarr could not find client: %v", action.ClientID)
+		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
+	}
+	action.Client = client
+
+	if !client.Enabled {
+		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	// return early if no client found
-	if client == nil {
-		return nil, errors.New("no client found")
+	arr, ok := client.Client.(*sonarr.Client)
+	if !ok {
+		return nil, errors.New("invalid client type")
 	}
 
-	// initial config
-	cfg := sonarr.Config{
-		Hostname: client.Host,
-		APIKey:   client.Settings.APIKey,
-		Log:      s.subLogger,
-	}
-
-	// only set basic auth if enabled
-	if client.Settings.Basic.Auth {
-		cfg.BasicAuth = client.Settings.Basic.Auth
-		cfg.Username = client.Settings.Basic.Username
-		cfg.Password = client.Settings.Basic.Password
-	}
-
-	arr := sonarr.New(cfg)
-
-	r := sonarr.Release{
+	r := sonarr.ReleasePushRequest{
 		Title:            release.TorrentName,
-		DownloadUrl:      release.TorrentURL,
+		InfoUrl:          release.InfoURL,
+		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
-		Size:             int64(release.Size),
-		Indexer:          release.Indexer,
-		DownloadProtocol: string(release.Protocol),
-		Protocol:         string(release.Protocol),
+		Size:             release.Size,
+		Indexer:          release.Indexer.GetExternalIdentifier(),
+		DownloadClientId: client.Settings.ExternalDownloadClientId,
+		DownloadClient:   client.Settings.ExternalDownloadClient,
+		DownloadProtocol: release.Protocol.String(),
+		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
+
+	if action.ExternalDownloadClientID > 0 {
+		r.DownloadClientId = int(action.ExternalDownloadClientID)
+	}
+
+	if action.ExternalDownloadClient != "" {
+		r.DownloadClient = action.ExternalDownloadClient
+	}
+
+	indexerFlags := sonarr.BuildIndexerFlags(sonarr.ReleaseMeta{
+		FreeleechPercent: release.FreeleechPercent,
+		Origin:           release.Origin,
+	})
+	r.IndexerFlags = int(indexerFlags)
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {
@@ -58,12 +70,12 @@ func (s *service) sonarr(ctx context.Context, action *domain.Action, release dom
 	}
 
 	if rejections != nil {
-		s.log.Debug().Msgf("sonarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+		l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Strs("rejections", rejections).Msg("client rejected the release")
 
 		return rejections, nil
 	}
 
-	s.log.Debug().Msgf("sonarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Msg("release successfully added to client")
 
 	return nil, nil
 }

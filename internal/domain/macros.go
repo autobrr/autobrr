@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -7,65 +10,177 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/ttlcache"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/dustin/go-humanize"
+)
+
+var templateCache = ttlcache.New(
+	ttlcache.Options[string, *template.Template]{}.
+		SetTimerResolution(5 * time.Minute).
+		SetDefaultTTL(15 * time.Minute),
 )
 
 type Macro struct {
-	TorrentName         string
-	TorrentPathName     string
-	TorrentHash         string
-	TorrentID           string
-	TorrentUrl          string
-	TorrentDataRawBytes []byte
-	MagnetURI           string
-	GroupID             string
-	Indexer             string
-	Title               string
-	Resolution          string
-	Source              string
-	HDR                 string
-	FilterName          string
-	Size                uint64
-	Season              int
-	Episode             int
-	Year                int
-	CurrentYear         int
-	CurrentMonth        int
-	CurrentDay          int
-	CurrentHour         int
-	CurrentMinute       int
-	CurrentSecond       int
+	Artists                   string
+	Audio                     []string
+	AudioChannels             string
+	AudioFormat               string
+	Bitrate                   string
+	Bonus                     []string
+	Categories                []string
+	Category                  string
+	Codec                     []string
+	Container                 string
+	Cookie                    string
+	CurrentDay                int
+	CurrentHour               int
+	CurrentMinute             int
+	CurrentMonth              int
+	CurrentSecond             int
+	CurrentYear               int
+	CurrentTimeUnixMS         int64
+	CurrentUnixTimeMS         int64
+	Description               string
+	DownloadUrl               string
+	Episode                   int
+	FilterID                  int
+	FilterName                string
+	Freeleech                 bool
+	FreeleechPercent          int
+	Group                     string
+	GroupID                   string
+	HDR                       string
+	HasCue                    bool
+	HasLog                    bool
+	Implementation            string
+	Indexer                   string
+	IndexerIdentifier         string
+	IndexerIdentifierExternal string
+	IndexerName               string
+	InfoUrl                   string
+	IsDuplicate               bool
+	Language                  []string
+	Leechers                  int
+	LogScore                  int
+	MagnetURI                 string
+	MetaIMDB                  string
+	MetaTMDB                  int
+	Origin                    string
+	Other                     []string
+	PreTime                   string
+	Protocol                  string
+	Proper                    bool
+	Region                    string
+	ReleaseTags               string
+	Repack                    bool
+	Resolution                string
+	Season                    int
+	Seeders                   int
+	Size                      uint64
+	SizeString                string
+	SkipDuplicateProfileID    int64
+	SkipDuplicateProfileName  string
+	Source                    string
+	Tags                      string
+	Title                     string
+	TorrentDataRawBytes       []byte
+	TorrentHash               string
+	TorrentID                 string
+	TorrentName               string
+	TorrentPathName           string
+	TorrentUrl                string
+	TorrentTmpFile            string
+	Type                      string
+	Uploader                  string
+	RecordLabel               string
+	Website                   string
+	Year                      int
+	Month                     int
+	Day                       int
 }
 
 func NewMacro(release Release) Macro {
 	currentTime := time.Now()
 
 	ma := Macro{
-		TorrentName:         release.TorrentName,
-		TorrentUrl:          release.TorrentURL,
-		TorrentPathName:     release.TorrentTmpFile,
-		TorrentDataRawBytes: release.TorrentDataRawBytes,
-		TorrentHash:         release.TorrentHash,
-		TorrentID:           release.TorrentID,
-		MagnetURI:           release.MagnetURI,
-		GroupID:             release.GroupID,
-		Indexer:             release.Indexer,
-		Title:               release.Title,
-		Resolution:          release.Resolution,
-		Source:              release.Source,
-		HDR:                 strings.Join(release.HDR, ", "),
-		FilterName:          release.FilterName,
-		Size:                release.Size,
-		Season:              release.Season,
-		Episode:             release.Episode,
-		Year:                release.Year,
-		CurrentYear:         currentTime.Year(),
-		CurrentMonth:        int(currentTime.Month()),
-		CurrentDay:          currentTime.Day(),
-		CurrentHour:         currentTime.Hour(),
-		CurrentMinute:       currentTime.Minute(),
-		CurrentSecond:       currentTime.Second(),
+		Artists:                   release.Artists,
+		Audio:                     release.Audio,
+		AudioChannels:             release.AudioChannels,
+		AudioFormat:               release.AudioFormat,
+		Bitrate:                   release.Bitrate,
+		Bonus:                     release.Bonus,
+		Categories:                release.Categories,
+		Category:                  release.Category,
+		Codec:                     release.Codec,
+		Container:                 release.Container,
+		Cookie:                    release.RawCookie,
+		CurrentDay:                currentTime.Day(),
+		CurrentHour:               currentTime.Hour(),
+		CurrentMinute:             currentTime.Minute(),
+		CurrentMonth:              int(currentTime.Month()),
+		CurrentSecond:             currentTime.Second(),
+		CurrentYear:               currentTime.Year(),
+		CurrentTimeUnixMS:         currentTime.UnixMilli(),
+		CurrentUnixTimeMS:         currentTime.UnixMilli(),
+		Description:               release.Description,
+		DownloadUrl:               release.DownloadURL,
+		Episode:                   release.Episode,
+		FilterID:                  release.FilterID,
+		FilterName:                release.FilterName,
+		Freeleech:                 release.Freeleech,
+		FreeleechPercent:          release.FreeleechPercent,
+		Group:                     release.Group,
+		GroupID:                   release.GroupID,
+		HDR:                       strings.Join(release.HDR, ", "),
+		HasCue:                    release.HasCue,
+		HasLog:                    release.HasLog,
+		Implementation:            release.Implementation.String(),
+		Indexer:                   release.Indexer.Identifier,
+		IndexerIdentifier:         release.Indexer.Identifier,
+		IndexerIdentifierExternal: release.Indexer.IdentifierExternal,
+		IndexerName:               release.Indexer.Name,
+		InfoUrl:                   release.InfoURL,
+		IsDuplicate:               release.IsDuplicate,
+		Language:                  release.Language,
+		Leechers:                  release.Leechers,
+		LogScore:                  release.LogScore,
+		MagnetURI:                 release.MagnetURI,
+		MetaIMDB:                  release.MetaIMDB,
+		MetaTMDB:                  release.MetaTMDB,
+		Origin:                    release.Origin,
+		Other:                     release.Other,
+		PreTime:                   release.PreTime,
+		Protocol:                  release.Protocol.String(),
+		Proper:                    release.Proper,
+		Region:                    release.Region,
+		ReleaseTags:               release.ReleaseTags,
+		Repack:                    release.Repack,
+		Resolution:                release.Resolution,
+		Season:                    release.Season,
+		Seeders:                   release.Seeders,
+		Size:                      release.Size,
+		SizeString:                humanize.Bytes(release.Size),
+		Source:                    release.Source,
+		SkipDuplicateProfileID:    release.SkipDuplicateProfileID,
+		SkipDuplicateProfileName:  release.SkipDuplicateProfileName,
+		Tags:                      strings.Join(release.Tags, ", "),
+		Title:                     release.Title,
+		TorrentDataRawBytes:       release.TorrentDataRawBytes,
+		TorrentHash:               release.TorrentHash,
+		TorrentID:                 release.TorrentID,
+		TorrentName:               release.TorrentName,
+		TorrentPathName:           release.TorrentTmpFile,
+		TorrentUrl:                release.DownloadURL,
+		TorrentTmpFile:            release.TorrentTmpFile,
+		Type:                      release.Type.String(),
+		Uploader:                  release.Uploader,
+		RecordLabel:               release.RecordLabel,
+		Website:                   release.Website,
+		Year:                      release.Year,
+		Month:                     release.Month,
+		Day:                       release.Day,
 	}
 
 	return ma
@@ -77,14 +192,19 @@ func (m Macro) Parse(text string) (string, error) {
 		return "", nil
 	}
 
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return "", errors.Wrap(err, "could parse macro template")
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return "", errors.Wrap(err, "could not parse macro template")
+		}
+		templateCache.Set(text, tmpl, ttlcache.DefaultTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return "", errors.Wrap(err, "could not parse macro")
 	}
@@ -98,14 +218,19 @@ func (m Macro) MustParse(text string) string {
 		return ""
 	}
 
-	// setup template
-	tmpl, err := template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
-	if err != nil {
-		return ""
+	// get template from cache or create new
+	tmpl, ok := templateCache.Get(text)
+	if !ok {
+		var err error
+		tmpl, err = template.New("macro").Funcs(sprig.TxtFuncMap()).Parse(text)
+		if err != nil {
+			return ""
+		}
+		templateCache.Set(text, tmpl, ttlcache.NoTTL)
 	}
 
 	var tpl bytes.Buffer
-	err = tmpl.Execute(&tpl, m)
+	err := tmpl.Execute(&tpl, m)
 	if err != nil {
 		return ""
 	}

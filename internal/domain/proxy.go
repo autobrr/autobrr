@@ -1,0 +1,91 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+package domain
+
+import (
+	"encoding/json"
+	"net/url"
+
+	"github.com/autobrr/autobrr/pkg/errors"
+)
+
+type Proxy struct {
+	ID      int64     `json:"id"`
+	Name    string    `json:"name"`
+	Enabled bool      `json:"enabled"`
+	Type    ProxyType `json:"type"`
+	Addr    string    `json:"addr"`
+	User    string    `json:"user"`
+	Pass    string    `json:"pass"`
+	Timeout int       `json:"timeout"`
+}
+
+func (p Proxy) MarshalJSON() ([]byte, error) {
+	type Alias Proxy
+	return json.Marshal(&struct {
+		*Alias
+		Pass string `json:"pass"`
+	}{
+		Pass:  RedactString(p.Pass),
+		Alias: (*Alias)(&p),
+	})
+}
+
+type ProxyType string
+
+const (
+	ProxyTypeSocks5 = "SOCKS5"
+	ProxyTypeHTTP   = "HTTP"
+)
+
+func (p Proxy) ValidProxyType() bool {
+	switch p.Type {
+	case ProxyTypeSocks5, ProxyTypeHTTP:
+		return true
+	}
+
+	return false
+}
+
+func (p Proxy) Validate() error {
+	if !p.ValidProxyType() {
+		return errors.New("invalid proxy type: %s", p.Type)
+	}
+
+	if err := ValidateProxyAddr(p.Addr, p.Type); err != nil {
+		return err
+	}
+
+	if p.Name == "" {
+		return errors.New("name is required")
+	}
+
+	return nil
+}
+
+func ValidateProxyAddr(addr string, proxyType ProxyType) error {
+	if addr == "" {
+		return errors.New("addr is required")
+	}
+
+	proxyUrl, err := url.Parse(addr)
+	if err != nil {
+		return errors.Wrap(err, "could not parse proxy url: %s", addr)
+	}
+
+	switch proxyType {
+	case ProxyTypeSocks5:
+		if proxyUrl.Scheme != "socks5" && proxyUrl.Scheme != "socks5h" {
+			return errors.New("proxy url scheme must be socks5 or socks5h")
+		}
+	case ProxyTypeHTTP:
+		if proxyUrl.Scheme != "http" && proxyUrl.Scheme != "https" {
+			return errors.New("proxy url scheme must be http or https")
+		}
+	default:
+		return errors.New("invalid proxy type: %s", proxyType)
+	}
+
+	return nil
+}

@@ -1,11 +1,15 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package feed
 
 import (
 	"context"
-	"crypto/tls"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/publicsuffix"
@@ -18,17 +22,21 @@ type RSSParser struct {
 }
 
 // NewFeedParser wraps the gofeed.Parser using our own http client for full control
-func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
-	//store cookies in jar
-	jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
-	jar, _ := cookiejar.New(jarOptions)
-
-	customTransport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+func NewFeedParser(timeout time.Duration, cookie string, tlsSkipVerify bool) *RSSParser {
+	transport := sharedhttp.Transport
+	if tlsSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
 	httpClient := &http.Client{
 		Timeout:   time.Second * 60,
-		Transport: customTransport,
-		Jar:       jar,
+		Transport: transport,
+	}
+
+	if cookie != "" {
+		//store cookies in jar
+		jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
+		jar, _ := cookiejar.New(jarOptions)
+		httpClient.Jar = jar
 	}
 
 	c := &RSSParser{
@@ -38,8 +46,21 @@ func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
 	}
 
 	c.http.Timeout = timeout
+	c.parser.Client = httpClient
 
 	return c
+}
+
+func (c *RSSParser) WithHTTPClient(client *http.Client) {
+	httpClient := client
+	if client.Jar == nil {
+		jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
+		jar, _ := cookiejar.New(jarOptions)
+		httpClient.Jar = jar
+	}
+
+	c.http = httpClient
+	c.parser.Client = httpClient
 }
 
 func (c *RSSParser) ParseURLWithContext(ctx context.Context, feedURL string) (feed *gofeed.Feed, err error) {

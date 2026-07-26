@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package config
 
 import (
@@ -10,9 +13,10 @@ import (
 )
 
 func TestAppConfig_processLines(t *testing.T) {
+	t.Parallel()
 	type fields struct {
 		Config *domain.Config
-		m      sync.Mutex
+		m      *sync.Mutex
 	}
 	type args struct {
 		lines []string
@@ -27,16 +31,16 @@ func TestAppConfig_processLines(t *testing.T) {
 			name: "append missing",
 			fields: fields{
 				Config: &domain.Config{CheckForUpdates: true, LogLevel: "TRACE"},
-				m:      sync.Mutex{},
+				m:      new(sync.Mutex),
 			},
 			args: args{[]string{}},
-			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},
+			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"INFO\"", "#", "# Options: \"ERROR\", \"WARN\", \"INFO\", \"DEBUG\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},
 		},
 		{
 			name: "update existing",
 			fields: fields{
 				Config: &domain.Config{CheckForUpdates: true, LogLevel: "TRACE"},
-				m:      sync.Mutex{},
+				m:      new(sync.Mutex),
 			},
 			args: args{[]string{"# Check for updates", "#", "checkForUpdates = false", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""}},
 			want: []string{"# Check for updates", "#", "checkForUpdates = true", "# Log level", "#", "# Default: \"DEBUG\"", "#", "# Options: \"ERROR\", \"DEBUG\", \"INFO\", \"WARN\", \"TRACE\"", "#", `logLevel = "TRACE"`, "# Log Path", "#", "# Optional", "#", "#logPath = \"\""},

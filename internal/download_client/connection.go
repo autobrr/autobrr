@@ -1,35 +1,45 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package download_client
 
 import (
 	"context"
+	"crypto/tls"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/lidarr"
+	"github.com/autobrr/autobrr/pkg/arr/radarr"
+	"github.com/autobrr/autobrr/pkg/arr/readarr"
+	"github.com/autobrr/autobrr/pkg/arr/sonarr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/lidarr"
+	"github.com/autobrr/autobrr/pkg/nzbget"
 	"github.com/autobrr/autobrr/pkg/porla"
-	"github.com/autobrr/autobrr/pkg/radarr"
-	"github.com/autobrr/autobrr/pkg/readarr"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
-	"github.com/autobrr/autobrr/pkg/sonarr"
+	"github.com/autobrr/autobrr/pkg/transmission"
 	"github.com/autobrr/autobrr/pkg/whisparr"
-	"github.com/autobrr/go-qbittorrent"
 
-	delugeClient "github.com/gdm85/go-libdeluge"
-	"github.com/hekmon/transmissionrpc/v2"
-	"github.com/mrobinsn/go-rtorrent/rtorrent"
+	"github.com/autobrr/go-deluge"
+	"github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-rtorrent"
+	"github.com/dcarbone/zadapters/zstdlog"
+	"github.com/icholy/digest"
+	"github.com/rs/zerolog"
 )
 
-func (s *service) testConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testConnection(ctx context.Context, client domain.DownloadClient) error {
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
 		return s.testQbittorrentConnection(ctx, client)
 
 	case domain.DownloadClientTypeDelugeV1, domain.DownloadClientTypeDelugeV2:
-		return s.testDelugeConnection(client)
+		return s.testDelugeConnection(ctx, client)
 
 	case domain.DownloadClientTypeRTorrent:
-		return s.testRTorrentConnection(client)
+		return s.testRTorrentConnection(ctx, client)
 
 	case domain.DownloadClientTypeTransmission:
 		return s.testTransmissionConnection(ctx, client)
@@ -55,24 +65,33 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 	case domain.DownloadClientTypeSabnzbd:
 		return s.testSabnzbdConnection(ctx, client)
 
+	case domain.DownloadClientTypeNzbget:
+		return s.testNzbgetConnection(ctx, client)
+
 	default:
-		return errors.New("unsupported client")
+		return errors.New("unsupported client: %s", client.Type)
 	}
 }
 
-func (s *service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+	clientHost, err := client.BuildLegacyHost()
+	if err != nil {
+		return errors.Wrap(err, "error building qBittorrent host url: %s", client.Host)
+	}
+
 	qbtSettings := qbittorrent.Config{
-		Host:          client.BuildLegacyHost(),
+		Host:          clientHost,
+		TLSSkipVerify: client.TLSSkipVerify,
 		Username:      client.Username,
 		Password:      client.Password,
-		TLSSkipVerify: client.TLSSkipVerify,
+		APIKey:        client.Settings.APIKey,
 		Log:           s.subLogger,
 	}
 
 	// only set basic auth if enabled
-	if client.Settings.Basic.Auth {
-		qbtSettings.BasicUser = client.Settings.Basic.Username
-		qbtSettings.BasicPass = client.Settings.Basic.Password
+	if client.Settings.Auth.Enabled {
+		qbtSettings.BasicUser = client.Settings.Auth.Username
+		qbtSettings.BasicPass = client.Settings.Auth.Password
 	}
 
 	qbt := qbittorrent.NewClient(qbtSettings)
@@ -85,72 +104,121 @@ func (s *service) testQbittorrentConnection(ctx context.Context, client domain.D
 		return errors.Wrap(err, "error getting torrents: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for qBittorrent: success")
+	s.log.Debug().Msg("test client connection for qBittorrent: success")
 
 	return nil
 }
 
-func (s *service) testDelugeConnection(client domain.DownloadClient) error {
-	var deluge delugeClient.DelugeClient
-
-	settings := delugeClient.Settings{
+func (s *Service) testDelugeConnection(ctx context.Context, client domain.DownloadClient) error {
+	settings := deluge.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
 		Login:                client.Username,
 		Password:             client.Password,
 		DebugServerResponses: true,
-		ReadWriteTimeout:     time.Second * 10,
+		ReadWriteTimeout:     30 * time.Second,
 	}
+
+	settings.Logger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
+
+	var err error
+	var version string
 
 	switch client.Type {
 	case "DELUGE_V1":
-		deluge = delugeClient.NewV1(settings)
+		del := deluge.NewV1(settings)
+
+		// perform connection to Deluge server
+		if err := del.Connect(ctx); err != nil {
+			return errors.Wrap(err, "error logging into client: %v", client.Host)
+		}
+
+		defer del.Close()
+
+		// print daemon version
+		version, err = del.DaemonVersion(ctx)
+		if err != nil {
+			return errors.Wrap(err, "could not get daemon version: %v", client.Host)
+		}
 
 	case "DELUGE_V2":
-		deluge = delugeClient.NewV2(settings)
+		del := deluge.NewV2(settings)
+
+		// perform connection to Deluge server
+		if err := del.Connect(ctx); err != nil {
+			return errors.Wrap(err, "error logging into client: %v", client.Host)
+		}
+
+		defer del.Close()
+
+		// print daemon version
+		version, err = del.DaemonVersion(ctx)
+		if err != nil {
+			return errors.Wrap(err, "could not get daemon version: %v", client.Host)
+		}
 
 	default:
-		deluge = delugeClient.NewV2(settings)
+		return errors.New("unsupported deluge client version: %s", client.Type)
 	}
 
-	// perform connection to Deluge server
-	err := deluge.Connect()
-	if err != nil {
-		return errors.Wrap(err, "error logging into client: %v", client.Host)
-	}
-
-	defer deluge.Close()
-
-	// print daemon version
-	ver, err := deluge.DaemonVersion()
-	if err != nil {
-		return errors.Wrap(err, "could not get daemon version: %v", client.Host)
-	}
-
-	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", ver)
+	s.log.Debug().Str("version", version).Msg("test client connection for Deluge: success")
 
 	return nil
 }
 
-func (s *service) testRTorrentConnection(client domain.DownloadClient) error {
+func (s *Service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+	cfg := rtorrent.Config{
+		Addr:          client.Host,
+		TLSSkipVerify: client.TLSSkipVerify,
+		BasicUser:     client.Settings.Auth.Username,
+		BasicPass:     client.Settings.Auth.Password,
+		Log:           s.subLogger,
+	}
+
 	// create client
-	rt := rtorrent.New(client.Host, true)
-	name, err := rt.Name()
-	if err != nil {
-		return errors.Wrap(err, "error logging into client: %v", client.Host)
+	rt := rtorrent.NewClient(cfg)
+
+	if client.Settings.Auth.Type == domain.DownloadClientAuthTypeDigest {
+		httpClient := &http.Client{
+			Transport: &digest.Transport{
+				Username: client.Settings.Auth.Username,
+				Password: client.Settings.Auth.Password,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: client.TLSSkipVerify},
+				},
+			},
+		}
+
+		// override client
+		rt = rtorrent.NewClientWithOpts(cfg, rtorrent.WithCustomClient(httpClient))
 	}
 
-	s.log.Trace().Msgf("test client connection for rTorrent: got client: %v", name)
+	name, err := rt.Name(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error logging into client: %s", client.Host)
+	}
 
-	s.log.Debug().Msgf("test client connection for rTorrent: success")
+	s.log.Debug().Str("name", name).Msg("test client connection for rTorrent: success")
 
 	return nil
 }
 
-func (s *service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
-	tbt, err := transmissionrpc.New(client.Host, client.Username, client.Password, &transmissionrpc.AdvancedConfig{
-		HTTPS: client.TLS,
-		Port:  uint16(client.Port),
+func (s *Service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
+	clientHost, err := client.BuildLegacyHost()
+	if err != nil {
+		return errors.Wrap(err, "error building Transmission host url: %v", client.Host)
+	}
+
+	transmissionURL, err := url.Parse(clientHost)
+	if err != nil {
+		return errors.Wrap(err, "could not parse transmission url")
+	}
+
+	tbt, err := transmission.New(transmissionURL, &transmission.Config{
+		UserAgent:     "autobrr",
+		Username:      client.Username,
+		Password:      client.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error logging into client: %v", client.Host)
@@ -165,112 +233,119 @@ func (s *service) testTransmissionConnection(ctx context.Context, client domain.
 		return errors.Wrap(err, "error getting rpc info: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Transmission: got version: %v", version)
-
-	s.log.Debug().Msgf("test client connection for Transmission: success")
+	s.log.Debug().Int64("version", version).Msg("test client connection for Transmission: success")
 
 	return nil
 }
 
-func (s *service) testRadarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testRadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := radarr.New(radarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "radarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Radarr: success")
+	s.log.Debug().Msg("test client connection for Radarr: success")
 
 	return nil
 }
 
-func (s *service) testSonarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testSonarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := sonarr.New(sonarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "sonarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Sonarr: success")
+	s.log.Debug().Msg("test client connection for Sonarr: success")
 
 	return nil
 }
 
-func (s *service) testLidarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testLidarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := lidarr.New(lidarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "lidarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Lidarr: success")
+	s.log.Debug().Msg("test client connection for Lidarr: success")
 
 	return nil
 }
 
-func (s *service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := whisparr.New(whisparr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "whisparr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for whisparr: success")
+	s.log.Debug().Msg("test client connection for whisparr: success")
 
 	return nil
 }
 
-func (s *service) testReadarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testReadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := readarr.New(readarr.Config{
-		Hostname:  client.Host,
-		APIKey:    client.Settings.APIKey,
-		BasicAuth: client.Settings.Basic.Auth,
-		Username:  client.Settings.Basic.Username,
-		Password:  client.Settings.Basic.Password,
-		Log:       s.subLogger,
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "readarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for readarr: success")
+	s.log.Debug().Msg("test client connection for readarr: success")
 
 	return nil
 }
 
-func (s *service) testPorlaConnection(client domain.DownloadClient) error {
+func (s *Service) testPorlaConnection(client domain.DownloadClient) error {
 	p := porla.NewClient(porla.Config{
-		Hostname:  client.Host,
-		AuthToken: client.Settings.APIKey,
+		Hostname:      client.Host,
+		TLSSkipVerify: client.TLSSkipVerify,
+		AuthToken:     client.Settings.APIKey,
+		BasicUser:     client.Settings.Auth.Username,
+		BasicPass:     client.Settings.Auth.Password,
+		Log:           s.log,
 	})
 
 	version, err := p.Version()
@@ -279,24 +354,24 @@ func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 		return errors.Wrap(err, "porla: failed to get version: %v", client.Host)
 	}
 
-	commitish := version.Commitish
+	commitHash := version.Commitish
 
-	if len(commitish) > 8 {
-		commitish = commitish[:8]
+	if len(commitHash) > 8 {
+		commitHash = commitHash[:8]
 	}
 
-	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, commitish)
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for porla: success")
 
 	return nil
 }
 
-func (s *service) testSabnzbdConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testSabnzbdConnection(ctx context.Context, client domain.DownloadClient) error {
 	opts := sabnzbd.Options{
 		Addr:      client.Host,
 		ApiKey:    client.Settings.APIKey,
-		BasicUser: client.Settings.Basic.Username,
-		BasicPass: client.Settings.Basic.Password,
-		Log:       nil,
+		BasicUser: client.Settings.Auth.Username,
+		BasicPass: client.Settings.Auth.Password,
+		Log:       s.log,
 	}
 
 	sab := sabnzbd.New(opts)
@@ -305,7 +380,25 @@ func (s *service) testSabnzbdConnection(ctx context.Context, client domain.Downl
 		return errors.Wrap(err, "error getting version from sabnzbd")
 	}
 
-	s.log.Debug().Msgf("test client connection for sabnzbd: success got version: %s", version.Version)
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for sabnzbd: success")
+
+	return nil
+}
+
+func (s *Service) testNzbgetConnection(ctx context.Context, client domain.DownloadClient) error {
+	nzb := nzbget.New(nzbget.Options{
+		Host:     client.Host,
+		Username: client.Username,
+		Password: client.Password,
+		Log:      s.log,
+	})
+
+	version, err := nzb.Version(ctx)
+	if err != nil {
+		return errors.Wrap(err, "error getting version from nzbget")
+	}
+
+	s.log.Debug().Str("version", version).Msg("test client connection for nzbget: success")
 
 	return nil
 }

@@ -1,6 +1,11 @@
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { Field, useFormikContext } from "formik";
-import { RadioGroup } from "@headlessui/react";
-import { classNames } from "../../utils";
+import { RadioGroup, Description, Label, Radio } from "@headlessui/react";
+import { classNames } from "@utils";
 
 export interface radioFieldsetOption {
     label: string;
@@ -42,12 +47,12 @@ function RadioFieldsetWide({ name, legend, options }: props) {
             <Field name={name} type="radio">
               {() => (
                 <RadioGroup value={values[name]} onChange={onChange}>
-                  <RadioGroup.Label className="sr-only">
+                  <Label className="sr-only">
                     {legend}
-                  </RadioGroup.Label>
+                  </Label>
                   <div className="bg-white dark:bg-gray-800 rounded-md -space-y-px">
                     {options.map((setting, settingIdx) => (
-                      <RadioGroup.Option
+                      <Radio
                         key={setting.value}
                         value={setting.value}
                         className={({ checked }) =>
@@ -61,7 +66,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                             checked
                               ? "border-1 bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-600 z-10"
                               : "border-gray-200 dark:border-gray-700",
-                            "relative border p-4 flex cursor-pointer focus:outline-none"
+                            "relative border p-4 flex cursor-pointer focus:outline-hidden"
                           )
                         }
                       >
@@ -72,12 +77,12 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                                 checked
                                   ? "bg-blue-600 dark:bg-blue-500 border-transparent"
                                   : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-300",
-                                "h-6 w-6 mt-1 cursor-pointer rounded-full border flex items-center justify-center"
+                                "h-6 w-6 mt-1 cursor-pointer rounded-full border flex items-center justify-center shrink-0"
                               )}
                               aria-hidden="true"
                             />
                             <div className="ml-3 flex flex-col w-full">
-                              <RadioGroup.Label
+                              <Label
                                 as="span"
                                 className={classNames(
                                   "block text-md text-gray-900 dark:text-gray-300",
@@ -86,19 +91,19 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                               >
                                 <div className="flex justify-between">
                                   {setting.label}
-                                  {setting.type && <span className="rounded bg-orange-500 text-orange-900 px-1 ml-2 text-sm">{setting.type}</span>}
+                                  {setting.type && <span className="rounded-sm bg-orange-500 text-orange-900 px-1 ml-2 text-sm">{setting.type}</span>}
                                 </div>
-                              </RadioGroup.Label>
-                              <RadioGroup.Description
+                              </Label>
+                              <Description
                                 as="span"
                                 className="block text-sm text-gray-700 dark:text-gray-400"
                               >
                                 {setting.description}
-                              </RadioGroup.Description>
+                              </Description>
                             </div>
                           </>
                         )}
-                      </RadioGroup.Option>
+                      </Radio>
                     ))}
                   </div>
                 </RadioGroup>

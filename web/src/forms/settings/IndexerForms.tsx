@@ -1,133 +1,146 @@
-import React, { Fragment, useState } from "react";
-import { toast } from "react-hot-toast";
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import Select, { components, ControlProps, InputProps, MenuProps, OptionProps } from "react-select";
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { Fragment, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Select from "react-select";
 import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikValues } from "formik";
+import { Field, Form, Formik, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Dialog, Transition } from "@headlessui/react";
-import { classNames, sleep } from "../../utils";
-import DEBUG from "../../components/debug";
-import { APIClient } from "../../api/APIClient";
-import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "../../components/inputs";
-import { SlideOver } from "../../components/panels";
-import Toast from "../../components/notifications/Toast";
-import { SelectFieldBasic, SelectFieldCreatable } from "../../components/inputs/select_wide";
-import { CustomTooltip } from "../../components/tooltips/CustomTooltip";
-import { FeedDownloadTypeOptions } from "../../domain/constants";
+import { useTranslation } from "react-i18next";
 
-const Input = (props: InputProps) => (
-  <components.Input 
-    {...props} 
-    inputClassName="outline-none border-none shadow-none focus:ring-transparent"
-    className="text-gray-400 dark:text-gray-100"
-    children={props.children}
-  />
-);
-
-const Control = (props: ControlProps) => (
-  <components.Control 
-    {...props} 
-    className="p-1 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
-    children={props.children}
-  />
-);
-
-const Menu = (props: MenuProps) => (
-  <components.Menu 
-    {...props}
-    className="dark:bg-gray-800 border border-gray-300 dark:border-gray-700 dark:text-gray-400 rounded-md shadow-sm cursor-pointer"
-    children={props.children}
-  />
-);
-
-const Option = (props: OptionProps) => (
-  <components.Option 
-    {...props}
-    className="dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-900 dark:focus:bg-gray-900 cursor-pointer"
-    children={props.children}
-  />
-);
+import { classNames, sleep } from "@utils";
+import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
+import { DEBUG } from "@components/debug";
+import { APIClient } from "@api/APIClient";
+import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
+import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
+import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
+import { toast } from "@components/hot-toast";
+import Toast from "@components/notifications/Toast";
+import { PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/select_wide";
+import { FeedDownloadTypeOptions } from "@domain/constants";
+import { DocsLink } from "@components/ExternalLink";
+import * as common from "@components/inputs/common";
+import { SelectField } from "@forms/settings/IrcForms";
+import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
 
-function validateField(s: IndexerSetting) {
+function validateField(s: IndexerSetting, t: (key: string) => string) {
   return (value?: string | undefined) => {
     if (s.required) {
       if (s.default !== "") {
         if (value && s.default === value) {
-          return "Default value, please edit";
+          return t("forms.indexer.defaultValueValidation");
         }
       }
-      return !!value ? undefined : "Required";
+      return value ? undefined : t("forms.indexer.required");
     }
   };
 }
 
 const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
-  if (indexer !== "") {
-    return (
-      <Fragment>
-        {ind && ind.irc && ind.irc.settings && (
-          <div className="border-t border-gray-200 dark:border-gray-700 py-5">
-            <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">IRC</Dialog.Title>
-              <p className="text-sm text-gray-500 dark:text-gray-200">
-                Networks and channels are configured automatically in the background.
-              </p>
-            </div>
-
-            {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
-              switch (f.type) {
-              case "text":
-                return <TextFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} tooltip={<div><p>Please read our IRC guide if you are unfamiliar with IRC.</p><a href='https://autobrr.com/configuration/irc' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/configuration/irc</a></div>} />;
-              case "secret":
-                if (f.name === "invite_command") {
-                  return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultVisible={true} defaultValue={f.default} validate={validateField(f)} />;
-                }
-                return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
-              }
-              return null;
-            })}
-          </div>
-        )}
-      </Fragment>
-    );
+  const { t } = useTranslation("settings");
+  if (!indexer.length) {
+    return null;
   }
+
+  return (
+    <>
+      {ind && ind.implementation == "irc" && ind.irc && ind.irc.settings && (
+        <div className="border-t border-gray-200 dark:border-gray-700 py-5">
+          <div className="px-4">
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.settingsIrcTitle")}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-200">
+              {t("forms.indexer.settingsIrcDesc")}
+            </p>
+          </div>
+
+          {ind.irc.settings.map((f: IndexerSetting, idx: number) => {
+            switch (f.type) {
+            case "text": {
+              return (
+                <TextFieldWide
+                  key={idx}
+                  name={`irc.${f.name}`}
+                  label={f.label}
+                  required={f.required}
+                  help={f.help}
+                  autoComplete="off"
+                  validate={validateField(f, t)}
+                  tooltip={
+                    <div>
+                      <p>{t("forms.indexer.ircGuideTooltip")}</p>
+                      <DocsLink href="https://autobrr.com/configuration/irc" />
+                    </div>
+                  }
+                />
+              );
+            }
+            case "secret": {
+              if (f.name === "invite_command") {
+                return <PasswordFieldWide defaultVisible name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f, t)} />;
+              }
+              return <PasswordFieldWide name={`irc.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f, t)} />;
+            }
+          }
+            return null;
+          })}
+        </div>
+      )}
+    </>
+  );
+
 };
 
 const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+  const { t } = useTranslation("settings");
   if (indexer !== "") {
     return (
       <Fragment>
-        {ind && ind.torznab && ind.torznab.settings && (
+        {ind && ind.implementation == "torznab" && ind.feed && ind.feed.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Torznab</Dialog.Title>
+            <div className="pt-4 px-4">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.torznabTitle")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-200">
-                Torznab feed
+                {t("forms.indexer.torznabDesc")}
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <TextFieldWide name="name" label={t("forms.indexer.name")} defaultValue="" required={true} />
 
-            {ind.torznab.settings.map((f: IndexerSetting, idx: number) => {
-              switch (f.type) {
-              case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+            <TextFieldWide
+              name="feed.url"
+              label={t("forms.indexer.url")}
+              required={true}
+              help={t("forms.indexer.torznabUrlHelp")}
+              tooltip={
+                <div>
+                  <p>{t("forms.indexer.urlFormatTitle")}</p>
+                  <br/>
+                  <ul>
+                    <li>{t("forms.indexer.prowlarr")}: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                    <li>{t("forms.indexer.jackett")}: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/torznab/</code></li>
+                  </ul>
+                </div>
               }
-              return null;
-            })}
+            />
+
+            <PasswordFieldWide name="feed.api_key" label={t("forms.indexer.apiKey")} help={t("forms.indexer.apiKey")} required={true} />
 
             <SelectFieldBasic
               name="feed.settings.download_type"
-              label="Download type"
+              label={t("forms.indexer.downloadType")}
               options={FeedDownloadTypeOptions}
-              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
-              help="Set to Torrent or Magnet depending on indexer."
+              tooltip={<span>{t("forms.indexer.downloadTypeTooltip2")}</span>}
+              help={t("forms.indexer.downloadTypeHelp")}
             />
+
+            <FeedCategoriesDraftSection feedType="TORZNAB" />
           </div>
         )}
       </Fragment>
@@ -136,29 +149,41 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 };
 
 const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+  const { t } = useTranslation("settings");
   if (indexer !== "") {
     return (
       <Fragment>
-        {ind && ind.newznab && ind.newznab.settings && (
+        {ind && ind.implementation == "newznab" && ind.feed && ind.feed.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">Newznab</Dialog.Title>
+            <div className="pt-4 px-4">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.newznabTitle")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-200">
-                Newznab feed
+                {t("forms.indexer.newznabDesc")}
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <TextFieldWide name="name" label={t("forms.indexer.name")} defaultValue="" required={true} />
 
-            {ind.newznab.settings.map((f: IndexerSetting, idx: number) => {
-              switch (f.type) {
-              case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+            <TextFieldWide
+              name="feed.newznab_url"
+              label={t("forms.indexer.url")}
+              required={true}
+              help={t("forms.indexer.newznabUrlHelp")}
+              tooltip={
+                <div>
+                  <p>{t("forms.indexer.urlFormatTitle")}</p>
+                  <br/>
+                  <ul>
+                    <li>{t("forms.indexer.prowlarr")}: <code className="text-blue-400">http(s)://url.tld/indexerID/api</code></li>
+                    <li>{t("forms.indexer.jackett")}: <code className="text-blue-400">http(s)://url.tld/jackett/api/v2.0/indexers/indexerName/results/newznab/</code></li>
+                  </ul>
+                </div>
               }
-              return null;
-            })}
+            />
+
+            <PasswordFieldWide name="feed.api_key" label={t("forms.indexer.apiKey")} help={t("forms.indexer.apiKey")} required={true} />
+
+            <FeedCategoriesDraftSection feedType="NEWZNAB" />
           </div>
         )}
       </Fragment>
@@ -167,36 +192,39 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 };
 
 const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
+  const { t } = useTranslation("settings");
   if (indexer !== "") {
     return (
       <Fragment>
-        {ind && ind.rss && ind.rss.settings && (
+        {ind && ind.implementation == "rss" && ind.feed && ind.feed.settings && (
           <div className="">
-            <div className="px-4 space-y-1">
-              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">RSS</Dialog.Title>
+            <div className="pt-4 px-4">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.rssTitle")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-200">
-                RSS feed
+                {t("forms.indexer.rssDesc")}
               </p>
             </div>
 
-            <TextFieldWide name="name" label="Name" defaultValue="" />
+            <TextFieldWide name="name" label={t("forms.indexer.name")} defaultValue="" />
 
-            {ind.rss.settings.map((f: IndexerSetting, idx: number) => {
+            {ind.feed.settings.map((f: IndexerSetting, idx: number) => {
               switch (f.type) {
-              case "text":
-                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />;
-              case "secret":
-                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f)} />;
+              case "text": {
+                return <TextFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f, t)} />;
+              }
+              case "secret": {
+                return <PasswordFieldWide name={`feed.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} defaultValue={f.default} validate={validateField(f, t)} />;
+              }
               }
               return null;
             })}
 
             <SelectFieldBasic
               name="feed.settings.download_type"
-              label="Download type"
+              label={t("forms.indexer.downloadType")}
               options={FeedDownloadTypeOptions}
-              tooltip={<span>Some feeds needs to force set as Magnet.</span>}
-              help="Set to Torrent or Magnet depending on indexer."
+              tooltip={<span>{t("forms.indexer.downloadTypeTooltip2")}</span>}
+              help={t("forms.indexer.downloadTypeHelp")}
             />
           </div>
         )}
@@ -205,25 +233,182 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
   }
 };
 
+function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
+  const { t } = useTranslation("settings");
+  const { values, setFieldValue } = useFormikContext<FormikValues>();
+  const feedValues = (values.feed ?? {}) as Record<string, unknown>;
+  const capabilities = feedValues.capabilities ?? null;
+  const categoriesValue = Array.isArray(feedValues.categories) ? (feedValues.categories as number[]) : [];
+  const capsPayload = useMemo(() => parseCapabilitiesPayload(capabilities), [capabilities]);
+  const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
+  const url = feedType === "TORZNAB"
+    ? String(feedValues.url ?? "")
+    : String(feedValues.newznab_url ?? feedValues.url ?? "");
+  const apiKey = typeof feedValues.api_key === "string" ? feedValues.api_key : "";
+  const hasCaps = Boolean(capabilities);
+  const canFetch = url.length > 0;
+
+  const fetchCapsMutation = useMutation({
+    mutationFn: () => APIClient.feeds.fetchCapsDraft({
+      type: feedType,
+      url,
+      api_key: apiKey,
+      timeout: 60
+    }),
+    onSuccess: (caps) => {
+      const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
+      const filteredSelection = categoriesValue.filter((id) => nextCategories.includes(id));
+
+      setFieldValue("feed.capabilities", caps ?? null);
+      setFieldValue("feed.categories", filteredSelection);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : t("forms.indexer.fetchFailed");
+      toast.custom((toastInstance) => <Toast type="error" body={message} t={toastInstance} />);
+    }
+  });
+
+  const toggleCategory = (id: number) => {
+    if (categoriesValue.includes(id)) {
+      setFieldValue(
+        "feed.categories",
+        categoriesValue.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue("feed.categories", [...categoriesValue, id]);
+  };
+
+  const toggleParentCategory = (id: number, childIds: number[]) => {
+    if (categoriesValue.includes(id)) {
+      setFieldValue(
+        "feed.categories",
+        categoriesValue.filter((category) => category !== id)
+      );
+      return;
+    }
+
+    setFieldValue(
+      "feed.categories",
+      [...categoriesValue.filter((category) => !childIds.includes(category)), id]
+    );
+  };
+
+  return (
+    <div className="mt-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="pt-4 px-4 flex items-center justify-between">
+        <div>
+          <div className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.categoriesTitle")}</div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t("forms.indexer.categoriesDescription")}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          onClick={() => fetchCapsMutation.mutate()}
+          disabled={!canFetch || fetchCapsMutation.isPending}
+          title={!canFetch ? t("forms.indexer.fetchNeedsUrl") : undefined}
+        >
+          {fetchCapsMutation.isPending ? t("forms.indexer.fetching") : hasCaps ? t("forms.indexer.refetch") : t("forms.indexer.fetch")}
+        </button>
+      </div>
+
+      {categoriesTree.length ? (
+        <div className="px-4 pt-4 pb-2 space-y-3 max-h-max overflow-y-auto">
+          {categoriesTree.map((category) => {
+            const childIds = category.subcategories.map((sub) => sub.id);
+            const isParentSelected = categoriesValue.includes(category.id);
+
+            return (
+              <div key={category.id} className="space-y-2">
+                <label
+                  className="flex items-center justify-between gap-3 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={categoriesValue.includes(category.id)}
+                      onChange={() => toggleParentCategory(category.id, childIds)}
+                      onClick={(event) => event.stopPropagation()}
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                    <span className="font-medium truncate">{category.name}</span>
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{category.id}</span>
+                </label>
+
+                {category.subcategories.map((subCategory) => (
+                  <label
+                    key={subCategory.id}
+                    className="flex items-center justify-between gap-3 pl-6 cursor-pointer text-sm text-gray-700 dark:text-gray-200"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={categoriesValue.includes(subCategory.id)}
+                        onChange={() => toggleCategory(subCategory.id)}
+                        onClick={(event) => event.stopPropagation()}
+                        disabled={isParentSelected}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800"
+                      />
+                      <span className="truncate">{subCategory.name}</span>
+                    </span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{subCategory.id}</span>
+                  </label>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="px-4 pt-3 pb-2 text-sm text-gray-500 dark:text-gray-400">
+          {hasCaps ? t("forms.indexer.noCategories") : t("forms.indexer.fetchToSelect")}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const SettingFields = (ind: IndexerDefinition, indexer: string) => {
+  const { t } = useTranslation("settings");
   if (indexer !== "") {
     return (
       <div key="opt">
         {ind && ind.settings && ind.settings.map((f, idx: number) => {
           switch (f.type) {
-          case "text":
+          case "text": {
             return (
-              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f)} />
+              <TextFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} autoComplete="off" validate={validateField(f, t)} />
             );
-          case "secret":
+          }
+          case "secret": {
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} required={f.required} key={idx} help={f.help} validate={validateField(f)} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
+              <PasswordFieldWide
+                name={`settings.${f.name}`}
+                label={f.label}
+                required={f.required}
+                key={idx}
+                help={f.help}
+                validate={validateField(f, t)}
+                tooltip={
+                  <div>
+                    <p>{t("forms.indexer.secretFieldTooltip")}</p>
+                    <br />
+                    <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
+                  </div>
+                }
+              />
             );
+          }
           }
           return null;
         })}
         <div hidden={true}>
-          <TextFieldWide name="name" label="Name" defaultValue={ind?.name} />
+          <TextFieldWide name="name" label={t("forms.indexer.name")} defaultValue={ind?.name} />
         </div>
       </div>
     );
@@ -235,341 +420,347 @@ type SelectValue = {
   value: string;
 };
 
-interface AddProps {
-  isOpen: boolean;
-  toggle: () => void;
-}
-
-export function IndexerAddForm({ isOpen, toggle }: AddProps) {
+export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
+  const { t } = useTranslation("settings");
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
   const queryClient = useQueryClient();
-  const { data } = useQuery(
-    "indexerDefinition",
-    () => APIClient.indexers.getSchema(),
-    {
-      enabled: isOpen,
-      refetchOnWindowFocus: false
+  const { data } = useQuery(IndexersSchemaQueryOptions(isOpen));
+
+  const mutation = useMutation({
+    mutationFn: (indexer: Indexer) => APIClient.indexers.create(indexer),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
+
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.added")} t={toastInstance} />);
+      sleep(1500);
+      toggle();
+    },
+    onError: () => {
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.indexer.addFailed")} t={toastInstance} />);
     }
-  );
+  });
 
-  const mutation = useMutation(
-    (indexer: Indexer) => APIClient.indexers.create(indexer), {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["indexer"]);
-        toast.custom((t) => <Toast type="success" body="Indexer was added" t={t} />);
-        sleep(1500);
-        toggle();
-      },
-      onError: () => {
-        toast.custom((t) => <Toast type="error" body="Indexer could not be added" t={t} />);
-      }
-    });
+  const ircMutation = useMutation({
+    mutationFn: (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
+  });
 
-  const ircMutation = useMutation(
-    (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
-  );
-
-  const feedMutation = useMutation(
-    (feed: FeedCreate) => APIClient.feeds.create(feed)
-  );
+  const feedMutation = useMutation({
+    mutationFn: (feed: FeedCreate) => APIClient.feeds.create(feed),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
+    }
+  });
 
   const onSubmit = (formData: FormikValues) => {
     const ind = data && data.find(i => i.identifier === formData.identifier);
-    if (!ind)
+    if (!ind) {
+      console.error("could not find indexer: ", formData.identifier, " in ", data, " - ", formData);
       return;
+    }
 
-    if (formData.implementation === "torznab") {
-      const createFeed: FeedCreate = {
-        name: formData.name,
-        enabled: false,
-        type: "TORZNAB",
-        url: formData.feed.url,
-        api_key: formData.feed.api_key,
-        interval: 30,
-        timeout: 60,
-        indexer_id: 0,
-        settings: formData.feed.settings
-      };
+    switch (formData.implementation) {
+      case "torznab": {
+        const createFeed: FeedCreate = {
+          name: formData.name,
+          enabled: false,
+          type: "TORZNAB",
+          url: formData.feed.url,
+          api_key: formData.feed.api_key,
+          interval: 30,
+          timeout: 60,
+          indexer_id: 0,
+          categories: formData.feed.categories ?? [],
+          capabilities: formData.feed.capabilities ?? null,
+          settings: formData.feed.settings
+        };
 
-      mutation.mutate(formData as Indexer, {
-        onSuccess: (indexer) => {
-          // @eslint-ignore
-          createFeed.indexer_id = indexer.id;
+        mutation.mutate(formData as Indexer, {
+          onSuccess: (indexer) => {
+            // @eslint-ignore
+            createFeed.indexer_id = indexer.id;
 
-          feedMutation.mutate(createFeed);
-        }
-      });
-      return;
-
-    } else if (formData.implementation === "newznab") {
-      formData.url = formData.feed.url;
-
-      const createFeed: FeedCreate = {
-        name: formData.name,
-        enabled: false,
-        type: "NEWZNAB",
-        url: formData.feed.newznab_url,
-        api_key: formData.feed.api_key,
-        interval: 30,
-        timeout: 60,
-        indexer_id: 0,
-        settings: formData.feed.settings
-      };
-
-      mutation.mutate(formData as Indexer, {
-        onSuccess: (indexer) => {
-          // @eslint-ignore
-          createFeed.indexer_id = indexer.id;
-
-          feedMutation.mutate(createFeed);
-        }
-      });
-      return;
-
-    } else if (formData.implementation === "rss") {
-      const createFeed: FeedCreate = {
-        name: formData.name,
-        enabled: false,
-        type: "RSS",
-        url: formData.feed.url,
-        interval: 30,
-        timeout: 60,
-        indexer_id: 0,
-        settings: formData.feed.settings
-      };
-
-      mutation.mutate(formData as Indexer, {
-        onSuccess: (indexer) => {
-          // @eslint-ignore
-          createFeed.indexer_id = indexer.id;
-
-          feedMutation.mutate(createFeed);
-        }
-      });
-      return;
-
-    } else if (formData.implementation === "irc") {
-      const channels: IrcChannel[] = [];
-      if (ind.irc?.channels.length) {
-        ind.irc.channels.forEach(element => {
-          channels.push({
-            id: 0,
-            enabled: true,
-            name: element,
-            password: "",
-            detached: false,
-            monitoring: false
-          });
+            feedMutation.mutate(createFeed);
+          }
         });
+        return;
       }
 
-      const network: IrcNetworkCreate = {
-        name: ind.irc.network,
-        pass: formData.irc.pass || "",
-        enabled: false,
-        connected: false,
-        server: ind.irc.server,
-        port: ind.irc.port,
-        tls: ind.irc.tls,
-        nick: formData.irc.nick,
-        auth: {
-          mechanism: "NONE"
-          // account: formData.irc.auth.account,
-          // password: formData.irc.auth.password
-        },
-        invite_command: formData.irc.invite_command,
-        channels: channels
-      };
+      case "newznab": {
+        formData.url = formData.feed.url;
 
-      if (formData.irc.auth) {
-        if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
-          network.auth.mechanism = "SASL_PLAIN";
-          network.auth.account = formData.irc.auth.account;
-          network.auth.password = formData.irc.auth.password;
-        }
+        const createFeed: FeedCreate = {
+          name: formData.name,
+          enabled: false,
+          type: "NEWZNAB",
+          url: formData.feed.newznab_url,
+          api_key: formData.feed.api_key,
+          interval: 30,
+          timeout: 60,
+          indexer_id: 0,
+          categories: formData.feed.categories ?? [],
+          capabilities: formData.feed.capabilities ?? null,
+          settings: formData.feed.settings
+        };
+
+        mutation.mutate(formData as Indexer, {
+          onSuccess: (indexer) => {
+            // @eslint-ignore
+            createFeed.indexer_id = indexer.id;
+
+            feedMutation.mutate(createFeed);
+          }
+        });
+        return;
       }
 
-      mutation.mutate(formData as Indexer, {
-        onSuccess: () => {
-          ircMutation.mutate(network);
+      case "rss": {
+        const createFeed: FeedCreate = {
+          name: formData.name,
+          enabled: false,
+          type: "RSS",
+          url: formData.feed.url,
+          interval: 30,
+          timeout: 60,
+          indexer_id: 0,
+          settings: formData.feed.settings
+        };
+
+        mutation.mutate(formData as Indexer, {
+          onSuccess: (indexer) => {
+            // @eslint-ignore
+            createFeed.indexer_id = indexer.id;
+
+            feedMutation.mutate(createFeed);
+          }
+        });
+        return;
+      }
+
+      case "irc": {
+        const channels: IrcChannel[] = [];
+        if (ind.irc?.channels.length) {
+          let channelPass = "";
+          if (formData.irc && formData.irc.channels && formData.irc?.channels?.password !== "") {
+            channelPass = formData.irc.channels.password;
+          }
+
+          ind.irc.channels.forEach(element => {
+            channels.push({
+              id: 0,
+              enabled: true,
+              name: element.name,
+              password: channelPass,
+              detached: false,
+              monitoring: false
+            });
+          });
         }
-      });
+
+        const network: IrcNetworkCreate = {
+          name: ind.irc.network,
+          pass: formData.irc.pass || "",
+          enabled: false,
+          connected: false,
+          server: ind.irc.server,
+          port: ind.irc.port,
+          tls: ind.irc.tls,
+          tls_skip_verify: false,
+          nick: formData.irc.nick,
+          auth: {
+            mechanism: "NONE"
+            // account: formData.irc.auth.account,
+            // password: formData.irc.auth.password
+          },
+          invite_command: formData.irc.invite_command,
+          channels: channels
+        };
+
+        if (formData.irc.auth) {
+          if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
+            network.auth.mechanism = "SASL_PLAIN";
+            network.auth.account = formData.irc.auth.account;
+            network.auth.password = formData.irc.auth.password;
+          }
+        }
+
+        mutation.mutate(formData as Indexer, {
+          onSuccess: () => {
+            ircMutation.mutate(network);
+          }
+        });
+        return;
+      }
+      default: {
+        console.error("unknown implementation: ", formData.implementation);
+      }
     }
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
-        <div className="absolute inset-0 overflow-hidden">
-          <Dialog.Overlay className="absolute inset-0" />
-
-          <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex sm:pl-16">
-            <Transition.Child
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
-            >
-              <div className="w-screen max-w-2xl dark:border-gray-700 border-l">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    identifier: "",
-                    implementation: "irc",
-                    name: "",
-                    irc: {},
-                    settings: {}
-                  }}
-                  onSubmit={onSubmit}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-scroll">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <Dialog.Title className="text-lg font-medium text-gray-900 dark:text-white">
-                                Add indexer
-                              </Dialog.Title>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                Add indexer.
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">Close panel</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="py-6 space-y-4 divide-y divide-gray-200 dark:divide-gray-700">
-                          <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
-                            <div>
-                              <label
-                                htmlFor="identifier"
-                                className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
-                                Indexer
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <Field name="identifier" type="select">
-                                {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
-                                  <Select {...field}
-                                    isClearable={true}
-                                    isSearchable={true}
-                                    components={{ Input, Control, Menu, Option }}
-                                    placeholder="Choose an indexer"
-                                    styles={{
-                                      singleValue: (base) => ({
-                                        ...base,
-                                        color: "unset"
-                                      })
-                                    }}
-                                    theme={(theme) => ({
-                                      ...theme,
-                                      spacing: {
-                                        ...theme.spacing,
-                                        controlHeight: 30,
-                                        baseUnit: 2
-                                      }
-                                    })}
-                                    value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      resetForm();
-
-                                      if (option != null) {
-                                        const opt = option as SelectValue;
-                                        setFieldValue("name", opt.label ?? "");
-                                        setFieldValue(field.name, opt.value ?? "");
-
-                                        const ind = data && data.find(i => i.identifier === opt.value);
-                                        if (ind) {
-                                          setIndexer(ind);
-                                          setFieldValue("implementation", ind.implementation);
-
-                                          if (ind.irc && ind.irc.settings) {
-                                            setFieldValue("base_url", ind.urls[0]);
-                                            ind.irc.settings.forEach((s) => {
-                                              setFieldValue(`irc.${s.name}`, s.default ?? "");
-                                            });
-                                          }
-                                        }
-                                      }
-                                    }}
-                                    options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
-                                      label: v.name,
-                                      value: v.identifier
-                                    }))} 
-                                  />
-                                )}
-                              </Field>
-
-                            </div>
-                          </div>
-
-                          <SwitchGroupWide name="enabled" label="Enabled" />
-
-                          {indexer.implementation == "irc" && (
-                            <SelectFieldCreatable
-                              name="base_url"
-                              label="Base URL"
-                              help="Override baseurl if it's blocked by your ISP."
-                              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
-                            />
-                          )}
-
-                          {SettingFields(indexer, values.identifier)}
-
-                        </div>
-
-                        {IrcSettingFields(indexer, values.identifier)}
-                        {TorznabFeedSettingFields(indexer, values.identifier)}
-                        {NewznabFeedSettingFields(indexer, values.identifier)}
-                        {RSSFeedSettingFields(indexer, values.identifier)}
-                      </div>
-
-                      <div
-                        className="flex-shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </div>
-
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <Formik
+        enableReinitialize={true}
+        initialValues={{
+          enabled: true,
+          identifier: "",
+          implementation: "irc",
+          name: "",
+          irc: {},
+          settings: {},
+          feed: {
+            categories: [],
+            capabilities: null,
+            settings: {}
+          }
+        }}
+        onSubmit={onSubmit}
+      >
+        {({ values }) => (
+          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="space-y-1">
+                    <SlideOverTitle>
+                      {t("forms.indexer.addTitle")}
+                    </SlideOverTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-200">
+                      {t("forms.indexer.addDescription")}
+                    </p>
+                  </div>
+                  <div className="h-7 flex items-center">
+                    <button
+                      type="button"
+                      className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      onClick={toggle}
+                    >
+                      <span className="sr-only">{t("forms.indexer.closePanel")}</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
+                  <div>
+                    <label
+                      htmlFor="identifier"
+                      className="block text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      {t("forms.indexer.indexer")}
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field name="identifier" type="select">
+                      {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
+                        <Select {...field}
+                          isClearable={true}
+                          isSearchable={true}
+                          components={{
+                            Input: common.SelectInput,
+                            Control: common.SelectControl,
+                            Menu: common.SelectMenu,
+                            Option: common.SelectOption,
+                            IndicatorSeparator: common.IndicatorSeparator,
+                            DropdownIndicator: common.DropdownIndicator
+                          }}
+                          placeholder={t("forms.indexer.chooseIndexer")}
+                          styles={{
+                            singleValue: (base) => ({
+                              ...base,
+                              color: "unset"
+                            })
+                          }}
+                          theme={(theme) => ({
+                            ...theme,
+                            spacing: {
+                              ...theme.spacing,
+                              controlHeight: 30,
+                              baseUnit: 2
+                            }
+                          })}
+                          value={field?.value && field.value.value}
+                          onChange={(option: unknown) => {
+                            resetForm();
+
+                            if (option != null) {
+                              const opt = option as SelectValue;
+                              setFieldValue("name", opt.label ?? "");
+                              setFieldValue(field.name, opt.value ?? "");
+
+                              const ind = data && data.find(i => i.identifier === opt.value);
+                              if (ind) {
+                                setIndexer(ind);
+                                setFieldValue("implementation", ind.implementation);
+
+                                if (ind.irc && ind.irc.settings) {
+                                  setFieldValue("base_url", ind.urls[0]);
+                                  ind.irc.settings.forEach((s) => {
+                                    setFieldValue(`irc.${s.name}`, s.default ?? "");
+                                  });
+                                }
+                              }
+                            }
+                          }}
+                          options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
+                            label: v.name,
+                            value: v.identifier
+                          }))}
+                        />
+                      )}
+                    </Field>
+
+                  </div>
+                </div>
+
+                <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
+
+                {indexer.implementation == "irc" && (
+                  <SelectFieldCreatable
+                    name="base_url"
+                    label={t("forms.indexer.baseUrl")}
+                    help={t("forms.indexer.baseUrlHelp")}
+                    options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
+                  />
+                )}
+
+                {SettingFields(indexer, values.identifier)}
+
+              </div>
+
+              {IrcSettingFields(indexer, values.identifier)}
+              {TorznabFeedSettingFields(indexer, values.identifier)}
+              {NewznabFeedSettingFields(indexer, values.identifier)}
+              {RSSFeedSettingFields(indexer, values.identifier)}
+
+              <DEBUG values={values} />
+            </div>
+
+            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+              <div className="space-x-3 flex justify-end">
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={toggle}
+                >
+                  {t("forms.indexer.cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                >
+                  {t("forms.indexer.save")}
+                </button>
+              </div>
+            </div>
+          </Form>
+        )}
+      </Formik>
+    </SlideOverShell>
   );
 }
 
@@ -579,54 +770,53 @@ interface TestApiButtonProps {
 }
 
 function TestApiButton({ values, show }: TestApiButtonProps) {
+  const { t } = useTranslation("settings");
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
 
-  if (!show) {
-    return null;
-  }
+  const testApiMutation = useMutation({
+    mutationFn: (req: IndexerTestApiReq) => APIClient.indexers.testApi(req),
+    onMutate: () => {
+      setIsTesting(true);
+      setIsErrorTest(false);
+      setIsSuccessfulTest(false);
+    },
+    onSuccess: () => {
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.testApiSuccess")} t={toastInstance} />);
 
-  const testApiMutation = useMutation(
-    (req: IndexerTestApiReq) => APIClient.indexers.testApi(req),
-    {
-      onMutate: () => {
-        setIsTesting(true);
-        setIsErrorTest(false);
-        setIsSuccessfulTest(false);
-      },
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success" body="API test successful!" t={t} />);
-
-        sleep(1000)
-          .then(() => {
-            setIsTesting(false);
-            setIsSuccessfulTest(true);
-          })
-          .then(() => {
-            sleep(2500).then(() => {
-              setIsSuccessfulTest(false);
-            });
+      sleep(1000)
+        .then(() => {
+          setIsTesting(false);
+          setIsSuccessfulTest(true);
+        })
+        .then(() => {
+          sleep(2500).then(() => {
+            setIsSuccessfulTest(false);
           });
-      },
-      onError: (error: Error) => {
-        toast.custom((t) => <Toast type="error" body={error.message} t={t} />);
-
-        setIsTesting(false);
-        setIsErrorTest(true);
-        sleep(2500).then(() => {
-          setIsErrorTest(false);
         });
-      }
+    },
+    onError: (error: Error) => {
+      toast.custom((t) => <Toast type="error" body={error.message} t={t} />);
+
+      setIsTesting(false);
+      setIsErrorTest(true);
+      sleep(2500).then(() => {
+        setIsErrorTest(false);
+      });
     }
-  );
+  });
 
   const testApi = () => {
+    if (!show) {
+      return;
+    }
+
     const req: IndexerTestApiReq = {
       id: values.id,
       api_key: values.settings.api_key
     };
-    
+
     if (values.settings.api_user) {
       req.api_user = values.settings.api_user;
     }
@@ -634,6 +824,9 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
     testApiMutation.mutate(req);
   };
 
+  if (!show) {
+    return null;
+  }
 
   return (
     <button
@@ -645,7 +838,7 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
             ? "text-red-500 border-red-500 bg-red-50"
             : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
         isTesting ? "cursor-not-allowed" : "",
-        "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-sm text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+        "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
       )}
       disabled={isTesting}
       onClick={testApi}
@@ -672,11 +865,11 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
           ></path>
         </svg>
       ) : isSuccessfulTest ? (
-        "OK!"
+        t("forms.indexer.ok")
       ) : isErrorTest ? (
-        "ERROR"
+        t("forms.indexer.error")
       ) : (
-        "Test API"
+        t("forms.indexer.testApi")
       )}
     </button>
   );
@@ -687,8 +880,11 @@ interface IndexerUpdateInitialValues {
   name: string;
   enabled: boolean;
   identifier: string;
+  identifier_external: string;
   implementation: string;
   base_url: string;
+  use_proxy?: boolean;
+  proxy_id?: number;
   settings: {
     api_key?: string;
     api_user?: string;
@@ -697,29 +893,19 @@ interface IndexerUpdateInitialValues {
   }
 }
 
-interface UpdateProps {
-    isOpen: boolean;
-    toggle: () => void;
-    indexer: IndexerDefinition;
-}
-
-export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
+export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormProps<IndexerDefinition>) {
+  const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
-  const mutation = useMutation((indexer: Indexer) => APIClient.indexers.update(indexer), {
+  const proxies = useQuery(ProxiesQueryOptions());
+
+  const mutation = useMutation({
+    mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
     onSuccess: () => {
-      queryClient.invalidateQueries(["indexer"]);
-      toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.updated", { name: indexer.name })} t={toastInstance} />);
       sleep(1500);
-
-      toggle();
-    }
-  });
-
-  const deleteMutation = useMutation((id: number) => APIClient.indexers.delete(id), {
-    onSuccess: () => {
-      queryClient.invalidateQueries(["indexer"]);
-      toast.custom((t) => <Toast type="success" body={`${indexer.name} was deleted.`} t={t} />);
 
       toggle();
     }
@@ -730,9 +916,20 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     mutation.mutate(data as Indexer);
   };
 
-  const deleteAction = () => {
-    deleteMutation.mutate(indexer.id ?? 0);
-  };
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.indexers.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
+
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.deleted", { name: indexer.name })} t={toastInstance} />);
+
+      toggle();
+    }
+  });
+
+  const deleteAction = () => deleteMutation.mutate(indexer.id ?? 0);
 
   const renderSettingFields = (settings: IndexerSetting[]) => {
     if (settings === undefined) {
@@ -743,14 +940,28 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       <div key="opt">
         {settings.map((f: IndexerSetting, idx: number) => {
           switch (f.type) {
-          case "text":
+          case "text": {
             return (
               <TextFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} />
             );
-          case "secret":
+          }
+          case "secret": {
             return (
-              <PasswordFieldWide name={`settings.${f.name}`} label={f.label} key={idx} help={f.help} tooltip={<CustomTooltip anchorId={`settings.${f.name}`} clickable={true}><div><p>This field does not take a full URL. Only use alphanumeric strings like <code>uqcdi67cibkx3an8cmdm</code>.</p><br /><a href='https://autobrr.com/faqs#common-action-rejections' className='text-blue-400 visited:text-blue-400' target='_blank'>https://autobrr.com/faqs#common-action-rejections</a></div></CustomTooltip>} />
+              <PasswordFieldWide
+                key={idx}
+                name={`settings.${f.name}`}
+                label={f.label}
+                help={f.help}
+                tooltip={
+                  <div>
+                    <p>{t("forms.indexer.secretFieldTooltip")}</p>
+                    <br />
+                    <DocsLink href="https://autobrr.com/faqs#common-action-rejections" />
+                  </div>
+                }
+              />
             );
+          }
           }
           return null;
         })}
@@ -763,8 +974,11 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
     name: indexer.name,
     enabled: indexer.enabled || false,
     identifier: indexer.identifier,
+    identifier_external: indexer.identifier_external,
     implementation: indexer.implementation,
     base_url: indexer.base_url,
+    use_proxy: indexer.use_proxy,
+    proxy_id: indexer.proxy_id,
     settings: indexer.settings?.reduce(
       (o: Record<string, string>, obj: IndexerSetting) => ({
         ...o,
@@ -777,7 +991,7 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
   return (
     <SlideOver
       type="UPDATE"
-      title="Indexer"
+      title={t("forms.indexer.title")}
       isOpen={isOpen}
       toggle={toggle}
       deleteAction={deleteAction}
@@ -785,14 +999,14 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
       initialValues={initialValues}
       extraButtons={(values) => <TestApiButton values={values as FormikValues} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
     >
-      {() => (
+      {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+          <div className="p-4 sm:grid sm:grid-cols-3 sm:gap-4">
             <label
               htmlFor="name"
               className="block text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2"
             >
-              Name
+              {t("forms.indexer.name")}
             </label>
             <Field name="name">
               {({ field, meta }: FieldProps) => (
@@ -800,27 +1014,89 @@ export function IndexerUpdateForm({ isOpen, toggle, indexer }: UpdateProps) {
                   <input
                     type="text"
                     {...field}
-                    className="block w-full shadow-sm dark:bg-gray-800 sm:text-sm dark:text-white focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 rounded-md"
+                    className="block w-full shadow-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
                   />
                   {meta.touched && meta.error && <span>{meta.error}</span>}
                 </div>
               )}
             </Field>
           </div>
-          <SwitchGroupWide name="enabled" label="Enabled" />
+
+          <TextFieldWide
+            name="identifier_external"
+            label={t("forms.indexer.externalIdentifier")}
+            help={t("forms.indexer.externalIdentifierHelp", { name: indexer.name })}
+            tooltip={
+              <div>
+                <p>{t("forms.indexer.externalIdentifierTooltip1")}</p>
+                <br/>
+                <p>{t("forms.indexer.externalIdentifierTooltip2", { name: indexer.name })}</p>
+                <br/>
+                <DocsLink href="https://autobrr.com/configuration/indexers#setup"/>
+              </div>
+            }
+          />
+          <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")}/>
 
           {indexer.implementation == "irc" && (
             <SelectFieldCreatable
               name="base_url"
-              label="Base URL"
-              help="Override baseurl if it's blocked by your ISP."
-              options={indexer.urls.map(u => ({ value: u, label: u, key: u })) }
+              label={t("forms.indexer.baseUrl")}
+              help={t("forms.indexer.baseUrlHelp")}
+              options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
             />
           )}
 
           {renderSettingFields(indexer.settings)}
+
+          {indexer.implementation == "irc" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+              <div className="flex justify-between px-4">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                    {t("forms.indexer.proxy")}
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t("forms.indexer.proxyDesc")}
+                  </p>
+                </div>
+                <SwitchButton name="use_proxy" />
+              </div>
+
+              {values.use_proxy === true && (
+                <div className="py-4 pt-6">
+                  <SelectField<number>
+                    name="proxy_id"
+                    label={t("forms.indexer.selectProxy")}
+                    placeholder={t("forms.indexer.selectProxyPlaceholder")}
+                    options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {(indexer.implementation === "torznab" || indexer.implementation === "newznab" || indexer.implementation === "rss") && (
+            <div className="py-4 pt-6">
+              <FeedSettingsBanner />
+            </div>
+          )}
+
         </div>
       )}
     </SlideOver>
+  );
+}
+
+function FeedSettingsBanner() {
+  const { t } = useTranslation("settings");
+  return (
+    <div className="px-4">
+      <span className="w-full block px-2 py-2 bg-green-300 dark:bg-green-400 text-green-900 dark:text-green-900 text-sm rounded-sm">
+        <span className="font-semibold">
+          {t("forms.indexer.editFeeds")}
+        </span>
+      </span>
+    </div>
   );
 }

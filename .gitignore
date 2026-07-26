@@ -1,25 +1,40 @@
-# Logs and databases #
-######################
+# Logs and databases
 *.log
 *.sql
 *.sqlite
-*.db
-*.db-shm
-*.db-wal
 *.db*
+log/
+logs/
 
-# OS generated files #
-######################
-.DS_Store
-.DS_Store?
+!internal/database/migrations/*/*.sql
+
+# OS generated files
+.DS_Store*
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
 
-# Other
+# IDE
 .idea
+.vscode
+
+# AI agents - local tool state/config; shared guidance belongs in AGENTS.md
+.claude/
+CLAUDE.local.md
+.cursor/
+.windsurf/
+.gemini/
+.codex/
+.aider*
+.cline*
+.roo/
+.opencode/
+.continue/
+
+# Package manager
+node_modules/
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -27,15 +42,27 @@ Thumbs.db
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-node_modules/
+# Ditto for yarn, except we're using pnpm
+yarn.lock
+.pnpm-store
+# If needed, package-lock.json shall be added manually using an explicit git add command
+package-lock.json
+
+# Docker
+config/
+
+# Others
 web/build
 bin/
-log/
-#dist/
+dist/
 .run/
+.dev/
 tmp/
-# If needed, package-lock.json shall be added
-# manually using an explicit git add command.
-package-lock.json
-# Ditto for yarn, except we're using npm.
-yarn.lock
+.golangci.yml
+web/eslint-sarif-report.sarif
+test/mockindexer/feeds/*
+test/mockindexer/files/*
+cpu.pprof
+
+# Preserve files
+!.gitkeep

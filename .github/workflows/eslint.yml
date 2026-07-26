@@ -1,0 +1,72 @@
+name: "ESLint analysis"
+
+on:
+  push:
+    branches: [ "develop", "master" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "develop" ]
+  schedule:
+    - cron: '20 13 * * 6'
+
+env:
+  NODE_VERSION: '24.15.0'
+
+jobs:
+  codeql:
+    runs-on: ubuntu-latest
+    permissions:
+      # required for all workflows
+      security-events: write
+      # only required for workflows in private repositories
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          package_json_file: web/package.json
+
+      # It can not be done before installing pnpm
+      - name: Set up cache
+        uses: actions/setup-node@v7
+        with:
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Fetch web dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      # Runs the ESLint code analysis and writes SARIF output
+      - name: Run ESLint
+        run: SARIF_ESLINT_EMBED=true pnpm run lint:ci
+        working-directory: web
+
+      - name: Inspect SARIF
+        run: cat results.sarif
+
+      # Uploads results.sarif to GitHub repository using the upload-sarif action
+      - uses: github/codeql-action/upload-sarif@v4
+        with:
+          # Path to SARIF file relative to the root of the repository
+          sarif_file: results.sarif
+          category: ESLint
+
+      - uses: CatChen/eslint-suggestion-action@v4
+        with:
+          request-changes: true
+          fail-check: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          directory: 'web'
+          targets: 'web/src'

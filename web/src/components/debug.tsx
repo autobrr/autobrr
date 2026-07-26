@@ -1,14 +1,19 @@
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 import { FC } from "react";
-import { SettingsContext } from "../utils/Context";
+import { SettingsContext } from "@utils/Context";
 
 interface DebugProps {
     values: unknown;
 }
 
-const DEBUG: FC<DebugProps> = ({ values }) => {
+export const DEBUG: FC<DebugProps> = ({ values }) => {
   const settings = SettingsContext.useValue();
 
-  if (process.env.NODE_ENV !== "development" || !settings.debug) {
+  if (!import.meta.env.DEV || !settings.debug) {
     return null;
   }
 
@@ -19,4 +24,10 @@ const DEBUG: FC<DebugProps> = ({ values }) => {
   );
 };
 
-export default DEBUG;
+export function LogDebug(...data: any[]): void {
+  if (!import.meta.env.DEV) {
+    return;
+  }
+
+  console.log(...data)
+}

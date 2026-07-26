@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package irc
 
 import (
@@ -18,11 +21,12 @@ type ServerOptions struct {
 }
 
 func NewServer(options *ServerOptions) (*Server, error) {
-	listener, err := net.Listen("tcp", "localhost:6697")
-
+	listener, err := net.Listen("tcp", ":6697")
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("IRC server running on %q", listener.Addr())
 
 	return &Server{
 		listener: listener,
@@ -33,7 +37,6 @@ func NewServer(options *ServerOptions) (*Server, error) {
 func (s *Server) Run() {
 	for {
 		conn, err := s.listener.Accept()
-
 		if err != nil {
 			log.Printf("Failed accept: %v", err)
 			continue

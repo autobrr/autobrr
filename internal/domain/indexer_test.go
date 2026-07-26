@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package domain
 
 import (
@@ -6,99 +9,59 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIndexerIRCParse_ParseMatch(t *testing.T) {
+func TestIndexerIRCV2ParseMatch_ParseUrls(t *testing.T) {
+	t.Parallel()
 	type fields struct {
-		Type          string
-		ForceSizeUnit string
-		Lines         []IndexerIRCParseLine
-		Match         IndexerIRCParseMatch
+		ReleaseName string
+		DownloadURL string
+		MagnetURI   string
+		InfoURL     string
+		Encode      []string
 	}
 	type args struct {
 		baseURL string
 		vars    map[string]string
+		rls     *Release
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    *IndexerIRCParseMatched
-		wantErr bool
+		name   string
+		fields fields
+		args   args
+		want   *Release
 	}{
 		{
-			name: "test_01",
+			name: "",
 			fields: fields{
-				Type:          "",
-				ForceSizeUnit: "",
-				Lines: []IndexerIRCParseLine{
-					{
-						Test:    nil,
-						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
-						Vars: []string{
-							"category",
-							"torrentName",
-							"uploader",
-							"freeleech",
-							"baseUrl",
-							"torrentId",
-						},
-					},
-				},
-				Match: IndexerIRCParseMatch{
-					TorrentURL: "rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
-					Encode:     []string{"torrentName"},
-				},
+				DownloadURL: "rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .releaseName }}.torrent",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "TV :: Episodes HD",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"freeleech":   "",
 					"baseUrl":     "https://mock.local/",
 					"torrentId":   "240860011",
 					"rsskey":      "00000000000000000000",
 				},
+				rls: &Release{},
 			},
-			want: &IndexerIRCParseMatched{
-				TorrentURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
+			want: &Release{
+				DownloadURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
 			},
-			wantErr: false,
 		},
 		{
-			name: "test_02",
+			name: "",
 			fields: fields{
-				Type:          "",
-				ForceSizeUnit: "",
-				Lines: []IndexerIRCParseLine{
-					{
-						Test:    nil,
-						Pattern: `(.*?)(?: - )?(Visual Novel|Light Novel|TV.*|Movie|Manga|OVA|ONA|DVD Special|BD Special|Oneshot|Anthology|Manhwa|Manhua|Artbook|Game|Live Action.*|)[\s\p{Zs}]{2,}\[(\d+)\] :: (.*?)(?: \/ (?:RAW|Softsubs|Hardsubs|Translated)\s\((.+)\)(?:.*Episode\s(\d+))?(?:.*(Freeleech))?.*)? \|\| (https.*)\/torrents.*\?id=\d+&torrentid=(\d+) \|\| (.+?(?:(?:\|\| Uploaded by|$))?) (?:\|\| Uploaded by: (.*))?$`,
-						Vars: []string{
-							"torrentName",
-							"category",
-							"year",
-							"releaseTags",
-							"releaseGroup",
-							"releaseEpisode",
-							"freeleech",
-							"baseUrl",
-							"torrentId",
-							"tags",
-							"uploader",
-						},
-					},
-				},
-				Match: IndexerIRCParseMatch{
-					TorrentURL:  "/torrent/{{ .torrentId }}/download/{{ .passkey }}",
-					TorrentName: `{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} [{{ .year }}] {{ if .releaseEpisode }}{{ printf "- %02s " .releaseEpisode }}{{ end }}{{ print "[" .releaseTags "]" | replace " / " "][" }}`,
-					Encode:      nil,
-				},
+				DownloadURL: "/torrent/{{ .torrentId }}/download/{{ .passkey }}",
+				Encode:      nil,
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
-					"torrentName":    "Great BluRay SoftSubbed Anime",
+					"releaseName":    "Great BluRay SoftSubbed Anime",
 					"category":       "TV Series",
 					"year":           "2020",
 					"releaseTags":    "Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech",
@@ -111,124 +74,69 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 					"uploader":       "Uploader",
 					"passkey":        "00000000000000000000",
 				},
+				rls: &Release{},
 			},
-			want: &IndexerIRCParseMatched{
-				TorrentURL:  "https://mock.local/torrent/240860011/download/00000000000000000000",
-				TorrentName: "[Softsubs] Great BluRay SoftSubbed Anime [2020] [Blu-ray][MKV][h264 10-bit][1080p][FLAC 2.0][Dual Audio][Softsubs (Sub Group)][Freeleech]",
+			want: &Release{
+				DownloadURL: "https://mock.local/torrent/240860011/download/00000000000000000000",
 			},
-			wantErr: false,
 		},
 		{
-			name: "test_03",
+			name: "",
 			fields: fields{
-				Type:          "",
-				ForceSizeUnit: "",
-				Lines: []IndexerIRCParseLine{
-					{
-						Test:    nil,
-						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
-						Vars: []string{
-							"category",
-							"torrentName",
-							"uploader",
-							"freeleech",
-							"baseUrl",
-							"torrentId",
-						},
-					},
-				},
-				Match: IndexerIRCParseMatch{
-					TorrentURL: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
-					Encode:     []string{"torrentName"},
-				},
+				DownloadURL: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .releaseName }}.torrent",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "TV :: Episodes HD",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"freeleech":   "",
 					"baseUrl":     "https://mock.local/",
 					"torrentId":   "240860011",
 					"rsskey":      "00000000000000000000",
 				},
+				rls: &Release{},
 			},
-			want: &IndexerIRCParseMatched{
-				TorrentURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
+			want: &Release{
+				DownloadURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
 			},
-			wantErr: false,
 		},
 		{
-			name: "test_04",
+			name: "",
 			fields: fields{
-				Type:          "",
-				ForceSizeUnit: "",
-				Lines: []IndexerIRCParseLine{
-					{
-						Test:    nil,
-						Pattern: "New Torrent Announcement:\\s*<([^>]*)>\\s*Name:'(.*)' uploaded by '([^']*)'\\s*(freeleech)*\\s*-\\s*(https?\\:\\/\\/[^\\/]+\\/)torrent\\/(\\d+)",
-						Vars: []string{
-							"category",
-							"torrentName",
-							"uploader",
-							"freeleech",
-							"baseUrl",
-							"torrentId",
-						},
-					},
-				},
-				Match: IndexerIRCParseMatch{
-					TorrentURL: "https://mock.local/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
-					Encode:     []string{"torrentName"},
-				},
+				DownloadURL: "https://mock.local/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .releaseName }}.torrent",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "TV :: Episodes HD",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"freeleech":   "",
 					"baseUrl":     "https://mock.local/",
 					"torrentId":   "240860011",
 					"rsskey":      "00000000000000000000",
 				},
+				rls: &Release{},
 			},
-			want: &IndexerIRCParseMatched{
-				TorrentURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
+			want: &Release{
+				DownloadURL: "https://mock.local/rss/download/240860011/00000000000000000000/The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP.torrent",
 			},
-			wantErr: false,
 		},
 		{
-			name: "test_04",
+			name: "",
 			fields: fields{
-				Type:          "",
-				ForceSizeUnit: "",
-				Lines: []IndexerIRCParseLine{
-					{
-						Test:    nil,
-						Pattern: "New Torrent in category \\[([^\\]]*)\\] (.*) \\(([^\\)]*)\\) uploaded! Download\\: (https?\\:\\/\\/[^\\/]+\\/).+id=(.+)",
-						Vars: []string{
-							"category",
-							"torrentName",
-							"uploader",
-							"freeleech",
-							"baseUrl",
-							"torrentId",
-						},
-					},
-				},
-				Match: IndexerIRCParseMatch{
-					TorrentURL: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}",
-					Encode:     []string{"torrentName"},
-				},
+				DownloadURL: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .releaseName }}",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "Movies/Remux",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"torrentSize": "",
 					"baseUrl":     "https://mock.local/",
@@ -237,24 +145,220 @@ func TestIndexerIRCParse_ParseMatch(t *testing.T) {
 					"token":       "TOKEN",
 					"rsskey":      "00000000000000000000",
 				},
+				rls: &Release{},
 			},
-			want: &IndexerIRCParseMatched{
-				TorrentURL: "https://mock.local/rss/?action=download&key=KEY&token=TOKEN&hash=240860011&title=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
+			want: &Release{
+				DownloadURL: "https://mock.local/rss/?action=download&key=KEY&token=TOKEN&hash=240860011&title=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
+			},
+		},
+		{
+			name: "magnet_uri",
+			fields: fields{
+				MagnetURI: "magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .releaseName }}",
+			},
+			args: args{
+				vars: map[string]string{
+					"torrentHash": "81c758d0eca5372d59e43879ecf2e2bce33a06c4",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+				},
+				rls: &Release{},
+			},
+			want: &Release{
+				MagnetURI: "magnet:?xt=urn:btih:81c758d0eca5372d59e43879ecf2e2bce33a06c4&dn=The+Show+2019+S03E08+2160p+DV+WEBRip+6CH+x265+HEVC-GROUP",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &IndexerIRCV2ParseMatch{
+				ReleaseName: tt.fields.ReleaseName,
+				DownloadURL: tt.fields.DownloadURL,
+				MagnetURI:   tt.fields.MagnetURI,
+				InfoURL:     tt.fields.InfoURL,
+				Encode:      tt.fields.Encode,
+			}
+			err := p.ParseURLs(tt.args.baseURL, tt.args.vars, tt.args.rls)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, tt.args.rls)
+		})
+	}
+}
+
+func TestIndexerIRCV2ParseMatch_ParseTorrentName(t *testing.T) {
+	t.Parallel()
+	type fields struct {
+		ReleaseName string
+		DownloadURL string
+		InfoURL     string
+		Encode      []string
+	}
+	type args struct {
+		vars map[string]string
+		rls  *Release
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *Release
+	}{
+		{
+			name: "",
+			fields: fields{
+				ReleaseName: "",
+			},
+			args: args{
+				vars: map[string]string{
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+				},
+				rls: &Release{},
+			},
+			want: &Release{
+				TorrentName: "",
+			},
+		},
+		{
+			name: "",
+			fields: fields{
+				ReleaseName: `{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .releaseName }} [{{ .year }}] {{ if .releaseEpisode }}{{ printf "- %02s " .releaseEpisode }}{{ end }}{{ print "[" .releaseTags "]" | replace " / " "][" }}`,
+			},
+			args: args{
+				vars: map[string]string{
+					"releaseName":    "Great BluRay SoftSubbed Anime",
+					"category":       "TV Series",
+					"year":           "2020",
+					"releaseTags":    "Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech",
+					"releaseGroup":   "Softsubs",
+					"releaseEpisode": "",
+					"freeleech":      "freeleech",
+					"baseUrl":        "https://mock.local",
+					"torrentId":      "240860011",
+					"tags":           "comedy, drama, school.life, sports",
+					"uploader":       "Uploader",
+					"passkey":        "00000000000000000000",
+				},
+				rls: &Release{},
+			},
+			want: &Release{
+				TorrentName: "[Softsubs] Great BluRay SoftSubbed Anime [2020] [Blu-ray][MKV][h264 10-bit][1080p][FLAC 2.0][Dual Audio][Softsubs (Sub Group)][Freeleech]",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &IndexerIRCV2ParseMatch{
+				ReleaseName: tt.fields.ReleaseName,
+				DownloadURL: tt.fields.DownloadURL,
+				InfoURL:     tt.fields.InfoURL,
+				Encode:      tt.fields.Encode,
+			}
+			err := p.ParseTorrentName(tt.args.vars, tt.args.rls)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, tt.args.rls)
+		})
+	}
+}
+
+func TestIndexerIRCV2Parse_MapCustomVariables(t *testing.T) {
+	type fields struct {
+		Type          string
+		ForceSizeUnit string
+		Lines         []IndexerIRCParseLine
+		Match         IndexerIRCV2ParseMatch
+		Mappings      IRCMappings
+	}
+	type args struct {
+		vars       map[string]string
+		expectVars map[string]string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "",
+			fields: fields{
+				Mappings: map[string]map[string]map[string]string{
+					"announceType": {
+						"0": map[string]string{
+							"announceType": "NEW",
+						},
+						"1": map[string]string{
+							"announceType": "PROMO",
+						},
+					},
+					"categoryEnum": {
+						"0": map[string]string{
+							"category": "Feature Film",
+						},
+						"1": map[string]string{
+							"category": "Short Film",
+						},
+						"2": map[string]string{
+							"category": "Miniseries",
+						},
+						"3": map[string]string{
+							"category": "Stand-up Comedy",
+						},
+						"4": map[string]string{
+							"category": "Live Performance",
+						},
+						"5": map[string]string{
+							"category": "Movie Collection",
+						},
+					},
+					"freeleechEnum": {
+						"0": map[string]string{
+							"downloadVolumeFactor": "1.0",
+							"uploadVolumeFactor":   "1.0",
+						},
+						"1": map[string]string{
+							"downloadVolumeFactor": "0",
+							"uploadVolumeFactor":   "1.0",
+						},
+						"2": map[string]string{
+							"downloadVolumeFactor": "0.5",
+							"uploadVolumeFactor":   "1.0",
+						},
+						"3": map[string]string{
+							"downloadVolumeFactor": "0",
+							"uploadVolumeFactor":   "0",
+						},
+					},
+				},
+			},
+			args: args{
+				vars: map[string]string{
+					"announceType":  "1",
+					"categoryEnum":  "0",
+					"freeleechEnum": "1",
+				},
+				expectVars: map[string]string{
+					"announceType":         "PROMO",
+					"category":             "Feature Film",
+					"categoryEnum":         "0",
+					"freeleechEnum":        "1",
+					"downloadVolumeFactor": "0",
+					"uploadVolumeFactor":   "1.0",
+				},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &IndexerIRCParse{
+			p := &IndexerIRCV2Parse{
 				Type:          tt.fields.Type,
 				ForceSizeUnit: tt.fields.ForceSizeUnit,
 				Lines:         tt.fields.Lines,
 				Match:         tt.fields.Match,
+				Mappings:      tt.fields.Mappings,
 			}
-
-			got, _ := p.ParseMatch(tt.args.baseURL, tt.args.vars)
-			assert.Equal(t, tt.want, got)
+			err := p.MapCustomVariables(tt.args.vars)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.args.expectVars, tt.args.vars)
 		})
 	}
 }

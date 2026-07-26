@@ -1,29 +1,40 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package btn
 
 import (
 	"context"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
-	res, err := c.rpcClient.CallCtx(ctx, "userInfo", [2]string{c.APIKey})
+	startTime := time.Now()
+	res, err := c.call(ctx, "getTorrentsBrowse", [2]string{c.APIKey, "100"})
 	if err != nil {
 		return false, errors.Wrap(err, "test api userInfo failed")
 	}
 
-	var u *UserInfo
-	err = res.GetObject(&u)
-	if err != nil {
-		return false, errors.Wrap(err, "test api get userInfo")
+	elapsed := time.Since(startTime)
+	c.logger(ctx).Debug().Dur("duration", elapsed).Msg("btn api test completed")
+
+	if res.Error != nil {
+		return false, errors.New("btn: API test error: %s", res.Error.Message)
 	}
 
-	if u.Username != "" {
-		return true, nil
+	var r *TorrentsBrowseResponse
+	if err := res.GetObject(&r); err != nil {
+		return false, errors.Wrap(err, "test api getTorrentsBrowse")
 	}
 
-	return false, nil
+	if r.Results == "" {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.TorrentBasic, error) {
@@ -31,14 +42,17 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		return nil, errors.New("btn client: must have torrentID")
 	}
 
-	res, err := c.rpcClient.CallCtx(ctx, "getTorrentById", [2]string{c.APIKey, torrentID})
+	res, err := c.call(ctx, "getTorrentById", [2]string{c.APIKey, torrentID})
 	if err != nil {
 		return nil, errors.Wrap(err, "call getTorrentById failed")
 	}
 
+	if res.Error != nil {
+		return nil, errors.New("btn: getTorrentById error: %s", res.Error.Message)
+	}
+
 	var r *domain.TorrentBasic
-	err = res.GetObject(&r)
-	if err != nil {
+	if err := res.GetObject(&r); err != nil {
 		return nil, err
 	}
 
@@ -91,4 +105,9 @@ type UserInfo struct {
 	HnR             string `json:"HnR"`
 	UploadsSnatched string `json:"UploadsSnatched"`
 	Snatches        string `json:"Snatches"`
+}
+
+type TorrentsBrowseResponse struct {
+	Results string `json:"results"`
+	//Torrents map[string]Torrent `json:"torrents"`
 }

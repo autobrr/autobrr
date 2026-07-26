@@ -1,3 +1,6 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package torznab
 
 import "encoding/xml"
@@ -11,11 +14,11 @@ type Server struct {
 	Image     string `xml:"image,attr"`
 }
 type Limits struct {
-	Max     string `xml:"max,attr"`
-	Default string `xml:"default,attr"`
+	Max     int `xml:"max,attr"`
+	Default int `xml:"default,attr"`
 }
 type Retention struct {
-	Days string `xml:"days,attr"`
+	Days int `xml:"days,attr"`
 }
 
 type Registration struct {

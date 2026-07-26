@@ -1,139 +1,198 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package feed
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"log"
-	"strconv"
+	"net/http"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/release"
-	"github.com/autobrr/autobrr/internal/scheduler"
+	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
-	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/mmcdole/gofeed"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
+type feedRepo interface {
+	FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error)
 	FindByID(ctx context.Context, id int) (*domain.Feed, error)
-	FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error)
 	Find(ctx context.Context) ([]domain.Feed, error)
-	GetCacheByID(ctx context.Context, bucket string) ([]domain.FeedCacheItem, error)
+	GetLastRunDataByID(ctx context.Context, id int) (string, error)
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
-	Test(ctx context.Context, feed *domain.Feed) error
+	UpdateLastRun(ctx context.Context, feedID int) error
+	UpdateLastRunWithData(ctx context.Context, feedID int, data string) error
+	UpdateCapabilities(ctx context.Context, feedID int, caps *domain.FeedCapabilities) error
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Delete(ctx context.Context, id int) error
-	GetLastRunData(ctx context.Context, id int) (string, error)
+}
 
-	Start() error
+type feedCacheRepo interface {
+	Get(feedId int, key string) ([]byte, error)
+	GetByFeed(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error)
+	GetCountByFeed(ctx context.Context, feedId int) (int, error)
+	Exists(feedId int, key string) (bool, error)
+	ExistingItems(ctx context.Context, feedId int, keys []string) (map[string]bool, error)
+	Put(feedId int, key string, val []byte, ttl time.Time) error
+	PutMany(ctx context.Context, items []domain.FeedCacheItem) error
+	Delete(ctx context.Context, feedId int, key string) error
+	DeleteByFeed(ctx context.Context, feedId int) error
+	DeleteStale(ctx context.Context) error
+	DeleteOrphaned(ctx context.Context) error
+}
+
+type schedulerService interface {
+	ScheduleJobJittered(job cron.Job, interval time.Duration, identifier string) (int, error)
+	AddJob(job cron.Job, spec string, identifier string) (int, error)
+	RemoveJobByIdentifier(id string) error
+	GetNextRun(id string) (time.Time, error)
+}
+
+type proxyService interface {
+	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
+}
+
+type releaseService interface {
+	ProcessMultipleFromIndexer(ctx context.Context, releases []*domain.Release, indexer domain.IndexerMinimal) error
 }
 
 type feedInstance struct {
-	Feed              *domain.Feed
-	Name              string
-	IndexerIdentifier string
-	URL               string
-	ApiKey            string
-	Implementation    string
-	CronSchedule      time.Duration
-	Timeout           time.Duration
+	Feed           *domain.Feed
+	Name           string
+	Indexer        domain.IndexerMinimal
+	URL            string
+	ApiKey         string
+	Implementation string
+	CronSchedule   time.Duration
+	Timeout        time.Duration
 }
 
+// feedKey creates a unique identifier to be used for controlling jobs in the scheduler
 type feedKey struct {
-	id      int
-	indexer string
-	name    string
+	id int
 }
 
+// ToString creates a string of the unique id to be used for controlling jobs in the scheduler
 func (k feedKey) ToString() string {
-	return fmt.Sprintf("%v+%v+%v", k.id, k.indexer, k.name)
+	return fmt.Sprintf("feed-%d", k.id)
 }
 
-type service struct {
+type Service struct {
 	log  zerolog.Logger
 	jobs map[string]int
 
-	repo       domain.FeedRepo
-	cacheRepo  domain.FeedCacheRepo
-	releaseSvc release.Service
-	scheduler  scheduler.Service
+	repo       feedRepo
+	cacheRepo  feedCacheRepo
+	releaseSvc releaseService
+	proxySvc   proxyService
+	scheduler  schedulerService
 }
 
-func NewService(log logger.Logger, repo domain.FeedRepo, cacheRepo domain.FeedCacheRepo, releaseSvc release.Service, scheduler scheduler.Service) Service {
-	return &service{
+func NewService(log logger.Logger, repo feedRepo, cacheRepo feedCacheRepo, releaseSvc releaseService, proxySvc proxyService, scheduler schedulerService) *Service {
+	return &Service{
 		log:        log.With().Str("module", "feed").Logger(),
 		jobs:       map[string]int{},
 		repo:       repo,
 		cacheRepo:  cacheRepo,
 		releaseSvc: releaseSvc,
+		proxySvc:   proxySvc,
 		scheduler:  scheduler,
 	}
 }
 
-func (s *service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
+func (s *Service) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {
+	return s.repo.FindOne(ctx, params)
+}
+
+func (s *Service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
 	return s.repo.FindByID(ctx, id)
 }
 
-func (s *service) FindByIndexerIdentifier(ctx context.Context, indexer string) (*domain.Feed, error) {
-	return s.repo.FindByIndexerIdentifier(ctx, indexer)
-}
-
-func (s *service) Find(ctx context.Context) ([]domain.Feed, error) {
-	return s.repo.Find(ctx)
-}
-
-func (s *service) GetCacheByID(ctx context.Context, bucket string) ([]domain.FeedCacheItem, error) {
-	id, _ := strconv.Atoi(bucket)
-
-	feed, err := s.repo.FindByID(ctx, id)
+func (s *Service) Find(ctx context.Context) ([]domain.Feed, error) {
+	feeds, err := s.repo.Find(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find feed by id: %v", id)
 		return nil, err
 	}
 
-	data, err := s.cacheRepo.GetByBucket(ctx, feed.Name)
-	if err != nil {
-		s.log.Error().Err(err).Msg("could not get feed cache")
-		return nil, err
+	for i, feed := range feeds {
+		t, err := s.scheduler.GetNextRun(feedKey{id: feed.ID}.ToString())
+		if err != nil {
+			continue
+		}
+		feed.NextRun = t
+		feeds[i] = feed
 	}
 
-	return data, err
+	return feeds, nil
 }
 
-func (s *service) Store(ctx context.Context, feed *domain.Feed) error {
+func (s *Service) GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error) {
+	return s.cacheRepo.GetByFeed(ctx, feedId)
+}
+
+func (s *Service) Store(ctx context.Context, feed *domain.Feed) error {
 	return s.repo.Store(ctx, feed)
 }
 
-func (s *service) Update(ctx context.Context, feed *domain.Feed) error {
+func (s *Service) Update(ctx context.Context, feed *domain.Feed) error {
 	return s.update(ctx, feed)
 }
 
-func (s *service) Delete(ctx context.Context, id int) error {
+func (s *Service) Delete(ctx context.Context, id int) error {
 	return s.delete(ctx, id)
 }
 
-func (s *service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
+func (s *Service) DeleteFeedCache(ctx context.Context, id int) error {
+	return s.cacheRepo.DeleteByFeed(ctx, id)
+}
+
+func (s *Service) DeleteFeedCacheStale(ctx context.Context) error {
+	return s.cacheRepo.DeleteStale(ctx)
+}
+
+func (s *Service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
 	return s.toggleEnabled(ctx, id, enabled)
 }
 
-func (s *service) Test(ctx context.Context, feed *domain.Feed) error {
+func (s *Service) Test(ctx context.Context, feed *domain.Feed) error {
 	return s.test(ctx, feed)
 }
 
-func (s *service) Start() error {
+func (s *Service) Start() error {
 	return s.start()
 }
 
-func (s *service) update(ctx context.Context, feed *domain.Feed) error {
+func (s *Service) update(ctx context.Context, feed *domain.Feed) error {
+	existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not find feed")
+		return err
+	}
+
+	if domain.IsRedactedString(feed.ApiKey) {
+		feed.ApiKey = existingFeed.ApiKey
+	}
+	if domain.IsRedactedString(feed.Cookie) {
+		feed.Cookie = existingFeed.Cookie
+	}
+
 	if err := s.repo.Update(ctx, feed); err != nil {
 		s.log.Error().Err(err).Msg("error updating feed")
+		return err
+	}
+
+	// get Feed again for ProxyID and UseProxy to be correctly populated
+	feed, err = s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	if err != nil {
+		s.log.Error().Err(err).Msg("error finding feed")
 		return err
 	}
 
@@ -145,37 +204,36 @@ func (s *service) update(ctx context.Context, feed *domain.Feed) error {
 	return nil
 }
 
-func (s *service) delete(ctx context.Context, id int) error {
-	f, err := s.repo.FindByID(ctx, id)
+func (s *Service) delete(ctx context.Context, id int) error {
+	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: id})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
 	}
 
-	s.log.Debug().Msgf("stopping and removing feed: %v", f.Name)
+	s.log.Debug().Str("feed", f.Name).Msg("stopping and removing feed")
 
-	identifierKey := feedKey{f.ID, f.Indexer, f.Name}.ToString()
-
-	if err := s.stopFeedJob(identifierKey); err != nil {
-		s.log.Error().Err(err).Msg("error stopping rss job")
+	if err := s.stopFeedJob(f.ID); err != nil {
+		s.log.Error().Err(err).Str("feed", f.Name).Int("feed_id", f.ID).Msg("error stopping rss job")
 		return err
 	}
 
-	if err := s.repo.Delete(ctx, id); err != nil {
-		s.log.Error().Err(err).Msg("error deleting feed")
+	// delete feed and cascade delete feed_cache by fk
+	if err := s.repo.Delete(ctx, f.ID); err != nil {
+		s.log.Error().Err(err).Str("feed", f.Name).Msg("error deleting feed")
 		return err
 	}
 
-	if err := s.cacheRepo.DeleteBucket(ctx, f.Name); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete feedCache bucket by id: %v", id)
-		return err
+	// if foreign keys are not enforced in SQLite clear feed cache explicitly
+	if err := s.cacheRepo.DeleteByFeed(ctx, id); err != nil {
+		s.log.Error().Err(err).Str("feed", f.Name).Msg("error deleting feed cache")
 	}
 
 	return nil
 }
 
-func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
-	f, err := s.repo.FindByID(ctx, id)
+func (s *Service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
+	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: id})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
@@ -196,31 +254,54 @@ func (s *service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 				return err
 			}
 
-			s.log.Debug().Msgf("feed started: %v", f.Name)
-
-			return nil
-		} else {
-			s.log.Debug().Msgf("stopping feed: %v", f.Name)
-
-			identifierKey := feedKey{f.ID, f.Indexer, f.Name}.ToString()
-
-			if err := s.stopFeedJob(identifierKey); err != nil {
-				s.log.Error().Err(err).Msg("error stopping feed job")
-				return err
-			}
-
-			s.log.Debug().Msgf("feed stopped: %v", f.Name)
+			s.log.Debug().Str("feed", f.Name).Msg("feed started")
 
 			return nil
 		}
+
+		s.log.Debug().Str("feed", f.Name).Msg("stopping feed")
+
+		if err := s.stopFeedJob(f.ID); err != nil {
+			s.log.Error().Err(err).Msg("error stopping feed job")
+			return err
+		}
+
+		s.log.Debug().Str("feed", f.Name).Msg("feed stopped")
+
+		return nil
 	}
 
 	return nil
 }
 
-func (s *service) test(ctx context.Context, feed *domain.Feed) error {
+func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
+	existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
+	if err != nil {
+		s.log.Error().Err(err).Int("feed_id", feed.ID).Msg("could not find feed")
+		return err
+	}
+
+	if domain.IsRedactedString(feed.ApiKey) {
+		feed.ApiKey = existingFeed.ApiKey
+	}
+	if domain.IsRedactedString(feed.Cookie) {
+		feed.Cookie = existingFeed.Cookie
+	}
+
+	// add proxy conf
+	if existingFeed.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
+		if err != nil {
+			return errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			feed.Proxy = proxyConf
+		}
+	}
+
 	// create sub logger
-	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
+	subLogger := s.log.With().Str("feed", feed.Name).Logger()
 
 	// test feeds
 	switch feed.Type {
@@ -243,26 +324,64 @@ func (s *service) test(ctx context.Context, feed *domain.Feed) error {
 		return errors.New("unsupported feed type: %s", feed.Type)
 	}
 
-	s.log.Info().Msgf("feed test successful - connected to feed: %s", feed.URL)
+	s.log.Info().Str("feed", feed.Name).Str("url", feed.URL).Msg("feed test successful")
 
 	return nil
 }
 
-func (s *service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	f, err := gofeed.NewParser().ParseURLWithContext(feed.URL, ctx)
+func (s *Service) testRSS(ctx context.Context, feed *domain.Feed) error {
+	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie, feed.TLSSkipVerify)
+
+	// add proxy if enabled and exists
+	if feed.UseProxy && feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+		if err != nil {
+			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		if feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
+		}
+
+		feedParser.WithHTTPClient(proxyClient)
+
+		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
+	}
+
+	feedResponse, err := feedParser.ParseURLWithContext(ctx, feed.URL)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error fetching rss feed items")
+		s.log.Error().Err(err).Msg("error fetching rss feed items")
 		return errors.Wrap(err, "error fetching rss feed items")
 	}
 
-	s.log.Info().Msgf("refreshing rss feed: %v, found (%d) items", feed.Name, len(f.Items))
+	s.log.Info().Str("feed", feed.Name).Int("items_count", len(feedResponse.Items)).Msg("refreshing rss feed found items")
 
 	return nil
 }
 
-func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
+func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup torznab Client
-	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
+
+	// add proxy if enabled and exists
+	if feed.UseProxy && feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+		if err != nil {
+			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		if feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
+		}
+
+		c.WithHTTPClient(proxyClient)
+
+		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
+	}
 
 	items, err := c.FetchFeed(ctx)
 	if err != nil {
@@ -270,14 +389,32 @@ func (s *service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 		return err
 	}
 
-	s.log.Info().Msgf("refreshing torznab feed: %v, found (%d) items", feed.Name, len(items.Channel.Items))
+	s.log.Info().Str("feed", feed.Name).Int("items_count", len(items.Channel.Items)).Msg("refreshing torznab feed found items")
 
 	return nil
 }
 
-func (s *service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
+func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup newznab Client
-	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Log: subLogger})
+	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
+
+	// add proxy if enabled and exists
+	if feed.UseProxy && feed.Proxy != nil {
+		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+		if err != nil {
+			return errors.Wrap(err, "could not get proxy client")
+		}
+
+		if feed.TLSSkipVerify {
+			if t, ok := proxyClient.Transport.(*http.Transport); ok {
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			}
+		}
+
+		c.WithHTTPClient(proxyClient)
+
+		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
+	}
 
 	items, err := c.GetFeed(ctx)
 	if err != nil {
@@ -285,37 +422,57 @@ func (s *service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger 
 		return err
 	}
 
-	s.log.Info().Msgf("refreshing newznab feed: %v, found (%d) items", feed.Name, len(items.Channel.Items))
+	s.log.Info().Str("feed", feed.Name).Int("items_count", len(items.Channel.Items)).Msg("refreshing newznab feed found items")
 
 	return nil
 }
 
-func (s *service) start() error {
-	// get all torznab indexer definitions
+func (s *Service) start() error {
+	// always run feed cache maintenance job
+	if err := s.createCleanupJob(); err != nil {
+		s.log.Error().Err(err).Msg("could not start feed cache cleanup job")
+	}
+
+	// get all feeds
 	feeds, err := s.repo.Find(context.TODO())
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feeds")
 		return err
 	}
 
-	for _, feed := range feeds {
-		feed := feed
-		if err := s.startJob(&feed); err != nil {
-			s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
-			continue
-		}
+	if len(feeds) == 0 {
+		s.log.Debug().Msg("found 0 feeds to start")
+		return nil
 	}
+
+	s.log.Debug().Int("count", len(feeds)).Msg("preparing staggered start of feeds")
+
+	// start in background to not block startup and signal.Notify signals until all feeds are started
+	go func(feeds []domain.Feed) {
+		for _, feed := range feeds {
+			if !feed.Enabled {
+				s.log.Trace().Str("feed", feed.Name).Msg("feed disabled, skipping")
+				continue
+			}
+
+			if err := s.startJob(&feed); err != nil {
+				s.log.Error().Err(err).Str("feed", feed.Name).Msg("failed to initialize feed job")
+				continue
+			}
+
+			// add sleep for the next iteration to start staggered which should mitigate sqlite BUSY errors
+			time.Sleep(time.Second * 5)
+		}
+	}(feeds)
 
 	return nil
 }
 
-func (s *service) restartJob(f *domain.Feed) error {
-	s.log.Debug().Msgf("stopping feed: %v", f.Name)
-
-	identifierKey := feedKey{f.ID, f.Indexer, f.Name}.ToString()
+func (s *Service) restartJob(f *domain.Feed) error {
+	s.log.Debug().Str("feed", f.Name).Msg("stopping feed")
 
 	// stop feed job
-	if err := s.stopFeedJob(identifierKey); err != nil {
+	if err := s.stopFeedJob(f.ID); err != nil {
 		s.log.Error().Err(err).Msg("error stopping feed job")
 		return err
 	}
@@ -326,61 +483,112 @@ func (s *service) restartJob(f *domain.Feed) error {
 			return err
 		}
 
-		s.log.Debug().Msgf("restarted feed: %v", f.Name)
+		s.log.Debug().Str("feed", f.Name).Msg("restarted feed")
 	}
 
 	return nil
 }
-
-func (s *service) startJob(f *domain.Feed) error {
-	// get all torznab indexer definitions
-	if !f.Enabled {
-		return nil
-	}
-
-	// get torznab_url from settings
-	if f.URL == "" {
-		return errors.New("no URL provided for feed: %v", f.Name)
-	}
-
+func newFeedInstance(f *domain.Feed) feedInstance {
 	// cron schedule to run every X minutes
 	fi := feedInstance{
-		Feed:              f,
-		Name:              f.Name,
-		IndexerIdentifier: f.Indexer,
-		Implementation:    f.Type,
-		URL:               f.URL,
-		ApiKey:            f.ApiKey,
-		CronSchedule:      time.Duration(f.Interval) * time.Minute,
-		Timeout:           time.Duration(f.Timeout) * time.Second,
+		Feed:           f,
+		Name:           f.Name,
+		Indexer:        f.Indexer,
+		Implementation: f.Type,
+		URL:            f.URL,
+		ApiKey:         f.ApiKey,
+		CronSchedule:   time.Duration(f.Interval) * time.Minute,
+		Timeout:        time.Duration(f.Timeout) * time.Second,
 	}
+
+	return fi
+}
+
+func (s *Service) initializeFeedJob(fi feedInstance) (RefreshFeedJob, error) {
+	var err error
+	var job RefreshFeedJob
 
 	switch fi.Implementation {
 	case string(domain.FeedTypeTorznab):
-		if err := s.addTorznabJob(fi); err != nil {
-			s.log.Error().Err(err).Msg("failed to initialize torznab feed")
-			return err
-		}
+		job, err = s.createTorznabJob(fi)
 
 	case string(domain.FeedTypeNewznab):
-		if err := s.addNewznabJob(fi); err != nil {
-			s.log.Error().Err(err).Msg("failed to initialize newznab feed")
-			return err
-		}
+		job, err = s.createNewznabJob(fi)
 
 	case string(domain.FeedTypeRSS):
-		if err := s.addRSSJob(fi); err != nil {
-			s.log.Error().Err(err).Msg("failed to initialize rss feed")
-			return err
+		job, err = s.createRSSJob(fi)
+
+	default:
+		return nil, errors.New("unsupported feed type: %s", fi.Implementation)
+	}
+
+	if err != nil {
+		s.log.Error().Err(err).Str("implementation", fi.Implementation).Msg("failed to initialize feed")
+		return nil, err
+	}
+
+	return job, nil
+}
+
+func (s *Service) startJob(f *domain.Feed) error {
+	// if it's not enabled we should not start it
+	if !f.Enabled {
+		return errors.New("feed %s not enabled", f.Name)
+	}
+
+	// get url from settings
+	if f.URL == "" {
+		return errors.New("no URL provided for feed: %s", f.Name)
+	}
+
+	// add proxy conf
+	if f.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(context.Background(), f.ProxyID)
+		if err != nil {
+			return errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			f.Proxy = proxyConf
 		}
 	}
+
+	fi := newFeedInstance(f)
+
+	job, err := s.initializeFeedJob(fi)
+	if err != nil {
+		return errors.Wrap(err, "initialize job %s failed", f.Name)
+	}
+
+	if err := s.scheduleJob(fi, job); err != nil {
+		return errors.Wrap(err, "schedule job %s failed", f.Name)
+	}
+
+	s.log.Debug().Str("feed", f.Name).Msg("successfully started feed")
 
 	return nil
 }
 
-func (s *service) addTorznabJob(f feedInstance) error {
+func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
+	identifierKey := feedKey{fi.Feed.ID}.ToString()
+
+	// schedule job
+	id, err := s.scheduler.ScheduleJobJittered(job, fi.CronSchedule, identifierKey)
+	if err != nil {
+		return errors.Wrap(err, "add job %s failed", identifierKey)
+	}
+
+	// add to job map
+	s.jobs[identifierKey] = id
+
+	return nil
+}
+
+func (s *Service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
+	s.log.Debug().Str("feed", f.Name).Msg("create torznab job")
+
 	if f.URL == "" {
-		return errors.New("torznab feed requires URL")
+		return nil, errors.New("torznab feed requires URL")
 	}
 
 	//if f.CronSchedule < 5*time.Minute {
@@ -388,65 +596,41 @@ func (s *service) addTorznabJob(f feedInstance) error {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
 
 	// setup torznab Client
-	c := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
+	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
 
 	// create job
-	job := NewTorznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, c, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
-	identifierKey := feedKey{f.Feed.ID, f.Feed.Indexer, f.Feed.Name}.ToString()
-
-	// schedule job
-	id, err := s.scheduler.AddJob(job, f.CronSchedule, identifierKey)
-	if err != nil {
-		return errors.Wrap(err, "feed.AddTorznabJob: add job failed")
-	}
-	job.JobID = id
-
-	// add to job map
-	s.jobs[identifierKey] = id
-
-	s.log.Debug().Msgf("add torznab job: %v", f.Name)
-
-	return nil
+	return job, nil
 }
 
-func (s *service) addNewznabJob(f feedInstance) error {
+func (s *Service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
+	s.log.Debug().Str("feed", f.Name).Msg("create newznab job")
+
 	if f.URL == "" {
-		return errors.New("newznab feed requires URL")
+		return nil, errors.New("newznab feed requires URL")
 	}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
 
 	// setup newznab Client
-	c := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout})
+	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
 
 	// create job
-	job := NewNewznabJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, c, s.repo, s.cacheRepo, s.releaseSvc)
+	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
 
-	identifierKey := feedKey{f.Feed.ID, f.Feed.Indexer, f.Feed.Name}.ToString()
-
-	// schedule job
-	id, err := s.scheduler.AddJob(job, f.CronSchedule, identifierKey)
-	if err != nil {
-		return errors.Wrap(err, "feed.AddNewznabJob: add job failed")
-	}
-	job.JobID = id
-
-	// add to job map
-	s.jobs[identifierKey] = id
-
-	s.log.Debug().Msgf("add newznab job: %v", f.Name)
-
-	return nil
+	return job, nil
 }
 
-func (s *service) addRSSJob(f feedInstance) error {
+func (s *Service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
+	s.log.Debug().Str("feed", f.Name).Msg("create rss job")
+
 	if f.URL == "" {
-		return errors.New("rss feed requires URL")
+		return nil, errors.New("rss feed requires URL")
 	}
 
 	//if f.CronSchedule < time.Duration(5*time.Minute) {
@@ -454,48 +638,190 @@ func (s *service) addRSSJob(f feedInstance) error {
 	//}
 
 	// setup logger
-	l := s.log.With().Str("feed", f.Name).Logger()
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
 
 	// create job
-	job := NewRSSJob(f.Feed, f.Name, f.IndexerIdentifier, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
+	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
 
-	identifierKey := feedKey{f.Feed.ID, f.Feed.Indexer, f.Feed.Name}.ToString()
+	return job, nil
+}
 
-	// schedule job
-	id, err := s.scheduler.AddJob(job, f.CronSchedule, identifierKey)
+func (s *Service) createCleanupJob() error {
+	// setup logger
+	l := s.log.With().Str("job", "feed-cache-cleanup").Logger()
+
+	// create job
+	job := NewCleanupJob(l, s.cacheRepo)
+
+	identifierKey := "feed-cache-cleanup"
+
+	// schedule job for every day at 03:05
+	id, err := s.scheduler.AddJob(job, "5 3 * * *", identifierKey)
 	if err != nil {
-		return errors.Wrap(err, "feed.AddRSSJob: add job failed")
+		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}
-	job.JobID = id
 
 	// add to job map
 	s.jobs[identifierKey] = id
 
-	s.log.Debug().Msgf("add rss job: %v", f.Name)
-
 	return nil
 }
 
-func (s *service) stopFeedJob(indexer string) error {
+func (s *Service) stopFeedJob(id int) error {
+	jobKey := feedKey{id}.ToString()
 	// remove job from scheduler
-	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
+	if err := s.scheduler.RemoveJobByIdentifier(jobKey); err != nil {
 		return errors.Wrap(err, "stop job failed")
 	}
 
-	s.log.Debug().Msgf("stop feed job: %v", indexer)
+	s.log.Debug().Int("feed_id", id).Str("job", jobKey).Msg("stop feed job")
 
 	return nil
 }
 
-func (s *service) GetNextRun(indexer string) (time.Time, error) {
-	return s.scheduler.GetNextRun(indexer)
+func (s *Service) GetNextRun(id int) (time.Time, error) {
+	return s.scheduler.GetNextRun(feedKey{id}.ToString())
 }
 
-func (s *service) GetLastRunData(ctx context.Context, id int) (string, error) {
+func (s *Service) GetLastRunData(ctx context.Context, id int) (string, error) {
 	feed, err := s.repo.GetLastRunDataByID(ctx, id)
 	if err != nil {
 		return "", err
 	}
 
 	return feed, nil
+}
+
+func (s *Service) ForceRun(ctx context.Context, id int) error {
+	feed, err := s.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if feed.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
+		if err != nil {
+			return errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			feed.Proxy = proxyConf
+		}
+	}
+
+	fi := newFeedInstance(feed)
+
+	job, err := s.initializeFeedJob(fi)
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to initialize feed job")
+		return err
+	}
+
+	if err := job.RunE(ctx); err != nil {
+		s.log.Error().Err(err).Msg("failed to refresh feed")
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.FeedCapabilities, error) {
+	if feed == nil {
+		return nil, errors.New("feed is required")
+	}
+
+	if feed.URL == "" {
+		return nil, errors.New("feed URL is required")
+	}
+
+	if feed.Timeout == 0 {
+		feed.Timeout = 60
+	}
+
+	if feed.UseProxy {
+		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not find proxy for indexer feed")
+		}
+
+		if proxyConf.Enabled {
+			feed.Proxy = proxyConf
+		}
+	}
+
+	switch feed.Type {
+	case string(domain.FeedTypeTorznab):
+		client := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify})
+
+		if feed.UseProxy && feed.Proxy != nil {
+			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not get proxy client")
+			}
+
+			if feed.TLSSkipVerify {
+				if t, ok := proxyClient.Transport.(*http.Transport); ok {
+					t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				}
+			}
+
+			client.WithHTTPClient(proxyClient)
+		}
+
+		caps, err := client.FetchCaps(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		unifiedCaps := domain.NewFeedCapabilitiesFromTorznab(caps)
+
+		return unifiedCaps, nil
+
+	case string(domain.FeedTypeNewznab):
+		client := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify})
+
+		if feed.UseProxy && feed.Proxy != nil {
+			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not get proxy client")
+			}
+
+			if feed.TLSSkipVerify {
+				if t, ok := proxyClient.Transport.(*http.Transport); ok {
+					t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				}
+			}
+
+			client.WithHTTPClient(proxyClient)
+		}
+
+		caps, err := client.GetCaps(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		unifiedCaps := domain.NewFeedCapabilitiesFromNewznab(caps)
+
+		return unifiedCaps, nil
+	default:
+		return nil, errors.New("unsupported feed type: %s", feed.Type)
+	}
+}
+
+func (s *Service) FetchCapsByID(ctx context.Context, id int) (*domain.FeedCapabilities, error) {
+	feed, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	caps, err := s.FetchCaps(ctx, feed)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.repo.UpdateCapabilities(ctx, feed.ID, caps); err != nil {
+		return nil, err
+	}
+
+	return caps, nil
 }

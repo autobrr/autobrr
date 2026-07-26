@@ -1,15 +1,19 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package http
 
 import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
-	"github.com/gorilla/sessions"
 	"github.com/rs/zerolog"
 )
 
@@ -17,121 +21,114 @@ type authService interface {
 	GetUserCount(ctx context.Context) (int, error)
 	Login(ctx context.Context, username, password string) (*domain.User, error)
 	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
+	UpdateUser(ctx context.Context, req domain.UpdateUserRequest) error
 }
 
 type authHandler struct {
-	log     zerolog.Logger
-	encoder encoder
-	config  *domain.Config
-	service authService
-
-	cookieStore *sessions.CookieStore
+	log            zerolog.Logger
+	encoder        encoder
+	config         *domain.Config
+	service        authService
+	oidcService    oidcService
+	server         *Server
+	sessionManager *scs.SessionManager
+	oidcHandler    *OIDCHandler
 }
 
-func newAuthHandler(encoder encoder, log zerolog.Logger, config *domain.Config, cookieStore *sessions.CookieStore, service authService) *authHandler {
-	return &authHandler{
-		log:         log,
-		encoder:     encoder,
-		config:      config,
-		service:     service,
-		cookieStore: cookieStore,
+func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService, oidcService oidcService) *authHandler {
+	h := &authHandler{
+		log:            log,
+		encoder:        encoder,
+		config:         config,
+		service:        service,
+		oidcService:    oidcService,
+		sessionManager: sessionManager,
+		server:         server,
 	}
+
+	if h.oidcService.IsEnabled() {
+		h.oidcHandler = NewOIDCHandler(encoder, log, config, sessionManager, oidcService)
+	}
+
+	return h
 }
 
-func (h authHandler) Routes(r chi.Router) {
+func (h *authHandler) Routes(r chi.Router) {
 	r.Post("/login", h.login)
-	r.Post("/logout", h.logout)
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
-	r.Get("/validate", h.validate)
+
+	if h.config.OIDCEnabled && h.oidcHandler != nil {
+		r.Route("/oidc", h.oidcHandler.Routes)
+	}
+
+	// Group for authenticated routes
+	r.Group(func(r chi.Router) {
+		r.Use(h.server.IsAuthenticated)
+
+		r.Post("/logout", h.logout)
+		r.Get("/validate", h.validate)
+		r.Patch("/user/{username}", h.updateUser)
+	})
 }
 
-func (h authHandler) login(w http.ResponseWriter, r *http.Request) {
-	var (
-		ctx  = r.Context()
-		data domain.User
-	)
-
+func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var data domain.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
 		return
 	}
 
-	h.cookieStore.Options.HttpOnly = true
-	h.cookieStore.Options.SameSite = http.SameSiteLaxMode
-	h.cookieStore.Options.Path = h.config.BaseURL
-
-	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy
-	// if forwarded protocol is https then set cookie secure
-	// SameSite Strict can only be set with a secure cookie. So we overwrite it here if possible.
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie/SameSite
-	fwdProto := r.Header.Get("X-Forwarded-Proto")
-	if fwdProto == "https" {
-		h.cookieStore.Options.Secure = true
-		h.cookieStore.Options.SameSite = http.SameSiteStrictMode
-	}
-
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
+	if _, err := h.service.Login(ctx, data.Username, data.Password); err != nil {
+		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed login attempt")
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("could not login: bad credentials"))
 		return
 	}
 
-	if _, err = h.service.Login(ctx, data.Username, data.Password); err != nil {
-		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, ReadUserIP(r))
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("could not login: bad credentials"))
+	// Set cookie options
+	h.sessionManager.Cookie.HttpOnly = true
+	h.sessionManager.Cookie.SameSite = http.SameSiteLaxMode
+	h.sessionManager.Cookie.Path = h.config.BaseURL
+
+	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy.
+	// When forwarded protocol is https we mark the cookie as Secure, but keep SameSite=Lax so OIDC
+	// callbacks returning from a different domain still include the session cookie.
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		h.sessionManager.Cookie.Secure = true
+	}
+
+	if err := h.sessionManager.RenewToken(ctx); err != nil {
+		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
+		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not renew session token"))
 		return
 	}
 
-	// Set user as authenticated
-	session.Values["authenticated"] = true
-	if err := session.Save(r, w); err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
-		return
-	}
+	h.sessionManager.RememberMe(ctx, data.RememberMe)
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	// Set session values using sessionManager
+	h.sessionManager.Put(r.Context(), "authenticated", true)
+	h.sessionManager.Put(r.Context(), "username", data.Username)
+	h.sessionManager.Put(r.Context(), "created", time.Now().Unix())
+	h.sessionManager.Put(r.Context(), "auth_method", "password")
+
+	h.encoder.NoContent(w)
 }
 
-func (h authHandler) logout(w http.ResponseWriter, r *http.Request) {
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.log.Error().Err(err).Msg("could not get session")
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
+func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
+	if err := h.sessionManager.Destroy(r.Context()); err != nil {
+		h.log.Error().Err(err).Str("remote_addr", r.RemoteAddr).Msg("failed to destroy session")
+		h.encoder.StatusError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if session.IsNew {
-		h.encoder.StatusResponse(w, http.StatusNoContent, nil)
-		return
-	}
-
-	// Revoke users authentication
-	session.Values["authenticated"] = false
-	if err := session.Save(r, w); err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "could not save session"))
-		return
-	}
-
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
-func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	session, err := h.cookieStore.Get(r, "user_session")
-	if err != nil {
-		h.log.Error().Err(err).Msg("could not get session")
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
+func (h *authHandler) onboard(w http.ResponseWriter, r *http.Request) {
+	if status, err := h.onboardEligible(r.Context()); err != nil {
+		h.encoder.StatusError(w, status, err)
 		return
-	}
-
-	// Don't proceed if user is authenticated
-	if authenticated, ok := session.Values["authenticated"].(bool); ok {
-		if ok && authenticated {
-			h.encoder.StatusError(w, http.StatusForbidden, errors.New("active session found"))
-			return
-		}
 	}
 
 	var req domain.CreateUserRequest
@@ -140,7 +137,7 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.CreateUser(ctx, req); err != nil {
+	if err := h.service.CreateUser(r.Context(), req); err != nil {
 		h.encoder.StatusError(w, http.StatusForbidden, err)
 		return
 	}
@@ -149,17 +146,13 @@ func (h authHandler) onboard(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully created")
 }
 
-func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	userCount, err := h.service.GetUserCount(ctx)
-	if err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get user count"))
-		return
-	}
-
-	if userCount > 0 {
-		h.encoder.StatusError(w, http.StatusForbidden, errors.New("onboarding unavailable"))
+func (h *authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
+	if status, err := h.onboardEligible(r.Context()); err != nil {
+		if status == http.StatusServiceUnavailable {
+			h.encoder.StatusResponse(w, status, err.Error())
+			return
+		}
+		h.encoder.StatusError(w, status, err)
 		return
 	}
 
@@ -168,30 +161,59 @@ func (h authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
-func (h authHandler) validate(w http.ResponseWriter, r *http.Request) {
-	session, err := h.cookieStore.Get(r, "user_session")
+// onboardEligible checks if the onboarding process is eligible.
+func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
+	if h.config.OIDCEnabled {
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: using oidc provider")
+	}
+
+	userCount, err := h.service.GetUserCount(ctx)
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not get session"))
-		return
+		return http.StatusInternalServerError, errors.New("could not get user count")
 	}
 
-	// Check if user is authenticated
-	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-		h.encoder.StatusError(w, http.StatusUnauthorized, errors.New("forbidden: invalid session"))
-		return
+	if userCount > 0 {
+		h.log.Trace().Msg("onboarding unavailable: user already registered")
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: user already registered")
 	}
 
-	// send empty response as ok
-	h.encoder.NoContent(w)
+	return http.StatusOK, nil
 }
 
-func ReadUserIP(r *http.Request) string {
-	IPAddress := r.Header.Get("X-Real-Ip")
-	if IPAddress == "" {
-		IPAddress = r.Header.Get("X-Forwarded-For")
+// validate sits behind the IsAuthenticated middleware which takes care of checking for a valid session
+// If there is a valid session return OK, otherwise the middleware returns early with a 401
+func (h *authHandler) validate(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	username := h.sessionManager.GetString(ctx, "username")
+	authMethod := h.sessionManager.GetString(ctx, "auth_method")
+	profilePicture := h.sessionManager.GetString(ctx, "profile_picture")
+
+	response := map[string]interface{}{
+		"username":    username,
+		"auth_method": authMethod,
 	}
-	if IPAddress == "" {
-		IPAddress = r.RemoteAddr
+
+	if profilePicture != "" {
+		response["profile_picture"] = profilePicture
 	}
-	return IPAddress
+
+	h.encoder.StatusResponse(w, http.StatusOK, response)
+}
+
+func (h *authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+	var data domain.UpdateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
+		return
+	}
+
+	data.UsernameCurrent = chi.URLParam(r, "username")
+
+	if err := h.service.UpdateUser(r.Context(), data); err != nil {
+		h.encoder.StatusError(w, http.StatusForbidden, err)
+		return
+	}
+
+	// send response as ok
+	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
 }

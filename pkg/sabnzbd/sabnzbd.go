@@ -1,14 +1,20 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package sabnzbd
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Client struct {
@@ -18,9 +24,9 @@ type Client struct {
 	basicUser string
 	basicPass string
 
-	log *log.Logger
+	log zerolog.Logger
 
-	Http *http.Client
+	http *http.Client
 }
 
 type Options struct {
@@ -30,26 +36,21 @@ type Options struct {
 	BasicUser string
 	BasicPass string
 
-	Log *log.Logger
+	Log zerolog.Logger
 }
 
 func New(opts Options) *Client {
-	c := &Client{
+	return &Client{
 		addr:      opts.Addr,
 		apiKey:    opts.ApiKey,
 		basicUser: opts.BasicUser,
 		basicPass: opts.BasicPass,
-		log:       log.New(io.Discard, "", log.LstdFlags),
-		Http: &http.Client{
-			Timeout: time.Second * 60,
+		log:       opts.Log,
+		http: &http.Client{
+			Timeout:   time.Second * 60,
+			Transport: sharedhttp.Transport,
 		},
 	}
-
-	if opts.Log != nil {
-		c.log = opts.Log
-	}
-
-	return c
 }
 
 func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileResponse, error) {
@@ -85,23 +86,21 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
 
-	res, err := c.Http.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	body := bufio.NewReader(res.Body)
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
-
-	fmt.Print(body)
 
 	var data AddFileResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, err
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &data, nil
@@ -134,21 +133,21 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
 
-	res, err := c.Http.Do(req)
+	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	body := bufio.NewReader(res.Body)
+	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
+		return nil, errors.Wrap(err, "could not read body")
 	}
 
 	var data VersionResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, err
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal body")
 	}
 
 	return &data, nil

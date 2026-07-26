@@ -1,0 +1,75 @@
+---
+version: 2
+#id: Samaritano
+name: Samaritano
+identifier: samaritano
+description: Samaritano (SAM) is a Brazilian general private torrent tracker focused on movies, TV shows, and more.
+language: pt-BR
+urls:
+  - https://samaritano.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to My Settings > Settings -> RSS Key, and copy your RSS Key (RID)"
+
+irc:
+  network: SamaritanoNet
+  server: irc.samaritano.cc
+  port: 6667
+  tls: false
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#samaritano"
+      announcers:
+        - Overlord
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<category>.+?)\] \[(?P<releaseTags>.+?)\] \[(?P<releaseName>.+?)\] \[TORRENT ID: (?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\](?: \[tmdb-(?P<tmdb>\d+)\])?'
+            tests:
+              - line: "[Filmes] [WEB-DL] [Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin] [TORRENT ID: 10837] [2.1 GiB] [tmdb-912649]"
+                expect:
+                  category: Filmes
+                  releaseTags: WEB-DL
+                  releaseName: Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin
+                  torrentId: "10837"
+                  torrentSize: "2.1 GiB"
+                  tmdb: 912649
+
+              - line: "[Series] [WEB-DL] [The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN] [TORRENT ID: 10840] [43.1 GiB] [tmdb-72710]"
+                expect:
+                  category: Series
+                  releaseTags: WEB-DL
+                  releaseName: The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN
+                  torrentId: "10840"
+                  torrentSize: "43.1 GiB"
+                  tmdb: 72710
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

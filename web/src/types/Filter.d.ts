@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
 interface Filter {
   id: number;
   name: string;
@@ -8,6 +13,7 @@ interface Filter {
   max_size: string;
   delay: number;
   priority: number;
+  announce_types: string[];
   max_downloads: number;
   max_downloads_unit: string;
   match_releases: string;
@@ -18,6 +24,9 @@ interface Filter {
   match_release_tags: string;
   except_release_tags: string;
   use_regex_release_tags: boolean;
+  match_description: string;
+  except_description: string;
+  use_regex_description: boolean;
   scene: boolean;
   origins: string[];
   except_origins: string[];
@@ -36,6 +45,8 @@ interface Filter {
   match_other: string[];
   except_other: string[];
   years: string;
+  months: string;
+  days: string;
   artists: string;
   albums: string;
   match_release_types: string[];
@@ -51,6 +62,8 @@ interface Filter {
   except_categories: string;
   match_uploaders: string;
   except_uploaders: string;
+  match_record_labels: string;
+  except_record_labels: string;
   match_language: string[];
   except_language: string[];
   tags: string;
@@ -59,17 +72,19 @@ interface Filter {
   except_tags_any: string;
   tags_match_logic: string;
   except_tags_match_logic: string;
+  min_seeders: number;
+  max_seeders: number;
+  min_leechers: number;
+  max_leechers: number;
+  is_auto_updated: boolean;
   actions_count: number;
+  actions_enabled_count: number;
   actions: Action[];
   indexers: Indexer[];
-  external_script_enabled: boolean;
-  external_script_cmd: string;
-  external_script_args: string;
-  external_script_expect_status: number;
-  external_webhook_enabled: boolean;
-  external_webhook_host: string;
-  external_webhook_data: string;
-  external_webhook_expect_status: number;
+  external: ExternalFilter[];
+  downloads?: FilterDownloads;
+  release_profile_duplicate_id?: number;
+  notifications?: FilterNotification[];
 }
 
 interface Action {
@@ -84,10 +99,13 @@ interface Action {
   tags?: string;
   label?: string;
   save_path?: string;
+  download_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
-  skip_hash_check: boolean;
+  first_last_piece_prio?: boolean;
+  skip_hash_check?: boolean;
   content_layout?: ActionContentLayout;
+  priority?: ActionPriorityLayout;
   limit_upload_speed?: number;
   limit_download_speed?: number;
   limit_ratio?: number;
@@ -101,10 +119,57 @@ interface Action {
   webhook_method: string;
   webhook_data: string,
   webhook_headers: string[];
-  filter_id?: number;
+  external_download_client_id?: number;
+  external_download_client?: string;
   client_id?: number;
+  filter_id?: number;
 }
 
-type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE";
+type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | "";
+
+type ActionPriorityLayout = "MAX" | "MIN" | "";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
+
+type ExternalType = "EXEC" | "WEBHOOK";
+
+type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+type ExternalFilterOnError = "CONTINUE" | "REJECT";
+
+interface ExternalFilter {
+  id: number;
+  index: number;
+  name: string;
+  type: ExternalType;
+  enabled: boolean;
+  exec_cmd?: string;
+  exec_args?: string;
+  exec_expect_status?: number;
+  webhook_host?: string,
+  webhook_type?: string;
+  webhook_method?: WebhookMethod;
+  webhook_data?: string,
+  webhook_headers?: string;
+  webhook_expect_status?: number;
+  webhook_retry_status?: string,
+  webhook_retry_attempts?: number;
+  webhook_retry_delay_seconds?: number;
+  on_error: ExternalFilterOnError;
+  filter_id?: number;
+}
+
+interface FilterDownloads {
+  hour_count: number;
+  day_count: number;
+  week_count: number;
+  month_count: number;
+  year_count: number;
+  total_count: number;
+}
+
+interface FilterNotification {
+  notification_id: number;
+  notification?: ServiceNotification;
+  events: string[];
+}

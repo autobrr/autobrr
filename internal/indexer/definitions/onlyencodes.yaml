@@ -1,0 +1,72 @@
+---
+version: 2
+#id: onlyencodes
+name: OnlyEncodes
+identifier: onlyencodes
+description: OnlyEncodes (OE) is a private torrent tracker for MOVIES / TV
+language: en-us
+urls:
+  - https://onlyencodes.cc
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key (RID)
+    help: "Go to your profile > Settings > Security > RSS Key (RID) and paste your RID into this field."
+
+irc:
+  network: OnlyEncodes
+  server: irc.onlyencodes.cc
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Use your username on the site.
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - OEBot
+      parse:
+        type: single
+        lines:
+          - pattern: '.*\[(?P<category>.*)\].*\[(?P<releaseTags>.*)\].*\[(?P<releaseName>.*)\].*\[(?P<resolution>.*)\].*\[(?P<freeleechPercent>.*)\].*\[(?P<internal>.*)\].*\[(?P<tags>.*)\].*\[(?P<torrentSize>.*)\].*\[(?P<uploader>.*)\].*\[(?P<baseUrl>https?\:\/\/.*?\/).*\/(?P<torrentId>\d+)\]'
+            tests:
+              - line: Category [Movie] Type [Remux] Name [Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [27.5 GB] Uploader [uploaderName] Url [https://onlyencodes.cc/torrents/download/00000]
+                expect:
+                  category: Movie
+                  releaseTags: Remux
+                  releaseName: Some Movie 1080p BluRay REMUX AVC TrueHD 7.1-GROUP
+                  resolution: 1080p
+                  freeleechPercent: 0%
+                  internal: "No"
+                  tags: "No"
+                  torrentSize: 27.5 GB
+                  uploader: uploaderName
+                  baseUrl: https://onlyencodes.cc/
+                  torrentId: "00000"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

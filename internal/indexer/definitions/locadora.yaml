@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: Locadora 
 name: Locadora
 identifier: locadora
@@ -10,8 +11,8 @@ privacy: private
 protocol: torrent
 supports:
   - irc
-    #  - rss
-source: UNIT3D
+  #  - rss
+# source: UNIT3D
 settings:
   - name: rsskey
     type: secret
@@ -24,17 +25,13 @@ irc:
   server: irc.locadora.cc
   port: 6667
   tls: false
-  channels:
-    - "#announce"
-  announcers:
-    - LCD
   settings:
     - name: nick
       type: text
       required: true
       label: Nick
       help: Bot nick. Eg. user_bot
-      
+
     - name: auth.account
       type: text
       required: false
@@ -47,22 +44,28 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "[Filmes] [WEB-DL] [1080p] [Journey to the Center of the Earth 2008 1080p HMAX WEB-DL DD5.1 x264 pt-BR ENG-LCD] [https://locadora.cc/torrents/16896] [5.82 GiB] [100%]"
-        pattern: '\[(.+)\] \[(.+)\] \[(.+)\] \[(.+?)\] \[(https?\:\/\/.+\/).+\/(\d+)\] \[(.+?)\] \[(.+?)\]'
-        vars:
-          - category
-          - releaseTags
-          - resolution
-          - torrentName
-          - baseUrl
-          - torrentId
-          - torrentSize
-          - freeleechPercent
+  channels:
+    - name: "#announce"
+      announcers:
+        - LCD
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<category>.+)\] \[(?P<releaseTags>.+)\] \[(?P<resolution>.+)\] \[(?P<releaseName>.+?)\] \[(?P<baseUrl>https?\:\/\/.+\/).+\/(?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\] \[(?P<freeleechPercent>.+?)\] \[Internal:(?P<internal>\d)\] \[[a-z]+-(?P<tmdb>\d+)\]'
+            tests:
+              - line: '[Filmes] [WEB-DL] [1080p] [Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)] [https://locadora.cc/torrents/28808] [7.61 GiB] [100%] [Internal:1] [tmdb-39513]'
+                expect:
+                  category: Filmes
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  releaseName: Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)
+                  baseUrl: https://locadora.cc/
+                  torrentId: "28808"
+                  torrentSize: 7.61 GiB
+                  freeleechPercent: 100%
+                  internal: "1"
+                  tmdb: "39513"
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

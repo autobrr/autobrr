@@ -1,0 +1,67 @@
+---
+version: 2
+#id: satclubbing
+name: SATClubbing
+identifier: satclubbing
+description: SATClubbing is a RUSSIAN/ENGLISH Private Torrent Tracker for ELECTRONIC MUSIC
+language: en-us
+urls:
+  - https://satclubbing.club/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+# source: unknown
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: PassKey
+    help: Copy the passkey from your profile
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your main user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#scmt-announce"
+      announcers:
+        - scmt-announcer
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<category>.*)\]:\[(?P<releaseTags>.*)\]:(?P<releaseName>.*):\[(?P<torrentSize>.*)\]:(?P<baseUrl>https?:\/\/.+\/)download\.php\?id=(?P<torrentId>\d+)&name=(?P<encodedName>.*)'
+            tests:
+              - line: '[Electronic]:[FLAC]:VA-Chilled Beats 033-16BIT-WEB-FLAC-2024-PWT:[885.09 MB]:https://satclubbing.club/download.php?id=492465&name=VA-Chilled_Beats_033-16BIT-WEB-FLAC-2024-PWT.torrent'
+                expect:
+                  category: Electronic
+                  releaseTags: FLAC
+                  releaseName: VA-Chilled Beats 033-16BIT-WEB-FLAC-2024-PWT
+                  torrentSize: 885.09 MB
+                  baseUrl: https://satclubbing.club/
+                  torrentId: "492465"
+                  encodedName: VA-Chilled_Beats_033-16BIT-WEB-FLAC-2024-PWT.torrent
+
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download.php?id={{ .torrentId }}&name={{ .encodedName }}&passkey={{ .passkey }}"

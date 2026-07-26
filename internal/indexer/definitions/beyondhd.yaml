@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: beyondhd
 name: BeyondHD
 identifier: beyondhd
@@ -11,7 +12,7 @@ protocol: torrent
 supports:
   - irc
   - rss
-source: UNIT3D (F3NIX)
+# source: UNIT3D (F3NIX)
 settings:
   - name: rsskey
     type: secret
@@ -24,11 +25,6 @@ irc:
   server: irc.beyond-hd.me
   port: 6697
   tls: true
-  channels:
-    - "#bhd_announce"
-  announcers:
-    - Willie
-    - Millie
   settings:
     - name: nick
       type: text
@@ -55,20 +51,67 @@ irc:
       label: Invite command
       help: Invite auth with Millie. Replace IRCKEY.
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "New Torrent: That.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/torrents/autodl?id=00000"
-        pattern: 'New Torrent: (.*) Category: (.*) By: (.*) Size: (.*) Link: (https?\:\/\/[^\/]+\/).*[&\?]id=(\d+)'
-        vars:
-          - torrentName
-          - category
-          - uploader
-          - torrentSize
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#bhd_announce"
+      announcers:
+        - Willie
+        - Millie
+      parse:
+        type: single
+        lines:
+          - pattern: 'New Torrent: (?P<releaseName>.*?) (?:\[(?P<freeleechEnum>.*)\] )?Category: (?P<category>.*) By: (?P<uploader>.*) Size: (?P<torrentSize>.*) Link: (?P<baseUrl>https?\:\/\/[^\/]+\/).*[&\?]id=(?P<torrentId>\d+)'
+            tests:
+              - line: 'New Torrent: This.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test Category: TV By: Uploader Size: 137.73 GB Link: https://beyond-hd.me/torrents/autodl?id=00000'
+                expect:
+                  releaseName: This.Show.S01.1080p.Blu-ray.AVC.DTS-HD.MA.5.1-Test
+                  freeleechEnum: ""
+                  category: TV
+                  uploader: Uploader
+                  torrentSize: 137.73 GB
+                  baseUrl: https://beyond-hd.me/
+                  torrentId: "00000"
 
-    match:
-      infourl: "/torrents/autodl?id={{ .torrentId }}"
-      torrenturl: "/torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"
+              - line: 'New Torrent: That Show S03E04 1080p WEB-DL DDP 5.1 H.264-GROUP [Capped FL] Category: TV By: Anonymous Size: 1.62 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000'
+                expect:
+                  releaseName: That Show S03E04 1080p WEB-DL DDP 5.1 H.264-GROUP
+                  freeleechEnum: Capped FL
+                  category: TV
+                  uploader: Anonymous
+                  torrentSize: 1.62 GiB
+                  baseUrl: https://beyond-hd.me/
+                  torrentId: "00000"
+
+              - line: 'New Torrent: Movie BluRay 1080p DD5.1 x264-GudGRP [50% FL] Category: Movies By: Uploader Size: 6.09 GiB Link: https://beyond-hd.me/torrents/autodl?id=00000'
+                expect:
+                  releaseName: Movie BluRay 1080p DD5.1 x264-GudGRP
+                  freeleechEnum: 50% FL
+                  category: Movies
+                  uploader: Uploader
+                  torrentSize: 6.09 GiB
+                  baseUrl: https://beyond-hd.me/
+                  torrentId: "00000"
+
+        mappings:
+          freeleechEnum:
+            "": # Normal
+              downloadVolumeFactor: 1
+              uploadVolumeFactor: 1
+            "Capped FL": # Freeleech
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 1
+            "25% FL": #
+              downloadVolumeFactor: 0.75
+              uploadVolumeFactor: 1
+            "50% FL": # Halfleech
+              downloadVolumeFactor: 0.5
+              uploadVolumeFactor: 1
+            "75% FL":
+              downloadVolumeFactor: 0.25
+              uploadVolumeFactor: 1
+            "100% FL":
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 1
+
+        match:
+          infourl: "/torrents/autodl?id={{ .torrentId }}"
+          downloadurl: "/torrent/download/auto.{{ .torrentId }}.{{ .rsskey }}"

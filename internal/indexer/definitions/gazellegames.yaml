@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: gazellegames
 name: GazelleGames
 identifier: ggn
@@ -12,7 +13,7 @@ supports:
   - irc
   - rss
   - api
-source: gazelle
+# source: gazelle
 settings:
   - name: authkey
     type: secret
@@ -32,27 +33,23 @@ settings:
     label: API Key
     help: Username -> Edit / Settings -> API Keys
 
-api:
-  url: https://gazellegames.net/api.php
-  type: json
-  limits:
-    max: 5
-    per: 10 seconds
-  settings:
-    - name: api_key
-      type: secret
-      label: API Key
-      help: Username -> Edit / Settings -> API Keys
+# api:
+#   url: https://gazellegames.net/api.php
+#   type: json
+#   limits:
+#     max: 5
+#     per: 10 seconds
+#   settings:
+#     - name: api_key
+#       type: secret
+#       label: API Key
+#       help: Username -> Edit / Settings -> API Keys
 
 irc:
   network: GGn
   server: irc.gazellegames.net
   port: 7000
   tls: true
-  channels:
-    - "#GGn-Announce"
-  announcers:
-    - Vertigo
   settings:
     - name: nick
       type: text
@@ -79,24 +76,39 @@ irc:
       label: Invite command
       help: Invite auth with Vertigo. Replace USERNAME and IRCKEY.
 
-  parse:
-    type: single
-    lines:
-      - test:
-          - "Uploader :-: Nintendo 3DS :-: Cool.Game.KOR.3DS-BigBlueBox in Cool Game [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=00000 - adventure, role_playing_game, nintendo;"
-          - "Uploader :-: Windows :-: Other.Game-HI2U in Other Game [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=00000 - action, adventure, casual, indie, role.playing.game;"
-        pattern: '^(.+) :-: (.+) :-: (.+) \[(\d+)?\] ::(.+?)?:: ?(.+?)?(?:! ::)? (https?:\/\/[^\/]+\/)torrents.php\?torrentid=(\d+)(?: - )?([a-zA-Z0-9, _\.]+)?;?(?:[ :]*(?:[NSFW]*)?[! :]*)?$'
-        vars:
-          - uploader
-          - category
-          - torrentName
-          - year
-          - releaseTags
-          - freeleech
-          - baseUrl
-          - torrentId
-          - tags
+  channels:
+    - name: "#GGn-Announce"
+      announcers:
+        - Vertigo
+      parse:
+        type: single
+        lines:
+          - pattern: '^(?P<uploader>.+) :-: (?P<category>.+) :-: (?P<releaseName>.+) \[(?P<year>\d+)?\] ::(?P<releaseTags>.+?)?:: ?(?P<freeleech>.+?)?(?:! ::)? (?P<baseUrl>https?:\/\/[^\/]+\/)torrents.php\?torrentid=(?P<torrentId>\d+)(?: - )?(?P<tags>[a-zA-Z0-9, _\.]+)?;?(?:[ :]*(?:[NSFW]*)?[! :]*)?$'
+            tests:
+              - line: 'Uploader :-: Nintendo 3DS :-: Cool.Game.KOR.3DS-BigBlueBox in Cool Game [2013] ::Korean, Multi-Region, Scene:: https://gazellegames.net/torrents.php?torrentid=00000 - adventure, role_playing_game, nintendo;'
+                expect:
+                  uploader: Uploader
+                  category: Nintendo 3DS
+                  releaseName: Cool.Game.KOR.3DS-BigBlueBox in Cool Game
+                  year: "2013"
+                  releaseTags: Korean, Multi-Region, Scene
+                  freeleech: ""
+                  baseUrl: https://gazellegames.net/
+                  torrentId: "00000"
+                  tags: adventure, role_playing_game, nintendo
 
-    match:
-      infourl: "/torrents.php?torrentid={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+              - line: 'Uploader :-: Windows :-: Other.Game-HI2U in Other Game [2016] ::English, Scene:: FREELEECH! :: https://gazellegames.net/torrents.php?torrentid=00000 - action, adventure, casual, indie, role.playing.game;'
+                expect:
+                  uploader: Uploader
+                  category: Windows
+                  releaseName: Other.Game-HI2U in Other Game
+                  year: "2016"
+                  releaseTags: English, Scene
+                  freeleech: FREELEECH
+                  baseUrl: https://gazellegames.net/
+                  torrentId: "00000"
+                  tags: action, adventure, casual, indie, role.playing.game
+
+        match:
+          infourl: "/torrents.php?torrentid={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

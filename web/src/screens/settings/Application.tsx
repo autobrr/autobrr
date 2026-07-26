@@ -1,133 +1,69 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { APIClient } from "../../api/APIClient";
-import { Checkbox } from "../../components/Checkbox";
-import { SettingsContext } from "../../utils/Context";
-import { GithubRelease } from "../../types/Update";
-import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-interface RowItemProps {
-  label: string;
-  value?: string;
-  title?: string;
-  emptyText?: string;
-  newUpdate?: GithubRelease;
-}
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getRouteApi } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
-const RowItem = ({ label, value, title, emptyText }: RowItemProps) => {
-  return (
-    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
-      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        {value ? <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span> : emptyText}
-      </dd>
-    </div>
-  );
-};
+import { APIClient } from "@api/APIClient";
+import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { SettingsKeys } from "@api/query_keys";
+import { SettingsContext } from "@utils/Context";
+import type { Language, Theme } from "@utils/Context";
+import { Checkbox } from "@components/Checkbox";
+import { toast } from "@components/hot-toast";
+import Toast from "@components/notifications/Toast";
+import { ExternalLink } from "@components/ExternalLink";
 
-interface RowItemNumberProps {
-  label: string;
-  value?: string | number;
-  title?: string;
-  unit?: string;
-}
-
-const RowItemNumber = ({ label, value, title, unit }: RowItemNumberProps) => {
-  return (
-    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
-      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        <span className="px-1 py-0.5 bg-gray-700 rounded shadow">{value}</span>
-        {unit &&
-          <span className="ml-1 text-sm text-gray-800 dark:text-gray-400">{unit}</span>
-        }
-      </dd>
-    </div>
-  );
-};
-
-const RowItemVersion = ({ label, value, title, newUpdate }: RowItemProps) => {
-  if (!value)
-    return null;
-
-  return (
-    <div className="py-4 sm:py-5 sm:grid sm:grid-cols-4 sm:gap-4 sm:px-6">
-      <dt className="font-medium text-gray-500 dark:text-white" title={title}>{label}:</dt>
-      <dd className="mt-1 text-gray-900 dark:text-white sm:mt-0 sm:col-span-2 break-all">
-        <span className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded shadow">{value}</span>
-        {newUpdate && newUpdate.html_url && (
-          <span>
-            <a href={newUpdate.html_url} target="_blank"><span className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800">{newUpdate.name} available!</span></a>
-          </span>
-        )}
-      </dd>
-    </div>
-  );
-};
+import { Section, RowItem } from "./_components";
 
 function ApplicationSettings() {
+  const { t } = useTranslation(["common", "settings"]);
   const [settings, setSettings] = SettingsContext.use();
 
-  const { isLoading, data } = useQuery(
-    ["config"],
-    () => APIClient.config.get(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
+  const settingsIndexRoute = getRouteApi("/auth/authenticated-routes/settings/");
+  const { queryClient } =  settingsIndexRoute.useRouteContext();
+
+  const { data } = useQuery(ConfigQueryOptions());
+
+  const { data: updateData } = useQuery(UpdatesQueryOptions(data?.check_for_updates === true));
+
+  const checkUpdateMutation = useMutation({
+    mutationFn: APIClient.updates.check,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: SettingsKeys.updates() });
     }
-  );
+  });
 
-  const { data: updateData } = useQuery(
-    ["updates"],
-    () => APIClient.updates.getLatestRelease(),
-    {
-      retry: false,
-      refetchOnWindowFocus: false,
-      onError: err => console.log(err)
+  const toggleCheckUpdateMutation = useMutation({
+    mutationFn: (value: boolean) => APIClient.config.update({ check_for_updates: value }).then(() => value),
+    onSuccess: (_, value: boolean) => {
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={value ? t("settings:application.updateEnabled") : t("settings:application.updateDisabled")}
+          t={toastInstance}
+        />
+      ));
+      queryClient.invalidateQueries({ queryKey: SettingsKeys.config() });
+      checkUpdateMutation.mutate();
     }
-  );
-
-  const queryClient = useQueryClient();
-
-  const checkUpdateMutation = useMutation(
-    () => APIClient.updates.check(),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["updates"]);
-      }
-    }
-  );
-
-  const toggleCheckUpdateMutation = useMutation(
-    (value: boolean) => APIClient.config.update({ check_for_updates: value }),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t}/>);
-
-        queryClient.invalidateQueries(["config"]);
-
-        checkUpdateMutation.mutate();
-      }
-    }
-  );
+  });
 
   return (
-    <div className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9">
-      <div className="py-6 px-4 sm:p-6 lg:pb-8">
-        <div>
-          <h2 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">Application</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Application settings. Change in config.toml and restart to take effect.
-          </p>
-        </div>
-
-        <form className="divide-y divide-gray-200 dark:divide-gray-700 lg:col-span-9" action="#" method="POST">
-          {!isLoading && data && (
-            <div className="mt-6 grid grid-cols-12 gap-6">
-              <div className="col-span-6 sm:col-span-4">
-                <label htmlFor="host" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                  Host
+    <Section
+      title={t("settings:application.title")}
+      description={t("settings:application.description")}
+    >
+      <div className="-mx-4 divide-y divide-gray-150 dark:divide-gray-750">
+        <form className="mt-6 pb-4" action="#" method="POST">
+          {data && (
+            <div className="grid grid-cols-12 gap-2 sm:gap-6 px-4 sm:px-6">
+              <div className="col-span-12 sm:col-span-4">
+                <label htmlFor="host" className="block ml-px text-xs font-bold text-gray-700 dark:text-white uppercase tracking-wide">
+                  {t("settings:application.host")}
                 </label>
                 <input
                   type="text"
@@ -135,13 +71,13 @@ function ApplicationSettings() {
                   id="host"
                   value={data.host}
                   disabled={true}
-                  className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+                  className="mt-1 block w-full sm:text-sm rounded-md border-gray-300 dark:border-gray-750 bg-gray-100 dark:bg-gray-825 dark:text-gray-100"
                 />
               </div>
 
-              <div className="col-span-6 sm:col-span-4">
-                <label htmlFor="port" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                  Port
+              <div className="col-span-12 sm:col-span-4">
+                <label htmlFor="port" className="block ml-px text-xs font-bold text-gray-700 dark:text-white uppercase tracking-wide">
+                  {t("settings:application.port")}
                 </label>
                 <input
                   type="text"
@@ -149,13 +85,13 @@ function ApplicationSettings() {
                   id="port"
                   value={data.port}
                   disabled={true}
-                  className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+                  className="mt-1 block w-full sm:text-sm rounded-md border-gray-300 dark:border-gray-750 bg-gray-100 dark:bg-gray-825 dark:text-gray-100"
                 />
               </div>
 
-              <div className="col-span-6 sm:col-span-4">
-                <label htmlFor="base_url" className="block text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-                  Base url
+              <div className="col-span-12 sm:col-span-4">
+                <label htmlFor="base_url" className="block ml-px text-xs font-bold text-gray-700 dark:text-white uppercase tracking-wide">
+                  {t("settings:application.baseUrl")}
                 </label>
                 <input
                   type="text"
@@ -163,58 +99,109 @@ function ApplicationSettings() {
                   id="base_url"
                   value={data.base_url}
                   disabled={true}
-                  className="mt-2 block w-full dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:text-gray-100 sm:text-sm"
+                  className="mt-1 block w-full sm:text-sm rounded-md border-gray-300 dark:border-gray-750 bg-gray-100 dark:bg-gray-825 dark:text-gray-100"
                 />
               </div>
             </div>
           )}
         </form>
-      </div>
 
-      <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        <div className="px-4 py-5 sm:p-0">
-          <dl className="sm:divide-y divide-gray-200 dark:divide-gray-700">
-            <RowItemVersion label="Version" value={data?.version} newUpdate={updateData ?? undefined} />
-            <RowItem label="Commit" value={data?.commit} />
-            <RowItem label="Build date" value={data?.date} />
-          </dl>
-        </div>
-        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-          <div className="px-4 sm:px-6 py-1">
-            <Checkbox
-              label="WebUI Debug mode"
-              value={settings.debug}
-              setValue={(newValue: boolean) => setSettings({
-                ...settings,
+        <RowItem
+          label={t("settings:application.version")}
+          value={data?.version}
+          rightSide={
+            updateData && updateData.html_url ? (
+              <ExternalLink
+                href={updateData.html_url}
+                className="ml-2 inline-flex items-center rounded-md bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-800"
+              >
+                {t("settings:application.updateAvailable", { name: updateData.name })}
+              </ExternalLink>
+            ) : null
+          }
+        />
+        {data?.commit && <RowItem label={t("settings:application.commit")} value={data.commit} />}
+        {data?.date && <RowItem label={t("settings:application.buildDate")} value={data.date} />}
+        <RowItem label={t("settings:application.application")} value={data?.application} />
+        <RowItem label={t("settings:application.configPath")} value={data?.config_dir} />
+        <RowItem label={t("settings:application.database")} value={data?.database} />
+        <div className="py-0.5">
+          <Checkbox
+            label={t("settings:application.webuiDebugMode")}
+            value={settings.debug}
+            className="p-4 sm:px-6"
+            setValue={
+              (newValue: boolean) => setSettings((prevState) => ({
+                ...prevState,
                 debug: newValue
-              })}
-            />
+              }))
+            }
+          />
+        </div>
+        <Checkbox
+          label={t("settings:application.checkForUpdates")}
+          description={t("settings:application.checkForUpdatesDescription")}
+          value={data?.check_for_updates ?? true}
+          className="p-4 sm:px-6"
+          setValue={(newValue: boolean) => {
+            toggleCheckUpdateMutation.mutate(newValue);
+          }}
+        />
+        <div className="flex items-center justify-between p-4 sm:px-6">
+          <div className="flex flex-col mr-4">
+            <p className="text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white">
+              {t("settings:application.theme")}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t("settings:application.themeDescription")}
+            </p>
           </div>
-          <div className="px-4 sm:px-6 py-1">
-            <Checkbox
-              label="Check for updates"
-              description="Get notified of new updates."
-              value={data?.check_for_updates ?? true}
-              setValue={(newValue: boolean) => {
-                toggleCheckUpdateMutation.mutate(newValue);
-              }}
-            />
+          <div>
+          <select
+            value={settings.theme}
+            onChange={(e) => setSettings((prevState) => ({
+              ...prevState,
+              theme: e.target.value as Theme
+            }))}
+            className="rounded-md min-w-32 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer text-sm text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="light">{t("common:theme.light")}</option>
+            <option value="dark">{t("common:theme.dark")}</option>
+            <option value="system">{t("common:theme.system")}</option>
+          </select>
           </div>
-          <div className="px-4 sm:px-6 py-1">
-            <Checkbox
-              label="Dark theme"
-              description="Switch between dark and light theme."
-              value={settings.darkTheme}
-              setValue={(newValue: boolean) => setSettings({
-                ...settings,
-                darkTheme: newValue
-              })}
-            />
+        </div>
+        <div className="flex items-center justify-between p-4 sm:px-6">
+          <div className="flex flex-col mr-4">
+            <p className="text-sm font-medium whitespace-nowrap text-gray-900 dark:text-white">
+              {t("common:language.label")}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t("settings:application.languageDescription")}
+            </p>
           </div>
-        </ul>
+          <div>
+          <select
+            value={settings.language}
+            onChange={(e) => setSettings((prevState) => ({
+              ...prevState,
+              language: e.target.value as Language
+            }))}
+            className="rounded-md min-w-56 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer text-sm text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="en">{t("common:language.english")}</option>
+            <option value="fr">{t("common:language.french")}</option>
+            <option value="de">{t("common:language.german")}</option>
+            <option value="cs">{t("common:language.czech")}</option>
+            <option value="no">{t("common:language.norwegian")}</option>
+            <option value="ru">{t("common:language.russian")}</option>
+            <option value="es">{t("common:language.spanish")}</option>
+            <option value="zh-CN">{t("common:language.simplifiedChinese")}</option>
+          </select>
+          </div>
+        </div>
       </div>
-
-    </div>
+    </Section>
   );
 }
 

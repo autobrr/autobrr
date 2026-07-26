@@ -1,24 +1,45 @@
-import { useMutation, useQuery, useQueryClient } from "react-query";
-import { classNames, IsEmptyDate, simplifyDate } from "../../utils";
-import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "../../forms";
-import { useToggle } from "../../hooks/hooks";
-import { APIClient } from "../../api/APIClient";
-import { EmptySimple } from "../../components/emptystates";
-import { LockClosedIcon, LockOpenIcon } from "@heroicons/react/24/solid";
-import { Menu, Switch, Transition } from "@headlessui/react";
-import { Fragment, useRef } from "react";
-import { DeleteModal } from "../../components/modals";
-import { useState, useMemo } from "react";
-import { toast } from "react-hot-toast";
-import Toast from "../../components/notifications/Toast";
+/*
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { Fragment, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import {
   ArrowsPointingInIcon,
   ArrowsPointingOutIcon,
+  Cog6ToothIcon,
   EllipsisHorizontalIcon,
   ExclamationCircleIcon,
   PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
+
+import { classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
+import { useToggle } from "@hooks/hooks";
+import { APIClient } from "@api/APIClient";
+import { IrcKeys } from "@api/query_keys";
+import { IrcQueryOptions } from "@api/queries";
+import { EmptySimple } from "@components/emptystates";
+import { DeleteModal } from "@components/modals";
+import { toast } from "@components/hot-toast";
+import Toast from "@components/notifications/Toast";
+import { SettingsContext } from "@utils/Context";
+import { Checkbox } from "@components/Checkbox";
+import {
+  useIrcChannelWithHistory,
+  useIrcNetworkHealthSync,
+  useIrcNetworkStateSync,
+  type IrcHealthEvent,
+  type IrcStateEvent
+} from "@hooks/useIrcEvents";
+
+import { Section } from "./_components";
+import { RingResizeSpinner } from "@components/Icons.tsx";
 
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
@@ -38,7 +59,7 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
     sortableItems.sort((a, b) => {
       const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
       const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
-  
+
       if (aValue < bValue) {
         return sortConfig.direction === "ascending" ? -1 : 1;
       }
@@ -46,7 +67,7 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
         return sortConfig.direction === "ascending" ? 1 : -1;
       }
       return 0;
-    });    
+    });
 
     return sortableItems;
   }, [items, sortConfig]);
@@ -62,13 +83,13 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
     }
     setSortConfig({ key, direction });
   };
-  
+
 
   const getSortIndicator = (key: keyof ListItemProps["network"]) => {
     if (!sortConfig || sortConfig.key !== key) {
       return "";
     }
-    
+
     return sortConfig.direction === "ascending" ? "↑" : "↓";
   };
 
@@ -76,189 +97,254 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
 }
 
 const IrcSettings = () => {
+  const { t } = useTranslation("settings");
   const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
-  const { data } = useQuery("networks", () => APIClient.irc.getNetworks(), {
-    refetchOnWindowFocus: false,
-    // Refetch every 3 seconds
-    refetchInterval: 3000
-  });
+  const queryClient = useQueryClient();
+  const ircQuery = useSuspenseQuery(IrcQueryOptions());
+  const networkIds = useMemo(
+    () => ircQuery.data?.map(n => n.id) ?? [],
+    [ircQuery.data]
+  );
 
-  const sortedNetworks = useSort(data || []);
+  const handleHealthEvent = useCallback((healthEvent: IrcHealthEvent) => {
+    queryClient.setQueryData<IrcNetworkWithHealth[]>(
+      IrcKeys.lists(),
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        return oldData.map(network =>
+          network.id === healthEvent.network
+            ? {
+                ...network,
+                healthy: healthEvent.healthy,
+                connected_since: healthEvent.connected_since || network.connected_since,
+                connection_errors: healthEvent.connection_errors || network.connection_errors
+              }
+            : network
+        );
+      }
+    );
+  }, [queryClient]);
+
+  // Subscribe to health events for all networks and update cache
+  useIrcNetworkHealthSync(
+    networkIds,
+    handleHealthEvent
+  );
+
+  const handleStateEvent = useCallback((stateEvent: IrcStateEvent) => {
+    queryClient.setQueryData<IrcNetworkWithHealth[]>(
+      IrcKeys.lists(),
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        return oldData.map(network => {
+          if (network.id !== stateEvent.network) return network;
+
+          const updatedNetwork = {
+            ...network,
+            channels: network.channels.map(channel => {
+              if (channel.name !== stateEvent.channel) return channel;
+
+              return {
+                ...channel,
+                state: stateEvent.state,
+                monitoring: stateEvent.state === "Monitoring",
+                // a monitoring channel has no errors; otherwise take the reason
+                // from the event (falling back to what we already have)
+                connection_errors: stateEvent.state === "Monitoring"
+                  ? []
+                  : (stateEvent.connection_errors ?? channel.connection_errors),
+              };
+            })
+          };
+
+          // trust the backend-computed health carried on the event (announce
+          // channels only); don't recompute it from every channel's state here.
+          updatedNetwork.healthy = stateEvent.healthy;
+
+          return updatedNetwork;
+        });
+      }
+    );
+  }, [queryClient]);
+
+  useIrcNetworkStateSync(
+    networkIds,
+    handleStateEvent
+  );
+
+  const sortedNetworks = useSort(ircQuery.data || []);
 
   return (
-    <div className="lg:col-span-9">
+    <Section
+      title={t("forms.irc.listTitle")}
+      description={t("forms.irc.listDescription")}
+      rightSide={
+        <button
+          type="button"
+          onClick={toggleAddNetwork}
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+        >
+          <PlusIcon className="h-5 w-5 mr-1" />
+          {t("forms.irc.addNew")}
+        </button>
+      }
+    >
       <IrcNetworkAddForm isOpen={addNetworkIsOpen} toggle={toggleAddNetwork} />
 
-      <div className="py-6 px-4 md:p-6 lg:pb-8">
-        <div className="-ml-4 -mt-4 flex justify-between items-center flex-wrap md:flex-nowrap">
-          <div className="ml-4 mt-4">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-              IRC
-            </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              IRC networks and channels. Click on a network to view channel
-              status.
-            </p>
-          </div>
-          <div className="ml-4 mt-4 flex-shrink-0">
-            <button
-              type="button"
-              onClick={toggleAddNetwork}
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      <div className="flex justify-between flex-col md:flex-row px-1">
+        <ul className="flex flex-col md:flex-row pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
+            <span
+              className="mr-2 flex h-4 w-4 relative"
+              title={t("forms.irc.networkHealthy")}
             >
-              Add new
-            </button>
-          </div>
+              <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
+            </span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkHealthy")}</span>
+          </li>
+
+          <li className="flex items-center md:px-2 py-1 md:py-0">
+            <span
+              className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
+              title={t("forms.irc.networkUnhealthy")}
+            />
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkUnhealthy")}</span>
+          </li>
+
+          <li className="flex items-center md:px-2 py-1 md:py-0">
+            <span
+              className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
+              title={t("forms.irc.networkDisabled")}
+            >
+            </span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkDisabled")}</span>
+          </li>
+        </ul>
+        <div className="flex gap-x-2">
+          <button
+            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+            onClick={toggleExpand}
+            title={expandNetworks ? t("forms.irc.collapseTitle") : t("forms.irc.expandTitle")}
+          >
+            {expandNetworks
+              ? <span className="flex items-center text-sm">{t("forms.irc.collapse")} <ArrowsPointingInIcon className="ml-1 w-4 h-4" /></span>
+              : <span className="flex items-center text-sm">{t("forms.irc.expand")} <ArrowsPointingOutIcon className="ml-1 w-4 h-4" /></span>
+            }</button>
+          <IRCLogsDropdown />
         </div>
-
-        <div className="flex justify-between flex-col md:flex-row mt-10 px-1">
-          <ol className="flex flex-col md:flex-row md:gap-2 pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
-            <li className="flex items-center">
-              <span
-                className="mr-2 flex h-4 w-4 relative"
-                title="Network healthy"
-              >
-                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
-              </span>
-              <span className="text-sm text-gray-800 dark:text-gray-500">Network healthy</span>
-            </li>
-
-            <li className="flex items-center md:pl-2">
-              <span
-                className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
-                title="Network unhealthy"
-              />
-              <span className="text-sm text-gray-800 dark:text-gray-500">Network unhealthy</span>
-            </li>
-
-            <li className="flex items-center md:pl-2">
-              <span
-                className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
-                title="Network disabled"
-              >
-              </span>
-              <span className="text-sm text-gray-800 dark:text-gray-500">Network disabled</span>
-            </li>
-          </ol>
-          <div className="flex gap-x-2">
-            <button className="flex items-center text-sm text-gray-800 dark:text-gray-400 p-1 px-2 rounded shadow bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600" onClick={toggleExpand} title={expandNetworks ? "collapse" : "expand"}>
-              {expandNetworks
-                ? <span className="flex items-center">Collapse <ArrowsPointingInIcon className="ml-1 w-4 h-4"/></span>
-                : <span className="flex items-center">Expand <ArrowsPointingOutIcon className="ml-1 w-4 h-4"/></span>
-              }</button>
-          </div>
-        </div>
-
-        {data && data.length > 0 ? (
-          <section className="mt-6 light:bg-white dark:bg-gray-800 light:shadow md:rounded-md">
-            <ol className="min-w-full relative">
-              <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex col-span-2 md:col-span-1 px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("enabled")}>
-                    Enabled <span className="sort-indicator">{sortedNetworks.getSortIndicator("enabled")}</span>
-                </div>
-                <div className="col-span-10 md:col-span-3 px-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("name")}>
-                  Network <span className="sort-indicator">{sortedNetworks.getSortIndicator("name")}</span>
-                </div>
-                <div className="hidden md:flex col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("server")}>
-                  Server <span className="sort-indicator">{sortedNetworks.getSortIndicator("server")}</span>
-                </div>
-                <div className="hidden md:flex col-span-3 px-5 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => sortedNetworks.requestSort("nick")}>
-                Nick <span className="sort-indicator">{sortedNetworks.getSortIndicator("nick")}</span>
-                </div>
-              </li>
-              {data &&
-                sortedNetworks.items.map((network, idx) => (
-                  <ListItem key={idx} idx={idx} expanded={expandNetworks} network={network} />
-                ))}
-            </ol>
-          </section>
-        ) : (
-          <EmptySimple
-            title="No networks"
-            subtitle="Normally set up via Indexers"
-            buttonText="Add new network"
-            buttonAction={toggleAddNetwork}
-          />
-        )}
       </div>
-    </div>
+
+      {ircQuery.data && ircQuery.data.length > 0 ? (
+        <ul className="mt-6 min-w-full relative text-sm">
+          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("enabled")}>
+              {t("forms.irc.enabled")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("enabled")}</span>
+            </div>
+            <div className="col-span-10 md:col-span-3 px-11 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("name")}>
+              {t("forms.irc.network")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("name")}</span>
+            </div>
+            <div className="hidden md:flex col-span-4 px-6 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("server")}>
+              {t("forms.irc.server")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("server")}</span>
+            </div>
+            <div className="hidden md:flex col-span-3 px-5 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("nick")}>
+              {t("forms.irc.nick")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("nick")}</span>
+            </div>
+          </li>
+          {sortedNetworks.items.map((network) => (
+            <ListItem key={network.id} expanded={expandNetworks} network={network} />
+          ))}
+        </ul>
+      ) : (
+        <EmptySimple
+          title={t("forms.irc.noNetworks")}
+          subtitle={t("forms.irc.noNetworksSubtitle")}
+          buttonText={t("forms.irc.addNewNetwork")}
+          buttonAction={toggleAddNetwork}
+        />
+      )}
+    </Section>
   );
 };
 
 interface ListItemProps {
-  idx: number;
   network: IrcNetworkWithHealth;
   expanded: boolean;
 }
 
-const ListItem = ({ idx, network, expanded }: ListItemProps) => {
+const ListItem = ({ network, expanded }: ListItemProps) => {
+  const { t } = useTranslation("settings");
   const [updateIsOpen, toggleUpdate] = useToggle(false);
   const [edit, toggleEdit] = useToggle(false);
 
   const queryClient = useQueryClient();
 
-  const mutation = useMutation(
-    (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["networks"]);
-        toast.custom((t) => <Toast type="success" body={`${network.name} was updated successfully`} t={t}/>);
-      }
+  const updateMutation = useMutation({
+    mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
+    onSuccess: (network: IrcNetwork) => {
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      toast.custom(toastItem => (
+        <Toast
+          type="success"
+          body={t("forms.irc.toggleSuccess", {
+            name: network.name,
+            state: network.enabled ? t("forms.irc.enabledState") : t("forms.irc.disabledState")
+          })}
+          t={toastItem}
+        />
+      ));
     }
-  );
+  });
 
   const onToggleMutation = (newState: boolean) => {
-    mutation.mutate({
+    updateMutation.mutate({
       ...network,
       enabled: newState
     });
   };
 
   return (
-    <li key={idx}>
-      <div className={classNames("grid grid-cols-12 gap-2 lg:gap-4 items-center py-2", network.enabled && !network.healthy ? "bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800" : "hover:bg-gray-50 dark:hover:bg-gray-700 ")}>
+    <li>
+      <div
+        className={classNames(
+          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-1 p-2.5 cursor-pointer first:bg-gray-100 last:bg-transparent dark:first:bg-gray-775 dark:last:bg-gray-800 first:rounded-t-md last:rounded-b-md transition",
+          network.enabled && !network.healthy ? "first:bg-red-200 last:bg-red-200 first:hover:bg-red-275 last:hover:bg-red-275 dark:first:bg-red-900 dark:last:bg-red-900 dark:first:hover:bg-red-800 dark:last:hover:bg-red-800" : "hover:bg-gray-200 dark:hover:bg-gray-700"
+        )}
+        onClick={(e) => {
+          if (e.defaultPrevented)
+            return;
+
+          e.preventDefault();
+          toggleEdit();
+        }}
+      >
         <IrcNetworkUpdateForm
           isOpen={updateIsOpen}
           toggle={toggleUpdate}
-          network={network}
+          data={network}
         />
-        <div className="col-span-2 md:col-span-1 flex pl-5 text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
-          <Switch
-            checked={network.enabled}
-            onChange={onToggleMutation}
-            className={classNames(
-              network.enabled ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-600",
-              "items-center relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            )}
-          >
-            <span className="sr-only">Enable</span>
-            <span
-              aria-hidden="true"
-              className={classNames(
-                network.enabled ? "translate-x-5" : "translate-x-0",
-                "inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"
-              )}
-            />
-          </Switch>
+        <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
+          <Checkbox
+            value={network.enabled}
+            setValue={onToggleMutation}
+          />
         </div>
-        <div
-          className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
-          onClick={toggleEdit}
-        >
+        <div className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 font-medium text-gray-900 dark:text-white cursor-pointer">
           <div className="flex">
             <span className="relative inline-flex items-center ml-1">
               {network.enabled ? (
                 network.healthy ? (
                   <span
                     className="mr-3 flex h-3 w-3 relative"
-                    title={`Connected since: ${simplifyDate(network.connected_since)}`}
+                    title={t("forms.irc.connectedSince", { time: simplifyDate(network.connected_since) })}
                   >
                     <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                     <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
@@ -275,18 +361,15 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                 <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
               )}
             </span>
-            <div className="block truncate">
+            <div className="block text-sm truncate">
               {network.name}
             </div>
           </div>
         </div>
-        <div
-          className="hidden md:flex col-span-4 md:pl-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
-          onClick={toggleEdit}
-        >
+        <div className="hidden md:flex col-span-4 md:pl-6 text-gray-500 dark:text-gray-400">
           <div
             className="overflow-x-auto flex items-center"
-            title={network.tls ? "Secured using TLS" : "Insecure, not using TLS"}
+            title={network.tls ? t("forms.irc.tlsSecured") : t("forms.irc.tlsInsecure")}
           >
             <div className="min-h-2 min-w-2">
               {network.tls ? (
@@ -303,79 +386,43 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
                 )} />
               )}
             </div>
-            <p className="block truncate">
+            <p className="block text-sm truncate">
               {network.server}:{network.port}
             </p>
           </div>
         </div>
-        <div
-          className="hidden md:flex col-span-3 items-center md:pl-6 text-sm text-gray-500 dark:text-gray-400 cursor-pointer"
-          onClick={toggleEdit}
-        >
-          <div className="block truncate">
+        <div className="hidden md:flex col-span-3 items-center md:pl-6 text-gray-500 dark:text-gray-400">
+          <div className="block text-sm truncate">
             {network.nick}
           </div>
         </div>
-        <div className="col-span-1 text-sm text-gray-500 dark:text-gray-400">
+        <div className="col-span-1 text-gray-500 dark:text-gray-400">
           <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
         </div>
       </div>
       {(edit || expanded) && (
-        <div className="px-4 py-4 flex border-b border-x-0 dark:border-gray-600 dark:bg-gray-700">
+        <div className="px-4 py-4 flex bg-gray-100 dark:bg-gray-775 rounded-b-md">
           <div className="min-w-full">
             {network.channels.length > 0 ? (
-              <ol>
-                <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Channel
+              <ul>
+                <li className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <div className="col-span-5 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
+                    {t("forms.irc.channel")}
                   </div>
-                  <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Monitoring since
+                  <div className="hidden sm:flex col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
+                    {t("forms.irc.monitoringSince")}
                   </div>
-                  <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Last announce
+                  <div className="col-span-6 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
+                    {t("forms.irc.lastAnnounce")}
                   </div>
                 </li>
                 {network.channels.map((c) => (
-                  <li key={c.id} className="text-gray-500 dark:text-gray-400">
-                    <div className="grid grid-cols-12 gap-4 items-center py-4">
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span className="relative inline-flex items-center">
-                          {network.enabled ? (
-                            c.monitoring ? (
-                              <span
-                                className="mr-3 flex h-3 w-3 relative"
-                                title="monitoring"
-                              >
-                                <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                                <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
-                              </span>
-                            ) : (
-                              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-400" />
-                            )
-                          ) : (
-                            <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
-                          )}
-                          {c.name}
-                        </span>
-                      </div>
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span title={simplifyDate(c.monitoring_since)}>
-                          {IsEmptyDate(c.monitoring_since)}
-                        </span>
-                      </div>
-                      <div className="col-span-4 flex items-center md:px-6 ">
-                        <span title={simplifyDate(c.last_announce)}>
-                          {IsEmptyDate(c.last_announce)}
-                        </span>
-                      </div>
-                    </div>
-                  </li>
+                  <ChannelItem key={`${network.id}.${c.id}`} network={network} channel={c} />
                 ))}
-              </ol>
+              </ul>
             ) : (
               <div className="flex text-center justify-center py-4 dark:text-gray-500">
-                <p>No channels!</p>
+                <p>{t("forms.irc.noChannels")}</p>
               </div>
             )}
           </div>
@@ -384,6 +431,125 @@ const ListItem = ({ idx, network, expanded }: ListItemProps) => {
     </li>
   );
 };
+
+interface ChannelItemProps {
+  network: IrcNetwork;
+  channel: IrcChannelWithHealth;
+}
+
+const ChannelItem = ({ network, channel }: ChannelItemProps) => {
+  const { t } = useTranslation("settings");
+  const [viewChannel, toggleView] = useToggle(false);
+
+  return (
+    <li
+      className={classNames(
+        "mt-1 mb-2 text-gray-500 dark:text-gray-400 hover:cursor-pointer rounded-md",
+        viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "hover:bg-gray-300 dark:hover:bg-gray-800"
+      )}
+    >
+      <div
+        className="grid grid-cols-12 gap-4 items-center py-4 "
+        onClick={toggleView}
+      >
+        <div className="col-span-5 sm:col-span-4 flex flex-col md:px-6 pl-2 sm:pl-0">
+          <span className="relative inline-flex items-center">
+            {network.enabled ? (
+              <IrcChannelStatePill state={channel.state} errors={channel.connection_errors} />
+            ) : (
+              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+            )}
+            {channel.name}
+          </span>
+          {network.enabled && channel.connection_errors && channel.connection_errors.length > 0 && (
+            <span
+              className="ml-6 text-xs text-red-500 truncate"
+              title={channel.connection_errors.join(", ")}
+            >
+              {channel.connection_errors[0]}
+            </span>
+          )}
+        </div>
+        <div className="col-span-4 hidden sm:flex items-center md:px-6">
+          <span title={simplifyDate(channel.monitoring_since)}>
+            {IsEmptyDate(channel.monitoring_since)}
+          </span>
+        </div>
+        <div className="col-span-6 sm:col-span-3 flex items-center md:px-6">
+          <span title={simplifyDate(channel.last_announce)}>
+            {IsEmptyDate(channel.last_announce)}
+          </span>
+        </div>
+        <div className="col-span-1 flex items-center justify-end">
+          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded-sm dark:border-gray-900">
+            {viewChannel ? t("forms.irc.hide") : t("forms.irc.view")}
+          </button>
+        </div>
+      </div>
+      {viewChannel && (
+        <Events network={network} channel={channel.name} />
+      )}
+    </li>
+  );
+};
+
+function IrcChannelStatePill({ state, errors }: { state: IrcChannelState; errors?: string[] }) {
+  const stateMap: Record<IrcChannelState, string> = {
+    Idle: "Idle",
+    AwaitingInvite: "Awaiting invite",
+    AwaitingInviteBot: "Awaiting invite bot, might not be present yet",
+    InviteFailed: "Invite failed",
+    InviteFailedNoSuchNick: "Invite failed, invite bot not present",
+    Joining: "Joining",
+    Monitoring: "Monitoring",
+    Kicked: "Kicked",
+    Parted: "Parting",
+    Disabled: "Disabled",
+    Error: "Error",
+    Unknown: "Unknown"
+  }
+
+  // prefer the specific error reason (e.g. "wrong or missing channel password
+  // (+k)") over the bare state name so users can debug from the pill directly
+  const title = errors && errors.length > 0 ? errors.join(", ") : stateMap[state];
+
+    switch (state) {
+     case "Idle":
+       return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
+      case "AwaitingInvite":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-teal-500" title={title} />
+      case "AwaitingInviteBot":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-300" title={title} />
+      case "InviteFailed":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={title} />
+      case "InviteFailedNoSuchNick":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-500" title={title} />
+      case "Joining":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-blue-500" title={title} />
+      case "Monitoring":
+        return (
+          <span
+            className="mr-3 flex h-3 w-3 relative"
+            title={title}
+          >
+            <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
+          </span>
+        )
+      case "Kicked":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-orange-500" title={title} />
+      case "Parted":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
+      case "Disabled":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
+      case "Error":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={title} />
+      case "Unknown":
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
+      default:
+        return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />
+    }
+}
 
 interface ListItemDropdownProps {
   network: IrcNetwork;
@@ -394,62 +560,64 @@ const ListItemDropdown = ({
   network,
   toggleUpdate
 }: ListItemDropdownProps) => {
+  const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef(null);
 
   const queryClient = useQueryClient();
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
-  const deleteMutation = useMutation(
-    (id: number) => APIClient.irc.deleteNetwork(id),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(["networks"]);
-        queryClient.invalidateQueries(["networks", network.id]);
 
-        toast.custom((t) => <Toast type="success" body={`Network ${network.name} was deleted`} t={t}/>);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
-        toggleDeleteModal();
-      }
+      toast.custom((toastItem) => <Toast type="success" body={t("forms.irc.networkDeleted", { name: network.name })} t={toastItem} />);
+
+      toggleDeleteModal();
     }
-  );
+  });
 
-  const restartMutation = useMutation(
-    (id: number) => APIClient.irc.restartNetwork(id),
-    {
-      onSuccess: () => {
-        toast.custom((t) => <Toast type="success"
-          body={`${network.name} was successfully restarted`}
-          t={t}/>);
+  const restartMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
-        queryClient.invalidateQueries(["networks"]);
-        queryClient.invalidateQueries(["networks", network.id]);
-      }
+      toast.custom((toastItem) => <Toast type="success" body={t("forms.irc.networkRestarted", { name: network.name })} t={toastItem} />);
     }
-  );
+  });
 
-  const restart = (id: number) => {
-    restartMutation.mutate(id);
-  };
+  const restart = (id: number) => restartMutation.mutate(id);
 
   return (
-    <Menu as="div">
+    <Menu
+      as="div"
+      onClick={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+    >
       <DeleteModal
         isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isPending}
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
           deleteMutation.mutate(network.id);
           toggleDeleteModal();
         }}
-        title={`Remove network: ${network.name}`}
-        text="Are you sure you want to remove this network? This action cannot be undone."
+        title={t("forms.irc.removeNetworkTitle", { name: network.name })}
+        text={t("forms.irc.removeNetworkText")}
       />
-      <Menu.Button className="px-4 py-2">
+      <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
         />
-      </Menu.Button>
+      </MenuButton>
       <Transition
         as={Fragment}
         enter="transition ease-out duration-100"
@@ -459,11 +627,12 @@ const ListItemDropdown = ({
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items
-          className="absolute right-0 w-32 md:w-56 mt-2 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-none"
+        <MenuItems
+            anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -479,11 +648,11 @@ const ListItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Edit
+                  {t("forms.irc.edit")}
                 </button>
               )}
-            </Menu.Item>
-            {/*<Menu.Item>*/}
+            </MenuItem>
+            {/*<MenuItem>*/}
             {/*  {({ active }) => (*/}
             {/*    <button*/}
             {/*      className={classNames(*/}
@@ -502,30 +671,36 @@ const ListItemDropdown = ({
             {/*      {network.enabled ? "Disable" : "Enable"}*/}
             {/*    </button>*/}
             {/*  )}*/}
-            {/*</Menu.Item>*/}
-            <Menu.Item>
+            {/*</MenuItem>*/}
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
-                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
-                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm",
+                    network.enabled
+                      ? active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300"
+                      : "text-gray-600 dark:text-gray-500"
                   )}
                   onClick={() => restart(network.id)}
+                  disabled={!network.enabled}
+                  title={network.enabled ? t("forms.irc.restart") : t("forms.irc.networkDisabled")}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={classNames(
-                    active ? "text-white" : "text-blue-500",
-                    "w-5 h-5 mr-2"
+                    "w-5 h-5 mr-2",
+                    network.enabled
+                    ? active ? "text-white" : "text-blue-500 dark:text-blue-500"
+                    : "text-gray-600 dark:text-gray-500"
                   )}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
                   </svg>
 
-                  Restart
+                  {t("forms.irc.restart")}
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
           <div className="px-1 py-1">
-            <Menu.Item>
+            <MenuItem>
               {({ active }) => (
                 <button
                   className={classNames(
@@ -541,15 +716,214 @@ const ListItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Delete
+                  {t("forms.irc.delete")}
                 </button>
               )}
-            </Menu.Item>
+            </MenuItem>
           </div>
-        </Menu.Items>
+        </MenuItems>
       </Transition>
     </Menu>
   );
 };
 
+interface ReprocessAnnounceProps {
+  networkId: number;
+  channel: string;
+  msg: string;
+}
+
+const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceProps) => {
+  const { t } = useTranslation("settings");
+  const mutation = useMutation({
+    mutationFn: (req: IrcProcessManualRequest) => APIClient.irc.reprocessAnnounce(req.network_id, req.channel, req.msg),
+    onSuccess: () => {
+      toast.custom((toastItem) => (
+        <Toast type="success" body={t("forms.irc.announceReprocessed")} t={toastItem} />
+      ));
+    }
+  });
+
+  const reprocessAnnounce = () => {
+    const req: IrcProcessManualRequest = {
+      network_id: networkId,
+      msg: msg,
+      channel: channel,
+    }
+
+    if (channel.startsWith("#")) {
+      req.channel = channel.replace("#", "")
+    }
+
+    mutation.mutate(req);
+  };
+
+  return (
+    <div className="block">
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title={t("forms.irc.reprocessAnnounce")}>
+      {mutation.isPending
+        ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
+        : <ArrowPathIcon />
+      }
+    </button>
+    </div>
+  );
+
+}
+
+interface EventsProps {
+  network: IrcNetwork;
+  channel: string;
+}
+
+export const Events = ({ network, channel }: EventsProps) => {
+  const [settings] = SettingsContext.use();
+  const { events: logs } = useIrcChannelWithHistory(network.id, channel, 100, true);
+
+  const [isFullscreen, toggleFullscreen] = useToggle(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isFullscreen) {
+        toggleFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isFullscreen, toggleFullscreen]);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      }
+    };
+    if (settings.scrollOnNewLog)
+      scrollToBottom();
+  }, [logs, settings.scrollOnNewLog]);
+
+  useEffect(() => {
+    document.body.classList.toggle("overflow-hidden", isFullscreen);
+
+    return () => {
+      // Clean up by removing the class when the component unmounts
+      document.body.classList.remove("overflow-hidden");
+    };
+  }, [isFullscreen]);
+
+  return (
+    <div
+      className={classNames(
+        "dark:bg-gray-800 rounded-lg shadow-lg p-2",
+        isFullscreen ? "fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-50" : ""
+      )}
+    >
+      <div className="flex relative">
+        <button
+          className={classNames(
+            "dark:bg-gray-800 p-2 absolute top-2 right-2 mr-2 bg-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 hover:cursor-pointer rounded-md"
+          )}
+          onClick={toggleFullscreen}
+        >
+          {isFullscreen
+            ? <span className="flex items-center"><ArrowsPointingInIcon className="w-5 h-5" /></span>
+            : <span className="flex items-center"><ArrowsPointingOutIcon className="w-5 h-5" /></span>}
+        </button>
+      </div>
+      <div
+        className={classNames(
+          "overflow-y-auto rounded-lg min-w-full bg-gray-100 dark:bg-gray-900 overflow-auto",
+          isFullscreen ? "max-w-full h-full p-2 border-gray-300 dark:border-gray-700" : "px-2 py-1 aspect-2/1"
+        )}
+        ref={messagesEndRef}
+      >
+        {logs.map((entry, idx) => (
+          <div
+            key={idx}
+            className={classNames(
+              settings.indentLogLines ? "grid justify-start grid-flow-col" : "",
+              settings.hideWrappedText ? "truncate hover:text-ellipsis hover:whitespace-normal" : "",
+              "flex items-center hover:bg-gray-200 dark:hover:bg-gray-800"
+            )}
+          >
+            <ReprocessAnnounceButton networkId={network.id} channel={channel} msg={entry.msg} />
+            <div className="flex-1">
+              <span className="font-mono text-gray-500 dark:text-gray-500 mr-1">
+                <span className="dark:text-gray-600"><span className="dark:text-gray-700">[{simplifyDate(entry.time)}]</span> {entry.nick}:</span> {entry.msg}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default IrcSettings;
+
+const IRCLogsDropdown = () => {
+  const { t } = useTranslation("settings");
+  const [settings, setSettings] = SettingsContext.use();
+
+  const onSetValue = (
+    key: "scrollOnNewLog",
+    newValue: boolean
+  ) => setSettings((prevState) => ({
+    ...prevState,
+    [key]: newValue
+  }));
+
+  //
+  // FIXME: Warning: Function components cannot be given refs. Attempts to access this ref will fail.
+  //        Did you mean to use React.forwardRef()?
+  //
+  // Check the render method of `Pe2`.
+  //  at Checkbox (http://localhost:3000/src/components/Checkbox.tsx:14:28)
+  //  at Pe2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2164:12)
+  //  at div
+  //  at Ee (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2106:12)
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at De4 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3016:22)
+  //  at He5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:3053:15)
+  //  at div
+  //  at c5 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:592:22)
+  //  at Me2 (http://localhost:3000/node_modules/.vite/deps/@headlessui_react.js?v=e8629745:2062:21)
+  //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
+  return (
+    <Menu as="div" className="relative">
+      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+        <span className="flex items-center">{t("forms.irc.options")} <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
+      </MenuButton>
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <MenuItems
+          anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
+          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-hidden"
+        >
+          <MenuItem>
+            {() => (
+              <Checkbox
+                label={t("forms.irc.scrollOnNewMessage")}
+                value={settings.scrollOnNewLog}
+                setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
+              />
+            )}
+          </MenuItem>
+        </MenuItems>
+      </Transition>
+    </Menu>
+  );
+};
