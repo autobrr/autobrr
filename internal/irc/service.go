@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
@@ -74,9 +73,7 @@ type Service struct {
 	lock   sync.RWMutex
 }
 
-const sseMaxEntries = 1000
-
-func NewService(log logger.Logger, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, notificationSvc notificationSender, proxySvc proxyService) *Service {
+func NewService(log zerolog.Logger, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, notificationSvc notificationSender, proxySvc proxyService) *Service {
 	return &Service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,

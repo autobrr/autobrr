@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -17,7 +16,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func NewAPIRepo(log logger.Logger, db *DB) *APIRepo {
+func NewAPIRepo(log zerolog.Logger, db *DB) *APIRepo {
 	return &APIRepo{
 		log: log.With().Str("repo", "api").Logger(),
 		db:  db,

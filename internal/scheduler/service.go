@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/version"
 
@@ -37,7 +36,7 @@ type Service struct {
 	m    sync.RWMutex
 }
 
-func NewService(log logger.Logger, config *domain.Config, notificationSvc notificationSender, updateSvc updateChecker) *Service {
+func NewService(log zerolog.Logger, config *domain.Config, notificationSvc notificationSender, updateSvc updateChecker) *Service {
 	return &Service{
 		log:             log.With().Str("module", "scheduler").Logger(),
 		config:          config,

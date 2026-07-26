@@ -75,8 +75,13 @@ func main() {
 	// read config
 	cfg := config.New(configPath, version)
 
+	// setup server-sent-events
+	serverEvents := sse.New()
+	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
+	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
+
 	// init new logger
-	log := logger.New(cfg.Config)
+	log := logger.New(cfg.Config, serverEvents)
 
 	// Set GOMAXPROCS to match the Linux container CPU quota (if any)
 	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
@@ -95,14 +100,6 @@ func main() {
 	cfg.DynamicReload(log)
 
 	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
-
-	// setup server-sent-events
-	serverEvents := sse.New()
-	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
-	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
-
-	// register SSE hook on logger
-	log.RegisterSSEWriter(serverEvents)
 
 	// setup internal eventbus
 	bus := EventBus.New()

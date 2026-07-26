@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/asaskevich/EventBus"
@@ -101,7 +100,7 @@ type Service struct {
 	scheduler  schedulerService
 }
 
-func NewService(log logger.Logger, repo releaseRepo, actionSvc actionService, filterSvc filterService, indexerSvc indexerService, scheduler schedulerService, bus EventBus.Bus) *Service {
+func NewService(log zerolog.Logger, repo releaseRepo, actionSvc actionService, filterSvc filterService, indexerSvc indexerService, scheduler schedulerService, bus EventBus.Bus) *Service {
 	return &Service{
 		log:         log.With().Str("module", "release").Logger(),
 		cleanupJobs: map[string]int{},

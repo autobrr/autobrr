@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type DownloadClientRepo struct {
 	db  *DB
 }
 
-func NewDownloadClientRepo(log logger.Logger, db *DB) *DownloadClientRepo {
+func NewDownloadClientRepo(log zerolog.Logger, db *DB) *DownloadClientRepo {
 	return &DownloadClientRepo{
 		log: log.With().Str("repo", "action").Logger(),
 		db:  db,

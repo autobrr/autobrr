@@ -10,7 +10,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/moistari/rls"
@@ -56,7 +55,7 @@ type Service struct {
 	senders       map[int]Sender
 }
 
-func NewService(log logger.Logger, repo notificationRepo) *Service {
+func NewService(log zerolog.Logger, repo notificationRepo) *Service {
 	s := &Service{
 		log:           log.With().Str("module", "notification").Logger(),
 		repo:          repo,

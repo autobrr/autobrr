@@ -14,7 +14,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type CheckUpdatesJob struct {
@@ -84,7 +83,7 @@ func (j *TempDirCleanupJob) Run() {
 		// Fallback for systems where UID isn't set
 		currentUID = os.Getenv("USER")
 		if currentUID == "" {
-			log.Debug().Msg("could not determine current user, skipping ownership check")
+			j.log.Debug().Msg("could not determine current user, skipping ownership check")
 			// Continue without ownership filtering or implement alternative logic
 		}
 	}

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -89,7 +88,7 @@ type Service struct {
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo filterRepo, actionSvc actionService, releaseRepo releaseRepo, apiService indexerAPIService, indexerSvc indexerService, downloadSvc downloadService, notificationSvc notificationService) *Service {
+func NewService(log zerolog.Logger, repo filterRepo, actionSvc actionService, releaseRepo releaseRepo, apiService indexerAPIService, indexerSvc indexerService, downloadSvc downloadService, notificationSvc notificationService) *Service {
 	return &Service{
 		log:             log.With().Str("module", "filter").Logger(),
 		repo:            repo,

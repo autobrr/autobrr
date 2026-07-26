@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
@@ -62,7 +61,7 @@ type Service struct {
 	feedIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo indexerRepo, releaseRepo releaseRepo, apiService apiService, scheduler schedulerService) *Service {
+func NewService(log zerolog.Logger, config *domain.Config, bus EventBus.Bus, repo indexerRepo, releaseRepo releaseRepo, apiService apiService, scheduler schedulerService) *Service {
 	return &Service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/asaskevich/EventBus"
@@ -47,7 +46,7 @@ type Service struct {
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo actionRepo, clientSvc clientService, downloadSvc downloadService, bus EventBus.Bus) *Service {
+func NewService(log zerolog.Logger, repo actionRepo, clientSvc clientService, downloadSvc downloadService, bus EventBus.Bus) *Service {
 	s := &Service{
 		log:         log.With().Str("module", "action").Logger(),
 		repo:        repo,

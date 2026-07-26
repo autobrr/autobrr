@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type ActionRepo struct {
 	db  *DB
 }
 
-func NewActionRepo(log logger.Logger, db *DB) *ActionRepo {
+func NewActionRepo(log zerolog.Logger, db *DB) *ActionRepo {
 	return &ActionRepo{
 		log: log.With().Str("repo", "action").Logger(),
 		db:  db,

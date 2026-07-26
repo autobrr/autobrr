@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/asaskevich/EventBus"
@@ -36,7 +35,7 @@ type Subscriber struct {
 	releaseSvc      releaseService
 }
 
-func NewSubscribers(log logger.Logger, eventbus EventBus.Bus, feedSvc feedService, notificationSvc notificationSender, releaseSvc releaseService) *Subscriber {
+func NewSubscribers(log zerolog.Logger, eventbus EventBus.Bus, feedSvc feedService, notificationSvc notificationSender, releaseSvc releaseService) *Subscriber {
 	s := &Subscriber{
 		log:             log.With().Str("module", "events").Logger(),
 		eventbus:        eventbus,

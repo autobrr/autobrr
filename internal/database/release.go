@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -25,7 +24,7 @@ type ReleaseRepo struct {
 	db  *DB
 }
 
-func NewReleaseRepo(log logger.Logger, db *DB) *ReleaseRepo {
+func NewReleaseRepo(log zerolog.Logger, db *DB) *ReleaseRepo {
 	return &ReleaseRepo{
 		log: log.With().Str("repo", "release").Logger(),
 		db:  db,

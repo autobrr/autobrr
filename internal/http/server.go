@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/alexedwards/scs/v2"
@@ -50,7 +49,7 @@ type Server struct {
 }
 
 type Deps struct {
-	Log logger.Logger
+	Log zerolog.Logger
 	SSE *sse.Server
 	DB  DatabaseHealth
 

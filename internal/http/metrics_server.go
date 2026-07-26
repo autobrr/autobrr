@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -36,7 +35,7 @@ type MetricsServer struct {
 	metricsManager metricsManager
 }
 
-func NewMetricsServer(log logger.Logger, config *config.AppConfig, version string, commit string, date string, metricsManager metricsManager) MetricsServer {
+func NewMetricsServer(log zerolog.Logger, config *config.AppConfig, version string, commit string, date string, metricsManager metricsManager) MetricsServer {
 	return MetricsServer{
 		log:     log.With().Str("module", "http").Logger(),
 		config:  config,

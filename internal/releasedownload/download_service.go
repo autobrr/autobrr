@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -59,7 +58,7 @@ type DownloadService struct {
 	proxySvc    proxyService
 }
 
-func NewDownloadService(log logger.Logger, indexerRepo indexerRepo, proxySvc proxyService) *DownloadService {
+func NewDownloadService(log zerolog.Logger, indexerRepo indexerRepo, proxySvc proxyService) *DownloadService {
 	return &DownloadService{
 		log:         log.With().Str("module", "release-download").Logger(),
 		indexerRepo: indexerRepo,

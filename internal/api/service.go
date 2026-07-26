@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
@@ -29,7 +28,7 @@ type Service struct {
 	keyCache map[string]domain.APIKey
 }
 
-func NewService(log logger.Logger, repo repo) *Service {
+func NewService(log zerolog.Logger, repo repo) *Service {
 	return &Service{
 		log:      log.With().Str("module", "api").Logger(),
 		repo:     repo,
