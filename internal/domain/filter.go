@@ -200,27 +200,24 @@ type FilterExternal struct {
 	FilterId                 int                   `json:"-"`
 }
 
+// macroFields returns the external filter fields that get macro expanded and
+// could reference the torrent file.
+func (f FilterExternal) macroFields() []string {
+	return []string{f.ExecArgs, f.WebhookData}
+}
+
+// NeedTorrentDownloaded check if the external filter needs the torrent contents.
+// This is a superset of NeedTorrentTmpFile since a tmp file can only be written
+// once we hold the contents.
 func (f FilterExternal) NeedTorrentDownloaded() bool {
-	if strings.Contains(f.ExecArgs, "TorrentHash") || strings.Contains(f.WebhookData, "TorrentHash") {
-		return true
-	}
-
-	if strings.Contains(f.ExecArgs, "TorrentPathName") || strings.Contains(f.WebhookData, "TorrentPathName") {
-		return true
-	}
-
-	if strings.Contains(f.WebhookData, "TorrentDataRawBytes") {
-		return true
-	}
-
-	return false
+	return containsAnyMacro(f.macroFields(), "TorrentPathName", "TorrentTmpFile", "TorrentDataRawBytes", "TorrentHash")
 }
 
 // NeedTorrentTmpFile check if the external filter needs the torrent written to
-// disk. The torrent is otherwise kept in memory, so only the path macro needs
+// disk. The torrent is otherwise kept in memory, so only the path macros need
 // an actual file to hand to the script or webhook.
 func (f FilterExternal) NeedTorrentTmpFile() bool {
-	return strings.Contains(f.ExecArgs, "TorrentPathName") || strings.Contains(f.WebhookData, "TorrentPathName")
+	return containsAnyMacro(f.macroFields(), "TorrentPathName", "TorrentTmpFile")
 }
 
 type FilterExternalType string

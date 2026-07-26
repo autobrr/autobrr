@@ -175,3 +175,60 @@ func TestRelease_CleanupTemporaryFilesAlreadyGone(t *testing.T) {
 	assert.Empty(t, r.TorrentTmpFile)
 	assert.Empty(t, r.TorrentDataRawBytes)
 }
+
+func TestFilterExternal_NeedTorrent(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		external   FilterExternal
+		wantBytes  bool
+		wantTmpFil bool
+	}{
+		{
+			// this used to be checked on WebhookData only, so an exec filter
+			// asking for the contents never triggered a download
+			name:      "raw bytes in exec args",
+			external:  FilterExternal{ExecArgs: "--data {{.TorrentDataRawBytes}}"},
+			wantBytes: true,
+		},
+		{
+			name:      "raw bytes in webhook data",
+			external:  FilterExternal{WebhookData: `{"data":"{{.TorrentDataRawBytes}}"}`},
+			wantBytes: true,
+		},
+		{
+			name:       "path macro needs the file on disk",
+			external:   FilterExternal{ExecArgs: "--file {{.TorrentPathName}}"},
+			wantBytes:  true,
+			wantTmpFil: true,
+		},
+		{
+			// exposed as a macro but was checked nowhere
+			name:       "tmp file macro needs the file on disk",
+			external:   FilterExternal{WebhookData: `{"path":"{{.TorrentTmpFile}}"}`},
+			wantBytes:  true,
+			wantTmpFil: true,
+		},
+		{
+			name:      "hash needs the contents only",
+			external:  FilterExternal{ExecArgs: "--hash {{.TorrentHash}}"},
+			wantBytes: true,
+		},
+		{
+			name:     "unrelated macros need nothing",
+			external: FilterExternal{ExecArgs: "--name {{.TorrentName}}", WebhookData: `{"indexer":"{{.Indexer}}"}`},
+		},
+		{
+			name:     "empty",
+			external: FilterExternal{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.wantBytes, tt.external.NeedTorrentDownloaded(), "needs contents")
+			assert.Equal(t, tt.wantTmpFil, tt.external.NeedTorrentTmpFile(), "needs tmp file")
+		})
+	}
+}
