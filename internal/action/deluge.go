@@ -6,7 +6,6 @@ package action
 import (
 	"context"
 	"encoding/base64"
-	"os"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -16,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) deluge(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) deluge(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running Deluge action")
@@ -93,7 +92,7 @@ func (s *Service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.De
 	return nil, nil
 }
 
-func (s *Service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) delugeV1(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	//downloadClient := client.Client.(*deluge.Client)
@@ -154,21 +153,14 @@ func (s *Service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 
 		return nil, nil
 	} else {
-		if release.TorrentTmpFile == "" {
-			if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
-				return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
-			}
-		}
-
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
 		// encode file to base64 before sending to deluge
-		encodedFile := base64.StdEncoding.EncodeToString(t)
+		encodedFile := base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes)
 		if encodedFile == "" {
-			return nil, errors.Wrap(err, "could not encode torrent file: %s", release.TorrentTmpFile)
+			return nil, errors.New("could not encode torrent file for release: %s", release.TorrentName)
 		}
 
 		options, err := s.prepareDelugeOptions(action)
@@ -178,9 +170,9 @@ func (s *Service) delugeV1(ctx context.Context, client *domain.DownloadClient, a
 
 		l.Trace().Interface("options", options).Msg("action deluge options")
 
-		torrentHash, err := downloadClient.AddTorrentFile(ctx, release.TorrentTmpFile, encodedFile, &options)
+		torrentHash, err := downloadClient.AddTorrentFile(ctx, release.TorrentHash+".torrent", encodedFile, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentTmpFile, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent %v to client: %v", release.TorrentName, client.Name)
 		}
 
 		if action.Label != "" {
@@ -225,7 +217,7 @@ func delugeSetOrCreateTorrentLabel(ctx context.Context, plugin *deluge.LabelPlug
 	return nil
 }
 
-func (s *Service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) delugeV2(ctx context.Context, client *domain.DownloadClient, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	//downloadClient := client.Client.(*deluge.ClientV2)
@@ -286,19 +278,14 @@ func (s *Service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 
 		return nil, nil
 	} else {
-		if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
-		t, err := os.ReadFile(release.TorrentTmpFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
-		}
-
 		// encode file to base64 before sending to deluge
-		encodedFile := base64.StdEncoding.EncodeToString(t)
+		encodedFile := base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes)
 		if encodedFile == "" {
-			return nil, errors.Wrap(err, "could not encode torrent file: %s", release.TorrentTmpFile)
+			return nil, errors.New("could not encode torrent file for release: %s", release.TorrentName)
 		}
 
 		// set options
@@ -309,9 +296,9 @@ func (s *Service) delugeV2(ctx context.Context, client *domain.DownloadClient, a
 
 		l.Trace().Interface("options", options).Msg("action deluge options")
 
-		torrentHash, err := downloadClient.AddTorrentFile(ctx, release.TorrentTmpFile, encodedFile, &options)
+		torrentHash, err := downloadClient.AddTorrentFile(ctx, release.TorrentHash+".torrent", encodedFile, &options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Name)
 		}
 
 		if action.Label != "" {

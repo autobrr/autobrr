@@ -49,49 +49,49 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 		s.test(ctx)
 
 	case domain.ActionTypeExec:
-		err = s.execCmd(ctx, action, *release)
+		err = s.execCmd(ctx, action, release)
 
 	case domain.ActionTypeWatchFolder:
-		err = s.watchFolder(ctx, action, *release)
+		err = s.watchFolder(ctx, action, release)
 
 	case domain.ActionTypeWebhook:
 		err = s.webhook(ctx, action)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
-		rejections, err = s.deluge(ctx, action, *release)
+		rejections, err = s.deluge(ctx, action, release)
 
 	case domain.ActionTypeQbittorrent:
-		rejections, err = s.qbittorrent(ctx, action, *release)
+		rejections, err = s.qbittorrent(ctx, action, release)
 
 	case domain.ActionTypeRTorrent:
-		rejections, err = s.rtorrent(ctx, action, *release)
+		rejections, err = s.rtorrent(ctx, action, release)
 
 	case domain.ActionTypeTransmission:
-		rejections, err = s.transmission(ctx, action, *release)
+		rejections, err = s.transmission(ctx, action, release)
 
 	case domain.ActionTypePorla:
-		rejections, err = s.porla(ctx, action, *release)
+		rejections, err = s.porla(ctx, action, release)
 
 	case domain.ActionTypeRadarr:
-		rejections, err = s.radarr(ctx, action, *release)
+		rejections, err = s.radarr(ctx, action, release)
 
 	case domain.ActionTypeSonarr:
-		rejections, err = s.sonarr(ctx, action, *release)
+		rejections, err = s.sonarr(ctx, action, release)
 
 	case domain.ActionTypeLidarr:
-		rejections, err = s.lidarr(ctx, action, *release)
+		rejections, err = s.lidarr(ctx, action, release)
 
 	case domain.ActionTypeWhisparr:
-		rejections, err = s.whisparr(ctx, action, *release)
+		rejections, err = s.whisparr(ctx, action, release)
 
 	case domain.ActionTypeReadarr:
-		rejections, err = s.readarr(ctx, action, *release)
+		rejections, err = s.readarr(ctx, action, release)
 
 	case domain.ActionTypeSabnzbd:
-		rejections, err = s.sabnzbd(ctx, action, *release)
+		rejections, err = s.sabnzbd(ctx, action, release)
 
 	case domain.ActionTypeNzbget:
-		rejections, err = s.nzbget(ctx, action, *release)
+		rejections, err = s.nzbget(ctx, action, release)
 
 	default:
 		return nil, errors.New("unsupported action type: %s", action.Type)
@@ -144,16 +144,21 @@ func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.A
 		return errors.Wrap(err, "could not resolve magnet uri: %s", release.MagnetURI)
 	}
 
-	// parse all macros in one go
-	if action.CheckMacrosNeedTorrentTmpFile(release) {
+	// Fetch the torrent once, here, onto the shared release. The action executors
+	// take the release by value, so a download started inside one of them lands
+	// on a copy and the next action would fetch the same torrent again.
+	// Magnets carry no torrent to fetch, the clients get the URI instead.
+	if !release.HasMagnetUri() && (action.NeedsTorrentDownloaded() || action.CheckMacrosNeedRawDataBytes(release)) {
 		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			return errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 	}
 
-	if action.CheckMacrosNeedRawDataBytes(release) {
-		if err := release.OpenTorrentFile(); err != nil {
-			return errors.Wrap(err, "could not open torrent file for release: %s", release.TorrentName)
+	// the path macros hand a file to an external script or webhook, so those
+	// need the in-memory torrent written to disk first
+	if action.CheckMacrosNeedTorrentTmpFile(release) {
+		if err := release.WriteTemporaryFile(); err != nil {
+			return errors.Wrap(err, "could not write torrent file for release: %s", release.TorrentName)
 		}
 	}
 
@@ -168,14 +173,14 @@ func (s *Service) test(ctx context.Context) {
 	l.Info().Msg("test action success")
 }
 
-func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release *domain.Release) error {
 	l := zerolog.Ctx(ctx)
 
 	if release.HasMagnetUri() {
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 
-	l.Debug().Str("watch_folder", action.WatchFolder).Str("file", release.TorrentTmpFile).Msg("running Watch Folder action")
+	l.Debug().Str("watch_folder", action.WatchFolder).Str("release", release.TorrentName).Msg("running Watch Folder action")
 
 	if len(release.TorrentDataRawBytes) < 1 {
 		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
@@ -191,9 +196,11 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 
 	// if watchFolderArgs does not contain .torrent, create
 	if !strings.HasSuffix(action.WatchFolder, ".torrent") {
-		_, tmpFileName := filepath.Split(release.TorrentTmpFile)
-
-		newFileName = filepath.Join(action.WatchFolder, tmpFileName+".torrent")
+		// The torrent is no longer backed by a tmp file, so name it after the
+		// infohash. It is unique, safe to use as a file name as it stands, and
+		// set alongside the raw bytes. Anything richer belongs in a client or
+		// one of our other tools rather than in the file name.
+		newFileName = filepath.Join(action.WatchFolder, "autobrr-"+release.TorrentHash+".torrent")
 	} else {
 		dir, _ = filepath.Split(action.WatchFolder)
 	}
@@ -211,7 +218,7 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 	defer newFile.Close()
 
 	// Copy file
-	if _, err := io.Copy(newFile, bytes.NewReader(release.TorrentDataRawBytes)); err != nil {
+	if _, err := io.Copy(newFile, release.TorrentReader()); err != nil {
 		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 

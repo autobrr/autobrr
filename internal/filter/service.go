@@ -829,6 +829,14 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 				return false, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 			}
+
+			// the path macro hands a file to the script or webhook, so the
+			// in-memory torrent has to be written to disk first
+			if external.NeedTorrentTmpFile() {
+				if err := release.WriteTemporaryFile(); err != nil {
+					return false, errors.Wrap(err, "could not write torrent file for release: %s", release.TorrentName)
+				}
+			}
 		}
 
 		switch external.Type {
@@ -878,13 +886,6 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 
 func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
 	s.log.Trace().Str("release", release.TorrentName).Msg("filter exec release")
-
-	// read the file into bytes we can then use in the macro
-	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
-		if err := release.OpenTorrentFile(); err != nil {
-			return 0, errors.Wrap(err, "could not open torrent file for release: %s", release.TorrentName)
-		}
-	}
 
 	// check if program exists
 	cmd, err := exec.LookPath(external.ExecCmd)
@@ -969,13 +970,6 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	if external.WebhookHost == "" {
 		return 0, errors.New("external filter: missing host for webhook")
-	}
-
-	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
-	if len(release.TorrentDataRawBytes) == 0 && strings.Contains(external.WebhookData, "TorrentDataRawBytes") {
-		if err := release.OpenTorrentFile(); err != nil {
-			return 0, errors.Wrap(err, "could not open torrent file for release: %s", release.TorrentName)
-		}
 	}
 
 	m := domain.NewMacro(*release)

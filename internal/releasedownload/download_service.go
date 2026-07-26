@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -88,7 +87,7 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 
 	if rls.DownloadURL == "" {
 		return errors.New("download_file: url can't be empty")
-	} else if rls.TorrentTmpFile != "" {
+	} else if len(rls.TorrentDataRawBytes) != 0 {
 		// already downloaded
 		return nil
 	}
@@ -165,30 +164,8 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
-	tmpFilePattern := "autobrr-"
-	tmpDir := os.TempDir()
-
-	// Create tmp file
-	// TODO check if tmp file is wanted
-	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
-				return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
-			}
-
-			tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
-			if err != nil {
-				return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
-			}
-		} else {
-			return errors.Wrap(err, "error creating tmp file")
-		}
-	}
-	defer tmpFile.Close()
-
 	errFunc := retry.Do(
-		retryableRequest(httpClient, req, r, tmpFile),
+		retryableRequest(httpClient, req, r),
 		retry.Attempts(3),
 		retry.MaxJitter(time.Second*1),
 		//retry.Delay(time.Second*3),
@@ -209,7 +186,7 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 	return errFunc
 }
 
-func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Release, tmpFile *os.File) func() error {
+func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Release) func() error {
 	return func() error {
 		// Get the data
 		resp, err := httpClient.Do(req)
@@ -285,11 +262,6 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer.Name))
 		}
 
-		resetTmpFile := func() {
-			tmpFile.Seek(0, io.SeekStart)
-			tmpFile.Truncate(0)
-		}
-
 		// Read the body into bytes
 		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
 		if err != nil {
@@ -302,8 +274,6 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		// Try to decode as torrent file
 		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
-			resetTmpFile()
-
 			// explicitly check for unexpected content type that match html
 			var bse *bencode.SyntaxError
 			if errors.As(err, &bse) {
@@ -316,24 +286,17 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
-			resetTmpFile()
-			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", tmpFile.Name()))
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", r.TorrentName))
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
-			resetTmpFile()
 			return retry.Unrecoverable(errors.New("could not read infohash"))
 		}
 
-		// Write the body to file
-		// TODO move to io.Reader and pass around in the future
-		if _, err := tmpFile.Write(bodyBytes); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
-		}
-
-		r.TorrentTmpFile = tmpFile.Name()
+		// keep the torrent in memory, a tmp file is only written on demand
+		// for the path macros via Release.WriteTemporaryFile
+		r.TorrentDataRawBytes = bodyBytes
 		r.TorrentHash = meta.HashInfoBytes().String()
 		// A malformed torrent can carry negative file lengths; keep the
 		// announce-derived size rather than storing a wrapped uint64.

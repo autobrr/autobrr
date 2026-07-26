@@ -106,7 +106,7 @@ func Test_service_execCmd(t *testing.T) {
 				clientSvc: nil,
 				bus:       nil,
 			}
-			s.execCmd(context.TODO(), tt.args.action, tt.args.release)
+			s.execCmd(context.TODO(), tt.args.action, &tt.args.release)
 		})
 	}
 }
