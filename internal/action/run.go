@@ -196,9 +196,11 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 
 	// if watchFolderArgs does not contain .torrent, create
 	if !strings.HasSuffix(action.WatchFolder, ".torrent") {
-		// the torrent is no longer backed by a tmp file, so name it after the
-		// infohash which is unique and set alongside the raw bytes
-		newFileName = filepath.Join(action.WatchFolder, release.TorrentHash+".torrent")
+		// The torrent is no longer backed by a tmp file, so name it after the
+		// infohash. It is unique, safe to use as a file name as it stands, and
+		// set alongside the raw bytes. Anything richer belongs in a client or
+		// one of our other tools rather than in the file name.
+		newFileName = filepath.Join(action.WatchFolder, "autobrr-"+release.TorrentHash+".torrent")
 	} else {
 		dir, _ = filepath.Split(action.WatchFolder)
 	}
