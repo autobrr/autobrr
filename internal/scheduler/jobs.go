@@ -78,9 +78,10 @@ func (j *TempDirCleanupJob) Run() {
 		return
 	}
 
-	// ask the OS rather than the environment, UID is a shell variable that is
-	// not exported to child processes and USER is a name, not a numeric id
-	currentUID := os.Getuid()
+	// Ask the OS rather than the environment. UID is a shell variable that is not
+	// exported to child processes and USER is a name, not a numeric id. Compare
+	// against the effective uid since that is what files we create are owned by.
+	currentUID := os.Geteuid()
 
 	for _, file := range files {
 		if !strings.HasPrefix(file.Name(), tmpFilePattern) {
@@ -89,12 +90,27 @@ func (j *TempDirCleanupJob) Run() {
 
 		tempFile := filepath.Join(tmpDir, file.Name())
 
-		fileInfo, err := os.Stat(tempFile)
+		// Info reports on the directory entry itself. os.Stat would follow a
+		// symlink and we would end up judging the target's owner and mtime,
+		// which on a shared /tmp is another user's to control.
+		fileInfo, err := file.Info()
 		if err != nil {
+			if os.IsNotExist(err) {
+				// removed since the directory was read, nothing to do
+				continue
+			}
+
 			j.log.Error().Err(err).Str("file", tempFile).Msg("failed to get file info")
 			continue
 		}
 
+		// only ever touch regular files, a symlink or directory sharing the
+		// prefix is not ours to reason about
+		if !fileInfo.Mode().IsRegular() {
+			continue
+		}
+
+		// on a shared box other users keep their torrents in the same /tmp
 		if !isOwnedByCurrentUser(currentUID, fileInfo) {
 			continue
 		}
