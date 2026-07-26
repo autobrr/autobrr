@@ -44,7 +44,7 @@ We can start by talking about torrent trackers (hereby referred to as indexers) 
 to maintain a ratio with most indexers. Ratio is built by seeding your torrents. The earlier you're seeding a torrent,
 the more peers you make yourself available to on that torrent.
 
-Software like Radarr and Sonarr utilizes RSS to look for new torrents. RSS feeds are updated regularly, but too slow to
+Software like Radarr and Sonarr uses RSS to look for new torrents. RSS feeds are updated regularly, but too slow to
 let you be a part of what we call the initial swarm of a torrent. This is where autobrr comes into play.
 
 Many indexers announce new torrents on their IRC channels the second it is uploaded to the site. autobrr monitors such
@@ -54,16 +54,16 @@ an action set within the filter. A download client can be anything from qBittorr
 a watch folder.
 
 When your autobrr filter is set to send the torrent files to Radarr and Sonarr, they will decide if it's something they
-want, and then forward it to the torrent client they are set up with.
+ want and then forward it to the torrent client they are set up with.
 
 autobrr can also send matches (torrent files that meets your filter's criteria) directly to torrent clients like
-qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *arr suite to make use of autobrr.
+qBittorrent, Deluge, r(u)Torrent, and Transmission. You don't need to use the *arr suite to make use of autobrr.
 
 ## Key Features
 
 - Torrents and Usenet support
 - Support for 75+ torrent trackers with IRC announces
-- Newznab, Torznab and RSS support to easily get access to hundreds of torrent and Usenet indexers
+- Newznab, Torznab, and RSS support to easily get access to hundreds of torrent and Usenet indexers
 - Torrent Magnet support
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
 - Easy to use and mobile friendly web UI (with dark mode!) to manage everything
@@ -73,7 +73,7 @@ qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *ar
 - Database engine supporting both PostgreSQL and SQLite
 - Authentication support including built-in auth and OpenID Connect (OIDC)
 - Notifications (Discord, Telegram, Notifiarr, Pushover, Gotify)
-- One autobrr instance can communicate with multiple clients (torrent, Usenet and \*arr) on remote servers
+- One autobrr instance can communicate with multiple clients (torrent, Usenet, and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
 
 ### Available Download Clients and Actions
@@ -92,10 +92,10 @@ qBittorrent, Deluge, r(u)Torrent and Transmission. You don't need to use the *ar
 ### RSS and Usenet Support
 
 A lot of indexers do not announce new torrents in an IRC channel. You can still make use of these indexers with autobrr
-since it has built in support for feeds as well. Both Torznab, Newznab and regular RSS is supported. RSS indexers are treated the same way as regular indexers within autobrr.
+since it has built-in support for feeds as well. Both Torznab, Newznab, and regular RSS is supported. RSS indexers are treated the same way as regular indexers within autobrr.
 
-Usenet support via Newznab feeds allows you to easily manage everything in a single application. While there is a lot of
-applications that handles RSS well, we think autobrr offers very easy to use filtering to help you get the content you
+Usenet support via Newznab feeds allows you to easily manage everything in a single application. While there are a lot of
+applications that handle RSS well, we think autobrr offers very easy-to-use filtering to help you get the content you
 want.
 
 You can use Usenet feeds and send to arrs or send directly to SABnzbd.
@@ -144,18 +144,13 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 - Seedit4.me
 - SeedHost.eu
 - Ultra.cc
+- Whatbox.ca - has built-in integration with their apps, have to enable their "Expert" mode for external connections
 
 ##### Installation Scripts
 
 We have support for a couple of other providers out of the box.  
-Please contact us on [Discord](https://discord.gg/WQ2eUycxyT) if your provider is missing.
+Please contact us on [Discord](https://discord.autobrr.com) if your provider is missing.
 The scripts require some input, but do most of the work.
-
-#### WhatBox
-
-```bash
-wget https://gobrr.sh/install_whatbox && bash install_whatbox
-```
 
 #### Feralhosting
 
@@ -172,7 +167,7 @@ wget https://gobrr.sh/install_bytesized && bash install_bytesized
 #### Other providers
 
 For other providers the Seedbox.io installer should work. If not, open an issue or contact us
-on [Discord](https://discord.gg/WQ2eUycxyT)
+on [Discord](https://discord.autobrr.com)
 
 ```bash
 wget https://gobrr.sh/install_sbio && bash install_sbio
@@ -185,7 +180,7 @@ Modify accordingly if running with unRAID or setting up with Portainer.
 - Logging is optional
 - Host port mapping might need to be changed to not collide with other apps
 - Change `BASE_DOCKER_DATA_PATH` to match your setup. Can be simply `./data`
-- Set custom network if needed
+- Set a custom network if needed
 
 Create `docker-compose.yml` and add the following. If you have an existing setup change to fit that.
 
@@ -221,7 +216,7 @@ docker compose up -d
 >
 > Use the standard image if you rely on this functionality.
 
-For users who prioritize container security, one of the longterm maintainers offer alternative Docker images built on [Distroless](https://github.com/GoogleContainerTools/distroless). Specifically the `distroless/static-debian12:nonroot` base image.
+For users who prioritize container security, one of the long-term maintainers offers alternative Docker images built on [Distroless](https://github.com/GoogleContainerTools/distroless). Specifically the `distroless/static-debian12:nonroot` base image.
 
 Distroless images do not contain a package manager or shell, thereby reducing the potential attack surface and making them a more secure option. These stripped-back images contain only the application and its runtime dependencies.
 
@@ -302,7 +297,7 @@ WantedBy=multi-user.target
 Start the service. Enable will make it startup on reboot.
 
 ```bash
-systemctl enable -q --now --user autobrr@$USER
+systemctl enable --now autobrr@$USER.service
 ```
 
 By default, the configuration is set to listen on `127.0.0.1`. While autobrr works fine as is exposed to the internet,
@@ -316,35 +311,94 @@ If you are not running a reverse proxy change `host` in the `config.toml` to `0.
 
 The following environment variables can be used:
 
-| Variable                         | Description                          | Default                                  |
-| -------------------------------- | ------------------------------------ | ---------------------------------------- |
-| `AUTOBRR__HOST`                  | Listen address                       | `127.0.0.1`                              |
-| `AUTOBRR__PORT`                  | Listen port                          | `7474`                                   |
-| `AUTOBRR__BASE_URL`              | Base URL for reverse proxy           | `/`                                      |
-| `AUTOBRR__LOG_LEVEL`             | Log level (DEBUG, INFO, WARN, ERROR) | `INFO`                                   |
-| `AUTOBRR__LOG_PATH`              | Log file location                    | `/config/logs`                           |
-| `AUTOBRR__LOG_MAX_SIZE`          | Max size in MB before rotation       | `10`                                     |
-| `AUTOBRR__LOG_MAX_BACKUPS`       | Number of rotated logs to keep       | `5`                                      |
-| `AUTOBRR__SESSION_SECRET`        | Random string for session encryption | -                                        |
-| `AUTOBRR__CUSTOM_DEFINITIONS`    | Path to custom indexer definitions   | -                                        |
-| `AUTOBRR__CHECK_FOR_UPDATES`     | Enable update checks                 | `true`                                   |
-| `AUTOBRR__DATABASE_TYPE`         | Database type (sqlite/postgres)      | `sqlite`                                 |
-| `AUTOBRR__POSTGRES_HOST`         | PostgreSQL host                      | -                                        |
-| `AUTOBRR__POSTGRES_PORT`         | PostgreSQL port                      | `5432`                                   |
-| `AUTOBRR__POSTGRES_DATABASE`     | PostgreSQL database name             | -                                        |
-| `AUTOBRR__POSTGRES_USER`         | PostgreSQL username                  | -                                        |
-| `AUTOBRR__POSTGRES_PASS`         | PostgreSQL password                  | -                                        |
-| `AUTOBRR__POSTGRES_SSLMODE`      | PostgreSQL SSL mode                  | `disable`                                |
-| `AUTOBRR__POSTGRES_EXTRA_PARAMS` | Additional PostgreSQL parameters     | -                                        |
-| `AUTOBRR__OIDC_ENABLED`          | Enable OpenID Connect authentication | `false`                                  |
-| `AUTOBRR__OIDC_ISSUER`           | OIDC issuer URL                      | -                                        |
-| `AUTOBRR__OIDC_CLIENT_ID`        | OIDC client ID                       | -                                        |
-| `AUTOBRR__OIDC_CLIENT_SECRET`    | OIDC client secret                   | -                                        |
-| `AUTOBRR__OIDC_REDIRECT_URL`     | OIDC callback URL                    | `https://baseurl/api/auth/oidc/callback` |
+| Variable                               | Description                                              | Default     |
+|----------------------------------------|----------------------------------------------------------|-------------|
+| `AUTOBRR__HOST`                        | Listen address                                           | `127.0.0.1` |
+| `AUTOBRR__PORT`                        | Listen port                                              | `7474`      |
+| `AUTOBRR__BASE_URL`                    | Base URL for reverse proxy                               | `/`         |
+| `AUTOBRR__BASE_URL_MODE_LEGACY`        | Base URL Mode Legacy for old proxy setups                | `true`      |
+| `AUTOBRR__LOG_LEVEL`                   | Log level (DEBUG, INFO, WARN, ERROR)                     | `INFO`      |
+| `AUTOBRR__LOG_PATH`                    | Log file location                                        | -           |
+| `AUTOBRR__LOG_MAX_SIZE`                | Max size in MB before rotation                           | `10`        |
+| `AUTOBRR__LOG_MAX_BACKUPS`             | Number of rotated logs to keep                           | `5`         |
+| `AUTOBRR__CUSTOM_DEFINITIONS`          | Path to custom indexer definitions                       | -           |
+| `AUTOBRR__CHECK_FOR_UPDATES`           | Enable update checks                                     | `true`      |
+| `AUTOBRR__DATABASE_TYPE`               | Database type (sqlite/postgres)                          | `sqlite`    |
+| `AUTOBRR__DATABASE_MAX_BACKUPS`        | Number of backups to keep                                | `5`         |
+| `AUTOBRR__DATABASE_DSN`                | Database connection string. Use this or individual vars  | -           |
+| `AUTOBRR__POSTGRES_HOST`               | PostgreSQL host                                          | -           |
+| `AUTOBRR__POSTGRES_PORT`               | PostgreSQL port                                          | `5432`      |
+| `AUTOBRR__POSTGRES_DATABASE`           | PostgreSQL database name                                 | -           |
+| `AUTOBRR__POSTGRES_DB`                 | PostgreSQL database name                                 | -           |
+| `AUTOBRR__POSTGRES_USER`               | PostgreSQL username                                      | -           |
+| `AUTOBRR__POSTGRES_PASS`               | PostgreSQL password                                      | -           |
+| `AUTOBRR__POSTGRES_PASSWORD`           | PostgreSQL password                                      | -           |
+| `AUTOBRR__POSTGRES_SSLMODE`            | PostgreSQL SSL mode                                      | `disable`   |
+| `AUTOBRR__POSTGRES_SOCKET`             | PostgreSQL unix socket                                   | -           |
+| `AUTOBRR__POSTGRES_EXTRA_PARAMS`       | Additional PostgreSQL parameters                         | -           |
+| `AUTOBRR__OIDC_ENABLED`                | Enable OpenID Connect authentication                     | `false`     |
+| `AUTOBRR__OIDC_ISSUER`                 | OIDC issuer URL                                          | -           |
+| `AUTOBRR__OIDC_CLIENT_ID`              | OIDC client ID                                           | -           |
+| `AUTOBRR__OIDC_CLIENT_SECRET`          | OIDC client secret                                       | -           |
+| `AUTOBRR__OIDC_REDIRECT_URL`           | OIDC callback URL                                        | -           |
+| `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` | Disable login form (only works when using external auth) | `false`     |
+| `AUTOBRR__METRICS_ENABLED`             | Enable Metrics server                                    | `false`     |
+| `AUTOBRR__METRICS_HOST`                | Metrics listen address                                   | `127.0.0.1` |
+| `AUTOBRR__METRICS_PORT`                | Metrics listen port                                      | `9074`      |
+| `AUTOBRR__METRICS_BASIC_AUTH_USERS`    | Metrics basic auth users                                 | -           |
+| `AUTOBRR__PROFILING_ENABLED`           | Enable profiling                                         | `false`     |
+| `AUTOBRR__PROFILING_HOST`              | Profiling listen address                                 | `127.0.0.1` |
+| `AUTOBRR__PROFILING_PORT`              | Profiling listen port                                    | `6060`      |
+
+#### Docker secrets
+
+All ENV vars have a `_FILE` option where it can read contents from a file, such as docker secrets. See the example below:
+
+```yaml
+services:
+  autobrr:
+    image: ghcr.io/autobrr/autobrr:latest
+    container_name: autobrr
+    volumes:
+      - ./config:/config
+    ports:
+      - "7474:7474"
+    restart: unless-stopped
+    environment:
+      - AUTOBRR__DATABASE_TYPE=postgres
+      - AUTOBRR__POSTGRES_HOST=postgres
+      - AUTOBRR__POSTGRES_PORT=5432
+      - AUTOBRR__POSTGRES_USER=autobrr
+      - AUTOBRR__POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - AUTOBRR__POSTGRES_DB=autobrr
+    secrets:
+      - db_password
+
+  postgres:
+    image: postgres:12.10
+    container_name: postgres
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=autobrr
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - POSTGRES_DB=autobrr
+    secrets:
+      - db_password
+
+secrets:
+  db_password:
+    file: db_password.txt
+
+volumes:
+  postgres:
+```
 
 ## Community
 
-Join our friendly and welcoming community on [Discord](https://discord.gg/WQ2eUycxyT)! Connect with fellow autobrr users, get advice, and share your experiences. Whether you're seeking help, wanting to contribute, or just looking to discuss your ideas, our community is a hub of discussion and support. We're all here to help each other out, so don't hesitate to jump in!
+Join our friendly and welcoming community on [Discord](https://discord.autobrr.com)! Connect with fellow autobrr users, get advice, and share your experiences. Whether you're seeking help, wanting to contribute, or just looking to discuss your ideas, our community is a hub of discussion and support. We're all here to help each other out, so don't hesitate to jump in!
 
 ## Contributing
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package logger
@@ -23,6 +23,10 @@ var (
 			repl:    "${1}REDACTED${3}",
 		},
 		{
+			pattern: regexp.MustCompile(`(\\"torrentData\\":\s?\\")(.+?)(\\"|")`),
+			repl:    "${1}REDACTED${3}",
+		},
+		{
 			pattern: regexp.MustCompile(`(torrent_pass|passkey|authkey|auth|secret_key|api|apikey)=([a-zA-Z0-9]+)`),
 			repl:    "${1}=REDACTED",
 		},
@@ -35,7 +39,16 @@ var (
 			repl:    "${1}REDACTED_USER:REDACTED_PW@",
 		},
 		{
-			pattern: regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
+			// The IRC client logs the raw line, where the whole command is one
+			// trailing parameter: "PRIVMSG NickServ :IDENTIFY [account] <password>".
+			// Both argument forms have to be covered, and the optional account is
+			// redacted along with the password rather than being spliced back in.
+			// A token runs to whitespace or to an unescaped quote; a backslash is
+			// consumed together with the character it escapes, so a credential
+			// containing one is not split with its tail left behind. Backslash is
+			// legal in an IRC nick and in a password, and JSON-encoded log lines
+			// escape both it and any embedded quote.
+			pattern: regexp.MustCompile(`(NickServ :?IDENTIFY )(?:\\.|[^\s"\\])+(?:\s+(?:\\.|[^\s"\\])+)?`),
 			repl:    "${1}REDACTED",
 		},
 		{
@@ -85,7 +98,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		if err != nil {
 			if err != io.EOF {
-				log.Error().Msgf("Error reading line from input file: %v", err)
+				log.Error().Err(err).Msg("error reading line from input file")
 			}
 			break
 		}
@@ -98,9 +111,9 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 			strings.Contains(line, `"module":"action"`)
 
 		for i := 0; i < len(regexReplacements); i++ {
-			// Apply the first three patterns only if the line contains "module":"feed",
+			// Apply the first patterns only if the line contains "module":"feed",
 			// "module":"filter", "repo":"release", or "module":"action"
-			if i < 4 {
+			if i < 5 {
 				if bFilter {
 					line = regexReplacements[i].pattern.ReplaceAllString(line, regexReplacements[i].repl)
 				}
@@ -112,7 +125,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		// Write the sanitized line to the writer
 		if _, err = writer.WriteString(line); err != nil {
-			log.Error().Msgf("Error writing line to output: %v", err)
+			log.Error().Err(err).Msg("error writing line to output")
 			return err
 		}
 	}

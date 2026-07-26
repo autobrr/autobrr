@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: enthralled
 name: Enthralled
 identifier: enthralled
@@ -30,10 +31,6 @@ irc:
   server: irc.digitalirc.org
   port: 6697
   tls: true
-  channels:
-    - "#enthralled-announce"
-  announcers:
-    - TheGimp
   settings:
     - name: nick
       type: text
@@ -53,27 +50,24 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'Some release - Size: 559.06 MiB - Uploader: anon - Tags: worship,other - https://www.enthralled.me/torrents.php?torrentid=0000'
-          expect:
-            torrentName: Some release
-            torrentSize: 559.06 MiB
-            uploader: anon
-            tags: worship,other
-            baseUrl: https://www.enthralled.me/
-            torrentId: "0000"
-        pattern: '(.*) - Size: (.+) - Uploader: (.+) - Tags: (.*?) - (https://.+\/)torrents.php\?torrentid=(\d+)'
-        vars:
-          - torrentName
-          - torrentSize
-          - uploader
-          - tags
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#enthralled-announce"
+      announcers:
+        - TheGimp
+      parse:
+        type: single
+        lines:
+          - pattern: '(?P<releaseName>.*) - Size: (?P<torrentSize>.+) - Uploader: (?P<uploader>.+) - Tags: (?P<tags>.*?) - (?P<baseUrl>https://.+\/)torrents.php\?torrentid=(?P<torrentId>\d+)'
+            tests:
+              - line: 'Some release - Size: 559.06 MiB - Uploader: anon - Tags: worship,other - https://www.enthralled.me/torrents.php?torrentid=0000'
+                expect:
+                  releaseName: Some release
+                  torrentSize: 559.06 MiB
+                  uploader: anon
+                  tags: worship,other
+                  baseUrl: https://www.enthralled.me/
+                  torrentId: "0000"
 
-    match:
-      infourl: "/torrents.php?id={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+        match:
+          infourl: "/torrents.php?id={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -30,14 +30,15 @@ func getMockIrcChannel() domain.IrcChannel {
 func getMockIrcNetwork() domain.IrcNetwork {
 	connectedSince := time.Now().Add(-time.Hour) // Example time 1 hour ago
 	return domain.IrcNetwork{
-		ID:      0,
-		Name:    "Freenode",
-		Enabled: true,
-		Server:  "irc.freenode.net",
-		Port:    6667,
-		TLS:     true,
-		Pass:    "serverpass",
-		Nick:    "nickname",
+		ID:            0,
+		Name:          "Freenode",
+		Enabled:       true,
+		Server:        "irc.freenode.net",
+		Port:          6667,
+		TLS:           true,
+		TLSSkipVerify: true,
+		Pass:          "serverpass",
+		Nick:          "nickname",
 		Auth: domain.IRCAuth{
 			Mechanism: domain.IRCAuthMechanismSASLPlain,
 			Account:   "useraccount",

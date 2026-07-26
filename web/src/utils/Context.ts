@@ -1,18 +1,31 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import type { StateWithValue } from "react-ridge-state";
 import { newRidgeState } from "react-ridge-state";
+import { getInitialLanguage } from "@app/i18n";
+
+export type Theme = "light" | "dark" | "system";
+export type Language = "en" | "fr" | "de" | "cs" | "no" | "ru" | "es" | "zh-CN";
 
 interface SettingsType {
   debug: boolean;
-  darkTheme: boolean;
+  theme: Theme;
+  language: Language;
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
   hideWrappedText: boolean;
+  incognitoMode: boolean;
 }
+
+export const isDarkTheme = (theme: Theme): boolean => {
+  if (theme === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  return theme === "dark";
+};
 
 export type FilterListState = {
   indexerFilter: string[];
@@ -24,21 +37,27 @@ export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
   authMethod?: 'password' | 'oidc';
+  profilePicture?: string;
+  issuerUrl?: string;
 }
 
 // Default values
 const AuthContextDefaults: AuthInfo = {
   username: "",
   isLoggedIn: false,
-  authMethod: undefined
+  authMethod: undefined,
+  profilePicture: undefined,
+  issuerUrl: undefined
 };
 
 const SettingsContextDefaults: SettingsType = {
   debug: false,
-  darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
+  theme: "system",
+  language: getInitialLanguage(),
   scrollOnNewLog: false,
   indentLogLines: false,
-  hideWrappedText: false
+  hideWrappedText: false,
+  incognitoMode: false
 };
 
 const FilterListContextDefaults: FilterListState = {
@@ -77,6 +96,21 @@ const SettingsKey = "autobrr_settings";
 const FilterListKey = "autobrr_filter_list";
 
 export const InitializeGlobalContext = () => {
+  // Migrate old darkTheme boolean to new theme setting
+  const storage = localStorage.getItem(SettingsKey);
+  if (storage) {
+    try {
+      const json = JSON.parse(storage);
+      if (json && "darkTheme" in json && !("theme" in json)) {
+        json.theme = json.darkTheme ? "dark" : "light";
+        delete json.darkTheme;
+        localStorage.setItem(SettingsKey, JSON.stringify(json));
+      }
+    } catch {
+      // ignore migration errors
+    }
+  }
+
   ContextMerger<AuthInfo>(AuthKey, AuthContextDefaults, AuthContext);
   ContextMerger<SettingsType>(
     SettingsKey,
@@ -113,9 +147,10 @@ export const SettingsContext = newRidgeState<SettingsType>(
   SettingsContextDefaults,
   {
     onSet: (newState, prevState) => {
-      document.documentElement.classList.toggle("dark", newState.darkTheme);
+      const dark = isDarkTheme(newState.theme);
+      document.documentElement.classList.toggle("dark", dark);
       DefaultSetter(SettingsKey, newState, prevState);
-      updateMetaThemeColor(newState.darkTheme);
+      updateMetaThemeColor(dark);
     }
   }
 );

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -76,7 +76,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 		{
 			name: "movie_parse_2",
 			fields: &Release{
-				TorrentName: "That Movie 2020 2160p Blu-Ray DD5.1 x264-GROUP1",
+				TorrentName: "That Movie 2025 2160p Blu-Ray DD5.1 x264-GROUP1",
 				Category:    "Movies",
 				Freeleech:   true,
 				Size:        uint64(30000000001),
@@ -91,7 +91,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Resolutions:        []string{"2160p"},
 					Sources:            []string{"BluRay"},
 					Codecs:             []string{"x264"},
-					Years:              "2020",
+					Years:              "1800-1980,2020-2025",
 					MatchReleaseGroups: "GROUP1",
 				},
 				rejectionReasons: &RejectionReasons{data: []Rejection{}},
@@ -976,7 +976,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					ExceptHDR:          []string{"DV", "HDR", "DoVi"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR", "DoVi"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: "DV", want: []string{"DV", "HDR", "DoVi"}}}},
 			},
 			want: false,
 		},
@@ -998,7 +998,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					ExceptReleases:     "NORDiC",
 					MatchHDR:           []string{"DV", "HDR", "DoVi"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string(nil), want: []string{"DV", "HDR", "DoVi"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "", want: []string{"DV", "HDR", "DoVi"}}}},
 			},
 			want: false,
 		},
@@ -1114,7 +1114,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:  true,
 					MatchHDR: []string{"DV HDR"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"DV", "HDR10"}, want: []string{"DV HDR"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV HDR10", want: []string{"DV HDR"}}}},
 			},
 			want: false,
 		},
@@ -1128,7 +1128,71 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Enabled:  true,
 					MatchHDR: []string{"DV", "HDR"},
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"HDR10"}, want: []string{"DV", "HDR"}}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "HDR10", want: []string{"DV", "HDR"}}}},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_12",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:   true,
+					ExceptHDR: []string{"DV"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			},
+			want: true,
+		},
+		{
+			name: "match_hdr_13",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:   true,
+					ExceptHDR: []string{"DV HDR"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: "DV HDR", want: []string{"DV HDR"}}}},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_14",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HDR HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV HDR", want: []string{"DV"}}}},
+			},
+			want: false,
+		},
+		{
+			name: "match_hdr_15",
+			fields: &Release{
+				TorrentName: "Good show shift S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+			},
+			args: args{
+				filter: Filter{
+					Enabled:  true,
+					MatchHDR: []string{"DV HDR"},
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV", want: []string{"DV HDR"}}}},
 			},
 			want: false,
 		},
@@ -1169,7 +1233,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"320", "MP3"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: "SINGLE MP3 320 (log: false, score: 0)", want: "wanted Format FLAC, got MP3, wanted Bitrate Lossless / 24bit Lossless, got 320, wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got SINGLE"}}},
 			},
 			want: false,
 		},
@@ -1187,9 +1251,9 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"FLAC", "Lossless", "Log100", "Log"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "match_music_4",
@@ -1498,7 +1562,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MatchHDR:           []string{"HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: []string{"DV"}, want: []string{"HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "match hdr", got: "DV", want: []string{"HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1513,7 +1577,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:          []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1528,7 +1592,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:          []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1543,7 +1607,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:           []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -1558,7 +1622,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				ExceptHDR:           []string{"DV", "HDR"},
 			},
 			args:             args{&Release{TorrentName: "WeCrashed.S01.DV.2160p.ATVP.WEB.DDPA5.1.x265-NOSiViD"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "source", got: "WEB", want: []string{"WEB-DL"}}, {key: "except hdr", got: []string{"DV"}, want: []string{"DV", "HDR"}}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "shows", got: "WeCrashed", want: "WeWork"}, {key: "except release groups", got: "NOSiViD", want: "NOSiViD"}, {key: "source", got: "WEB", want: []string{"WEB-DL"}}, {key: "except hdr", got: "DV", want: []string{"DV", "HDR"}}}},
 			wantMatch:        false,
 		},
 		{
@@ -2374,6 +2438,98 @@ func Test_containsFuzzy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, containsFuzzy(tt.args.tag, tt.args.filter), "containsFuzzy(%v, %v)", tt.args.tag, tt.args.filter)
+		})
+	}
+}
+
+func TestFilter_IsPerfectFLAC(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		release        *Release
+		wantRejections []string
+		wantOk         bool
+	}{
+		{
+			name:    "cd_log_100_lossless",
+			release: &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: true, LogScore: 100},
+			wantOk:  true,
+		},
+		{
+			name:    "cd_log_100_24bit_lossless",
+			release: &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "24bit Lossless", HasLog: true, LogScore: 100},
+			wantOk:  true,
+		},
+		{
+			name:           "cd_missing_log",
+			release:        &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: false, LogScore: 0},
+			wantRejections: []string{"wanted Log, got false", "wanted Log Score 100, got 0"},
+			wantOk:         false,
+		},
+		{
+			name:           "cd_log_score_99",
+			release:        &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: true, LogScore: 99},
+			wantRejections: []string{"wanted Log Score 100, got 99"},
+			wantOk:         false,
+		},
+		{
+			name:    "web_lossless",
+			release: &Release{Source: "WEB", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "vinyl_24bit_lossless",
+			release: &Release{Source: "Vinyl", AudioFormat: "FLAC", Bitrate: "24bit Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "sacd_lossless",
+			release: &Release{Source: "SACD", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "blu_ray_lossless",
+			release: &Release{Source: "Blu-Ray", AudioFormat: "FLAC", Bitrate: "24bit Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "dat_lossless",
+			release: &Release{Source: "DAT", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:           "web_mp3_320",
+			release:        &Release{Source: "WEB", AudioFormat: "MP3", Bitrate: "320"},
+			wantRejections: []string{"wanted Format FLAC, got MP3", "wanted Bitrate Lossless / 24bit Lossless, got 320"},
+			wantOk:         false,
+		},
+		{
+			name:           "unknown_source",
+			release:        &Release{Source: "Unknown", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantRejections: []string{"wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got Unknown"},
+			wantOk:         false,
+		},
+		{
+			name:    "empty_release",
+			release: &Release{},
+			wantRejections: []string{
+				"wanted Format FLAC, got ",
+				"wanted Bitrate Lossless / 24bit Lossless, got ",
+				"wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got ",
+			},
+			wantOk: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := Filter{}
+			rejections, ok := f.IsPerfectFLAC(tt.release)
+			assert.Equal(t, tt.wantOk, ok)
+			if tt.wantRejections == nil {
+				assert.Empty(t, rejections)
+			} else {
+				assert.Equal(t, tt.wantRejections, rejections)
+			}
 		})
 	}
 }

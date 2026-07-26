@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -13,8 +13,11 @@ interface Feed {
   interval: number;
   timeout: number;
   max_age: number;
+  categories: number[];
+  capabilities: FeedCaps | null;
   api_key: string;
   cookie: string;
+  tls_skip_verify: boolean;
   last_run: string;
   last_run_data: string;
   next_run: string;
@@ -28,7 +31,7 @@ interface FeedSettings {
   // download_type: string;
 }
 
-type FeedDownloadType = "MAGNET" | "TORRENT";
+type FeedDownloadType = "MAGNET" | "TORRENT" | "NZB";
 
 type FeedType = "TORZNAB" | "NEWZNAB" | "RSS";
 
@@ -40,6 +43,32 @@ interface FeedCreate {
   interval: number;
   timeout: number;
   api_key?: string;
+  tls_skip_verify?: boolean;
   indexer_id: number;
+  categories?: number[];
+  capabilities?: FeedCaps | null;
   settings: FeedSettings;
+}
+
+interface FeedCapsLimits {
+  max: string;
+  default: string;
+}
+
+interface FeedCapsCategory {
+  id: number;
+  name: string;
+  subcategories: FeedCapsCategory[] | null;
+}
+
+interface FeedCaps {
+  limits: FeedCapsLimits;
+  categories: FeedCapsCategory[];
+}
+
+interface FeedCapsRequest {
+  type: FeedType;
+  url: string;
+  api_key?: string;
+  timeout?: number;
 }

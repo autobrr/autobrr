@@ -1,0 +1,180 @@
+{
+    "announceType": {
+      "NEW": "Nový",
+      "CHECKED": "Zkontrolován",
+      "PROMO": "Promo",
+      "PROMO_GP": "Promo GP",
+      "RESURRECTED": "Vzkříšený"
+    },
+    "downloadClient": {
+      "QBITTORRENT": {
+        "label": "qBittorrent",
+        "description": "Přidat torrenty přímo do qBittorrentu"
+      },
+      "DELUGE_V1": {
+        "label": "Deluge",
+        "description": "Přidat torrenty přímo do Deluge"
+      },
+      "DELUGE_V2": {
+        "label": "Deluge 2",
+        "description": "Přidat torrenty přímo do Deluge 2"
+      },
+      "RTORRENT": {
+        "label": "rTorrent",
+        "description": "Přidat torrenty přímo do rTorrentu"
+      },
+      "TRANSMISSION": {
+        "label": "Transmission",
+        "description": "Přidat torrenty přímo do Transmission"
+      },
+      "PORLA": {
+        "label": "Porla",
+        "description": "Přidat torrenty přímo do Porla"
+      },
+      "RADARR": {
+        "label": "Radarr",
+        "description": "Odeslat do Radarr a nechat ho rozhodnout"
+      },
+      "SONARR": {
+        "label": "Sonarr",
+        "description": "Odeslat do Sonarr a nechat ho rozhodnout"
+      },
+      "LIDARR": {
+        "label": "Lidarr",
+        "description": "Odeslat do Lidarr a nechat ho rozhodnout"
+      },
+      "WHISPARR": {
+        "label": "Whisparr",
+        "description": "Odeslat do Whisparr a nechat ho rozhodnout"
+      },
+      "READARR": {
+        "label": "Readarr",
+        "description": "Odeslat do Readarr a nechat ho rozhodnout"
+      },
+      "SABNZBD": {
+        "label": "SABnzbd",
+        "description": "Přidat nzbs přímo do SABnzbd"
+      },
+      "NZBGET": {
+        "label": "NZBGet",
+        "description": "Přidat nzbs přímo do NZBGet"
+      }
+    },
+    "actionType": {
+      "TEST": {
+        "label": "Test",
+        "description": "Jednoduchá akce pro testování filtru."
+      },
+      "WATCH_FOLDER": {
+        "label": "Sledovaný adresář",
+        "description": "Přidat filtrováné torrenty do sledovaného adresáře"
+      },
+      "WEBHOOK": {
+        "label": "Webhook",
+        "description": "Spustit webhook"
+      },
+      "EXEC": {
+        "label": "Příkaz",
+        "description": "Spustit vlastní příkaz po shodě filtru"
+      },
+      "QBITTORRENT": {
+        "label": "qBittorrent",
+        "description": "Přidat torrenty přímo do qBittorrent"
+      },
+      "DELUGE_V1": {
+        "label": "Deluge",
+        "description": "Přidat torrenty přímo do Deluge"
+      },
+      "DELUGE_V2": {
+        "label": "Deluge v2",
+        "description": "Přidat torrenty přímo do Deluge 2"
+      },
+      "RTORRENT": {
+        "label": "rTorrent",
+        "description": "Přidat torrenty přímo do rTorrent"
+      },
+      "TRANSMISSION": {
+        "label": "Transmission",
+        "description": "Přidat torrenty přímo do Transmission"
+      },
+      "PORLA": {
+        "label": "Porla",
+        "description": "Přidat torrenty přímo do Porla"
+      },
+      "RADARR": {
+        "label": "Radarr",
+        "description": "Odeslat do Radarr a nechat ho rozhodnout"
+      },
+      "SONARR": {
+        "label": "Sonarr",
+        "description": "Odeslat do Sonarr a nechat ho rozhodnout"
+      },
+      "LIDARR": {
+        "label": "Lidarr",
+        "description": "Odeslat do Lidarr a nechat ho rozhodnout"
+      },
+      "WHISPARR": {
+        "label": "Whisparr",
+        "description": "Odeslat do Whisparr a nechat ho rozhodnout"
+      },
+      "READARR": {
+        "label": "Readarr",
+        "description": "Odeslat do Readarr a nechat ho rozhodnout"
+      },
+      "SABNZBD": {
+        "label": "SABnzbd",
+        "description": "Přidat do SABnzbd"
+      },
+      "NZBGET": {
+        "label": "NZBGet",
+        "description": "Přidat do NZBGet"
+      }
+    },
+    "pushStatus": {
+      "PUSH_REJECTED": "Odmítnuto",
+      "PUSH_APPROVED": "Schváleno",
+      "PENDING": "Čeká na vyřízení",
+      "PUSH_ERROR": "Chyba"
+    },
+    "notificationType": {
+      "DISCORD": "Discord",
+      "GOTIFY": "Gotify",
+      "LUNASEA": "LunaSea",
+      "NOTIFIARR": "Notifiarr",
+      "NTFY": "Ntfy",
+      "PUSHOVER": "Pushover",
+      "SHOUTRRR": "Shoutrrr",
+      "TELEGRAM": "Telegram",
+      "WEBHOOK": "Webhook"
+    },
+    "event": {
+      "PUSH_REJECTED": {
+        "label": "Odmítnutý push",
+        "description": "Při odmítnutém push pro arrs nebo stahovací klienty"
+      },
+      "PUSH_APPROVED": {
+        "label": "Schválený push",
+        "description": "Při schváleném push pro arrs nebo stahovací klienty"
+      },
+      "PUSH_ERROR": {
+        "label": "Chybný push",
+        "description": "Při chybném push pro arrs nebo stahovací klienty"
+      },
+      "IRC_DISCONNECTED": {
+        "label": "IRC Odpojeno",
+        "description": "Neočekávaně odpojeno od irc sítě"
+      },
+      "IRC_RECONNECTED": {
+        "label": "IRC Znovu Připojeno",
+        "description": "Znovu připojeno k irc síti po chybě"
+      },
+      "APP_UPDATE_AVAILABLE": {
+        "label": "Nová aktualizace",
+        "description": "Obdržet notifikace o aktualizacích"
+      },
+      "RELEASE_NEW": {
+        "label": "Nový Release",
+        "description": "Při novém release z indexeru (před filtrováním)"
+      }
+    }
+  }

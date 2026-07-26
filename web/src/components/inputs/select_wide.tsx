@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -8,6 +8,7 @@ import { Field } from "formik";
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import type { FieldProps } from "formik";
+import { useTranslation } from "react-i18next";
 
 import { OptionBasicTyped } from "@domain/constants";
 import * as common from "@components/inputs/common";
@@ -27,6 +28,7 @@ interface SelectFieldProps<T> {
 }
 
 export function SelectFieldCreatable<T>({ name, label, help, placeholder, tooltip, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -60,7 +62,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -78,12 +80,8 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
               value={field?.value ? { value: field.value, label: field.value  } : field.value}
               onChange={(newValue: unknown) => {
-                if (newValue) {
-                  setFieldValue(field.name, (newValue as { value: string }).value);
-                }
-                else {
-                  setFieldValue(field.name, "")
-                }
+                const option = newValue as { value: string };
+                setFieldValue(field.name, option?.value ?? "");
               }}
               options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
@@ -98,6 +96,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
 }
 
 export function SelectField<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -125,7 +124,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -143,12 +142,8 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
               // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
               value={field?.value ? { value: field.value, label: field.value  } : field.value}
               onChange={(newValue: unknown) => {
-                if (newValue) {
-                  setFieldValue(field.name, (newValue as { value: string }).value);
-                }
-                else {
-                  setFieldValue(field.name, "")
-                }
+                const option = newValue as { value: string };
+                setFieldValue(field.name, option?.value ?? "");
               }}
               options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
@@ -163,6 +158,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
 }
 
 export function SelectFieldBasic<T>({ name, label, help, placeholder, required, tooltip, defaultValue, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -195,7 +191,7 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -213,12 +209,8 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
               defaultValue={defaultValue}
               value={field?.value && options.find(o => o.value == field?.value)}
               onChange={(newValue: unknown) => {
-                if (newValue) {
-                  setFieldValue(field.name, (newValue as { value: string }).value);
-                }
-                else {
-                  setFieldValue(field.name, "")
-                }
+                const option = newValue as { value: string };
+                setFieldValue(field.name, option?.value ?? "");
               }}
               options={options}
             />
@@ -247,7 +239,7 @@ interface ListFilterMultiSelectOption {
   name: string;
 }
 
-export function ListFilterMultiSelectField({ name, label, help, tooltip, options }: MultiSelectFieldProps) {
+export function ListFilterMultiSelectField({ name, label, help, tooltip, options, required }: MultiSelectFieldProps) {
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -259,11 +251,12 @@ export function ListFilterMultiSelectField({ name, label, help, tooltip, options
             {tooltip ? (
               <DocsTooltip label={label}>{tooltip}</DocsTooltip>
             ) : label}
+            <common.RequiredField required={required} />
           </div>
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
+        <Field name={name} type="select" required={required}>
           {({
               field,
               form: { setFieldValue }

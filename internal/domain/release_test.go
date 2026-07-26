@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -464,8 +464,9 @@ func TestRelease_Parse(t *testing.T) {
 
 func TestRelease_MapVars(t *testing.T) {
 	type args struct {
-		varMap     map[string]string
-		definition IndexerDefinition
+		varMap map[string]string
+		//definition IndexerDefinition
+		forceSizeUnit string
 	}
 	tests := []struct {
 		name   string
@@ -639,7 +640,7 @@ func TestRelease_MapVars(t *testing.T) {
 					"torrentSize":      "10000",
 					"tags":             "hip.hop,rhythm.and.blues, 2000s",
 				},
-				definition: IndexerDefinition{IRC: &IndexerIRC{Parse: &IndexerIRCParse{ForceSizeUnit: "MB"}}},
+				forceSizeUnit: "MB",
 			},
 		},
 		{
@@ -706,11 +707,93 @@ func TestRelease_MapVars(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:   "downloadVolumeFactor maps charged fraction to freeleech percent",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Freeleech:        true,
+				FreeleechPercent: 75,
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "0.25",
+				},
+			},
+		},
+		{
+			name:   "downloadVolumeFactor below range is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "-0.1",
+				},
+			},
+		},
+		{
+			name:   "downloadVolumeFactor above range is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "1.1",
+				},
+			},
+		},
+		{
+			name:   "imdb id is prefixed with tt",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt0133093",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "0133093",
+				},
+			},
+		},
+		{
+			name:   "imdb id already prefixed is kept as is",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt0133093",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "tt0133093",
+				},
+			},
+		},
+		{
+			name:   "empty imdb id from unmatched optional group is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			_ = r.MapVars(&tt.args.definition, tt.args.varMap)
+			_ = r.MapVars(tt.args.varMap, tt.args.forceSizeUnit)
 
 			assert.Equal(t, tt.want, r)
 		})
@@ -1102,6 +1185,41 @@ func TestRelease_Hash(t *testing.T) {
 				TorrentName: "That Other Show 2023 S01E01 2160p WEB-DL DV HDR10+ DTS-HD 5.1 HEVC-GROUP",
 			},
 			want: "63b5d87abe5fb49131785de426708d31",
+		},
+		{
+			name: "29",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "2b4fbd68007c73664cdf9c1abb33fba9",
+		},
+		{
+			name: "30",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p ATVP WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "a1ad6c5ef96a50e5c3df434ec118185a",
+		},
+		{
+			name: "31",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p MA WEB-DL DTS-HD 5.1 HEVC-GROUP",
+			},
+			want: "d2976631b738bcd974e02af2c0b680a1",
+		},
+		{
+			name: "32",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p DSNP WEB-DL DTS-HD MA 5.1 HEVC-GROUP",
+			},
+			want: "aff58872541a8050146375ca76ea9fe7",
+		},
+		{
+			name: "33",
+			fields: fields{
+				TorrentName: "That Other Show 2023 S01E01 2160p MA WEB-DL DTS-HD MA 5.1 HEVC-GROUP",
+			},
+			want: "6d97a50010e7532478f8f4f9c469b885",
 		},
 	}
 	for _, tt := range tests {

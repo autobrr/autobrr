@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -14,6 +14,7 @@ import {
   PencilSquareIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { FeedsQueryOptions } from "@api/queries";
@@ -91,14 +92,15 @@ function useSort(items: ListItemProps["feed"][], config?: SortConfig) {
 }
 
 function FeedSettings() {
+  const { t } = useTranslation("settings");
   const feedsQuery = useSuspenseQuery(FeedsQueryOptions())
 
   const sortedFeeds = useSort(feedsQuery.data || []);
 
   return (
     <Section
-      title="Feeds"
-      description="Manage RSS, Newznab, and Torznab feeds."
+      title={t("listScreens.feeds.title")}
+      description={t("listScreens.feeds.description")}
     >
       {feedsQuery.data && feedsQuery.data.length > 0 ? (
         <ul className="min-w-full relative">
@@ -106,27 +108,27 @@ function FeedSettings() {
             <div
               className="flex col-span-2 sm:col-span-1 pl-4 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("enabled")}>
-              Enabled <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
+              {t("listScreens.common.enabled")} <span className="sort-indicator">{sortedFeeds.getSortIndicator("enabled")}</span>
             </div>
             <div
               className="col-span-4 pl-10 sm:pl-12 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("name")}>
-              Name <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
+              {t("listScreens.common.name")} <span className="sort-indicator">{sortedFeeds.getSortIndicator("name")}</span>
             </div>
             <div
               className="hidden md:flex col-span-2 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("type")}>
-              Type <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
+              {t("listScreens.common.type")} <span className="sort-indicator">{sortedFeeds.getSortIndicator("type")}</span>
             </div>
             <div
               className="hidden md:flex col-span-2 px-4 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("last_run")}>
-              Last run <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
+              {t("listScreens.feeds.lastRun")} <span className="sort-indicator">{sortedFeeds.getSortIndicator("last_run")}</span>
             </div>
             <div
               className="hidden md:flex col-span-2 px-4 py-3 cursor-pointer"
               onClick={() => sortedFeeds.requestSort("next_run")}>
-              Next run <span className="sort-indicator">{sortedFeeds.getSortIndicator("next_run")}</span>
+              {t("listScreens.feeds.nextRun")} <span className="sort-indicator">{sortedFeeds.getSortIndicator("next_run")}</span>
             </div>
           </li>
           {sortedFeeds.items.map((feed) => (
@@ -134,7 +136,7 @@ function FeedSettings() {
           ))}
         </ul>
       ) : (
-        <EmptySimple title="No feeds" subtitle="Setup via indexers" />
+        <EmptySimple title={t("listScreens.feeds.noItems")} subtitle={t("listScreens.feeds.noItemsDesc")} />
       )}
     </Section>
   );
@@ -145,23 +147,32 @@ interface ListItemProps {
 }
 
 function ListItem({ feed }: ListItemProps) {
+  const { t } = useTranslation("settings");
   const [updateFormIsOpen, toggleUpdateForm] = useToggle(false);
-
-  const [enabled, setEnabled] = useState(feed.enabled);
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.feeds.toggleEnable(feed.id, status),
-    onSuccess: () => {
+    onSuccess: (_data, status) => {
       queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
       queryClient.invalidateQueries({ queryKey: FeedKeys.detail(feed.id) });
 
-      toast.custom((t) => <Toast type="success" body={`${feed.name} was ${!enabled ? "disabled" : "enabled"} successfully.`} t={t} />);
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={t("listScreens.feeds.toggleSuccess", {
+            name: feed.name,
+            state: status
+              ? t("listScreens.feeds.enabledState")
+              : t("listScreens.feeds.disabledState")
+          })}
+          t={toastInstance}
+        />
+      ));
     }
   });
 
   const toggleActive = (status: boolean) => {
-    setEnabled(status);
     updateMutation.mutate(status);
   };
 
@@ -219,6 +230,7 @@ const FeedItemDropdown = ({
   onToggle,
   toggleUpdate
 }: FeedItemDropdownProps) => {
+  const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef(null);
   const cancelCacheModalButtonRef = useRef(null);
 
@@ -234,14 +246,14 @@ const FeedItemDropdown = ({
       queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
       queryClient.invalidateQueries({ queryKey: FeedKeys.detail(feed.id) });
 
-      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was deleted`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("listScreens.feeds.deleted", { name: feed?.name })} t={toastInstance} />);
     }
   });
 
   const deleteCacheMutation = useMutation({
     mutationFn: (id: number) => APIClient.feeds.deleteCache(id),
     onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} cache was cleared!`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("listScreens.feeds.cacheCleared", { name: feed?.name })} t={toastInstance} />);
     }
   });
 
@@ -249,16 +261,22 @@ const FeedItemDropdown = ({
     mutationFn: (id: number) => APIClient.feeds.forceRun(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
-      toast.custom((t) => <Toast type="success" body={`Feed ${feed?.name} was force run successfully.`} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("listScreens.feeds.forceRunSuccess", { name: feed?.name })} t={toastInstance} />);
       toggleForceRunModal();
     },
     onError: (error: unknown) => {
-      let errorMessage = 'An unknown error occurred';
+      let errorMessage = t("listScreens.common.unknownError");
       if (isErrorWithMessage(error)) {
         errorMessage = error.message;
       }
 
-      toast.custom((t) => <Toast type="error" body={`Failed to force run ${feed?.name}. Error: ${errorMessage}`} t={t} />, {
+      toast.custom((toastInstance) => (
+        <Toast
+          type="error"
+          body={t("listScreens.feeds.forceRunError", { name: feed?.name, error: errorMessage })}
+          t={toastInstance}
+        />
+      ), {
         duration: 10000
       });
       toggleForceRunModal();
@@ -277,8 +295,8 @@ const FeedItemDropdown = ({
           deleteMutation.mutate(feed.id);
           toggleDeleteModal();
         }}
-        title={`Remove feed: ${feed.name}`}
-        text="Are you sure you want to remove this feed? This action cannot be undone."
+        title={t("listScreens.feeds.removeTitle", { name: feed.name })}
+        text={t("listScreens.feeds.removeText")}
       />
       <DeleteModal
         isOpen={deleteCacheModalIsOpen}
@@ -288,8 +306,8 @@ const FeedItemDropdown = ({
         deleteAction={() => {
           deleteCacheMutation.mutate(feed.id);
         }}
-        title={`Remove feed cache: ${feed.name}`}
-        text="Are you sure you want to remove the feed cache? This action cannot be undone."
+        title={t("listScreens.feeds.removeCacheTitle", { name: feed.name })}
+        text={t("listScreens.feeds.removeCacheText")}
       />
       <ForceRunModal
         isOpen={forceRunModalIsOpen}
@@ -300,8 +318,8 @@ const FeedItemDropdown = ({
           forceRunMutation.mutate(feed.id);
           toggleForceRunModal();
         }}
-        title={`Force run feed: ${feed.name}`}
-        text={`Are you sure you want to force run the ${feed.name} feed? Respecting RSS interval rules is crucial to avoid potential IP bans.`}
+        title={t("listScreens.feeds.forceRunTitle", { name: feed.name })}
+        text={t("listScreens.feeds.forceRunText", { name: feed.name })}
       />
       <MenuButton className="px-4 py-2">
         <EllipsisHorizontalIcon
@@ -320,7 +338,7 @@ const FeedItemDropdown = ({
       >
         <MenuItems
             anchor={{ to: 'bottom end', padding: '8px' }} // padding: '8px' === m-2
-            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-none z-10"
+            className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
         >
           <div className="px-1 py-1">
             <MenuItem>
@@ -339,7 +357,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Edit
+                  {t("listScreens.common.edit")}
                 </button>
               )}
             </MenuItem>
@@ -359,7 +377,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Toggle
+                  {t("listScreens.feeds.toggle")}
                 </button>
               )}
             </MenuItem>
@@ -381,7 +399,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-            Force run
+                  {t("listScreens.feeds.forceRun")}
                 </button>
               )}
             </MenuItem>
@@ -394,7 +412,7 @@ const FeedItemDropdown = ({
                   className="w-5 h-5 mr-2 text-blue-500 group-hover:text-white"
                   aria-hidden="true"
                 />
-                View latest run
+                {t("listScreens.feeds.viewLatestRun")}
               </ExternalLink>
             </MenuItem>
             <MenuItem>
@@ -405,7 +423,7 @@ const FeedItemDropdown = ({
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
                   onClick={() => toggleDeleteCacheModal()}
-                  title="Manually clear all feed cache"
+                  title={t("listScreens.feeds.clearCacheTitle")}
                 >
                   <ArrowPathIcon
                     className={classNames(
@@ -414,7 +432,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Clear feed cache
+                  {t("listScreens.feeds.clearCache")}
                 </button>
               )}
             </MenuItem>
@@ -436,7 +454,7 @@ const FeedItemDropdown = ({
                     )}
                     aria-hidden="true"
                   />
-                  Delete
+                  {t("listScreens.feeds.delete")}
                 </button>
               )}
             </MenuItem>

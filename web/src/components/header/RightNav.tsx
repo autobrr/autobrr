@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -8,26 +8,48 @@ import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faOpenid } from "@fortawesome/free-brands-svg-icons";
+import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 
 import { RightNavProps } from "./_shared";
 
-import { Cog6ToothIcon, ArrowLeftOnRectangleIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { Cog6ToothIcon, ArrowLeftOnRectangleIcon, MoonIcon, SunIcon, ComputerDesktopIcon } from "@heroicons/react/24/outline";
 import { Link } from "@tanstack/react-router";
-import { AuthContext, SettingsContext } from "@utils/Context";
+import { AuthContext, SettingsContext, isDarkTheme } from "@utils/Context";
+import type { Theme } from "@utils/Context";
 
 export const RightNav = (props: RightNavProps) => {
+  const { t } = useTranslation("common");
   const [settings, setSettings] = SettingsContext.use();
-
   const auth = AuthContext.get();
+
+  const nextTheme: Record<Theme, Theme> = {
+    light: "dark",
+    dark: "system",
+    system: "light"
+  };
+
+  const themeIcons: Record<Theme, typeof MoonIcon> = {
+    dark: MoonIcon,
+    light: SunIcon,
+    system: ComputerDesktopIcon
+  };
+
+  const themeLabels: Record<Theme, string> = {
+    light: t("theme.toggleLightToDark"),
+    dark: t("theme.toggleDarkToSystem"),
+    system: t("theme.toggleSystemToLight")
+  };
 
   const toggleTheme = () => {
     setSettings(prevState => ({
       ...prevState,
-      darkTheme: !prevState.darkTheme
+      theme: nextTheme[prevState.theme]
     }));
   };
+
+  const ThemeIcon = themeIcons[settings.theme];
 
   return (
     <div className="hidden sm:block">
@@ -35,14 +57,10 @@ export const RightNav = (props: RightNavProps) => {
         <div className="mt-1 items-center">
           <button
             onClick={toggleTheme}
-            className="p-1 rounded-full focus:outline-none focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
-            title={settings.darkTheme ? "Switch to light mode (currently dark mode)" : "Switch to dark mode (currently light mode)"}
+            className="p-1 rounded-full hover:cursor-pointer focus:outline-hidden focus:none transition duration-100 ease-out transform hover:bg-gray-200 dark:hover:bg-gray-800 hover:scale-100"
+            title={themeLabels[settings.theme]}
           >
-            {settings.darkTheme ? (
-              <MoonIcon className="h-4 w-4 text-gray-500 transition duration-100 ease-out transform" aria-hidden="true" />
-            ) : (
-              <SunIcon className="h-4 w-4 text-gray-600" aria-hidden="true" />
-            )}
+            <ThemeIcon className={`h-4 w-4 transition duration-100 ease-out transform ${isDarkTheme(settings.theme) ? "text-gray-500" : "text-gray-600"}`} aria-hidden="true" />
           </button>
         </div>
         <Menu as="div" className="ml-2 relative">
@@ -56,25 +74,34 @@ export const RightNav = (props: RightNavProps) => {
                   "transition duration-200"
                 )}
               >
-                <span className="hidden text-sm font-medium sm:block">
+                <span className="hidden hover:cursor-pointer text-sm font-medium sm:flex items-center">
                   <span className="sr-only">
                     Open user menu for{" "}
                   </span>
-                  <span className="flex items-center">
-                    {auth.username}
-                    {auth.authMethod === 'oidc' ? (
+                  <span className="flex items-center">{auth.username}</span>
+                  {auth.authMethod === 'oidc' ? (
+                    auth.profilePicture ? (
+                      <div className="relative flex-shrink-0 ml-2 w-6 h-6 overflow-hidden rounded-full ring-1 ring-white dark:ring-gray-700">
+                        <img
+                          src={auth.profilePicture}
+                          alt={`${auth.username}'s profile`}
+                          className="object-cover w-full h-full transition-opacity duration-200"
+                          onError={() => auth.profilePicture = undefined}
+                        />
+                      </div>
+                    ) : (
                       <FontAwesomeIcon
                         icon={faOpenid}
                         className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
                         aria-hidden="true"
                       />
-                    ) : (
-                      <UserIcon
-                        className="inline ml-1 h-5 w-5"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </span>
+                    )
+                  ) : (
+                    <UserIcon
+                      className="inline ml-1 h-5 w-5"
+                      aria-hidden="true"
+                    />
+                  )}
                 </span>
               </MenuButton>
               <Transition
@@ -89,7 +116,7 @@ export const RightNav = (props: RightNavProps) => {
               >
                 <MenuItems
                   static
-                  className="origin-top-right absolute right-0 mt-2 w-48 z-10 divide-y divide-gray-100 dark:divide-gray-750 rounded-md shadow-lg bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 focus:outline-none"
+                  className="origin-top-right absolute right-0 mt-2 w-48 z-10 divide-y divide-gray-100 dark:divide-gray-750 rounded-md shadow-lg bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 focus:outline-hidden"
                 >
                   <MenuItem>
                     {({ active }) => (
@@ -106,7 +133,7 @@ export const RightNav = (props: RightNavProps) => {
                           className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
                           aria-hidden="true"
                         />
-                        Account
+                        {t("userMenu.account")}
                       </Link>
                     )}
                   </MenuItem>
@@ -125,7 +152,7 @@ export const RightNav = (props: RightNavProps) => {
                           className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
                           aria-hidden="true"
                         />
-                        Settings
+                        {t("userMenu.settings")}
                       </Link>
                     )}
                   </MenuItem>
@@ -147,7 +174,7 @@ export const RightNav = (props: RightNavProps) => {
                           className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
                           aria-hidden="true"
                         />
-                        Log out
+                        {t("userMenu.logout")}
                       </button>
                     )}
                   </MenuItem>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -16,7 +16,7 @@ interface SwitchGroupProps {
   label?: string;
   description?: string | React.ReactNode;
   heading?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   disabled?: boolean;
   className?: string;
 }

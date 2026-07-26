@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -6,17 +6,19 @@ package http
 import (
 	"net/http"
 
-	"github.com/autobrr/autobrr/internal/database"
-
 	"github.com/go-chi/chi/v5"
 )
 
-type healthHandler struct {
-	encoder encoder
-	db      *database.DB
+type DatabaseHealth interface {
+	Ping() error
 }
 
-func newHealthHandler(encoder encoder, db *database.DB) *healthHandler {
+type healthHandler struct {
+	encoder encoder
+	db      DatabaseHealth
+}
+
+func newHealthHandler(encoder encoder, db DatabaseHealth) *healthHandler {
 	return &healthHandler{
 		encoder: encoder,
 		db:      db,

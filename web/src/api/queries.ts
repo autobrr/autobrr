@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -84,7 +84,9 @@ export const IrcQueryOptions = () =>
     queryKey: IrcKeys.lists(),
     queryFn: () => APIClient.irc.getNetworks(),
     refetchOnWindowFocus: false,
-    refetchInterval: 3000 // Refetch every 3 seconds
+    // SSE STATE/HEALTH events drive instant updates; poll as a fallback so the
+    // list self-heals if an event is missed (e.g. during an SSE reconnect).
+    refetchInterval: 5000
   });
 
 export const FeedsQueryOptions = () =>
@@ -111,6 +113,22 @@ export const NotificationsQueryOptions = () =>
   queryOptions({
     queryKey: NotificationKeys.lists(),
     queryFn: () => APIClient.notifications.getAll()
+  });
+
+export const PushoverSoundsQueryOptions = (apiToken: string) =>
+  queryOptions({
+    queryKey: NotificationKeys.pushoverSounds(apiToken),
+    queryFn: () => {
+      // Double-check before making the request
+      if (!apiToken || apiToken === "<redacted>" || apiToken === "") {
+        throw new Error("API token is required");
+      }
+      return APIClient.notifications.getPushoverSounds(apiToken);
+    },
+    enabled: apiToken !== undefined && apiToken !== "" && apiToken !== "<redacted>",
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 
 export const ApikeysQueryOptions = () =>

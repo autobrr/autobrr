@@ -4,7 +4,7 @@ Thanks for taking interest in contribution! We welcome anyone who wants to contr
 
 If you have an idea for a bigger feature or a change then we are happy to discuss it before you start working on it.  
 It is usually a good idea to make sure it aligns with the project and is a good fit.  
-Open an issue or post in #dev-general on [Discord](https://discord.gg/WQ2eUycxyT).
+Open an issue or post in #dev-general on [Discord](https://discord.autobrr.com).
 
 This document is a guide to help you through the process of contributing to autobrr.
 
@@ -32,11 +32,14 @@ Make sure you have the following dependencies installed before setting up your d
 - **Fork and Clone:** [Fork the autobrr repository](https://github.com/autobrr/autobrr/fork) and clone it to start working on your changes.
 - **Branching:** Create a new branch for your changes. Use a descriptive name for easy understanding.
   - Checkout a new branch for your fix or feature `git checkout -b fix/filters-issue`
-- **Coding:** Ensure your code is well-commented for clarity. With go use `go fmt`
+- **Coding:** Comment non-obvious logic - see [AGENTS.md](AGENTS.md) for code style and comment conventions. With go use `go fmt`
 - **Commit Guidelines:** We appreciate the use of [Conventional Commit Guidelines](https://www.conventionalcommits.org/en/v1.0.0/#summary) when writing your commits.
   - Examples: `fix(indexers): Mock improve parsing`, `feat(notifications): add NewService`
   - There is no need for force pushing or rebasing. We squash commits on merge to keep the history clean and manageable.
+  - The PR title becomes the squashed commit message, so use the conventional commit format for the title as well.
 - **Pull Requests:** Submit a pull request from your Fork with a clear description of your changes. Reference any related issues.
+  - Target the `develop` branch.
+  - Fill out the pull request template, including the AI disclosure section.
   - Mark it as Draft if it's still in progress.
 - **Code Review:** Be open to feedback during the code review process.
 
@@ -49,8 +52,17 @@ You need to have the Go toolchain installed and Node.js with `pnpm` as the packa
 Clone the project and change dir:
 
 ```shell
-git clone github.com/YOURNAME/autobrr && cd autobrr
+git clone https://github.com/YOURNAME/autobrr.git && cd autobrr
 ```
+
+Install all dependencies (Go and web) with:
+
+```shell
+make deps
+```
+
+> [!TIP]
+> `make dev` starts both the frontend dev server and the backend in a tmux session (requires tmux).
 
 ## Frontend
 
@@ -83,7 +95,7 @@ pnpm --dir web run build
 Install Go dependencies:
 
 ```shell
-go mod tidy
+go mod download
 ```
 
 Run the project:
@@ -117,7 +129,7 @@ You can optionally build it with [GoReleaser](https://goreleaser.com/) which mak
 Install it with `go install` or check the [docs for alternatives](https://goreleaser.com/install/):
 
 ```shell
-go install github.com/goreleaser/goreleaser@latest
+go install github.com/goreleaser/goreleaser/v2@latest
 ```
 
 Then to build binaries, run:
@@ -142,9 +154,9 @@ go test -v ./...
 
 ### Run SQLite and PostgreSQL integration tests
 
-The integration tests runs against an in memory SQLite database and currently requires Docker for the Postgres tests.
+The integration tests run against an in-memory SQLite database and currently require Docker for the Postgres tests.
 
-If you have docker setup then run the `test_postgres` container with:
+If you have Docker set up, run the `test_postgres` container with:
 
 ```shell
 docker compose up -d test_postgres
@@ -161,6 +173,12 @@ go test ./... -tags=integration
 > ```shell
 > sudo timedatectl set-timezone Etc/UTC
 > ```
+>
+> Or to change the timezone for just the test run, do:
+>
+> ```
+> TZ=UTC go test ./... -tags=integration
+> ```
 
 ## Build Docker image
 
@@ -171,6 +189,20 @@ make build/docker
 ```
 
 The image will be tagged as `autobrr:dev`
+
+To build a cross platform Docker image (for instance if you're running on arm64 or Apple ARM):
+
+```shell
+make build/dockerx
+```
+
+[Docker multi-platform docs](https://docs.docker.com/build/building/multi-platform/)
+
+## Adding a new indexer
+
+Adding support for a new indexer is the most common contribution. Indexer definitions are YAML files in [internal/indexer/definitions](internal/indexer/definitions) - start from an existing definition for a similar tracker and adjust it.
+
+Definitions are embedded into the binary at build time, so restart the backend after changing one. Use the mock indexer below to test announce parsing end-to-end.
 
 ## Mock indexer
 

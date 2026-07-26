@@ -1,0 +1,73 @@
+---
+version: 2
+#id: nordicquality
+name: NordicQuality
+identifier: nordicquality
+description: NordicQuality is a private torrent tracker for HD MOVIES / TV
+language: en-us
+urls:
+  - https://nordicq.org
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to your profile and under Settings > Security, copy your RSS Key (RID)"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#nordicquality"
+      announcers:
+        - NordicQuality
+      parse:
+        type: single
+        lines:
+          - pattern: '\[ (?P<announceTypeEnum>.*) \]\[ (?P<category>.*) \]\[ (?P<releaseTags>.*) \]\[ (?P<releaseName>.*) \]\[ (?P<torrentSize>.*) \]\[ (?P<baseUrl>https.*\/).*\/(?P<torrentId>\d+) \]'
+            tests:
+              - line: '[ NEW ][ TV ][ WEB-DL ][ Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP ][ 6.74 GiB ][ https://nordicq.org/torrents/0000 ]'
+                expect:
+                  announceTypeEnum: NEW
+                  category: TV
+                  releaseTags: WEB-DL
+                  releaseName: Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP
+                  torrentSize: 6.74 GiB
+                  baseUrl: https://nordicq.org/
+                  torrentId: "0000"
+
+        mappings:
+          announceTypeEnum:
+            "NEW":
+              announceType: NEW
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

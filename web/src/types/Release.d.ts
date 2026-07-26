@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -100,5 +100,22 @@ interface ReleaseProfileDuplicate {
   proper: boolean;
   repack: boolean;
   edition: boolean;
+  hybrid: boolean;
   language: boolean;
+}
+
+interface ReleaseCleanupJob {
+  id: number;
+  name: string;
+  enabled: boolean;
+  schedule: string;          // Cron expression: "0 3 * * *"
+  older_than: number;        // Hours: 720 = 30 days
+  indexers: string;          // Comma-separated: "btn,ptp" or empty
+  statuses: string;          // Comma-separated: "PUSH_REJECTED,PUSH_ERROR" or empty
+  last_run: string;          // ISO timestamp or zero value
+  last_run_status: string;   // "SUCCESS" or "ERROR"
+  last_run_data: string;     // JSON execution stats
+  next_run: string;          // ISO timestamp from scheduler
+  created_at: string;        // ISO timestamp
+  updated_at: string;        // ISO timestamp
 }

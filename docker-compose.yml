@@ -1,14 +1,21 @@
 ---
-version: "2.1"
 services:
   autobrr:
-    image: autobrr:dev
+#    image: ghcr.io/autobrr/autobrr:develop
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: autobrr
     volumes:
       - ./config:/config
     ports:
       - "7474:7474"
     restart: unless-stopped
+#    environment:
+#      AUTOBRR__POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+#    secrets:
+#      - db_password
+
   postgres:
     image: postgres:12.10
     container_name: postgres
@@ -20,6 +27,7 @@ services:
       - POSTGRES_USER=autobrr
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=autobrr
+
   test_postgres:
     image: postgres:12.10
     container_name: autobrr_postgres_test
@@ -32,6 +40,9 @@ services:
       - POSTGRES_PASSWORD=testdb
       - POSTGRES_DB=autobrr
 
+#secrets:
+#  db_password:
+#    file: db_password.txt
 
 volumes:
   postgres:

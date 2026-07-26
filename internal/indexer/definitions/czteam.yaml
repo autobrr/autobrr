@@ -1,0 +1,76 @@
+---
+version: 2
+# id: czteam
+name: CZTeam
+identifier: czteam
+description: CZTeam (CZT) is a ROMANIAN private torrent tracker for MOVIES / TV / GENERAL
+language: ro
+urls:
+  - https://czteam.me
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: custom
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Go to My Settings -> Passkey and copy your Passkey"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_autobrr
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#czteam"
+      announcers:
+        - Tabacila
+      parse:
+        type: single
+        lines:
+          - pattern: 'New Torrent:\s+(?P<releaseName>.+?)\s+--\s+(?:\[(?P<freeleech>FreeLeech!)\]\s+--\s+)?\[(?P<category>[^\]]+)\]\s+\[(?P<torrentSize>[^\]]+)\]\s+--\s+(?P<baseUrl>https?:\/\/[^\/]+\/)details\.php\?id=(?P<torrentId>\d+)'
+            tests:
+              - line: "New Torrent: Nuremberg.2025.2160p.iT.WEB-DL.DTS-HD.MA.5.1.DV.HDR10P.H.265-BTBN -- [Movies/HDTV-RO] [28,59 GB] -- https://czteam.me/details.php?id=218411"
+                expect:
+                  releaseName: Nuremberg.2025.2160p.iT.WEB-DL.DTS-HD.MA.5.1.DV.HDR10P.H.265-BTBN
+                  freeleech: ""
+                  category: Movies/HDTV-RO
+                  torrentSize: "28,59 GB"
+                  baseUrl: https://czteam.me/
+                  torrentId: "218411"
+
+              - line: "New Torrent: For.All.Mankind.S05E02.The.Hard.Six.1080p.ATVP.WEB-DL.DDP5.1.Atmos.H.264-FLUX -- [FreeLeech!] -- [TvEps/HD] [4,12 GB] -- https://czteam.me/details.php?id=218406"
+                expect:
+                  releaseName: For.All.Mankind.S05E02.The.Hard.Six.1080p.ATVP.WEB-DL.DDP5.1.Atmos.H.264-FLUX
+                  freeleech: FreeLeech!
+                  category: TvEps/HD
+                  torrentSize: "4,12 GB"
+                  baseUrl: https://czteam.me/
+                  torrentId: "218406"
+
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download.php?torrent={{ .torrentId }}&passkey={{ .passkey }}"

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -427,7 +427,6 @@ func TestFeedRepo_UpdateLastRunWithData(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, updatedFeed)
 			assert.True(t, updatedFeed[0].LastRun.After(time.Now().Add(-1*time.Minute)))
-			assert.Equal(t, "newData", updatedFeed[0].LastRunData)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), feedMockData.ID)

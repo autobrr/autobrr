@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package list
@@ -55,7 +55,7 @@ func (job *RefreshListsJob) run(ctx context.Context) error {
 	// Generate a random duration between 1 and 35 seconds
 	delay := time.Duration(rand.Intn(35-1+1)+1) * time.Second // (35-1+1)+1 => range: 1 to 35
 
-	job.log.Debug().Msgf("delaying for %v...", delay)
+	job.log.Debug().Dur("delay", delay).Msg("delaying filter refresh")
 
 	// Sleep for the calculated duration
 	time.Sleep(delay)

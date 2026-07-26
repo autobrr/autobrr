@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package notification
@@ -83,6 +83,7 @@ func BuildTitle(event domain.NotificationEvent) string {
 		domain.NotificationEventPushError:          "Push Error",
 		domain.NotificationEventIRCDisconnected:    "IRC Disconnected",
 		domain.NotificationEventIRCReconnected:     "IRC Reconnected",
+		domain.NotificationEventReleaseNew:         "New Release",
 		domain.NotificationEventTest:               "Test",
 	}
 

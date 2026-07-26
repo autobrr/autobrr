@@ -1,0 +1,180 @@
+{
+  "announceType": {
+    "NEW": "Ny",
+    "CHECKED": "Sjekket",
+    "PROMO": "Promo",
+    "PROMO_GP": "Promo GP",
+    "RESURRECTED": "Gjenopplivet"
+  },
+  "downloadClient": {
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Legg torrenter direkte til qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Legg torrenter direkte til Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge 2",
+      "description": "Legg torrenter direkte til Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Legg torrenter direkte til rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Legg torrenter direkte til Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Legg torrenter direkte til Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "Send til Radarr og la den bestemme"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "Send til Sonarr og la den bestemme"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "Send til Lidarr og la den bestemme"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "Send til Whisparr og la den bestemme"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "Send til Readarr og la den bestemme"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "Legg nzber direkte til SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "Legg nzber direkte til NZBGet"
+    }
+  },
+  "actionType": {
+    "TEST": {
+      "label": "Test",
+      "description": "En enkel handling for å teste et filter."
+    },
+    "WATCH_FOLDER": {
+      "label": "Overvåket mappe",
+      "description": "Legg filtrerte torrenter til en overvåket katalog"
+    },
+    "WEBHOOK": {
+      "label": "Webhook",
+      "description": "Kjør webhook"
+    },
+    "EXEC": {
+      "label": "Exec",
+      "description": "Kjør en egendefinert kommando etter et filtersamsvar"
+    },
+    "QBITTORRENT": {
+      "label": "qBittorrent",
+      "description": "Legg torrenter direkte til qBittorrent"
+    },
+    "DELUGE_V1": {
+      "label": "Deluge",
+      "description": "Legg torrenter direkte til Deluge"
+    },
+    "DELUGE_V2": {
+      "label": "Deluge v2",
+      "description": "Legg torrenter direkte til Deluge 2"
+    },
+    "RTORRENT": {
+      "label": "rTorrent",
+      "description": "Legg torrenter direkte til rTorrent"
+    },
+    "TRANSMISSION": {
+      "label": "Transmission",
+      "description": "Legg torrenter direkte til Transmission"
+    },
+    "PORLA": {
+      "label": "Porla",
+      "description": "Legg torrenter direkte til Porla"
+    },
+    "RADARR": {
+      "label": "Radarr",
+      "description": "Send til Radarr og la den bestemme"
+    },
+    "SONARR": {
+      "label": "Sonarr",
+      "description": "Send til Sonarr og la den bestemme"
+    },
+    "LIDARR": {
+      "label": "Lidarr",
+      "description": "Send til Lidarr og la den bestemme"
+    },
+    "WHISPARR": {
+      "label": "Whisparr",
+      "description": "Send til Whisparr og la den bestemme"
+    },
+    "READARR": {
+      "label": "Readarr",
+      "description": "Send til Readarr og la den bestemme"
+    },
+    "SABNZBD": {
+      "label": "SABnzbd",
+      "description": "Legg til SABnzbd"
+    },
+    "NZBGET": {
+      "label": "NZBGet",
+      "description": "Legg til NZBGet"
+    }
+  },
+  "pushStatus": {
+    "PUSH_REJECTED": "Avvist",
+    "PUSH_APPROVED": "Godkjent",
+    "PENDING": "Venter",
+    "PUSH_ERROR": "Feil"
+  },
+  "notificationType": {
+    "DISCORD": "Discord",
+    "GOTIFY": "Gotify",
+    "LUNASEA": "LunaSea",
+    "NOTIFIARR": "Notifiarr",
+    "NTFY": "Ntfy",
+    "PUSHOVER": "Pushover",
+    "SHOUTRRR": "Shoutrrr",
+    "TELEGRAM": "Telegram",
+    "WEBHOOK": "Webhook"
+  },
+  "event": {
+    "PUSH_REJECTED": {
+      "label": "Push avvist",
+      "description": "Når push avvises for arr-klientene eller nedlastingsklienten"
+    },
+    "PUSH_APPROVED": {
+      "label": "Push godkjent",
+      "description": "Når push godkjennes for arr-klientene eller nedlastingsklienten"
+    },
+    "PUSH_ERROR": {
+      "label": "Push-feil",
+      "description": "Ved push-feil for arr-klientene eller nedlastingsklienten"
+    },
+    "IRC_DISCONNECTED": {
+      "label": "IRC frakoblet",
+      "description": "Uventet frakoblet fra IRC-nettverket"
+    },
+    "IRC_RECONNECTED": {
+      "label": "IRC tilkoblet på nytt",
+      "description": "Koblet til IRC-nettverket på nytt etter feil"
+    },
+    "APP_UPDATE_AVAILABLE": {
+      "label": "Ny oppdatering",
+      "description": "Bli varslet om oppdateringer"
+    },
+    "RELEASE_NEW": {
+      "label": "Ny utgivelse",
+      "description": "Ved ny utgivelse fra indekserer (før filtrering)"
+    }
+  }
+}

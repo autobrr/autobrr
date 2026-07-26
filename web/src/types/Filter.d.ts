@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -82,7 +82,9 @@ interface Filter {
   actions: Action[];
   indexers: Indexer[];
   external: ExternalFilter[];
+  downloads?: FilterDownloads;
   release_profile_duplicate_id?: number;
+  notifications?: FilterNotification[];
 }
 
 interface Action {
@@ -97,6 +99,7 @@ interface Action {
   tags?: string;
   label?: string;
   save_path?: string;
+  download_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
   first_last_piece_prio?: boolean;
@@ -128,9 +131,11 @@ type ActionPriorityLayout = "MAX" | "MIN" | "";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
 
-type ExternalType = "EXEC" |  "WEBHOOK";
+type ExternalType = "EXEC" | "WEBHOOK";
 
 type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+type ExternalFilterOnError = "CONTINUE" | "REJECT";
 
 interface ExternalFilter {
   id: number;
@@ -150,5 +155,21 @@ interface ExternalFilter {
   webhook_retry_status?: string,
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
+  on_error: ExternalFilterOnError;
   filter_id?: number;
+}
+
+interface FilterDownloads {
+  hour_count: number;
+  day_count: number;
+  week_count: number;
+  month_count: number;
+  year_count: number;
+  total_count: number;
+}
+
+interface FilterNotification {
+  notification_id: number;
+  notification?: ServiceNotification;
+  events: string[];
 }

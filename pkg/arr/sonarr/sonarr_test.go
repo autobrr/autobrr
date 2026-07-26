@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -51,7 +51,7 @@ func Test_client_Push(t *testing.T) {
 		config Config
 	}
 	type args struct {
-		release Release
+		release ReleasePushRequest
 	}
 	tests := []struct {
 		name       string
@@ -72,7 +72,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP.torrent",
 				Size:             0,
@@ -96,7 +96,7 @@ func Test_client_Push(t *testing.T) {
 					Password:  "",
 				},
 			},
-			args: args{release: Release{
+			args: args{release: ReleasePushRequest{
 				Title:            "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
 				DownloadUrl:      "https://www.test.org/rss/download/0000001/00000000000000000000/That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP.torrent",
 				Size:             0,
@@ -191,5 +191,47 @@ func Test_client_Test(t *testing.T) {
 
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+func Test_client_Push_invalid_download_client(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	log.SetOutput(io.Discard)
+
+	mux := http.NewServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`[{
+			"propertyName": "DownloadClient",
+			"errorMessage": "Download client does not exist.",
+			"errorCode": "InvalidValue",
+			"attemptedValue": "bad-client",
+			"severity": "Error"
+		}]`))
+	})
+
+	client := New(Config{
+		Hostname: ts.URL,
+	})
+
+	rejections, err := client.Push(context.Background(), ReleasePushRequest{
+		Title:            "Example",
+		DownloadUrl:      "https://example.invalid/release.torrent",
+		Size:             0,
+		Indexer:          "test",
+		DownloadProtocol: "torrent",
+		Protocol:         "torrent",
+		PublishDate:      "2024-01-01T00:00:00Z",
+		DownloadClient:   "bad-client",
+	})
+
+	assert.Nil(t, rejections)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid configuration")
+		assert.Contains(t, err.Error(), "Download client does not exist.")
 	}
 }

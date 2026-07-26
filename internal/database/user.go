@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -20,7 +20,7 @@ type UserRepo struct {
 	db  *DB
 }
 
-func NewUserRepo(log logger.Logger, db *DB) domain.UserRepo {
+func NewUserRepo(log logger.Logger, db *DB) *UserRepo {
 	return &UserRepo{
 		log: log.With().Str("repo", "user").Logger(),
 		db:  db,
@@ -35,7 +35,7 @@ func (r *UserRepo) GetUserCount(ctx context.Context) (int, error) {
 		return 0, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return 0, errors.Wrap(err, "error executing query")
 	}
@@ -59,7 +59,7 @@ func (r *UserRepo) FindByUsername(ctx context.Context, username string) (*domain
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -88,7 +88,7 @@ func (r *UserRepo) Store(ctx context.Context, req domain.CreateUserRequest) erro
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -114,7 +114,7 @@ func (r *UserRepo) Update(ctx context.Context, user domain.UpdateUserRequest) er
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -133,13 +133,12 @@ func (r *UserRepo) Delete(ctx context.Context, username string) error {
 	}
 
 	// Execute the query.
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	// Log the deletion.
-	r.log.Debug().Msgf("user.delete: successfully deleted user: %s", username)
+	r.log.Debug().Str("username", username).Msg("successfully deleted user")
 
 	return nil
 }

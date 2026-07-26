@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { Field, FieldProps, useFormikContext } from "formik";
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/solid";
 import TextareaAutosize from "react-textarea-autosize";
+import { useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
@@ -24,8 +25,9 @@ interface TextFieldProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
+
 
 export const TextField = ({
   name,
@@ -102,7 +104,7 @@ interface RegexFieldProps {
   useRegex?: boolean;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const RegexField = ({
@@ -117,6 +119,7 @@ export const RegexField = ({
   tooltip,
   disabled
 }: RegexFieldProps) => {
+  const { t } = useTranslation("common");
   const validRegex = (pattern: string) => {
 
     // Check for unsupported lookahead and lookbehind assertions
@@ -168,7 +171,7 @@ export const RegexField = ({
     let error = "";
 
     if (!validRegex(val)) {
-      error = "Invalid regex";
+      error = t("input.invalidRegex");
     }
 
     return error;
@@ -257,6 +260,7 @@ export const RegexTextAreaField = ({
   tooltip,
   disabled
 }: RegexFieldProps) => {
+  const { t } = useTranslation("common");
   const validRegex = (pattern: string) => {
 
     // Check for unsupported lookahead and lookbehind assertions
@@ -308,7 +312,7 @@ export const RegexTextAreaField = ({
     let error = "";
 
     if (!validRegex(val)) {
-      error = "Invalid regex";
+      error = t("input.invalidRegex");
     }
 
     return error;
@@ -400,7 +404,7 @@ interface TextAreaProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const TextArea = ({
@@ -473,7 +477,7 @@ interface TextAreaAutoResizeProps {
   autoComplete?: string;
   hidden?: boolean;
   disabled?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   className?: string;
 }
 
@@ -550,7 +554,7 @@ interface PasswordFieldProps {
   defaultValue?: string;
   help?: string;
   required?: boolean;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
 }
 
 export const PasswordField = ({
@@ -634,7 +638,7 @@ interface NumberFieldProps {
   required?: boolean;
   min?: number;
   max?: number;
-  tooltip?: JSX.Element;
+  tooltip?: React.JSX.Element;
   className?: string;
   isDecimal?: boolean;
 }

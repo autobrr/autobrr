@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package api
@@ -15,29 +15,29 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
-	List(ctx context.Context) ([]domain.APIKey, error)
+type repo interface {
 	Store(ctx context.Context, key *domain.APIKey) error
 	Delete(ctx context.Context, key string) error
-	ValidateAPIKey(ctx context.Context, token string) bool
+	GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error)
+	GetKey(ctx context.Context, key string) (*domain.APIKey, error)
 }
 
-type service struct {
+type Service struct {
 	log  zerolog.Logger
-	repo domain.APIRepo
+	repo repo
 
 	keyCache map[string]domain.APIKey
 }
 
-func NewService(log logger.Logger, repo domain.APIRepo) Service {
-	return &service{
+func NewService(log logger.Logger, repo repo) *Service {
+	return &Service{
 		log:      log.With().Str("module", "api").Logger(),
 		repo:     repo,
 		keyCache: map[string]domain.APIKey{},
 	}
 }
 
-func (s *service) List(ctx context.Context) ([]domain.APIKey, error) {
+func (s *Service) List(ctx context.Context) ([]domain.APIKey, error) {
 	if len(s.keyCache) > 0 {
 		keys := make([]domain.APIKey, 0, len(s.keyCache))
 
@@ -51,7 +51,7 @@ func (s *service) List(ctx context.Context) ([]domain.APIKey, error) {
 	return s.repo.GetAllAPIKeys(ctx)
 }
 
-func (s *service) Store(ctx context.Context, apiKey *domain.APIKey) error {
+func (s *Service) Store(ctx context.Context, apiKey *domain.APIKey) error {
 	apiKey.Key = GenerateSecureToken(16)
 
 	if err := s.repo.Store(ctx, apiKey); err != nil {
@@ -66,7 +66,7 @@ func (s *service) Store(ctx context.Context, apiKey *domain.APIKey) error {
 	return nil
 }
 
-func (s *service) Delete(ctx context.Context, key string) error {
+func (s *Service) Delete(ctx context.Context, key string) error {
 	_, err := s.repo.GetKey(ctx, key)
 	if err != nil {
 		return err
@@ -83,19 +83,19 @@ func (s *service) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *service) ValidateAPIKey(ctx context.Context, key string) bool {
+func (s *Service) ValidateAPIKey(ctx context.Context, key string) bool {
 	if _, ok := s.keyCache[key]; ok {
-		s.log.Trace().Msgf("api service key cache hit: %s", key)
+		s.log.Trace().Str("api_key", key).Msg("cache hit")
 		return true
 	}
 
 	apiKey, err := s.repo.GetKey(ctx, key)
 	if err != nil {
-		s.log.Trace().Msgf("api service key cache invalid key: %s", key)
+		s.log.Trace().Str("api_key", key).Msg("cache invalid key")
 		return false
 	}
 
-	s.log.Trace().Msgf("api service key cache miss: %s", key)
+	s.log.Trace().Str("api_key", key).Msg("cache miss")
 
 	s.keyCache[key] = *apiKey
 

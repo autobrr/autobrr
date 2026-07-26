@@ -1,0 +1,35 @@
+{
+  "id": 1,
+  "result": {
+    "results": "1555080",
+    "torrents": {
+      "1555073": {
+        "GroupName": "S05E04",
+        "GroupID": "755034",
+        "TorrentID": "1555073",
+        "SeriesID": "70834",
+        "Series": "That Show",
+        "SeriesBanner": "\/\/cdn2.broadcasthe.net\/tvdb\/banners\/graphical\/0000000000000.jpg",
+        "SeriesPoster": "\/\/cdn2.broadcasthe.net\/tvdb\/banners\/posters\/0000000000000\/resized_w300.jpg",
+        "YoutubeTrailer": "",
+        "Category": "Episode",
+        "Snatched": "4",
+        "Seeders": "5",
+        "Leechers": "41",
+        "Source": "WEB-DL",
+        "Container": "MP4",
+        "Codec": "H.264",
+        "Resolution": "1080p",
+        "Origin": "None",
+        "ReleaseName": "That.Show.S05E04.1080p.WEB-DL.H.264-NOGRP",
+        "Size": "3288852849",
+        "Time": "1641153886",
+        "TvdbID": "332747",
+        "TvrageID": "0",
+        "ImdbID": "7252812",
+        "InfoHash": "56CD94119F6BF7FC294A92D7A4099C3D1815C907",
+        "DownloadURL": "https:\/\/broadcasthe.net\/torrents.php?action=download&id=1555073&authkey=REDACTED&torrent_pass=REDACTED"
+      }
+    }
+  }
+}

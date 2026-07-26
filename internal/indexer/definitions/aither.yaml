@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: Aither
 name: Aither
 identifier: aither
@@ -24,67 +25,62 @@ irc:
   server: irc.aither.cc
   port: 6697
   tls: true
-  channels:
-    - "#Feed"
-  announcers:
-    - BOT
   settings:
     - name: nick
       type: text
       required: true
-      label: Username
-      help: Profile > Settings > External Chat Tokens > Add Device Token.
+      label: Nick
+      help: Bot nick. Can use the Device Token's username.
 
-    - name: pass
+    - name: auth.account
+      type: text
+      required: true
+      label: Account
+      help: My Settings > External Chat > Device Token's Username
+
+    - name: auth.password
       type: secret
       required: true
-      label: Token
-      help: Profile > Settings > External Chat Tokens > Token.
+      label: IRC Token
+      help: My Settings > External Chat > Device Token's Token
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: Category [Music] Type [Music - General] Name [Melanie Martinez - Copy Cat 2020 WEB FLAC 24-bits 44.1 kHz] Freeleech [0%] Internal [No] Double Upload [No] Size [44.06 MB] Uploader [Pure] Url [https://aither.cc/torrents/download/1231231]
-          expect:
-            category: Music
-            releaseTags: Music - General
-            torrentName: Melanie Martinez - Copy Cat 2020 WEB FLAC 24-bits 44.1 kHz
-            resolution: ""
-            freeleechPercent: 0%
-            internal: "No"
-            tags: "No"
-            torrentSize: 44.06 MB
-            uploader: Pure
-            baseUrl: https://aither.cc/
-            torrentId: "1231231"
-        - line: Category [Movie] Type [WEB-DL] Name [Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [3.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]
-          expect:
-            category: Movie
-            releaseTags: WEB-DL
-            torrentName: Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO
-            resolution: 1080p
-            freeleechPercent: 0%
-            internal: "No"
-            tags: "No"
-            torrentSize: 3.38 GB
-            uploader: Anonymous
-            baseUrl: https://aither.cc/
-            torrentId: "213123123"
-        pattern: 'Category \[(.+)\] Type \[(.+)\] Name \[(.+?)\] ?(?:Resolution \[(.*)\])? Freeleech \[(.+)\] Internal \[(.+)\] Double Upload \[(.+)\] Size \[(.+)\] Uploader \[(.+)\] Url \[(https?\:\/\/.+\/).+\/.+\/(\d+)\]'
-        vars:
-          - category
-          - releaseTags
-          - torrentName
-          - resolution
-          - freeleechPercent
-          - internal
-          - tags
-          - torrentSize
-          - uploader
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#Feed"
+      announcers:
+        - BOT
+      parse:
+        type: single
+        lines:
+          - pattern: 'Category \[(?P<category>.+)\] Type \[(?P<releaseTags>.+)\] Name \[(?P<releaseName>.+?)\] ?(?:Resolution \[(?P<resolution>.*)\])? Freeleech \[(?P<freeleechPercent>.+)\] Internal \[(?P<internal>.+)\] Double Upload \[(?P<tags>.+)\] Size \[(?P<torrentSize>.+)\] Uploader \[(?P<uploader>.+)\] Url \[(?P<baseUrl>https?\:\/\/.+\/).+\/.+\/(?P<torrentId>\d+)\]'
+            tests:
+              - line: Category [Music] Type [Music - General] Name [Melanie Martinez - Copy Cat 2020 WEB FLAC 24-bits 44.1 kHz] Freeleech [0%] Internal [No] Double Upload [No] Size [44.06 MB] Uploader [Pure] Url [https://aither.cc/torrents/download/1231231]
+                expect:
+                  category: Music
+                  releaseTags: Music - General
+                  releaseName: Melanie Martinez - Copy Cat 2020 WEB FLAC 24-bits 44.1 kHz
+                  resolution: ""
+                  freeleechPercent: 0%
+                  internal: "No"
+                  tags: "No"
+                  torrentSize: 44.06 MB
+                  uploader: Pure
+                  baseUrl: https://aither.cc/
+                  torrentId: "1231231"
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+              - line: Category [Movie] Type [WEB-DL] Name [Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [3.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]
+                expect:
+                  category: Movie
+                  releaseTags: WEB-DL
+                  releaseName: Izla 2021 FIL 1080p NF WEB-DL DD+ 5.1 H.264-HBO
+                  resolution: 1080p
+                  freeleechPercent: 0%
+                  internal: "No"
+                  tags: "No"
+                  torrentSize: 3.38 GB
+                  uploader: Anonymous
+                  baseUrl: https://aither.cc/
+                  torrentId: "213123123"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

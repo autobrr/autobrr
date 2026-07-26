@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package sonarr
@@ -6,18 +6,17 @@ package sonarr
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"log"
-
 	"github.com/autobrr/autobrr/pkg/arr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
@@ -29,39 +28,49 @@ type Config struct {
 	Username  string
 	Password  string
 
-	Log *log.Logger
+	TLSSkipVerify bool
+
+	Log zerolog.Logger
 }
 
 type ClientInterface interface {
 	Test(ctx context.Context) (*SystemStatusResponse, error)
-	Push(ctx context.Context, release Release) ([]string, error)
+	Push(ctx context.Context, release ReleasePushRequest) ([]string, error)
 }
 
 type Client struct {
 	config Config
 	http   *http.Client
 
-	Log *log.Logger
+	log zerolog.Logger
 }
 
 // New create new sonarr Client
 func New(config Config) *Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
+
 	httpClient := &http.Client{
 		Timeout:   time.Second * 120,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
-	c := &Client{
+	return &Client{
 		config: config,
 		http:   httpClient,
-		Log:    log.New(io.Discard, "", log.LstdFlags),
+		log:    config.Log,
 	}
+}
 
-	if config.Log != nil {
-		c.Log = config.Log
+// logger prefers the request-scoped logger from ctx, which carries trace_id
+// and other correlation fields, over the static client logger.
+func (c *Client) logger(ctx context.Context) *zerolog.Logger {
+	if l := zerolog.Ctx(ctx); l.GetLevel() != zerolog.Disabled {
+		return l
 	}
-
-	return c
+	return &c.log
 }
 
 func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
@@ -74,7 +83,7 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.New("unauthorized: bad credentials")
 	}
 
-	c.Log.Printf("sonarr system/status status: (%v) response: %v\n", status, string(res))
+	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("sonarr system/status response")
 
 	response := SystemStatusResponse{}
 	if err = json.Unmarshal(res, &response); err != nil {
@@ -84,19 +93,30 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	return &response, nil
 }
 
-func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
+func (c *Client) Push(ctx context.Context, release ReleasePushRequest) ([]string, error) {
 	status, res, err := c.postBody(ctx, "release/push", release)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not push release to sonarr")
 	}
 
-	c.Log.Printf("sonarr release/push status: (%v) response: %v\n", status, string(res))
+	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("sonarr release/push response")
 
 	if status == http.StatusBadRequest {
 		badRequestResponses := make([]*BadRequestResponse, 0)
 
 		if err = json.Unmarshal(res, &badRequestResponses); err != nil {
 			return nil, errors.Wrap(err, "could not unmarshal data")
+		}
+
+		for _, response := range badRequestResponses {
+			if strings.EqualFold(response.PropertyName, "DownloadClient") || strings.EqualFold(response.PropertyName, "DownloadClientId") {
+				rejections := make([]string, 0, len(badRequestResponses))
+				for _, r := range badRequestResponses {
+					rejections = append(rejections, r.String())
+				}
+
+				return nil, errors.New("sonarr push failed due to invalid configuration: %s", strings.Join(rejections, "; "))
+			}
 		}
 
 		rejections := []string{}
@@ -107,16 +127,14 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		return rejections, nil
 	}
 
-	pushResponse := make([]PushResponse, 0)
+	pushResponse := make([]ReleasePushResponse, 0)
 	if err = json.Unmarshal(res, &pushResponse); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
 	// log and return if rejected
 	if pushResponse[0].Rejected {
-		rejections := strings.Join(pushResponse[0].Rejections, ", ")
-
-		c.Log.Printf("sonarr release/push rejected %v reasons: %q\n", release.Title, rejections)
+		c.logger(ctx).Debug().Strs("rejections", pushResponse[0].Rejections).Msg("sonarr release/push rejected")
 		return pushResponse[0].Rejections, nil
 	}
 

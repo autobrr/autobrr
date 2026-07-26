@@ -1,51 +1,54 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/asaskevich/EventBus"
-	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
-type Service interface {
+type actionRepo interface {
 	Store(ctx context.Context, action *domain.Action) error
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
+	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	DeleteByFilterID(ctx context.Context, filterID int) error
 	ToggleEnabled(actionID int) error
-
-	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error)
 }
 
-type service struct {
+type clientService interface {
+	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
+	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
+}
+
+type downloadService interface {
+	DownloadRelease(ctx context.Context, rls *domain.Release) error
+	ResolveMagnetURI(ctx context.Context, r *domain.Release) error
+}
+
+type Service struct {
 	log         zerolog.Logger
-	subLogger   *log.Logger
-	repo        domain.ActionRepo
-	clientSvc   download_client.Service
-	downloadSvc *releasedownload.DownloadService
+	repo        actionRepo
+	clientSvc   clientService
+	downloadSvc downloadService
 	bus         EventBus.Bus
 
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_client.Service, downloadSvc *releasedownload.DownloadService, bus EventBus.Bus) Service {
-	s := &service{
+func NewService(log logger.Logger, repo actionRepo, clientSvc clientService, downloadSvc downloadService, bus EventBus.Bus) *Service {
+	s := &Service{
 		log:         log.With().Str("module", "action").Logger(),
 		repo:        repo,
 		clientSvc:   clientSvc,
@@ -58,24 +61,22 @@ func NewService(log logger.Logger, repo domain.ActionRepo, clientSvc download_cl
 		},
 	}
 
-	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
-
 	return s
 }
 
-func (s *service) Store(ctx context.Context, action *domain.Action) error {
+func (s *Service) Store(ctx context.Context, action *domain.Action) error {
 	return s.repo.Store(ctx, action)
 }
 
-func (s *service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
+func (s *Service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
 	return s.repo.StoreFilterActions(ctx, filterID, actions)
 }
 
-func (s *service) List(ctx context.Context) ([]domain.Action, error) {
+func (s *Service) List(ctx context.Context) ([]domain.Action, error) {
 	return s.repo.List(ctx)
 }
 
-func (s *service) Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error) {
+func (s *Service) Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error) {
 	a, err := s.repo.Get(ctx, req)
 	if err != nil {
 		return nil, err
@@ -94,18 +95,18 @@ func (s *service) Get(ctx context.Context, req *domain.GetActionRequest) (*domai
 	return a, nil
 }
 
-func (s *service) FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error) {
+func (s *Service) FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error) {
 	return s.repo.FindByFilterID(ctx, filterID, active, withClient)
 }
 
-func (s *service) Delete(ctx context.Context, req *domain.DeleteActionRequest) error {
+func (s *Service) Delete(ctx context.Context, req *domain.DeleteActionRequest) error {
 	return s.repo.Delete(ctx, req)
 }
 
-func (s *service) DeleteByFilterID(ctx context.Context, filterID int) error {
+func (s *Service) DeleteByFilterID(ctx context.Context, filterID int) error {
 	return s.repo.DeleteByFilterID(ctx, filterID)
 }
 
-func (s *service) ToggleEnabled(actionID int) error {
+func (s *Service) ToggleEnabled(actionID int) error {
 	return s.repo.ToggleEnabled(actionID)
 }

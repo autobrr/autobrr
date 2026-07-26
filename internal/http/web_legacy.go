@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -44,11 +44,11 @@ func (h *webLegacyHandler) registerAssets(r *chi.Mux) {
 		}
 
 		if d.IsDir() {
-			//h.log.Trace().Msgf("web assets: skip dir: %s", d.Name())
+			//h.log.Trace().Str("dir", d.Name()).Msg("web assets skip dir")
 			return nil
 		}
 
-		h.log.Trace().Msgf("web assets: found path: %s", path)
+		h.log.Trace().Str("path", path).Msg("web asset found")
 
 		// ignore index.html, so we can render it as a template and inject variables
 		if path == "index.html" || path == "manifest.webmanifest" || path == ".gitkeep" {

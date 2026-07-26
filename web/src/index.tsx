@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -8,12 +8,16 @@ import { createRoot } from "react-dom/client";
 import { Buffer } from "buffer";
 
 import "./index.css";
+import "./i18n";
 
 import { App } from "./App";
 import { InitializeGlobalContext } from "./utils/Context";
 
 declare global {
-    interface Window { APP: APP; }
+    interface Window {
+      APP: APP;
+      Buffer: typeof Buffer;
+    }
 }
 
 window.APP = window.APP || {};

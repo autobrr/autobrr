@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -17,16 +17,14 @@ import (
 )
 
 type ActionRepo struct {
-	log        zerolog.Logger
-	db         *DB
-	clientRepo domain.DownloadClientRepo
+	log zerolog.Logger
+	db  *DB
 }
 
-func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
+func NewActionRepo(log logger.Logger, db *DB) *ActionRepo {
 	return &ActionRepo{
-		log:        log.With().Str("repo", "action").Logger(),
-		db:         db,
-		clientRepo: clientRepo,
+		log: log.With().Str("repo", "action").Logger(),
+		db:  db,
 	}
 }
 
@@ -52,6 +50,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 			"a.tags",
 			"a.label",
 			"a.save_path",
+			"a.download_path",
 			"a.paused",
 			"a.ignore_rules",
 			"a.first_last_piece_prio",
@@ -86,7 +85,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -97,14 +96,14 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -115,6 +114,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		a.Tags = tags.String
 		a.Label = label.String
 		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
 		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
@@ -158,6 +158,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 			"a.tags",
 			"a.label",
 			"a.save_path",
+			"a.download_path",
 			"a.paused",
 			"a.ignore_rules",
 			"a.first_last_piece_prio",
@@ -204,7 +205,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -216,7 +217,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		var a domain.Action
 		var c domain.DownloadClient
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 
@@ -227,7 +228,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		var clientName, clientType, clientHost, clientUsername, clientPassword, clientSettings sql.Null[string]
 		var clientEnabled, clientTLS, clientTLSSkip sql.Null[bool]
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &clientClientId, &clientName, &clientType, &clientEnabled, &clientHost, &clientPort, &clientTLS, &clientTLSSkip, &clientUsername, &clientPassword, &clientSettings); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &clientClientId, &clientName, &clientType, &clientEnabled, &clientHost, &clientPort, &clientTLS, &clientTLSSkip, &clientUsername, &clientPassword, &clientSettings); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -238,6 +239,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		a.Tags = tags.String
 		a.Label = label.String
 		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
 		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
@@ -267,7 +269,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		c.TLSSkipVerify = clientTLSSkip.V
 		c.Username = clientUsername.V
 		c.Password = clientPassword.V
-		//c.Settings = clientSettings.String
+		// c.Settings = clientSettings.String
 
 		if a.ClientID > 0 {
 			if clientSettings.Valid {
@@ -332,6 +334,7 @@ func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int,
 			"tags",
 			"label",
 			"save_path",
+			"download_path",
 			"paused",
 			"ignore_rules",
 			"first_last_piece_prio",
@@ -377,14 +380,14 @@ func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int,
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -395,6 +398,7 @@ func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int,
 		a.Tags = tags.String
 		a.Label = label.String
 		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
 		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
@@ -457,7 +461,7 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			r.log.Warn().Msgf("no download client with id %d", clientID)
+			r.log.Warn().Int32("client_id", clientID).Msg("no download client")
 			return nil, domain.ErrRecordNotFound
 		}
 
@@ -487,6 +491,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"tags",
 			"label",
 			"save_path",
+			"download_path",
 			"paused",
 			"ignore_rules",
 			"first_last_piece_prio",
@@ -516,7 +521,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -527,13 +532,13 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 	for rows.Next() {
 		var a domain.Action
 
-		var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
 		var limitRatio sql.NullFloat64
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -541,6 +546,7 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.Tags = tags.String
 		a.Label = label.String
 		a.SavePath = savePath.String
+		a.DownloadPath = downloadPath.String
 		a.Paused = paused.Bool
 		a.IgnoreRules = ignoreRules.Bool
 		a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
@@ -584,6 +590,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 			"tags",
 			"label",
 			"save_path",
+			"download_path",
 			"paused",
 			"ignore_rules",
 			"first_last_piece_prio",
@@ -615,20 +622,20 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
 	var a domain.Action
 
-	var execCmd, execArgs, watchFolder, category, tags, label, savePath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
+	var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 	var limitUl, limitDl, limitSeedTime sql.NullInt64
 	var limitRatio sql.NullFloat64
 	var externalClientID, clientID, filterID sql.NullInt32
 	var paused, ignoreRules sql.NullBool
 
-	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &filterID); err != nil {
+	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &filterID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -643,6 +650,7 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	a.Tags = tags.String
 	a.Label = label.String
 	a.SavePath = savePath.String
+	a.DownloadPath = downloadPath.String
 	a.Paused = paused.Bool
 	a.IgnoreRules = ignoreRules.Bool
 	a.ContentLayout = domain.ActionContentLayout(contentLayout.String)
@@ -676,12 +684,12 @@ func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.delete: %v", req.ActionId)
+	r.log.Debug().Int("action_id", req.ActionId).Msg("action delete")
 
 	return nil
 }
@@ -696,12 +704,12 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.handler.ExecContext(ctx, query, args...)
+	_, err = r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("action delete by filter")
 
 	return nil
 }
@@ -720,6 +728,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			"tags",
 			"label",
 			"save_path",
+			"download_path",
 			"paused",
 			"ignore_rules",
 			"first_last_piece_prio",
@@ -754,6 +763,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			toNullString(action.Tags),
 			toNullString(action.Label),
 			toNullString(action.SavePath),
+			toNullString(action.DownloadPath),
 			action.Paused,
 			action.IgnoreRules,
 			action.FirstLastPiecePrio,
@@ -777,7 +787,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			toNullInt32(action.ClientID),
 			toNullInt32(int32(action.FilterID)),
 		).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	// return values
 	var retID int64
@@ -788,7 +798,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 
 	action.ID = int(retID)
 
-	r.log.Debug().Msgf("action.store: added new %d", retID)
+	r.log.Debug().Int64("action_id", retID).Msg("action store: added new")
 
 	return nil
 }
@@ -806,6 +816,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("tags", toNullString(action.Tags)).
 		Set("label", toNullString(action.Label)).
 		Set("save_path", toNullString(action.SavePath)).
+		Set("download_path", toNullString(action.DownloadPath)).
 		Set("paused", action.Paused).
 		Set("ignore_rules", action.IgnoreRules).
 		Set("first_last_piece_prio", action.FirstLastPiecePrio).
@@ -835,17 +846,17 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.update: %v", action.ID)
+	r.log.Debug().Int("action_id", action.ID).Msg("action update")
 
 	return &action, nil
 }
 
 func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
-	tx, err := r.db.handler.BeginTx(ctx, nil)
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error begin transaction")
 	}
@@ -868,6 +879,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				Set("tags", toNullString(action.Tags)).
 				Set("label", toNullString(action.Label)).
 				Set("save_path", toNullString(action.SavePath)).
+				Set("download_path", toNullString(action.DownloadPath)).
 				Set("paused", action.Paused).
 				Set("ignore_rules", action.IgnoreRules).
 				Set("first_last_piece_prio", action.FirstLastPiecePrio).
@@ -901,7 +913,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				return nil, errors.Wrap(err, "error executing query")
 			}
 
-			r.log.Trace().Msgf("action.StoreFilterActions: update %d", action.ID)
+			r.log.Trace().Int("action_id", action.ID).Msg("action store filter actions: update")
 
 		} else {
 			queryBuilder := r.db.squirrel.
@@ -917,6 +929,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					"tags",
 					"label",
 					"save_path",
+					"download_path",
 					"paused",
 					"ignore_rules",
 					"first_last_piece_prio",
@@ -951,6 +964,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					toNullString(action.Tags),
 					toNullString(action.Label),
 					toNullString(action.SavePath),
+					toNullString(action.DownloadPath),
 					action.Paused,
 					action.IgnoreRules,
 					action.FirstLastPiecePrio,
@@ -985,10 +999,10 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 
 			action.ID = retID
 
-			r.log.Trace().Msgf("action.StoreFilterActions: store %d", action.ID)
+			r.log.Trace().Int("action_id", action.ID).Msg("action store filter actions: store")
 		}
 
-		r.log.Debug().Msgf("action.StoreFilterActions: store '%s' type: '%v' on filter: %d", action.Name, action.Type, filterID)
+		r.log.Debug().Str("action", action.Name).Str("action_type", string(action.Type)).Int64("filter_id", filterID).Msg("store filter action")
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1009,7 +1023,7 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.Exec(query, args...)
+	result, err := r.db.Handler.Exec(query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -1020,7 +1034,7 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Msgf("action.toggleEnabled: %v", actionID)
+	r.log.Debug().Int("action_id", actionID).Msg("action toggle enabled")
 
 	return nil
 }

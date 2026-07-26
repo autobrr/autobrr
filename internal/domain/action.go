@@ -1,25 +1,13 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
 
 import (
-	"context"
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
-
-type ActionRepo interface {
-	Store(ctx context.Context, action *Action) error
-	StoreFilterActions(ctx context.Context, filterID int64, actions []*Action) ([]*Action, error)
-	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*Action, error)
-	List(ctx context.Context) ([]Action, error)
-	Get(ctx context.Context, req *GetActionRequest) (*Action, error)
-	Delete(ctx context.Context, req *DeleteActionRequest) error
-	DeleteByFilterID(ctx context.Context, filterID int) error
-	ToggleEnabled(actionID int) error
-}
 
 type Action struct {
 	ID                       int                 `json:"id"`
@@ -33,6 +21,7 @@ type Action struct {
 	Tags                     string              `json:"tags,omitempty"`
 	Label                    string              `json:"label,omitempty"`
 	SavePath                 string              `json:"save_path,omitempty"`
+	DownloadPath             string              `json:"download_path,omitempty"`
 	Paused                   bool                `json:"paused,omitempty"`
 	IgnoreRules              bool                `json:"ignore_rules,omitempty"`
 	FirstLastPiecePrio       bool                `json:"first_last_piece_prio,omitempty"`
@@ -59,30 +48,61 @@ type Action struct {
 	Client                   *DownloadClient     `json:"client,omitempty"`
 }
 
-// CheckMacrosNeedTorrentTmpFile check if macros needs torrent downloaded
+// NeedsTorrentDownloaded check if the action type uploads the torrent itself.
+// These are resolved up front so a release with several actions fetches the
+// torrent from the indexer once, instead of once per action.
+func (a *Action) NeedsTorrentDownloaded() bool {
+	switch a.Type {
+	case ActionTypeQbittorrent, ActionTypeDelugeV1, ActionTypeDelugeV2, ActionTypeRTorrent,
+		ActionTypeTransmission, ActionTypePorla, ActionTypeWatchFolder:
+		return true
+	default:
+		return false
+	}
+}
+
+// macroFields returns the action fields that get macro expanded and could
+// reference the torrent file. Keep in sync with ParseMacros.
+func (a *Action) macroFields() []string {
+	return []string{a.ExecArgs, a.WatchFolder, a.SavePath, a.DownloadPath, a.WebhookData}
+}
+
+// CheckMacrosNeedTorrentTmpFile check if macros need the torrent written to disk.
+// Only the path macros need a real file, everything else works off the raw bytes.
 func (a *Action) CheckMacrosNeedTorrentTmpFile(release *Release) bool {
-	if release.TorrentTmpFile == "" &&
-		(strings.Contains(a.ExecArgs, "TorrentPathName") ||
-			strings.Contains(a.ExecArgs, "TorrentDataRawBytes") ||
-			strings.Contains(a.ExecArgs, "TorrentHash") ||
-			strings.Contains(a.WebhookData, "TorrentPathName") ||
-			strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
-			strings.Contains(a.WebhookData, "TorrentHash") ||
-			strings.Contains(a.SavePath, "TorrentPathName") ||
-			strings.Contains(a.SavePath, "TorrentHash") ||
-			a.Type == ActionTypeWatchFolder) {
+	if release.TorrentTmpFile != "" {
+		return false
+	}
+
+	return containsAnyMacro(a.macroFields(), "TorrentPathName", "TorrentTmpFile")
+}
+
+// CheckMacrosNeedRawDataBytes check if macros need the torrent downloaded into memory.
+// This is a superset of CheckMacrosNeedTorrentTmpFile since a tmp file can only be
+// written once we hold the contents.
+func (a *Action) CheckMacrosNeedRawDataBytes(release *Release) bool {
+	if len(release.TorrentDataRawBytes) != 0 {
+		return false
+	}
+
+	if a.Type == ActionTypeWatchFolder {
 		return true
 	}
 
-	return false
+	return containsAnyMacro(a.macroFields(), "TorrentPathName", "TorrentTmpFile", "TorrentDataRawBytes", "TorrentHash")
 }
 
-func (a *Action) CheckMacrosNeedRawDataBytes(release *Release) bool {
-	// if webhook data contains TorrentDataRawBytes, lets read the file into bytes we can then use in the macro
-	if len(release.TorrentDataRawBytes) == 0 &&
-		(strings.Contains(a.ExecArgs, "TorrentDataRawBytes") || strings.Contains(a.WebhookData, "TorrentDataRawBytes") ||
-			a.Type == ActionTypeWatchFolder) {
-		return true
+func containsAnyMacro(fields []string, macros ...string) bool {
+	for _, field := range fields {
+		if field == "" {
+			continue
+		}
+
+		for _, macro := range macros {
+			if strings.Contains(field, macro) {
+				return true
+			}
+		}
 	}
 
 	return false
@@ -122,6 +142,10 @@ func (a *Action) ParseMacros(release *Release) error {
 	if err != nil {
 		return errors.Wrap(err, "could not parse save_path")
 	}
+	a.DownloadPath, err = m.Parse(a.DownloadPath)
+	if err != nil {
+		return errors.Wrap(err, "could not parse download_path")
+	}
 	a.WebhookData, err = m.Parse(a.WebhookData)
 	if err != nil {
 		return errors.Wrap(err, "could not parse webhook_data")
@@ -149,6 +173,7 @@ const (
 	ActionTypeWhisparr     ActionType = "WHISPARR"
 	ActionTypeReadarr      ActionType = "READARR"
 	ActionTypeSabnzbd      ActionType = "SABNZBD"
+	ActionTypeNzbget       ActionType = "NZBGET"
 )
 
 type ActionContentLayout string

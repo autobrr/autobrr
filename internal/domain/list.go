@@ -1,10 +1,10 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
 
 import (
-	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,17 +12,6 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
-
-type ListRepo interface {
-	List(ctx context.Context) ([]*List, error)
-	FindByID(ctx context.Context, listID int64) (*List, error)
-	Store(ctx context.Context, listID *List) error
-	Update(ctx context.Context, listID *List) error
-	UpdateLastRefresh(ctx context.Context, list *List) error
-	ToggleEnabled(ctx context.Context, listID int64, enabled bool) error
-	Delete(ctx context.Context, listID int64) error
-	GetListFilters(ctx context.Context, listID int64) ([]ListFilter, error)
-}
 
 type ListType string
 
@@ -37,6 +26,7 @@ const (
 	ListTypePlaintext  ListType = "PLAINTEXT"
 	ListTypeTrakt      ListType = "TRAKT"
 	ListTypeSteam      ListType = "STEAM"
+	ListTypeAniList    ListType = "ANILIST"
 )
 
 type ListRefreshStatus string
@@ -61,11 +51,24 @@ type List struct {
 	TagsExclude            []string          `json:"tags_excluded"`
 	IncludeUnmonitored     bool              `json:"include_unmonitored"`
 	IncludeAlternateTitles bool              `json:"include_alternate_titles"`
+	IncludeYear            bool              `json:"include_year"`
+	SkipCleanSanitize      bool              `json:"skip_clean_sanitize"`
 	LastRefreshTime        time.Time         `json:"last_refresh_time"`
 	LastRefreshData        string            `json:"last_refresh_error"`
 	LastRefreshStatus      ListRefreshStatus `json:"last_refresh_status"`
 	CreatedAt              time.Time         `json:"created_at"`
 	UpdatedAt              time.Time         `json:"updated_at"`
+}
+
+func (l List) MarshalJSON() ([]byte, error) {
+	type Alias List
+	return json.Marshal(&struct {
+		*Alias
+		APIKey string `json:"api_key"`
+	}{
+		APIKey: RedactString(l.APIKey),
+		Alias:  (*Alias)(&l),
+	})
 }
 
 func (l *List) Validate() error {
@@ -108,7 +111,7 @@ func (l *List) ListTypeArr() bool {
 }
 
 func (l *List) ListTypeList() bool {
-	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam
+	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam || l.Type == ListTypeAniList
 }
 
 func (l *List) ShouldProcessItem(monitored bool) bool {

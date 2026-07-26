@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package irc
@@ -39,6 +39,7 @@ func CommandHandler(c *Client, cmd []string) {
 	case "CAP":
 		log.Printf("caps: %+v", cmd)
 	case "JOIN":
+		c.users[c.nick] = struct{}{}
 		c.writer <- fmt.Sprintf(":localhost 221 %s +Zi", c.nick)
 		c.writer <- fmt.Sprintf(":localhost 331 %s %s :No topic", c.nick, c.channelName)
 		c.writer <- fmt.Sprintf(":localhost 353 %s = %s :%s %s", c.nick, c.channelName, c.nick, c.botName)
@@ -52,6 +53,7 @@ func CommandHandler(c *Client, cmd []string) {
 		//c.writer <- fmt.Sprintf(":localhost %s!%s@localhost QUIT :Quit%s", c.nick, c.nick, strings.Join(cmd[1:], " "))
 		//c.writer <- fmt.Sprintf(":localhost :%s@localhost QUIT :Quit%s", c.nick, strings.Join(cmd[1:], " "))
 		c.writer <- fmt.Sprintf("ERROR :Quit%s", strings.Join(cmd[1:], " "))
+		delete(c.users, c.nick)
 	case "ERROR":
 		c.writer <- fmt.Sprintf("ERROR :Quit%s", strings.Join(cmd[1:], " "))
 	}

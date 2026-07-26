@@ -1,15 +1,13 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package indexer
 
 import (
-	"io"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -329,6 +327,37 @@ func TestIndexersParseAndFilter(t *testing.T) {
 					},
 					match: false,
 				},
+				{
+					name: "announce_6",
+					args: args{
+						announceLines: []string{"The best artist - Album No 1 [2017] [Album] - FLAC / Lossless / Log / Cue / CD - https://redacted.sh/torrents.php?id=0000000 / https://redacted.sh/torrents.php?action=download&id=0000000 - Hip.Hop,Estonian,2010s"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:            "filter_1",
+									MatchCategories: "Album",
+									Years:           "2017",
+									Quality:         []string{"Lossless"},
+									Sources:         []string{"CD"},
+									Formats:         []string{"FLAC"},
+									Log:             true,
+									Cue:             true,
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:            "filter_2",
+									MatchCategories: "Album",
+									PerfectFlac:     true,
+								},
+								match:      false,
+								rejections: []string{"wanted: perfect flac. got: [Cue FLAC Lossless Log]"},
+							},
+						},
+					},
+					match: false,
+				},
 			},
 			match: true,
 		},
@@ -336,48 +365,48 @@ func TestIndexersParseAndFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//l := zerolog.New(io.Discard)
-			//l := logger.Mock()
+			var def *domain.IndexerDefinition
+			defErr := OpenAndDecodeDefinition("./definitions/"+tt.fields.identifier+".yaml", &def)
+			assert.NoError(t, defErr)
 
-			i, err := OpenAndProcessDefinition("./definitions/" + tt.fields.identifier + ".yaml")
-			assert.NoError(t, err)
+			def.Prepare()
 
-			i.IdentifierExternal = tt.fields.identifierExternal
-			i.SettingsMap = tt.fields.settings
-
-			ll := zerolog.New(io.Discard)
+			def.IdentifierExternal = tt.fields.identifierExternal
+			def.SettingsMap = tt.fields.settings
 
 			// indexer subtests
 			for _, subT := range tt.subTests {
 				t.Run(subT.name, func(t *testing.T) {
 
+					rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier, IdentifierExternal: def.IdentifierExternal})
+					rls.Protocol = domain.ReleaseProtocol(def.Protocol)
+
 					// from announce/announce.go
 					tmpVars := map[string]string{}
 					parseFailed := false
 
-					for idx, parseLine := range i.IRC.Parse.Lines {
-						match, err := ParseLine(&ll, parseLine.Pattern, parseLine.Vars, tmpVars, subT.args.announceLines[idx], parseLine.Ignore)
-						if err != nil {
-							parseFailed = true
-							break
+					for _, channel := range def.IRC.ChannelsMap {
+						for idx, parseLine := range channel.Parse.Lines {
+							match, err := parseLine.ParseLine(tmpVars, subT.args.announceLines[idx], parseLine.Ignore)
+							if err != nil {
+								parseFailed = true
+								break
+							}
+
+							if !match {
+								parseFailed = true
+								break
+							}
 						}
 
-						if !match {
-							parseFailed = true
-							break
+						if parseFailed {
+							return
 						}
+
+						// on lines matched
+						parseErr := channel.Parse.Parse(def, channel.Name, tmpVars, rls)
+						assert.NoError(t, parseErr)
 					}
-
-					if parseFailed {
-						return
-					}
-
-					rls := domain.NewRelease(domain.IndexerMinimal{ID: i.ID, Name: i.Name, Identifier: i.Identifier, IdentifierExternal: i.IdentifierExternal})
-					rls.Protocol = domain.ReleaseProtocol(i.Protocol)
-
-					// on lines matched
-					err = i.IRC.Parse.Parse(i, tmpVars, rls)
-					assert.NoError(t, err)
 
 					// release/service.go
 

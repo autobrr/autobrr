@@ -1,22 +1,23 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package action
 
 import (
-	"bufio"
 	"context"
 	"encoding/base64"
-	"io"
-	"os"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/porla"
+
+	"github.com/rs/zerolog"
 )
 
-func (s *service) porla(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Debug().Msgf("action Porla: %s", action.Name)
+func (s *Service) porla(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running Porla action")
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
@@ -71,45 +72,36 @@ func (s *service) porla(ctx context.Context, action *domain.Action, release doma
 			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)
+		l.Info().Str("hash", release.TorrentHash).Str("client", client.Name).Msg("release successfully added to client")
 
 		return nil, nil
 	} else {
-		if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
-		}
-
-		file, err := os.Open(release.TorrentTmpFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "error opening file %s", release.TorrentTmpFile)
-		}
-		defer file.Close()
-
-		content, err := io.ReadAll(bufio.NewReader(file))
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to read file: %s", release.TorrentTmpFile)
 		}
 
 		opts := &porla.TorrentsAddReq{
 			DownloadLimit: downloadLimit,
 			SavePath:      action.SavePath,
-			Ti:            base64.StdEncoding.EncodeToString(content),
+			Ti:            base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes),
 			UploadLimit:   uploadLimit,
 			Preset:        preset,
 		}
 
-		if err = prl.TorrentsAdd(ctx, opts); err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
+		if err := prl.TorrentsAdd(ctx, opts); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Name)
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)
+		l.Info().Str("hash", release.TorrentHash).Str("client", client.Name).Msg("release successfully added to client")
 	}
 
 	return nil, nil
 }
 
-func (s *service) porlaCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, prla *porla.Client) ([]string, error) {
-	s.log.Trace().Msgf("action Porla: %s check rules", action.Name)
+func (s *Service) porlaCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, prla *porla.Client) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("action porla check rules")
 
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
@@ -122,7 +114,7 @@ func (s *service) porlaCheckRulesCanDownload(ctx context.Context, action *domain
 			if len(torrents.Torrents) >= client.Settings.Rules.MaxActiveDownloads {
 				rejection := "max active downloads reached, skipping"
 
-				s.log.Debug().Msg(rejection)
+				l.Debug().Msg(rejection)
 
 				return []string{rejection}, nil
 			}

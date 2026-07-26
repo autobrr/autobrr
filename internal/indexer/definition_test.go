@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021-2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package indexer
@@ -10,30 +10,29 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestYamlExpectations(t *testing.T) {
+func TestIndexerYamlExpectations(t *testing.T) {
 	t.Parallel()
-	s := &service{definitions: map[string]domain.IndexerDefinition{}}
+	s := &Service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
-
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	for _, d := range s.definitions {
 		if d.IRC == nil {
 			continue
 		}
-		if d.IRC.Parse == nil {
-			continue
-		}
-		if d.IRC.Parse.Lines == nil {
-			continue
-		}
 
-		for _, parseLine := range d.IRC.Parse.Lines {
-			for _, test := range parseLine.Tests {
-				parseOutput := map[string]string{}
-				ParseLine(nil, parseLine.Pattern, parseLine.Vars, parseOutput, test.Line, parseLine.Ignore)
-				assert.Equal(t, test.Expect, parseOutput, "error parsing %s", test.Line)
+		t.Run(d.Name, func(t *testing.T) {
+			for channelName, channel := range d.IRC.ChannelsMap {
+				for _, parseLine := range channel.Parse.Lines {
+					for _, test := range parseLine.Tests {
+						parseOutput := map[string]string{}
+						ok, parseErr := parseLine.ParseLine(parseOutput, test.Line, parseLine.Ignore)
+						assert.True(t, ok, "error parsing %s - %s: %s", channelName, test.Line, parseErr)
+						assert.NoError(t, parseErr, "error parsing %s - %s", channelName, test.Line)
+						assert.Equal(t, test.Expect, parseOutput, "error parsing %s - %s", channelName, test.Line)
+					}
+				}
 			}
-		}
+		})
 	}
 }

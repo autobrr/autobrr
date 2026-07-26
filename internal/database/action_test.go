@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 //go:build integration
@@ -28,6 +28,7 @@ func getMockAction() *domain.Action {
 		Tags:                     "P2P, x264",
 		Label:                    "testLabel",
 		SavePath:                 "/home/user/Downloads",
+		DownloadPath:             "/home/user/Incomplete",
 		Paused:                   false,
 		IgnoreRules:              false,
 		SkipHashCheck:            false,
@@ -57,7 +58,7 @@ func TestActionRepo_Store(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -121,7 +122,7 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("StoreFilterActions_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -200,7 +201,7 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("FindByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -275,7 +276,7 @@ func TestActionRepo_List(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("List_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -325,7 +326,7 @@ func TestActionRepo_Get(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("Get_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -382,7 +383,7 @@ func TestActionRepo_Delete(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -436,7 +437,7 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("DeleteByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -488,7 +489,7 @@ func TestActionRepo_ToggleEnabled(t *testing.T) {
 		log := setupLoggerForTest()
 		downloadClientRepo := NewDownloadClientRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		repo := NewActionRepo(log, db, downloadClientRepo)
+		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("ToggleEnabled_Succeeds [%s]", dbType), func(t *testing.T) {

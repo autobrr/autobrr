@@ -64,12 +64,12 @@ builds:
 
 archives:
   - id: autobrr
-    builds:
+    ids:
       - autobrr
       - autobrrctl
     format_overrides:
       - goos: windows
-        format: zip
+        formats: zip
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
@@ -79,20 +79,22 @@ archives:
 
 release:
   prerelease: auto
+  extra_files:
+    - glob: web-dist.tar.gz
   footer: |
     **Full Changelog**: https://github.com/autobrr/autobrr/compare/{{ .PreviousTag }}...{{ .Tag }}
-    
+
     ## Docker images
-    
+
     - `docker pull ghcr.io/autobrr/autobrr:{{ .Tag }}`
-    
+
     ## What to do next?
-    
+
     - Read the [documentation](https://autobrr.com)
-    - Join our [Discord server](https://discord.gg/WQ2eUycxyT)
+    - Join our [Discord server](https://discord.autobrr.com)
 
 checksum:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
 
 changelog:
   sort: asc
@@ -103,10 +105,10 @@ changelog:
       - Merge remote-tracking branch
       - Merge branch
   groups:
-    - title: 'New Features'
+    - title: "New Features"
       regexp: "^.*feat[(\\w)]*:+.*$"
       order: 0
-    - title: 'Bug fixes'
+    - title: "Bug fixes"
       regexp: "^.*fix[(\\w)]*:+.*$"
       order: 10
     - title: Other work
@@ -117,7 +119,10 @@ nfpms:
     homepage: https://autobrr.com
     maintainer: Autobrr <packages@autobrr.com>
     description: |-
-            autobrr is the modern download automation tool for torrents and usenet.
+      autobrr is the modern download automation tool for torrents and usenet.
+    contents:
+      - src: docs/man/autobrr.1
+        dst: /usr/share/man/man1/autobrr.1
     formats:
       - apk
       - deb

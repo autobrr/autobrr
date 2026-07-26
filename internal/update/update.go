@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package update
@@ -31,7 +31,7 @@ func NewUpdate(log logger.Logger, config *domain.Config) *Service {
 	}
 }
 
-func (s *Service) GetLatestRelease(ctx context.Context) *version.Release {
+func (s *Service) GetLatestRelease(_ context.Context) *version.Release {
 	s.m.RLock()
 	defer s.m.RUnlock()
 	return s.latestRelease
@@ -56,7 +56,7 @@ func (s *Service) CheckUpdateAvailable(ctx context.Context) (*version.Release, e
 	}
 
 	if newAvailable {
-		s.log.Info().Msgf("autobrr outdated, found newer release: %s", newVersion.TagName)
+		s.log.Info().Str("version", newVersion.TagName).Msg("found newer release")
 
 		s.m.Lock()
 		defer s.m.Unlock()

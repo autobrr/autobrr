@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -41,7 +41,7 @@ export const Section = ({
         {titleElement ?? <h2 className="text-lg leading-4 font-bold text-gray-900 dark:text-white">{title}</h2>}
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
       </div>
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         {rightSide ?? null}
       </div>
     </div>
@@ -80,7 +80,7 @@ export const RowItem = ({
         ? (
           <>
             {typeof (value) === "string" ? (
-              <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded shadow text-ellipsis leading-7">
+              <span className="px-1.5 py-1 bg-gray-200 dark:bg-gray-700 rounded-sm shadow-sm text-ellipsis leading-7">
                 {value}
               </span>
             ) : value}
@@ -143,3 +143,21 @@ export const LunaSeaIcon = () => (
     <path d="m749.31 375.08c0 107.48-87.14 194.61-194.62 194.61s-194.62-87.13-194.62-194.61 87.13-194.62 194.62-194.62c7.391-2e-3 14.776 0.412 22.12 1.24-78.731 10.172-136.59 78.893-133.2 158.2 3.393 79.313 66.907 142.84 146.22 146.25 79.311 3.411 148.05-54.43 158.24-133.16 0.826 7.331 1.24 14.703 1.24 22.08z" />
   </svg>
 );
+
+export const WebhookIcon = () => (
+  <svg
+    {...commonSVGProps}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2" />
+    <path d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06" />
+    <path d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8" />
+  </svg>
+)
+
+

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package http
@@ -29,6 +29,7 @@ type ircService interface {
 	RestartNetwork(ctx context.Context, id int64) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
 	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
+	GetMessageHistory(ctx context.Context, networkID int64, channel string) ([]domain.IrcMessage, error)
 }
 
 type ircHandler struct {
@@ -51,13 +52,15 @@ func (h ircHandler) Routes(r chi.Router) {
 	r.Post("/", h.storeNetwork)
 
 	r.Route("/network/{networkID}", func(r chi.Router) {
-		r.Put("/", h.updateNetwork)
 		r.Get("/", h.getNetworkByID)
+		r.Put("/", h.updateNetwork)
 		r.Delete("/", h.deleteNetwork)
 
 		r.Post("/cmd", h.sendCmd)
 		r.Post("/channel", h.storeChannel)
 		r.Get("/restart", h.restartNetwork)
+
+		r.Get("/channel/{channel}/history", h.getMessageHistory)
 
 		r.Post("/channel/{channel}/announce/process", h.announceProcess)
 	})
@@ -254,4 +257,37 @@ func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.NoContent(w)
+}
+
+func (h ircHandler) getMessageHistory(w http.ResponseWriter, r *http.Request) {
+	networkID, err := strconv.Atoi(chi.URLParam(r, "networkID"))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	channel := chi.URLParam(r, "channel")
+
+	// we cant pass # as an url parameter so the frontend has to strip it
+	if !strings.HasPrefix(channel, "#") {
+		channel = fmt.Sprintf("#%s", channel)
+	}
+
+	data, err := h.service.GetMessageHistory(r.Context(), int64(networkID), channel)
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", networkID))
+			return
+		}
+
+		if errors.Is(err, domain.ErrIRCNetworkHandlerNotFound) {
+			h.encoder.StatusResponse(w, http.StatusOK, make([]domain.IrcMessage, 0))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }

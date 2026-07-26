@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package readarr
@@ -13,6 +13,7 @@ import (
 	"path"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) {
@@ -40,7 +41,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 		return 0, nil, errors.Wrap(err, "readarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")
@@ -81,7 +82,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 		return errors.Wrap(err, "readarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return errors.New("response body is nil")
@@ -151,7 +152,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 		return 0, nil, errors.Wrap(err, "could not marshal data: %+v", data)
 	}
 
-	c.Log.Printf("readarr push JSON: %s\n", string(jsonData))
+	c.logger(ctx).Trace().Str("endpoint", endpoint).Str("payload", string(jsonData)).Msg("readarr post payload")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -169,7 +170,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 		return 0, nil, errors.Wrap(err, "readarr.http.Do(req): %+v", req)
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")

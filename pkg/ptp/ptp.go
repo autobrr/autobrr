@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package ptp
@@ -161,7 +161,7 @@ func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error
 		return errors.Wrap(err, "ptp client request error : %v", reqUrl)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	if res.StatusCode == http.StatusUnauthorized {
 		return ErrUnauthorized

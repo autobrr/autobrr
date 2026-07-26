@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package domain
@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"github.com/moistari/rls"
+	"github.com/moistari/rls/taginfo"
 )
 
 var types map[string][]*TagInfo
@@ -58,6 +61,11 @@ func init() {
 		{tag: "V0 (VBR)", title: "V0 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V1 (VBR)", title: "V1 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V2 (VBR)", title: "V2 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "DSD", title: "Direct Stream Digital", regexp: "", re: nil},
+		{tag: "DSD64", title: "DSD Oversampling ratio 64x", regexp: "", re: nil},
+		{tag: "DSD128", title: "DSD Oversampling ratio 128x", regexp: "", re: nil},
+		{tag: "DSD256", title: "DSD Oversampling ratio 256x", regexp: "", re: nil},
+		{tag: "DSD512", title: "DSD Oversampling ratio 512x", regexp: "", re: nil},
 	}
 	types["audio"] = audio
 
@@ -77,6 +85,10 @@ func init() {
 		{tag: "V0 (VBR)", title: "V0 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V1 (VBR)", title: "V1 Variable Bit Rate", regexp: "", re: nil},
 		{tag: "V2 (VBR)", title: "V2 Variable Bit Rate", regexp: "", re: nil},
+		{tag: "DSD64", title: "DSD Oversampling ratio 64x", regexp: "", re: nil},
+		{tag: "DSD128", title: "DSD Oversampling ratio 128x", regexp: "", re: nil},
+		{tag: "DSD256", title: "DSD Oversampling ratio 256x", regexp: "", re: nil},
+		{tag: "DSD512", title: "DSD Oversampling ratio 512x", regexp: "", re: nil},
 	}
 	types["audioBitrate"] = audioBitrate
 
@@ -104,6 +116,7 @@ func init() {
 		{tag: "OGG", title: "", regexp: "", re: nil},
 		{tag: "OPUS", title: "", regexp: "", re: nil},
 		{tag: "TrueHD", title: "Dolby TrueHD", regexp: "(?:dolby[\\-\\._ ]?)?true[\\-\\._ ]?hd", re: nil},
+		{tag: "DSD", title: "Direct Stream Digital", regexp: "", re: nil},
 	}
 	types["audioFormat"] = audioFormat
 
@@ -264,6 +277,49 @@ func init() {
 			info.re = regexp.MustCompile(`(?i)(?:` + info.RE() + `)`)
 		}
 	}
+
+	var extraTagInfos = map[string][]*taginfo.Taginfo{}
+
+	extraCollections := [][]string{
+		{"4OD", "4OD", "(?-i:4OD)", "", "", ""},
+		{"ABEMA", "Abema", "(?-i:ABEMA)", "", "", ""},
+		{"ADN", "Animation Digital Network", "(?-i:ADN)", "", "", ""},
+		{"AUBC", "Australian Broadcasting Corporation", "", "", "", ""},
+		{"AUViO", "French AUViO", "(?-i:AUViO)", "", "", ""},
+		{"Bilibili", "Bilibili", "(?-i:Bilibili)", "", "", ""},
+		{"CRiT", "Criterion Channel", "(?-i:CRiT)", "", "", ""},
+		{"FOD", "Fuji Television On Demand", "(?-i:FOD)", "", "", ""},
+		{"HIDIVE", "HIDIVE", "(?-i:HIDIVE)", "", "", ""},
+		{"ITVX", "ITVX aka ITV", "", "", "", ""},
+		{"MA", "Movies Anywhere", "(?-i:MA)", "", "", ""},
+		{"MY5", "MY5 aka Channel 5", "", "", "", ""},
+		{"MyCanal", "French Groupe Canal+", "(?-i:MyCanal)", "", "", ""},
+		{"NOW", "Now", "(?-i:NOW)", "", "", ""},
+		{"NLZ", "Dutch NLZiet", "(?-i:NLZ|NLZiet)", "", "", ""},
+		{"OViD", "OViD", "(?-i:OViD)", "", "", ""},
+		{"STRP", "Star+", "(?-i:STRP)", "", "", ""},
+		{"U-NEXT", "U-NEXT", "(?-i:U-NEXT)", "", "", ""},
+		{"TVer", "TVer", "(?-i:TVer)", "", "", ""},
+		{"TVING", "TVING", "(?-i:TVING)", "", "", ""},
+		{"VIU", "VIU", "(?-i:VIU)", "", "", ""},
+		{"VDL", "Videoland", "(?-i:VDL)", "", "", ""},
+		{"VRV", "VRV", "(?-i:VRV)", "", "", ""},
+		{"Pathe", "Pathé Thuis", "(?-i:Pathe)", "", "", ""},
+		{"SALTO", "SALTO", "(?-i:SALTO)", "", "", ""},
+		{"SHOWTIME", "SHOWTIME", "(?-i:SHO|SHOWTIME)", "", "", ""},
+		{"SYFY", "SYFY", "(?-i:SYFY)", "", "", ""},
+		{"QUIBI", "QUIBI", "(?-i:QIBI|QUIBI)", "", "", ""},
+	}
+
+	for _, collection := range extraCollections {
+		inf, err := taginfo.New(collection[0], collection[1], collection[2], collection[3], collection[4], collection[5])
+		if err != nil {
+			//log.Fatal(err)
+		}
+		extraTagInfos["collection"] = append(extraTagInfos["collection"], inf)
+	}
+
+	rls.DefaultParser = rls.NewTagParser(taginfo.All(extraTagInfos), rls.DefaultLexers()...)
 }
 
 type TagInfo struct {
@@ -439,6 +495,12 @@ func ParseReleaseTagString(tags string) ReleaseTags {
 			// check tag
 			match := info.Match(tags)
 			if !match {
+				continue
+			}
+
+			if info.Tag() == "Log" {
+				releaseTags.HasLog = true
+				releaseTags.Audio = append(releaseTags.Audio, info.Tag())
 				continue
 			}
 

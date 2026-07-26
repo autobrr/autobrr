@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package user
@@ -10,28 +10,29 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-type Service interface {
+type repo interface {
 	GetUserCount(ctx context.Context) (int, error)
 	FindByUsername(ctx context.Context, username string) (*domain.User, error)
-	CreateUser(ctx context.Context, req domain.CreateUserRequest) error
+	Store(ctx context.Context, req domain.CreateUserRequest) error
 	Update(ctx context.Context, req domain.UpdateUserRequest) error
+	Delete(ctx context.Context, username string) error
 }
 
-type service struct {
-	repo domain.UserRepo
+type Service struct {
+	repo repo
 }
 
-func NewService(repo domain.UserRepo) Service {
-	return &service{
+func NewService(repo repo) *Service {
+	return &Service{
 		repo: repo,
 	}
 }
 
-func (s *service) GetUserCount(ctx context.Context) (int, error) {
+func (s *Service) GetUserCount(ctx context.Context) (int, error) {
 	return s.repo.GetUserCount(ctx)
 }
 
-func (s *service) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
+func (s *Service) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	user, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func (s *service) FindByUsername(ctx context.Context, username string) (*domain.
 	return user, nil
 }
 
-func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) error {
+func (s *Service) CreateUser(ctx context.Context, req domain.CreateUserRequest) error {
 	userCount, err := s.repo.GetUserCount(ctx)
 	if err != nil {
 		return err
@@ -53,6 +54,6 @@ func (s *service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	return s.repo.Store(ctx, req)
 }
 
-func (s *service) Update(ctx context.Context, req domain.UpdateUserRequest) error {
+func (s *Service) Update(ctx context.Context, req domain.UpdateUserRequest) error {
 	return s.repo.Update(ctx, req)
 }

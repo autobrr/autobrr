@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
@@ -66,7 +66,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                             checked
                               ? "border-1 bg-blue-100 dark:bg-blue-900 border-blue-400 dark:border-blue-600 z-10"
                               : "border-gray-200 dark:border-gray-700",
-                            "relative border p-4 flex cursor-pointer focus:outline-none"
+                            "relative border p-4 flex cursor-pointer focus:outline-hidden"
                           )
                         }
                       >
@@ -77,7 +77,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                                 checked
                                   ? "bg-blue-600 dark:bg-blue-500 border-transparent"
                                   : "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-300",
-                                "h-6 w-6 mt-1 cursor-pointer rounded-full border flex items-center justify-center flex-shrink-0"
+                                "h-6 w-6 mt-1 cursor-pointer rounded-full border flex items-center justify-center shrink-0"
                               )}
                               aria-hidden="true"
                             />
@@ -91,7 +91,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                               >
                                 <div className="flex justify-between">
                                   {setting.label}
-                                  {setting.type && <span className="rounded bg-orange-500 text-orange-900 px-1 ml-2 text-sm">{setting.type}</span>}
+                                  {setting.type && <span className="rounded-sm bg-orange-500 text-orange-900 px-1 ml-2 text-sm">{setting.type}</span>}
                                 </div>
                               </Label>
                               <Description

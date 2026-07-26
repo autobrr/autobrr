@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package sabnzbd
@@ -7,14 +7,14 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Client struct {
@@ -24,7 +24,7 @@ type Client struct {
 	basicUser string
 	basicPass string
 
-	log *log.Logger
+	log zerolog.Logger
 
 	http *http.Client
 }
@@ -36,27 +36,21 @@ type Options struct {
 	BasicUser string
 	BasicPass string
 
-	Log *log.Logger
+	Log zerolog.Logger
 }
 
 func New(opts Options) *Client {
-	c := &Client{
+	return &Client{
 		addr:      opts.Addr,
 		apiKey:    opts.ApiKey,
 		basicUser: opts.BasicUser,
 		basicPass: opts.BasicPass,
-		log:       log.New(io.Discard, "", log.LstdFlags),
+		log:       opts.Log,
 		http: &http.Client{
 			Timeout:   time.Second * 60,
 			Transport: sharedhttp.Transport,
 		},
 	}
-
-	if opts.Log != nil {
-		c.log = opts.Log
-	}
-
-	return c
 }
 
 func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileResponse, error) {
@@ -97,7 +91,7 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	body := bufio.NewReader(res.Body)
 	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {
@@ -144,7 +138,7 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 		return nil, err
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
 
 	body := bufio.NewReader(res.Body)
 	if _, err := body.Peek(1); err != nil && err != bufio.ErrBufferFull {

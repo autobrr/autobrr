@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package database
@@ -21,7 +21,7 @@ type DownloadClientRepo struct {
 	db  *DB
 }
 
-func NewDownloadClientRepo(log logger.Logger, db *DB) domain.DownloadClientRepo {
+func NewDownloadClientRepo(log logger.Logger, db *DB) *DownloadClientRepo {
 	return &DownloadClientRepo{
 		log: log.With().Str("repo", "action").Logger(),
 		db:  db,
@@ -50,7 +50,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -110,7 +110,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	row := r.db.handler.QueryRowContext(ctx, query, args...)
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -154,7 +154,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadC
 		Insert("client").
 		Columns("name", "type", "enabled", "host", "port", "tls", "tls_skip_verify", "username", "password", "settings").
 		Values(client.Name, client.Type, client.Enabled, client.Host, client.Port, client.TLS, client.TLSSkipVerify, client.Username, client.Password, settingsJson).
-		Suffix("RETURNING id").RunWith(r.db.handler)
+		Suffix("RETURNING id").RunWith(r.db.Handler)
 
 	// return values
 	var retID int
@@ -166,7 +166,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadC
 
 	client.ID = int32(retID)
 
-	r.log.Debug().Msgf("download_client.store: %d", client.ID)
+	r.log.Debug().Int32("client_id", client.ID).Msg("download client store")
 
 	return nil
 }
@@ -205,7 +205,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.Download
 		return errors.Wrap(err, "error building query")
 	}
 
-	result, err := r.db.handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
@@ -219,7 +219,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.Download
 		return errors.New("no rows updated")
 	}
 
-	r.log.Debug().Msgf("download_client.update: %d", client.ID)
+	r.log.Debug().Int32("client_id", client.ID).Msg("download client update")
 
 	return nil
 }
@@ -237,7 +237,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 			if txErr != nil {
 				r.log.Error().Err(txErr).Msg("error rolling back transaction")
 			}
-			r.log.Error().Msgf("something went terribly wrong panic: %v", p)
+			r.log.Error().Interface("panic", p).Msg("something went terribly wrong panic")
 		} else if err != nil {
 			txErr = tx.Rollback()
 			if txErr != nil {
@@ -252,15 +252,19 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 		}
 	}()
 
-	if err = r.delete(ctx, tx, clientID); err != nil {
-		return errors.Wrap(err, "error deleting download client: %d", clientID)
-	}
-
 	if err = r.deleteClientFromAction(ctx, tx, clientID); err != nil {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
-	r.log.Debug().Msgf("delete download client: %d", clientID)
+	if err = r.clearClientFromLists(ctx, tx, clientID); err != nil {
+		return errors.Wrap(err, "error clearing client from lists: %d", clientID)
+	}
+
+	if err = r.delete(ctx, tx, clientID); err != nil {
+		return errors.Wrap(err, "error deleting download client: %d", clientID)
+	}
+
+	r.log.Debug().Int32("client_id", clientID).Msg("delete download client")
 
 	return nil
 }
@@ -285,34 +289,62 @@ func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int32)
 		return errors.New("no rows affected")
 	}
 
-	r.log.Debug().Msgf("delete download client: %d", clientID)
+	r.log.Debug().Int32("client_id", clientID).Msg("delete download client")
 
 	return nil
 }
 
 func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int32) error {
-	queryBuilder := r.db.squirrel.
-		Update("action").
-		Set("enabled", false).
-		Set("client_id", 0).
-		Where(sq.Eq{"client_id": clientID}).
-		Suffix("RETURNING filter_id").RunWith(tx)
-
-	// return values
-	var filterID int
-
-	err := queryBuilder.QueryRowContext(ctx).Scan(&filterID)
+	rowsAffected, err := r.disableClientReferences(ctx, tx, "action", clientID)
 	if err != nil {
-		// this will throw when the client is not connected to any actions
-		// it is not an error in this case
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil
-		}
-
-		return errors.Wrap(err, "error executing query")
+		return err
 	}
 
-	r.log.Debug().Msgf("deleting download client %d from action for filter %d", clientID, filterID)
+	if rowsAffected > 0 {
+		r.log.Debug().Int64("rows_affected", rowsAffected).Int32("client_id", clientID).Msg("disabled actions that referenced client")
+	} else {
+		r.log.Debug().Int32("client_id", clientID).Msg("no actions found referencing client")
+	}
 
 	return nil
+}
+
+func (r *DownloadClientRepo) clearClientFromLists(ctx context.Context, tx *Tx, clientID int32) error {
+	rowsAffected, err := r.disableClientReferences(ctx, tx, "list", clientID)
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected > 0 {
+		r.log.Debug().Int64("rows_affected", rowsAffected).Int32("client_id", clientID).Msg("disabled lists that referenced client")
+	} else {
+		r.log.Debug().Int32("client_id", clientID).Msg("no lists found referencing client")
+	}
+
+	return nil
+}
+
+func (r *DownloadClientRepo) disableClientReferences(ctx context.Context, tx *Tx, table string, clientID int32) (int64, error) {
+	queryBuilder := r.db.squirrel.
+		Update(table).
+		Set("enabled", false).
+		Set("client_id", sq.Expr("NULL")).
+		Where(sq.Eq{"client_id": clientID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	result, err := tx.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, "error getting rows affected")
+	}
+
+	return rowsAffected, nil
 }

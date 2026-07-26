@@ -1,10 +1,11 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import StackTracey from "stacktracey";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
 import { ExternalLink } from "@components/ExternalLink";
 
 type ErrorPageProps = {
@@ -13,7 +14,8 @@ type ErrorPageProps = {
 }
 
 export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
-  let pageTitle = "We caught an unrecoverable error!";
+  const { t } = useTranslation("common");
+  let pageTitle = t("errorPage.unrecoverable");
   let errorLine: string, summary ="";
 
   if (error instanceof Error) {
@@ -27,7 +29,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
     });
 
     if (error.cause === "OFFLINE") {
-      pageTitle = "Connection to Autobrr failed! Check the application state and verify your connectivity.";
+      pageTitle = t("errorPage.offline");
     }
 
     errorLine = error.toString();
@@ -38,25 +40,25 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 px-2 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl">
+      <div className="sm:mx-auto sm:w-full sm:max-w-(--breakpoint-md) md:max-w-(--breakpoint-lg) lg:max-w-(--breakpoint-xl)">
         <h1 className="text-3xl font-bold leading-6 text-gray-900 dark:text-gray-200 mt-4 mb-3">
           {pageTitle}
         </h1>
         <h3 className="text-xl leading-6 text-gray-700 dark:text-gray-400 mb-4">
-          Please consider reporting this error to our
+          {t("errorPage.reportPrefix")}
           {" "}
           <ExternalLink
             href="https://github.com/autobrr/autobrr"
-            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-sky-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
           >
-            GitHub page
+            {t("errorPage.github")}
           </ExternalLink>
-          {" or to "}
+          {" "}{t("errorPage.reportMiddle")}{" "}
           <ExternalLink
-            href="https://discord.gg/WQ2eUycxyT"
-            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black hover:dark:text-gray-100"
+            href="https://discord.autobrr.com"
+            className="text-gray-700 dark:text-gray-200 underline font-semibold underline-offset-2 decoration-purple-500 hover:decoration-2 hover:text-black dark:hover:text-gray-100"
           >
-            our official Discord channel
+            {t("errorPage.discord")}
           </ExternalLink>
           .
         </h3>
@@ -82,19 +84,18 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
             </pre>
           ) : null}
           <span className="block text-gray-800 mb-2 text-md">
-            You can try resetting the page state using the button provided below or restarting your autobrr application.
-            However, this is not guaranteed to fix the error.
+            {t("errorPage.recoveryHint")}
           </span>
           <button
             type="button"
-            className="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 mr-2 text-center inline-flex items-center dark:bg-red-800 dark:hover:bg-red-900"
+            className="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-hidden focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 mr-2 text-center inline-flex items-center dark:bg-red-800 dark:hover:bg-red-900"
             onClick={(event) => {
               event.preventDefault();
               reset();
             }}
           >
             <ArrowPathIcon className="-ml-0.5 mr-2 h-5 w-5"/>
-            Reset page state
+            {t("errorPage.reset")}
           </button>
         </div>
       </div>

@@ -1,0 +1,2 @@
+ALTER TABLE feed
+    ADD COLUMN timeout INTEGER DEFAULT 60;

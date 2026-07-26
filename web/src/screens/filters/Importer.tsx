@@ -1,16 +1,18 @@
 /*
- * Copyright (c) 2021 - 2024, Ludvig Lundgren and the autobrr contributors.
+ * Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Fragment, useRef, useState } from "react";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import i18n from "../../i18n";
 
 import { AutodlIrssiConfigParser } from "./_configParser";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
@@ -24,22 +26,27 @@ interface ModalLowerProps extends ImporterProps {
   onImportClick: () => void;
 }
 
-const ModalUpper = ({ children }: { children: React.ReactNode; }) => (
+const ModalUpper = ({ children }: { children: React.ReactNode; }) => {
+  const { t } = useTranslation("filters");
+  return (
   <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:py-6 sm:px-4 sm:pb-4">
     <div className="mt-3 text-left sm:mt-0 max-w-full">
       <DialogTitle as="h3" className="mb-3 text-lg leading-6 font-medium text-gray-900 dark:text-white break-words">
-        Import filter (in JSON or autodl-irssi format)
+        {t("importer.title")}
       </DialogTitle>
       {children}
     </div>
   </div>
-);
+  );
+};
 
-const ModalLower = ({ isOpen, setIsOpen, onImportClick }: ModalLowerProps) => (
+const ModalLower = ({ isOpen, setIsOpen, onImportClick }: ModalLowerProps) => {
+  const { t } = useTranslation("filters");
+  return (
   <div className="bg-gray-50 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-700 px-4 py-3 sm:px-4 sm:flex sm:flex-row-reverse">
     <button
       type="button"
-      className="w-full inline-flex justify-center rounded-md border border-blue-500 shadow-sm px-4 py-2 bg-blue-700 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+      className="w-full inline-flex justify-center rounded-md border border-blue-500 shadow-xs px-4 py-2 bg-blue-700 text-base font-medium text-white hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
       onClick={(e) => {
         e.preventDefault();
         if (isOpen) {
@@ -48,20 +55,21 @@ const ModalLower = ({ isOpen, setIsOpen, onImportClick }: ModalLowerProps) => (
         }
       }}
     >
-      Import
+      {t("importer.import")}
     </button>
     <button
       type="button"
-      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-xs px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
       onClick={(e) => {
         e.preventDefault();
         setIsOpen(false);
       }}
     >
-      Cancel
+      {t("importer.cancel")}
     </button>
   </div>
-);
+  );
+};
 
 const ImportJSON = async (inputFilterText: string) => {
   let newFilter = {} as Filter;
@@ -94,7 +102,7 @@ const ImportJSON = async (inputFilterText: string) => {
     toast.custom((t) =>
       <Toast
         type="success"
-        body={`Filter '${uniqueFilterName}' imported successfully!`}
+        body={i18n.t("filters:importer.jsonImported", { name: uniqueFilterName })}
         t={t}
       />
     );
@@ -105,7 +113,7 @@ const ImportJSON = async (inputFilterText: string) => {
     toast.custom((t) =>
       <Toast
         type="error"
-        body="Failed to import JSON data. Information logged to console."
+        body={i18n.t("filters:importer.jsonImportFailed")}
         t={t}
       />
     );
@@ -120,7 +128,7 @@ const ImportAutodlIrssi = async (inputText: string) => {
     toast.custom((t) =>
       <Toast
         type="warning"
-        body="Cannot import given filter -- it is neither in JSON or autodl-irssi format."
+        body={i18n.t("filters:importer.invalidFormat")}
         t={t}
       />
     );
@@ -139,7 +147,7 @@ const ImportAutodlIrssi = async (inputText: string) => {
       toast.custom((t) =>
         <Toast
           type="error"
-          body={`Failed to import filter autodl-irssi filter '${filter.name}'. Information logged to console.`}
+          body={i18n.t("filters:importer.autodlImportFailed", { name: filter.name })}
           t={t}
         />
       );
@@ -152,8 +160,8 @@ const ImportAutodlIrssi = async (inputText: string) => {
         type="success"
         body={
           numSuccess === 1
-            ? `Filter '${parser.releaseFilters[0].name}' imported successfully!`
-            : `All ${numSuccess} filters imported successfully!`
+            ? i18n.t("filters:importer.autodlImportedOne", { name: parser.releaseFilters[0].name })
+            : i18n.t("filters:importer.autodlImportedMany", { count: numSuccess })
         }
         t={t}
       />
@@ -162,7 +170,7 @@ const ImportAutodlIrssi = async (inputText: string) => {
     toast.custom((t) =>
       <Toast
         type="info"
-        body={`${numSuccess}/${parser.releaseFilters.length} filters imported successfully. See console for details.`}
+        body={i18n.t("filters:importer.autodlImportedPartial", { success: numSuccess, total: parser.releaseFilters.length })}
         t={t}
       />
     );
@@ -173,6 +181,7 @@ export const Importer = ({
   isOpen,
   setIsOpen
 }: ImporterProps) => {
+  const { t } = useTranslation("filters");
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const [inputFilterText, setInputFilterText] = useState("");
@@ -204,10 +213,8 @@ export const Importer = ({
       const inputText = inputFilterText.trim();
 
       if (isJSON(inputText)) {
-        console.log("Parsing import filter as JSON");
         await ImportJSON(inputText);
       } else {
-        console.log("Parsing import filter in autodl-irssi format");
         await ImportAutodlIrssi(inputText);
       }
     } catch (error) {
@@ -246,8 +253,8 @@ export const Importer = ({
             <DialogPanel className="inline-block align-bottom border border-transparent dark:border-gray-700 rounded-lg text-left overflow-hidden shadow-xl transform transition sm:my-8 sm:align-middle w-full sm:max-w-6xl">
               <ModalUpper>
                 <textarea
-                  className="form-input resize-y block w-full shadow-sm sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
-                  placeholder="Paste your filter data here (either autobrr JSON format or your entire autodl-irssi config)"
+                  className="form-input resize-y block w-full shadow-xs sm:text-sm rounded-md border py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100"
+                  placeholder={t("importer.placeholder")}
                   value={inputFilterText}
                   onChange={(event) => {
                     const inputText = event.target.value;
@@ -263,7 +270,7 @@ export const Importer = ({
                         className="h-6 w-6 text-amber-500 dark:text-yellow-500"
                         aria-hidden="true"
                       />
-                      Import Warnings
+                      {t("importer.warnings")}
                     </h4>
 
                     <div className="overflow-y-auto pl-2 pr-1 py-1 rounded-lg min-w-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-400">
