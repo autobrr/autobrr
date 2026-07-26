@@ -66,6 +66,7 @@ type Service struct {
 	indexerService      indexerService
 	notificationService notificationSender
 	proxyService        proxyService
+  bindAddress         string
 
 	networkCache    *haxmap.Map[int64, *domain.IrcNetwork]
 	networkHandlers *haxmap.Map[int64, *Handler]
@@ -76,7 +77,7 @@ type Service struct {
 
 const sseMaxEntries = 1000
 
-func NewService(log logger.Logger, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, notificationSvc notificationSender, proxySvc proxyService) *Service {
+func NewService(log logger.Logger, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, notificationSvc notificationSender, proxySvc proxyService, bindAddress string) *Service {
 	return &Service{
 		log:                 log.With().Str("module", "irc").Logger(),
 		sse:                 sse,
@@ -87,6 +88,7 @@ func NewService(log logger.Logger, sse sseServer, repo ircRepo, releaseSvc relea
 		proxyService:        proxySvc,
 		networkCache:        haxmap.New[int64, *domain.IrcNetwork](),
 		networkHandlers:     haxmap.New[int64, *Handler](),
+    bindAddress:         bindAddress,
 	}
 }
 
@@ -122,7 +124,7 @@ func (s *Service) StartHandlers() {
 		network.Channels = channels
 
 		// init new irc handler
-		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
+		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService, s.bindAddress)
 
 		s.networkHandlers.Set(network.ID, handler)
 
@@ -175,7 +177,7 @@ func (s *Service) startNetwork(network domain.IrcNetwork) error {
 	network.Channels = channels
 
 	// init new irc handler
-	handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
+	handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService, s.bindAddress)
 
 	s.networkHandlers.Set(network.ID, handler)
 

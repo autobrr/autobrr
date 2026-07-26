@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	stdErr "errors"
 	"fmt"
+	"net"
 	"net/url"
 	"slices"
 	"strconv"
@@ -83,6 +84,7 @@ type Handler struct {
 	notificationService notificationSender
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
+	bindAddress         string
 
 	client           *ircevent.Connection
 	clientState      ircState
@@ -107,7 +109,7 @@ type Handler struct {
 	stateMachine *ConnectionStateMachine
 }
 
-func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, notificationSvc notificationSender) *Handler {
+func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, notificationSvc notificationSender, bindAddress string) *Handler {
 	h := &Handler{
 		log:                 log.With().Str("network", network.Server).Logger(),
 		sse:                 sse,
@@ -121,6 +123,7 @@ func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, de
 		saslauthed:          false,
 		connectionErrors:    []string{},
 		channels:            haxmap.New[string, *Channel](),
+    bindAddress:         bindAddress,
 	}
 
 	// init state machine
@@ -347,6 +350,18 @@ func (h *Handler) Run() (err error) {
 
 			client.DialContext = proxyContextDialer.DialContext
 		}
+	} else if h.bindAddress != "" {
+		// If no proxy is used, but bindAddress is configured, set a custom dialer
+		// to bind outgoing IRC connections to the specified address
+		dialer := &net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			LocalAddr: &net.TCPAddr{
+				IP: net.ParseIP(h.bindAddress),
+			},
+		}
+		client.DialContext = dialer.DialContext
+		h.log.Debug().Msgf("using bind address %s for IRC connection", h.bindAddress)
 	}
 
 	if network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
