@@ -147,9 +147,12 @@ func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel
 	}
 }
 
-func (c *Channel) OnMsg(msg ircmsg.Message) {
+// OnMsg records the message in the channel history and queues it for announce
+// parsing. It returns the stored message so callers broadcast the same text
+// that went into history, honoring SkipCleanMessage.
+func (c *Channel) OnMsg(msg ircmsg.Message) (domain.IrcMessage, bool) {
 	if len(msg.Params) < 2 {
-		return
+		return domain.IrcMessage{}, false
 	}
 
 	// parse announce
@@ -177,15 +180,17 @@ func (c *Channel) OnMsg(msg ircmsg.Message) {
 	// check if the message is from announce bot, if not return
 	if !c.IsValidAnnouncer(nick) {
 		c.log.Trace().Str("nick", nick).Str("msg", cleanedMsg).Msg("not a valid announcer, ignoring")
-		return
+		return newMsg, true
 	}
 
 	if err := c.QueueAnnounceLine(cleanedMsg); err != nil {
-		return
+		return newMsg, true
 	}
 	c.UpdateLastAnnounce()
 
 	c.log.Debug().Str("nick", nick).Str("msg", cleanedMsg).Msg("got message")
+
+	return newMsg, true
 }
 
 // IsValidAnnouncer reports whether nick is a registered announcer for this

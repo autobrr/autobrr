@@ -9,7 +9,6 @@ import Select from "react-select";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
 
 import { classNames, sleep } from "@utils";
@@ -18,7 +17,7 @@ import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
 import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
-import { SlideOver } from "@components/panels";
+import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
@@ -55,7 +54,7 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
       {ind && ind.implementation == "irc" && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
           <div className="px-4">
-            <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.settingsIrcTitle")}</DialogTitle>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.settingsIrcTitle")}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-200">
               {t("forms.indexer.settingsIrcDesc")}
             </p>
@@ -106,7 +105,7 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.implementation == "torznab" && ind.feed && ind.feed.settings && (
           <div className="">
             <div className="pt-4 px-4">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.torznabTitle")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.torznabTitle")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 {t("forms.indexer.torznabDesc")}
               </p>
@@ -157,7 +156,7 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.implementation == "newznab" && ind.feed && ind.feed.settings && (
           <div className="">
             <div className="pt-4 px-4">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.newznabTitle")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.newznabTitle")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 {t("forms.indexer.newznabDesc")}
               </p>
@@ -200,7 +199,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
         {ind && ind.implementation == "rss" && ind.feed && ind.feed.settings && (
           <div className="">
             <div className="pt-4 px-4">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.rssTitle")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.rssTitle")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-200">
                 {t("forms.indexer.rssDesc")}
               </p>
@@ -601,186 +600,167 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
   };
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog as="div" static className="fixed inset-0 overflow-hidden" open={isOpen} onClose={toggle}>
-        <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
-            <TransitionChild
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
-            >
-              <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    identifier: "",
-                    implementation: "irc",
-                    name: "",
-                    irc: {},
-                    settings: {},
-                    feed: {
-                      categories: [],
-                      capabilities: null,
-                      settings: {}
-                    }
-                  }}
-                  onSubmit={onSubmit}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t("forms.indexer.addTitle")}
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                {t("forms.indexer.addDescription")}
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">{t("forms.indexer.closePanel")}</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                          <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label
-                                htmlFor="identifier"
-                                className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
-                                {t("forms.indexer.indexer")}
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <Field name="identifier" type="select">
-                                {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
-                                  <Select {...field}
-                                    isClearable={true}
-                                    isSearchable={true}
-                                    components={{
-                                      Input: common.SelectInput,
-                                      Control: common.SelectControl,
-                                      Menu: common.SelectMenu,
-                                      Option: common.SelectOption,
-                                      IndicatorSeparator: common.IndicatorSeparator,
-                                      DropdownIndicator: common.DropdownIndicator
-                                    }}
-                                    placeholder={t("forms.indexer.chooseIndexer")}
-                                    styles={{
-                                      singleValue: (base) => ({
-                                        ...base,
-                                        color: "unset"
-                                      })
-                                    }}
-                                    theme={(theme) => ({
-                                      ...theme,
-                                      spacing: {
-                                        ...theme.spacing,
-                                        controlHeight: 30,
-                                        baseUnit: 2
-                                      }
-                                    })}
-                                    value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      resetForm();
-
-                                      if (option != null) {
-                                        const opt = option as SelectValue;
-                                        setFieldValue("name", opt.label ?? "");
-                                        setFieldValue(field.name, opt.value ?? "");
-
-                                        const ind = data && data.find(i => i.identifier === opt.value);
-                                        if (ind) {
-                                          setIndexer(ind);
-                                          setFieldValue("implementation", ind.implementation);
-
-                                          if (ind.irc && ind.irc.settings) {
-                                            setFieldValue("base_url", ind.urls[0]);
-                                            ind.irc.settings.forEach((s) => {
-                                              setFieldValue(`irc.${s.name}`, s.default ?? "");
-                                            });
-                                          }
-                                        }
-                                      }
-                                    }}
-                                    options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
-                                      label: v.name,
-                                      value: v.identifier
-                                    }))}
-                                  />
-                                )}
-                              </Field>
-
-                            </div>
-                          </div>
-
-                          <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
-
-                          {indexer.implementation == "irc" && (
-                            <SelectFieldCreatable
-                              name="base_url"
-                              label={t("forms.indexer.baseUrl")}
-                              help={t("forms.indexer.baseUrlHelp")}
-                              options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
-                            />
-                          )}
-
-                          {SettingFields(indexer, values.identifier)}
-
-                        </div>
-
-                        {IrcSettingFields(indexer, values.identifier)}
-                        {TorznabFeedSettingFields(indexer, values.identifier)}
-                        {NewznabFeedSettingFields(indexer, values.identifier)}
-                        {RSSFeedSettingFields(indexer, values.identifier)}
-                      </div>
-
-                      <div
-                        className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            {t("forms.indexer.cancel")}
-                          </button>
-                          <button
-                            type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                          >
-                            {t("forms.indexer.save")}
-                          </button>
-                        </div>
-                      </div>
-
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <Formik
+        enableReinitialize={true}
+        initialValues={{
+          enabled: true,
+          identifier: "",
+          implementation: "irc",
+          name: "",
+          irc: {},
+          settings: {},
+          feed: {
+            categories: [],
+            capabilities: null,
+            settings: {}
+          }
+        }}
+        onSubmit={onSubmit}
+      >
+        {({ values }) => (
+          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="space-y-1">
+                    <SlideOverTitle>
+                      {t("forms.indexer.addTitle")}
+                    </SlideOverTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-200">
+                      {t("forms.indexer.addDescription")}
+                    </p>
+                  </div>
+                  <div className="h-7 flex items-center">
+                    <button
+                      type="button"
+                      className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      onClick={toggle}
+                    >
+                      <span className="sr-only">{t("forms.indexer.closePanel")}</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </TransitionChild>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </Transition>
+
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
+                  <div>
+                    <label
+                      htmlFor="identifier"
+                      className="block text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      {t("forms.indexer.indexer")}
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field name="identifier" type="select">
+                      {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
+                        <Select {...field}
+                          isClearable={true}
+                          isSearchable={true}
+                          components={{
+                            Input: common.SelectInput,
+                            Control: common.SelectControl,
+                            Menu: common.SelectMenu,
+                            Option: common.SelectOption,
+                            IndicatorSeparator: common.IndicatorSeparator,
+                            DropdownIndicator: common.DropdownIndicator
+                          }}
+                          placeholder={t("forms.indexer.chooseIndexer")}
+                          styles={{
+                            singleValue: (base) => ({
+                              ...base,
+                              color: "unset"
+                            })
+                          }}
+                          theme={(theme) => ({
+                            ...theme,
+                            spacing: {
+                              ...theme.spacing,
+                              controlHeight: 30,
+                              baseUnit: 2
+                            }
+                          })}
+                          value={field?.value && field.value.value}
+                          onChange={(option: unknown) => {
+                            resetForm();
+
+                            if (option != null) {
+                              const opt = option as SelectValue;
+                              setFieldValue("name", opt.label ?? "");
+                              setFieldValue(field.name, opt.value ?? "");
+
+                              const ind = data && data.find(i => i.identifier === opt.value);
+                              if (ind) {
+                                setIndexer(ind);
+                                setFieldValue("implementation", ind.implementation);
+
+                                if (ind.irc && ind.irc.settings) {
+                                  setFieldValue("base_url", ind.urls[0]);
+                                  ind.irc.settings.forEach((s) => {
+                                    setFieldValue(`irc.${s.name}`, s.default ?? "");
+                                  });
+                                }
+                              }
+                            }
+                          }}
+                          options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
+                            label: v.name,
+                            value: v.identifier
+                          }))}
+                        />
+                      )}
+                    </Field>
+
+                  </div>
+                </div>
+
+                <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
+
+                {indexer.implementation == "irc" && (
+                  <SelectFieldCreatable
+                    name="base_url"
+                    label={t("forms.indexer.baseUrl")}
+                    help={t("forms.indexer.baseUrlHelp")}
+                    options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
+                  />
+                )}
+
+                {SettingFields(indexer, values.identifier)}
+
+              </div>
+
+              {IrcSettingFields(indexer, values.identifier)}
+              {TorznabFeedSettingFields(indexer, values.identifier)}
+              {NewznabFeedSettingFields(indexer, values.identifier)}
+              {RSSFeedSettingFields(indexer, values.identifier)}
+
+              <DEBUG values={values} />
+            </div>
+
+            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+              <div className="space-x-3 flex justify-end">
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={toggle}
+                >
+                  {t("forms.indexer.cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                >
+                  {t("forms.indexer.save")}
+                </button>
+              </div>
+            </div>
+          </Form>
+        )}
+      </Formik>
+    </SlideOverShell>
   );
 }
 
@@ -1073,9 +1053,9 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
               <div className="flex justify-between px-4">
                 <div className="space-y-1">
-                  <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                     {t("forms.indexer.proxy")}
-                  </DialogTitle>
+                  </h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {t("forms.indexer.proxyDesc")}
                   </p>

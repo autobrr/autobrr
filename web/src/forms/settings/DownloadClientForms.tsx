@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState, ReactElement } from "react";
+import { useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Form, Formik, useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
@@ -19,6 +18,7 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { DeleteModal } from "@components/modals";
+import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import {
   NumberFieldWide,
   PasswordFieldWide,
@@ -462,7 +462,7 @@ function FormFieldsRulesBasic() {
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
 
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.downloadClient.rulesTitle")}</DialogTitle>
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.downloadClient.rulesTitle")}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.downloadClient.rulesDescriptionBasic")}
         </p>
@@ -498,9 +498,9 @@ function FormFieldsRulesArr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.downloadClient.downloadClientTitle")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.downloadClient.downloadClientDescription")}
         </p>
@@ -522,9 +522,9 @@ function FormFieldsRulesQbit() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.downloadClient.rulesTitle")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.downloadClient.rulesDescriptionAdvanced")}
         </p>
@@ -591,9 +591,9 @@ function FormFieldsRulesTransmission() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.downloadClient.rulesTitle")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.downloadClient.rulesDescriptionAdvanced")}
         </p>
@@ -807,96 +807,72 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
   };
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        static
-        className="fixed inset-0 overflow-hidden"
-        open={isOpen}
-        onClose={toggle}
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <Formik
+        initialValues={initialValues}
+        onSubmit={onSubmit}
       >
-        <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="fixed inset-y-0 right-0 max-w-full flex">
-            <TransitionChild
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
-            >
-              <div className="w-screen max-w-2xl ">
-                <Formik
-                  initialValues={initialValues}
-                  onSubmit={onSubmit}
-                >
-                  {({ handleSubmit, values }) => (
-                    <Form
-                      className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
-                      onSubmit={handleSubmit}
+        {({ handleSubmit, values }) => (
+          <Form
+            className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
+            onSubmit={handleSubmit}
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="space-y-1">
+                    <SlideOverTitle>
+                      {t("settings:forms.downloadClient.addTitle")}
+                    </SlideOverTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {t("settings:forms.downloadClient.addDescription")}
+                    </p>
+                  </div>
+                  <div className="h-7 flex items-center">
+                    <button
+                      type="button"
+                      className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                      onClick={toggle}
                     >
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t("settings:forms.downloadClient.addTitle")}
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {t("settings:forms.downloadClient.addDescription")}
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
-                                <XMarkIcon
-                                  className="h-6 w-6"
-                                  aria-hidden="true"
-                                />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
-                          <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
-                          <RadioFieldsetWide
-                            name="type"
-                            legend={t("settings:forms.downloadClient.type")}
-                            options={downloadClientTypeOptions}
-                          />
-                          <div>{componentMap[values.type]}</div>
-                        </div>
-                      </div>
-
-                      {rulesComponentMap[values.type]}
-
-                      <DownloadClientFormButtons
-                        type="CREATE"
-                        isTesting={isTesting}
-                        isSuccessfulTest={isSuccessfulTest}
-                        isErrorTest={isErrorTest}
-                        cancelFn={toggle}
-                        testFn={testClient}
-                        values={values}
+                      <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
+                      <XMarkIcon
+                        className="h-6 w-6"
+                        aria-hidden="true"
                       />
-
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </TransitionChild>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </Transition>
+
+              <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+                <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
+                <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
+                <RadioFieldsetWide
+                  name="type"
+                  legend={t("settings:forms.downloadClient.type")}
+                  options={downloadClientTypeOptions}
+                />
+                <div>{componentMap[values.type]}</div>
+              </div>
+
+              {rulesComponentMap[values.type]}
+
+              <DEBUG values={values} />
+            </div>
+
+            <DownloadClientFormButtons
+              type="CREATE"
+              isTesting={isTesting}
+              isSuccessfulTest={isSuccessfulTest}
+              isErrorTest={isErrorTest}
+              cancelFn={toggle}
+              testFn={testClient}
+              values={values}
+            />
+          </Form>
+        )}
+      </Formik>
+    </SlideOverShell>
   );
 }
 
@@ -985,108 +961,83 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: Updat
   };
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        static
-        className="fixed inset-0 overflow-hidden"
-        open={isOpen}
-        onClose={toggle}
-        initialFocus={cancelButtonRef}
+    <SlideOverShell isOpen={isOpen} toggle={toggle} initialFocus={cancelButtonRef}>
+      <DeleteModal
+        isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isPending}
+        toggle={toggleDeleteModal}
+        buttonRef={cancelModalButtonRef}
+        deleteAction={deleteAction}
+        title={t("settings:forms.downloadClient.removeTitle")}
+        text={t("settings:forms.downloadClient.removeText")}
+      />
+      <Formik
+        initialValues={initialValues}
+        onSubmit={onSubmit}
       >
-        <DeleteModal
-          isOpen={deleteModalIsOpen}
-          isLoading={deleteMutation.isPending}
-          toggle={toggleDeleteModal}
-          buttonRef={cancelModalButtonRef}
-          deleteAction={deleteAction}
-          title={t("settings:forms.downloadClient.removeTitle")}
-          text={t("settings:forms.downloadClient.removeText")}
-        />
-        <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
-            <TransitionChild
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
+        {({ handleSubmit, values }) => {
+          return (
+            <Form
+              className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
+              onSubmit={handleSubmit}
             >
-              <div className="w-screen max-w-2xl ">
-                <Formik
-                  initialValues={initialValues}
-                  onSubmit={onSubmit}
-                >
-                  {({ handleSubmit, values }) => {
-                    return (
-                      <Form
-                        className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto"
-                        onSubmit={handleSubmit}
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                  <div className="flex items-start justify-between space-x-3">
+                    <div className="space-y-1">
+                      <SlideOverTitle>
+                        {t("settings:forms.downloadClient.editTitle")}
+                      </SlideOverTitle>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t("settings:forms.downloadClient.editDescription")}
+                      </p>
+                    </div>
+                    <div className="h-7 flex items-center">
+                      <button
+                        type="button"
+                        className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                        onClick={toggle}
                       >
-                        <div className="flex-1">
-                          <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                            <div className="flex items-start justify-between space-x-3">
-                              <div className="space-y-1">
-                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                  {t("settings:forms.downloadClient.editTitle")}
-                                </DialogTitle>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  {t("settings:forms.downloadClient.editDescription")}
-                                </p>
-                              </div>
-                              <div className="h-7 flex items-center">
-                                <button
-                                  type="button"
-                                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                                  onClick={toggle}
-                                >
-                                  <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
-                                  <XMarkIcon
-                                    className="h-6 w-6"
-                                    aria-hidden="true"
-                                  />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
-                            <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
-                            <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
-                            <RadioFieldsetWide
-                              name="type"
-                              legend={t("settings:forms.downloadClient.type")}
-                              options={downloadClientTypeOptions}
-                            />
-                            <div>{componentMap[values.type]}</div>
-                          </div>
-                        </div>
-
-                        {rulesComponentMap[values.type]}
-
-                        <DownloadClientFormButtons
-                          type="UPDATE"
-                          toggleDeleteModal={toggleDeleteModal}
-                          isTesting={isTesting}
-                          isSuccessfulTest={isSuccessfulTest}
-                          isErrorTest={isErrorTest}
-                          cancelFn={toggle}
-                          testFn={testClient}
-                          values={values}
+                        <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
+                        <XMarkIcon
+                          className="h-6 w-6"
+                          aria-hidden="true"
                         />
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-                        <DEBUG values={values} />
-                      </Form>
-                    );
-                  }}
-                </Formik>
+                <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
+                  <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
+                  <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
+                  <RadioFieldsetWide
+                    name="type"
+                    legend={t("settings:forms.downloadClient.type")}
+                    options={downloadClientTypeOptions}
+                  />
+                  <div>{componentMap[values.type]}</div>
+                </div>
+
+                {rulesComponentMap[values.type]}
+
+                <DEBUG values={values} />
               </div>
-            </TransitionChild>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </Transition>
+
+              <DownloadClientFormButtons
+                type="UPDATE"
+                toggleDeleteModal={toggleDeleteModal}
+                isTesting={isTesting}
+                isSuccessfulTest={isSuccessfulTest}
+                isErrorTest={isErrorTest}
+                cancelFn={toggle}
+                testFn={testClient}
+                values={values}
+              />
+            </Form>
+          );
+        }}
+      </Formik>
+    </SlideOverShell>
   );
 }

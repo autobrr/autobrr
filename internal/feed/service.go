@@ -50,7 +50,7 @@ type feedCacheRepo interface {
 }
 
 type schedulerService interface {
-	ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error)
+	ScheduleJobJittered(job cron.Job, interval time.Duration, identifier string) (int, error)
 	AddJob(job cron.Job, spec string, identifier string) (int, error)
 	RemoveJobByIdentifier(id string) error
 	GetNextRun(id string) (time.Time, error)
@@ -573,7 +573,7 @@ func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
 	identifierKey := feedKey{fi.Feed.ID}.ToString()
 
 	// schedule job
-	id, err := s.scheduler.ScheduleJob(job, fi.CronSchedule, identifierKey)
+	id, err := s.scheduler.ScheduleJobJittered(job, fi.CronSchedule, identifierKey)
 	if err != nil {
 		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}

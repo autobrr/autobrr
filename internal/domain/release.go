@@ -24,9 +24,9 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+	"github.com/autobrr/go-torrent/bencode"
+	"github.com/autobrr/go-torrent/metainfo"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
@@ -1003,7 +1003,11 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 
 		r.TorrentTmpFile = tmpFile.Name()
 		r.TorrentHash = meta.HashInfoBytes().String()
-		r.Size = uint64(torrentMetaInfo.TotalLength())
+		// A malformed torrent can carry negative file lengths; keep the
+		// announce-derived size rather than storing a wrapped uint64.
+		if size := torrentMetaInfo.TotalLength(); size > 0 {
+			r.Size = uint64(size)
+		}
 
 		return nil
 	},
@@ -1227,13 +1231,11 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		r.Episode = episode
 	}
 
-	if metaId, err := getStringMapValue(varMap, "imdb"); err == nil {
-		r.MetaIMDB = metaId
+	if metaId, err := getStringMapValue(varMap, "imdb"); err == nil && metaId != "" {
 		if !strings.HasPrefix(metaId, "tt") {
-			r.MetaIMDB = "tt" + metaId
-		} else {
-			r.MetaIMDB = metaId
+			metaId = "tt" + metaId
 		}
+		r.MetaIMDB = metaId
 	}
 
 	if metaId, err := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); err == nil {

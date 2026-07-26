@@ -58,6 +58,21 @@ const (
 	ircLive                       // (Handler.client) is non-nil and valid
 )
 
+// identifyForm is the argument form of the outstanding NickServ IDENTIFY.
+//
+// The bare form is the default because its failures are always loud and are
+// returned before any password comparison. Services that do not accept an
+// account argument (Anope 1.8 and its derivatives, still deployed on Rizon)
+// parse only the first token as the password, so an account-qualified IDENTIFY
+// there is silently read as a wrong password and burns a bad_password strike.
+// See https://github.com/autobrr/autobrr/issues/2528.
+type identifyForm int
+
+const (
+	identifyFormBare identifyForm = iota
+	identifyFormAccount
+)
+
 type Handler struct {
 	m sync.RWMutex
 
@@ -75,6 +90,10 @@ type Handler struct {
 	haveDisconnected bool
 	authenticated    bool
 	saslauthed       bool
+
+	identifyAttempt     identifyForm
+	identifyEscalated   bool
+	identifyFormLearned identifyForm
 
 	channels *haxmap.Map[string, *Channel]
 
@@ -395,6 +414,7 @@ func (h *Handler) Run() (err error) {
 	h.m.Lock()
 	h.saslauthed = false
 	h.client = client
+	h.resetIdentifyForm()
 	h.m.Unlock()
 
 	if err := func() error {
@@ -533,14 +553,26 @@ func (h *Handler) GetNetwork() *domain.IrcNetwork {
 
 func (h *Handler) UpdateNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
-	h.network = network
+	h.setNetworkLocked(network)
 	h.m.Unlock()
 }
 
 func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
-	h.network = network
+	h.setNetworkLocked(network)
 	h.m.Unlock()
+}
+
+// setNetworkLocked swaps the network config, dropping the learned IDENTIFY form
+// if the credentials changed: which form works is a property of the account we
+// authenticate as, so it cannot outlive an edit to it.
+// The caller must hold h.m.
+func (h *Handler) setNetworkLocked(network *domain.IrcNetwork) {
+	if h.network == nil || h.network.Auth != network.Auth {
+		h.identifyFormLearned = identifyFormBare
+	}
+
+	h.network = network
 }
 
 func (h *Handler) resetChannelState() {
@@ -631,6 +663,10 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 	// reset authenticated
 	h.authenticated = false
 
+	// a reconnect starts the identify ladder over: the nick we get back may
+	// differ, and the previous connection's escalation says nothing about this one
+	h.resetIdentifyForm()
+
 	h.haveDisconnected = true
 
 	manuallyDisconnected := h.clientState == ircStopped
@@ -670,6 +706,10 @@ func (h *Handler) onNotice(msg ircmsg.Message) {
 func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	h.log.Trace().Interface("msg_params", msg.Params).Msg("NOTICE from nickserv")
 
+	if len(msg.Params) < 2 {
+		return
+	}
+
 	// You're now logged in as test-bot
 	// Password accepted - you are now recognized.
 	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized", "you are now identified", "you are already logged in") {
@@ -678,13 +718,32 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		return
 	}
 
+	// The bare IDENTIFY cannot succeed on this network: either NickServ does not
+	// know the nick we are connected as (it is not the account and has not been
+	// grouped to it), or it wants the account spelled out. Both are fixed by the
+	// account-qualified form, so retry once with it before treating anything as
+	// terminal. Evaluated ahead of the failure branches below, which would
+	// otherwise stop the network on the very notices that make escalation the
+	// right move.
+	if h.shouldEscalateIdentify(msg.Params[1]) {
+		h.escalateIdentify()
+
+		h.log.Debug().Str("notice", msg.Params[1]).Msg("nickserv rejected bare identify, retrying with account")
+
+		h.NickServIdentify()
+		return
+	}
+
 	if contains(msg.Params[1],
 		"Invalid account credentials",
 		"Authentication failed: Invalid account credentials",
 		"password incorrect",
+		"invalid password for", // atheme
 	) {
-		h.addConnectError("authentication failed: Bad account credentials")
+		h.addConnectError(h.badCredentialsError())
 		h.log.Error().Msg("NickServ: authentication failed - bad account credentials")
+
+		h.unlearnIdentifyForm()
 
 		h.stateMachine.OnError("nickserv authentication failed: bad credentials")
 
@@ -696,10 +755,13 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1],
 		"Account does not exist",
 		"Authentication failed: Account does not exist",
-		"isn't registered.", // Nick ANICK isn't registered
+		"isn't registered.",            // Nick ANICK isn't registered
+		"is not a registered nickname", // atheme
 	) {
 		if h.CurrentNick() == h.PreferredNick() {
 			h.addConnectError("authentication failed: account does not exist")
+
+			h.unlearnIdentifyForm()
 
 			h.stateMachine.OnError("nickserv authentication failed: account does not exist")
 
@@ -730,15 +792,6 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 			// stop network and notify user
 			h.Stop()
 		}
-	}
-
-	// fallback for networks that require both password and nick to NickServ IDENTIFY
-	// Invalid parameters. For usage, do /msg NickServ HELP IDENTIFY
-	if contains(msg.Params[1], "invalid parameters", "help identify") {
-		h.log.Debug().Interface("msg_params", msg.Params).Msg("NOTICE nickserv invalid")
-
-		net := h.GetNetwork()
-		h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s %s", net.Auth.Account, net.Auth.Password))
 	}
 }
 
@@ -805,24 +858,34 @@ func (h *Handler) setBotMode() {
 // authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() {
 	h.m.RLock()
-	password := h.network.Auth.Password
-	shouldSendNickserv := !h.authenticated && !h.saslauthed && password != ""
+	shouldSendNickserv := !h.authenticated && !h.saslauthed && h.network.Auth.Password != ""
 	h.m.RUnlock()
 
 	if shouldSendNickserv {
 		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
-		h.NickServIdentify(password)
+		h.NickServIdentify()
 	} else {
 		h.setAuthenticated()
 	}
 }
 
+// handleLoggedIn handles RPL_LOGGEDIN (900):
+// <nick> <nick>!<user>@<host> <account> :You are now logged in as <account>
+//
+// The source of a numeric is the server, not a nick, so the target has to be
+// read from the parameters.
 func (h *Handler) handleLoggedIn(m ircmsg.Message) {
-	h.log.Trace().Str("event", "900").Msg("logged in")
-	nick := m.Nick()
-	if h.isOurCurrentNick(nick) {
-		h.setAuthenticated()
+	if len(m.Params) < 3 {
+		return
 	}
+
+	if !h.isOurCurrentNick(m.Params[0]) {
+		return
+	}
+
+	h.log.Debug().Str("event", "900").Str("account", m.Params[2]).Msg("logged in")
+
+	h.setAuthenticated()
 }
 
 // handleSASLSuccess we get here early so set saslauthed before we hit onConnect
@@ -879,6 +942,9 @@ func (h *Handler) setAuthenticated() {
 		h.authenticated = true
 		h.connectionErrors = []string{}
 		h.failedNickServAttempts = 0
+
+		// remember the form that worked so the next connect starts on it
+		h.identifyFormLearned = h.identifyAttempt
 	}
 	h.m.Unlock()
 
@@ -989,16 +1055,13 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
 	message := msg.Params[1]
 
-	// clean message
-	cleanedMsg := cleanMessage(message)
-
 	if message == "CLIENTINFO" {
 		return
 	}
 
 	if channel == h.CurrentNick() {
 		// this is a DM - possibly an invite bot answering our invite command
-		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanedMsg).Msg("got direct-message")
+		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanMessage(message)).Msg("got direct-message")
 
 		// a DM from an invite bot while a channel is still awaiting its invite is
 		// a rejection, not the invite itself (that arrives as INVITE)
@@ -1014,14 +1077,13 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 		return
 	}
 
-	ircChannel.OnMsg(msg)
+	ircMsg, ok := ircChannel.OnMsg(msg)
+	if !ok {
+		return
+	}
 
 	// publish to SSE stream
-	h.broadcastMessage(domain.IrcMessage{Network: h.GetNetwork().ID, Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
-
-	//h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
-
-	return
+	h.broadcastMessage(ircMsg)
 }
 
 // JoinChannels sends multiple join commands
@@ -1612,14 +1674,123 @@ func (h *Handler) handleInviteResponse(msg ircmsg.Message) {
 	}
 }
 
-// NickServIdentify sends NickServ Identify commands
-func (h *Handler) NickServIdentify(password string) error {
-	if err := h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s", password)); err != nil {
+// identifyCommand builds the NickServ IDENTIFY for the form currently selected
+// for this connection, bare unless escalateIdentify has moved us to the
+// account-qualified form.
+func (h *Handler) identifyCommand() string {
+	h.m.RLock()
+	form := h.identifyAttempt
+	account := h.network.Auth.Account
+	password := h.network.Auth.Password
+	h.m.RUnlock()
+
+	if form == identifyFormAccount && account != "" {
+		return fmt.Sprintf("IDENTIFY %s %s", account, password)
+	}
+
+	return fmt.Sprintf("IDENTIFY %s", password)
+}
+
+// NickServIdentify sends a NickServ IDENTIFY. The whole command is one trailing
+// PRIVMSG parameter: split across parameters it lands past the message body,
+// where every ircd discards it.
+func (h *Handler) NickServIdentify() error {
+	if err := h.Send("PRIVMSG", "NickServ", h.identifyCommand()); err != nil {
 		h.log.Error().Stack().Err(err).Msg("error identifying with nickserv")
 		return err
 	}
 
 	return nil
+}
+
+// canEscalateIdentify reports whether a failed bare IDENTIFY may be retried in
+// the account-qualified form. Escalation is forward-only and happens at most
+// once per connection: on services that do not support the account argument the
+// retry comes back as "password incorrect", which is indistinguishable from
+// genuinely bad credentials and must never drive another attempt.
+func (h *Handler) canEscalateIdentify(currentNick string) bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	if h.authenticated || h.saslauthed || h.identifyEscalated || h.identifyAttempt != identifyFormBare {
+		return false
+	}
+
+	if h.network.Auth.Account == "" || h.network.Auth.Password == "" {
+		return false
+	}
+
+	// the account form resolves the same target as the bare form, so it can only
+	// help when the account differs from the nick we are connected as
+	return !strings.EqualFold(h.network.Auth.Account, currentNick)
+}
+
+// noticeAllowsIdentifyEscalation reports whether a NickServ NOTICE proves the
+// bare IDENTIFY failed for a reason the account-qualified form can fix: either
+// the nick we are connected as is unknown to NickServ, or NickServ wants the
+// account spelled out.
+func noticeAllowsIdentifyEscalation(notice string) bool {
+	return contains(notice,
+		"isn't registered",             // anope: Nick X isn't registered.
+		"is not a registered nickname", // atheme
+		"account does not exist",       // ergo
+		"insufficient parameters",      // atheme with nickserv::no_nick_ownership
+		"invalid parameters",           // ergo
+		"help identify",                // anope, ircservices
+		"syntax: identify",             // atheme, anope
+	)
+}
+
+// shouldEscalateIdentify reports whether this NOTICE should move the connection
+// to the account-qualified IDENTIFY form.
+func (h *Handler) shouldEscalateIdentify(notice string) bool {
+	return noticeAllowsIdentifyEscalation(notice) && h.canEscalateIdentify(h.CurrentNick())
+}
+
+// badCredentialsError describes a rejected password. An account-qualified
+// attempt is ambiguous: the password may really be wrong, or the network may be
+// running services that took the account name as the password.
+func (h *Handler) badCredentialsError() string {
+	h.m.RLock()
+	escalated := h.identifyAttempt == identifyFormAccount
+	h.m.RUnlock()
+
+	if escalated {
+		return "authentication failed: NickServ rejected the account-qualified IDENTIFY. Either the password is wrong, or this network only supports 'IDENTIFY <password>' and needs the nick grouped to the account instead"
+	}
+
+	return "authentication failed: Bad account credentials"
+}
+
+// escalateIdentify moves this connection to the account-qualified IDENTIFY form.
+func (h *Handler) escalateIdentify() {
+	h.m.Lock()
+	h.identifyAttempt = identifyFormAccount
+	h.identifyEscalated = true
+	h.m.Unlock()
+}
+
+// resetIdentifyForm starts a connection on the form that last authenticated on
+// this network and re-arms escalation. Seeding from the learned form keeps a
+// reconnect from re-sending a bare IDENTIFY already known to fail here; the
+// escalation guards reject escalating out of the account form, so a connection
+// that starts there stays there.
+// The caller must hold h.m.
+func (h *Handler) resetIdentifyForm() {
+	h.identifyAttempt = h.identifyFormLearned
+	h.identifyEscalated = false
+}
+
+// unlearnIdentifyForm drops a remembered account-qualified form once it has
+// itself been rejected, so a later nick grouping or services change heals on the
+// next connect instead of failing the same way forever.
+func (h *Handler) unlearnIdentifyForm() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	if h.identifyAttempt == identifyFormAccount {
+		h.identifyFormLearned = identifyFormBare
+	}
 }
 
 // NickChange sets a new nick for our user

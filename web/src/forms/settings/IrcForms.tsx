@@ -9,7 +9,6 @@ import type { FieldArrayRenderProps, FieldProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Select from "react-select";
-import { DialogTitle } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
@@ -222,7 +221,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.channelsDesc")}
               </p>
@@ -398,9 +397,9 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
             <div className="flex justify-between px-4">
               <div className="space-y-1">
-                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                   {t("forms.irc.proxy")}
-                </DialogTitle>
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {t("forms.irc.proxyDesc")}
                 </p>
@@ -422,7 +421,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.identification")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.identification")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.identificationDesc")}
               </p>
@@ -452,7 +451,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.channelsUpdateDesc")}
               </p>

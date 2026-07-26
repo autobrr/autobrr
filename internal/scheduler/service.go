@@ -107,6 +107,22 @@ func (s *Service) ScheduleJob(job cron.Job, interval time.Duration, identifier s
 	return int(id), nil
 }
 
+// ScheduleJobJittered takes a time duration and adds a job, spreading jobs that share an interval
+// across it so they do not all fire on the same second.
+func (s *Service) ScheduleJobJittered(job cron.Job, interval time.Duration, identifier string) (int, error) {
+	schedule := newJitteredSchedule(interval, identifier)
+
+	id := s.cron.Schedule(schedule, cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
+
+	s.log.Debug().Str("identifier", identifier).Int("entry_id", int(id)).Dur("interval", schedule.interval).Dur("offset", schedule.offset).Msg("scheduler.ScheduleJobJittered: job successfully added")
+
+	s.m.Lock()
+	s.jobs[identifier] = id
+	s.m.Unlock()
+
+	return int(id), nil
+}
+
 // AddJob takes a cron schedule and adds a job
 func (s *Service) AddJob(job cron.Job, spec string, identifier string) (int, error) {
 	id, err := s.cron.AddJob(spec, cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
