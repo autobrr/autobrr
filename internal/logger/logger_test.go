@@ -16,10 +16,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// tempLogPath returns a path for a log file that the test can leave open.
+// lumberjack holds the file for the lifetime of the process and nothing closes
+// it, and Windows refuses to remove an open file, so t.TempDir would fail its
+// own cleanup. Remove best effort instead.
+func tempLogPath(t *testing.T) string {
+	t.Helper()
+
+	dir, err := os.MkdirTemp("", "autobrr-logger")
+	require.NoError(t, err)
+
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+
+	return filepath.Join(dir, "autobrr.log")
+}
+
 // The sse writer reads the time field off every event, so both the root logger
 // and the derived loggers services actually use have to carry a timestamp.
 func TestNew_TimestampOnRootAndDerivedLoggers(t *testing.T) {
-	logPath := filepath.Join(t.TempDir(), "autobrr.log")
+	logPath := tempLogPath(t)
 
 	log := New(&domain.Config{LogLevel: "TRACE", Version: "1.0.0", LogPath: logPath}, nil)
 
@@ -50,7 +65,7 @@ func TestNew_TimestampOnRootAndDerivedLoggers(t *testing.T) {
 }
 
 func TestSetLevel(t *testing.T) {
-	logPath := filepath.Join(t.TempDir(), "autobrr.log")
+	logPath := tempLogPath(t)
 
 	log := New(&domain.Config{LogLevel: "INFO", Version: "1.0.0", LogPath: logPath}, nil)
 	t.Cleanup(func() { SetLevel("TRACE") })
