@@ -144,8 +144,11 @@ func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.A
 		return errors.Wrap(err, "could not resolve magnet uri: %s", release.MagnetURI)
 	}
 
-	// parse all macros in one go
-	if action.CheckMacrosNeedRawDataBytes(release) {
+	// Fetch the torrent once, here, onto the shared release. The action executors
+	// take the release by value, so a download started inside one of them lands
+	// on a copy and the next action would fetch the same torrent again.
+	// Magnets carry no torrent to fetch, the clients get the URI instead.
+	if !release.HasMagnetUri() && (action.NeedsTorrentDownloaded() || action.CheckMacrosNeedRawDataBytes(release)) {
 		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			return errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
@@ -213,7 +216,7 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 	defer newFile.Close()
 
 	// Copy file
-	if _, err := io.Copy(newFile, bytes.NewReader(release.TorrentDataRawBytes)); err != nil {
+	if _, err := io.Copy(newFile, release.TorrentReader()); err != nil {
 		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 

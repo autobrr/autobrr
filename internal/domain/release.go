@@ -831,6 +831,13 @@ func (r *Release) ParseSizeBytesString(size string) {
 	}
 }
 
+// TorrentReader returns a reader over the in-memory torrent. Consumers that
+// want an io.Reader should go through this instead of wrapping
+// TorrentDataRawBytes themselves, so the bytes stay owned by the release.
+func (r *Release) TorrentReader() io.Reader {
+	return bytes.NewReader(r.TorrentDataRawBytes)
+}
+
 // WriteTemporaryFile writes the in-memory torrent to a temporary file on disk.
 // The torrent is otherwise passed around as raw bytes, so this is only needed
 // for the TorrentPathName and TorrentTmpFile macros which hand a path to an

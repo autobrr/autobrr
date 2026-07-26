@@ -48,6 +48,19 @@ type Action struct {
 	Client                   *DownloadClient     `json:"client,omitempty"`
 }
 
+// NeedsTorrentDownloaded check if the action type uploads the torrent itself.
+// These are resolved up front so a release with several actions fetches the
+// torrent from the indexer once, instead of once per action.
+func (a *Action) NeedsTorrentDownloaded() bool {
+	switch a.Type {
+	case ActionTypeQbittorrent, ActionTypeDelugeV1, ActionTypeDelugeV2, ActionTypeRTorrent,
+		ActionTypeTransmission, ActionTypePorla, ActionTypeWatchFolder:
+		return true
+	default:
+		return false
+	}
+}
+
 // macroFields returns the action fields that get macro expanded and could
 // reference the torrent file. Keep in sync with ParseMacros.
 func (a *Action) macroFields() []string {
