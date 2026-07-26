@@ -14,7 +14,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type CheckUpdatesJob struct {
@@ -79,15 +78,9 @@ func (j *TempDirCleanupJob) Run() {
 		return
 	}
 
-	currentUID := os.Getenv("UID")
-	if currentUID == "" {
-		// Fallback for systems where UID isn't set
-		currentUID = os.Getenv("USER")
-		if currentUID == "" {
-			log.Debug().Msg("could not determine current user, skipping ownership check")
-			// Continue without ownership filtering or implement alternative logic
-		}
-	}
+	// ask the OS rather than the environment, UID is a shell variable that is
+	// not exported to child processes and USER is a name, not a numeric id
+	currentUID := os.Getuid()
 
 	for _, file := range files {
 		if !strings.HasPrefix(file.Name(), tmpFilePattern) {
