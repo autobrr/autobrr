@@ -6,6 +6,7 @@ package indexer
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
@@ -59,6 +60,8 @@ func (s *APIService) GetTorrentByID(ctx context.Context, indexer string, torrent
 
 	s.log.Trace().Str("method", "GetTorrentByID").Str("indexer", indexer).Str("torrent_id", torrentID).Msg("fetching torrent from indexer api...")
 
+	start := time.Now()
+
 	torrent, err := client.GetTorrentByID(ctx, torrentID)
 	if err != nil {
 		s.log.Error().Stack().Err(err).Str("indexer", indexer).Str("torrent_id", torrentID).Msg("could not get torrent from indexer api")
@@ -69,7 +72,7 @@ func (s *APIService) GetTorrentByID(ctx context.Context, indexer string, torrent
 		return nil, errors.New("could not get torrent: %s from: %s", torrentID, indexer)
 	}
 
-	s.log.Trace().Str("method", "GetTorrentByID").Str("indexer", indexer).Interface("torrent", torrent).Msg("indexer api successfully fetched torrent")
+	s.log.Trace().Str("method", "GetTorrentByID").Str("indexer", indexer).Interface("torrent", torrent).Dur("duration", time.Since(start)).Str("torrent_id", torrentID).Msg("indexer api successfully fetched torrent")
 
 	return torrent, nil
 }
@@ -108,6 +111,8 @@ func (s *APIService) AddClient(indexer string, settings map[string]string, proxy
 		proxyHttpClient = proxyClient
 	}
 
+	subLogger := s.log.With().Str("indexer", indexer).Logger()
+
 	// init client
 	switch indexer {
 	case "btn":
@@ -115,28 +120,28 @@ func (s *APIService) AddClient(indexer string, settings map[string]string, proxy
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = btn.NewClient(key, btn.WithHTTPClient(proxyHttpClient))
+		s.apiClients[indexer] = btn.NewClient(key, btn.WithHTTPClient(proxyHttpClient), btn.WithLog(subLogger))
 
 	case "ggn":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize ggn client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = ggn.NewClient(key, ggn.WithHTTPClient(proxyHttpClient))
+		s.apiClients[indexer] = ggn.NewClient(key, ggn.WithHTTPClient(proxyHttpClient), ggn.WithLog(subLogger))
 
 	case "redacted":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize red client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = red.NewClient(key, red.WithHTTPClient(proxyHttpClient))
+		s.apiClients[indexer] = red.NewClient(key, red.WithHTTPClient(proxyHttpClient), red.WithLog(subLogger))
 
 	case "ops":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
 			return errors.New("api.Service.AddClient: could not initialize orpheus client: missing var 'api_key'")
 		}
-		s.apiClients[indexer] = ops.NewClient(key, ops.WithHTTPClient(proxyHttpClient))
+		s.apiClients[indexer] = ops.NewClient(key, ops.WithHTTPClient(proxyHttpClient), ops.WithLog(subLogger))
 
 	case "mock":
 		s.apiClients[indexer] = mock.NewMockClient("mock")
@@ -174,31 +179,33 @@ func (s *APIService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 		proxyHttpClient = proxyClient
 	}
 
+	subLogger := s.log.With().Str("indexer", req.Identifier).Logger()
+
 	// init client
 	switch req.Identifier {
 	case "btn":
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
-		return btn.NewClient(req.ApiKey, btn.WithHTTPClient(proxyHttpClient), btn.WithLog(s.log.With().Str("indexer", "btn").Logger())), nil
+		return btn.NewClient(req.ApiKey, btn.WithHTTPClient(proxyHttpClient), btn.WithLog(subLogger)), nil
 
 	case "ggn":
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize ggn client: missing var 'api_key'")
 		}
-		return ggn.NewClient(req.ApiKey, ggn.WithHTTPClient(proxyHttpClient)), nil
+		return ggn.NewClient(req.ApiKey, ggn.WithHTTPClient(proxyHttpClient), ggn.WithLog(subLogger)), nil
 
 	case "redacted":
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize red client: missing var 'api_key'")
 		}
-		return red.NewClient(req.ApiKey, red.WithHTTPClient(proxyHttpClient)), nil
+		return red.NewClient(req.ApiKey, red.WithHTTPClient(proxyHttpClient), red.WithLog(subLogger)), nil
 
 	case "ops":
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize orpheus client: missing var 'api_key'")
 		}
-		return ops.NewClient(req.ApiKey, ops.WithHTTPClient(proxyHttpClient)), nil
+		return ops.NewClient(req.ApiKey, ops.WithHTTPClient(proxyHttpClient), ops.WithLog(subLogger)), nil
 
 	case "mock":
 		return mock.NewMockClient("mock"), nil
