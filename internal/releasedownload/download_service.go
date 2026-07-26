@@ -67,6 +67,19 @@ func NewDownloadService(log logger.Logger, indexerRepo indexerRepo, proxySvc pro
 	}
 }
 
+// releaseLogger derives from s.log rather than the ctx logger because callers
+// live in both the action and filter packages, and inheriting their logger
+// would report the wrong module.
+func (s *DownloadService) releaseLogger(r *domain.Release) *zerolog.Logger {
+	l := s.log.With().
+		Str("trace_id", r.TraceID).
+		Str("release", r.TorrentName).
+		Str("indexer", r.Indexer.Identifier).
+		Logger()
+
+	return &l
+}
+
 func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Release) error {
 	if rls.HasMagnetUri() {
 		return errors.New("downloading magnet links is not supported: %s", rls.MagnetURI)
@@ -80,6 +93,8 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 		// already downloaded
 		return nil
 	}
+
+	l := s.releaseLogger(rls)
 
 	// get indexer
 	indexer, err := s.indexerRepo.FindByID(ctx, rls.Indexer.ID)
@@ -95,11 +110,11 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 		}
 
 		if proxyConf.Enabled {
-			s.log.Debug().Msgf("using proxy: %s", proxyConf.Name)
+			l.Debug().Str("proxy", proxyConf.Name).Msg("using proxy")
 
 			indexer.Proxy = proxyConf
 		} else {
-			s.log.Debug().Msgf("proxy disabled, skip: %s", proxyConf.Name)
+			l.Debug().Str("proxy", proxyConf.Name).Msg("proxy disabled, skipping")
 		}
 	}
 
@@ -113,6 +128,8 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 }
 
 func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *domain.Indexer, r *domain.Release) error {
+	l := s.releaseLogger(r)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.DownloadURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
@@ -127,7 +144,7 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 
 	// handle proxy
 	if indexer.Proxy != nil {
-		s.log.Debug().Msgf("using proxy: %s", indexer.Proxy.Name)
+		l.Debug().Str("proxy", indexer.Proxy.Name).Msg("using proxy")
 
 		proxiedClient, err := proxy.GetProxiedHTTPClient(indexer.Proxy)
 		if err != nil {
@@ -177,11 +194,11 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 		retry.MaxJitter(time.Second*1),
 		//retry.Delay(time.Second*3),
 		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
-			s.log.Error().Err(err).Msg("http call encountered error")
+			l.Error().Err(err).Uint("attempt", n).Msg("http call encountered error")
 
 			var retriable *RetriableError
 			if errors.As(err, &retriable) {
-				s.log.Debug().Msgf("http call rate-limited, retry after %v", retriable.RetryAfter)
+				l.Debug().Uint("attempt", n).Dur("retry_after", retriable.RetryAfter).Msg("http call rate-limited")
 				return retriable.RetryAfter
 			}
 			return time.Second * 3
@@ -350,7 +367,7 @@ func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Releas
 			return err
 		}
 
-		s.log.Debug().Msgf("using proxy: %s", proxyConf.Name)
+		s.releaseLogger(r).Debug().Str("proxy", proxyConf.Name).Msg("using proxy")
 
 		proxiedClient, err := proxy.GetProxiedHTTPClient(proxyConf)
 		if err != nil {
