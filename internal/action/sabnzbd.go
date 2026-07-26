@@ -9,10 +9,14 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
+
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) sabnzbd(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Trace().Msg("action Sabnzbd")
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("running Sabnzbd action")
 
 	if release.Protocol != domain.ReleaseProtocolNzb {
 		return nil, errors.New("action type: %s invalid protocol: %s", action.Type, release.Protocol)
@@ -35,9 +39,7 @@ func (s *Service) sabnzbd(ctx context.Context, action *domain.Action, release do
 		return nil, errors.Wrap(err, "could not add nzb to sabnzbd")
 	}
 
-	s.log.Trace().Msgf("nzb successfully added to client: '%+v'", ids)
-
-	s.log.Info().Msgf("nzb successfully added to client: '%s'", client.Name)
+	l.Info().Str("client", client.Name).Interface("ids", ids).Msg("release successfully added to client")
 
 	return nil, nil
 }

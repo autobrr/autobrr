@@ -58,31 +58,31 @@ func (s *Subscriber) Register() {
 }
 
 func (s *Subscriber) handleReleaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
-	s.log.Trace().Str("event", domain.EventReleaseStoreActionStatus).Msgf("store action status: '%+v'", actionStatus)
+	s.log.Trace().Str("event", domain.EventReleaseStoreActionStatus).Interface("action_status", actionStatus).Msg("store action status")
 
 	err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("events: 'release:store-action-status' error")
+		s.log.Error().Err(err).Msg("release action status store error")
 	}
 }
 
 func (s *Subscriber) handleReleasePushStatus(actionStatus *domain.ReleaseActionStatus) {
-	s.log.Trace().Str("event", domain.EventReleasePushStatus).Msgf("events: 'release:push' '%+v'", actionStatus)
+	s.log.Trace().Str("event", domain.EventReleasePushStatus).Interface("action_status", actionStatus).Msg("release push")
 
 	if err := s.releaseSvc.StoreReleaseActionStatus(context.Background(), actionStatus); err != nil {
-		s.log.Error().Err(err).Msgf("events: 'release:push' error")
+		s.log.Error().Err(err).Msg("release push error")
 	}
 }
 
 func (s *Subscriber) handleSendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
-	s.log.Trace().Str("event", domain.EventNotificationSend).Msgf("send notification events: '%v' '%+v'", *event, payload)
+	s.log.Trace().Str("event", domain.EventNotificationSend).Interface("notification_event", *event).Interface("payload", payload).Msg("send notification event")
 
 	s.notificationSvc.Send(*event, *payload)
 }
 
 // handleIndexerDelete handle feed cleanup via event because feed service can't be imported in indexer service
 func (s *Subscriber) handleIndexerDelete(indexer *domain.Indexer) {
-	s.log.Trace().Str("event", domain.EventIndexerDelete).Msgf("events: 'indexer:delete' '%d'", indexer.ID)
+	s.log.Trace().Str("event", domain.EventIndexerDelete).Int("indexer_id", int(indexer.ID)).Msg("indexer delete event")
 
 	ctx := context.Background()
 
@@ -93,14 +93,14 @@ func (s *Subscriber) handleIndexerDelete(indexer *domain.Indexer) {
 				return
 			}
 
-			s.log.Error().Err(err).Msgf("events: 'indexer:delete' error, could not find feed with indexer id: %d", indexer.ID)
+			s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("indexer delete could not find feed")
 			return
 		}
 
 		if err := s.feedSvc.Delete(ctx, feedItem.ID); err != nil {
-			s.log.Error().Err(err).Msgf("events: 'indexer:delete' error, could not delete feed with id: %d", feedItem.ID)
+			s.log.Error().Err(err).Int("feed_id", feedItem.ID).Msg("indexer delete could not delete feed")
 		}
 
-		s.log.Debug().Msgf("successfully removed feed: %s", feedItem.Name)
+		s.log.Debug().Str("feed_name", feedItem.Name).Msg("removed feed")
 	}
 }

@@ -85,15 +85,15 @@ func (j *RSSJob) RunE(ctx context.Context) error {
 func (j *RSSJob) process(ctx context.Context) error {
 	items, err := j.getFeed(ctx)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error fetching rss feed items")
 		return errors.Wrap(err, "error getting rss feed items")
 	}
 
-	j.Log.Debug().Msgf("found (%d) new items to process", len(items))
-
 	if len(items) == 0 {
+		j.Log.Debug().Int("items_count", len(items)).Msg("found zero new items to process")
 		return nil
 	}
+
+	j.Log.Debug().Int("items_count", len(items)).Msg("found new items to process")
 
 	releases := make([]*domain.Release, 0)
 
@@ -107,7 +107,7 @@ func (j *RSSJob) process(ctx context.Context) error {
 	}
 
 	// process all new releases
-	go j.ReleaseSvc.ProcessMultipleFromIndexer(releases, j.Feed.Indexer)
+	go j.ReleaseSvc.ProcessMultipleFromIndexer(context.WithoutCancel(ctx), releases, j.Feed.Indexer)
 
 	return nil
 }
@@ -118,7 +118,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if j.Feed.MaxAge > 0 {
 		if item.PublishedParsed != nil && item.PublishedParsed.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 			if !isNewerThanMaxAge(j.Feed.MaxAge, *item.PublishedParsed, now) {
-				j.Log.Trace().Msgf("item is older than feed max age, skipping: %s", item.Title)
+				j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", *item.PublishedParsed).Msg("item is older than feed max age, skipping")
 				return nil
 			}
 		}
@@ -214,7 +214,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.Description = item.Description
 
 		if readSizeFromDescription(item.Description, rls) {
-			j.Log.Trace().Msgf("Set new size %d from description", rls.Size)
+			j.Log.Trace().Uint64("size", rls.Size).Msg("Set new size from description")
 		}
 	}
 
@@ -226,23 +226,24 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if customContentLength, ok := item.Custom["contentlength"]; ok {
 		if customContentLength != "" {
 			size, err := strconv.ParseUint(customContentLength, 10, 64)
-			if err != nil {
-				j.Log.Error().Err(err).Msgf("could not parse item.Custom.ContentLength: %s", customContentLength)
+			if err == nil {
+				if size > rls.Size {
+					rls.Size = size
+				}
+			} else {
+				j.Log.Error().Err(err).Str("customContentLength", customContentLength).Msg("could not parse item.Custom.ContentLength")
 			}
 
-			if size > rls.Size {
-				rls.Size = size
-			}
 		}
 	} else if cc, ok := item.Custom["contentLength"]; ok {
 		if cc != "" {
 			size, err := strconv.ParseUint(cc, 10, 64)
-			if err != nil {
-				j.Log.Error().Err(err).Msgf("could not parse item.Custom.ContentLength: %s", cc)
-			}
-
-			if size > rls.Size {
-				rls.Size = size
+			if err == nil {
+				if size > rls.Size {
+					rls.Size = size
+				}
+			} else {
+				j.Log.Error().Err(err).Str("contentLength", cc).Msg("could not parse item.Custom.ContentLength")
 			}
 		}
 	}
@@ -254,7 +255,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if val, ok := item.Custom["seeds"]; ok {
 		value, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
-			j.Log.Error().Err(err).Msgf("could not parse item.Custom.seeds: %d", value)
+			j.Log.Error().Err(err).Int64("value", value).Msg("could not parse item.custom.seeds")
 		}
 		rls.Seeders = int(value)
 	}
@@ -262,7 +263,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if val, ok := item.Custom["peers"]; ok {
 		value, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
-			j.Log.Error().Err(err).Msgf("could not parse item.Custom.peers: %d", value)
+			j.Log.Error().Err(err).Int64("value", value).Msg("could not parse item.custom.peers")
 		}
 		rls.Leechers = int(value) - rls.Seeders
 	}
@@ -383,7 +384,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		feedParser.WithHTTPClient(proxyClient)
 
-		j.Log.Debug().Msgf("using proxy %s for feed %s", j.Feed.Proxy.Name, j.Feed.Name)
+		j.Log.Debug().Str("proxy", j.Feed.Proxy.Name).Msg("using proxy for feed")
 	}
 
 	feed, err := feedParser.ParseURLWithContext(ctx, j.URL)
@@ -395,14 +396,15 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	feedData := feed.String()
 
 	if err := j.Repo.UpdateLastRunWithData(ctx, j.Feed.ID, feedData); err != nil {
-		j.Log.Error().Err(err).Msgf("error updating last run for feed id: %v", j.Feed.ID)
+		j.Log.Error().Err(err).Msg("error updating last run for feed")
 	}
-
-	j.Log.Debug().Msgf("refreshing rss feed: %v, found (%d) items", j.Name, len(feed.Items))
 
 	if len(feed.Items) == 0 {
+		j.Log.Trace().Int("items_count", len(feed.Items)).Msg("feed refresh found zero items")
 		return
 	}
+
+	j.Log.Trace().Int("items_count", len(feed.Items)).Msg("feed refresh found new items")
 
 	//sort.Sort(feed)
 	guidItemMap := make(map[string]*gofeed.Item)
@@ -426,7 +428,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error getting existing items from cache")
+		j.Log.Error().Err(err).Msg("error getting existing items from cache")
 		return
 	}
 
@@ -437,11 +439,11 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	for _, guid := range guids {
 		item := guidItemMap[guid]
 		if existingGuids[guid] {
-			j.Log.Trace().Msgf("cache item exists, skipping release: %s", item.Title)
+			j.Log.Trace().Str("item", item.Title).Msg("cache item exists, skipping release..")
 			continue
 		}
 
-		j.Log.Debug().Msgf("found new release: %s", item.Title)
+		j.Log.Debug().Str("item", item.Title).Msg("found new release")
 
 		toCache = append(toCache, domain.FeedCacheItem{
 			FeedId: strconv.Itoa(j.Feed.ID),

@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -177,4 +178,31 @@ func TestClient_GetTorrentByID(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestClient_ThrottleOn503(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	var requests atomic.Int64
+
+	mux := http.NewServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte("Service Unavailable"))
+	})
+
+	c := NewClient("mock-key", WithUrl(ts.URL))
+
+	_, err := c.GetTorrentByID(context.Background(), "9555073")
+	assert.Error(t, err)
+	assert.Equal(t, int64(1), requests.Load())
+
+	// the second call must be refused locally instead of spending more budget
+	_, err = c.GetTorrentByID(context.Background(), "9555073")
+	assert.ErrorContains(t, err, "not calling again until")
+	assert.Equal(t, int64(1), requests.Load())
 }

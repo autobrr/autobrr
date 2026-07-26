@@ -110,7 +110,7 @@ func (s *Service) Find(ctx context.Context, params domain.FilterQueryParams) ([]
 	// get filters
 	filters, err := s.repo.Find(ctx, params)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find list filters")
+		s.log.Error().Err(err).Msg("could not find list filters")
 		return nil, err
 	}
 
@@ -123,7 +123,7 @@ func (s *Service) Find(ctx context.Context, params domain.FilterQueryParams) ([]
 
 		if filter.IsMaxDownloadsLimitEnabled() {
 			if err := s.repo.GetFilterDownloadCount(ctx, filter); err != nil {
-				s.log.Error().Err(err).Msgf("could not get filter downloads for filter: %s", filter.Name)
+				s.log.Error().Err(err).Str("filter", filter.Name).Msg("could not get filter downloads")
 			}
 		}
 	}
@@ -135,7 +135,7 @@ func (s *Service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 	// get filters
 	filters, err := s.repo.ListFilters(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find list filters")
+		s.log.Error().Err(err).Msg("could not find list filters")
 		return nil, err
 	}
 
@@ -153,25 +153,25 @@ func (s *Service) ListFilters(ctx context.Context) ([]domain.Filter, error) {
 func (s *Service) FindByID(ctx context.Context, filterID int) (*domain.Filter, error) {
 	filter, err := s.repo.FindByID(ctx, filterID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find filter for id: %v", filterID)
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
 		return nil, err
 	}
 
 	externalFilters, err := s.repo.FindExternalFiltersByID(ctx, filter.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find external filters for filter id: %v", filter.ID)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find external filters")
 	}
 	filter.External = externalFilters
 
 	actions, err := s.actionService.FindByFilterID(ctx, filter.ID, nil, false)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find filter actions for filter id: %v", filter.ID)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter actions")
 	}
 	filter.Actions = actions
 
 	indexers, err := s.indexerSvc.FindByFilterID(ctx, filter.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexers for filter: %v", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find indexers")
 		return nil, err
 	}
 	filter.Indexers = indexers
@@ -179,7 +179,7 @@ func (s *Service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	// Load notifications
 	notifications, err := s.notificationSvc.GetFilterNotifications(ctx, filter.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find notifications for filter: %v", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find notifications")
 	}
 	filter.Notifications = notifications
 
@@ -198,7 +198,7 @@ func (s *Service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 	for _, filter := range filters {
 		externalFilters, err := s.repo.FindExternalFiltersByID(ctx, filter.ID)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("could not find external filters for filter id: %v", filter.ID)
+			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find external filters")
 		}
 		filter.External = externalFilters
 	}
@@ -208,7 +208,7 @@ func (s *Service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 
 func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 	if err := filter.Validate(); err != nil {
-		s.log.Error().Err(err).Msgf("invalid filter: %v", filter)
+		s.log.Error().Err(err).Interface("filter_data", filter).Msg("invalid filter")
 		return err
 	}
 
@@ -217,7 +217,7 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 	}
 
 	if err := s.repo.Store(ctx, filter); err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter: %v", filter)
+		s.log.Error().Err(err).Interface("filter_data", filter).Msg("could not store filter")
 		return err
 	}
 
@@ -227,41 +227,41 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	err := filter.Validate()
 	if err != nil {
-		s.log.Error().Err(err).Msgf("validation error filter: %+v", filter)
+		s.log.Error().Err(err).Interface("filter_data", filter).Msg("validation error")
 		return err
 	}
 
 	err = filter.Sanitize()
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not sanitize filter: %v", filter)
+		s.log.Error().Err(err).Interface("filter_data", filter).Msg("could not sanitize filter")
 		return err
 	}
 
 	// update
 	err = s.repo.Update(ctx, filter)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not update filter: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not update filter")
 		return err
 	}
 
 	// take care of connected indexers
 	err = s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter indexer connections")
 		return err
 	}
 
 	// take care of connected external filters
 	err = s.repo.StoreFilterExternal(ctx, filter.ID, filter.External)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store external filters")
 		return err
 	}
 
 	// take care of filter actions
 	actions, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter actions")
 		return err
 	}
 
@@ -270,7 +270,7 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	// take care of filter notifications
 	err = s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter notifications: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter notifications")
 		return err
 	}
 
@@ -289,14 +289,14 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 
 	// update
 	if err := s.repo.UpdatePartial(ctx, filter); err != nil {
-		s.log.Error().Err(err).Msgf("could not update partial filter: %v", filter.ID)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not update partial filter")
 		return err
 	}
 
 	if filter.Indexers != nil {
 		// take care of connected indexers
 		if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
-			s.log.Error().Err(err).Msgf("could not store filter indexer connections: %v", filter.Name)
+			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter indexer connections")
 			return err
 		}
 	}
@@ -304,7 +304,7 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 	if filter.External != nil {
 		// take care of connected external filters
 		if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
-			s.log.Error().Err(err).Msgf("could not store external filters: %v", filter.Name)
+			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store external filters")
 			return err
 		}
 	}
@@ -312,7 +312,7 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 	if filter.Actions != nil {
 		// take care of filter actions
 		if _, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
-			s.log.Error().Err(err).Msgf("could not store filter actions: %v", filter.ID)
+			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter actions")
 			return err
 		}
 	}
@@ -320,7 +320,7 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 	if filter.Notifications != nil {
 		// take care of filter notifications
 		if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
-			s.log.Error().Err(err).Msgf("could not store filter notifications: %v", filter.ID)
+			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter notifications")
 			return err
 		}
 	}
@@ -342,33 +342,32 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 
 	// store new filter
 	if err := s.repo.Store(ctx, filter); err != nil {
-		s.log.Error().Err(err).Msgf("could not update filter: %s", filter.Name)
+		s.log.Error().Err(err).Str("filter", filter.Name).Msg("could not store filter")
 		return nil, err
 	}
 
 	// take care of connected indexers
 	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter indexer connections: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter indexer connections")
 		return nil, err
 	}
 
 	// reset action id to 0
 	for i, a := range filter.Actions {
-		a := a
 		a.ID = 0
 		filter.Actions[i] = a
 	}
 
 	// take care of filter actions
 	if _, err := s.actionService.StoreFilterActions(ctx, int64(filter.ID), filter.Actions); err != nil {
-		s.log.Error().Err(err).Msgf("could not store filter actions: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter actions")
 		return nil, err
 	}
 
 	// take care of connected external filters
 	// the external filters are fetched with FindByID
 	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
-		s.log.Error().Err(err).Msgf("could not store external filters: %s", filter.Name)
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store external filters")
 		return nil, err
 	}
 
@@ -381,7 +380,7 @@ func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool)
 		return err
 	}
 
-	s.log.Debug().Msgf("filter.toggle_enabled: update filter '%v' to '%v'", filterID, enabled)
+	s.log.Debug().Int("filter_id", filterID).Bool("enabled", enabled).Msg("updated filter")
 
 	return nil
 }
@@ -405,18 +404,18 @@ func (s *Service) Delete(ctx context.Context, filterID int) error {
 
 	// delete filter external
 	if err := s.repo.DeleteFilterExternal(ctx, filterID); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete filter external: %v", filterID)
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter external")
 		return err
 	}
 
 	// delete filter
 	if err := s.repo.Delete(ctx, filterID); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete filter: %v", filterID)
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter")
 		return err
 	}
 
 	if err := s.notificationSvc.DeleteFilterNotifications(ctx, filterID); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete filter notifications: %v", filterID)
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter notifications")
 		return err
 	}
 
@@ -424,12 +423,12 @@ func (s *Service) Delete(ctx context.Context, filterID int) error {
 }
 
 func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
-	l := s.log.With().Str("method", "CheckFilter").Logger()
+	l := s.log.With().Str("method", "CheckFilter").Str("trace_id", release.TraceID).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
-	l.Debug().Msgf("checking filter: %s with release %s", f.Name, release.TorrentName)
+	l.Debug().Msg("checking filter with release")
 
-	l.Trace().Msgf("checking filter: %s %+v", f.Name, f)
-	l.Trace().Msgf("checking filter: %s for release: %+v", f.Name, release)
+	l.Trace().Interface("filter_data", f).Msg("checking filter")
+	l.Trace().Interface("release_data", release).Msg("checking filter for release")
 
 	// do additional fetch to get download counts for filter
 	if f.IsMaxDownloadsLimitEnabled() {
@@ -441,7 +440,7 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 	rejections, matchedFilter := f.CheckFilter(release)
 	if rejections.Len() > 0 {
-		l.Debug().Msgf("(%s) for release: %v rejections: (%s)", f.Name, release.TorrentName, rejections.StringTruncated())
+		l.Debug().Str("rejections", rejections.StringTruncated()).Msg("rejections for release")
 		return false, nil
 	}
 
@@ -465,12 +464,12 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		}
 		canDownloadShow, err := s.CheckSmartEpisodeCanDownload(ctx, params)
 		if err != nil {
-			l.Trace().Msgf("failed smart episode check: %s", f.Name)
+			l.Trace().Msg("failed smart episode check")
 			return false, nil
 		}
 
 		if !canDownloadShow {
-			l.Trace().Msgf("failed smart episode check: %s", f.Name)
+			l.Trace().Msg("failed smart episode check")
 			if params.IsDailyEpisode() {
 				f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day), fmt.Sprintf("expected newer than (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day))
 			} else {
@@ -482,7 +481,7 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 	// check duplicates
 	if f.DuplicateHandling != nil {
-		l.Debug().Msgf("(%s) check is duplicate with profile %s", f.Name, f.DuplicateHandling.Name)
+		l.Debug().Str("profile", f.DuplicateHandling.Name).Msg("check is duplicate with profile")
 
 		release.SkipDuplicateProfileID = f.DuplicateHandling.ID
 		release.SkipDuplicateProfileName = f.DuplicateHandling.Name
@@ -493,7 +492,7 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		}
 
 		if isDuplicate {
-			l.Debug().Msgf("filter %s rejected release %q as duplicate with profile %q", f.Name, release.TorrentName, f.DuplicateHandling.Name)
+			l.Debug().Str("profile", f.DuplicateHandling.Name).Msg("rejected release as duplicate with profile")
 			f.RejectReasons.Add("duplicate", "duplicate", "not duplicate")
 
 			// let it continue so external filters can trigger checks
@@ -504,52 +503,52 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 	// if matched, do additional size check if needed, attach actions and return the filter
 
-	l.Debug().Msgf("found and matched filter: %s", f.Name)
+	l.Debug().Msg("found and matched filter")
 
 	// If size constraints are set in a filter and the indexer did not
 	// announce the size, we need to do an additional out of band size check.
 	if release.AdditionalSizeCheckRequired {
-		l.Debug().Msgf("(%s) additional size check required", f.Name)
+		l.Debug().Msg("additional size check required")
 
 		ok, err := s.AdditionalSizeCheck(ctx, f, release)
 		if err != nil {
-			l.Error().Err(err).Msgf("(%s) additional size check error", f.Name)
+			l.Error().Err(err).Msg("additional size check error")
 			return false, err
 		}
 
 		if !ok {
-			l.Trace().Msgf("(%s) additional size check not matching what filter wanted", f.Name)
+			l.Trace().Msg("additional size check not matching what filter wanted")
 			return false, nil
 		}
 	}
 
 	// check uploader if the indexer supports check via api
 	if release.AdditionalUploaderCheckRequired {
-		l.Debug().Msgf("(%s) additional uploader check required", f.Name)
+		l.Debug().Msg("additional uploader check required")
 
 		ok, err := s.AdditionalUploaderCheck(ctx, f, release)
 		if err != nil {
-			l.Error().Err(err).Msgf("(%s) additional uploader check error", f.Name)
+			l.Error().Err(err).Msg("additional uploader check error")
 			return false, err
 		}
 
 		if !ok {
-			l.Trace().Msgf("(%s) additional uploader check not matching what filter wanted", f.Name)
+			l.Trace().Msg("additional uploader check not matching what filter wanted")
 			return false, nil
 		}
 	}
 
 	if release.AdditionalRecordLabelCheckRequired {
-		l.Debug().Msgf("(%s) additional record label check required", f.Name)
+		l.Debug().Msg("additional record label check required")
 
 		ok, err := s.AdditionalRecordLabelCheck(ctx, f, release)
 		if err != nil {
-			l.Error().Err(err).Msgf("(%s) additional record label check error", f.Name)
+			l.Error().Err(err).Msg("additional record label check error")
 			return false, err
 		}
 
 		if !ok {
-			l.Trace().Msgf("(%s) additional record label check not matching what filter wanted", f.Name)
+			l.Trace().Msg("additional record label check not matching what filter wanted")
 			return false, nil
 		}
 	}
@@ -558,12 +557,12 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	if f.External != nil {
 		externalOk, err := s.RunExternalFilters(ctx, f, f.External, release)
 		if err != nil {
-			l.Error().Err(err).Msgf("(%s) external filter check error", f.Name)
+			l.Error().Err(err).Msg("external filter check error")
 			return false, err
 		}
 
 		if !externalOk {
-			l.Debug().Msgf("(%s) external filter check not matching what filter wanted", f.Name)
+			l.Debug().Msg("external filter check not matching what filter wanted")
 			return false, nil
 		}
 	}
@@ -585,22 +584,22 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	}()
 
 	// do additional size check against indexer api or torrent for size
-	l := s.log.With().Str("method", "AdditionalSizeCheck").Logger()
+	l := s.log.With().Str("method", "AdditionalSizeCheck").Str("trace_id", release.TraceID).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
-	l.Debug().Msgf("(%s) additional api size check required", f.Name)
+	l.Debug().Msg("additional api size check required")
 
 	switch release.Indexer.Identifier {
 	case "btn", "ggn", "redacted", "ops", "mock":
 		if (release.Size == 0 && release.AdditionalSizeCheckRequired) || (release.Uploader == "" && release.AdditionalUploaderCheckRequired) || (release.RecordLabel == "" && release.AdditionalRecordLabelCheckRequired) {
-			l.Trace().Msgf("(%s) preparing to check size via api", f.Name)
+			l.Trace().Str("filter", f.Name).Msg("preparing to check size via api")
 
 			torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
 			if err != nil || torrentInfo == nil {
-				l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
+				l.Error().Err(err).Str("torrent_id", release.TorrentID).Str("indexer", release.Indexer.Identifier).Msg("could not get torrent info from api")
 				return false, err
 			}
 
-			l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
+			l.Debug().Interface("torrent_info", torrentInfo).Msg("got torrent info from api")
 
 			torrentSize := torrentInfo.ReleaseSizeBytes()
 			if release.Size == 0 && torrentSize > 0 {
@@ -618,11 +617,11 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 	default:
 		if release.Size == 0 && release.AdditionalSizeCheckRequired {
-			l.Trace().Msgf("(%s) preparing to download torrent metafile", f.Name)
+			l.Trace().Msg("preparing to download torrent metafile")
 
 			// if indexer doesn't have api, download torrent and add to tmpPath
 			if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
-				l.Error().Err(err).Msgf("(%s) could not download torrent file with id: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
+				l.Error().Err(err).Str("torrent_id", release.TorrentID).Str("indexer", release.Indexer.Identifier).Msg("could not download torrent file")
 				return false, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 			}
 		}
@@ -630,7 +629,7 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 
 	sizeOk, err := f.CheckReleaseSize(release.Size)
 	if err != nil {
-		l.Error().Err(err).Msgf("(%s) error comparing release and filter size", f.Name)
+		l.Error().Err(err).Msg("error comparing release and filter size")
 		return false, err
 	}
 
@@ -638,7 +637,7 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	release.AdditionalSizeCheckRequired = false
 
 	if !sizeOk {
-		l.Debug().Msgf("(%s) filter did not match after additional size check, trying next", f.Name)
+		l.Debug().Msg("filter did not match after additional size check, trying next")
 		return false, nil
 	}
 
@@ -652,13 +651,13 @@ func (s *Service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 	}()
 
 	// do additional check against indexer api
-	l := s.log.With().Str("method", "AdditionalUploaderCheck").Logger()
+	l := s.log.With().Str("method", "AdditionalUploaderCheck").Str("trace_id", release.TraceID).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 	// if uploader was fetched before during size check we check it and return early
 	if release.Uploader != "" {
 		uploaderOk, err := f.CheckUploader(release.Uploader)
 		if err != nil {
-			l.Error().Err(err).Msgf("(%s) error comparing release and uploaders", f.Name)
+			l.Error().Err(err).Msg("error comparing release and uploaders")
 			return false, err
 		}
 
@@ -666,26 +665,26 @@ func (s *Service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 		release.AdditionalUploaderCheckRequired = false
 
 		if !uploaderOk {
-			l.Debug().Msgf("(%s) filter did not match after additional uploaders check, trying next", f.Name)
+			l.Debug().Msg("filter did not match after additional uploaders check, trying next")
 			return false, nil
 		}
 
 		return true, nil
 	}
 
-	l.Debug().Msgf("(%s) additional api uploader check required", f.Name)
+	l.Debug().Msg("additional api uploader check required")
 
 	switch release.Indexer.Identifier {
 	case "redacted", "ops", "mock":
-		l.Trace().Msgf("(%s) preparing to check via api", f.Name)
+		l.Trace().Msg("preparing to check via api")
 
 		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
 		if err != nil || torrentInfo == nil {
-			l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
+			l.Error().Err(err).Str("torrent_id", release.TorrentID).Str("indexer", release.Indexer.Identifier).Msg("could not get torrent info from api")
 			return false, err
 		}
 
-		l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
+		l.Debug().Interface("torrent_info", torrentInfo).Msg("got torrent info from api")
 
 		torrentSize := torrentInfo.ReleaseSizeBytes()
 		if release.Size == 0 && torrentSize > 0 {
@@ -706,7 +705,7 @@ func (s *Service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 
 	uploaderOk, err := f.CheckUploader(release.Uploader)
 	if err != nil {
-		l.Error().Err(err).Msgf("(%s) error comparing release and uploaders", f.Name)
+		l.Error().Err(err).Msg("error comparing release and uploaders")
 		return false, err
 	}
 
@@ -714,7 +713,7 @@ func (s *Service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 	release.AdditionalUploaderCheckRequired = false
 
 	if !uploaderOk {
-		l.Debug().Msgf("(%s) filter did not match after additional uploaders check, trying next", f.Name)
+		l.Debug().Msg("filter did not match after additional uploaders check, trying next")
 		return false, nil
 	}
 
@@ -731,13 +730,13 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 	}()
 
 	// do additional check against indexer api
-	l := s.log.With().Str("method", "AdditionalRecordLabelCheck").Logger()
+	l := s.log.With().Str("method", "AdditionalRecordLabelCheck").Str("trace_id", release.TraceID).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 	// if record label was fetched before during size check or uploader check we check it and return early
 	if release.RecordLabel != "" {
 		recordLabelOk, err := f.CheckRecordLabel(release.RecordLabel)
 		if err != nil {
-			l.Error().Err(err).Msgf("(%s) error comparing release and record label", f.Name)
+			l.Error().Err(err).Msg("error comparing release and record label")
 			return false, err
 		}
 
@@ -745,26 +744,26 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 		release.AdditionalRecordLabelCheckRequired = false
 
 		if !recordLabelOk {
-			l.Debug().Msgf("(%s) filter did not match after additional record label check, trying next", f.Name)
+			l.Debug().Msg("filter did not match after additional record label check, trying next")
 			return false, nil
 		}
 
 		return true, nil
 	}
 
-	l.Debug().Msgf("(%s) additional api record label check required", f.Name)
+	l.Debug().Msg("additional api record label check required")
 
 	switch release.Indexer.Identifier {
 	case "redacted", "ops", "mock":
-		l.Trace().Msgf("(%s) preparing to check via api", f.Name)
+		l.Trace().Msg("preparing to check via api")
 
 		torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
 		if err != nil || torrentInfo == nil {
-			l.Error().Err(err).Msgf("(%s) could not get torrent info from api: '%s' from: %s", f.Name, release.TorrentID, release.Indexer.Identifier)
+			l.Error().Err(err).Str("torrent_id", release.TorrentID).Str("indexer", release.Indexer.Identifier).Msg("could not get torrent info from api")
 			return false, err
 		}
 
-		l.Debug().Msgf("(%s) got torrent info from api: %+v", f.Name, torrentInfo)
+		l.Debug().Interface("torrent_info", torrentInfo).Msg("got torrent info from api")
 
 		torrentSize := torrentInfo.ReleaseSizeBytes()
 		if release.Size == 0 && torrentSize > 0 {
@@ -785,7 +784,7 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 
 	recordLabelOk, err := f.CheckRecordLabel(release.RecordLabel)
 	if err != nil {
-		l.Error().Err(err).Msgf("(%s) error comparing release and record label", f.Name)
+		l.Error().Err(err).Msg("error comparing release and record label")
 		return false, err
 	}
 
@@ -793,7 +792,7 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 	release.AdditionalRecordLabelCheckRequired = false
 
 	if !recordLabelOk {
-		l.Debug().Msgf("(%s) filter did not match after additional record label check, trying next", f.Name)
+		l.Debug().Msg("filter did not match after additional record label check, trying next")
 		return false, nil
 	}
 
@@ -813,16 +812,16 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 		// try recover panic if anything went wrong with the external filter checks
 		errors.RecoverPanic(recover(), &err)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("filter %s external filter check panic", f.Name)
+			s.log.Error().Err(err).Str("filter", f.Name).Msg("external filter check panic")
 			ok = false
 		}
 	}()
 
 	for _, external := range externalFilters {
-		l := s.log.With().Str("method", "RunExternalFilters").Str("filter", f.Name).Str("external_filter", external.Name).Logger()
+		l := s.log.With().Str("method", "RunExternalFilters").Str("trace_id", release.TraceID).Str("filter", f.Name).Str("external_filter", external.Name).Logger()
 
 		if !external.Enabled {
-			l.Debug().Msgf("external filter not enabled, skipping...")
+			l.Debug().Msg("external filter not enabled, skipping")
 
 			continue
 		}
@@ -838,17 +837,17 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external script
 			exitCode, err := s.execCmd(ctx, external, release)
 			if err != nil {
-				l.Error().Err(err).Msgf("error executing external script")
+				l.Error().Err(err).Msg("error executing external script")
 
 				if external.OnError == domain.FilterExternalOnErrorContinue {
-					l.Debug().Msgf("external script error, and OnError set to CONTINUE...")
+					l.Debug().Msg("external script error, and OnError set to continue")
 					continue
 				}
 				return false, errors.Wrap(err, "error executing external command")
 			}
 
 			if exitCode != external.ExecExpectStatus {
-				l.Debug().Int("expected_status", external.ExecExpectStatus).Int("actual_status", exitCode).Msgf("external script got unexpected exit code")
+				l.Debug().Int("expected_status", external.ExecExpectStatus).Int("actual_status", exitCode).Msg("external script got unexpected exit code")
 				f.RejectReasons.Add("external script exit code", exitCode, external.ExecExpectStatus)
 				return false, nil
 			}
@@ -857,18 +856,18 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			// run external webhook
 			statusCode, err := s.webhook(ctx, external, release)
 			if err != nil {
-				l.Error().Err(err).Msgf("error executing external webhook")
+				l.Error().Err(err).Msg("error executing external webhook")
 
 				// Only continue if the filter is configured to continue on error
 				if external.OnError == domain.FilterExternalOnErrorContinue {
-					l.Debug().Msgf("external webhook error, and OnError set to CONTINUE...")
+					l.Debug().Msg("external webhook error, and OnError set to continue")
 					continue
 				}
 				return false, errors.Wrap(err, "error executing external webhook")
 			}
 
 			if statusCode != external.WebhookExpectStatus {
-				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", statusCode).Msgf("external webhook got unexpected status code")
+				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", statusCode).Msg("external webhook got unexpected status code")
 				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
 				return false, nil
 			}
@@ -879,7 +878,7 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 }
 
 func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
-	s.log.Trace().Msgf("filter exec release: %s", release.TorrentName)
+	s.log.Trace().Str("release", release.TorrentName).Msg("filter exec release")
 
 	// read the file into bytes we can then use in the macro
 	if len(release.TorrentDataRawBytes) == 0 && release.TorrentTmpFile != "" {
@@ -914,7 +913,7 @@ func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	// setup command and args
 	command := exec.Command(cmd, commandArgs...)
 
-	s.log.Debug().Msgf("script: %s args: %s", cmd, strings.Join(commandArgs, " "))
+	s.log.Debug().Str("script", cmd).Str("args", strings.Join(commandArgs, " ")).Msg("executing script")
 
 	// Create a pipe to capture the standard output of the command
 	cmdOutput, err := command.StdoutPipe()
@@ -934,7 +933,7 @@ func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	// Create a buffer to store the output
 	outputBuffer := make([]byte, 4096)
 
-	execLogger := s.log.With().Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
+	execLogger := s.log.With().Str("trace_id", release.TraceID).Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
 
 	for {
 		// Read the output into the buffer
@@ -951,7 +950,7 @@ func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, rel
 	if err := command.Wait(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			s.log.Debug().Msgf("filter script command exited with non zero code: %v", exitErr.ExitCode())
+			s.log.Debug().Int("exit_code", exitErr.ExitCode()).Msg("filter script exited with non-zero code")
 			return exitErr.ExitCode(), nil
 		}
 
@@ -959,15 +958,15 @@ func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, rel
 		return 0, err
 	}
 
-	s.log.Debug().Msgf("executed external script: (%s), args: (%s) for release: (%s) indexer: (%s) total time (%s)", cmd, parsedArgs, release.TorrentName, release.Indexer.Name, duration)
+	s.log.Debug().Str("script", cmd).Str("args", parsedArgs).Str("release", release.TorrentName).Str("indexer", release.Indexer.Identifier).Dur("duration", duration).Msg("executed external script")
 
 	return 0, nil
 }
 
 func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
-	l := s.log.With().Str("method", "webhook").Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
+	l := s.log.With().Str("method", "webhook").Str("trace_id", release.TraceID).Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
 
-	s.log.Trace().Msgf("preparing to run external webhook filter to: (%s) payload: (%s)", external.WebhookHost, external.WebhookData)
+	l.Trace().Str("payload", external.WebhookData).Msg("preparing to run external webhook filter")
 
 	if external.WebhookHost == "" {
 		return 0, errors.New("external filter: missing host for webhook")
@@ -988,7 +987,7 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 		return 0, errors.Wrap(err, "could not parse webhook data macro: %s", external.WebhookData)
 	}
 
-	s.log.Trace().Msgf("sending %s to external webhook filter: (%s) payload: (%s)", external.WebhookMethod, external.WebhookHost, external.WebhookData)
+	l.Debug().Str("payload", external.WebhookData).Msg("sending external webhook filter request")
 
 	method := http.MethodPost
 	if external.WebhookMethod != "" {
@@ -1004,9 +1003,7 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 	req.Header.Set("User-Agent", "autobrr")
 
 	if external.WebhookHeaders != "" {
-		headers := strings.Split(external.WebhookHeaders, ";")
-
-		for _, header := range headers {
+		for header := range strings.SplitSeq(external.WebhookHeaders, ";") {
 			h := strings.Split(header, "=")
 
 			if len(h) != 2 {

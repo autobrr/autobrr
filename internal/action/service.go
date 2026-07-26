@@ -5,7 +5,6 @@ package action
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/asaskevich/EventBus"
-	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
@@ -41,7 +39,6 @@ type downloadService interface {
 
 type Service struct {
 	log         zerolog.Logger
-	subLogger   *log.Logger
 	repo        actionRepo
 	clientSvc   clientService
 	downloadSvc downloadService
@@ -63,8 +60,6 @@ func NewService(log logger.Logger, repo actionRepo, clientSvc clientService, dow
 			Transport: sharedhttp.TransportTLSInsecure,
 		},
 	}
-
-	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
 
 	return s
 }

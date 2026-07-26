@@ -13,13 +13,13 @@ import (
 
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
 	startTime := time.Now()
-	res, err := c.rpcClient.CallCtx(ctx, "getTorrentsBrowse", [2]string{c.APIKey, "100"})
+	res, err := c.call(ctx, "getTorrentsBrowse", [2]string{c.APIKey, "100"})
 	if err != nil {
 		return false, errors.Wrap(err, "test api userInfo failed")
 	}
 
 	elapsed := time.Since(startTime)
-	c.Log.Printf("btn: API test took %s", elapsed)
+	c.logger(ctx).Debug().Dur("duration", elapsed).Msg("btn api test completed")
 
 	if res.Error != nil {
 		return false, errors.New("btn: API test error: %s", res.Error.Message)
@@ -42,7 +42,7 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 		return nil, errors.New("btn client: must have torrentID")
 	}
 
-	res, err := c.rpcClient.CallCtx(ctx, "getTorrentById", [2]string{c.APIKey, torrentID})
+	res, err := c.call(ctx, "getTorrentById", [2]string{c.APIKey, torrentID})
 	if err != nil {
 		return nil, errors.Wrap(err, "call getTorrentById failed")
 	}

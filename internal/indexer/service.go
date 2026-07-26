@@ -101,13 +101,13 @@ func (s *Service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to store indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Interface("indexer", indexer).Msg("failed to store indexer")
 		return nil, err
 	}
 
 	// add to indexerInstances
 	if err = s.addIndexer(*i); err != nil {
-		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to add indexer")
 		return nil, err
 	}
 
@@ -156,13 +156,13 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 
 	i, err := s.repo.Update(ctx, indexer)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not update indexer: %+v", indexer)
+		s.log.Error().Err(err).Interface("indexer", indexer).Msg("could not update indexer")
 		return nil, err
 	}
 
 	// add to indexerInstances
 	if err = s.updateIndexer(*i); err != nil {
-		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to add indexer")
 		return nil, err
 	}
 
@@ -172,7 +172,7 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		}
 	}
 
-	s.log.Debug().Msgf("successfully updated indexer: %s", indexer.Name)
+	s.log.Debug().Str("indexer", indexer.Name).Msg("successfully updated indexer")
 
 	return i, nil
 }
@@ -184,7 +184,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete indexer by id: %d", id)
+		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not delete indexer")
 		return err
 	}
 
@@ -192,7 +192,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	s.removeIndexer(*indexer)
 
 	if err := s.ApiService.RemoveClient(indexer.Identifier); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete indexer api client: %s", indexer.Identifier)
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("could not delete indexer api client")
 	}
 
 	s.bus.Publish(domain.EventIndexerDelete, indexer)
@@ -203,7 +203,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 func (s *Service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	indexers, err := s.repo.FindByFilterID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %d", id)
+		s.log.Error().Err(err).Int("filter_id", id).Msg("could not find indexers by filter id")
 		return nil, err
 	}
 
@@ -213,7 +213,7 @@ func (s *Service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer,
 func (s *Service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
 	indexers, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexer by id: %d", id)
+		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not find indexer by id")
 		return nil, err
 	}
 
@@ -233,7 +233,7 @@ func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
 func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
 	indexer, err := s.repo.GetBy(ctx, req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not get indexer by: %v", req)
+		s.log.Error().Err(err).Interface("indexer", req).Msg("could not get indexer")
 		return nil, err
 	}
 
@@ -414,7 +414,7 @@ func (s *Service) Start() error {
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
 				if err := s.ApiService.AddClient(indexer.Identifier, indexer.SettingsMap, indexer.ProxyID, indexer.UseProxy); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
+					s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.start: could not init indexer api client")
 				}
 			}
 
@@ -424,7 +424,7 @@ func (s *Service) Start() error {
 		}
 	}
 
-	s.log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
+	s.log.Info().Int("count", len(indexerDefinitions)).Msg("Loaded indexers")
 
 	return nil
 }
@@ -458,7 +458,7 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
 			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
-				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
+				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.addIndexer: could not init indexer api client")
 			}
 		}
 
@@ -490,7 +490,7 @@ func (s *Service) updateIndexer(indexer domain.Indexer) error {
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
 			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
-				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
+				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.updateIndexer: could not init indexer api client")
 			}
 		}
 
@@ -538,7 +538,7 @@ func (s *Service) LoadIndexerDefinitions() error {
 
 		file := "definitions/" + entry.Name()
 
-		s.log.Trace().Msgf("parsing: %s", file)
+		s.log.Trace().Str("file", file).Msg("parsing indexer definition")
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
@@ -558,7 +558,7 @@ func (s *Service) LoadIndexerDefinitions() error {
 		s.definitions[d.Identifier] = d
 	}
 
-	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.definitions))
+	s.log.Debug().Int("count", len(s.definitions)).Msg("loaded indexer definitions")
 
 	return nil
 }
@@ -649,8 +649,8 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 
 	outputDirRead, err := os.Open(s.config.CustomDefinitions)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed opening custom definitions directory %s", s.config.CustomDefinitions)
-		return nil
+		s.log.Error().Err(err).Str("custom_definitions_path", s.config.CustomDefinitions).Msg("failed opening custom definitions directory")
+		return errors.Wrap(err, "could not open custom definitions directory: %s", s.config.CustomDefinitions)
 	}
 
 	defer outputDirRead.Close()
@@ -665,17 +665,17 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 	for _, entry := range entries {
 		ext := filepath.Ext(entry.Name())
 		if !isValidExtension(ext) {
-			s.log.Warn().Msgf("unsupported extension %s, definition file: %s", ext, entry.Name())
+			s.log.Warn().Str("ext", ext).Str("file", entry.Name()).Msg("unsupported extension for definition file")
 			continue
 		}
 
 		file := filepath.Join(s.config.CustomDefinitions, entry.Name())
 
-		s.log.Trace().Msgf("parsing custom definition: %s", file)
+		s.log.Trace().Str("file", file).Msg("parsing custom definition")
 
 		definition, err := OpenAndProcessDefinition(file)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("could not open definition file: %s", file)
+			s.log.Error().Err(err).Str("file", file).Msg("could not open definition file")
 			continue
 		}
 
@@ -684,7 +684,7 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 		customCount++
 	}
 
-	s.log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
+	s.log.Debug().Int("count", customCount).Msg("Loaded custom indexer definitions")
 
 	return nil
 }
@@ -762,15 +762,6 @@ func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 		return err
 	}
 
-	if domain.IsRedactedString(req.ApiKey) {
-		apikey, ok := indexer.Settings["api_key"]
-		if !ok {
-			return errors.New("could not find apikey in indexer settings")
-		}
-
-		req.ApiKey = apikey
-	}
-
 	def, ok := s.GetMappedDefinitionByName(indexer.Identifier)
 	if !ok {
 		return errors.New("could not find indexer definition: %s", indexer.Identifier)
@@ -780,16 +771,25 @@ func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 		return errors.New("indexer (%s) does not support api", indexer.Identifier)
 	}
 
+	if domain.IsRedactedString(req.ApiKey) {
+		apikey, ok := indexer.Settings["api_key"]
+		if !ok {
+			return errors.New("could not find apikey in indexer settings")
+		}
+
+		req.ApiKey = apikey
+	}
+
 	req.Identifier = def.Identifier
 	req.ProxyID = def.ProxyID
 	req.UseProxy = def.UseProxy
 
 	if _, err = s.ApiService.TestConnection(ctx, req); err != nil {
-		s.log.Error().Err(err).Msgf("error testing api for: %s", indexer.Identifier)
+		s.log.Error().Err(err).Str("indexer", indexer.Identifier).Msg("error testing indexer api")
 		return err
 	}
 
-	s.log.Info().Msgf("successful api test for: %s", indexer.Identifier)
+	s.log.Info().Str("indexer", indexer.Identifier).Msg("indexer api test successful!")
 
 	return nil
 }
@@ -809,7 +809,7 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 
 	// update indexerInstances
 	if err := s.updateIndexer(*indexer); err != nil {
-		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to update indexer")
 		return err
 	}
 
@@ -817,7 +817,7 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 		s.stopFeed(indexer.Identifier)
 	}
 
-	s.log.Debug().Msgf("indexer.toggle_enabled: update indexer '%d' to '%v'", indexerID, enabled)
+	s.log.Debug().Str("indexer", indexer.Name).Int("indexer_id", indexerID).Bool("enabled", enabled).Msg("indexer.toggleEnabled: update indexer state")
 
 	return nil
 }

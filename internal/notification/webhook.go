@@ -85,7 +85,7 @@ func (s *webhookSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("webhook response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	// Accept 2xx status codes as success
 	if res.StatusCode < 200 || res.StatusCode >= 300 {

@@ -165,7 +165,7 @@ func (s *Service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.New("got unexpected status code: %d", resp.StatusCode)
 	}
 
-	s.log.Debug().Msgf("proxy %s test OK!", proxy.Addr)
+	s.log.Debug().Str("proxy_addr", proxy.Addr).Msg("proxy test ok")
 
 	return nil
 }

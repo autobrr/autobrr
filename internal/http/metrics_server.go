@@ -17,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 )
 
 type metricsManager interface {
@@ -56,7 +57,7 @@ func (s MetricsServer) Open() error {
 			break
 		}
 
-		s.log.Error().Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
+		s.log.Error().Err(err).Str("protocol", proto).Str("addr", addr).Msg("failed to start server")
 	}
 
 	return err
@@ -68,7 +69,7 @@ func (s MetricsServer) tryToServe(addr, protocol string) error {
 		return err
 	}
 
-	s.log.Info().Msgf("Starting Metrics %s server. Listening on %s", protocol, listener.Addr().String())
+	s.log.Info().Str("protocol", protocol).Str("addr", listener.Addr().String()).Msg("starting metrics server")
 
 	server := http.Server{
 		Handler:           s.Handler(),
@@ -81,7 +82,8 @@ func (s MetricsServer) tryToServe(addr, protocol string) error {
 func (s MetricsServer) Handler() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
+	r.Use(hlog.NewHandler(s.log))
+	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(LoggerMiddleware(&s.log))

@@ -1388,7 +1388,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		return errors.Wrap(err, "error store indexers for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreIndexerConnections: indexers on filter: %d", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("filter store indexer connections")
 
 	return nil
 }
@@ -1491,7 +1491,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error storing list and filters")
 	}
 
-	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("filter successfully deleted")
 
 	return nil
 }
@@ -1520,7 +1520,7 @@ func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.
 		return errors.Wrap(err, "error scanning stats data sqlite")
 	}
 
-	r.log.Trace().Msgf("filter %v downloads: %+v", filter.ID, &f)
+	r.log.Trace().Int("filter_id", filter.ID).Interface("downloads", &f).Msg("filter downloads")
 
 	filter.Downloads = &f
 
@@ -1615,7 +1615,7 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 		return errors.Wrap(err, "error store external filters for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreFilterExternal: store external filters on filter: %d", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("store external filters")
 
 	return nil
 }
@@ -1716,7 +1716,7 @@ func (r *FilterRepo) StoreFilterNotifications(ctx context.Context, filterID int,
 		return errors.Wrap(err, "error storing filter notifications for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreFilterNotifications: stored %d notifications for filter: %d", len(notifications), filterID)
+	r.log.Debug().Int("count", len(notifications)).Int("filter_id", filterID).Msg("store filter notifications")
 
 	return nil
 }
@@ -1741,7 +1741,7 @@ func (r *FilterRepo) DeleteFilterNotifications(ctx context.Context, filterID int
 		return errors.Wrap(err, "error getting rows affected")
 	}
 
-	r.log.Debug().Msgf("filter.DeleteFilterNotifications: deleted %d notifications for filter: %d", rowsAffected, filterID)
+	r.log.Debug().Int64("rows_affected", rowsAffected).Int("filter_id", filterID).Msg("filter notifications deleted")
 
 	return nil
 }

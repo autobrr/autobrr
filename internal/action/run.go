@@ -17,13 +17,20 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error) {
+	l := s.log.With().Str("trace_id", release.TraceID).Str("action", action.Name).Str("action_type", string(action.Type)).Str("release", release.TorrentName).Logger()
+
+	// executors are only invoked from here, so they pick this logger up with zerolog.Ctx
+	ctx = l.WithContext(ctx)
+
 	defer func() {
 		errors.RecoverPanic(recover(), &err)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("recovering from panic in run action %s", action.Name)
+			l.Error().Err(err).Msg("recovering from panic in run action")
 		}
 	}()
 
@@ -39,7 +46,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 
 	switch action.Type {
 	case domain.ActionTypeTest:
-		s.test(action.Name)
+		s.test(ctx)
 
 	case domain.ActionTypeExec:
 		err = s.execCmd(ctx, action, *release)
@@ -48,7 +55,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 		err = s.watchFolder(ctx, action, *release)
 
 	case domain.ActionTypeWebhook:
-		err = s.webhook(ctx, action, *release)
+		err = s.webhook(ctx, action)
 
 	case domain.ActionTypeDelugeV1, domain.ActionTypeDelugeV2:
 		rejections, err = s.deluge(ctx, action, *release)
@@ -113,7 +120,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	}
 
 	if err != nil {
-		s.log.Error().Err(err).Msgf("process action failed: %v for '%v'", action.Name, release.TorrentName)
+		l.Error().Err(err).Msg("process action failed")
 
 		payload.Event = domain.NotificationEventPushError
 		payload.Status = domain.ReleasePushStatusErr
@@ -153,16 +160,22 @@ func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.A
 	return nil
 }
 
-func (s *Service) test(name string) {
-	s.log.Info().Msgf("action TEST: %v", name)
+func (s *Service) test(ctx context.Context) {
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running Test action")
+
+	l.Info().Msg("test action success")
 }
 
 func (s *Service) watchFolder(ctx context.Context, action *domain.Action, release domain.Release) error {
+	l := zerolog.Ctx(ctx)
+
 	if release.HasMagnetUri() {
 		return fmt.Errorf("action watch folder does not support magnet links: %s", release.TorrentName)
 	}
 
-	s.log.Trace().Msgf("action WATCH_FOLDER: %v file: %v", action.WatchFolder, release.TorrentTmpFile)
+	l.Debug().Str("watch_folder", action.WatchFolder).Str("file", release.TorrentTmpFile).Msg("running Watch Folder action")
 
 	if len(release.TorrentDataRawBytes) < 1 {
 		return fmt.Errorf("watch_folder: missing torrent %s", release.TorrentName)
@@ -202,18 +215,17 @@ func (s *Service) watchFolder(ctx context.Context, action *domain.Action, releas
 		return errors.Wrap(err, "could not copy file %v to watch folder", newFileName)
 	}
 
-	s.log.Info().Msgf("saved file to watch folder: %v", newFileName)
+	l.Info().Str("file", newFileName).Msg("saved file to watch folder")
 
 	return nil
 }
 
-func (s *Service) webhook(ctx context.Context, action *domain.Action, release domain.Release) error {
-	s.log.Trace().Msgf("action WEBHOOK: '%s' file: %s", action.Name, release.TorrentName)
-	if len(action.WebhookData) > 1024 {
-		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData[:1024])
-	} else {
-		s.log.Trace().Msgf("webhook action '%s' - host: %s data: %s", action.Name, action.WebhookHost, action.WebhookData)
-	}
+func (s *Service) webhook(ctx context.Context, action *domain.Action) error {
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running Webhook action")
+
+	l.Trace().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 1024)).Msg("running Webhook action")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
 	if err != nil {
@@ -231,11 +243,14 @@ func (s *Service) webhook(ctx context.Context, action *domain.Action, release do
 
 	defer sharedhttp.DrainAndClose(res)
 
-	if len(action.WebhookData) > 256 {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData[:256], time.Since(start))
-	} else {
-		s.log.Info().Msgf("successfully ran webhook action: '%s' to: %s payload: %s finished in %s", action.Name, action.WebhookHost, action.WebhookData, time.Since(start))
-	}
+	l.Info().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 256)).Dur("duration", time.Since(start)).Msg("webhook action executed")
 
 	return nil
+}
+
+func truncString(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max]
 }

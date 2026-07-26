@@ -13,10 +13,14 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/porla"
+
+	"github.com/rs/zerolog"
 )
 
 func (s *Service) porla(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Debug().Msgf("action Porla: %s", action.Name)
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running Porla action")
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
@@ -71,7 +75,7 @@ func (s *Service) porla(ctx context.Context, action *domain.Action, release doma
 			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Name)
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)
+		l.Info().Str("hash", release.TorrentHash).Str("client", client.Name).Msg("release successfully added to client")
 
 		return nil, nil
 	} else {
@@ -102,14 +106,16 @@ func (s *Service) porla(ctx context.Context, action *domain.Action, release doma
 			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
 		}
 
-		s.log.Info().Msgf("torrent with hash %s successfully added to client: '%s'", release.TorrentHash, client.Name)
+		l.Info().Str("hash", release.TorrentHash).Str("client", client.Name).Msg("release successfully added to client")
 	}
 
 	return nil, nil
 }
 
 func (s *Service) porlaCheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, prla *porla.Client) ([]string, error) {
-	s.log.Trace().Msgf("action Porla: %s check rules", action.Name)
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("action porla check rules")
 
 	// check for active downloads and other rules
 	if client.Settings.Rules.Enabled && !action.IgnoreRules {
@@ -122,7 +128,7 @@ func (s *Service) porlaCheckRulesCanDownload(ctx context.Context, action *domain
 			if len(torrents.Torrents) >= client.Settings.Rules.MaxActiveDownloads {
 				rejection := "max active downloads reached, skipping"
 
-				s.log.Debug().Msg(rejection)
+				l.Debug().Msg(rejection)
 
 				return []string{rejection}, nil
 			}

@@ -101,20 +101,20 @@ func (s *Service) FindByID(ctx context.Context, id int64) (*domain.List, error) 
 
 func (s *Service) Store(ctx context.Context, list *domain.List) error {
 	if err := list.Validate(); err != nil {
-		s.log.Error().Err(err).Msgf("could not validate list %s", list.Name)
+		s.log.Error().Err(err).Str("list", list.Name).Msg("could not validate list")
 		return err
 	}
 
 	if err := s.repo.Store(ctx, list); err != nil {
-		s.log.Error().Err(err).Msgf("could not store list %s", list.Name)
+		s.log.Error().Err(err).Str("list", list.Name).Msg("could not store list")
 		return err
 	}
 
-	s.log.Debug().Msgf("successfully created list %s", list.Name)
+	s.log.Debug().Str("list", list.Name).Msg("successfully created list")
 
 	if list.Enabled {
 		if err := s.refreshList(ctx, list); err != nil {
-			s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
+			s.log.Error().Err(err).Str("list", list.Name).Msg("could not refresh list")
 			return err
 		}
 	}
@@ -124,13 +124,13 @@ func (s *Service) Store(ctx context.Context, list *domain.List) error {
 
 func (s *Service) Update(ctx context.Context, list *domain.List) error {
 	if err := list.Validate(); err != nil {
-		s.log.Error().Err(err).Msgf("could not validate list %s", list.Name)
+		s.log.Error().Err(err).Str("list", list.Name).Msg("could not validate list")
 		return err
 	}
 
 	existingList, err := s.FindByID(ctx, list.ID)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find list by id: %v", list.ID)
+		s.log.Error().Err(err).Int64("list_id", list.ID).Msg("could not find list by id")
 		return err
 	}
 
@@ -139,15 +139,15 @@ func (s *Service) Update(ctx context.Context, list *domain.List) error {
 	}
 
 	if err := s.repo.Update(ctx, list); err != nil {
-		s.log.Error().Err(err).Msgf("could not update list %s", list.Name)
+		s.log.Error().Err(err).Str("list", list.Name).Msg("could not update list")
 		return err
 	}
 
-	s.log.Debug().Msgf("successfully updated list %s", list.Name)
+	s.log.Debug().Str("list", list.Name).Msg("successfully updated list")
 
 	if list.Enabled {
 		if err := s.refreshList(ctx, list); err != nil {
-			s.log.Error().Err(err).Msgf("could not refresh list %s", list.Name)
+			s.log.Error().Err(err).Str("list", list.Name).Msg("could not refresh list")
 			return err
 		}
 	}
@@ -158,11 +158,11 @@ func (s *Service) Update(ctx context.Context, list *domain.List) error {
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	err := s.repo.Delete(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not delete list by id %d", id)
+		s.log.Error().Err(err).Int64("list_id", id).Msg("could not delete list by id")
 		return err
 	}
 
-	s.log.Debug().Msgf("successfully deleted list %d", id)
+	s.log.Debug().Int64("list_id", id).Msg("successfully deleted list")
 
 	return nil
 }
@@ -173,13 +173,13 @@ func (s *Service) RefreshAll(ctx context.Context) error {
 		return err
 	}
 
-	s.log.Debug().Msgf("found %d lists to refresh", len(lists))
+	s.log.Debug().Int("count", len(lists)).Msg("found lists to refresh")
 
 	if err := s.refreshAll(ctx, lists); err != nil {
 		return err
 	}
 
-	s.log.Debug().Msgf("successfully refreshed all lists")
+	s.log.Debug().Msg("successfully refreshed all lists")
 
 	return nil
 }
@@ -189,17 +189,17 @@ func (s *Service) refreshAll(ctx context.Context, lists []*domain.List) error {
 
 	for _, listItem := range lists {
 		if !listItem.Enabled {
-			s.log.Debug().Msgf("list %s is disabled, skipping...", listItem.Name)
+			s.log.Debug().Str("list", listItem.Name).Msg("list is disabled, skipping")
 			continue
 		}
 
 		if err := s.refreshList(ctx, listItem); err != nil {
 			if errors.Is(err, domain.ErrRecordNotFound) {
-				s.log.Error().Str("type", string(listItem.Type)).Str("list", listItem.Name).Int("client_id", listItem.ClientID).Msgf("client not found for list %s, skipping", listItem.Name)
+				s.log.Error().Str("type", string(listItem.Type)).Str("list", listItem.Name).Int("client_id", listItem.ClientID).Msg("client not found for list, skipping")
 				continue
 			}
 
-			s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error while refreshing %s, continuing with other lists", listItem.Type)
+			s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("error while refreshing, continuing with other lists")
 
 			processingErrors = append(processingErrors, errors.Wrapf(err, "error while refreshing %s", listItem.Name))
 		}
@@ -217,7 +217,7 @@ func (s *Service) refreshAll(ctx context.Context, lists []*domain.List) error {
 }
 
 func (s *Service) refreshList(ctx context.Context, listItem *domain.List) error {
-	s.log.Debug().Msgf("refresh list %s - %s", listItem.Type, listItem.Name)
+	s.log.Debug().Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("refresh list")
 
 	var err error
 
@@ -260,7 +260,7 @@ func (s *Service) refreshList(ctx context.Context, listItem *domain.List) error 
 	}
 
 	if err != nil {
-		s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error refreshing %s list", listItem.Name)
+		s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("error refreshing list")
 
 		// update last run for list and set errs and status
 		listItem.LastRefreshStatus = domain.ListRefreshStatusError
@@ -268,7 +268,7 @@ func (s *Service) refreshList(ctx context.Context, listItem *domain.List) error 
 		listItem.LastRefreshTime = time.Now()
 
 		if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
-			s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error updating last refresh for %s list", listItem.Name)
+			s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("error updating last refresh for list")
 			return updateErr
 		}
 
@@ -280,11 +280,11 @@ func (s *Service) refreshList(ctx context.Context, listItem *domain.List) error 
 	listItem.LastRefreshTime = time.Now()
 
 	if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
-		s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msgf("error updating last refresh for %s list", listItem.Name)
+		s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("error updating last refresh for list")
 		return updateErr
 	}
 
-	s.log.Debug().Msgf("successfully refreshed list %s", listItem.Name)
+	s.log.Debug().Str("list", listItem.Name).Msg("successfully refreshed list")
 
 	return nil
 }
@@ -354,7 +354,7 @@ func (s *Service) scheduleJob() error {
 		return err
 	}
 
-	s.log.Debug().Msgf("scheduled job with id %d", id)
+	s.log.Debug().Int("job_id", id).Msg("scheduled job")
 
 	return nil
 }

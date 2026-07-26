@@ -244,7 +244,7 @@ func (c *SqliteToPostgresConverter) migrateTable(ctx context.Context, sqliteDB, 
 		fkViolationMessages = append(fkViolationMessages, violations...)
 	}
 
-	c.logger.Info().Msgf("Converted %d rows to table '%s' from SQLite to PostgreSQL", rowsAffected, table)
+	c.logger.Info().Int64("rows_affected", rowsAffected).Str("table", table).Msg("converted rows to table from SQLite to PostgreSQL")
 
 	return fkViolationMessages, nil
 }

@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/xml"
 	"io"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -18,6 +17,8 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Client struct {
@@ -31,7 +32,7 @@ type Client struct {
 
 	Capabilities *Caps
 
-	Log   *log.Logger
+	log   zerolog.Logger
 	Debug bool
 }
 
@@ -57,7 +58,7 @@ type Config struct {
 	BasicAuth     BasicAuth
 	TLSSkipVerify bool
 
-	Log *log.Logger
+	Log zerolog.Logger
 }
 
 type Capabilities struct {
@@ -75,18 +76,12 @@ func NewClient(config Config) *Client {
 		Transport: transport,
 	}
 
-	c := &Client{
+	return &Client{
 		http:   httpClient,
 		Host:   config.Host,
 		ApiKey: config.ApiKey,
-		Log:    log.New(io.Discard, "", log.LstdFlags),
+		log:    config.Log,
 	}
-
-	if config.Log != nil {
-		c.Log = config.Log
-	}
-
-	return c
 }
 
 func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
@@ -130,7 +125,7 @@ func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
 			return nil, errors.Wrap(err, "could not dump response")
 		}
 
-		c.Log.Printf("torznab get feed response dump: %q", dump)
+		c.log.Debug().Str("response", string(dump)).Msg("torznab feed response dump")
 	}
 
 	switch resp.StatusCode {
@@ -228,7 +223,7 @@ func (c *Client) getCaps(ctx context.Context) (*Caps, error) {
 			return nil, errors.Wrap(err, "could not dump response")
 		}
 
-		c.Log.Printf("torznab get caps response dump: %q", dump)
+		c.log.Debug().Str("response", string(dump)).Msg("torznab caps response dump")
 	}
 
 	switch resp.StatusCode {

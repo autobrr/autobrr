@@ -68,7 +68,7 @@ func (r *APIRepo) Delete(ctx context.Context, key string) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("successfully deleted: %v", key)
+	r.log.Debug().Str("api_key", key).Msg("successfully deleted")
 
 	return nil
 }

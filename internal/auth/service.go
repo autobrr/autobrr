@@ -45,7 +45,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (*domain
 	// find user
 	u, err := s.userSvc.FindByUsername(ctx, username)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find user by username: %v", username)
+		s.log.Error().Err(err).Str("username", username).Msg("could not find user by username")
 		return nil, errors.Wrapf(err, "invalid login: %s", username)
 	}
 
@@ -91,7 +91,7 @@ func (s *Service) CreateUser(ctx context.Context, req domain.CreateUserRequest) 
 	req.Password = hashed
 
 	if err := s.userSvc.CreateUser(ctx, req); err != nil {
-		s.log.Error().Err(err).Msgf("could not create user: %s", req.Username)
+		s.log.Error().Err(err).Str("username", req.Username).Msg("could not create user")
 		return errors.New("failed to create new user")
 	}
 
@@ -112,7 +112,7 @@ func (s *Service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) 
 	// find user
 	u, err := s.userSvc.FindByUsername(ctx, req.UsernameCurrent)
 	if err != nil {
-		s.log.Trace().Err(err).Msgf("invalid login %v", req.UsernameCurrent)
+		s.log.Trace().Err(err).Str("username", req.UsernameCurrent).Msg("invalid login")
 		return errors.Wrapf(err, "invalid login: %s", req.UsernameCurrent)
 	}
 
@@ -127,7 +127,7 @@ func (s *Service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) 
 	}
 
 	if !match {
-		s.log.Debug().Msgf("bad credentials: %q | %q", req.UsernameCurrent, req.PasswordCurrent)
+		s.log.Debug().Str("username", req.UsernameCurrent).Msg("bad credentials")
 		return errors.Errorf("invalid login: %s", req.UsernameCurrent)
 	}
 
@@ -141,7 +141,7 @@ func (s *Service) UpdateUser(ctx context.Context, req domain.UpdateUserRequest) 
 	}
 
 	if err := s.userSvc.Update(ctx, req); err != nil {
-		s.log.Error().Err(err).Msgf("could not change password for user: %s", req.UsernameCurrent)
+		s.log.Error().Err(err).Str("username", req.UsernameCurrent).Msg("could not change password for user")
 		return errors.New("failed to change password")
 	}
 

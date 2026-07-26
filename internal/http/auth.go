@@ -81,7 +81,7 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.service.Login(ctx, data.Username, data.Password); err != nil {
-		h.log.Error().Err(err).Msgf("Auth: Failed login attempt username: [%s] ip: %s", data.Username, r.RemoteAddr)
+		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed login attempt")
 		h.encoder.StatusError(w, http.StatusForbidden, errors.New("could not login: bad credentials"))
 		return
 	}
@@ -99,7 +99,7 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.sessionManager.RenewToken(ctx); err != nil {
-		h.log.Error().Err(err).Msgf("Auth: Failed to renew session token for username: [%s] ip: %s", data.Username, r.RemoteAddr)
+		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not renew session token"))
 		return
 	}
@@ -117,7 +117,7 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 
 func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
 	if err := h.sessionManager.Destroy(r.Context()); err != nil {
-		h.log.Error().Err(err).Msgf("could not destroy session: %s", r.RemoteAddr)
+		h.log.Error().Err(err).Str("remote_addr", r.RemoteAddr).Msg("failed to destroy session")
 		h.encoder.StatusError(w, http.StatusInternalServerError, err)
 		return
 	}

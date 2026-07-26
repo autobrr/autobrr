@@ -6,6 +6,7 @@ package domain
 import (
 	"fmt"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -230,12 +231,7 @@ type FilterNotification struct {
 }
 
 func (f FilterNotification) EventEnabled(event string) bool {
-	for _, e := range f.Events {
-		if e == event {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f.Events, event)
 }
 
 type FilterUpdate struct {

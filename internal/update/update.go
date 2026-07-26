@@ -56,7 +56,7 @@ func (s *Service) CheckUpdateAvailable(ctx context.Context) (*version.Release, e
 	}
 
 	if newAvailable {
-		s.log.Info().Msgf("autobrr outdated, found newer release: %s", newVersion.TagName)
+		s.log.Info().Str("version", newVersion.TagName).Msg("found newer release")
 
 		s.m.Lock()
 		defer s.m.Unlock()

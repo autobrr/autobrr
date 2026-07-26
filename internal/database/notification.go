@@ -264,7 +264,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("notification.store: added new %v", notification.ID)
+	r.log.Debug().Int("notification_id", notification.ID).Msg("notification created")
 
 	return nil
 }
@@ -306,7 +306,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("notification.update: %v", notification.Name)
+	r.log.Debug().Str("notification", notification.Name).Msg("notification updated")
 
 	return nil
 }
@@ -325,7 +325,7 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("notification.delete: successfully deleted: %v", notificationID)
+	r.log.Debug().Int("notification_id", notificationID).Msg("notification deleted")
 
 	return nil
 }
@@ -431,7 +431,7 @@ func (r *NotificationRepo) StoreFilterNotifications(ctx context.Context, filterI
 		if err := tx.Commit(); err != nil {
 			return errors.Wrap(err, "failed to commit transaction after deleting filter notifications for filter %d", filterID)
 		}
-		r.log.Debug().Msgf("filter.StoreFilterNotifications: deleted all notifications for filter: %d", filterID)
+		r.log.Debug().Int("filter_id", filterID).Msg("filter store filter notifications: deleted all notifications")
 		return nil
 	}
 
@@ -443,7 +443,7 @@ func (r *NotificationRepo) StoreFilterNotifications(ctx context.Context, filterI
 		return errors.Wrap(err, "failed to commit transaction for storing filter notifications for filter %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreFilterNotifications: stored %d notifications for filter %d", len(notifications), filterID)
+	r.log.Debug().Int("count", len(notifications)).Int("filter_id", filterID).Msg("filter notifications stored")
 	return nil
 }
 
@@ -505,7 +505,7 @@ func (r *NotificationRepo) DeleteFilterNotifications(ctx context.Context, filter
 		return errors.Wrap(err, "error getting rows affected")
 	}
 
-	r.log.Debug().Msgf("filter.DeleteFilterNotifications: deleted %d notifications for filter: %d", rowsAffected, filterID)
+	r.log.Debug().Int64("rows_affected", rowsAffected).Int("filter_id", filterID).Msg("filter notifications deleted")
 
 	return nil
 }

@@ -6,14 +6,13 @@ import (
 	"database/sql/driver"
 	"embed"
 	"fmt"
-	"io"
-	"log"
 	"os"
 	"path"
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 type SQLDB interface {
@@ -34,7 +33,7 @@ const (
 
 type Migrator struct {
 	db             *sql.DB
-	logger         Logger
+	logger         zerolog.Logger
 	embedFS        *embed.FS
 	squirrel       sq.StatementBuilderType
 	engine         string
@@ -91,20 +90,7 @@ func WithPreMigrationHook(hook func() error) Option {
 	}
 }
 
-// Logger interface
-type Logger interface {
-	Printf(string, ...interface{})
-}
-
-// LoggerFunc adapts Logger and any third party logger
-type LoggerFunc func(string, ...interface{})
-
-// Printf implements Logger interface
-func (f LoggerFunc) Printf(msg string, args ...interface{}) {
-	f(msg, args...)
-}
-
-func WithLogger(logger Logger) Option {
+func WithLogger(logger zerolog.Logger) Option {
 	return func(migrate *Migrator) {
 		migrate.logger = logger
 	}
@@ -114,7 +100,6 @@ func NewMigrate(db *sql.DB, opts ...Option) *Migrator {
 	m := &Migrator{
 		db:                  db,
 		tableName:           DefaultTableName,
-		logger:              log.New(io.Discard, "migrator: ", 0),
 		squirrel:            sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
 		initialSchema:       "",
 		initialSchemaFile:   "",
@@ -367,10 +352,10 @@ func (m *Migrator) checkPreReqs() error {
 
 // migratePragmaToNewTable migrates from SQLite PRAGMA user_version to new multi-row table
 func (m *Migrator) migratePragmaToNewTable(currentVersion int) error {
-	m.logger.Printf("migrating from PRAGMA user_version (%d) to multi-row schema_migrations table", currentVersion)
+	m.logger.Info().Int("current_version", currentVersion).Msg("migrating from PRAGMA user_version to multi-row schema_migrations table")
 
 	if m.PreMigrationHook != nil {
-		m.logger.Printf("running pre migration hook to backup database...")
+		m.logger.Info().Msg("running pre migration hook to backup database")
 
 		if err := m.PreMigrationHook(); err != nil {
 			return errors.Wrap(err, "migrator: could not run pre migration hook")
@@ -402,29 +387,27 @@ func (m *Migrator) migratePragmaToNewTable(currentVersion int) error {
 		return nil
 	}
 
-	m.logger.Printf("found %d migrations to convert to new table format", len(migrations))
+	m.logger.Info().Int("count", len(migrations)).Msg("found migrations to convert to new table format")
 
 	if err := m.updateSchemaVersions(tx, migrations); err != nil {
 		return err
 	}
 
-	m.logger.Printf("successfully migrated %d migrations to new table format", currentVersion)
+	m.logger.Info().Int("count", currentVersion).Msg("successfully migrated migrations to new table format")
 
 	// Reset pragma to 0 since we're no longer using it
 	if _, err = tx.Exec("PRAGMA user_version = 0"); err != nil {
 		return errors.Wrap(err, "error resetting PRAGMA user_version")
 	}
 
-	m.logger.Printf("successfully migrated %d migrations from PRAGMA to table", currentVersion)
+	m.logger.Info().Int("count", currentVersion).Msg("successfully migrated migrations from PRAGMA to table")
 
 	return err
 }
 
 // migrateOldVersionTable migrates from old single-row version table to new multi-row table
 func (m *Migrator) migrateOldVersionTable(currentVersion int) error {
-	m.logger.Printf("migrating from old single-row version table to multi-row format")
-
-	m.logger.Printf("current version in old format: %d", currentVersion)
+	m.logger.Info().Int("current_version", currentVersion).Msg("migrating from old single-row version table to multi-row format")
 
 	tx, err := m.db.Begin()
 	if err != nil {
@@ -455,13 +438,13 @@ func (m *Migrator) migrateOldVersionTable(currentVersion int) error {
 		return nil
 	}
 
-	m.logger.Printf("found %d migrations to convert to new table format", len(migrations))
+	m.logger.Info().Int("count", len(migrations)).Msg("found migrations to convert to new table format")
 
 	if err := m.updateSchemaVersions(tx, migrations); err != nil {
 		return err
 	}
 
-	m.logger.Printf("successfully migrated %d migrations to new table format", currentVersion)
+	m.logger.Info().Int("count", currentVersion).Msg("successfully migrated migrations to new table format")
 
 	return err
 }
@@ -558,7 +541,7 @@ func (m *Migrator) Migrate() error {
 	}
 
 	if appliedCount == 0 && (m.initialSchema != "" || m.initialSchemaFile != "") {
-		m.logger.Printf("preparing to apply base schema migration")
+		m.logger.Info().Msg("preparing to apply base schema migration")
 
 		if err := m.migrateInitialSchema(); err != nil {
 			return errors.Wrap(err, "migrator: could not apply base schema")
@@ -572,7 +555,7 @@ func (m *Migrator) Migrate() error {
 	}
 
 	if appliedCount == len(m.migrations) {
-		m.logger.Printf("database schema up to date")
+		m.logger.Info().Msg("database schema up to date")
 		return nil
 	}
 
@@ -588,11 +571,11 @@ func (m *Migrator) Migrate() error {
 	}
 
 	if len(migrationsToApply) == 0 {
-		m.logger.Printf("database schema up to date")
+		m.logger.Info().Msg("database schema up to date")
 		return nil
 	}
 
-	m.logger.Printf("found %d migrations to apply", len(migrationsToApply))
+	m.logger.Info().Int("count", len(migrationsToApply)).Msg("found migrations to apply")
 
 	for _, migration := range migrationsToApply {
 		if err := m.migrate(migration.id, migration); err != nil {
@@ -600,7 +583,7 @@ func (m *Migrator) Migrate() error {
 		}
 	}
 
-	m.logger.Printf("successfully applied all migrations!")
+	m.logger.Info().Msg("successfully applied all migrations")
 
 	return nil
 }
@@ -617,15 +600,6 @@ func (m *Migrator) updateSchemaVersion(tx *sql.Tx, id int, version string) error
 // readFile from embed.FS if provided or local fs as a fallback
 func (m *Migrator) readFile(filename string) ([]byte, error) {
 	if m.embedFS != nil {
-		//d, err := m.embedFS.ReadDir(".")
-		//if err != nil {
-		//	return nil, errors.Wrapf(err, "could not read initial schema file %q from embed.FS", filename)
-		//}
-		//m.logger.Printf("found %d files in embed.FS", len(d))
-		//
-		//if len(d) == 0 {
-		//	return nil, errors.New("embed.FS: no files found")
-		//}
 		migrationFile := filename
 		if m.filepathPrefix != "" {
 			// use old path package since embed always use forward slash
@@ -673,7 +647,7 @@ func (m *Migrator) migrateInitialSchema() error {
 		err = tx.Commit()
 	}()
 
-	m.logger.Printf("applying base schema migration...")
+	m.logger.Info().Msg("applying base schema migration")
 
 	if _, err = tx.Exec(m.initialSchema); err != nil {
 		return errors.Wrap(err, "error applying base schema migration")
@@ -683,7 +657,7 @@ func (m *Migrator) migrateInitialSchema() error {
 		return errors.Wrap(err, "error updating migration versions")
 	}
 
-	m.logger.Printf("applied base schema migration")
+	m.logger.Info().Msg("applied base schema migration")
 
 	return err
 }
@@ -719,22 +693,20 @@ func (m *Migrator) migrate(migrationNumber int, migration *Migration) error {
 		err = tx.Commit()
 	}()
 
-	//m.logger.Printf("applying migration: %s", migration.Name)
-
 	if migration.Run != nil {
-		m.logger.Printf("applying migration: %s from Run", migration.Name)
+		m.logger.Info().Str("migration", migration.Name).Msg("applying migration from Run")
 		if err = migration.Run(m.db); err != nil {
 			return errors.Wrapf(err, "error executing migration: %s", migration.Name)
 		}
 
 	} else if migration.RunTx != nil {
-		m.logger.Printf("applying migration: %s from RunTx", migration.Name)
+		m.logger.Info().Str("migration", migration.Name).Msg("applying migration from RunTx")
 		if err = migration.RunTx(tx); err != nil {
 			return errors.Wrapf(err, "error executing migration: %s", migration.Name)
 		}
 
 	} else if migration.File != "" {
-		m.logger.Printf("applying migration: %s from file: %s", migration.Name, migration.File)
+		m.logger.Info().Str("migration", migration.Name).Str("file", migration.File).Msg("applying migration from file")
 
 		// handle file based migration
 		data, err := m.readFile(migration.File)
@@ -750,8 +722,6 @@ func (m *Migrator) migrate(migrationNumber int, migration *Migration) error {
 	if err = m.updateSchemaVersion(tx, migrationNumber, migration.Name); err != nil {
 		return errors.Wrapf(err, "error updating migration versions: %s", migration.Name)
 	}
-
-	//m.logger.Printf("applied migration: %s", migration.Name)
 
 	return err
 }
