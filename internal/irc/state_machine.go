@@ -262,13 +262,12 @@ func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 
 func (sm *ConnectionStateMachine) handleAuthentication() {
 	sm.handler.m.RLock()
-	password := sm.handler.network.Auth.Password
-	needsAuth := password != "" && !sm.handler.saslauthed
+	needsAuth := sm.handler.network.Auth.Password != "" && !sm.handler.saslauthed
 	sm.handler.m.RUnlock()
 
 	if needsAuth {
 		sm.log.Trace().Msg("sending NickServ authentication")
-		if err := sm.handler.NickServIdentify(password); err != nil {
+		if err := sm.handler.NickServIdentify(); err != nil {
 			sm.log.Error().Err(err).Msg("failed to send NickServ identify")
 		}
 		// Wait for handleNickServ callback to call OnAuthenticated()

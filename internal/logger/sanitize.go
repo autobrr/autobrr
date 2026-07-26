@@ -39,7 +39,16 @@ var (
 			repl:    "${1}REDACTED_USER:REDACTED_PW@",
 		},
 		{
-			pattern: regexp.MustCompile(`(NickServ IDENTIFY )([\p{L}0-9!#%&*+/:;<=>?@^_` + "`" + `{|}~]+)`),
+			// The IRC client logs the raw line, where the whole command is one
+			// trailing parameter: "PRIVMSG NickServ :IDENTIFY [account] <password>".
+			// Both argument forms have to be covered, and the optional account is
+			// redacted along with the password rather than being spliced back in.
+			// A token runs to whitespace or to an unescaped quote; a backslash is
+			// consumed together with the character it escapes, so a credential
+			// containing one is not split with its tail left behind. Backslash is
+			// legal in an IRC nick and in a password, and JSON-encoded log lines
+			// escape both it and any embedded quote.
+			pattern: regexp.MustCompile(`(NickServ :?IDENTIFY )(?:\\.|[^\s"\\])+(?:\s+(?:\\.|[^\s"\\])+)?`),
 			repl:    "${1}REDACTED",
 		},
 		{
