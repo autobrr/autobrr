@@ -1032,7 +1032,8 @@ func (r *Release) CleanupTemporaryFiles() error {
 		return nil
 	}
 
-	if err := os.Remove(r.TorrentTmpFile); err != nil {
+	// an exec script handed the path may well have consumed the file already
+	if err := os.Remove(r.TorrentTmpFile); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return errors.Wrap(err, "could not remove tmp file: %s", r.TorrentTmpFile)
 	}
 	r.TorrentTmpFile = ""

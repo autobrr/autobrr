@@ -160,3 +160,18 @@ func TestAction_CheckMacrosNeedTorrent(t *testing.T) {
 		})
 	}
 }
+
+// An exec script handed the path may consume or move the file, and cleanup
+// should treat that as done rather than as an error.
+func TestRelease_CleanupTemporaryFilesAlreadyGone(t *testing.T) {
+	t.Parallel()
+
+	r := &Release{TorrentName: "Test.Release-GRP", TorrentDataRawBytes: []byte("torrent contents")}
+	require.NoError(t, r.WriteTemporaryFile())
+
+	require.NoError(t, os.Remove(r.TorrentTmpFile))
+
+	assert.NoError(t, r.CleanupTemporaryFiles(), "an already removed tmp file is not an error")
+	assert.Empty(t, r.TorrentTmpFile)
+	assert.Empty(t, r.TorrentDataRawBytes)
+}
