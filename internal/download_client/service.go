@@ -294,7 +294,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			TLSSkipVerify: client.TLSSkipVerify,
 			BasicUser:     client.Settings.Auth.Username,
 			BasicPass:     client.Settings.Auth.Password,
-			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			Log:           s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(),
 		})
 
 	case domain.DownloadClientTypeDelugeV1:
@@ -376,7 +376,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		client.Client = lidarr.New(lidarr.Config{
 			Hostname:      client.Host,
 			APIKey:        client.Settings.APIKey,
-			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			Log:           s.log.With().Str("type", "Lidarr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,
 			Password:      client.Settings.Auth.Password,
@@ -387,7 +387,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		client.Client = radarr.New(radarr.Config{
 			Hostname:      client.Host,
 			APIKey:        client.Settings.APIKey,
-			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			Log:           s.log.With().Str("type", "Radarr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,
 			Password:      client.Settings.Auth.Password,
@@ -398,7 +398,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		client.Client = readarr.New(readarr.Config{
 			Hostname:      client.Host,
 			APIKey:        client.Settings.APIKey,
-			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			Log:           s.log.With().Str("type", "Readarr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,
 			Password:      client.Settings.Auth.Password,
@@ -409,7 +409,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		client.Client = sonarr.New(sonarr.Config{
 			Hostname:      client.Host,
 			APIKey:        client.Settings.APIKey,
-			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			Log:           s.log.With().Str("type", "Sonarr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,
 			Password:      client.Settings.Auth.Password,
@@ -420,7 +420,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		client.Client = whisparr.New(whisparr.Config{
 			Hostname:      client.Host,
 			APIKey:        client.Settings.APIKey,
-			Log:           zstdlog.NewStdLoggerWithLevel(s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(), zerolog.TraceLevel),
+			Log:           s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,
 			Password:      client.Settings.Auth.Password,
@@ -431,7 +431,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 		client.Client = sabnzbd.New(sabnzbd.Options{
 			Addr:      client.Host,
 			ApiKey:    client.Settings.APIKey,
-			Log:       nil,
+			Log:       s.log.With().Str("type", "Sabnzbd").Str("client", client.Name).Logger(),
 			BasicUser: client.Settings.Auth.Username,
 			BasicPass: client.Settings.Auth.Password,
 		})
@@ -441,6 +441,7 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Host:     client.Host,
 			Username: client.Username,
 			Password: client.Password,
+			Log:      s.log.With().Str("type", "Nzbget").Str("client", client.Name).Logger(),
 		})
 	}
 

@@ -246,7 +246,7 @@ func (s *Service) testRadarrConnection(ctx context.Context, client domain.Downlo
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -266,7 +266,7 @@ func (s *Service) testSonarrConnection(ctx context.Context, client domain.Downlo
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -286,7 +286,7 @@ func (s *Service) testLidarrConnection(ctx context.Context, client domain.Downlo
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -306,7 +306,7 @@ func (s *Service) testWhisparrConnection(ctx context.Context, client domain.Down
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -326,7 +326,7 @@ func (s *Service) testReadarrConnection(ctx context.Context, client domain.Downl
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
@@ -345,7 +345,7 @@ func (s *Service) testPorlaConnection(client domain.DownloadClient) error {
 		AuthToken:     client.Settings.APIKey,
 		BasicUser:     client.Settings.Auth.Username,
 		BasicPass:     client.Settings.Auth.Password,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	version, err := p.Version()
@@ -371,7 +371,7 @@ func (s *Service) testSabnzbdConnection(ctx context.Context, client domain.Downl
 		ApiKey:    client.Settings.APIKey,
 		BasicUser: client.Settings.Auth.Username,
 		BasicPass: client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Log:       s.log,
 	}
 
 	sab := sabnzbd.New(opts)
@@ -390,7 +390,7 @@ func (s *Service) testNzbgetConnection(ctx context.Context, client domain.Downlo
 		Host:     client.Host,
 		Username: client.Username,
 		Password: client.Password,
-		Log:      s.subLogger,
+		Log:      s.log,
 	})
 
 	version, err := nzb.Version(ctx)

@@ -8,7 +8,6 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/migrator"
 
-	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
@@ -18,7 +17,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 		migrator.WithEngine(migrator.EnginePostgres),
 		migrator.WithEmbedFS(SchemaMigrationsPostgres, "postgres"),
 		migrator.WithSchemaFile("current_schema_postgres.sql"),
-		migrator.WithLogger(zstdlog.NewStdLoggerWithLevel(logger.With().Str("module", "database-migrations").Logger(), zerolog.InfoLevel)),
+		migrator.WithLogger(logger.With().Str("module", "database-migrations").Logger()),
 	)
 
 	migrate.AddFileMigration("0_base_schema_postgres.sql")

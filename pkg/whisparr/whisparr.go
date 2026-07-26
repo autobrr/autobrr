@@ -6,14 +6,13 @@ package whisparr
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
@@ -27,7 +26,7 @@ type Config struct {
 
 	TLSSkipVerify bool
 
-	Log *log.Logger
+	Log zerolog.Logger
 }
 
 type Client interface {
@@ -39,7 +38,7 @@ type client struct {
 	config Config
 	http   *http.Client
 
-	Log *log.Logger
+	log zerolog.Logger
 }
 
 func New(config Config) Client {
@@ -53,17 +52,20 @@ func New(config Config) Client {
 		Transport: transport,
 	}
 
-	c := &client{
+	return &client{
 		config: config,
 		http:   httpClient,
-		Log:    log.New(io.Discard, "", log.LstdFlags),
+		log:    config.Log,
 	}
+}
 
-	if config.Log != nil {
-		c.Log = config.Log
+// logger prefers the request-scoped logger from ctx, which carries trace_id
+// and other correlation fields, over the static client logger.
+func (c *client) logger(ctx context.Context) *zerolog.Logger {
+	if l := zerolog.Ctx(ctx); l.GetLevel() != zerolog.Disabled {
+		return l
 	}
-
-	return c
+	return &c.log
 }
 
 type Release struct {
@@ -105,7 +107,7 @@ func (c *client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
-	c.Log.Printf("whisparr system/status status: (%v) response: %+v\n", res.Status, response)
+	c.logger(ctx).Trace().Int("status", res.StatusCode).Interface("response", response).Msg("whisparr system/status response")
 
 	return &response, nil
 }
@@ -128,13 +130,11 @@ func (c *client) Push(ctx context.Context, release Release) ([]string, error) {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
-	c.Log.Printf("whisparr release/push status: (%v) response: %+v\n", res.Status, pushResponse)
+	c.logger(ctx).Trace().Int("status", res.StatusCode).Interface("response", pushResponse).Msg("whisparr release/push response")
 
 	// log and return if rejected
 	if pushResponse[0].Rejected {
-		rejections := strings.Join(pushResponse[0].Rejections, ", ")
-
-		c.Log.Printf("whisparr release/push rejected %v reasons: %q\n", release.Title, rejections)
+		c.logger(ctx).Debug().Strs("rejections", pushResponse[0].Rejections).Msg("whisparr release/push rejected")
 		return pushResponse[0].Rejections, nil
 	}
 

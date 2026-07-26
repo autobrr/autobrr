@@ -19,7 +19,7 @@ func (c *Client) TestAPI(ctx context.Context) (bool, error) {
 	}
 
 	elapsed := time.Since(startTime)
-	c.Log.Printf("btn: API test took %s", elapsed)
+	c.logger(ctx).Debug().Dur("duration", elapsed).Msg("btn api test completed")
 
 	if res.Error != nil {
 		return false, errors.New("btn: API test error: %s", res.Error.Message)

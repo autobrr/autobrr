@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/newznab"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
-	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
@@ -303,7 +301,7 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 	}
 
 	// create sub logger
-	subLogger := zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel)
+	subLogger := s.log.With().Str("feed", feed.Name).Logger()
 
 	// test feeds
 	switch feed.Type {
@@ -363,7 +361,7 @@ func (s *Service) testRSS(ctx context.Context, feed *domain.Feed) error {
 	return nil
 }
 
-func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
+func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup torznab Client
 	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 
@@ -396,7 +394,7 @@ func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 	return nil
 }
 
-func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger *log.Logger) error {
+func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup newznab Client
 	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 

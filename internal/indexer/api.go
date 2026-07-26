@@ -17,7 +17,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/ops"
 	"github.com/autobrr/autobrr/pkg/red"
 
-	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
@@ -181,7 +180,7 @@ func (s *APIService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
 		}
-		return btn.NewClient(req.ApiKey, btn.WithHTTPClient(proxyHttpClient), btn.WithLog(zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.DebugLevel))), nil
+		return btn.NewClient(req.ApiKey, btn.WithHTTPClient(proxyHttpClient), btn.WithLog(s.log.With().Str("indexer", "btn").Logger())), nil
 
 	case "ggn":
 		if req.ApiKey == "" {

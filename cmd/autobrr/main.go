@@ -130,7 +130,7 @@ func main() {
 	sessionManager := scs.New()
 	switch db.Driver {
 	case database.DriverSQLite:
-		sessionManager.Store = sqlite3store.New(db)
+		sessionManager.Store = sqlite3store.New(db, sqlite3store.WithLogger(log.With().Str("module", "session-store").Logger()))
 	case database.DriverPostgres:
 		sessionManager.Store = postgresstore.New(db.Handler)
 	}

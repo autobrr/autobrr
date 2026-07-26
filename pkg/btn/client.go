@@ -5,8 +5,6 @@ package btn
 
 import (
 	"context"
-	"io"
-	"log"
 	"net/http"
 	"time"
 
@@ -14,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 )
 
@@ -40,9 +39,9 @@ func WithHTTPClient(httpClient *http.Client) OptFunc {
 	}
 }
 
-func WithLog(log *log.Logger) OptFunc {
+func WithLog(log zerolog.Logger) OptFunc {
 	return func(c *Client) {
-		c.Log = log
+		c.log = log
 	}
 }
 
@@ -53,7 +52,16 @@ type Client struct {
 	APIKey      string
 	url         string
 
-	Log *log.Logger
+	log zerolog.Logger
+}
+
+// logger prefers the request-scoped logger from ctx, which carries trace_id
+// and other correlation fields, over the static client logger.
+func (c *Client) logger(ctx context.Context) *zerolog.Logger {
+	if l := zerolog.Ctx(ctx); l.GetLevel() != zerolog.Disabled {
+		return l
+	}
+	return &c.log
 }
 
 func NewClient(apiKey string, opts ...OptFunc) *Client {
@@ -65,7 +73,6 @@ func NewClient(apiKey string, opts ...OptFunc) *Client {
 			Timeout:   time.Second * 60,
 			Transport: sharedhttp.Transport,
 		},
-		Log: log.New(io.Discard, "", log.LstdFlags),
 	}
 
 	for _, opt := range opts {
