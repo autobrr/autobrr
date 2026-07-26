@@ -135,7 +135,7 @@ func (s *Server) Open() error {
 			break
 		}
 
-		s.log.Error().Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
+		s.log.Error().Err(err).Str("protocol", proto).Str("addr", addr).Msg("failed to start server")
 	}
 
 	return err
@@ -147,7 +147,7 @@ func (s *Server) tryToServe(addr, protocol string) error {
 		return err
 	}
 
-	s.log.Info().Msgf("Starting API %s server. Listening on %s", protocol, listener.Addr().String())
+	s.log.Info().Str("protocol", protocol).Str("addr", listener.Addr().String()).Msg("starting api server")
 
 	server := http.Server{
 		Handler:           s.Handler(),

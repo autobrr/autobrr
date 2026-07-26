@@ -109,7 +109,7 @@ func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, 
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
-					j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", item.PubDate.Time).Msgf("item is older than feed max age, skipping")
+					j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", item.PubDate.Time).Msg("item is older than feed max age, skipping")
 					continue
 				}
 			}

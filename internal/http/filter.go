@@ -53,7 +53,7 @@ func (h filterHandler) Routes(r chi.Router) {
 
 		r.Get("/duplicate", h.duplicate)
 		r.Put("/enabled", h.toggleEnabled)
-		
+
 		r.Route("/notifications", func(r chi.Router) {
 			r.Get("/", h.getFilterNotifications)
 			r.Put("/", h.updateFilterNotifications)

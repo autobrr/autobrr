@@ -100,7 +100,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	// get feed
 	items, err := j.getFeed(ctx)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error fetching feed items")
+		j.Log.Error().Err(err).Msg("error fetching feed items")
 		return errors.Wrap(err, "error getting feed items")
 	}
 
@@ -113,7 +113,7 @@ func (j *TorznabJob) process(ctx context.Context) error {
 
 	releases, err := j.processItems(items)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error processing items")
+		j.Log.Error().Err(err).Msg("error processing items")
 		return errors.Wrap(err, "error processing items")
 	}
 
@@ -132,7 +132,7 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 		if j.Feed.MaxAge > 0 {
 			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
-					j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", item.PubDate.Time).Msgf("item is older than feed max age, skipping")
+					j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", item.PubDate.Time).Msg("item is older than feed max age skipping")
 					continue
 				}
 			}

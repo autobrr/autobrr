@@ -85,7 +85,7 @@ func (s *APIService) TestConnection(ctx context.Context, req domain.IndexerTestA
 
 	success, err := client.TestAPI(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Str("indexer", req.Identifier).Msgf("error testing connection for indexer api")
+		s.log.Error().Err(err).Str("indexer", req.Identifier).Msg("error testing connection for indexer api")
 		return false, err
 	}
 

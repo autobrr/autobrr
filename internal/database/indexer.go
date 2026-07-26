@@ -311,7 +311,7 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Str("method", "delete").Msgf("successfully deleted indexer with id %v", id)
+	r.log.Debug().Str("method", "delete").Int("indexer_id", id).Msg("successfully deleted indexer")
 
 	return nil
 }

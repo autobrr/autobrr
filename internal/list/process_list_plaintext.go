@@ -25,7 +25,7 @@ func (s *Service) plaintext(ctx context.Context, list *domain.List) error {
 		return errors.New("no URL provided for plaintext")
 	}
 
-	l.Debug().Msgf("fetching titles from %s", list.URL)
+	l.Debug().Str("url", list.URL).Msg("fetching titles")
 
 	// Parse the URL to determine if it's a file or HTTP scheme
 	parsedURL, err := url.Parse(list.URL)
@@ -50,7 +50,7 @@ func (s *Service) plaintext(ctx context.Context, list *domain.List) error {
 			}
 		}
 
-		l.Debug().Msgf("reading from file: %s", filePath)
+		l.Debug().Str("path", filePath).Msg("reading from file")
 
 		body, err = os.ReadFile(filePath)
 		if err != nil {
@@ -107,13 +107,13 @@ func (s *Service) plaintext(ctx context.Context, list *domain.List) error {
 	}
 
 	if len(titles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
+		l.Debug().Msg("no titles found to update list")
 		return nil
 	}
 
 	joinedTitles := strings.Join(titles, ",")
 
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(titles))
+	l.Trace().Str("titles", joinedTitles).Int("count", len(titles)).Msg("found titles")
 
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 
@@ -123,7 +123,7 @@ func (s *Service) plaintext(ctx context.Context, list *domain.List) error {
 	}
 
 	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("updating filter")
 
 		filterUpdate.ID = filter.ID
 
@@ -131,7 +131,7 @@ func (s *Service) plaintext(ctx context.Context, list *domain.List) error {
 			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
 	}
 
 	return nil

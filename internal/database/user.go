@@ -138,8 +138,7 @@ func (r *UserRepo) Delete(ctx context.Context, username string) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	// Log the deletion.
-	r.log.Debug().Msgf("user.delete: successfully deleted user: %s", username)
+	r.log.Debug().Str("username", username).Msg("successfully deleted user")
 
 	return nil
 }

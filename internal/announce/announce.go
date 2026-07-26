@@ -50,7 +50,7 @@ func (a *announceProcessor) setupQueues() {
 		channelName := strings.ToLower(channel.Name)
 
 		queues[channelName] = make(chan string, 128)
-		a.log.Trace().Str("channel", channelName).Msgf("announce: setup channel queue")
+		a.log.Trace().Str("channel", channelName).Msg("setup channel queue")
 	}
 
 	a.queues = queues
@@ -77,11 +77,11 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 	// the channel config is static for the life of the consumer, so resolve it once.
 	channel, ok := a.indexer.IRC.GetChannel(channelName)
 	if !ok {
-		a.log.Error().Msgf("announce: no channel found for name: %s", channelName)
+		a.log.Error().Str("channel", channelName).Msg("no channel found")
 		return
 	}
 	if channel.Parse == nil {
-		a.log.Error().Msgf("announce: channel %s has no parse configuration", channelName)
+		a.log.Error().Str("channel", channelName).Msg("channel has no parse configuration")
 		return
 	}
 
@@ -104,13 +104,13 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 			l.Trace().Str("line", line).Msg("announce: process line")
 
 			if !a.indexer.Enabled {
-				l.Warn().Msgf("indexer disabled, skipping further processing")
+				l.Warn().Msg("indexer disabled, skipping further processing")
 			}
 
 			// check should ignore
 			match, err := parseLine.ParseLine(tmpVars, line, parseLine.Ignore)
 			if err != nil {
-				l.Error().Err(err).Str("line", line).Msgf("error parsing extract for line")
+				l.Error().Err(err).Str("line", line).Msg("error parsing extract for line")
 
 				parseFailed = true
 				break

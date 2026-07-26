@@ -92,7 +92,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
 		// Limit error body reading to prevent memory issues

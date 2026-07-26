@@ -76,14 +76,14 @@ func (s *Service) addAppJobs() {
 		}
 
 		if id, err := s.ScheduleJob(checkUpdates, 2*time.Hour, "app-check-updates"); err != nil {
-			s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
+			s.log.Error().Err(err).Int("job_id", id).Msg("error adding job")
 		}
 	}
 
 	tempDirCleanup := NewTempDirCleanupJob(s.log.With().Str("job", "temp-dir-cleanup").Logger())
 
 	if id, err := s.AddJob(tempDirCleanup, "0 4 * * *", "temp-dir-cleanup"); err != nil {
-		s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding temp dir cleanup job: %v", id)
+		s.log.Error().Err(err).Int("job_id", id).Msg("error adding temp dir cleanup job")
 	}
 }
 
@@ -97,7 +97,7 @@ func (s *Service) Stop() {
 func (s *Service) ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error) {
 	id := s.cron.Schedule(cron.Every(interval), cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
 
-	s.log.Debug().Msgf("scheduler.ScheduleJob: job successfully added: %s id %d", identifier, id)
+	s.log.Debug().Str("job", identifier).Int("job_id", int(id)).Msg("job scheduled")
 
 	s.m.Lock()
 	// add to job map
@@ -115,7 +115,7 @@ func (s *Service) AddJob(job cron.Job, spec string, identifier string) (int, err
 		return 0, errors.Wrap(err, "could not add job to cron")
 	}
 
-	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %s id %d", identifier, id)
+	s.log.Debug().Str("job", identifier).Int("job_id", int(id)).Msg("job added")
 
 	s.m.Lock()
 	// add to job map
@@ -134,7 +134,7 @@ func (s *Service) RemoveJobByIdentifier(id string) error {
 		return nil
 	}
 
-	s.log.Debug().Msgf("scheduler.Remove: removing job: %v", id)
+	s.log.Debug().Str("job", id).Msg("removing job")
 
 	// remove from cron
 	s.cron.Remove(v)
@@ -152,7 +152,7 @@ func (s *Service) GetNextRun(id string) (time.Time, error) {
 		return time.Time{}, nil
 	}
 
-	s.log.Debug().Msgf("scheduler.GetNextRun: %s next run: %s", id, entry.Next)
+	s.log.Debug().Str("job", id).Time("next_run", entry.Next).Msg("job next run")
 
 	return entry.Next, nil
 }

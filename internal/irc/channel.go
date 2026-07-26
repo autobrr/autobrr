@@ -379,7 +379,7 @@ func (c *Channel) SetTopic(topic string) {
 
 func (c *Channel) QueueAnnounceLine(line string) error {
 	if err := c.announceProcessor.AddLineToQueue(c.Name, line); err != nil {
-		c.log.Error().Err(err).Msgf("could not add line %s to queue", line)
+		c.log.Error().Err(err).Str("line", line).Msg("could not add line to queue")
 		return err
 	}
 

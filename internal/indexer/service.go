@@ -538,7 +538,7 @@ func (s *Service) LoadIndexerDefinitions() error {
 
 		file := "definitions/" + entry.Name()
 
-		s.log.Trace().Msgf("parsing: %s", file)
+		s.log.Trace().Str("file", file).Msg("parsing indexer definition")
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {

@@ -118,7 +118,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if j.Feed.MaxAge > 0 {
 		if item.PublishedParsed != nil && item.PublishedParsed.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
 			if !isNewerThanMaxAge(j.Feed.MaxAge, *item.PublishedParsed, now) {
-				j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", *item.PublishedParsed).Msgf("item is older than feed max age, skipping")
+				j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", *item.PublishedParsed).Msg("item is older than feed max age, skipping")
 				return nil
 			}
 		}
@@ -255,7 +255,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if val, ok := item.Custom["seeds"]; ok {
 		value, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
-			j.Log.Error().Err(err).Msgf("could not parse item.Custom.seeds: %d", value)
+			j.Log.Error().Err(err).Int64("value", value).Msg("could not parse item.custom.seeds")
 		}
 		rls.Seeders = int(value)
 	}
@@ -263,7 +263,7 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if val, ok := item.Custom["peers"]; ok {
 		value, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
-			j.Log.Error().Err(err).Msgf("could not parse item.Custom.peers: %d", value)
+			j.Log.Error().Err(err).Int64("value", value).Msg("could not parse item.custom.peers")
 		}
 		rls.Leechers = int(value) - rls.Seeders
 	}
@@ -428,7 +428,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
 	if err != nil {
-		j.Log.Error().Err(err).Msgf("error getting existing items from cache")
+		j.Log.Error().Err(err).Msg("error getting existing items from cache")
 		return
 	}
 

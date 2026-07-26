@@ -211,22 +211,22 @@ func (s *Service) delete(ctx context.Context, id int) error {
 		return err
 	}
 
-	s.log.Debug().Msgf("stopping and removing feed: %s", f.Name)
+	s.log.Debug().Str("feed", f.Name).Msg("stopping and removing feed")
 
 	if err := s.stopFeedJob(f.ID); err != nil {
-		s.log.Error().Err(err).Msgf("error stopping rss job: %s id: %d", f.Name, f.ID)
+		s.log.Error().Err(err).Str("feed", f.Name).Int("feed_id", f.ID).Msg("error stopping rss job")
 		return err
 	}
 
 	// delete feed and cascade delete feed_cache by fk
 	if err := s.repo.Delete(ctx, f.ID); err != nil {
-		s.log.Error().Err(err).Msgf("error deleting feed: %s", f.Name)
+		s.log.Error().Err(err).Str("feed", f.Name).Msg("error deleting feed")
 		return err
 	}
 
 	// if foreign keys are not enforced in SQLite clear feed cache explicitly
 	if err := s.cacheRepo.DeleteByFeed(ctx, id); err != nil {
-		s.log.Error().Err(err).Msgf("error deleting feed cache: %s", f.Name)
+		s.log.Error().Err(err).Str("feed", f.Name).Msg("error deleting feed cache")
 	}
 
 	return nil
@@ -254,19 +254,19 @@ func (s *Service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 				return err
 			}
 
-			s.log.Debug().Msgf("feed started: %s", f.Name)
+			s.log.Debug().Str("feed", f.Name).Msg("feed started")
 
 			return nil
 		}
 
-		s.log.Debug().Msgf("stopping feed: %s", f.Name)
+		s.log.Debug().Str("feed", f.Name).Msg("stopping feed")
 
 		if err := s.stopFeedJob(f.ID); err != nil {
 			s.log.Error().Err(err).Msg("error stopping feed job")
 			return err
 		}
 
-		s.log.Debug().Msgf("feed stopped: %s", f.Name)
+		s.log.Debug().Str("feed", f.Name).Msg("feed stopped")
 
 		return nil
 	}
@@ -324,7 +324,7 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 		return errors.New("unsupported feed type: %s", feed.Type)
 	}
 
-	s.log.Info().Str("feed", feed.Name).Str("url", feed.URL).Msgf("feed test successful - connected to feed")
+	s.log.Info().Str("feed", feed.Name).Str("url", feed.URL).Msg("feed test successful")
 
 	return nil
 }
@@ -347,16 +347,16 @@ func (s *Service) testRSS(ctx context.Context, feed *domain.Feed) error {
 
 		feedParser.WithHTTPClient(proxyClient)
 
-		s.log.Debug().Msgf("using proxy %s for feed %s", feed.Proxy.Name, feed.Name)
+		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
 	}
 
 	feedResponse, err := feedParser.ParseURLWithContext(ctx, feed.URL)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("error fetching rss feed items")
+		s.log.Error().Err(err).Msg("error fetching rss feed items")
 		return errors.Wrap(err, "error fetching rss feed items")
 	}
 
-	s.log.Info().Msgf("refreshing rss feed: %s, found (%d) items", feed.Name, len(feedResponse.Items))
+	s.log.Info().Str("feed", feed.Name).Int("items_count", len(feedResponse.Items)).Msg("refreshing rss feed found items")
 
 	return nil
 }
@@ -380,7 +380,7 @@ func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 
 		c.WithHTTPClient(proxyClient)
 
-		s.log.Debug().Msgf("using proxy %s for feed %s", feed.Proxy.Name, feed.Name)
+		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
 	}
 
 	items, err := c.FetchFeed(ctx)
@@ -389,7 +389,7 @@ func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 		return err
 	}
 
-	s.log.Info().Msgf("refreshing torznab feed: %s, found (%d) items", feed.Name, len(items.Channel.Items))
+	s.log.Info().Str("feed", feed.Name).Int("items_count", len(items.Channel.Items)).Msg("refreshing torznab feed found items")
 
 	return nil
 }
@@ -413,7 +413,7 @@ func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger 
 
 		c.WithHTTPClient(proxyClient)
 
-		s.log.Debug().Msgf("using proxy %s for feed %s", feed.Proxy.Name, feed.Name)
+		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
 	}
 
 	items, err := c.GetFeed(ctx)
@@ -422,7 +422,7 @@ func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger 
 		return err
 	}
 
-	s.log.Info().Msgf("refreshing newznab feed: %s, found (%d) items", feed.Name, len(items.Channel.Items))
+	s.log.Info().Str("feed", feed.Name).Int("items_count", len(items.Channel.Items)).Msg("refreshing newznab feed found items")
 
 	return nil
 }
@@ -445,18 +445,18 @@ func (s *Service) start() error {
 		return nil
 	}
 
-	s.log.Debug().Msgf("preparing staggered start of %d feeds", len(feeds))
+	s.log.Debug().Int("count", len(feeds)).Msg("preparing staggered start of feeds")
 
 	// start in background to not block startup and signal.Notify signals until all feeds are started
 	go func(feeds []domain.Feed) {
 		for _, feed := range feeds {
 			if !feed.Enabled {
-				s.log.Trace().Msgf("feed disabled, skipping... %s", feed.Name)
+				s.log.Trace().Str("feed", feed.Name).Msg("feed disabled, skipping")
 				continue
 			}
 
 			if err := s.startJob(&feed); err != nil {
-				s.log.Error().Err(err).Msgf("failed to initialize feed job: %s", feed.Name)
+				s.log.Error().Err(err).Str("feed", feed.Name).Msg("failed to initialize feed job")
 				continue
 			}
 
@@ -469,7 +469,7 @@ func (s *Service) start() error {
 }
 
 func (s *Service) restartJob(f *domain.Feed) error {
-	s.log.Debug().Msgf("stopping feed: %s", f.Name)
+	s.log.Debug().Str("feed", f.Name).Msg("stopping feed")
 
 	// stop feed job
 	if err := s.stopFeedJob(f.ID); err != nil {
@@ -483,7 +483,7 @@ func (s *Service) restartJob(f *domain.Feed) error {
 			return err
 		}
 
-		s.log.Debug().Msgf("restarted feed: %s", f.Name)
+		s.log.Debug().Str("feed", f.Name).Msg("restarted feed")
 	}
 
 	return nil
@@ -523,7 +523,7 @@ func (s *Service) initializeFeedJob(fi feedInstance) (RefreshFeedJob, error) {
 	}
 
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to initialize %s feed", fi.Implementation)
+		s.log.Error().Err(err).Str("implementation", fi.Implementation).Msg("failed to initialize feed")
 		return nil, err
 	}
 
@@ -564,7 +564,7 @@ func (s *Service) startJob(f *domain.Feed) error {
 		return errors.Wrap(err, "schedule job %s failed", f.Name)
 	}
 
-	s.log.Debug().Msgf("successfully started feed: %s", f.Name)
+	s.log.Debug().Str("feed", f.Name).Msg("successfully started feed")
 
 	return nil
 }

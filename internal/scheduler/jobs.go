@@ -38,7 +38,7 @@ func (j *CheckUpdatesJob) Run() {
 		// this is not persisted so this can trigger more than once
 		// lets check if we have different versions between runs
 		if newRelease.TagName != j.lastCheckVersion {
-			j.Log.Info().Msgf("a new release has been found: %v Consider updating.", newRelease.TagName)
+			j.Log.Info().Str("version", newRelease.TagName).Msg("new release available")
 
 			j.NotifSvc.Send(domain.NotificationEventAppUpdateAvailable, domain.NotificationPayload{
 				Subject:   "New update available!",
@@ -118,5 +118,5 @@ func (j *TempDirCleanupJob) Run() {
 		}
 	}
 
-	j.log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
+	j.log.Debug().Uint("deleted_count", deletedCount).Str("total_size", humanize.IBytes(totalSize)).Msg("completed temp directory cleanup")
 }

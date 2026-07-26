@@ -53,13 +53,13 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Debug().Msgf("release.store: %s %v", q, args)
+	repo.log.Debug().Str("query", q).Interface("args", args).Msg("store release")
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&r.ID); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	repo.log.Debug().Msgf("release.store: %+v", r)
+	repo.log.Debug().Interface("release", r).Msg("release created")
 
 	return nil
 }
@@ -79,7 +79,7 @@ func (repo *ReleaseRepo) Update(ctx context.Context, r *domain.Release) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	repo.log.Debug().Msgf("release.update: %d %s", r.ID, r.TorrentName)
+	repo.log.Debug().Int64("release_id", r.ID).Str("release", r.TorrentName).Msg("release updated")
 
 	return nil
 }
@@ -115,7 +115,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 		}
 	}
 
-	repo.log.Trace().Msgf("release.store_release_action_status: %+v", status)
+	repo.log.Trace().Interface("status", status).Msg("release action status created")
 
 	return nil
 }
@@ -172,7 +172,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 		}
 	}
 
-	repo.log.Debug().Msgf("release.StoreDuplicateProfile: %+v", profile)
+	repo.log.Debug().Interface("profile", profile).Msg("duplicate profile created")
 
 	return nil
 }
@@ -346,7 +346,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+	repo.log.Trace().Str("database", "release.find").Str("query", query).Interface("args", args).Msg("find releases")
 
 	resp := &domain.FindReleasesResponse{
 		Data:       make([]*domain.Release, 0),
@@ -567,8 +567,6 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
 	query := `SELECT DISTINCT indexer FROM "release" UNION SELECT DISTINCT identifier indexer FROM indexer;`
 
-	repo.log.Trace().Str("database", "release.get_indexers").Msgf("query: '%v'", query)
-
 	res := make([]string, 0)
 
 	rows, err := repo.db.Handler.QueryContext(ctx, query)
@@ -652,7 +650,7 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%s', args: '%v'", query, args)
+	repo.log.Trace().Str("database", "release.find").Str("query", query).Interface("args", args).Msg("get release")
 
 	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
@@ -814,7 +812,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 			if txErr != nil {
 				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
 			}
-			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
+			repo.log.Error().Interface("panic", p).Msg("something went terribly wrong")
 		} else if err != nil {
 			txErr = tx.Rollback()
 			if txErr != nil {
@@ -893,7 +891,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error fetching rows affected")
 	}
 
-	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+	repo.log.Debug().Int64("rows_affected", deletedRows).Msg("deleted rows from release table")
 
 	// clean up orphaned rows
 	orphanedResult, err := tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
@@ -906,7 +904,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error fetching rows affected")
 	}
 
-	repo.log.Debug().Msgf("deleted %d orphaned rows from release table", deletedRowsOrphaned)
+	repo.log.Debug().Int64("rows_affected", deletedRowsOrphaned).Msg("deleted orphaned rows from release table")
 
 	return nil
 }
@@ -931,7 +929,7 @@ func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id i
 	//
 	//repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
 
-	repo.log.Debug().Msgf("deleted duplicate release profile: %d", id)
+	repo.log.Debug().Int64("id", id).Msg("deleted duplicate release profile")
 
 	return nil
 }
@@ -990,7 +988,7 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 		return false, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msgf("executing query")
+	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msg("executing query")
 
 	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
@@ -1023,7 +1021,7 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 			if txErr != nil {
 				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
 			}
-			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
+			repo.log.Error().Interface("panic", p).Msg("something went terribly wrong")
 		} else if err != nil {
 			txErr = tx.Rollback()
 			if txErr != nil {
@@ -1055,7 +1053,7 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 		return errors.Wrap(err, "error getting rows affected")
 	}
 
-	repo.log.Trace().Msgf("release updated (%d) base urls from %q to %q", rowsAffected, oldBaseURL, newBaseURL)
+	repo.log.Trace().Int64("rows_affected", rowsAffected).Str("old_url", oldBaseURL).Str("new_url", newBaseURL).Msg("release updated base urls")
 
 	return nil
 }
@@ -1222,7 +1220,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		return false, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("query: %q, args: %q", query, args)
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Str("query", query).Interface("args", args).Msg("check duplicate release")
 
 	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -1253,7 +1251,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		res = append(res, r)
 	}
 
-	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("found duplicate releases: %+v", res)
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Interface("releases", res).Msg("found duplicate releases")
 
 	if len(res) == 0 {
 		return false, nil
@@ -1557,7 +1555,7 @@ func (r *ReleaseRepo) DeleteCleanupJob(ctx context.Context, id int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Msgf("release_cleanup_job.delete: successfully deleted: %v", id)
+	r.log.Debug().Int("id", id).Msg("successfully deleted release cleanup job")
 
 	return nil
 }

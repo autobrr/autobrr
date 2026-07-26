@@ -89,7 +89,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		if err != nil {
 			if err != io.EOF {
-				log.Error().Msgf("Error reading line from input file: %v", err)
+				log.Error().Err(err).Msg("error reading line from input file")
 			}
 			break
 		}
@@ -116,7 +116,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 
 		// Write the sanitized line to the writer
 		if _, err = writer.WriteString(line); err != nil {
-			log.Error().Msgf("Error writing line to output: %v", err)
+			log.Error().Err(err).Msg("error writing line to output")
 			return err
 		}
 	}

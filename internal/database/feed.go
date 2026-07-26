@@ -583,7 +583,7 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Msgf("feed.delete: successfully deleted: %v", id)
+	r.log.Debug().Int("feed_id", id).Msg("feed successfully deleted")
 
 	return nil
 }

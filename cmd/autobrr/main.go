@@ -118,13 +118,15 @@ func main() {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
 
-	log.Info().Msgf("Starting autobrr")
-	log.Info().Msgf("Version: %s", version)
-	log.Info().Msgf("Commit: %s", commit)
-	log.Info().Msgf("Build date: %s", date)
-	log.Info().Msgf("Log-level: %s", cfg.Config.LogLevel)
-	log.Info().Msgf("Using database: %s", db.Driver)
-	log.Debug().Msgf("GOMEMLIMIT: %d bytes", memLimit)
+	log.Info().
+		Str("version", version).
+		Str("commit", commit).
+		Str("build_date", date).
+		Str("log_level", cfg.Config.LogLevel).
+		Str("database", db.Driver).
+		Msg("starting autobrr")
+
+	log.Debug().Int64("gomemlimit_bytes", memLimit).Msg("memory limit configured")
 
 	// session manager
 	sessionManager := scs.New()
@@ -244,7 +246,7 @@ func main() {
 	}
 
 	for sig := range sigCh {
-		log.Info().Msgf("received signal: %v, shutting down server.", sig)
+		log.Info().Str("signal", sig.String()).Msg("received signal, shutting down server")
 
 		srv.Shutdown()
 
