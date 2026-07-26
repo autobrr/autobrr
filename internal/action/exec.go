@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) execCmd(ctx context.Context, action *domain.Action, release domain.Release) error {
+func (s *Service) execCmd(ctx context.Context, action *domain.Action, release *domain.Release) error {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running Exec action")

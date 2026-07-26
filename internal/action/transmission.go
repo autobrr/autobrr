@@ -5,6 +5,7 @@ package action
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
@@ -23,7 +24,7 @@ const (
 var ErrReannounceTookTooLong = errors.New("ErrReannounceTookTooLong")
 var TrTrue = true
 
-func (s *Service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) transmission(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running Transmission action")
@@ -118,21 +119,18 @@ func (s *Service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
-	b64, err := transmissionrpc.File2Base64(release.TorrentTmpFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "cant encode file %s into base64", release.TorrentTmpFile)
-	}
+	b64 := base64.StdEncoding.EncodeToString(release.TorrentDataRawBytes)
 
 	payload.MetaInfo = &b64
 
 	// Prepare and send payload
 	torrent, err := tbt.TorrentAdd(ctx, payload)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Host)
+		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Host)
 	}
 
 	if action.Label != "" || action.LimitUploadSpeed > 0 || action.LimitDownloadSpeed > 0 || action.LimitRatio > 0 || action.LimitSeedTime > 0 {

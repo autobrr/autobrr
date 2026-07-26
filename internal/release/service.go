@@ -671,6 +671,15 @@ func (s *Service) retryAction(ctx context.Context, action *domain.Action, releas
 	l := s.log.With().Str("trace_id", release.TraceID).Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
 	ctx = l.WithContext(ctx)
 
+	// Replaying an action pulls the torrent down again, and writes it to disk if
+	// the action uses a path macro. This does not go through processRelease, so
+	// it has to clean up after itself.
+	defer func(release *domain.Release) {
+		if err := release.CleanupTemporaryFiles(); err != nil {
+			l.Error().Err(err).Msg("release.retryAction: error cleaning up temporary files")
+		}
+	}(release)
+
 	// add action status as pending
 	status := domain.NewReleaseActionStatus(action, release)
 

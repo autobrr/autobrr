@@ -831,13 +831,54 @@ func (r *Release) ParseSizeBytesString(size string) {
 	}
 }
 
-func (r *Release) OpenTorrentFile() error {
-	tmpFile, err := os.ReadFile(r.TorrentTmpFile)
-	if err != nil {
-		return errors.Wrap(err, "could not read torrent file: %v", r.TorrentTmpFile)
+// TorrentReader returns a reader over the in-memory torrent. Consumers that
+// want an io.Reader should go through this instead of wrapping
+// TorrentDataRawBytes themselves, so the bytes stay owned by the release.
+func (r *Release) TorrentReader() io.Reader {
+	return bytes.NewReader(r.TorrentDataRawBytes)
+}
+
+// WriteTemporaryFile writes the in-memory torrent to a temporary file on disk.
+// The torrent is otherwise passed around as raw bytes, so this is only needed
+// for the TorrentPathName and TorrentTmpFile macros which hand a path to an
+// external script or webhook.
+func (r *Release) WriteTemporaryFile() error {
+	if len(r.TorrentDataRawBytes) == 0 {
+		return errors.New("could not write temporary file: torrent data is empty for release: %s", r.TorrentName)
 	}
 
-	r.TorrentDataRawBytes = tmpFile
+	if r.TorrentTmpFile != "" {
+		// already written
+		return nil
+	}
+
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
+	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
+	if err != nil {
+		// inverse the err check to make it a bit cleaner
+		if !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "error creating tmp file")
+		}
+
+		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
+			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
+		}
+
+		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
+		if err != nil {
+			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
+		}
+	}
+	defer tmpFile.Close()
+
+	if _, err := tmpFile.Write(r.TorrentDataRawBytes); err != nil {
+		os.Remove(tmpFile.Name())
+		return errors.Wrap(err, "error writing tmp file: %s", tmpFile.Name())
+	}
+
+	r.TorrentTmpFile = tmpFile.Name()
 
 	return nil
 }
@@ -869,7 +910,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 
 	if r.DownloadURL == "" {
 		return errors.New("download_file: url can't be empty")
-	} else if r.TorrentTmpFile != "" {
+	} else if len(r.TorrentDataRawBytes) != 0 {
 		// already downloaded
 		return nil
 	}
@@ -897,28 +938,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		// since we have a raw cookie like "uid=10; pass=000"
 		req.Header.Set("Cookie", r.RawCookie)
 	}
-
-	tmpFilePattern := "autobrr-"
-	tmpDir := os.TempDir()
-
-	// Create tmp file
-	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
-	if err != nil {
-		// inverse the err check to make it a bit cleaner
-		if !errors.Is(err, os.ErrNotExist) {
-			return errors.Wrap(err, "error creating tmp file")
-		}
-
-		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
-			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
-		}
-
-		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
-		if err != nil {
-			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
-		}
-	}
-	defer tmpFile.Close()
 
 	errFunc := retry.Do(func() error {
 		// Get the data
@@ -954,11 +973,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer.Name))
 		}
 
-		resetTmpFile := func() {
-			tmpFile.Seek(0, io.SeekStart)
-			tmpFile.Truncate(0)
-		}
-
 		// Read the body into bytes
 		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
 		if err != nil {
@@ -971,8 +985,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		// Try to decode as torrent file
 		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
-			resetTmpFile()
-
 			// explicitly check for unexpected content type that match html
 			var bse *bencode.SyntaxError
 			if errors.As(err, &bse) {
@@ -983,25 +995,17 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer.Name, r.TorrentName))
 		}
 
-		// Write the body to file
-		if _, err := tmpFile.Write(bodyBytes); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
-		}
-
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
-			resetTmpFile()
-			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", tmpFile.Name()))
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", r.TorrentName))
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
-			resetTmpFile()
 			return retry.Unrecoverable(errors.New("could not read infohash"))
 		}
 
-		r.TorrentTmpFile = tmpFile.Name()
+		r.TorrentDataRawBytes = bodyBytes
 		r.TorrentHash = meta.HashInfoBytes().String()
 		// A malformed torrent can carry negative file lengths; keep the
 		// announce-derived size rather than storing a wrapped uint64.
@@ -1020,11 +1024,16 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 }
 
 func (r *Release) CleanupTemporaryFiles() error {
+	// the torrent is held in memory for the duration of the release processing,
+	// so drop it here to not keep it around longer than needed
+	r.TorrentDataRawBytes = nil
+
 	if r.TorrentTmpFile == "" {
 		return nil
 	}
 
-	if err := os.Remove(r.TorrentTmpFile); err != nil {
+	// an exec script handed the path may well have consumed the file already
+	if err := os.Remove(r.TorrentTmpFile); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return errors.Wrap(err, "could not remove tmp file: %s", r.TorrentTmpFile)
 	}
 	r.TorrentTmpFile = ""

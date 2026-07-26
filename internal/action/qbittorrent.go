@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running qBittorrent action")
@@ -61,7 +61,7 @@ func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
@@ -72,8 +72,8 @@ func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, releas
 
 	l.Trace().Interface("options", options).Msg("action qbittorrent options")
 
-	if _, err = qbtClient.AddTorrentFromFileCtx(ctx, release.TorrentTmpFile, options); err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentTmpFile, client.Name)
+	if _, err = qbtClient.AddTorrentFromMemoryCtx(ctx, release.TorrentDataRawBytes, options); err != nil {
+		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Name)
 	}
 
 	if release.TorrentHash != "" {
