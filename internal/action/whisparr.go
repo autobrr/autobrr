@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) whisparr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) whisparr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("action WHISPARR")

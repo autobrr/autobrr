@@ -24,7 +24,7 @@ const (
 var ErrReannounceTookTooLong = errors.New("ErrReannounceTookTooLong")
 var TrTrue = true
 
-func (s *Service) transmission(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) transmission(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running Transmission action")
@@ -119,7 +119,7 @@ func (s *Service) transmission(ctx context.Context, action *domain.Action, relea
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 

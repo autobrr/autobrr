@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) sabnzbd(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) sabnzbd(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("running Sabnzbd action")

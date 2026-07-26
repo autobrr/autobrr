@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running rTorrent action")
@@ -71,7 +71,7 @@ func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release d
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 

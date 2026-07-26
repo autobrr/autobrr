@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
+func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running qBittorrent action")
@@ -61,7 +61,7 @@ func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
