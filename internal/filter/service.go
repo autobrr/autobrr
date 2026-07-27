@@ -30,6 +30,7 @@ type filterRepo interface {
 	FindByID(ctx context.Context, filterID int) (*domain.Filter, error)
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error)
 	FindExternalFiltersByID(ctx context.Context, filterId int) ([]domain.FilterExternal, error)
+	FindExternalFiltersByFilterIDs(ctx context.Context, filterIDs []int) (map[int][]domain.FilterExternal, error)
 	Store(ctx context.Context, filter *domain.Filter) error
 	Update(ctx context.Context, filter *domain.Filter) error
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
@@ -194,12 +195,18 @@ func (s *Service) FindByIndexerIdentifier(ctx context.Context, indexer string) (
 
 	// we do not load actions here since we do not need it at this stage
 	// only load those after a filter has matched
+	filterIDs := make([]int, 0, len(filters))
 	for _, filter := range filters {
-		externalFilters, err := s.repo.FindExternalFiltersByID(ctx, filter.ID)
-		if err != nil {
-			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find external filters")
-		}
-		filter.External = externalFilters
+		filterIDs = append(filterIDs, filter.ID)
+	}
+
+	externalFilters, err := s.repo.FindExternalFiltersByFilterIDs(ctx, filterIDs)
+	if err != nil {
+		s.log.Error().Err(err).Str("indexer", indexer).Msg("could not find external filters")
+	}
+
+	for _, filter := range filters {
+		filter.External = externalFilters[filter.ID]
 	}
 
 	return filters, nil
