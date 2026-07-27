@@ -178,6 +178,17 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		rls.DownloadURL = sanitize.URLEncoding(item.Link)
 	}
 
+	// a magnet can not be fetched over http, so it never belongs in DownloadURL,
+	// whatever the feed is configured as. It also has no hostname, which would send
+	// it through the relative url handling below and mangle it.
+	if strings.HasPrefix(rls.DownloadURL, domain.MagnetURIPrefix) {
+		if rls.MagnetURI == "" {
+			rls.MagnetURI = rls.DownloadURL
+		}
+
+		rls.DownloadURL = ""
+	}
+
 	if rls.DownloadURL != "" {
 		// handle no baseurl with only relative url
 		// grab url from feed url and create full url
