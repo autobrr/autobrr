@@ -64,11 +64,8 @@ func init() {
 
 func main() {
 	var configPath, profilePath string
-	var pgoAutoKill bool
-
 	pflag.StringVar(&configPath, "config", "", "path to configuration directory")
 	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
-	pflag.BoolVar(&pgoAutoKill, "pgo-autokill", true, "internal build flag")
 	pflag.Parse()
 
 	shutdownFunc, isPGO := pgoRun(profilePath)
@@ -243,9 +240,7 @@ func main() {
 		return
 	}
 
-	if isPGO && pgoAutoKill {
-		log.Info().Msg("PGO detected, waiting 5 seconds before sending SIGQUIT ...")
-
+	if isPGO {
 		time.Sleep(5 * time.Second)
 		sigCh <- syscall.SIGQUIT
 	}
