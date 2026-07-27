@@ -6,9 +6,11 @@ package domain
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -518,11 +520,37 @@ func parseLineMatchRegexp(pattern string, tmpVars map[string]string, line string
 	return true, nil
 }
 
-func parseTemplateURL(baseURL, sourceURL string, vars map[string]string, basename string) (*url.URL, error) {
-	// setup text template to inject variables into
-	tmpl, err := template.New(basename).Funcs(sprig.TxtFuncMap()).Parse(sourceURL)
+// sprigFuncs is built once. sprig.TxtFuncMap assembles a map of well over a
+// hundred entries on every call, and these templates are rendered for every
+// announce.
+var sprigFuncs = sprig.TxtFuncMap()
+
+// templates caches the parsed announce templates. Their text comes from the
+// indexer definitions, so the set is bounded by what is loaded at startup, and
+// a parsed template is safe to execute from several announce processors at once.
+var templates sync.Map
+
+func cachedTemplate(name, text string) (*template.Template, error) {
+	key := name + "\x00" + text
+
+	if cached, ok := templates.Load(key); ok {
+		return cached.(*template.Template), nil
+	}
+
+	tmpl, err := template.New(name).Funcs(sprigFuncs).Parse(text)
 	if err != nil {
-		return nil, errors.New("could not create %s url template", basename)
+		return nil, errors.New("could not create %s template", name)
+	}
+
+	templates.Store(key, tmpl)
+
+	return tmpl, nil
+}
+
+func parseTemplateURL(baseURL, sourceURL string, vars map[string]string, basename string) (*url.URL, error) {
+	tmpl, err := cachedTemplate(basename, sourceURL)
+	if err != nil {
+		return nil, err
 	}
 
 	var urlBytes bytes.Buffer
@@ -605,10 +633,9 @@ func (p *IndexerIRCV2ParseMatch) ParseURLs(baseURL string, vars map[string]strin
 	return nil
 }
 
-func (p *IndexerIRCV2ParseMatch) ParseTorrentName(vars map[string]string, rls *Release) error {
+func (p *IndexerIRCV2ParseMatch) ParseReleaseName(vars map[string]string, rls *Release) error {
 	if p.ReleaseName != "" {
-		// setup text template to inject variables into
-		tmplName, err := template.New("releasename").Funcs(sprig.TxtFuncMap()).Parse(p.ReleaseName)
+		tmplName, err := cachedTemplate("releasename", p.ReleaseName)
 		if err != nil {
 			return err
 		}
@@ -620,27 +647,6 @@ func (p *IndexerIRCV2ParseMatch) ParseTorrentName(vars map[string]string, rls *R
 
 		rls.TorrentName = nameBytes.String()
 	}
-
-	return nil
-}
-
-func ParseReleaseName(releaseNameTemplate string, vars map[string]string, rls *Release) error {
-	if releaseNameTemplate == "" {
-		return nil
-	}
-
-	// setup text template to inject variables into
-	tmplName, err := template.New("releasename").Funcs(sprig.TxtFuncMap()).Parse(releaseNameTemplate)
-	if err != nil {
-		return err
-	}
-
-	var nameBytes bytes.Buffer
-	if err := tmplName.Execute(&nameBytes, &vars); err != nil {
-		return errors.New("could not write torrent name template output")
-	}
-
-	rls.TorrentName = nameBytes.String()
 
 	return nil
 }
@@ -657,9 +663,7 @@ func (p *IndexerIRCV2Parse) MapCustomVariables(vars map[string]string) error {
 			continue
 		}
 
-		for k, v := range keyValueMap {
-			vars[k] = v
-		}
+		maps.Copy(vars, keyValueMap)
 	}
 
 	return nil
@@ -697,7 +701,7 @@ func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, va
 	}
 
 	// optionally parse release name template
-	if err := ParseReleaseName(channel.Parse.Match.ReleaseName, mergedVars, rls); err != nil {
+	if err := p.Match.ParseReleaseName(mergedVars, rls); err != nil {
 		return errors.Wrap(err, "could not parse release name")
 	}
 
