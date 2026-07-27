@@ -741,8 +741,27 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 }
 
 func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) ([]domain.FilterExternal, error) {
+	externalFilters, err := r.findExternalFilters(ctx, []int{filterId})
+	if err != nil {
+		return nil, err
+	}
+
+	return externalFilters[filterId], nil
+}
+
+// FindExternalFiltersByFilterIDs returns external filters for the given filters grouped by filter id.
+func (r *FilterRepo) FindExternalFiltersByFilterIDs(ctx context.Context, filterIDs []int) (map[int][]domain.FilterExternal, error) {
+	return r.findExternalFilters(ctx, filterIDs)
+}
+
+func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (map[int][]domain.FilterExternal, error) {
+	if len(filterIDs) == 0 {
+		return map[int][]domain.FilterExternal{}, nil
+	}
+
 	queryBuilder := r.db.squirrel.
 		Select(
+			"fe.filter_id",
 			"fe.id",
 			"fe.name",
 			"fe.idx",
@@ -762,8 +781,8 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			"fe.on_error",
 		).
 		From("filter_external fe").
-		Where(sq.Eq{"fe.filter_id": filterId}).
-		OrderBy("fe.idx DESC")
+		Where(sq.Eq{"fe.filter_id": filterIDs}).
+		OrderBy("fe.filter_id", "fe.idx DESC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -772,16 +791,14 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 
 	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
-		}
 		return nil, errors.Wrap(err, "error executing query")
 	}
 	defer rows.Close()
 
-	var externalFilters []domain.FilterExternal
+	externalFilters := make(map[int][]domain.FilterExternal)
 
 	for rows.Next() {
+		var filterID int
 		var external domain.FilterExternal
 
 		// filter external
@@ -789,6 +806,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
 
 		if err := rows.Scan(
+			&filterID,
 			&external.ID,
 			&external.Name,
 			&external.Index,
@@ -823,7 +841,11 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		external.WebhookRetryAttempts = int(extWebhookRetryAttempts.Int32)
 		external.WebhookRetryDelaySeconds = int(extWebhookDelaySeconds.Int32)
 
-		externalFilters = append(externalFilters, external)
+		externalFilters[filterID] = append(externalFilters[filterID], external)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error scanning rows")
 	}
 
 	return externalFilters, nil
