@@ -15,12 +15,12 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
+	"github.com/autobrr/autobrr/pkg/arr/whisparr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/nzbget"
 	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
-	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	"github.com/autobrr/go-deluge"
 	"github.com/autobrr/go-qbittorrent"
@@ -56,7 +56,7 @@ func (s *Service) testConnection(ctx context.Context, client domain.DownloadClie
 	case domain.DownloadClientTypeLidarr:
 		return s.testLidarrConnection(ctx, client)
 
-	case domain.DownloadClientTypeWhisparr:
+	case domain.DownloadClientTypeWhisparr, domain.DownloadClientTypeWhisparrV3:
 		return s.testWhisparrConnection(ctx, client)
 
 	case domain.DownloadClientTypeReadarr:
@@ -298,10 +298,22 @@ func (s *Service) testLidarrConnection(ctx context.Context, client domain.Downlo
 	return nil
 }
 
+// whisparrVersion maps the client type to the Whisparr major version it talks
+// to. v2 is Sonarr based and serves series, v3 is Radarr based and serves
+// movies, so the two are separate client types.
+func whisparrVersion(clientType domain.DownloadClientType) int {
+	if clientType == domain.DownloadClientTypeWhisparrV3 {
+		return whisparr.VersionV3
+	}
+
+	return whisparr.VersionV2
+}
+
 func (s *Service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := whisparr.New(whisparr.Config{
 		Hostname:      client.Host,
 		APIKey:        client.Settings.APIKey,
+		Version:       whisparrVersion(client.Type),
 		BasicAuth:     client.Settings.Auth.Enabled,
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
@@ -309,11 +321,12 @@ func (s *Service) testWhisparrConnection(ctx context.Context, client domain.Down
 		Log:           s.log,
 	})
 
-	if _, err := r.Test(ctx); err != nil {
+	status, err := r.Test(ctx)
+	if err != nil {
 		return errors.Wrap(err, "whisparr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msg("test client connection for whisparr: success")
+	s.log.Debug().Str("version", status.Version).Msg("test client connection for whisparr: success")
 
 	return nil
 }

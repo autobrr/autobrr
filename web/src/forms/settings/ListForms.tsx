@@ -513,6 +513,7 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "READARR":
       return <ListTypeArr {...props} />;
     case "WHISPARR":
+    case "WHISPARR_V3":
       return <ListTypeArr {...props} />;
     case "TRAKT":
       return <ListTypeTrakt />;
@@ -553,6 +554,14 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
           <SwitchGroupWide name="include_unmonitored" label={t("forms.list.includeUnmonitored")} description={t("forms.list.includeUnmonitoredDesc")} />
         </fieldset>
       );
+    case "WHISPARR_V3":
+      return (
+        <fieldset>
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="include_unmonitored" label={t("forms.list.includeUnmonitored")} description={t("forms.list.includeUnmonitoredDesc")} />
+          <SwitchGroupWide name="include_alternate_titles" label={t("forms.list.includeAlternateTitles")} description={t("forms.list.includeAlternateTitlesDesc")} />
+        </fieldset>
+      );
     case "PLAINTEXT":
       return (
         <fieldset>
@@ -589,7 +598,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
         clientType={listType}
       />
 
-      {values.client_id > 0 && (values.type === "RADARR" || values.type == "SONARR") && (
+      {values.client_id > 0 && (values.type === "RADARR" || values.type === "SONARR" || values.type === "WHISPARR" || values.type === "WHISPARR_V3") && (
         <>
           <ListArrTagsMultiSelectField name="tags_included" label={t("forms.list.tagsIncluded")} options={arrTagsQuery.data?.map(f => ({
             value: f.label,

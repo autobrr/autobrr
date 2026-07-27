@@ -44,7 +44,11 @@
       "description": "Send to Lidarr and let it decide"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Send to Whisparr and let it decide"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Send to Whisparr and let it decide"
     },
     "READARR": {
@@ -114,7 +118,11 @@
       "description": "Send to Lidarr and let it decide"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Send to Whisparr and let it decide"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Send to Whisparr and let it decide"
     },
     "READARR": {

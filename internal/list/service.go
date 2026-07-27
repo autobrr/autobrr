@@ -227,8 +227,8 @@ func (s *Service) refreshList(ctx context.Context, listItem *domain.List) error 
 	case domain.ListTypeSonarr:
 		err = s.sonarr(ctx, listItem)
 
-	case domain.ListTypeWhisparr:
-		err = s.sonarr(ctx, listItem)
+	case domain.ListTypeWhisparr, domain.ListTypeWhisparrV3:
+		err = s.whisparr(ctx, listItem)
 
 	case domain.ListTypeReadarr:
 		err = s.readarr(ctx, listItem)

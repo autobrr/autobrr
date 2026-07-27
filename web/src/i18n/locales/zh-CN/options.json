@@ -44,7 +44,11 @@
       "description": "发送到 Lidarr，由它决定如何处理"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "发送到 Whisparr，由它决定如何处理"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "发送到 Whisparr，由它决定如何处理"
     },
     "READARR": {
@@ -114,7 +118,11 @@
       "description": "发送到 Lidarr，由它决定如何处理"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "发送到 Whisparr，由它决定如何处理"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "发送到 Whisparr，由它决定如何处理"
     },
     "READARR": {

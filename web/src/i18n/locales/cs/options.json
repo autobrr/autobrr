@@ -44,7 +44,11 @@
         "description": "Odeslat do Lidarr a nechat ho rozhodnout"
       },
       "WHISPARR": {
-        "label": "Whisparr",
+        "label": "Whisparr (v2)",
+        "description": "Odeslat do Whisparr a nechat ho rozhodnout"
+      },
+      "WHISPARR_V3": {
+        "label": "Whisparr (v3)",
         "description": "Odeslat do Whisparr a nechat ho rozhodnout"
       },
       "READARR": {
@@ -114,7 +118,11 @@
         "description": "Odeslat do Lidarr a nechat ho rozhodnout"
       },
       "WHISPARR": {
-        "label": "Whisparr",
+        "label": "Whisparr (v2)",
+        "description": "Odeslat do Whisparr a nechat ho rozhodnout"
+      },
+      "WHISPARR_V3": {
+        "label": "Whisparr (v3)",
         "description": "Odeslat do Whisparr a nechat ho rozhodnout"
       },
       "READARR": {

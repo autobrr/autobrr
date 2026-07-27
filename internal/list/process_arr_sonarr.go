@@ -17,14 +17,7 @@ import (
 )
 
 func (s *Service) sonarr(ctx context.Context, list *domain.List) error {
-	var arrType string
-	if list.Type == domain.ListTypeWhisparr {
-		arrType = "whisparr"
-	} else {
-		arrType = "sonarr"
-	}
-
-	l := s.log.With().Str("list", list.Name).Str("type", arrType).Int("client", list.ClientID).Logger()
+	l := s.log.With().Str("list", list.Name).Str("type", "sonarr").Int("client", list.ClientID).Logger()
 
 	l.Debug().Msg("gathering titles")
 
@@ -76,7 +69,10 @@ func (s *Service) processSonarr(ctx context.Context, list *domain.List, logger *
 		return nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
 	}
 
-	client := downloadClient.Client.(*sonarr.Client)
+	client, ok := downloadClient.Client.(*sonarr.Client)
+	if !ok {
+		return nil, errors.New("client %s %s is not a sonarr client", downloadClient.Type, downloadClient.Name)
+	}
 
 	var tags []*arr.Tag
 	if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {

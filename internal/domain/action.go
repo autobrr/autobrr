@@ -171,6 +171,7 @@ const (
 	ActionTypeSonarr       ActionType = "SONARR"
 	ActionTypeLidarr       ActionType = "LIDARR"
 	ActionTypeWhisparr     ActionType = "WHISPARR"
+	ActionTypeWhisparrV3   ActionType = "WHISPARR_V3"
 	ActionTypeReadarr      ActionType = "READARR"
 	ActionTypeSabnzbd      ActionType = "SABNZBD"
 	ActionTypeNzbget       ActionType = "NZBGET"

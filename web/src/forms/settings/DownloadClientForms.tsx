@@ -447,6 +447,7 @@ export const componentMap: componentMapType = {
   SONARR: <FormFieldsArr />,
   LIDARR: <FormFieldsArr />,
   WHISPARR: <FormFieldsArr />,
+  WHISPARR_V3: <FormFieldsArr />,
   READARR: <FormFieldsArr />,
   SABNZBD: <FormFieldsSabnzbd />,
   NZBGET: <FormFieldsNzbget />
@@ -632,6 +633,7 @@ export const rulesComponentMap: componentMapType = {
   SONARR: <FormFieldsRulesArr />,
   LIDARR: <FormFieldsRulesArr />,
   WHISPARR: <FormFieldsRulesArr />,
+  WHISPARR_V3: <FormFieldsRulesArr />,
   READARR: <FormFieldsRulesArr />,
 };
 
