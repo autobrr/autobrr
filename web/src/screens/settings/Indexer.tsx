@@ -141,7 +141,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
           data={indexer}
         />
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
-          <Checkbox value={indexer.enabled ?? false} setValue={onToggleMutation} />
+          <Checkbox name="enabled" value={indexer.enabled ?? false} setValue={onToggleMutation} />
         </div>
         <div className="col-span-7 pl-6 sm:pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
           {indexer.name}

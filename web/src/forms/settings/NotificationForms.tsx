@@ -610,6 +610,7 @@ const EventCheckBox = ({ event }: { event: NotificationEventOption; }) => (
             {event.description && <p className="text-gray-500">{event.description}</p>}
           </span>
           <Checkbox
+            name={`events-${event.value}`}
             value={field.value.includes(event.value)}
             setValue={(checked) =>
               form.setFieldValue('events',
