@@ -1053,32 +1053,32 @@ const MagnetURIPrefix = "magnet:?"
 
 // MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error {
-	releaseName, err := getStringMapValueAlt(varMap, "releaseName", "torrentName")
-	if err != nil {
-		return errors.Wrap(err, "failed parsing required field: torrentName or releaseName")
+	releaseName, ok := getStringMapValueAlt(varMap, "releaseName", "torrentName")
+	if !ok {
+		return errors.New("failed parsing required field: torrentName or releaseName")
 	}
 	r.TorrentName = html.UnescapeString(releaseName)
 
-	if torrentHash, err := getStringMapValue(varMap, "torrentHash"); err == nil {
+	if torrentHash, ok := getStringMapValue(varMap, "torrentHash"); ok {
 		r.TorrentHash = torrentHash
 	}
 
-	if torrentID, err := getStringMapValue(varMap, "torrentId"); err == nil {
+	if torrentID, ok := getStringMapValue(varMap, "torrentId"); ok {
 		r.TorrentID = torrentID
 	}
 
-	if category, err := getStringMapValue(varMap, "category"); err == nil {
+	if category, ok := getStringMapValue(varMap, "category"); ok {
 		r.Category = category
 	}
 
-	if announceType, err := getStringMapValue(varMap, "announceType"); err == nil {
+	if announceType, ok := getStringMapValue(varMap, "announceType"); ok {
 		annType, parseErr := ParseAnnounceType(announceType)
 		if parseErr == nil {
 			r.AnnounceType = annType
 		}
 	}
 
-	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
+	if freeleech, ok := getStringMapValue(varMap, "freeleech"); ok {
 		fl := StringEqualFoldMulti(freeleech, "1", "fl", "free", "freeleech", "freeleech!", "yes", "VIP", "★")
 		if fl {
 			r.Freeleech = true
@@ -1088,7 +1088,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
+	if freeleechPercent, ok := getStringMapValue(varMap, "freeleechPercent"); ok {
 		// remove % and trim spaces
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
@@ -1137,7 +1137,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
+	//if uploadVolumeFactor, ok := getStringMapValue(varMap, "uploadVolumeFactor"); ok {
 	//	r.uploadVolumeFactor = uploadVolumeFactor
 	//
 	//	//freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
@@ -1151,15 +1151,15 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 	//	//}
 	//}
 
-	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
+	if uploader, ok := getStringMapValue(varMap, "uploader"); ok {
 		r.Uploader = uploader
 	}
 
-	if recordLabel, err := getStringMapValue(varMap, "recordLabel"); err == nil {
+	if recordLabel, ok := getStringMapValue(varMap, "recordLabel"); ok {
 		r.RecordLabel = recordLabel
 	}
 
-	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
+	if torrentSize, ok := getStringMapValue(varMap, "torrentSize"); ok {
 		// Some indexers like BTFiles announces size with comma. Humanize does not handle that well and strips it.
 		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
 
@@ -1174,38 +1174,38 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	if torrentSizeBytes, err := getStringMapValue(varMap, "torrentSizeBytes"); err == nil {
+	if torrentSizeBytes, ok := getStringMapValue(varMap, "torrentSizeBytes"); ok {
 		size, parseErr := strconv.ParseUint(torrentSizeBytes, 10, 64)
 		if parseErr == nil {
 			r.Size = size
 		}
 	}
 
-	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
+	if scene, ok := getStringMapValue(varMap, "scene"); ok {
 		if StringEqualFoldMulti(scene, "true", "yes", "1") {
 			r.Origin = "SCENE"
 		}
 	}
 
 	// set origin. P2P, SCENE, O-SCENE and Internal
-	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
+	if origin, ok := getStringMapValue(varMap, "origin"); ok {
 		r.Origin = origin
 	}
 
-	if internal, err := getStringMapValue(varMap, "internal"); err == nil {
+	if internal, ok := getStringMapValue(varMap, "internal"); ok {
 		if StringEqualFoldMulti(internal, "internal", "yes", "1") {
 			r.Origin = "INTERNAL"
 		}
 	}
 
-	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
+	if yearVal, ok := getStringMapValue(varMap, "year"); ok {
 		year, parseErr := strconv.Atoi(yearVal)
 		if parseErr == nil {
 			r.Year = year
 		}
 	}
 
-	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
+	if tags, ok := getStringMapValue(varMap, "tags"); ok {
 		if tags != "" && tags != "*" {
 			tagsArr := []string{}
 			s := strings.Split(tags, ",")
@@ -1216,38 +1216,38 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	if title, err := getStringMapValue(varMap, "title"); err == nil {
+	if title, ok := getStringMapValue(varMap, "title"); ok {
 		if title != "" && title != "*" {
 			r.Title = title
 		}
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful
-	if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
+	if releaseTags, ok := getStringMapValue(varMap, "releaseTags"); ok {
 		r.ReleaseTags = releaseTags
 	}
 
-	if resolution, err := getStringMapValue(varMap, "resolution"); err == nil {
+	if resolution, ok := getStringMapValue(varMap, "resolution"); ok {
 		r.Resolution = resolution
 	}
 
-	if releaseGroup, err := getStringMapValue(varMap, "releaseGroup"); err == nil {
+	if releaseGroup, ok := getStringMapValue(varMap, "releaseGroup"); ok {
 		r.Group = releaseGroup
 	}
 
-	if episodeVal, err := getStringMapValue(varMap, "releaseEpisode"); err == nil {
+	if episodeVal, ok := getStringMapValue(varMap, "releaseEpisode"); ok {
 		episode, _ := strconv.Atoi(episodeVal)
 		r.Episode = episode
 	}
 
-	if metaId, err := getStringMapValue(varMap, "imdb"); err == nil && metaId != "" {
+	if metaId, ok := getStringMapValue(varMap, "imdb"); ok && metaId != "" {
 		if !strings.HasPrefix(metaId, "tt") {
 			metaId = "tt" + metaId
 		}
 		r.MetaIMDB = metaId
 	}
 
-	if metaId, err := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); err == nil {
+	if metaId, ok := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); ok {
 		if tmdbId, err := strconv.Atoi(metaId); err == nil {
 			r.MetaTMDB = tmdbId
 		}
@@ -1256,32 +1256,31 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 	return nil
 }
 
-func getStringMapValue(stringMap map[string]string, key string) (string, error) {
-	lowerKey := strings.ToLower(key)
+// getStringMapValue looks up key, preferring an exact match and falling back to
+// a case-insensitive one. Most of the keys a release is built from are optional,
+// so a miss is ordinary control flow rather than an error worth allocating for.
+func getStringMapValue(stringMap map[string]string, key string) (string, bool) {
+	if value, ok := stringMap[key]; ok {
+		return value, true
+	}
 
-	// case-insensitive match
 	for k, v := range stringMap {
-		if strings.ToLower(k) == lowerKey {
-			return v, nil
+		if strings.EqualFold(k, key) {
+			return v, true
 		}
 	}
 
-	return "", errors.New("key was not found in map: %q", lowerKey)
+	return "", false
 }
 
-func getStringMapValueAlt(stringMap map[string]string, keys ...string) (string, error) {
+func getStringMapValueAlt(stringMap map[string]string, keys ...string) (string, bool) {
 	for _, key := range keys {
-		lowerKey := strings.ToLower(key)
-
-		// case-insensitive match
-		for k, v := range stringMap {
-			if strings.ToLower(k) == lowerKey {
-				return v, nil
-			}
+		if value, ok := getStringMapValue(stringMap, key); ok {
+			return value, true
 		}
 	}
 
-	return "", errors.New("could not find any key in map: %v", keys)
+	return "", false
 }
 
 func SplitAny(s string, seps string) []string {

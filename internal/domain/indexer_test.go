@@ -252,7 +252,7 @@ func TestIndexerIRCV2ParseMatch_ParseTorrentName(t *testing.T) {
 				InfoURL:     tt.fields.InfoURL,
 				Encode:      tt.fields.Encode,
 			}
-			err := p.ParseTorrentName(tt.args.vars, tt.args.rls)
+			err := p.ParseReleaseName(tt.args.vars, tt.args.rls)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, tt.args.rls)
 		})
