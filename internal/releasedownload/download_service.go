@@ -367,10 +367,15 @@ func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Releas
 		return errors.Wrap(err, "could not read response body")
 	}
 
-	magnet := string(body)
-	if magnet != "" {
-		r.MagnetURI = magnet
+	magnet := strings.TrimSpace(string(body))
+	if !strings.HasPrefix(magnet, domain.MagnetURIPrefix) {
+		// the url did not lead to a magnet after all, drop it so HasMagnetUri stays
+		// false and the release falls back to downloading from DownloadURL
+		r.MagnetURI = ""
+		return nil
 	}
+
+	r.MagnetURI = magnet
 
 	return nil
 }

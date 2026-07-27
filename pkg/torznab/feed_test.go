@@ -41,3 +41,39 @@ func TestFeedItem_parseAttributes(t *testing.T) {
 		})
 	}
 }
+
+func TestFeedItem_parseAttributesMagnetURL(t *testing.T) {
+	tests := []struct {
+		name       string
+		item       FeedItem
+		attributes Attributes
+		want       string
+	}{
+		{
+			name:       "magneturl attr is picked up",
+			attributes: Attributes{{Name: "magneturl", Value: "magnet:?xt=urn:btih:deadbeef"}},
+			want:       "magnet:?xt=urn:btih:deadbeef",
+		},
+		{
+			name:       "missing attr leaves it empty",
+			attributes: Attributes{{Name: "seeders", Value: "10"}},
+			want:       "",
+		},
+		{
+			name:       "element takes precedence over attr",
+			item:       FeedItem{MagnetURI: "magnet:?xt=urn:btih:fromelement"},
+			attributes: Attributes{{Name: "magneturl", Value: "magnet:?xt=urn:btih:fromattr"}},
+			want:       "magnet:?xt=urn:btih:fromelement",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := tt.item
+			f.Attributes = tt.attributes
+			f.parseAttributes()
+
+			assert.Equal(t, tt.want, f.MagnetURI)
+		})
+	}
+}

@@ -65,6 +65,7 @@ type FeedItem struct {
 	Comments        string           `xml:"comments"`
 	Size            uint64           `xml:"size"`
 	Link            string           `xml:"link"`
+	MagnetURI       string           `xml:"magneturl,omitempty"`
 	Enclosure       *Enclosure       `xml:"enclosure,omitempty"`
 	Category        []int            `xml:"category,omitempty"`
 	Categories      Categories
@@ -222,6 +223,10 @@ func (f *FeedItem) parseAttributes() {
 			}
 		case "genre":
 			f.Genres = strings.Split(attr.Value, ",")
+		case "magneturl":
+			if f.MagnetURI == "" {
+				f.MagnetURI = attr.Value
+			}
 		}
 	}
 

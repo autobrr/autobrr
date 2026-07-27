@@ -143,18 +143,31 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet && strings.HasPrefix(item.Link, domain.MagnetURIPrefix) {
-			rls.MagnetURI = item.Link
-			rls.DownloadURL = ""
-		}
 
 		if item.Enclosure != nil && item.Enclosure.Type == "application/x-bittorrent" {
 			rls.DownloadURL = item.Enclosure.URL
+		}
 
-			if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet && strings.HasPrefix(item.Enclosure.URL, domain.MagnetURIPrefix) {
-				rls.MagnetURI = item.Enclosure.URL
-				rls.DownloadURL = ""
+		if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
+			// Jackett and Prowlarr publish the magnet in the magneturl attr but put their
+			// own proxy url in the link, which only redirects to it. Mirror a non-magnet
+			// url into MagnetURI for ResolveMagnetURI to follow, and leave it in
+			// DownloadURL as the fallback for when it never resolves.
+			if strings.HasPrefix(item.MagnetURI, domain.MagnetURIPrefix) {
+				rls.MagnetURI = item.MagnetURI
+			} else {
+				rls.MagnetURI = rls.DownloadURL
 			}
+		}
+
+		// a magnet can not be fetched over http, so it never belongs in DownloadURL,
+		// whatever the feed is configured as
+		if strings.HasPrefix(rls.DownloadURL, domain.MagnetURIPrefix) {
+			if rls.MagnetURI == "" {
+				rls.MagnetURI = rls.DownloadURL
+			}
+
+			rls.DownloadURL = ""
 		}
 
 		rls.ParseString(item.Title)
