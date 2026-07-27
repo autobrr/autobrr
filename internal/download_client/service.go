@@ -17,12 +17,12 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
+	"github.com/autobrr/autobrr/pkg/arr/whisparr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/nzbget"
 	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
-	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	"github.com/autobrr/go-deluge"
 	"github.com/autobrr/go-qbittorrent"
@@ -122,6 +122,24 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
 			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from sonarr")
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	case domain.DownloadClientTypeWhisparr, domain.DownloadClientTypeWhisparrV3:
+		arrClient := client.Client.(*whisparr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from whisparr")
 			return data, nil
 		}
 
@@ -415,10 +433,11 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			TLSSkipVerify: client.TLSSkipVerify,
 		})
 
-	case domain.DownloadClientTypeWhisparr:
+	case domain.DownloadClientTypeWhisparr, domain.DownloadClientTypeWhisparrV3:
 		client.Client = whisparr.New(whisparr.Config{
 			Hostname:      client.Host,
 			APIKey:        client.Settings.APIKey,
+			Version:       whisparrVersion(client.Type),
 			Log:           s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,

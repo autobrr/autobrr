@@ -44,7 +44,11 @@
       "description": "Envoyer à Lidarr et laisser décider"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Envoyer à Whisparr et laisser décider"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Envoyer à Whisparr et laisser décider"
     },
     "READARR": {
@@ -114,7 +118,11 @@
       "description": "Envoyer à Lidarr et laisser décider"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Envoyer à Whisparr et laisser décider"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Envoyer à Whisparr et laisser décider"
     },
     "READARR": {

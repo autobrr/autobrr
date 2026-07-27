@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/arr/whisparr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	"github.com/rs/zerolog"
 )
@@ -17,7 +17,7 @@ import (
 func (s *Service) whisparr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
-	l.Trace().Msg("action WHISPARR")
+	l.Trace().Msg("running Whisparr action")
 
 	// TODO validate data
 
@@ -31,9 +31,12 @@ func (s *Service) whisparr(ctx context.Context, action *domain.Action, release *
 		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
 	}
 
-	arr := client.Client.(whisparr.Client)
+	arr, ok := client.Client.(*whisparr.Client)
+	if !ok {
+		return nil, errors.New("invalid client type")
+	}
 
-	r := whisparr.Release{
+	r := whisparr.ReleasePushRequest{
 		Title:            release.TorrentName,
 		InfoUrl:          release.InfoURL,
 		DownloadUrl:      release.DownloadURL,

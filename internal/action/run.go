@@ -81,7 +81,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeLidarr:
 		rejections, err = s.lidarr(ctx, action, release)
 
-	case domain.ActionTypeWhisparr:
+	case domain.ActionTypeWhisparr, domain.ActionTypeWhisparrV3:
 		rejections, err = s.whisparr(ctx, action, release)
 
 	case domain.ActionTypeReadarr:

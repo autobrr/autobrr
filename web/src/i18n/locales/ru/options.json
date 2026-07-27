@@ -44,7 +44,11 @@
       "description": "Отправить в Lidarr, пусть он решает"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Отправить в Whisparr, пусть он решает"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Отправить в Whisparr, пусть он решает"
     },
     "READARR": {
@@ -114,7 +118,11 @@
       "description": "Отправить в Lidarr, пусть он решает"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Отправить в Whisparr, пусть он решает"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Отправить в Whisparr, пусть он решает"
     },
     "READARR": {
