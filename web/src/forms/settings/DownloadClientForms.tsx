@@ -257,6 +257,48 @@ function FormFieldsPorla() {
   );
 }
 
+function FormFieldsAria2() {
+  const { t } = useTranslation("settings");
+  const {
+    values: { tls, settings }
+  } = useFormikContext<InitialValues>();
+
+  return (
+    <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+      <TextFieldWide
+        required
+        name="host"
+        label={t("forms.downloadClient.host")}
+        help={t("forms.downloadClient.hostHelpAria2")}
+      />
+
+      <SwitchGroupWide name="tls" label={t("forms.downloadClient.tls")} />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label={t("forms.downloadClient.skipTls")}
+        />
+      )}
+
+      <PasswordFieldWide
+        name="settings.apikey"
+        label={t("forms.downloadClient.rpcSecret")}
+        help={t("forms.downloadClient.rpcSecretHelp")}
+      />
+
+      <SwitchGroupWide name="settings.basic.auth" label={t("forms.downloadClient.basicAuth")} />
+
+      {settings.basic?.auth === true && (
+        <>
+          <TextFieldWide name="settings.basic.username" label={t("forms.downloadClient.username")} />
+          <PasswordFieldWide name="settings.basic.password" label={t("forms.downloadClient.password")} />
+        </>
+      )}
+    </div>
+  );
+}
+
 function FormFieldsRTorrent() {
   const { t } = useTranslation("settings");
   const {
@@ -443,6 +485,7 @@ export const componentMap: componentMapType = {
   RTORRENT: <FormFieldsRTorrent />,
   TRANSMISSION: <FormFieldsTransmission />,
   PORLA: <FormFieldsPorla />,
+  ARIA2: <FormFieldsAria2 />,
   RADARR: <FormFieldsArr />,
   SONARR: <FormFieldsArr />,
   LIDARR: <FormFieldsArr />,
@@ -628,6 +671,7 @@ export const rulesComponentMap: componentMapType = {
   DELUGE_V2: <FormFieldsRulesBasic />,
   QBITTORRENT: <FormFieldsRulesQbit />,
   PORLA: <FormFieldsRulesBasic />,
+  ARIA2: <FormFieldsRulesBasic />,
   TRANSMISSION: <FormFieldsRulesTransmission />,
   RADARR: <FormFieldsRulesArr />,
   SONARR: <FormFieldsRulesArr />,

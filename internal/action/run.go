@@ -72,6 +72,9 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypePorla:
 		rejections, err = s.porla(ctx, action, release)
 
+	case domain.ActionTypeAria2:
+		rejections, err = s.aria2(ctx, action, release)
+
 	case domain.ActionTypeRadarr:
 		rejections, err = s.radarr(ctx, action, release)
 

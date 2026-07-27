@@ -296,6 +296,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     value: "PORLA"
   },
   {
+    label: "aria2",
+    description: "Add torrents directly to aria2",
+    value: "ARIA2"
+  },
+  {
     label: "Radarr",
     description: "Send to Radarr and let it decide",
     value: "RADARR"
@@ -371,6 +376,11 @@ export const getDownloadClientTypeOptions = (t: TFunction): RadioFieldsetOption[
     value: "PORLA"
   },
   {
+    label: t("options:downloadClient.ARIA2.label"),
+    description: t("options:downloadClient.ARIA2.description"),
+    value: "ARIA2"
+  },
+  {
     label: t("options:downloadClient.RADARR.label"),
     description: t("options:downloadClient.RADARR.description"),
     value: "RADARR"
@@ -425,6 +435,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "rTorrent", description: "Add torrents directly to rTorrent", value: "RTORRENT" },
   { label: "Transmission", description: "Add torrents directly to Transmission", value: "TRANSMISSION" },
   { label: "Porla", description: "Add torrents directly to Porla", value: "PORLA" },
+  { label: "aria2", description: "Add torrents directly to aria2", value: "ARIA2" },
   { label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR" },
   { label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR" },
   { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
@@ -446,6 +457,7 @@ export const getActionTypeOptions = (t: TFunction): RadioFieldsetOption[] => [
   { label: t("options:actionType.RTORRENT.label"), description: t("options:actionType.RTORRENT.description"), value: "RTORRENT" },
   { label: t("options:actionType.TRANSMISSION.label"), description: t("options:actionType.TRANSMISSION.description"), value: "TRANSMISSION" },
   { label: t("options:actionType.PORLA.label"), description: t("options:actionType.PORLA.description"), value: "PORLA" },
+  { label: t("options:actionType.ARIA2.label"), description: t("options:actionType.ARIA2.description"), value: "ARIA2" },
   { label: t("options:actionType.RADARR.label"), description: t("options:actionType.RADARR.description"), value: "RADARR" },
   { label: t("options:actionType.SONARR.label"), description: t("options:actionType.SONARR.description"), value: "SONARR" },
   { label: t("options:actionType.LIDARR.label"), description: t("options:actionType.LIDARR.description"), value: "LIDARR" },
@@ -467,6 +479,7 @@ export const ActionTypeNameMap: Record<ActionType, string> = {
   "RTORRENT": "rTorrent",
   "TRANSMISSION": "Transmission",
   "PORLA": "Porla",
+  "ARIA2": "aria2",
   "RADARR": "Radarr",
   "SONARR": "Sonarr",
   "LIDARR": "Lidarr",
@@ -488,6 +501,7 @@ export const getActionTypeNameMap = (t: TFunction): Record<ActionType, string> =
   "RTORRENT": t("options:actionType.RTORRENT.label"),
   "TRANSMISSION": t("options:actionType.TRANSMISSION.label"),
   "PORLA": t("options:actionType.PORLA.label"),
+  "ARIA2": t("options:actionType.ARIA2.label"),
   "RADARR": t("options:actionType.RADARR.label"),
   "SONARR": t("options:actionType.SONARR.label"),
   "LIDARR": t("options:actionType.LIDARR.label"),
@@ -505,6 +519,7 @@ export const DOWNLOAD_CLIENTS = [
   "RTORRENT",
   "TRANSMISSION",
   "PORLA",
+  "ARIA2",
   "RADARR",
   "SONARR",
   "LIDARR",
