@@ -246,7 +246,7 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 		// entry is handled directly by enterError (which can be reached from
 		// states such as Monitoring that have no transition() path)
 	default:
-		sm.log.Error().Str("state", state.String()).Msgf("invalid state")
+		sm.log.Error().Str("state", state.String()).Msg("invalid state")
 	}
 }
 

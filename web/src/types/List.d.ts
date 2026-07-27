@@ -52,6 +52,7 @@ type ListType =
   | "LIDARR"
   | "READARR"
   | "WHISPARR"
+  | "WHISPARR_V3"
   | "MDBLIST"
   | "TRAKT"
   | "METACRITIC"

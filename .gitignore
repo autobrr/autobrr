@@ -62,6 +62,7 @@ tmp/
 web/eslint-sarif-report.sarif
 test/mockindexer/feeds/*
 test/mockindexer/files/*
+test/e2e/artifacts/
 cpu.pprof
 
 # Preserve files

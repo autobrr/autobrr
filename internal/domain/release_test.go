@@ -748,6 +748,47 @@ func TestRelease_MapVars(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:   "imdb id is prefixed with tt",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt0133093",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "0133093",
+				},
+			},
+		},
+		{
+			name:   "imdb id already prefixed is kept as is",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt0133093",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "tt0133093",
+				},
+			},
+		},
+		{
+			name:   "empty imdb id from unmatched optional group is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

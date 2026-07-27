@@ -28,7 +28,7 @@ func runMigrationTestPostgres(t *testing.T, testCase MigrationTestCase) {
 	db, cleanup := setupTestPostgresDB(t)
 	defer cleanup()
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
 
@@ -97,7 +97,7 @@ func setupPGTestDB() (*database.DB, func(), error) {
 		DatabaseAutoMigrate: false,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	if err != nil {
 		return nil, nil, err
@@ -125,7 +125,7 @@ func setupTestPostgresDB(t *testing.T) (*database.DB, func()) {
 		DatabaseAutoMigrate: false,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	require.NoError(t, err)
 
@@ -147,7 +147,7 @@ func TestFullMigrationSequencePostgres(t *testing.T) {
 	defer cleanup()
 	require.NoError(t, err)
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	// This will run all migrations
 	migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
@@ -211,7 +211,7 @@ func startEmbeddedPGOnPort(t *testing.T, port int) (*database.DB, func()) {
 		DatabaseAutoMigrate: false,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	require.NoError(t, err)
 	require.NoError(t, db.Open())
@@ -470,7 +470,7 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			resetPublicSchema(t, db.Handler)
 
-			log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+			log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 			migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
 
 			require.NoError(t, migrate.InitVersionTable())

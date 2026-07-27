@@ -17,6 +17,7 @@
     "lint:watch": "pnpm run lint -- --watch"
   },
   "dependencies": {
+    "@base-ui/react": "^1.6.0",
     "@fortawesome/fontawesome-svg-core": "^7.3.0",
     "@fortawesome/free-brands-svg-icons": "^7.3.0",
     "@fortawesome/react-fontawesome": "^3.3.1",

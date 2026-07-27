@@ -75,8 +75,13 @@ func main() {
 	// read config
 	cfg := config.New(configPath, version)
 
+	// setup server-sent-events
+	serverEvents := sse.New()
+	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
+	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
+
 	// init new logger
-	log := logger.New(cfg.Config)
+	log := logger.New(cfg.Config, serverEvents)
 
 	// Set GOMAXPROCS to match the Linux container CPU quota (if any)
 	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
@@ -96,14 +101,6 @@ func main() {
 
 	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
 
-	// setup server-sent-events
-	serverEvents := sse.New()
-	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
-	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
-
-	// register SSE hook on logger
-	log.RegisterSSEWriter(serverEvents)
-
 	// setup internal eventbus
 	bus := EventBus.New()
 
@@ -118,19 +115,21 @@ func main() {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
 
-	log.Info().Msgf("Starting autobrr")
-	log.Info().Msgf("Version: %s", version)
-	log.Info().Msgf("Commit: %s", commit)
-	log.Info().Msgf("Build date: %s", date)
-	log.Info().Msgf("Log-level: %s", cfg.Config.LogLevel)
-	log.Info().Msgf("Using database: %s", db.Driver)
-	log.Debug().Msgf("GOMEMLIMIT: %d bytes", memLimit)
+	log.Info().
+		Str("version", version).
+		Str("commit", commit).
+		Str("build_date", date).
+		Str("log_level", cfg.Config.LogLevel).
+		Str("database", db.Driver).
+		Msg("starting autobrr")
+
+	log.Debug().Int64("gomemlimit_bytes", memLimit).Msg("memory limit configured")
 
 	// session manager
 	sessionManager := scs.New()
 	switch db.Driver {
 	case database.DriverSQLite:
-		sessionManager.Store = sqlite3store.New(db)
+		sessionManager.Store = sqlite3store.New(db, sqlite3store.WithLogger(log.With().Str("module", "session-store").Logger()))
 	case database.DriverPostgres:
 		sessionManager.Store = postgresstore.New(db.Handler)
 	}
@@ -244,7 +243,7 @@ func main() {
 	}
 
 	for sig := range sigCh {
-		log.Info().Msgf("received signal: %v, shutting down server.", sig)
+		log.Info().Str("signal", sig.String()).Msg("received signal, shutting down server")
 
 		srv.Shutdown()
 

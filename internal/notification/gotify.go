@@ -77,7 +77,7 @@ func (s *gotifySender) Send(event domain.NotificationEvent, payload domain.Notif
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("gotify status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
 		limitedReader := io.LimitReader(res.Body, 4096)

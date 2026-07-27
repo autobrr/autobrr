@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -23,7 +22,7 @@ type FeedRepo struct {
 	db  *DB
 }
 
-func NewFeedRepo(log logger.Logger, db *DB) *FeedRepo {
+func NewFeedRepo(log zerolog.Logger, db *DB) *FeedRepo {
 	return &FeedRepo{
 		log: log.With().Str("repo", "feed").Logger(),
 		db:  db,
@@ -590,7 +589,7 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Msgf("feed.delete: successfully deleted: %v", id)
+	r.log.Debug().Int("feed_id", id).Msg("feed successfully deleted")
 
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/avast/retry-go"
@@ -30,7 +29,7 @@ type OIDCService struct {
 	oauthConfig *oauth2.Config
 }
 
-func NewOIDCService(log logger.Logger, cfg *domain.Config) *OIDCService {
+func NewOIDCService(log zerolog.Logger, cfg *domain.Config) *OIDCService {
 	return &OIDCService{
 		log: log.With().Str("module", "oidc").Logger(),
 		cfg: cfg,

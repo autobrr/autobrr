@@ -125,6 +125,9 @@ Applies to Go and TypeScript alike. Excessive low-value comments are the most co
 ## Testing
 - Go tests exclude integration tests by default: `go test $(go list ./... | grep -v test/integration)`
 - Integration tests available in `test/integration/`, run with `go test ./... -tags=integration` (Postgres tests require Docker)
+- IRC integration tests in `test/irc/`, run with `go test -tags=irc_integration_test ./test/irc/...` (in-process ircd, no Docker) - see `test/irc/README.md`
+- Browser end-to-end tests in `test/e2e/`, run with `go test -tags=e2e ./test/e2e/...` (needs a built `web/dist` and a Playwright browser) - see `test/e2e/README.md`
+- Build-tagged packages are invisible to a plain `go list ./...`; pass the tag to tooling that discovers packages first
 - Mock indexer server available in `test/mockindexer/`
 
 ## Development Notes

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type ProxyRepo struct {
 	db  *DB
 }
 
-func NewProxyRepo(log logger.Logger, db *DB) *ProxyRepo {
+func NewProxyRepo(log zerolog.Logger, db *DB) *ProxyRepo {
 	return &ProxyRepo{
 		log: log.With().Str("repo", "proxy").Logger(),
 		db:  db,

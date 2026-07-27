@@ -10,10 +10,14 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/rs/zerolog"
 )
 
-func (s *Service) radarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Trace().Msg("action RADARR")
+func (s *Service) radarr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("running Radarr action")
 
 	// TODO validate data
 
@@ -66,12 +70,12 @@ func (s *Service) radarr(ctx context.Context, action *domain.Action, release dom
 	}
 
 	if rejections != nil {
-		s.log.Debug().Msgf("radarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+		l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Strs("rejections", rejections).Msg("client rejected the release")
 
 		return rejections, nil
 	}
 
-	s.log.Debug().Msgf("radarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	l.Info().Str("indexer", r.Indexer).Str("host", client.Host).Msg("release successfully added to client")
 
 	return nil, nil
 }

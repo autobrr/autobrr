@@ -97,7 +97,7 @@ func (s *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("discord response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {

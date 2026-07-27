@@ -53,6 +53,9 @@ func (e *RPCError) Error() string {
 	return strconv.Itoa(e.Code) + ":" + e.Message
 }
 
+// HTTPError carries the http status code of a response that could not be
+// decoded as an rpc response, so callers can react to throttling or auth
+// failures the server reports outside the rpc envelope.
 type HTTPError struct {
 	Code int
 	err  error
@@ -60,6 +63,10 @@ type HTTPError struct {
 
 func (e *HTTPError) Error() string {
 	return e.err.Error()
+}
+
+func (e *HTTPError) Unwrap() error {
+	return e.err
 }
 
 type rpcClient struct {
@@ -186,21 +193,13 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 
 	if err != nil {
 		if httpResponse.StatusCode >= 400 {
-			return nil, errors.Wrap(err, "rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode)
+			// the body was not an rpc response, so the status code is the only
+			// thing that tells the caller why the call failed
+			return nil, &HTTPError{
+				Code: httpResponse.StatusCode,
+				err:  errors.Wrap(err, "rpc call %v() on %v status code: %v. Could not decode body to rpc response", request.Method, httpRequest.URL.String(), httpResponse.StatusCode),
+			}
 		}
-		//	if res.StatusCode == http.StatusUnauthorized {
-		//		return nil, errors.New("unauthorized: bad credentials")
-		//	} else if res.StatusCode == http.StatusForbidden {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusTooManyRequests {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusBadRequest {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusNotFound {
-		//		return nil, nil
-		//	} else if res.StatusCode == http.StatusServiceUnavailable {
-		//		return nil, nil
-		//	}
 	}
 
 	if rpcResponse == nil {

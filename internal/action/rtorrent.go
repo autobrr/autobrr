@@ -5,16 +5,18 @@ package action
 
 import (
 	"context"
-	"os"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/autobrr/go-rtorrent"
+	"github.com/rs/zerolog"
 )
 
-func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Debug().Msgf("action rTorrent: %s", action.Name)
+func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Debug().Msg("running rTorrent action")
 
 	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
 	if err != nil {
@@ -64,18 +66,13 @@ func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release d
 			return nil, errors.Wrap(err, "could not add torrent from magnet: %s", release.MagnetURI)
 		}
 
-		s.log.Info().Msgf("torrent from magnet successfully added to client: '%s'", client.Name)
+		l.Info().Str("client", client.Name).Msg("release successfully added to client")
 
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, &release); err != nil {
+	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
-	}
-
-	tmpFile, err := os.ReadFile(release.TorrentTmpFile)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not read torrent file: %s", release.TorrentTmpFile)
 	}
 
 	var args []*rtorrent.FieldValue
@@ -107,11 +104,11 @@ func (s *Service) rtorrent(ctx context.Context, action *domain.Action, release d
 		addTorrentFile = rt.AddTorrent
 	}
 
-	if err := addTorrentFile(ctx, tmpFile, args...); err != nil {
-		return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentTmpFile)
+	if err := addTorrentFile(ctx, release.TorrentDataRawBytes, args...); err != nil {
+		return nil, errors.Wrap(err, "could not add torrent file: %s", release.TorrentName)
 	}
 
-	s.log.Info().Msgf("torrent successfully added to client: '%s'", client.Name)
+	l.Info().Str("client", client.Name).Msg("release successfully added to client")
 
 	return rejections, nil
 }

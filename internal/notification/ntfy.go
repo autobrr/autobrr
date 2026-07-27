@@ -82,7 +82,7 @@ func (s *ntfySender) Send(event domain.NotificationEvent, payload domain.Notific
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("ntfy response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
 		// Limit error body reading to prevent memory issues

@@ -44,11 +44,11 @@ func (h *webLegacyHandler) registerAssets(r *chi.Mux) {
 		}
 
 		if d.IsDir() {
-			//h.log.Trace().Msgf("web assets: skip dir: %s", d.Name())
+			//h.log.Trace().Str("dir", d.Name()).Msg("web assets skip dir")
 			return nil
 		}
 
-		h.log.Trace().Msgf("web assets: found path: %s", path)
+		h.log.Trace().Str("path", path).Msg("web asset found")
 
 		// ignore index.html, so we can render it as a template and inject variables
 		if path == "index.html" || path == "manifest.webmanifest" || path == ".gitkeep" {

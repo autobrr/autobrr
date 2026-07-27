@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,7 +43,7 @@ func setupPostgresForTest() *DB {
 	}
 
 	// Init a new logger
-	dbLogger := logger.New(cfg)
+	dbLogger := logger.New(cfg, nil)
 
 	dbLogger.With().Str("type", "postgres").Logger()
 
@@ -97,7 +98,7 @@ func setupSqliteForTest() *DB {
 	}
 
 	// Init a new logger
-	dbLogger := logger.New(cfg)
+	dbLogger := logger.New(cfg, nil)
 
 	// Initialize a new DB connection
 	db, err := NewDB(cfg, dbLogger)
@@ -120,13 +121,8 @@ func setupSqliteForTest() *DB {
 	return db
 }
 
-func setupLoggerForTest() logger.Logger {
-	cfg := &domain.Config{
-		LogLevel: "ERROR",
-	}
-	log := logger.New(cfg)
-
-	return log
+func setupLoggerForTest() zerolog.Logger {
+	return logger.New(&domain.Config{LogLevel: "ERROR"}, nil)
 }
 
 func TestPingDatabase(t *testing.T) {
