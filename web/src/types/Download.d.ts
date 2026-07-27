@@ -10,6 +10,7 @@ type DownloadClientType =
   "RTORRENT" |
   "TRANSMISSION" |
   "PORLA" |
+  "ARIA2" |
   "RADARR" |
   "SONARR" |
   "LIDARR" |

@@ -54,7 +54,7 @@ type Action struct {
 func (a *Action) NeedsTorrentDownloaded() bool {
 	switch a.Type {
 	case ActionTypeQbittorrent, ActionTypeDelugeV1, ActionTypeDelugeV2, ActionTypeRTorrent,
-		ActionTypeTransmission, ActionTypePorla, ActionTypeWatchFolder:
+		ActionTypeTransmission, ActionTypePorla, ActionTypeAria2, ActionTypeWatchFolder:
 		return true
 	default:
 		return false
@@ -165,6 +165,7 @@ const (
 	ActionTypeRTorrent     ActionType = "RTORRENT"
 	ActionTypeTransmission ActionType = "TRANSMISSION"
 	ActionTypePorla        ActionType = "PORLA"
+	ActionTypeAria2        ActionType = "ARIA2"
 	ActionTypeWatchFolder  ActionType = "WATCH_FOLDER"
 	ActionTypeWebhook      ActionType = "WEBHOOK"
 	ActionTypeRadarr       ActionType = "RADARR"

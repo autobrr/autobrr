@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/aria2"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
@@ -313,6 +314,20 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			BasicPass:     client.Settings.Auth.Password,
 			Log:           s.log.With().Str("type", "Porla").Str("client", client.Name).Logger(),
 		})
+
+	case domain.DownloadClientTypeAria2:
+		ar, err := aria2.NewClient(aria2.Config{
+			Host:          client.Host,
+			Secret:        client.Settings.APIKey,
+			TLSSkipVerify: client.TLSSkipVerify,
+			BasicUser:     client.Settings.Auth.Username,
+			BasicPass:     client.Settings.Auth.Password,
+			Log:           s.log.With().Str("type", "Aria2").Str("client", client.Name).Logger(),
+		})
+		if err != nil {
+			return nil, errors.Wrap(err, "error creating aria2 client: %s", client.Host)
+		}
+		client.Client = ar
 
 	case domain.DownloadClientTypeDelugeV1:
 		client.Client = deluge.NewV1(deluge.Settings{

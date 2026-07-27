@@ -87,6 +87,7 @@ func TestAction_NeedsTorrentDownloaded(t *testing.T) {
 		{ActionTypeRTorrent, true},
 		{ActionTypeTransmission, true},
 		{ActionTypePorla, true},
+		{ActionTypeAria2, true},
 		{ActionTypeWatchFolder, true},
 		{ActionTypeRadarr, false},
 		{ActionTypeSonarr, false},

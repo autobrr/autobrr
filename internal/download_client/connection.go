@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/aria2"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
@@ -46,6 +47,9 @@ func (s *Service) testConnection(ctx context.Context, client domain.DownloadClie
 
 	case domain.DownloadClientTypePorla:
 		return s.testPorlaConnection(client)
+
+	case domain.DownloadClientTypeAria2:
+		return s.testAria2Connection(ctx, client)
 
 	case domain.DownloadClientTypeRadarr:
 		return s.testRadarrConnection(ctx, client)
@@ -374,6 +378,29 @@ func (s *Service) testPorlaConnection(client domain.DownloadClient) error {
 	}
 
 	s.log.Debug().Str("version", version.Version).Msg("test client connection for porla: success")
+
+	return nil
+}
+
+func (s *Service) testAria2Connection(ctx context.Context, client domain.DownloadClient) error {
+	ar, err := aria2.NewClient(aria2.Config{
+		Host:          client.Host,
+		Secret:        client.Settings.APIKey,
+		TLSSkipVerify: client.TLSSkipVerify,
+		BasicUser:     client.Settings.Auth.Username,
+		BasicPass:     client.Settings.Auth.Password,
+		Log:           s.log,
+	})
+	if err != nil {
+		return errors.Wrap(err, "aria2: could not create client: %s", client.Host)
+	}
+
+	version, err := ar.GetVersion(ctx)
+	if err != nil {
+		return errors.Wrap(err, "aria2: failed to get version: %s", client.Host)
+	}
+
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for aria2: success")
 
 	return nil
 }

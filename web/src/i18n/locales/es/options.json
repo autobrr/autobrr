@@ -31,6 +31,10 @@
       "label": "Porla",
       "description": "Agregar torrents directamente a Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Agregar torrents directamente a aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Enviar a Radarr y dejar que decida"
@@ -104,6 +108,10 @@
     "PORLA": {
       "label": "Porla",
       "description": "Agregar torrents directamente a Porla"
+    },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Agregar torrents directamente a aria2"
     },
     "RADARR": {
       "label": "Radarr",

@@ -83,6 +83,7 @@ qBittorrent, Deluge, r(u)Torrent, and Transmission. You don't need to use the *a
 - **rTorrent**
 - **Transmission**
 - **Porla**
+- **aria2**
 - **Sonarr, Radarr, Lidarr, Whisparr, Readarr:** Pushes releases directly for early swarm participation, rather than relying on RSS feeds.
 - **SABnzbd (Usenet):** Integrates smoothly for Usenet downloads.
 - **Watch Folder:** Monitors specified folders for new files.

@@ -183,6 +183,7 @@ const (
 	DownloadClientTypeRTorrent     DownloadClientType = "RTORRENT"
 	DownloadClientTypeTransmission DownloadClientType = "TRANSMISSION"
 	DownloadClientTypePorla        DownloadClientType = "PORLA"
+	DownloadClientTypeAria2        DownloadClientType = "ARIA2"
 	DownloadClientTypeRadarr       DownloadClientType = "RADARR"
 	DownloadClientTypeSonarr       DownloadClientType = "SONARR"
 	DownloadClientTypeLidarr       DownloadClientType = "LIDARR"
