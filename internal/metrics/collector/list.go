@@ -6,12 +6,16 @@ package collector
 import (
 	"context"
 
-	"github.com/autobrr/autobrr/internal/list"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type listService interface {
+	List(ctx context.Context) ([]*domain.List, error)
+}
+
 type listCollector struct {
-	listService list.Service
+	listService listService
 
 	totalCount           *prometheus.Desc
 	enabledCount         *prometheus.Desc
@@ -47,7 +51,7 @@ func (collector *listCollector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(collector.enabledCount, prometheus.GaugeValue, float64(enabled))
 }
 
-func NewListCollector(listService list.Service) *listCollector {
+func NewListCollector(listService listService) *listCollector {
 	return &listCollector{
 		listService: listService,
 		totalCount: prometheus.NewDesc(

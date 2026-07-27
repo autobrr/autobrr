@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -18,16 +17,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func NewFeedRepo(log logger.Logger, db *DB) domain.FeedRepo {
+type FeedRepo struct {
+	log zerolog.Logger
+	db  *DB
+}
+
+func NewFeedRepo(log zerolog.Logger, db *DB) *FeedRepo {
 	return &FeedRepo{
 		log: log.With().Str("repo", "feed").Logger(),
 		db:  db,
 	}
-}
-
-type FeedRepo struct {
-	log zerolog.Logger
-	db  *DB
 }
 
 func (r *FeedRepo) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {
@@ -583,7 +582,7 @@ func (r *FeedRepo) Delete(ctx context.Context, id int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Msgf("feed.delete: successfully deleted: %v", id)
+	r.log.Debug().Int("feed_id", id).Msg("feed successfully deleted")
 
 	return nil
 }

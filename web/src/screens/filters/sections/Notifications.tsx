@@ -232,6 +232,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                   {/* Mute Switch */}
                   <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                     <Checkbox
+                      name={`notifications.${idx}.muted`}
                       value={notification.events?.length === 0}
                       setValue={(muted) => {
                         if (muted) {
@@ -265,6 +266,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                       {EVENT_OPTIONS.map((event) => (
                         <Checkbox
                           key={event.value}
+                          name={`notifications.${idx}.events-${event.value}`}
                           value={notification.events?.includes(event.value) || false}
                           setValue={(checked) => handleEventToggle(event.value, checked)}
                           label={event.value === "PUSH_APPROVED" ? t("notificationsSection.pushApproved") : event.value === "PUSH_REJECTED" ? t("notificationsSection.pushRejected") : t("notificationsSection.pushError")}

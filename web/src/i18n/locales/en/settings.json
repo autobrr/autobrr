@@ -181,6 +181,7 @@
     "channelsDesc": "Channels to join.",
     "channelsUpdateDesc": "Channels are added when you setup IRC indexers. Do not edit unless you know what you are doing.",
     "channelPassword": "Channel password",
+    "channelEnabled": "Enable/disable channel",
     "remove": "Remove",
     "noChannels": "No channels!",
     "addChannel": "Add Channel",
@@ -323,6 +324,9 @@
       "hostHelpArr": "Full url http(s)://domain.ltd and/or subdomain/subfolder",
       "hostHelpQbit": "Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/qbittorrent, http://domain.ltd:port",
       "hostHelpPorla": "Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/porla, http://domain.ltd:port",
+      "hostHelpAria2": "Eg. http://localhost:6800, http(s)://domain.ltd/aria2",
+      "rpcSecret": "RPC secret",
+      "rpcSecretHelp": "The value of --rpc-secret. Leave empty if aria2 runs without one.",
       "hostHelpRTorrent": "Eg. http(s)://client.domain.ltd/RPC2, http(s)://domain.ltd/client, http(s)://domain.ltd/RPC2",
       "hostHelpTransmission": "Eg. http(s)://client.domain.ltd, http(s)://domain.ltd/transmission",
       "hostHelpSabnzbd": "Eg. http://ip:port or https://url.com/sabnzbd",
@@ -758,7 +762,8 @@
       "proxyDesc": "Set a proxy to be used for downloads of .torrent files and feeds.",
       "selectProxy": "Select proxy",
       "selectProxyPlaceholder": "Select a proxy",
-      "chooseType": "Choose a type"
+      "chooseType": "Choose a type",
+      "editFeeds": "Edit feeds in Settings -> Feeds"
     },
     "releaseProfile": {
       "title": "Duplicate Profile",

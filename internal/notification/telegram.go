@@ -40,13 +40,13 @@ func (s *telegramSender) Name() string {
 	return "telegram"
 }
 
-func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewTelegramSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	threadID := 0
 	if t := settings.Topic; t != "" {
 		var err error
 		threadID, err = strconv.Atoi(t)
 		if err != nil {
-			log.Error().Err(err).Msgf("could not parse specified topic %q as an integer", t)
+			log.Error().Err(err).Str("topic", t).Msg("could not parse specified topic as an integer")
 		}
 	}
 	return &telegramSender{
@@ -86,7 +86,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 		host = s.Settings.Host
 	}
 
-	url := fmt.Sprintf("%v/bot%v/sendMessage", host, s.Settings.Token)
+	url := fmt.Sprintf("%s/bot%s/sendMessage", host, s.Settings.Token)
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -103,7 +103,7 @@ func (s *telegramSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("telegram status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
 		// Limit error body reading to prevent memory issues

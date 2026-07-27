@@ -589,6 +589,71 @@ func TestFilterRepo_FindExternalFiltersByID(t *testing.T) {
 	}
 }
 
+func TestFilterRepo_FindExternalFiltersByFilterIDs(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewFilterRepo(log, db)
+
+		t.Run(fmt.Sprintf("FindExternalFiltersByFilterIDs_Groups_By_Filter [%s]", dbType), func(t *testing.T) {
+			// Setup
+			firstFilter := getMockFilter()
+			err := repo.Store(t.Context(), firstFilter)
+			assert.NoError(t, err)
+
+			secondFilter := getMockFilter()
+			err = repo.Store(t.Context(), secondFilter)
+			assert.NoError(t, err)
+
+			first := getMockFilterExternal()
+			first.Index = 1
+			second := getMockFilterExternal()
+			second.Name = "ExternalFilterTwo"
+			second.Index = 2
+
+			err = repo.StoreFilterExternal(t.Context(), firstFilter.ID, []domain.FilterExternal{first, second})
+			assert.NoError(t, err)
+
+			err = repo.StoreFilterExternal(t.Context(), secondFilter.ID, []domain.FilterExternal{first})
+			assert.NoError(t, err)
+
+			// Execute
+			externalFilters, err := repo.FindExternalFiltersByFilterIDs(t.Context(), []int{firstFilter.ID, secondFilter.ID})
+
+			// Verify
+			assert.NoError(t, err)
+			assert.Len(t, externalFilters, 2)
+			assert.Len(t, externalFilters[firstFilter.ID], 2)
+			assert.Len(t, externalFilters[secondFilter.ID], 1)
+
+			// idx DESC is preserved within each filter
+			assert.Equal(t, 2, externalFilters[firstFilter.ID][0].Index)
+			assert.Equal(t, 1, externalFilters[firstFilter.ID][1].Index)
+
+			// matches what the per-filter lookup returns
+			single, err := repo.FindExternalFiltersByID(t.Context(), firstFilter.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, single, externalFilters[firstFilter.ID])
+
+			// Cleanup
+			_ = repo.Delete(t.Context(), firstFilter.ID)
+			_ = repo.Delete(t.Context(), secondFilter.ID)
+		})
+
+		t.Run(fmt.Sprintf("FindExternalFiltersByFilterIDs_Empty_Input [%s]", dbType), func(t *testing.T) {
+			externalFilters, err := repo.FindExternalFiltersByFilterIDs(t.Context(), []int{})
+			assert.NoError(t, err)
+			assert.Empty(t, externalFilters)
+		})
+
+		t.Run(fmt.Sprintf("FindExternalFiltersByFilterIDs_Unknown_ID [%s]", dbType), func(t *testing.T) {
+			externalFilters, err := repo.FindExternalFiltersByFilterIDs(t.Context(), []int{-1})
+			assert.NoError(t, err)
+			assert.Empty(t, externalFilters)
+			assert.Nil(t, externalFilters[-1])
+		})
+	}
+}
+
 func TestFilterRepo_StoreIndexerConnection(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
@@ -781,7 +846,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 		repo := NewFilterRepo(log, db)
 		releaseRepo := NewReleaseRepo(log, db)
 		downloadClientRepo := NewDownloadClientRepo(log, db)
-		actionRepo := NewActionRepo(log, db, downloadClientRepo)
+		actionRepo := NewActionRepo(log, db)
 
 		t.Run(fmt.Sprintf("GetFilterDownloads_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup

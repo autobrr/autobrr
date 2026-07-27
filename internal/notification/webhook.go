@@ -26,7 +26,7 @@ type webhookSender struct {
 	httpClient *http.Client
 }
 
-func NewWebhookSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewWebhookSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &webhookSender{
 		log:      log.With().Str("sender", "webhook").Str("name", settings.Name).Logger(),
 		Settings: settings,
@@ -85,7 +85,7 @@ func (s *webhookSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("webhook response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	// Accept 2xx status codes as success
 	if res.StatusCode < 200 || res.StatusCode >= 300 {

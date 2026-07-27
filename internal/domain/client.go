@@ -4,7 +4,6 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -12,14 +11,6 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
-
-type DownloadClientRepo interface {
-	List(ctx context.Context) ([]DownloadClient, error)
-	FindByID(ctx context.Context, id int32) (*DownloadClient, error)
-	Store(ctx context.Context, client *DownloadClient) error
-	Update(ctx context.Context, client *DownloadClient) error
-	Delete(ctx context.Context, clientID int32) error
-}
 
 type DownloadClient struct {
 	ID            int32                  `json:"id"`
@@ -192,10 +183,12 @@ const (
 	DownloadClientTypeRTorrent     DownloadClientType = "RTORRENT"
 	DownloadClientTypeTransmission DownloadClientType = "TRANSMISSION"
 	DownloadClientTypePorla        DownloadClientType = "PORLA"
+	DownloadClientTypeAria2        DownloadClientType = "ARIA2"
 	DownloadClientTypeRadarr       DownloadClientType = "RADARR"
 	DownloadClientTypeSonarr       DownloadClientType = "SONARR"
 	DownloadClientTypeLidarr       DownloadClientType = "LIDARR"
 	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
+	DownloadClientTypeWhisparrV3   DownloadClientType = "WHISPARR_V3"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
 	DownloadClientTypeSabnzbd      DownloadClientType = "SABNZBD"
 	DownloadClientTypeNzbget       DownloadClientType = "NZBGET"

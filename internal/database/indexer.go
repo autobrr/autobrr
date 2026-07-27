@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -22,7 +21,7 @@ type IndexerRepo struct {
 	db  *DB
 }
 
-func NewIndexerRepo(log logger.Logger, db *DB) domain.IndexerRepo {
+func NewIndexerRepo(log zerolog.Logger, db *DB) *IndexerRepo {
 	return &IndexerRepo{
 		log: log.With().Str("module", "database").Str("repo", "indexer").Logger(),
 		db:  db,
@@ -122,7 +121,7 @@ func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {
 		}
 
 		i.IdentifierExternal = identifierExternal.V
-		i.Implementation = implementation.V
+		i.Implementation = domain.IndexerImplementation(implementation.V)
 		i.BaseURL = baseURL.V
 		i.ProxyID = proxyID.V
 
@@ -171,7 +170,7 @@ func (r *IndexerRepo) FindByID(ctx context.Context, id int) (*domain.Indexer, er
 	}
 
 	i.IdentifierExternal = identifierExternal.V
-	i.Implementation = implementation.V
+	i.Implementation = domain.IndexerImplementation(implementation.V)
 	i.BaseURL = baseURL.V
 	i.ProxyID = proxyID.V
 
@@ -222,7 +221,7 @@ func (r *IndexerRepo) GetBy(ctx context.Context, req domain.GetIndexerRequest) (
 	}
 
 	i.IdentifierExternal = identifierExternal.V
-	i.Implementation = implementation.V
+	i.Implementation = domain.IndexerImplementation(implementation.V)
 	i.BaseURL = baseURL.V
 	i.ProxyID = proxyID.V
 
@@ -311,7 +310,7 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Str("method", "delete").Msgf("successfully deleted indexer with id %v", id)
+	r.log.Debug().Str("method", "delete").Int("indexer_id", id).Msg("successfully deleted indexer")
 
 	return nil
 }

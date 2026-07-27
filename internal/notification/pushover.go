@@ -43,7 +43,7 @@ func (s *pushoverSender) Name() string {
 	return "pushover"
 }
 
-func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewPushoverSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &pushoverSender{
 		log:      log.With().Str("sender", "pushover").Str("name", settings.Name).Logger(),
 		Settings: settings,
@@ -115,7 +115,7 @@ func (s *pushoverSender) Send(event domain.NotificationEvent, payload domain.Not
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("pushover response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
 		// Limit error body reading to prevent memory issues

@@ -4,7 +4,6 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -14,17 +13,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-type ListRepo interface {
-	List(ctx context.Context) ([]*List, error)
-	FindByID(ctx context.Context, listID int64) (*List, error)
-	Store(ctx context.Context, listID *List) error
-	Update(ctx context.Context, listID *List) error
-	UpdateLastRefresh(ctx context.Context, list *List) error
-	ToggleEnabled(ctx context.Context, listID int64, enabled bool) error
-	Delete(ctx context.Context, listID int64) error
-	GetListFilters(ctx context.Context, listID int64) ([]ListFilter, error)
-}
-
 type ListType string
 
 const (
@@ -33,6 +21,7 @@ const (
 	ListTypeLidarr     ListType = "LIDARR"
 	ListTypeReadarr    ListType = "READARR"
 	ListTypeWhisparr   ListType = "WHISPARR"
+	ListTypeWhisparrV3 ListType = "WHISPARR_V3"
 	ListTypeMDBList    ListType = "MDBLIST"
 	ListTypeMetacritic ListType = "METACRITIC"
 	ListTypePlaintext  ListType = "PLAINTEXT"
@@ -119,7 +108,7 @@ func (l *List) Validate() error {
 }
 
 func (l *List) ListTypeArr() bool {
-	return l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr
+	return l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr || l.Type == ListTypeWhisparrV3
 }
 
 func (l *List) ListTypeList() bool {

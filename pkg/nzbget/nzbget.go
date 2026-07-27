@@ -7,14 +7,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Client struct {
@@ -22,7 +22,7 @@ type Client struct {
 	username string
 	password string
 
-	log *log.Logger
+	log zerolog.Logger
 
 	http *http.Client
 }
@@ -32,26 +32,20 @@ type Options struct {
 	Username string
 	Password string
 
-	Log *log.Logger
+	Log zerolog.Logger
 }
 
 func New(opts Options) *Client {
-	c := &Client{
+	return &Client{
 		host:     opts.Host,
 		username: opts.Username,
 		password: opts.Password,
-		log:      log.New(io.Discard, "", log.LstdFlags),
+		log:      opts.Log,
 		http: &http.Client{
 			Timeout:   time.Second * 60,
 			Transport: sharedhttp.Transport,
 		},
 	}
-
-	if opts.Log != nil {
-		c.log = opts.Log
-	}
-
-	return c
 }
 
 type rpcRequest struct {

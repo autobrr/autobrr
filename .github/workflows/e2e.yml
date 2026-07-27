@@ -1,0 +1,110 @@
+name: E2E Test Suite
+
+on:
+  push:
+    branches:
+      - "master"
+      - "develop"
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/images/**'
+      - 'config.toml'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/images/**'
+      - 'config.toml'
+      - 'docker-compose.yml'
+      - 'Makefile'
+      - '**.md'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '24.15.0'
+
+permissions:
+  contents: read
+
+# A push that supersedes a run makes its result irrelevant, and these tests are
+# the slowest thing in CI.
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    # The browser drives the UI, which is identical on every platform. autobrr's
+    # own cross-platform behaviour is covered by the test/testother jobs in
+    # release.yml, so there is nothing a matrix would add here beyond cost.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          package_json_file: web/package.json
+
+      # It can not be done before installing pnpm
+      - name: Set up cache
+        uses: actions/setup-node@v7
+        with:
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Fetch web dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      # The tests serve the UI from the binary, so the frontend has to exist
+      # before the Go build embeds it.
+      - name: Build web frontend
+        working-directory: web
+        run: CI= pnpm run build
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve playwright-go version
+        id: playwright
+        run: echo "version=$(go list -m -f '{{.Version}}' github.com/mxschmitt/playwright-go)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache browsers
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/.cache/ms-playwright-go
+          key: ${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+
+      - name: Install browser
+        run: go run github.com/mxschmitt/playwright-go/cmd/playwright@${{ steps.playwright.outputs.version }} install --with-deps chromium
+
+      # The tests compile and start autobrr and the mock indexer themselves, so
+      # there is nothing to orchestrate here.
+      - name: Run E2E tests
+        run: go test -tags=e2e -timeout 15m -v ./test/e2e/...
+
+      - name: Upload failure artifacts
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: e2e-artifacts
+          path: test/e2e/artifacts
+          if-no-files-found: ignore
+          retention-days: 7

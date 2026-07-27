@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -18,16 +17,14 @@ import (
 )
 
 type ActionRepo struct {
-	log        zerolog.Logger
-	db         *DB
-	clientRepo domain.DownloadClientRepo
+	log zerolog.Logger
+	db  *DB
 }
 
-func NewActionRepo(log logger.Logger, db *DB, clientRepo domain.DownloadClientRepo) domain.ActionRepo {
+func NewActionRepo(log zerolog.Logger, db *DB) *ActionRepo {
 	return &ActionRepo{
-		log:        log.With().Str("repo", "action").Logger(),
-		db:         db,
-		clientRepo: clientRepo,
+		log: log.With().Str("repo", "action").Logger(),
+		db:  db,
 	}
 }
 
@@ -524,7 +521,7 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			r.log.Warn().Msgf("no download client with id %d", clientID)
+			r.log.Warn().Int32("client_id", clientID).Msg("no download client")
 			return nil, domain.ErrRecordNotFound
 		}
 
@@ -790,7 +787,7 @@ func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.delete: %v", req.ActionId)
+	r.log.Debug().Int("action_id", req.ActionId).Msg("action delete")
 
 	return nil
 }
@@ -810,7 +807,7 @@ func (r *ActionRepo) DeleteByFilterID(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.deleteByFilterID: %v", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("action delete by filter")
 
 	return nil
 }
@@ -915,7 +912,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 
 	action.ID = int(retID)
 
-	r.log.Debug().Msgf("action.store: added new %d", retID)
+	r.log.Debug().Int64("action_id", retID).Msg("action store: added new")
 
 	return nil
 }
@@ -975,7 +972,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("action.update: %v", action.ID)
+	r.log.Debug().Int("action_id", action.ID).Msg("action update")
 
 	return &action, nil
 }
@@ -1044,7 +1041,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				return nil, errors.Wrap(err, "error executing query")
 			}
 
-			r.log.Trace().Msgf("action.StoreFilterActions: update %d", action.ID)
+			r.log.Trace().Int("action_id", action.ID).Msg("action store filter actions: update")
 
 		} else {
 			queryBuilder := r.db.squirrel.
@@ -1146,10 +1143,10 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 
 			action.ID = retID
 
-			r.log.Trace().Msgf("action.StoreFilterActions: store %d", action.ID)
+			r.log.Trace().Int("action_id", action.ID).Msg("action store filter actions: store")
 		}
 
-		r.log.Debug().Msgf("action.StoreFilterActions: store '%s' type: '%v' on filter: %d", action.Name, action.Type, filterID)
+		r.log.Debug().Str("action", action.Name).Str("action_type", string(action.Type)).Int64("filter_id", filterID).Msg("store filter action")
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -1181,7 +1178,7 @@ func (r *ActionRepo) ToggleEnabled(actionID int) error {
 		return domain.ErrRecordNotFound
 	}
 
-	r.log.Debug().Msgf("action.toggleEnabled: %v", actionID)
+	r.log.Debug().Int("action_id", actionID).Msg("action toggle enabled")
 
 	return nil
 }

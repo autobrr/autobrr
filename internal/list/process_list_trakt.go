@@ -15,14 +15,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *service) trakt(ctx context.Context, list *domain.List) error {
+func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "trakt").Str("list", list.Name).Logger()
 
 	if list.URL == "" {
 		return errors.Errorf("no URL provided for trakt: %s", list.Name)
 	}
 
-	l.Debug().Msgf("fetching titles from %s", list.URL)
+	l.Debug().Str("url", list.URL).Msg("fetching titles")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
 	if err != nil {
@@ -85,13 +85,13 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 	}
 
 	if len(filterTitles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
+		l.Debug().Msg("no titles found to update list")
 		return nil
 	}
 
 	joinedTitles := strings.Join(filterTitles, ",")
 
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
+	l.Trace().Str("titles", joinedTitles).Int("count", len(filterTitles)).Msg("found titles")
 
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 
@@ -107,7 +107,7 @@ func (s *service) trakt(ctx context.Context, list *domain.List) error {
 			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
 	}
 
 	return nil

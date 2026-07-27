@@ -9,10 +9,14 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/nzbget"
+
+	"github.com/rs/zerolog"
 )
 
-func (s *service) nzbget(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Trace().Msg("action NZBGet")
+func (s *Service) nzbget(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("running NZBGet action")
 
 	if release.Protocol != domain.ReleaseProtocolNzb {
 		return nil, errors.New("action type: %s invalid protocol: %s", action.Type, release.Protocol)
@@ -35,9 +39,7 @@ func (s *service) nzbget(ctx context.Context, action *domain.Action, release dom
 		return nil, errors.Wrap(err, "could not add nzb to nzbget")
 	}
 
-	s.log.Trace().Msgf("nzb successfully added to client: '%+v'", resp)
-
-	s.log.Info().Msgf("nzb successfully added to client: '%s'", client.Name)
+	l.Info().Str("client", client.Name).Int("nzb_id", resp.NzbID).Msg("release successfully added to client")
 
 	return nil, nil
 }

@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: Yu-Scene
 name: Yu-Scene
 identifier: yu-scene
@@ -24,10 +25,6 @@ irc:
   server: irc.yu-scene.net
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - YUSceneAnnounce
   settings:
     - name: nick
       type: text
@@ -47,55 +44,51 @@ irc:
       label: IRC Key
       help: Grab from your profile tab, Settings > IRC Keys, copy IRC Key.
 
-  parse:
-    type: single
-    lines:
-      - tests:
-          - line: "[uploader1] has uploaded [The Secret Agent AKA O Agente Secreto 2025 1080p BluRay REMUX AVC DTS-HD MA 5.1-KRaLiMaRKo]. Category: [Movies] Type: [Remux] Resolution: [1080p] Size: [29.77 GiB] Freeleech: [100] Link: [https://yu-scene.net/torrents/120739]"
-            expect:
-              uploader: uploader1
-              torrentName: The Secret Agent AKA O Agente Secreto 2025 1080p BluRay REMUX AVC DTS-HD MA 5.1-KRaLiMaRKo
-              category: Movies
-              releaseTags: Remux
-              resolution: 1080p
-              torrentSize: 29.77 GiB
-              freeleechPercent: 100
-              baseUrl: https://yu-scene.net/
-              torrentId: "120739"
-          - line: "[An anonymous user] has uploaded [Trailer Horn 1950 1080p DSNP WEB-DL AAC 2.0 H.264-FLUX]. Category: [Movies] Type: [WEB-DL] Resolution: [1080p] Size: [396.56 MiB] Freeleech: [100] Link: [https://yu-scene.net/torrents/120740]"
-            expect:
-              uploader: An anonymous user
-              torrentName: Trailer Horn 1950 1080p DSNP WEB-DL AAC 2.0 H.264-FLUX
-              category: Movies
-              releaseTags: WEB-DL
-              resolution: 1080p
-              torrentSize: 396.56 MiB
-              freeleechPercent: 100
-              baseUrl: https://yu-scene.net/
-              torrentId: "120740"
-          - line: "[An anonymous user] has uploaded [Norm MacDonald Has a Show S01 1080p NF WEB-DL DD+ 2.0 H.264]. Category: [TV] Type: [WEB-DL] Resolution: [1080p] Size: [13.7 GiB] Freeleech: [0] Link: [https://yu-scene.net/torrents/120753]"
-            expect:
-              uploader: An anonymous user
-              torrentName: Norm MacDonald Has a Show S01 1080p NF WEB-DL DD+ 2.0 H.264
-              category: TV
-              releaseTags: WEB-DL
-              resolution: 1080p
-              torrentSize: 13.7 GiB
-              freeleechPercent: 0
-              baseUrl: https://yu-scene.net/
-              torrentId: "120753"
-        pattern: '\[(.*)\] has uploaded \[(.*)\]. Category: \[(.*)\] Type: \[(.*)\] Resolution: \[(.*)\] Size: \[(.*)\] Freeleech: \[(.*)\] Link: \[(https?\:\/\/.*?\/).*\/(\d+)\]'
-        vars:
-          - uploader
-          - torrentName
-          - category
-          - releaseTags
-          - resolution
-          - torrentSize
-          - freeleechPercent
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - YUSceneAnnounce
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<uploader>.*)\] has uploaded \[(?P<releaseName>.*)\]. Category: \[(?P<category>.*)\] Type: \[(?P<releaseTags>.*)\] Resolution: \[(?P<resolution>.*)\] Size: \[(?P<torrentSize>.*)\] Freeleech: \[(?P<freeleechPercent>.*)\] Link: \[(?P<baseUrl>https?\:\/\/.*?\/).*\/(?P<torrentId>\d+)\]'
+            tests:
+              - line: "[uploader1] has uploaded [The Secret Agent AKA O Agente Secreto 2025 1080p BluRay REMUX AVC DTS-HD MA 5.1-KRaLiMaRKo]. Category: [Movies] Type: [Remux] Resolution: [1080p] Size: [29.77 GiB] Freeleech: [100] Link: [https://yu-scene.net/torrents/120739]"
+                expect:
+                  uploader: uploader1
+                  releaseName: The Secret Agent AKA O Agente Secreto 2025 1080p BluRay REMUX AVC DTS-HD MA 5.1-KRaLiMaRKo
+                  category: Movies
+                  releaseTags: Remux
+                  resolution: 1080p
+                  torrentSize: 29.77 GiB
+                  freeleechPercent: 100
+                  baseUrl: https://yu-scene.net/
+                  torrentId: "120739"
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+              - line: "[An anonymous user] has uploaded [Trailer Horn 1950 1080p DSNP WEB-DL AAC 2.0 H.264-FLUX]. Category: [Movies] Type: [WEB-DL] Resolution: [1080p] Size: [396.56 MiB] Freeleech: [100] Link: [https://yu-scene.net/torrents/120740]"
+                expect:
+                  uploader: An anonymous user
+                  releaseName: Trailer Horn 1950 1080p DSNP WEB-DL AAC 2.0 H.264-FLUX
+                  category: Movies
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  torrentSize: 396.56 MiB
+                  freeleechPercent: 100
+                  baseUrl: https://yu-scene.net/
+                  torrentId: "120740"
+
+              - line: "[An anonymous user] has uploaded [Norm MacDonald Has a Show S01 1080p NF WEB-DL DD+ 2.0 H.264]. Category: [TV] Type: [WEB-DL] Resolution: [1080p] Size: [13.7 GiB] Freeleech: [0] Link: [https://yu-scene.net/torrents/120753]"
+                expect:
+                  uploader: An anonymous user
+                  releaseName: Norm MacDonald Has a Show S01 1080p NF WEB-DL DD+ 2.0 H.264
+                  category: TV
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  torrentSize: 13.7 GiB
+                  freeleechPercent: 0
+                  baseUrl: https://yu-scene.net/
+                  torrentId: "120753"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

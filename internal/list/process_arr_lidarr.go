@@ -14,17 +14,17 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *service) lidarr(ctx context.Context, list *domain.List) error {
+func (s *Service) lidarr(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("list", list.Name).Str("type", "lidarr").Int("client", list.ClientID).Logger()
 
-	l.Debug().Msgf("gathering titles...")
+	l.Debug().Msg("gathering titles")
 
 	titles, artists, err := s.processLidarr(ctx, list, &l)
 	if err != nil {
 		return err
 	}
 
-	l.Debug().Msgf("got %d filter titles", len(titles))
+	l.Debug().Int("count", len(titles)).Msg("got filter titles")
 
 	// Process titles
 	var processedTitles []string
@@ -33,7 +33,7 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 	}
 
 	if len(processedTitles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
+		l.Debug().Str("list", list.Name).Msg("no titles found to update")
 		return nil
 	}
 
@@ -46,7 +46,7 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 			return nil
 		}
 
-		l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
+		l.Trace().Str("titles", joinedTitles).Int("count", len(processedTitles)).Msg("found titles")
 
 		f.MatchReleases = &joinedTitles
 	} else {
@@ -58,14 +58,14 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 
 		joinedTitles := strings.Join(processedTitles, ",")
 
-		l.Trace().Str("albums", joinedTitles).Msgf("found %d titles", len(joinedTitles))
+		l.Trace().Str("albums", joinedTitles).Int("count", len(processedTitles)).Msg("found titles")
 
 		joinedArtists := strings.Join(processedArtists, ",")
 		if len(joinedTitles) == 0 && len(joinedArtists) == 0 {
 			return nil
 		}
 
-		l.Trace().Str("artists", joinedArtists).Msgf("found %d titles", len(joinedArtists))
+		l.Trace().Str("artists", joinedArtists).Int("count", len(processedArtists)).Msg("found titles")
 
 		f.Albums = &joinedTitles
 		f.Artists = &joinedArtists
@@ -80,7 +80,7 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 	//}
 
 	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("updating filter")
 
 		f.ID = filter.ID
 
@@ -88,13 +88,13 @@ func (s *service) lidarr(ctx context.Context, list *domain.List) error {
 			return errors.Wrap(err, "error updating filter: %v", filter.ID)
 		}
 
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
 	}
 
 	return nil
 }
 
-func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, []string, error) {
+func (s *Service) processLidarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, []string, error) {
 	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
@@ -120,7 +120,7 @@ func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *
 		return nil, nil, err
 	}
 
-	logger.Debug().Msgf("found %d albums to process", len(albums))
+	logger.Debug().Int("count", len(albums)).Msg("found albums to process")
 
 	var titles []string
 	var artists []string
@@ -149,7 +149,7 @@ func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *
 		// Fetch the artist details
 		artist, err := client.GetArtistByID(ctx, album.ArtistID)
 		if err != nil {
-			logger.Error().Err(err).Msgf("Error fetching artist details for album: %v", album.Title)
+			logger.Error().Err(err).Str("title", album.Title).Msg("error fetching artist details for album")
 			continue // Skip this album if there's an error fetching the artist
 		}
 
@@ -158,18 +158,18 @@ func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *
 			titles = append(titles, processedTitles...)
 
 			// Debug logging
-			logger.Debug().Msgf("Processing artist: %s", artist.ArtistName)
+			logger.Debug().Str("artist", artist.ArtistName).Msg("processing artist")
 
 			if _, exists := seenArtists[artist.ArtistName]; !exists {
 				artists = append(artists, artist.ArtistName)
 				seenArtists[artist.ArtistName] = struct{}{}
-				logger.Debug().Msgf("Added artist: %s", artist.ArtistName) // Log when an artist is added
+				logger.Debug().Str("artist", artist.ArtistName).Msg("added artist") // Log when an artist is added
 			}
 		}
 	}
 
 	//sort.Strings(titles)
-	logger.Debug().Msgf("Processed %d monitored albums with monitored artists, created %d titles, found %d unique artists", len(titles), len(titles), len(artists))
+	logger.Debug().Int("total", len(titles)).Int("processed", len(titles)).Int("created", len(artists)).Msg("processed items")
 
 	return titles, artists, nil
 }

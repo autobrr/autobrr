@@ -53,7 +53,7 @@ func (s *notifiarrSender) Name() string {
 	return "notifiarr"
 }
 
-func NewNotifiarrSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewNotifiarrSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &notifiarrSender{
 		log:      log.With().Str("sender", "notifiarr").Str("name", settings.Name).Logger(),
 		Settings: settings,
@@ -92,7 +92,7 @@ func (s *notifiarrSender) Send(event domain.NotificationEvent, payload domain.No
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
 		// Limit error body reading to prevent memory issues

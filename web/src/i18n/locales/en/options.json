@@ -31,6 +31,10 @@
       "label": "Porla",
       "description": "Add torrents directly to Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Add torrents directly to aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Send to Radarr and let it decide"
@@ -44,7 +48,11 @@
       "description": "Send to Lidarr and let it decide"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Send to Whisparr and let it decide"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Send to Whisparr and let it decide"
     },
     "READARR": {
@@ -101,6 +109,10 @@
       "label": "Porla",
       "description": "Add torrents directly to Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Add torrents directly to aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Send to Radarr and let it decide"
@@ -114,7 +126,11 @@
       "description": "Send to Lidarr and let it decide"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Send to Whisparr and let it decide"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Send to Whisparr and let it decide"
     },
     "READARR": {

@@ -7,9 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/autobrr/autobrr/internal/action"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/filter"
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/asaskevich/EventBus"
@@ -19,7 +17,7 @@ import (
 
 // Mock objects
 type mockFilterService struct {
-	filter.Service
+	filterService
 	mock.Mock
 }
 
@@ -34,7 +32,7 @@ func (m *mockFilterService) FindByIndexerIdentifier(ctx context.Context, indexer
 }
 
 type mockActionService struct {
-	action.Service
+	actionService
 	mock.Mock
 }
 
@@ -44,7 +42,7 @@ func (m *mockActionService) FindByFilterID(ctx context.Context, filterID int, ac
 }
 
 type mockReleaseRepo struct {
-	domain.ReleaseRepo
+	releaseRepo
 	mock.Mock
 }
 
@@ -85,7 +83,7 @@ func TestService_Process_PublishesEvent(t *testing.T) {
 	repo.On("Store", mock.Anything, mock.Anything).Return(nil)
 	repo.On("Update", mock.Anything, mock.Anything).Return(nil)
 
-	s := &service{
+	s := &Service{
 		log:        log.With().Logger(),
 		bus:        bus,
 		filterSvc:  filterSvc,
@@ -99,7 +97,7 @@ func TestService_Process_PublishesEvent(t *testing.T) {
 		Indexer:     domain.IndexerMinimal{Name: "MockIndexer", Identifier: "mock"},
 	}
 
-	s.Process(release)
+	s.Process(context.Background(), release)
 
 	// s.bus.Publish is synchronous in EventBus when using standard Publish
 	assert.True(t, published, "RELEASE_NEW event should have been published")
