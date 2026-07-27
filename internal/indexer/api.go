@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/mock"
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/pkg/btn"
@@ -43,7 +42,7 @@ type APIService struct {
 	proxySvc   proxySvc
 }
 
-func NewAPIService(log logger.Logger, proxySvc proxySvc) *APIService {
+func NewAPIService(log zerolog.Logger, proxySvc proxySvc) *APIService {
 	return &APIService{
 		log:        log.With().Str("module", "indexer-api").Logger(),
 		apiClients: make(map[string]apiClient),

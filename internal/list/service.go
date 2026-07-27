@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
@@ -50,7 +49,7 @@ type Service struct {
 	filterSvc         filterService
 }
 
-func NewService(log logger.Logger, repo listRepo, downloadClientSvc clientService, filterSvc filterService, schedulerSvc schedulerService) *Service {
+func NewService(log zerolog.Logger, repo listRepo, downloadClientSvc clientService, filterSvc filterService, schedulerSvc schedulerService) *Service {
 	return &Service{
 		log:  log.With().Str("module", "list").Logger(),
 		repo: repo,

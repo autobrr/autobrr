@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -22,7 +21,7 @@ type NotificationRepo struct {
 	db  *DB
 }
 
-func NewNotificationRepo(log logger.Logger, db *DB) *NotificationRepo {
+func NewNotificationRepo(log zerolog.Logger, db *DB) *NotificationRepo {
 	return &NotificationRepo{
 		log: log.With().Str("repo", "notification").Logger(),
 		db:  db,

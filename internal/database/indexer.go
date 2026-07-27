@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -22,7 +21,7 @@ type IndexerRepo struct {
 	db  *DB
 }
 
-func NewIndexerRepo(log logger.Logger, db *DB) *IndexerRepo {
+func NewIndexerRepo(log zerolog.Logger, db *DB) *IndexerRepo {
 	return &IndexerRepo{
 		log: log.With().Str("module", "database").Str("repo", "indexer").Logger(),
 		db:  db,

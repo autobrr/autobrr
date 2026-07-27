@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/argon2id"
 
 	"github.com/pkg/errors"
@@ -26,7 +25,7 @@ type Service struct {
 	userSvc userService
 }
 
-func NewService(log logger.Logger, userSvc userService) *Service {
+func NewService(log zerolog.Logger, userSvc userService) *Service {
 	return &Service{
 		log:     log.With().Str("module", "auth").Logger(),
 		userSvc: userSvc,

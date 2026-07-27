@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type IrcRepo struct {
 	db  *DB
 }
 
-func NewIrcRepo(log logger.Logger, db *DB) *IrcRepo {
+func NewIrcRepo(log zerolog.Logger, db *DB) *IrcRepo {
 	return &IrcRepo{
 		log: log.With().Str("repo", "irc").Logger(),
 		db:  db,

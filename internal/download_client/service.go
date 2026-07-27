@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
@@ -49,7 +48,7 @@ type Service struct {
 	m     sync.RWMutex
 }
 
-func NewService(log logger.Logger, repo downloadClientRepo) *Service {
+func NewService(log zerolog.Logger, repo downloadClientRepo) *Service {
 	s := &Service{
 		log:  log.With().Str("module", "download_client").Logger(),
 		repo: repo,

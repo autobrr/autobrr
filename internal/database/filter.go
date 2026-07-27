@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -27,7 +26,7 @@ type FilterRepo struct {
 	filterDownloadQuery *EngineQuery
 }
 
-func NewFilterRepo(log logger.Logger, db *DB) *FilterRepo {
+func NewFilterRepo(log zerolog.Logger, db *DB) *FilterRepo {
 	return &FilterRepo{
 		log:                 log.With().Str("repo", "filter").Logger(),
 		db:                  db,
