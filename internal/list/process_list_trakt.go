@@ -6,7 +6,9 @@ package list
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,6 +17,48 @@ import (
 	"github.com/pkg/errors"
 )
 
+func transformTraktURL(rawURL string) string {
+	parseURL := rawURL
+	if !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
+		parseURL = "https://" + rawURL
+	}
+
+	u, err := url.Parse(parseURL)
+	if err != nil {
+		return rawURL
+	}
+
+	host := strings.ToLower(u.Host)
+	path := strings.Trim(u.Path, "/")
+	parts := strings.Split(path, "/")
+
+	if host == "app.trakt.tv" || host == "trakt.tv" || host == "www.trakt.tv" {
+		if len(parts) >= 4 && parts[0] == "lists" && parts[1] == "smart" && parts[2] == "view" && parts[3] != "" {
+			return fmt.Sprintf("https://api.trakt.tv/smart-lists/%s/items", parts[3])
+		}
+
+		if len(parts) >= 4 && parts[0] == "users" && parts[2] == "lists" && parts[3] != "" {
+			if parts[len(parts)-1] == "items" {
+				return fmt.Sprintf("https://api.trakt.tv/%s", path)
+			}
+			return fmt.Sprintf("https://api.trakt.tv/users/%s/lists/%s/items", parts[1], parts[3])
+		}
+
+		if len(parts) >= 3 && parts[0] == "users" && parts[2] == "watchlist" {
+			if parts[len(parts)-1] == "items" {
+				return fmt.Sprintf("https://api.trakt.tv/%s", path)
+			}
+			return fmt.Sprintf("https://api.trakt.tv/users/%s/watchlist/items", parts[1])
+		}
+	} else if host == "api.trakt.tv" {
+		if len(parts) == 2 && parts[0] == "smart-lists" && parts[1] != "" {
+			return fmt.Sprintf("https://api.trakt.tv/smart-lists/%s/items", parts[1])
+		}
+	}
+
+	return rawURL
+}
+
 func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "trakt").Str("list", list.Name).Logger()
 
@@ -22,11 +66,13 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 		return errors.Errorf("no URL provided for trakt: %s", list.Name)
 	}
 
-	l.Debug().Str("url", list.URL).Msg("fetching titles")
+	reqURL := transformTraktURL(list.URL)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
+	l.Debug().Str("url", reqURL).Msg("fetching titles")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+		return errors.Wrapf(err, "could not make new request for URL: %s", reqURL)
 	}
 
 	req.Header.Set("trakt-api-version", "2")
@@ -37,21 +83,19 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 
 	list.SetRequestHeaders(req)
 
-	//setUserAgent(req)
-
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
+		return errors.Wrapf(err, "failed to fetch titles from URL: %s", reqURL)
 	}
 	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
+		return errors.Errorf("failed to fetch titles from URL: %s", reqURL)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "application/json") {
-		return errors.Errorf("invalid content type for URL: %s, content type should be application/json", list.URL)
+		return errors.Errorf("invalid content type for URL: %s, content type should be application/json", reqURL)
 	}
 
 	var data []struct {
@@ -65,12 +109,14 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
+		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", reqURL)
 	}
 
 	var titles []string
 	for _, item := range data {
-		titles = append(titles, item.Title)
+		if item.Title != "" {
+			titles = append(titles, item.Title)
+		}
 		if item.Movie.Title != "" {
 			titles = append(titles, item.Movie.Title)
 		}
