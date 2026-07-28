@@ -90,6 +90,9 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeReadarr:
 		rejections, err = s.readarr(ctx, action, release)
 
+	case domain.ActionTypeSportarr:
+		rejections, err = s.sportarr(ctx, action, release)
+
 	case domain.ActionTypeSabnzbd:
 		rejections, err = s.sabnzbd(ctx, action, release)
 
