@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -17,43 +17,23 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	traktSmartListWebRegex  = regexp.MustCompile(`(?i)^(?:https?://)?(?:app\.|www\.)?trakt\.tv/lists/smart/view/([^/?#]+)`)
+	traktUserListWebRegex   = regexp.MustCompile(`(?i)^(?:https?://)?(?:app\.|www\.)?trakt\.tv/users/([^/]+)/lists/([^/?#]+)`)
+	traktUserWatchlistRegex = regexp.MustCompile(`(?i)^(?:https?://)?(?:app\.|www\.)?trakt\.tv/users/([^/]+)/watchlist`)
+)
+
 func transformTraktURL(rawURL string) string {
-	parseURL := rawURL
-	if !strings.HasPrefix(rawURL, "http://") && !strings.HasPrefix(rawURL, "https://") {
-		parseURL = "https://" + rawURL
+	if matches := traktSmartListWebRegex.FindStringSubmatch(rawURL); len(matches) == 2 {
+		return fmt.Sprintf("https://api.trakt.tv/smart-lists/%s/items", matches[1])
 	}
 
-	u, err := url.Parse(parseURL)
-	if err != nil {
-		return rawURL
+	if matches := traktUserListWebRegex.FindStringSubmatch(rawURL); len(matches) == 3 {
+		return fmt.Sprintf("https://api.trakt.tv/users/%s/lists/%s/items", matches[1], matches[2])
 	}
 
-	host := strings.ToLower(u.Host)
-	path := strings.Trim(u.Path, "/")
-	parts := strings.Split(path, "/")
-
-	if host == "app.trakt.tv" || host == "trakt.tv" || host == "www.trakt.tv" {
-		if len(parts) >= 4 && parts[0] == "lists" && parts[1] == "smart" && parts[2] == "view" && parts[3] != "" {
-			return fmt.Sprintf("https://api.trakt.tv/smart-lists/%s/items", parts[3])
-		}
-
-		if len(parts) >= 4 && parts[0] == "users" && parts[2] == "lists" && parts[3] != "" {
-			if parts[len(parts)-1] == "items" {
-				return fmt.Sprintf("https://api.trakt.tv/%s", path)
-			}
-			return fmt.Sprintf("https://api.trakt.tv/users/%s/lists/%s/items", parts[1], parts[3])
-		}
-
-		if len(parts) >= 3 && parts[0] == "users" && parts[2] == "watchlist" {
-			if parts[len(parts)-1] == "items" {
-				return fmt.Sprintf("https://api.trakt.tv/%s", path)
-			}
-			return fmt.Sprintf("https://api.trakt.tv/users/%s/watchlist/items", parts[1])
-		}
-	} else if host == "api.trakt.tv" {
-		if len(parts) == 2 && parts[0] == "smart-lists" && parts[1] != "" {
-			return fmt.Sprintf("https://api.trakt.tv/smart-lists/%s/items", parts[1])
-		}
+	if matches := traktUserWatchlistRegex.FindStringSubmatch(rawURL); len(matches) == 2 {
+		return fmt.Sprintf("https://api.trakt.tv/users/%s/watchlist/items", matches[1])
 	}
 
 	return rawURL
