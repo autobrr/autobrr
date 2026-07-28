@@ -7,13 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/arr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	goversion "github.com/hashicorp/go-version"
 	"github.com/rs/zerolog"
 )
 
@@ -157,49 +157,15 @@ func (c *Client) GetTags(ctx context.Context) ([]*arr.Tag, error) {
 // application API this client talks to (/api/release/push).
 const MinimumVersion = "4.0.1024"
 
+var minimumVersion = goversion.Must(goversion.NewVersion(MinimumVersion))
+
 // SupportsNativeAPI reports whether the version from system/status is at
 // least MinimumVersion. Unparseable versions return false.
 func (r SystemStatusResponse) SupportsNativeAPI() bool {
-	return compareVersions(r.Version, MinimumVersion) >= 0
-}
-
-// compareVersions compares dotted numeric versions segment by segment,
-// treating missing or non-numeric segments as 0.
-func compareVersions(a, b string) int {
-	as := strings.Split(a, ".")
-	bs := strings.Split(b, ".")
-
-	segments := len(as)
-	if len(bs) > segments {
-		segments = len(bs)
+	v, err := goversion.NewVersion(r.Version)
+	if err != nil {
+		return false
 	}
 
-	for i := 0; i < segments; i++ {
-		av, bv := 0, 0
-		if i < len(as) {
-			av = atoiSafe(as[i])
-		}
-		if i < len(bs) {
-			bv = atoiSafe(bs[i])
-		}
-		if av != bv {
-			if av > bv {
-				return 1
-			}
-			return -1
-		}
-	}
-
-	return 0
-}
-
-func atoiSafe(s string) int {
-	v := 0
-	for _, r := range s {
-		if r < '0' || r > '9' {
-			return v
-		}
-		v = v*10 + int(r-'0')
-	}
-	return v
+	return v.GreaterThanOrEqual(minimumVersion)
 }
