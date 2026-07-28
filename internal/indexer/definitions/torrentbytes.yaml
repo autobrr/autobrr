@@ -47,7 +47,7 @@ irc:
     - name: invite_command
       type: secret
       default: "erica letmeinannounce USERNAME IRCKEY"
-      required: true
+      required: false
       label: Invite command
       help: Invite auth with Erica, please replace USERNAME and IRCKEY.
 
