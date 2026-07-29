@@ -58,14 +58,23 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^\[.*?\]\s+~THR Novi torrent -> Ime: (?P<releaseName>.*?) \.:\. Uploader: (?P<uploader>.*?) \.:\. Kategorija: (?P<category>.*?) \.:\. Velicina: (?P<torrentSize>.*?) \.:\. URL: (?P<baseUrl>https?:\/\/.+\/)torrents\/(?P<torrentId>\d+)'
+          - pattern: '^\[Novi Torrent\] Ime: (?P<releaseName>.*?) \| KatID: (?P<categoryId>\d+) \((?P<category>.*?)\) \| TMDb: (?P<tmdbId>\d+) \| IMDb: (?P<imdbId>\d+) \| Veličina: (?P<torrentSize>.*?) \((?P<torrentSizeBytes>\d+)\)(?: \| HNR-Free: (?P<hnrFree>DA|NE))?(?: \| Freeleech: (?P<freeleech>\d+%))?(?: \| DoubleUpload: (?P<doubleUpload>DA|NE))?(?: \| Internal: (?P<internal>DA|NE))?(?: \| Personal: (?P<personal>DA|NE))? \| Uploader: (?P<uploader>.*?) \| URL: (?P<baseUrl>https?://.+?/)torrents/(?P<torrentId>\d+)$'
             tests:
-              - line: '[2026-07-29 16:48:14] ~THR Novi torrent -> Ime: A.torrent.name.here.WEBRip.x264-tina .:. Uploader: uploaderName .:. Kategorija: Filmovi/HD .:. Velicina: 6.70 GB .:. URL: https://www.torrenthr.org/torrents/000000'
+              - line: '[Novi Torrent] Ime: A.torrent.name.here.WEBRip.x264-THR | KatID: 17 (Filmovi/HD) | TMDb: 000000 | IMDb: 0000000 | Veličina: 2.07 GB (2221376123) | HNR-Free: DA | Freeleech: 100% | DoubleUpload: DA | Internal: DA | Personal: DA | Uploader: THR | URL: https://www.torrenthr.org/torrents/000000'
                 expect:
-                  releaseName: A.torrent.name.here.WEBRip.x264-tina
-                  uploader: uploaderName
+                  releaseName: A.torrent.name.here.WEBRip.x264-THR
+                  categoryId: "17"
                   category: Filmovi/HD
-                  torrentSize: 6.70 GB
+                  tmdbId: "000000"
+                  imdbId: "0000000"
+                  torrentSize: 2.07 GB
+                  torrentSizeBytes: "2221376123"
+                  hnrFree: DA
+                  freeleech: 100%
+                  doubleUpload: DA
+                  internal: DA
+                  personal: DA
+                  uploader: THR
                   baseUrl: https://www.torrenthr.org/
                   torrentId: "000000"
 
