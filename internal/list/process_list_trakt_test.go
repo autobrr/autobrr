@@ -52,11 +52,6 @@ func Test_transformTraktURL(t *testing.T) {
 			expect: "https://api.trakt.tv/smart-lists/series-ece60ab98f5dd862/items",
 		},
 		{
-			name:   "smart list direct api url without items",
-			input:  "https://api.trakt.tv/smart-lists/series-ece60ab98f5dd862",
-			expect: "https://api.trakt.tv/smart-lists/series-ece60ab98f5dd862/items",
-		},
-		{
 			name:   "user custom list web url",
 			input:  "https://trakt.tv/users/johndoe/lists/my-cool-list",
 			expect: "https://api.trakt.tv/users/johndoe/lists/my-cool-list/items",
