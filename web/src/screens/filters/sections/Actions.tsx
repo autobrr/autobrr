@@ -174,6 +174,7 @@ const TypeForm = (props: ClientActionProps) => {
   case "WHISPARR":
   case "WHISPARR_V3":
   case "READARR":
+  case "SPORTARR":
     return <Arr {...props} />;
   // nzb
   case "SABNZBD":

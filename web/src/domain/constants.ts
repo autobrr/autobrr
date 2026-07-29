@@ -331,6 +331,11 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
     value: "READARR"
   },
   {
+    label: "Sportarr",
+    description: "Send to Sportarr and let it decide",
+    value: "SPORTARR"
+  },
+  {
     label: "SABnzbd",
     description: "Add nzbs directly to SABnzbd",
     value: "SABNZBD",
@@ -411,6 +416,11 @@ export const getDownloadClientTypeOptions = (t: TFunction): RadioFieldsetOption[
     value: "READARR"
   },
   {
+    label: t("options:downloadClient.SPORTARR.label"),
+    description: t("options:downloadClient.SPORTARR.description"),
+    value: "SPORTARR"
+  },
+  {
     label: t("options:downloadClient.SABNZBD.label"),
     description: t("options:downloadClient.SABNZBD.description"),
     value: "SABNZBD",
@@ -442,6 +452,7 @@ export const ActionTypeOptions: RadioFieldsetOption[] = [
   { label: "Whisparr (v2)", description: "Send to Whisparr and let it decide", value: "WHISPARR" },
   { label: "Whisparr (v3)", description: "Send to Whisparr and let it decide", value: "WHISPARR_V3" },
   { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
+  { label: "Sportarr", description: "Send to Sportarr and let it decide", value: "SPORTARR" },
   { label: "SABnzbd", description: "Add to SABnzbd", value: "SABNZBD" },
   { label: "NZBGet", description: "Add to NZBGet", value: "NZBGET" }
 ];
@@ -464,6 +475,7 @@ export const getActionTypeOptions = (t: TFunction): RadioFieldsetOption[] => [
   { label: t("options:actionType.WHISPARR.label"), description: t("options:actionType.WHISPARR.description"), value: "WHISPARR" },
   { label: t("options:actionType.WHISPARR_V3.label"), description: t("options:actionType.WHISPARR_V3.description"), value: "WHISPARR_V3" },
   { label: t("options:actionType.READARR.label"), description: t("options:actionType.READARR.description"), value: "READARR" },
+  { label: t("options:actionType.SPORTARR.label"), description: t("options:actionType.SPORTARR.description"), value: "SPORTARR" },
   { label: t("options:actionType.SABNZBD.label"), description: t("options:actionType.SABNZBD.description"), value: "SABNZBD" },
   { label: t("options:actionType.NZBGET.label"), description: t("options:actionType.NZBGET.description"), value: "NZBGET" }
 ];
@@ -486,6 +498,7 @@ export const ActionTypeNameMap: Record<ActionType, string> = {
   "WHISPARR": "Whisparr (v2)",
   "WHISPARR_V3": "Whisparr (v3)",
   "READARR": "Readarr",
+  "SPORTARR": "Sportarr",
   "SABNZBD": "SABnzbd",
   "NZBGET": "NZBGet"
 } as const;
@@ -508,6 +521,7 @@ export const getActionTypeNameMap = (t: TFunction): Record<ActionType, string> =
   "WHISPARR": t("options:actionType.WHISPARR.label"),
   "WHISPARR_V3": t("options:actionType.WHISPARR_V3.label"),
   "READARR": t("options:actionType.READARR.label"),
+  "SPORTARR": t("options:actionType.SPORTARR.label"),
   "SABNZBD": t("options:actionType.SABNZBD.label"),
   "NZBGET": t("options:actionType.NZBGET.label")
 });
@@ -526,6 +540,7 @@ export const DOWNLOAD_CLIENTS = [
   "WHISPARR",
   "WHISPARR_V3",
   "READARR",
+  "SPORTARR",
   "SABNZBD",
   "NZBGET"
 ];
@@ -609,6 +624,10 @@ export const ListTypeOptions: OptionBasicTyped<ListType>[] = [
     value: "WHISPARR_V3"
   },
   {
+    label: "Sportarr",
+    value: "SPORTARR"
+  },
+  {
     label: "MDBList",
     value: "MDBLIST"
   },
@@ -639,6 +658,7 @@ export const ListTypeNameMap: Record<ListType, string> = {
   "RADARR": "Radarr",
   "LIDARR": "Lidarr",
   "READARR": "Readarr",
+  "SPORTARR": "Sportarr",
   "WHISPARR": "Whisparr (v2)",
   "WHISPARR_V3": "Whisparr (v3)",
   "MDBLIST": "MDBList",

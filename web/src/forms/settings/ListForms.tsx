@@ -515,6 +515,8 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "WHISPARR":
     case "WHISPARR_V3":
       return <ListTypeArr {...props} />;
+    case "SPORTARR":
+      return <ListTypeArr {...props} />;
     case "TRAKT":
       return <ListTypeTrakt />;
     case "STEAM":
@@ -548,6 +550,7 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
     case "LIDARR":
     case "WHISPARR":
     case "READARR":
+    case "SPORTARR":
       return (
         <fieldset>
           <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
@@ -598,7 +601,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
         clientType={listType}
       />
 
-      {values.client_id > 0 && (values.type === "RADARR" || values.type === "SONARR" || values.type === "WHISPARR" || values.type === "WHISPARR_V3") && (
+      {values.client_id > 0 && (values.type === "RADARR" || values.type === "SONARR" || values.type === "WHISPARR" || values.type === "WHISPARR_V3" || values.type === "SPORTARR") && (
         <>
           <ListArrTagsMultiSelectField name="tags_included" label={t("forms.list.tagsIncluded")} options={arrTagsQuery.data?.map(f => ({
             value: f.label,

@@ -492,6 +492,7 @@ export const componentMap: componentMapType = {
   WHISPARR: <FormFieldsArr />,
   WHISPARR_V3: <FormFieldsArr />,
   READARR: <FormFieldsArr />,
+  SPORTARR: <FormFieldsArr />,
   SABNZBD: <FormFieldsSabnzbd />,
   NZBGET: <FormFieldsNzbget />
 };
@@ -679,6 +680,7 @@ export const rulesComponentMap: componentMapType = {
   WHISPARR: <FormFieldsRulesArr />,
   WHISPARR_V3: <FormFieldsRulesArr />,
   READARR: <FormFieldsRulesArr />,
+  SPORTARR: <FormFieldsRulesArr />,
 };
 
 interface formButtonsProps {

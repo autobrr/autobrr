@@ -62,7 +62,7 @@ qBittorrent, Deluge, r(u)Torrent, and Transmission. You don't need to use the *a
 ## Key Features
 
 - Torrents and Usenet support
-- Support for 75+ torrent trackers with IRC announces
+- Support for 100+ torrent trackers with IRC announces
 - Newznab, Torznab, and RSS support to easily get access to hundreds of torrent and Usenet indexers
 - Torrent Magnet support
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
@@ -84,7 +84,7 @@ qBittorrent, Deluge, r(u)Torrent, and Transmission. You don't need to use the *a
 - **Transmission**
 - **Porla**
 - **aria2**
-- **Sonarr, Radarr, Lidarr, Whisparr, Readarr:** Pushes releases directly for early swarm participation, rather than relying on RSS feeds.
+- **Sonarr, Radarr, Lidarr, Whisparr, Readarr, Sportarr:** Pushes releases directly for early swarm participation, rather than relying on RSS feeds.
 - **SABnzbd and NZBGet (Usenet):** Integrates smoothly for Usenet downloads.
 - **Watch Folder:** Monitors specified folders for new files.
 - **Exec Custom Scripts:** Execute tailored scripts for advanced automation.
