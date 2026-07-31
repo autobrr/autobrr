@@ -513,7 +513,8 @@ const (
 	ReleaseStatusFilterApproved ReleaseFilterStatus = "FILTER_APPROVED"
 	ReleaseStatusFilterPending  ReleaseFilterStatus = "PENDING"
 
-	//ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
+	// ReleaseStatusFilterRejected is no longer written on new rejections, but old databases still contain it
+	ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
 )
 
 type ReleaseProtocol string

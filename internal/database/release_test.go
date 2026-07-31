@@ -539,7 +539,12 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			// Verify
 			assert.NoError(t, err)
 			assert.NotNil(t, stats)
+			assert.Equal(t, int64(1), stats.TotalCount)
+			assert.Equal(t, int64(1), stats.FilteredCount)
+			assert.Equal(t, int64(0), stats.FilterRejectedCount)
 			assert.Equal(t, int64(1), stats.PushApprovedCount)
+			assert.Equal(t, int64(0), stats.PushRejectedCount)
+			assert.Equal(t, int64(0), stats.PushErrorCount)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})

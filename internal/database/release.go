@@ -768,31 +768,64 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 }
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
-	query := `SELECT *
-FROM (
-	SELECT
-	COUNT(*) AS total,
-	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 0 END) AS filtered_count,
-	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 0 END) AS filter_rejected_count
-	FROM release
-) AS zoo
-CROSS JOIN (
-	SELECT
-	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
-	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count,
-	COUNT(CASE WHEN status = 'PUSH_ERROR' THEN 0 END) AS push_error_count
-	FROM release_action_status
-) AS foo`
+	var rls domain.ReleaseStats
 
-	row := repo.db.Handler.QueryRowContext(ctx, query)
-	if err := row.Err(); err != nil {
+	filterRows, err := repo.db.Handler.QueryContext(ctx, `SELECT filter_status, COUNT(*) FROM release GROUP BY filter_status`)
+	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	var rls domain.ReleaseStats
+	defer filterRows.Close()
 
-	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount, &rls.PushErrorCount); err != nil {
-		return nil, errors.Wrap(err, "error scanning row")
+	for filterRows.Next() {
+		var status sql.NullString
+		var count int64
+
+		if err := filterRows.Scan(&status, &count); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		rls.TotalCount += count
+
+		switch domain.ReleaseFilterStatus(status.String) {
+		case domain.ReleaseStatusFilterApproved:
+			rls.FilteredCount = count
+		case domain.ReleaseStatusFilterRejected:
+			rls.FilterRejectedCount = count
+		}
+	}
+
+	if err := filterRows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
+	}
+
+	pushRows, err := repo.db.Handler.QueryContext(ctx, `SELECT status, COUNT(*) FROM release_action_status GROUP BY status`)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer pushRows.Close()
+
+	for pushRows.Next() {
+		var status sql.NullString
+		var count int64
+
+		if err := pushRows.Scan(&status, &count); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		switch domain.ReleasePushStatus(status.String) {
+		case domain.ReleasePushStatusApproved:
+			rls.PushApprovedCount = count
+		case domain.ReleasePushStatusRejected:
+			rls.PushRejectedCount = count
+		case domain.ReleasePushStatusErr:
+			rls.PushErrorCount = count
+		}
+	}
+
+	if err := pushRows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
 	}
 
 	return &rls, nil
