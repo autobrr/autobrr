@@ -58,7 +58,7 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^\[Novi Torrent\] Ime: (?P<releaseName>.*?) \| KatID: (?P<categoryId>\d+) \((?P<category>.*?)\) \| TMDb: (?P<tmdb>\d+) \| IMDb: (?P<imdb>\d+) \| Veličina: (?P<torrentSize>.*?) \((?P<torrentSizeBytes>\d+)\)(?: \| HNR-Free: (?P<hnrFree>DA|NE))?(?: \| Freeleech: (?P<freeleechPercent>\d+%))?(?: \| DoubleUpload: (?P<doubleUpload>DA|NE))?(?: \| Internal: (?P<internal>DA|NE))?(?: \| Personal: (?P<personal>DA|NE))? \| Uploader: (?P<uploader>.*?) \| URL: (?P<baseUrl>https?://.+?/)torrents/(?P<torrentId>\d+)$'
+          - pattern: '^\[Novi Torrent\] Ime: (?P<releaseName>.*?) \| KatID: (?P<categoryId>\d+) \((?P<category>.*?)\) \| TMDb: (?P<tmdb>\d+) \| IMDb: (?P<imdb>\d+) \| Veličina: (?P<torrentSize>.*?) \((?P<torrentSizeBytes>\d+)\)(?: \| HNR-Free: (?P<hnrFree>DA))?(?: \| Freeleech: (?P<freeleechPercent>\d+%))?(?: \| DoubleUpload: (?P<doubleUpload>DA))?(?: \| Internal: (?P<internal>DA))?(?: \| Personal: (?P<personal>DA))? \| Uploader: (?P<uploader>.*?) \| URL: (?P<baseUrl>https?://.+?/)torrents/(?P<torrentId>\d+)$'
             tests:
               - line: '[Novi Torrent] Ime: A.torrent.name.here.WEBRip.x264-THR | KatID: 17 (Filmovi/HD) | TMDb: 000000 | IMDb: 0000000 | Veličina: 2.07 GB (2221376123) | HNR-Free: DA | Freeleech: 100% | DoubleUpload: DA | Internal: DA | Personal: DA | Uploader: THR | URL: https://www.torrenthr.org/torrents/000000'
                 expect:
@@ -78,7 +78,7 @@ irc:
                   baseUrl: https://www.torrenthr.org/
                   torrentId: "000000"
 
-              - line: '[Novi Torrent] Ime: A.torrent.name.here.WEBRip.x264-THR | KatID: 17 (Filmovi/HD) | TMDb: 000000 | IMDb: 0000000 | Veličina: 2.07 GB (2221376123) | HNR-Free: DA | Freeleech: 0% | Uploader: THR | URL: https://www.torrenthr.org/torrents/000000'
+              - line: '[Novi Torrent] Ime: A.torrent.name.here.WEBRip.x264-THR | KatID: 17 (Filmovi/HD) | TMDb: 000000 | IMDb: 0000000 | Veličina: 2.07 GB (2221376123) | Uploader: THR | URL: https://www.torrenthr.org/torrents/000000'
                 expect:
                   releaseName: A.torrent.name.here.WEBRip.x264-THR
                   categoryId: "17"
@@ -87,8 +87,8 @@ irc:
                   imdb: "0000000"
                   torrentSize: 2.07 GB
                   torrentSizeBytes: "2221376123"
-                  hnrFree: DA
-                  freeleechPercent: 0%
+                  hnrFree:
+                  freeleechPercent:
                   doubleUpload:
                   internal:
                   personal:
@@ -96,7 +96,7 @@ irc:
                   baseUrl: https://www.torrenthr.org/
                   torrentId: "000000"
 
-              - line: '[Novi Torrent] Ime: A.torrent.name.here.WEBRip.x264-THR | KatID: 17 (Filmovi/HD) | TMDb: 000000 | IMDb: 0000000 | Veličina: 2.07 GB (2221376123) | HNR-Free: DA | Freeleech: 0% | Internal: NE | Uploader: THR | URL: https://www.torrenthr.org/torrents/000000'
+              - line: '[Novi Torrent] Ime: A.torrent.name.here.WEBRip.x264-THR | KatID: 17 (Filmovi/HD) | TMDb: 000000 | IMDb: 0000000 | Veličina: 2.07 GB (2221376123) | HNR-Free: DA | Freeleech: 50% | Uploader: THR | URL: https://www.torrenthr.org/torrents/000000'
                 expect:
                   releaseName: A.torrent.name.here.WEBRip.x264-THR
                   categoryId: "17"
@@ -106,9 +106,9 @@ irc:
                   torrentSize: 2.07 GB
                   torrentSizeBytes: "2221376123"
                   hnrFree: DA
-                  freeleechPercent: 0%
+                  freeleechPercent: 50%
                   doubleUpload:
-                  internal: NE
+                  internal:
                   personal:
                   uploader: THR
                   baseUrl: https://www.torrenthr.org/
@@ -116,13 +116,9 @@ irc:
 
         mappings:
           internal:
-            "NE":
-              origin: ""
             "DA":
               origin: "INTERNAL"
           personal:
-            "NE":
-              origin: ""
             "DA":
               origin: "INTERNAL"
           doubleUpload:
