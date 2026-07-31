@@ -394,6 +394,41 @@ type ReleaseStats struct {
 	PushErrorCount      int64 `json:"push_error_count"`
 }
 
+// ReleaseDashboardStats aggregates release and push activity for the dashboard.
+// Days <= 0 means all-time. Heatmap has 168 cells indexed dow*24+hour
+// (dow 0 = Sunday), hours as stored (UTC for SQLite CURRENT_TIMESTAMP rows).
+type ReleaseDashboardStats struct {
+	Days        int                   `json:"days"`
+	Daily       []ReleaseDailyStats   `json:"daily"`
+	Heatmap     []int64               `json:"heatmap"`
+	TopIndexers []ReleaseIndexerStats `json:"top_indexers"`
+	TopFilters  []ReleaseFilterStats  `json:"top_filters"`
+}
+
+// ReleaseDailyStats is one day bucket of dashboard activity, Date as YYYY-MM-DD.
+type ReleaseDailyStats struct {
+	Date              string `json:"date"`
+	MatchedCount      int64  `json:"matched_count"`
+	PushApprovedCount int64  `json:"push_approved_count"`
+	PushRejectedCount int64  `json:"push_rejected_count"`
+	PushErrorCount    int64  `json:"push_error_count"`
+	DownloadedBytes   int64  `json:"downloaded_bytes"`
+}
+
+// ReleaseIndexerStats is per-indexer match and approved push totals.
+type ReleaseIndexerStats struct {
+	Indexer           string `json:"indexer"`
+	MatchedCount      int64  `json:"matched_count"`
+	PushApprovedCount int64  `json:"push_approved_count"`
+}
+
+// ReleaseFilterStats is per-filter match and approved push totals.
+type ReleaseFilterStats struct {
+	Filter            string `json:"filter"`
+	MatchedCount      int64  `json:"matched_count"`
+	PushApprovedCount int64  `json:"push_approved_count"`
+}
+
 type ReleasePushStatus string
 
 const (

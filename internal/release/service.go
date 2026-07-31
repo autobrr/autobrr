@@ -35,6 +35,7 @@ type releaseRepo interface {
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
+	StatsDashboard(ctx context.Context, days int) (*domain.ReleaseDashboardStats, error)
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
 	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
@@ -131,6 +132,10 @@ func (s *Service) GetIndexerOptions(ctx context.Context) ([]string, error) {
 
 func (s *Service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 	return s.repo.Stats(ctx)
+}
+
+func (s *Service) StatsDashboard(ctx context.Context, days int) (*domain.ReleaseDashboardStats, error) {
+	return s.repo.StatsDashboard(ctx, days)
 }
 
 func (s *Service) Store(ctx context.Context, release *domain.Release) error {

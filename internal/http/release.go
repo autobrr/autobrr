@@ -22,6 +22,7 @@ type releaseService interface {
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
+	StatsDashboard(ctx context.Context, days int) (*domain.ReleaseDashboardStats, error)
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
 	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
@@ -55,6 +56,7 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/", h.findReleases)
 	r.Get("/recent", h.findRecentReleases)
 	r.Get("/stats", h.getStats)
+	r.Get("/stats/dashboard", h.getDashboardStats)
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/", h.deleteReleases)
 
@@ -220,6 +222,32 @@ func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request
 
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.Stats(r.Context())
+	if err != nil {
+		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
+			"code":    "INTERNAL_SERVER_ERROR",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, stats)
+}
+
+func (h releaseHandler) getDashboardStats(w http.ResponseWriter, r *http.Request) {
+	days := 30
+	if daysP := r.URL.Query().Get("days"); daysP != "" {
+		parsed, err := strconv.Atoi(daysP)
+		if err != nil || parsed < 0 || parsed > 3650 {
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
+				"code":    "BAD_REQUEST_PARAMS",
+				"message": "days parameter is invalid",
+			})
+			return
+		}
+		days = parsed
+	}
+
+	stats, err := h.service.StatsDashboard(r.Context(), days)
 	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
 			"code":    "INTERNAL_SERVER_ERROR",

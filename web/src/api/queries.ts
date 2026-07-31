@@ -164,6 +164,16 @@ export const ReleasesStatsQueryOptions = () =>
     refetchInterval: 15000  // refetch stats on dashboard page every 15s
   });
 
+export const ReleasesDashboardStatsQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsDashboard(days),
+    queryFn: () => APIClient.release.statsDashboard(days),
+    placeholderData: keepPreviousData,
+    staleTime: 5000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000  // refetch dashboard stats every 15s like the other dashboard widgets
+  });
+
 // ReleasesIndexersQueryOptions get basic list of used indexers by identifier
 export const ReleasesIndexersQueryOptions = () =>
   queryOptions({

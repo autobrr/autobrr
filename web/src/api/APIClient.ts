@@ -514,6 +514,9 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
+    statsDashboard: (days: number) => appClient.Get<ReleaseDashboardStats>("api/release/stats/dashboard", {
+      queryString: { days }
+    }),
     delete: (params: DeleteParams) => {
       return appClient.Delete("api/release", {
         queryString: {

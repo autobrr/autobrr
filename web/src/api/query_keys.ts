@@ -32,6 +32,7 @@ export const ReleaseKeys = {
   detail: (id: number) => [...ReleaseKeys.details(), id] as const,
   indexers: () => [...ReleaseKeys.all, "indexers"] as const,
   stats: () => [...ReleaseKeys.all, "stats"] as const,
+  statsDashboard: (days: number) => [...ReleaseKeys.all, "stats-dashboard", days] as const,
   latestActivity: () => [...ReleaseKeys.all, "latest-activity"] as const,
   cleanupJobs: {
     all: () => [...ReleaseKeys.all, "cleanup-jobs"] as const,
