@@ -176,6 +176,14 @@
     "rejectedPushes": "Rejected Pushes",
     "erroredPushes": "Errored Pushes"
   },
+  "dashboardCustomize": {
+    "customize": "Customize",
+    "done": "Done",
+    "reset": "Reset",
+    "hint": "Drag widgets to reorder them. Use the eye toggle to show or hide a widget.",
+    "show": "Show widget",
+    "hide": "Hide widget"
+  },
   "dashboardCharts": {
     "activityTitle": "Activity",
     "range_7d": "7d",

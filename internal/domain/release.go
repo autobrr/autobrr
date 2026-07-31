@@ -394,25 +394,52 @@ type ReleaseStats struct {
 	PushErrorCount      int64 `json:"push_error_count"`
 }
 
-// ReleaseDashboardStats aggregates release and push activity for the dashboard.
-// Days <= 0 means all-time. Heatmap has 168 cells indexed dow*24+hour
-// (dow 0 = Sunday), hours as stored (UTC for SQLite CURRENT_TIMESTAMP rows).
-type ReleaseDashboardStats struct {
-	Days        int                   `json:"days"`
-	Daily       []ReleaseDailyStats   `json:"daily"`
-	Heatmap     []int64               `json:"heatmap"`
-	TopIndexers []ReleaseIndexerStats `json:"top_indexers"`
-	TopFilters  []ReleaseFilterStats  `json:"top_filters"`
+// Dashboard widget stats. Days <= 0 means all-time in all of these.
+
+// ReleaseActivityStats is daily match and push counts for the activity chart.
+type ReleaseActivityStats struct {
+	Days  int                    `json:"days"`
+	Daily []ReleaseActivityDaily `json:"daily"`
 }
 
-// ReleaseDailyStats is one day bucket of dashboard activity, Date as YYYY-MM-DD.
-type ReleaseDailyStats struct {
+// ReleaseActivityDaily is one day bucket of activity, Date as YYYY-MM-DD.
+type ReleaseActivityDaily struct {
 	Date              string `json:"date"`
 	MatchedCount      int64  `json:"matched_count"`
 	PushApprovedCount int64  `json:"push_approved_count"`
 	PushRejectedCount int64  `json:"push_rejected_count"`
 	PushErrorCount    int64  `json:"push_error_count"`
-	DownloadedBytes   int64  `json:"downloaded_bytes"`
+}
+
+// ReleaseVolumeStats is daily downloaded bytes of releases with an approved push.
+type ReleaseVolumeStats struct {
+	Days  int                  `json:"days"`
+	Daily []ReleaseVolumeDaily `json:"daily"`
+}
+
+// ReleaseVolumeDaily is one day bucket of download volume, Date as YYYY-MM-DD.
+type ReleaseVolumeDaily struct {
+	Date            string `json:"date"`
+	DownloadedBytes int64  `json:"downloaded_bytes"`
+}
+
+// ReleaseHeatmapStats has 168 cells indexed dow*24+hour (dow 0 = Sunday),
+// hours as stored (UTC for SQLite CURRENT_TIMESTAMP rows).
+type ReleaseHeatmapStats struct {
+	Days    int     `json:"days"`
+	Heatmap []int64 `json:"heatmap"`
+}
+
+// ReleaseTopIndexersStats is the top indexers by approved pushes.
+type ReleaseTopIndexersStats struct {
+	Days int                   `json:"days"`
+	Top  []ReleaseIndexerStats `json:"top"`
+}
+
+// ReleaseTopFiltersStats is the top filters by matches.
+type ReleaseTopFiltersStats struct {
+	Days int                  `json:"days"`
+	Top  []ReleaseFilterStats `json:"top"`
 }
 
 // ReleaseIndexerStats is per-indexer match and approved push totals.

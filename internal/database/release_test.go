@@ -598,30 +598,37 @@ func TestReleaseRepo_StatsDashboard(t *testing.T) {
 			assert.NoError(t, err)
 
 			for _, days := range []int{30, 0} {
-				stats, err := repo.StatsDashboard(context.Background(), days)
-
+				activity, err := repo.StatsActivity(context.Background(), days)
 				assert.NoError(t, err)
-				assert.NotNil(t, stats)
-				assert.Equal(t, days, stats.Days)
-
-				assert.NotEmpty(t, stats.Daily)
-				today := stats.Daily[len(stats.Daily)-1]
+				assert.Equal(t, days, activity.Days)
+				assert.NotEmpty(t, activity.Daily)
+				today := activity.Daily[len(activity.Daily)-1]
 				assert.Equal(t, int64(1), today.MatchedCount)
 				assert.Equal(t, int64(1), today.PushApprovedCount)
 				assert.Equal(t, int64(0), today.PushRejectedCount)
 
+				volume, err := repo.StatsVolume(context.Background(), days)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, volume.Daily)
+
+				heatmap, err := repo.StatsHeatmap(context.Background(), days)
+				assert.NoError(t, err)
+				assert.Len(t, heatmap.Heatmap, 168)
 				var heatmapTotal int64
-				assert.Len(t, stats.Heatmap, 168)
-				for _, count := range stats.Heatmap {
+				for _, count := range heatmap.Heatmap {
 					heatmapTotal += count
 				}
 				assert.Equal(t, int64(1), heatmapTotal)
 
-				assert.Len(t, stats.TopIndexers, 1)
-				assert.Equal(t, int64(1), stats.TopIndexers[0].MatchedCount)
-				assert.Equal(t, int64(1), stats.TopIndexers[0].PushApprovedCount)
+				indexers, err := repo.StatsTopIndexers(context.Background(), days)
+				assert.NoError(t, err)
+				assert.Len(t, indexers.Top, 1)
+				assert.Equal(t, int64(1), indexers.Top[0].MatchedCount)
+				assert.Equal(t, int64(1), indexers.Top[0].PushApprovedCount)
 
-				assert.NotEmpty(t, stats.TopFilters)
+				filters, err := repo.StatsTopFilters(context.Background(), days)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, filters.Top)
 			}
 
 			// Cleanup

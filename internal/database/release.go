@@ -833,99 +833,130 @@ func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error
 	return &rls, nil
 }
 
-func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.ReleaseDashboardStats, error) {
-	stats := &domain.ReleaseDashboardStats{
-		Days:        days,
-		Daily:       []domain.ReleaseDailyStats{},
-		Heatmap:     make([]int64, 7*24),
-		TopIndexers: []domain.ReleaseIndexerStats{},
-		TopFilters:  []domain.ReleaseFilterStats{},
+// statsWindow bounds the dashboard widget queries to the last N days,
+// or nothing for all-time (days <= 0).
+type statsWindow struct {
+	days   int
+	now    time.Time
+	cutoff time.Time
+	arg    any
+}
+
+func (repo *ReleaseRepo) statsWindow(days int) statsWindow {
+	w := statsWindow{days: days, now: time.Now().UTC()}
+	if days > 0 {
+		w.cutoff = w.now.AddDate(0, 0, -(days - 1)).Truncate(24 * time.Hour)
+		w.arg = w.cutoff
+		if repo.db.Driver == "sqlite" {
+			// raw string compare keeps the timestamp index usable and is exact at
+			// midnight boundaries for both timestamp formats found in old databases
+			w.arg = w.cutoff.Format("2006-01-02 15:04:05")
+		}
+	}
+	return w
+}
+
+func (w statsWindow) apply(qb sq.SelectBuilder, column string) sq.SelectBuilder {
+	if w.days > 0 {
+		return qb.Where(sq.GtOrEq{column: w.arg})
+	}
+	return qb
+}
+
+// dates returns the continuous run of day keys to emit: the fixed window,
+// or earliest-seen through today for all-time.
+func (w statsWindow) dates(minKey string) []string {
+	start := w.cutoff
+	if w.days <= 0 {
+		if minKey == "" {
+			return nil
+		}
+		parsed, err := time.Parse("2006-01-02", minKey)
+		if err != nil {
+			return nil
+		}
+		start = parsed
 	}
 
-	var dayExpr, hourExpr string
+	var out []string
+	for d := start; !d.After(w.now); d = d.AddDate(0, 0, 1) {
+		out = append(out, d.Format("2006-01-02"))
+	}
+	return out
+}
+
+func minDateKey[T any](m map[string]*T) string {
+	minKey := ""
+	for key := range m {
+		if minKey == "" || key < minKey {
+			minKey = key
+		}
+	}
+	return minKey
+}
+
+func (repo *ReleaseRepo) statsDayExpr() string {
 	if repo.db.Driver == "sqlite" {
 		// substr instead of strftime: both timestamp formats found in old
 		// databases share the YYYY-MM-DD HH prefix, and skipping per-row date
 		// parsing roughly halves the scan cost on large tables
-		dayExpr = "substr(timestamp, 1, 10)"
-		hourExpr = "CAST(substr(timestamp, 12, 2) AS INTEGER)"
-	} else {
-		dayExpr = "to_char(timestamp, 'YYYY-MM-DD')"
-		hourExpr = "EXTRACT(HOUR FROM timestamp)::int"
+		return "substr(timestamp, 1, 10)"
+	}
+	return "to_char(timestamp, 'YYYY-MM-DD')"
+}
+
+func (repo *ReleaseRepo) statsHourExpr() string {
+	if repo.db.Driver == "sqlite" {
+		return "CAST(substr(timestamp, 12, 2) AS INTEGER)"
+	}
+	return "EXTRACT(HOUR FROM timestamp)::int"
+}
+
+func (repo *ReleaseRepo) statsQueryRows(ctx context.Context, qb sq.SelectBuilder, scan func(rows *sql.Rows) error) error {
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
 	}
 
-	now := time.Now().UTC()
+	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
 
-	var cutoff time.Time
-	var cutoffArg any
-	if days > 0 {
-		cutoff = now.AddDate(0, 0, -(days - 1)).Truncate(24 * time.Hour)
-		cutoffArg = cutoff
-		if repo.db.Driver == "sqlite" {
-			// raw string compare keeps the timestamp index usable and is exact at
-			// midnight boundaries for both timestamp formats found in old databases
-			cutoffArg = cutoff.Format("2006-01-02 15:04:05")
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := scan(rows); err != nil {
+			return errors.Wrap(err, "error scanning row")
 		}
 	}
 
-	withCutoff := func(qb sq.SelectBuilder, column string) sq.SelectBuilder {
-		if days > 0 {
-			return qb.Where(sq.GtOrEq{column: cutoffArg})
-		}
-		return qb
-	}
+	return errors.Wrap(rows.Err(), "error rows")
+}
 
-	queryRows := func(qb sq.SelectBuilder, scan func(rows *sql.Rows) error) error {
-		query, args, err := qb.ToSql()
-		if err != nil {
-			return errors.Wrap(err, "error building query")
-		}
+func (repo *ReleaseRepo) StatsActivity(ctx context.Context, days int) (*domain.ReleaseActivityStats, error) {
+	window := repo.statsWindow(days)
 
-		rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
-		if err != nil {
-			return errors.Wrap(err, "error executing query")
-		}
-
-		defer rows.Close()
-
-		for rows.Next() {
-			if err := scan(rows); err != nil {
-				return errors.Wrap(err, "error scanning row")
-			}
-		}
-
-		return errors.Wrap(rows.Err(), "error rows")
-	}
-
-	daily := map[string]*domain.ReleaseDailyStats{}
-	bucket := func(day string) *domain.ReleaseDailyStats {
+	daily := map[string]*domain.ReleaseActivityDaily{}
+	bucket := func(day string) *domain.ReleaseActivityDaily {
 		if b, ok := daily[day]; ok {
 			return b
 		}
-		b := &domain.ReleaseDailyStats{Date: day}
+		b := &domain.ReleaseActivityDaily{Date: day}
 		daily[day] = b
 		return b
 	}
 
-	err := queryRows(
-		withCutoff(repo.db.squirrel.Select(dayExpr+" AS day", hourExpr+" AS hour", "COUNT(*)").From("release").GroupBy("1", "2"), "timestamp"),
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "COUNT(*)").From("release").GroupBy("1"), "timestamp"),
 		func(rows *sql.Rows) error {
 			var day sql.NullString
-			var hour sql.NullInt64
 			var count int64
-			if err := rows.Scan(&day, &hour, &count); err != nil {
+			if err := rows.Scan(&day, &count); err != nil {
 				return err
 			}
-			if !day.Valid {
-				return nil
-			}
-			date, err := time.Parse("2006-01-02", day.String)
-			if err != nil {
-				return nil
-			}
-			bucket(day.String).MatchedCount += count
-			if hour.Valid && hour.Int64 >= 0 && hour.Int64 < 24 {
-				stats.Heatmap[int64(date.Weekday())*24+hour.Int64] += count
+			if day.Valid {
+				bucket(day.String).MatchedCount = count
 			}
 			return nil
 		})
@@ -933,8 +964,8 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 		return nil, err
 	}
 
-	err = queryRows(
-		withCutoff(repo.db.squirrel.Select(dayExpr+" AS day", "status", "COUNT(*)").From("release_action_status").GroupBy("1", "2"), "timestamp"),
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "status", "COUNT(*)").From("release_action_status").GroupBy("1", "2"), "timestamp"),
 		func(rows *sql.Rows) error {
 			var day, status sql.NullString
 			var count int64
@@ -958,8 +989,25 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 		return nil, err
 	}
 
-	err = queryRows(
-		withCutoff(repo.db.squirrel.Select(dayExpr+" AS day", "SUM(size)").From("release").
+	stats := &domain.ReleaseActivityStats{Days: days, Daily: []domain.ReleaseActivityDaily{}}
+	for _, day := range window.dates(minDateKey(daily)) {
+		if b, ok := daily[day]; ok {
+			stats.Daily = append(stats.Daily, *b)
+		} else {
+			stats.Daily = append(stats.Daily, domain.ReleaseActivityDaily{Date: day})
+		}
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsVolume(ctx context.Context, days int) (*domain.ReleaseVolumeStats, error) {
+	window := repo.statsWindow(days)
+
+	daily := map[string]*domain.ReleaseVolumeDaily{}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "SUM(size)").From("release").
 			Where(sq.Expr("id IN (SELECT DISTINCT release_id FROM release_action_status WHERE status = ?)", string(domain.ReleasePushStatusApproved))).
 			GroupBy("1"), "timestamp"),
 		func(rows *sql.Rows) error {
@@ -969,7 +1017,7 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 				return err
 			}
 			if day.Valid {
-				bucket(day.String).DownloadedBytes = size.Int64
+				daily[day.String] = &domain.ReleaseVolumeDaily{Date: day.String, DownloadedBytes: size.Int64}
 			}
 			return nil
 		})
@@ -977,8 +1025,54 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 		return nil, err
 	}
 
+	stats := &domain.ReleaseVolumeStats{Days: days, Daily: []domain.ReleaseVolumeDaily{}}
+	for _, day := range window.dates(minDateKey(daily)) {
+		if b, ok := daily[day]; ok {
+			stats.Daily = append(stats.Daily, *b)
+		} else {
+			stats.Daily = append(stats.Daily, domain.ReleaseVolumeDaily{Date: day})
+		}
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsHeatmap(ctx context.Context, days int) (*domain.ReleaseHeatmapStats, error) {
+	window := repo.statsWindow(days)
+
+	stats := &domain.ReleaseHeatmapStats{Days: days, Heatmap: make([]int64, 7*24)}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", repo.statsHourExpr()+" AS hour", "COUNT(*)").From("release").GroupBy("1", "2"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day sql.NullString
+			var hour sql.NullInt64
+			var count int64
+			if err := rows.Scan(&day, &hour, &count); err != nil {
+				return err
+			}
+			if !day.Valid || !hour.Valid || hour.Int64 < 0 || hour.Int64 > 23 {
+				return nil
+			}
+			date, err := time.Parse("2006-01-02", day.String)
+			if err != nil {
+				return nil
+			}
+			stats.Heatmap[int64(date.Weekday())*24+hour.Int64] += count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error) {
+	window := repo.statsWindow(days)
+
 	indexers := map[string]*domain.ReleaseIndexerStats{}
-	indexerBucket := func(name string) *domain.ReleaseIndexerStats {
+	bucket := func(name string) *domain.ReleaseIndexerStats {
 		if b, ok := indexers[name]; ok {
 			return b
 		}
@@ -987,8 +1081,8 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 		return b
 	}
 
-	err = queryRows(
-		withCutoff(repo.db.squirrel.Select("indexer", "COUNT(*)").From("release").
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("indexer", "COUNT(*)").From("release").
 			Where("indexer IS NOT NULL AND indexer != ''").GroupBy("1"), "timestamp"),
 		func(rows *sql.Rows) error {
 			var name string
@@ -996,15 +1090,15 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 			if err := rows.Scan(&name, &count); err != nil {
 				return err
 			}
-			indexerBucket(name).MatchedCount = count
+			bucket(name).MatchedCount = count
 			return nil
 		})
 	if err != nil {
 		return nil, err
 	}
 
-	err = queryRows(
-		withCutoff(repo.db.squirrel.Select("r.indexer", "COUNT(*)").From("release_action_status ras").
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("r.indexer", "COUNT(*)").From("release_action_status ras").
 			InnerJoin("release r ON r.id = ras.release_id").
 			Where(sq.Eq{"ras.status": string(domain.ReleasePushStatusApproved)}).
 			Where("r.indexer IS NOT NULL AND r.indexer != ''").
@@ -1015,15 +1109,38 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 			if err := rows.Scan(&name, &count); err != nil {
 				return err
 			}
-			indexerBucket(name).PushApprovedCount = count
+			bucket(name).PushApprovedCount = count
 			return nil
 		})
 	if err != nil {
 		return nil, err
 	}
 
+	stats := &domain.ReleaseTopIndexersStats{Days: days, Top: []domain.ReleaseIndexerStats{}}
+	for _, b := range indexers {
+		stats.Top = append(stats.Top, *b)
+	}
+	slices.SortFunc(stats.Top, func(a, b domain.ReleaseIndexerStats) int {
+		if c := cmp.Compare(b.PushApprovedCount, a.PushApprovedCount); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(b.MatchedCount, a.MatchedCount); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Indexer, b.Indexer)
+	})
+	if len(stats.Top) > 10 {
+		stats.Top = stats.Top[:10]
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error) {
+	window := repo.statsWindow(days)
+
 	filters := map[string]*domain.ReleaseFilterStats{}
-	filterBucket := func(name string) *domain.ReleaseFilterStats {
+	bucket := func(name string) *domain.ReleaseFilterStats {
 		if b, ok := filters[name]; ok {
 			return b
 		}
@@ -1032,8 +1149,8 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 		return b
 	}
 
-	err = queryRows(
-		withCutoff(repo.db.squirrel.Select("filter", "COUNT(*)").From("release").
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("filter", "COUNT(*)").From("release").
 			Where("filter IS NOT NULL AND filter != ''").GroupBy("1"), "timestamp"),
 		func(rows *sql.Rows) error {
 			var name string
@@ -1041,15 +1158,15 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 			if err := rows.Scan(&name, &count); err != nil {
 				return err
 			}
-			filterBucket(name).MatchedCount = count
+			bucket(name).MatchedCount = count
 			return nil
 		})
 	if err != nil {
 		return nil, err
 	}
 
-	err = queryRows(
-		withCutoff(repo.db.squirrel.Select("filter", "COUNT(*)").From("release_action_status").
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("filter", "COUNT(*)").From("release_action_status").
 			Where(sq.Eq{"status": string(domain.ReleasePushStatusApproved)}).
 			Where("filter IS NOT NULL AND filter != ''").
 			GroupBy("1"), "timestamp"),
@@ -1059,52 +1176,18 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 			if err := rows.Scan(&name, &count); err != nil {
 				return err
 			}
-			filterBucket(name).PushApprovedCount = count
+			bucket(name).PushApprovedCount = count
 			return nil
 		})
 	if err != nil {
 		return nil, err
 	}
 
-	start := cutoff
-	if days <= 0 {
-		for day := range daily {
-			if d, err := time.Parse("2006-01-02", day); err == nil && (start.IsZero() || d.Before(start)) {
-				start = d
-			}
-		}
-	}
-	if !start.IsZero() {
-		for d := start; !d.After(now); d = d.AddDate(0, 0, 1) {
-			key := d.Format("2006-01-02")
-			if b, ok := daily[key]; ok {
-				stats.Daily = append(stats.Daily, *b)
-			} else {
-				stats.Daily = append(stats.Daily, domain.ReleaseDailyStats{Date: key})
-			}
-		}
-	}
-
-	for _, b := range indexers {
-		stats.TopIndexers = append(stats.TopIndexers, *b)
-	}
-	slices.SortFunc(stats.TopIndexers, func(a, b domain.ReleaseIndexerStats) int {
-		if c := cmp.Compare(b.PushApprovedCount, a.PushApprovedCount); c != 0 {
-			return c
-		}
-		if c := cmp.Compare(b.MatchedCount, a.MatchedCount); c != 0 {
-			return c
-		}
-		return strings.Compare(a.Indexer, b.Indexer)
-	})
-	if len(stats.TopIndexers) > 10 {
-		stats.TopIndexers = stats.TopIndexers[:10]
-	}
-
+	stats := &domain.ReleaseTopFiltersStats{Days: days, Top: []domain.ReleaseFilterStats{}}
 	for _, b := range filters {
-		stats.TopFilters = append(stats.TopFilters, *b)
+		stats.Top = append(stats.Top, *b)
 	}
-	slices.SortFunc(stats.TopFilters, func(a, b domain.ReleaseFilterStats) int {
+	slices.SortFunc(stats.Top, func(a, b domain.ReleaseFilterStats) int {
 		if c := cmp.Compare(b.MatchedCount, a.MatchedCount); c != 0 {
 			return c
 		}
@@ -1113,8 +1196,8 @@ func (repo *ReleaseRepo) StatsDashboard(ctx context.Context, days int) (*domain.
 		}
 		return strings.Compare(a.Filter, b.Filter)
 	})
-	if len(stats.TopFilters) > 10 {
-		stats.TopFilters = stats.TopFilters[:10]
+	if len(stats.Top) > 10 {
+		stats.Top = stats.Top[:10]
 	}
 
 	return stats, nil

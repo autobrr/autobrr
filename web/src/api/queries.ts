@@ -164,14 +164,47 @@ export const ReleasesStatsQueryOptions = () =>
     refetchInterval: 15000  // refetch stats on dashboard page every 15s
   });
 
-export const ReleasesDashboardStatsQueryOptions = (days: number = 30) =>
+// per-widget dashboard stats; same refetch cadence as the other dashboard widgets
+const widgetQueryDefaults = {
+  placeholderData: keepPreviousData,
+  staleTime: 5000,
+  refetchOnWindowFocus: true,
+  refetchInterval: 15000
+};
+
+export const ReleasesActivityQueryOptions = (days: number = 30) =>
   queryOptions({
-    queryKey: ReleaseKeys.statsDashboard(days),
-    queryFn: () => APIClient.release.statsDashboard(days),
-    placeholderData: keepPreviousData,
-    staleTime: 5000,
-    refetchOnWindowFocus: true,
-    refetchInterval: 15000  // refetch dashboard stats every 15s like the other dashboard widgets
+    queryKey: ReleaseKeys.statsActivity(days),
+    queryFn: () => APIClient.release.statsActivity(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesVolumeQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsVolume(days),
+    queryFn: () => APIClient.release.statsVolume(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesHeatmapQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsHeatmap(days),
+    queryFn: () => APIClient.release.statsHeatmap(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesTopIndexersQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsTopIndexers(days),
+    queryFn: () => APIClient.release.statsTopIndexers(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesTopFiltersQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsTopFilters(days),
+    queryFn: () => APIClient.release.statsTopFilters(days),
+    ...widgetQueryDefaults
   });
 
 // ReleasesIndexersQueryOptions get basic list of used indexers by identifier

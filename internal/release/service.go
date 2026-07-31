@@ -35,7 +35,11 @@ type releaseRepo interface {
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
-	StatsDashboard(ctx context.Context, days int) (*domain.ReleaseDashboardStats, error)
+	StatsActivity(ctx context.Context, days int) (*domain.ReleaseActivityStats, error)
+	StatsVolume(ctx context.Context, days int) (*domain.ReleaseVolumeStats, error)
+	StatsHeatmap(ctx context.Context, days int) (*domain.ReleaseHeatmapStats, error)
+	StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error)
+	StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error)
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
 	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
@@ -134,8 +138,24 @@ func (s *Service) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 	return s.repo.Stats(ctx)
 }
 
-func (s *Service) StatsDashboard(ctx context.Context, days int) (*domain.ReleaseDashboardStats, error) {
-	return s.repo.StatsDashboard(ctx, days)
+func (s *Service) StatsActivity(ctx context.Context, days int) (*domain.ReleaseActivityStats, error) {
+	return s.repo.StatsActivity(ctx, days)
+}
+
+func (s *Service) StatsVolume(ctx context.Context, days int) (*domain.ReleaseVolumeStats, error) {
+	return s.repo.StatsVolume(ctx, days)
+}
+
+func (s *Service) StatsHeatmap(ctx context.Context, days int) (*domain.ReleaseHeatmapStats, error) {
+	return s.repo.StatsHeatmap(ctx, days)
+}
+
+func (s *Service) StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error) {
+	return s.repo.StatsTopIndexers(ctx, days)
+}
+
+func (s *Service) StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error) {
+	return s.repo.StatsTopFilters(ctx, days)
 }
 
 func (s *Service) Store(ctx context.Context, release *domain.Release) error {

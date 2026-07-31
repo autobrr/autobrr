@@ -10,7 +10,7 @@ import { Chart } from "@tanstack/react-charts";
 import { defineChart, cell } from "@tanstack/charts";
 import { scaleBand, scaleQuantize } from "d3-scale";
 
-import { ReleasesDashboardStatsQueryOptions } from "@api/queries";
+import { ReleasesHeatmapQueryOptions } from "@api/queries";
 import { ChartCard, ChartSkeleton, chartTheme, sequentialRamp, useIsDark } from "./charts";
 
 interface HeatmapDatum {
@@ -49,7 +49,7 @@ const toLocalCells = (heatmap: number[]): HeatmapDatum[] => {
 export const HourHeatmap = () => {
   const { t } = useTranslation("common");
   const isDark = useIsDark();
-  const { isLoading, data } = useQuery(ReleasesDashboardStatsQueryOptions());
+  const { isLoading, data } = useQuery(ReleasesHeatmapQueryOptions());
 
   const ramp = sequentialRamp(isDark);
   const zeroFill = isDark ? "#303034" : "#f4f4f5";

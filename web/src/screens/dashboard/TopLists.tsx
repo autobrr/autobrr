@@ -6,7 +6,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { ReleasesDashboardStatsQueryOptions } from "@api/queries";
+import { ReleasesTopFiltersQueryOptions, ReleasesTopIndexersQueryOptions } from "@api/queries";
 import { SettingsContext } from "@utils/Context";
 import { ChartCard, ChartSkeleton, seriesColors, useIsDark } from "./charts";
 
@@ -71,9 +71,9 @@ const BreakdownTable = ({ title, nameHeader, rows, isLoading }: BreakdownTablePr
 export const TopIndexers = () => {
   const { t } = useTranslation("common");
   const settings = SettingsContext.useValue();
-  const { isLoading, data } = useQuery(ReleasesDashboardStatsQueryOptions());
+  const { isLoading, data } = useQuery(ReleasesTopIndexersQueryOptions());
 
-  const rows = (data?.top_indexers ?? []).map((indexer, i) => ({
+  const rows = (data?.top ?? []).map((indexer, i) => ({
     name: settings.incognitoMode ? `tracker-${i + 1}` : indexer.indexer,
     matched: indexer.matched_count,
     approved: indexer.push_approved_count
@@ -92,9 +92,9 @@ export const TopIndexers = () => {
 export const TopFilters = () => {
   const { t } = useTranslation("common");
   const settings = SettingsContext.useValue();
-  const { isLoading, data } = useQuery(ReleasesDashboardStatsQueryOptions());
+  const { isLoading, data } = useQuery(ReleasesTopFiltersQueryOptions());
 
-  const rows = (data?.top_filters ?? []).map((filter, i) => ({
+  const rows = (data?.top ?? []).map((filter, i) => ({
     name: settings.incognitoMode ? `filter-${i + 1}` : filter.filter,
     matched: filter.matched_count,
     approved: filter.push_approved_count

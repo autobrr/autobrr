@@ -12,7 +12,7 @@ import { scaleUtc, scaleLinear } from "d3-scale";
 import { curveMonotoneX } from "d3-shape";
 import { format } from "date-fns";
 
-import { ReleasesDashboardStatsQueryOptions } from "@api/queries";
+import { ReleasesActivityQueryOptions } from "@api/queries";
 import { ChartCard, ChartLegend, ChartSkeleton, RangeSelect, chartTheme, seriesColors, useIsDark } from "./charts";
 
 interface ActivityDatum {
@@ -36,7 +36,7 @@ export const ActivityChart = () => {
   const isDark = useIsDark();
   const [range, setRange] = useState<RangeValue>("30d");
   const rangeDays = RANGES.find((r) => r.value === range)?.days ?? 30;
-  const { isLoading, data } = useQuery(ReleasesDashboardStatsQueryOptions(rangeDays));
+  const { isLoading, data } = useQuery(ReleasesActivityQueryOptions(rangeDays));
 
   const colors = seriesColors(isDark);
   const series = useMemo(() => [

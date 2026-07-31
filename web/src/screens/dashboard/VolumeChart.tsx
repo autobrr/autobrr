@@ -11,7 +11,7 @@ import { defineChart, barY } from "@tanstack/charts";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { format } from "date-fns";
 
-import { ReleasesDashboardStatsQueryOptions } from "@api/queries";
+import { ReleasesVolumeQueryOptions } from "@api/queries";
 import { humanFileSize } from "@utils";
 import { ChartCard, ChartSkeleton, chartTheme, seriesColors, useIsDark } from "./charts";
 
@@ -20,7 +20,7 @@ const asDate = (value: string) => new Date(`${value}T00:00:00Z`);
 export const VolumeChart = () => {
   const { t } = useTranslation("common");
   const isDark = useIsDark();
-  const { isLoading, data } = useQuery(ReleasesDashboardStatsQueryOptions());
+  const { isLoading, data } = useQuery(ReleasesVolumeQueryOptions());
 
   const definition = useMemo(() => {
     const days = data?.daily ?? [];
