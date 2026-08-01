@@ -11,7 +11,7 @@ import { defineChart, cell } from "@tanstack/charts";
 import { scaleBand, scaleQuantize } from "d3-scale";
 
 import { ReleasesHeatmapQueryOptions } from "@api/queries";
-import { ChartCard, ChartSkeleton, chartTheme, sequentialRamp, useIsDark } from "./charts";
+import { ChartCard, ChartError, ChartSkeleton, chartTheme, sequentialRamp, useIsDark } from "./charts";
 
 interface HeatmapDatum {
   hour: number;
@@ -49,7 +49,7 @@ const toLocalCells = (heatmap: number[]): HeatmapDatum[] => {
 export const HourHeatmap = () => {
   const { t } = useTranslation("common");
   const isDark = useIsDark();
-  const { isLoading, data } = useQuery(ReleasesHeatmapQueryOptions());
+  const { isLoading, isError, data } = useQuery(ReleasesHeatmapQueryOptions());
 
   const ramp = sequentialRamp(isDark);
   const zeroFill = isDark ? "#303034" : "#f4f4f5";
@@ -109,6 +109,8 @@ export const HourHeatmap = () => {
     <ChartCard title={t("dashboardCharts.heatmapTitle")}>
       {isLoading ? (
         <ChartSkeleton heightClass="h-56" />
+      ) : isError ? (
+        <ChartError heightClass="h-56" />
       ) : (
         <>
           <Chart

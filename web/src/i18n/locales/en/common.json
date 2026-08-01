@@ -206,7 +206,8 @@
     "indexer": "Indexer",
     "filter": "Filter",
     "heatmapLess": "Less",
-    "heatmapMore": "More"
+    "heatmapMore": "More",
+    "loadError": "Could not load stats"
   },
   "theme": {
     "light": "Light",

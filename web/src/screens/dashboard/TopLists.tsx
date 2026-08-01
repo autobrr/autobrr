@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 
 import { ReleasesTopFiltersQueryOptions, ReleasesTopIndexersQueryOptions } from "@api/queries";
 import { SettingsContext } from "@utils/Context";
-import { ChartCard, ChartSkeleton, seriesColors, useIsDark } from "./charts";
+import { ChartCard, ChartError, ChartSkeleton, seriesColors, useIsDark } from "./charts";
 
 interface BreakdownRow {
   name: string;
@@ -21,9 +21,10 @@ interface BreakdownTableProps {
   nameHeader: string;
   rows: BreakdownRow[];
   isLoading: boolean;
+  isError: boolean;
 }
 
-const BreakdownTable = ({ title, nameHeader, rows, isLoading }: BreakdownTableProps) => {
+const BreakdownTable = ({ title, nameHeader, rows, isLoading, isError }: BreakdownTableProps) => {
   const { t } = useTranslation("common");
   const isDark = useIsDark();
 
@@ -35,6 +36,8 @@ const BreakdownTable = ({ title, nameHeader, rows, isLoading }: BreakdownTablePr
     <ChartCard title={title}>
       {isLoading ? (
         <ChartSkeleton heightClass="h-56" />
+      ) : isError ? (
+        <ChartError heightClass="h-56" />
       ) : (
         <table className="min-w-full mt-2">
           <thead>
@@ -71,7 +74,7 @@ const BreakdownTable = ({ title, nameHeader, rows, isLoading }: BreakdownTablePr
 export const TopIndexers = () => {
   const { t } = useTranslation("common");
   const settings = SettingsContext.useValue();
-  const { isLoading, data } = useQuery(ReleasesTopIndexersQueryOptions());
+  const { isLoading, isError, data } = useQuery(ReleasesTopIndexersQueryOptions());
 
   const rows = (data?.top ?? []).map((indexer, i) => ({
     name: settings.incognitoMode ? `tracker-${i + 1}` : indexer.indexer,
@@ -85,6 +88,7 @@ export const TopIndexers = () => {
       nameHeader={t("dashboardCharts.indexer")}
       rows={rows}
       isLoading={isLoading}
+      isError={isError}
     />
   );
 };
@@ -92,7 +96,7 @@ export const TopIndexers = () => {
 export const TopFilters = () => {
   const { t } = useTranslation("common");
   const settings = SettingsContext.useValue();
-  const { isLoading, data } = useQuery(ReleasesTopFiltersQueryOptions());
+  const { isLoading, isError, data } = useQuery(ReleasesTopFiltersQueryOptions());
 
   const rows = (data?.top ?? []).map((filter, i) => ({
     name: settings.incognitoMode ? `filter-${i + 1}` : filter.filter,
@@ -106,6 +110,7 @@ export const TopFilters = () => {
       nameHeader={t("dashboardCharts.filter")}
       rows={rows}
       isLoading={isLoading}
+      isError={isError}
     />
   );
 };

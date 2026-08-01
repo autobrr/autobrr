@@ -4,6 +4,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { useTranslation } from "react-i18next";
 import { SettingsContext } from "@utils/Context";
 import { classNames } from "@utils";
 
@@ -114,3 +115,17 @@ export const ChartLegend = ({ items }: ChartLegendProps) => (
 export const ChartSkeleton = ({ heightClass }: { heightClass: string }) => (
   <div className={classNames("mt-3 rounded animate-pulse bg-gray-100 dark:bg-gray-815", heightClass)} />
 );
+
+export const ChartError = ({ heightClass }: { heightClass: string }) => {
+  const { t } = useTranslation("common");
+  return (
+    <div
+      className={classNames(
+        "flex items-center justify-center mt-3 rounded border border-dashed border-gray-250 dark:border-gray-750 text-sm text-gray-500 dark:text-gray-400",
+        heightClass
+      )}
+    >
+      {t("dashboardCharts.loadError")}
+    </div>
+  );
+};

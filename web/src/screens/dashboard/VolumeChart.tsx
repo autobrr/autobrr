@@ -13,14 +13,14 @@ import { format } from "date-fns";
 
 import { ReleasesVolumeQueryOptions } from "@api/queries";
 import { humanFileSize } from "@utils";
-import { ChartCard, ChartSkeleton, chartTheme, seriesColors, useIsDark } from "./charts";
+import { ChartCard, ChartError, ChartSkeleton, chartTheme, seriesColors, useIsDark } from "./charts";
 
 const asDate = (value: string) => new Date(`${value}T00:00:00Z`);
 
 export const VolumeChart = () => {
   const { t } = useTranslation("common");
   const isDark = useIsDark();
-  const { isLoading, data } = useQuery(ReleasesVolumeQueryOptions());
+  const { isLoading, isError, data } = useQuery(ReleasesVolumeQueryOptions());
 
   const definition = useMemo(() => {
     const days = data?.daily ?? [];
@@ -68,6 +68,8 @@ export const VolumeChart = () => {
     <ChartCard title={t("dashboardCharts.volumeTitle")}>
       {isLoading ? (
         <ChartSkeleton heightClass="h-56" />
+      ) : isError ? (
+        <ChartError heightClass="h-56" />
       ) : (
         <Chart
           definition={definition}
