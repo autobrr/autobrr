@@ -21,10 +21,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Mock releaseService for testing cleanup job endpoints
+// Mock releaseService for testing cleanup job and stats endpoints
 type releaseServiceMock struct {
-	cleanupJobs map[int]*domain.ReleaseCleanupJob
-	nextID      int
+	cleanupJobs   map[int]*domain.ReleaseCleanupJob
+	nextID        int
+	lastStatsDays int
 }
 
 func newReleaseServiceMock() *releaseServiceMock {
@@ -113,6 +114,43 @@ func (m *releaseServiceMock) GetIndexerOptions(ctx context.Context) ([]string, e
 
 func (m *releaseServiceMock) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
 	return nil, errors.New("not implemented")
+}
+
+func (m *releaseServiceMock) StatsActivity(ctx context.Context, days int) (*domain.ReleaseActivityStats, error) {
+	m.lastStatsDays = days
+	return &domain.ReleaseActivityStats{
+		Days:  days,
+		Daily: []domain.ReleaseActivityDaily{{Date: "2026-08-01", MatchedCount: 5, PushApprovedCount: 2, PushRejectedCount: 1}},
+	}, nil
+}
+
+func (m *releaseServiceMock) StatsVolume(ctx context.Context, days int) (*domain.ReleaseVolumeStats, error) {
+	m.lastStatsDays = days
+	return &domain.ReleaseVolumeStats{
+		Days:  days,
+		Daily: []domain.ReleaseVolumeDaily{{Date: "2026-08-01", DownloadedBytes: 1024}},
+	}, nil
+}
+
+func (m *releaseServiceMock) StatsHeatmap(ctx context.Context, days int) (*domain.ReleaseHeatmapStats, error) {
+	m.lastStatsDays = days
+	return &domain.ReleaseHeatmapStats{Days: days, Heatmap: make([]int64, 168)}, nil
+}
+
+func (m *releaseServiceMock) StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error) {
+	m.lastStatsDays = days
+	return &domain.ReleaseTopIndexersStats{
+		Days: days,
+		Top:  []domain.ReleaseIndexerStats{{Indexer: "btn", MatchedCount: 10, PushApprovedCount: 4}},
+	}, nil
+}
+
+func (m *releaseServiceMock) StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error) {
+	m.lastStatsDays = days
+	return &domain.ReleaseTopFiltersStats{
+		Days: days,
+		Top:  []domain.ReleaseFilterStats{{Filter: "TV 1080p", MatchedCount: 10, PushApprovedCount: 4}},
+	}, nil
 }
 
 func (m *releaseServiceMock) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
@@ -528,4 +566,92 @@ func TestReleaseHandler_ForceRunCleanupJob_NotFound(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+func TestReleaseHandler_StatsEndpoints(t *testing.T) {
+	t.Parallel()
+
+	endpoints := []struct {
+		path  string
+		field string
+	}{
+		{"activity", "daily"},
+		{"volume", "daily"},
+		{"heatmap", "heatmap"},
+		{"indexers", "top"},
+		{"filters", "top"},
+	}
+
+	for _, endpoint := range endpoints {
+		t.Run(endpoint.path, func(t *testing.T) {
+			service := newReleaseServiceMock()
+			router := setupReleaseHandler(service)
+			testServer := httptest.NewServer(router)
+			defer testServer.Close()
+
+			resp, err := http.Get(testServer.URL + "/api/releases/stats/" + endpoint.path + "?days=90")
+			assert.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, 90, service.lastStatsDays)
+
+			var payload map[string]any
+			err = json.NewDecoder(resp.Body).Decode(&payload)
+			assert.NoError(t, err)
+			assert.EqualValues(t, 90, payload["days"])
+			assert.NotNil(t, payload[endpoint.field])
+		})
+	}
+}
+
+func TestReleaseHandler_StatsEndpoints_DefaultDays(t *testing.T) {
+	t.Parallel()
+
+	service := newReleaseServiceMock()
+	router := setupReleaseHandler(service)
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/releases/stats/activity")
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, 30, service.lastStatsDays)
+}
+
+func TestReleaseHandler_StatsEndpoints_AllTime(t *testing.T) {
+	t.Parallel()
+
+	service := newReleaseServiceMock()
+	router := setupReleaseHandler(service)
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	resp, err := http.Get(testServer.URL + "/api/releases/stats/activity?days=0")
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, 0, service.lastStatsDays)
+}
+
+func TestReleaseHandler_StatsEndpoints_InvalidDays(t *testing.T) {
+	t.Parallel()
+
+	for _, days := range []string{"abc", "-1", "9999"} {
+		t.Run(days, func(t *testing.T) {
+			service := newReleaseServiceMock()
+			router := setupReleaseHandler(service)
+			testServer := httptest.NewServer(router)
+			defer testServer.Close()
+
+			resp, err := http.Get(testServer.URL + "/api/releases/stats/activity?days=" + days)
+			assert.NoError(t, err)
+			defer resp.Body.Close()
+
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		})
+	}
 }
