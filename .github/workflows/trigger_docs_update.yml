@@ -11,9 +11,11 @@ jobs:
   trigger_docs_update:
     runs-on: ubuntu-latest
     # only run if the 'build' workflow was successful and was triggered by a tag push
+    # (head_branch is the bare tag name for tag-triggered runs, e.g. "v1.83.0")
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      startsWith(github.event.workflow_run.head_branch, 'refs/tags/v')
+      github.event.workflow_run.event == 'push' &&
+      startsWith(github.event.workflow_run.head_branch, 'v')
     steps:
       - name: Trigger docs workflow
         run: |
