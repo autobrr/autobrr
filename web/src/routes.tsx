@@ -340,12 +340,7 @@ export const AuthRoute = createRoute({
 function AuthenticatedLayout() {
   const isLoggedIn = AuthContext.useSelector((s) => s.isLoggedIn);
   if (!isLoggedIn) {
-    const redirect = (
-      location.pathname.length > 1
-        ? { redirect: location.pathname }
-        : undefined
-    );
-    return <Navigate to="/login" search={redirect} />;
+    return <Navigate to="/login" search={{ redirect: location.pathname + location.search }} />;
   }
 
   return (
