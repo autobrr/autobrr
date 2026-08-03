@@ -779,7 +779,7 @@ interface EventsProps {
 
 export const Events = ({ network, channel }: EventsProps) => {
   const [settings] = SettingsContext.use();
-  const { events: logs } = useIrcChannelWithHistory(network.id, channel, 100, true);
+  const { events: logs } = useIrcChannelWithHistory(network.id, channel, 1000, true);
 
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
