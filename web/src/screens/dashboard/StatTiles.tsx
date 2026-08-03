@@ -14,10 +14,11 @@ interface StatTileProps {
   name: string;
   value: number;
   isLoading: boolean;
+  isError: boolean;
   eventType?: "" | "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR";
 }
 
-const StatTile = ({ name, value, isLoading, eventType }: StatTileProps) => (
+const StatTile = ({ name, value, isLoading, isError, eventType }: StatTileProps) => (
   <Link
     className={classNames(
       "group relative block h-full px-4 py-3 cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800 hover:shadow-xl transition-all duration-200 ease-in-out",
@@ -33,30 +34,30 @@ const StatTile = ({ name, value, isLoading, eventType }: StatTileProps) => (
       <p className="pb-0.5 truncate">{name}</p>
       <LinkIcon className="h-3 w-3 ml-2" aria-hidden="true" />
     </div>
-    <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{value}</p>
+    <p className="text-3xl font-extrabold text-gray-900 dark:text-gray-200">{isError ? "-" : value}</p>
   </Link>
 );
 
 export const FilteredTile = () => {
   const { t } = useTranslation("common");
-  const { isLoading, data } = useQuery(ReleasesStatsQueryOptions());
-  return <StatTile name={t("dashboardStats.filteredReleases")} value={data?.filtered_count ?? 0} isLoading={isLoading} />;
+  const { isLoading, isError, data } = useQuery(ReleasesStatsQueryOptions());
+  return <StatTile name={t("dashboardStats.filteredReleases")} value={data?.filtered_count ?? 0} isLoading={isLoading} isError={isError} />;
 };
 
 export const ApprovedTile = () => {
   const { t } = useTranslation("common");
-  const { isLoading, data } = useQuery(ReleasesStatsQueryOptions());
-  return <StatTile name={t("dashboardStats.approvedPushes")} value={data?.push_approved_count ?? 0} isLoading={isLoading} eventType="PUSH_APPROVED" />;
+  const { isLoading, isError, data } = useQuery(ReleasesStatsQueryOptions());
+  return <StatTile name={t("dashboardStats.approvedPushes")} value={data?.push_approved_count ?? 0} isLoading={isLoading} isError={isError} eventType="PUSH_APPROVED" />;
 };
 
 export const RejectedTile = () => {
   const { t } = useTranslation("common");
-  const { isLoading, data } = useQuery(ReleasesStatsQueryOptions());
-  return <StatTile name={t("dashboardStats.rejectedPushes")} value={data?.push_rejected_count ?? 0} isLoading={isLoading} eventType="PUSH_REJECTED" />;
+  const { isLoading, isError, data } = useQuery(ReleasesStatsQueryOptions());
+  return <StatTile name={t("dashboardStats.rejectedPushes")} value={data?.push_rejected_count ?? 0} isLoading={isLoading} isError={isError} eventType="PUSH_REJECTED" />;
 };
 
 export const ErroredTile = () => {
   const { t } = useTranslation("common");
-  const { isLoading, data } = useQuery(ReleasesStatsQueryOptions());
-  return <StatTile name={t("dashboardStats.erroredPushes")} value={data?.push_error_count ?? 0} isLoading={isLoading} eventType="PUSH_ERROR" />;
+  const { isLoading, isError, data } = useQuery(ReleasesStatsQueryOptions());
+  return <StatTile name={t("dashboardStats.erroredPushes")} value={data?.push_error_count ?? 0} isLoading={isLoading} isError={isError} eventType="PUSH_ERROR" />;
 };

@@ -55,9 +55,10 @@ export const VolumeChart = () => {
           if (!point) {
             return { rows: [] };
           }
+          const datum = point.datum as ReleaseVolumeDaily;
           return {
-            title: format(asDate(String(point.x)), "EEE MMM d"),
-            rows: [{ label: downloadedLabel, value: humanFileSize(point.y as number) }]
+            title: format(asDate(datum.date), "EEE MMM d"),
+            rows: [{ label: downloadedLabel, value: humanFileSize(datum.downloaded_bytes) }]
           };
         }
       }

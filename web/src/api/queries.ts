@@ -156,21 +156,26 @@ export const ReleasesLatestQueryOptions = () =>
     refetchInterval: 15000  // refetch recent activity table on dashboard page every 15s
   });
 
-export const ReleasesStatsQueryOptions = () =>
-  queryOptions({
-    queryKey: ReleaseKeys.stats(),
-    queryFn: () => APIClient.release.stats(),
-    refetchOnWindowFocus: true,
-    refetchInterval: 15000  // refetch stats on dashboard page every 15s
-  });
-
-// per-widget dashboard stats; same refetch cadence as the other dashboard widgets
+// Dashboard widget queries contain failures in their own card: no throw to
+// the route error boundary (the global default) and only quick retries so
+// the widget's error state appears in seconds instead of minutes. The
+// expired-cookie error must not retry so the login redirect stays prompt.
 const widgetQueryDefaults = {
   placeholderData: keepPreviousData,
   staleTime: 5000,
   refetchOnWindowFocus: true,
-  refetchInterval: 15000
+  refetchInterval: 15000,
+  throwOnError: false,
+  retry: (failureCount: number, error: Error) =>
+    error.message !== "Cookie expired or invalid." && failureCount < 2
 };
+
+export const ReleasesStatsQueryOptions = () =>
+  queryOptions({
+    queryKey: ReleaseKeys.stats(),
+    queryFn: () => APIClient.release.stats(),
+    ...widgetQueryDefaults
+  });
 
 export const ReleasesActivityQueryOptions = (days: number = 30) =>
   queryOptions({
