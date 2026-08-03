@@ -1358,6 +1358,8 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 	return nil
 }
 
+// StoreIndexerConnections syncs the filter_indexer connections for the filter
+// to the given indexers, deleting stale connections and inserting missing ones.
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
 	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
@@ -1366,9 +1368,18 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	defer tx.Rollback()
 
+	indexerIDs := make([]int64, 0, len(indexers))
+	for _, indexer := range indexers {
+		indexerIDs = append(indexerIDs, indexer.ID)
+	}
+
 	deleteQueryBuilder := r.db.squirrel.
 		Delete("filter_indexer").
 		Where(sq.Eq{"filter_id": filterID})
+
+	if len(indexerIDs) > 0 {
+		deleteQueryBuilder = deleteQueryBuilder.Where(sq.NotEq{"indexer_id": indexerIDs})
+	}
 
 	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
 	if err != nil {
@@ -1380,29 +1391,25 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		return errors.Wrap(err, "error executing query")
 	}
 
-	if len(indexers) == 0 {
-		if err := tx.Commit(); err != nil {
-			return errors.Wrap(err, "error store indexers for filter: %d", filterID)
+	if len(indexerIDs) > 0 {
+		queryBuilder := r.db.squirrel.
+			Insert("filter_indexer").
+			Columns("filter_id", "indexer_id")
+
+		for _, indexerID := range indexerIDs {
+			queryBuilder = queryBuilder.Values(filterID, indexerID)
 		}
 
-		return nil
-	}
+		queryBuilder = queryBuilder.Suffix("ON CONFLICT DO NOTHING")
 
-	queryBuilder := r.db.squirrel.
-		Insert("filter_indexer").
-		Columns("filter_id", "indexer_id")
+		query, args, err := queryBuilder.ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
 
-	for _, indexer := range indexers {
-		queryBuilder = queryBuilder.Values(filterID, indexer.ID)
-	}
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
-		return errors.Wrap(err, "error executing query")
+		if _, err = tx.ExecContext(ctx, query, args...); err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
