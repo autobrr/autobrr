@@ -25,6 +25,7 @@ type listRepo interface {
 	ToggleEnabled(ctx context.Context, listID int64, enabled bool) error
 	Delete(ctx context.Context, listID int64) error
 	GetListFilters(ctx context.Context, listID int64) ([]domain.ListFilter, error)
+	GetAllListFilters(ctx context.Context) (map[int64][]domain.ListFilter, error)
 }
 
 type clientService interface {
@@ -68,14 +69,15 @@ func (s *Service) List(ctx context.Context) ([]*domain.List, error) {
 		return nil, err
 	}
 
-	// attach filters
-	for _, list := range data {
-		filters, err := s.repo.GetListFilters(ctx, list.ID)
-		if err != nil {
-			return nil, err
-		}
+	filters, err := s.repo.GetAllListFilters(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-		list.Filters = filters
+	for _, list := range data {
+		if listFilters, ok := filters[list.ID]; ok {
+			list.Filters = listFilters
+		}
 	}
 
 	return data, nil

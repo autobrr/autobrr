@@ -465,3 +465,44 @@ func (r *ListRepo) GetListFilters(ctx context.Context, listID int64) ([]domain.L
 
 	return filters, nil
 }
+
+// GetAllListFilters returns the filters connected to each list, keyed by list id.
+func (r *ListRepo) GetAllListFilters(ctx context.Context) (map[int64][]domain.ListFilter, error) {
+	qb := r.db.squirrel.Select(
+		"lf.list_id",
+		"f.id",
+		"f.name",
+	).
+		From("list_filter lf").
+		Join(
+			"filter f ON f.id = lf.filter_id",
+		).
+		OrderBy(
+			"f.name ASC",
+		)
+
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	filters := make(map[int64][]domain.ListFilter)
+	for rows.Next() {
+		var listID int64
+		var filter domain.ListFilter
+		if err := rows.Scan(&listID, &filter.ID, &filter.Name); err != nil {
+			return nil, err
+		}
+
+		filters[listID] = append(filters[listID], filter)
+	}
+
+	return filters, nil
+}
