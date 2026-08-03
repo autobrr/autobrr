@@ -198,11 +198,6 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			list.SkipCleanSanitize,
 		).Suffix("RETURNING id").RunWith(tx)
 
-	//query, args, err := qb.ToSql()
-	//if err != nil {
-	//	return err
-	//}
-
 	if err := qb.QueryRowContext(ctx).Scan(&list.ID); err != nil {
 		return err
 	}
@@ -254,14 +249,6 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 		return err
 	}
 
-	if err := r.StoreListFilterConnection(ctx, tx, list); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error updating filter actions")
-	}
-
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
 		return err
@@ -269,6 +256,14 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 
 	if rowsAffected == 0 {
 		return domain.ErrUpdateFailed
+	}
+
+	if err := r.StoreListFilterConnection(ctx, tx, list); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error updating list and filters")
 	}
 
 	return nil
@@ -345,7 +340,7 @@ func (r *ListRepo) Delete(ctx context.Context, listID int64) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error storing list and filters")
+		return errors.Wrap(err, "error deleting list and filter connections")
 	}
 
 	return nil
@@ -379,10 +374,20 @@ func (r *ListRepo) ToggleEnabled(ctx context.Context, listID int64, enabled bool
 	return nil
 }
 
+// StoreListFilterConnection syncs the list_filter connections for the list to
+// list.Filters, deleting stale connections and inserting missing ones.
 func (r *ListRepo) StoreListFilterConnection(ctx context.Context, tx *Tx, list *domain.List) error {
-	qb := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"list_id": list.ID})
+	filterIDs := make([]int, 0, len(list.Filters))
+	for _, filter := range list.Filters {
+		filterIDs = append(filterIDs, filter.ID)
+	}
 
-	query, args, err := qb.ToSql()
+	deleteQb := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"list_id": list.ID})
+	if len(filterIDs) > 0 {
+		deleteQb = deleteQb.Where(sq.NotEq{"filter_id": filterIDs})
+	}
+
+	query, args, err := deleteQb.ToSql()
 	if err != nil {
 		return err
 	}
@@ -397,41 +402,25 @@ func (r *ListRepo) StoreListFilterConnection(ctx context.Context, tx *Tx, list *
 		return err
 	}
 
-	r.log.Trace().Int64("rows_affected", rowsAffected).Msg("deleted list filters")
+	r.log.Trace().Int64("rows_affected", rowsAffected).Msg("deleted stale list filter connections")
 
-	//if rowsAffected == 0 {
-	//	return domain.ErrUpdateFailed
-	//}
+	if len(filterIDs) == 0 {
+		return nil
+	}
 
-	for _, filter := range list.Filters {
-		qb := r.db.squirrel.Insert("list_filter").
-			Columns(
-				"list_id",
-				"filter_id",
-			).
-			Values(
-				list.ID,
-				filter.ID,
-			)
+	insertQb := r.db.squirrel.Insert("list_filter").Columns("list_id", "filter_id")
+	for _, filterID := range filterIDs {
+		insertQb = insertQb.Values(list.ID, filterID)
+	}
+	insertQb = insertQb.Suffix("ON CONFLICT DO NOTHING")
 
-		query, args, err := qb.ToSql()
-		if err != nil {
-			return err
-		}
+	query, args, err = insertQb.ToSql()
+	if err != nil {
+		return err
+	}
 
-		results, err := tx.ExecContext(ctx, query, args...)
-		if err != nil {
-			return err
-		}
-
-		rowsAffected, err := results.RowsAffected()
-		if err != nil {
-			return err
-		}
-
-		if rowsAffected == 0 {
-			return domain.ErrUpdateFailed
-		}
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return err
 	}
 
 	return nil
