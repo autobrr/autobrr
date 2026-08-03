@@ -172,6 +172,11 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Update(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrIndexerNotFound) {
+			h.encoder.StatusError(w, http.StatusBadRequest, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -194,6 +199,11 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.UpdatePartial(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrIndexerNotFound) {
+			h.encoder.StatusError(w, http.StatusBadRequest, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
