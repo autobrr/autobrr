@@ -18,6 +18,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
+	"github.com/autobrr/autobrr/pkg/arr/sportarr"
 	"github.com/autobrr/autobrr/pkg/arr/whisparr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/nzbget"
@@ -141,6 +142,24 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, e
 		tags, err := arrClient.GetTags(ctx)
 		if err != nil {
 			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from whisparr")
+			return data, nil
+		}
+
+		for _, tag := range tags {
+			emt := &domain.ArrTag{
+				ID:    tag.ID,
+				Label: tag.Label,
+			}
+			data = append(data, emt)
+		}
+
+		return data, nil
+
+	case domain.DownloadClientTypeSportarr:
+		arrClient := client.Client.(*sportarr.Client)
+		tags, err := arrClient.GetTags(ctx)
+		if err != nil {
+			s.log.Error().Err(err).Int32("client_id", id).Msg("could not get tags from sportarr")
 			return data, nil
 		}
 
@@ -454,6 +473,17 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			APIKey:        client.Settings.APIKey,
 			Version:       whisparrVersion(client.Type),
 			Log:           s.log.With().Str("type", "Whisparr").Str("client", client.Name).Logger(),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+
+	case domain.DownloadClientTypeSportarr:
+		client.Client = sportarr.New(sportarr.Config{
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           s.log.With().Str("type", "Sportarr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,
 			Password:      client.Settings.Auth.Password,

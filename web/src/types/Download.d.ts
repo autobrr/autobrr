@@ -17,6 +17,7 @@ type DownloadClientType =
   "WHISPARR" |
   "WHISPARR_V3" |
   "READARR" |
+  "SPORTARR" |
   "SABNZBD" |
   "NZBGET";
 

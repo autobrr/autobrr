@@ -150,7 +150,7 @@ export const ActivityTable = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col mt-12">
+      <div className="flex flex-col">
         <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
           {t("activityTable.title")}
         </h3>
@@ -168,7 +168,7 @@ export const ActivityTable = () => {
   const displayData = settings.incognitoMode ? modifiedData : [...(data?.data ?? [])];
 
   return (
-    <div className="flex flex-col mt-12 relative">
+    <div className="flex flex-col relative">
       <h3 className="text-2xl font-medium leading-6 text-black dark:text-white">
         {t("activityTable.title")}
       </h3>
