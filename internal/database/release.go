@@ -4,10 +4,12 @@
 package database
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -768,34 +770,437 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 }
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
-	query := `SELECT *
-FROM (
-	SELECT
-	COUNT(*) AS total,
-	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 0 END) AS filtered_count,
-	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 0 END) AS filter_rejected_count
-	FROM release
-) AS zoo
-CROSS JOIN (
-	SELECT
-	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
-	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count,
-	COUNT(CASE WHEN status = 'PUSH_ERROR' THEN 0 END) AS push_error_count
-	FROM release_action_status
-) AS foo`
+	var rls domain.ReleaseStats
 
-	row := repo.db.Handler.QueryRowContext(ctx, query)
-	if err := row.Err(); err != nil {
+	filterRows, err := repo.db.Handler.QueryContext(ctx, `SELECT filter_status, COUNT(*) FROM release GROUP BY filter_status`)
+	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	var rls domain.ReleaseStats
+	defer filterRows.Close()
 
-	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount, &rls.PushErrorCount); err != nil {
-		return nil, errors.Wrap(err, "error scanning row")
+	for filterRows.Next() {
+		var status sql.NullString
+		var count int64
+
+		if err := filterRows.Scan(&status, &count); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		rls.TotalCount += count
+
+		switch domain.ReleaseFilterStatus(status.String) {
+		case domain.ReleaseStatusFilterApproved:
+			rls.FilteredCount = count
+		case domain.ReleaseStatusFilterRejected:
+			rls.FilterRejectedCount = count
+		}
+	}
+
+	if err := filterRows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
+	}
+
+	pushRows, err := repo.db.Handler.QueryContext(ctx, `SELECT status, COUNT(*) FROM release_action_status GROUP BY status`)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer pushRows.Close()
+
+	for pushRows.Next() {
+		var status sql.NullString
+		var count int64
+
+		if err := pushRows.Scan(&status, &count); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		switch domain.ReleasePushStatus(status.String) {
+		case domain.ReleasePushStatusApproved:
+			rls.PushApprovedCount = count
+		case domain.ReleasePushStatusRejected:
+			rls.PushRejectedCount = count
+		case domain.ReleasePushStatusErr:
+			rls.PushErrorCount = count
+		}
+	}
+
+	if err := pushRows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
 	}
 
 	return &rls, nil
+}
+
+// statsWindow bounds the dashboard widget queries to the last N days,
+// or nothing for all-time (days <= 0).
+type statsWindow struct {
+	days   int
+	now    time.Time
+	cutoff time.Time
+	arg    any
+}
+
+func (repo *ReleaseRepo) statsWindow(days int) statsWindow {
+	w := statsWindow{days: days, now: time.Now().UTC()}
+	if days > 0 {
+		w.cutoff = w.now.AddDate(0, 0, -(days - 1)).Truncate(24 * time.Hour)
+		w.arg = w.cutoff
+		if repo.db.Driver == "sqlite" {
+			// raw string compare keeps the timestamp index usable and is exact at
+			// midnight boundaries for both timestamp formats found in old databases
+			w.arg = w.cutoff.Format("2006-01-02 15:04:05")
+		}
+	}
+	return w
+}
+
+func (w statsWindow) apply(qb sq.SelectBuilder, column string) sq.SelectBuilder {
+	if w.days > 0 {
+		return qb.Where(sq.GtOrEq{column: w.arg})
+	}
+	return qb
+}
+
+// dates returns the continuous run of day keys to emit: the fixed window,
+// or earliest-seen through today for all-time.
+func (w statsWindow) dates(minKey string) []string {
+	start := w.cutoff
+	if w.days <= 0 {
+		if minKey == "" {
+			return nil
+		}
+		parsed, err := time.Parse("2006-01-02", minKey)
+		if err != nil {
+			return nil
+		}
+		start = parsed
+	}
+
+	var out []string
+	for d := start; !d.After(w.now); d = d.AddDate(0, 0, 1) {
+		out = append(out, d.Format("2006-01-02"))
+	}
+	return out
+}
+
+func minDateKey[T any](m map[string]*T) string {
+	minKey := ""
+	for key := range m {
+		if minKey == "" || key < minKey {
+			minKey = key
+		}
+	}
+	return minKey
+}
+
+func (repo *ReleaseRepo) statsDayExpr() string {
+	if repo.db.Driver == "sqlite" {
+		// substr instead of strftime: both timestamp formats found in old
+		// databases share the YYYY-MM-DD HH prefix, and skipping per-row date
+		// parsing roughly halves the scan cost on large tables
+		return "substr(timestamp, 1, 10)"
+	}
+	return "to_char(timestamp, 'YYYY-MM-DD')"
+}
+
+func (repo *ReleaseRepo) statsHourExpr() string {
+	if repo.db.Driver == "sqlite" {
+		return "CAST(substr(timestamp, 12, 2) AS INTEGER)"
+	}
+	return "EXTRACT(HOUR FROM timestamp)::int"
+}
+
+func (repo *ReleaseRepo) statsQueryRows(ctx context.Context, qb sq.SelectBuilder, scan func(rows *sql.Rows) error) error {
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := scan(rows); err != nil {
+			return errors.Wrap(err, "error scanning row")
+		}
+	}
+
+	return errors.Wrap(rows.Err(), "error rows")
+}
+
+func (repo *ReleaseRepo) StatsActivity(ctx context.Context, days int) (*domain.ReleaseActivityStats, error) {
+	window := repo.statsWindow(days)
+
+	daily := map[string]*domain.ReleaseActivityDaily{}
+	bucket := func(day string) *domain.ReleaseActivityDaily {
+		if b, ok := daily[day]; ok {
+			return b
+		}
+		b := &domain.ReleaseActivityDaily{Date: day}
+		daily[day] = b
+		return b
+	}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "COUNT(*)").From("release").GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day sql.NullString
+			var count int64
+			if err := rows.Scan(&day, &count); err != nil {
+				return err
+			}
+			if day.Valid {
+				bucket(day.String).MatchedCount = count
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "status", "COUNT(*)").From("release_action_status").GroupBy("1", "2"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day, status sql.NullString
+			var count int64
+			if err := rows.Scan(&day, &status, &count); err != nil {
+				return err
+			}
+			if !day.Valid {
+				return nil
+			}
+			switch domain.ReleasePushStatus(status.String) {
+			case domain.ReleasePushStatusApproved:
+				bucket(day.String).PushApprovedCount = count
+			case domain.ReleasePushStatusRejected:
+				bucket(day.String).PushRejectedCount = count
+			case domain.ReleasePushStatusErr:
+				bucket(day.String).PushErrorCount = count
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseActivityStats{Days: days, Daily: []domain.ReleaseActivityDaily{}}
+	for _, day := range window.dates(minDateKey(daily)) {
+		if b, ok := daily[day]; ok {
+			stats.Daily = append(stats.Daily, *b)
+		} else {
+			stats.Daily = append(stats.Daily, domain.ReleaseActivityDaily{Date: day})
+		}
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsVolume(ctx context.Context, days int) (*domain.ReleaseVolumeStats, error) {
+	window := repo.statsWindow(days)
+
+	daily := map[string]*domain.ReleaseVolumeDaily{}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "SUM(size)").From("release").
+			Where(sq.Expr("id IN (SELECT DISTINCT release_id FROM release_action_status WHERE status = ?)", string(domain.ReleasePushStatusApproved))).
+			GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day sql.NullString
+			var size sql.NullInt64
+			if err := rows.Scan(&day, &size); err != nil {
+				return err
+			}
+			if day.Valid {
+				daily[day.String] = &domain.ReleaseVolumeDaily{Date: day.String, DownloadedBytes: size.Int64}
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseVolumeStats{Days: days, Daily: []domain.ReleaseVolumeDaily{}}
+	for _, day := range window.dates(minDateKey(daily)) {
+		if b, ok := daily[day]; ok {
+			stats.Daily = append(stats.Daily, *b)
+		} else {
+			stats.Daily = append(stats.Daily, domain.ReleaseVolumeDaily{Date: day})
+		}
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsHeatmap(ctx context.Context, days int) (*domain.ReleaseHeatmapStats, error) {
+	window := repo.statsWindow(days)
+
+	stats := &domain.ReleaseHeatmapStats{Days: days, Heatmap: make([]int64, 7*24)}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", repo.statsHourExpr()+" AS hour", "COUNT(*)").From("release").GroupBy("1", "2"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day sql.NullString
+			var hour sql.NullInt64
+			var count int64
+			if err := rows.Scan(&day, &hour, &count); err != nil {
+				return err
+			}
+			if !day.Valid || !hour.Valid || hour.Int64 < 0 || hour.Int64 > 23 {
+				return nil
+			}
+			date, err := time.Parse("2006-01-02", day.String)
+			if err != nil {
+				return nil
+			}
+			stats.Heatmap[int64(date.Weekday())*24+hour.Int64] += count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error) {
+	window := repo.statsWindow(days)
+
+	indexers := map[string]*domain.ReleaseIndexerStats{}
+	bucket := func(name string) *domain.ReleaseIndexerStats {
+		if b, ok := indexers[name]; ok {
+			return b
+		}
+		b := &domain.ReleaseIndexerStats{Indexer: name}
+		indexers[name] = b
+		return b
+	}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("indexer", "COUNT(*)").From("release").
+			Where("indexer IS NOT NULL AND indexer != ''").GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).MatchedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("r.indexer", "COUNT(*)").From("release_action_status ras").
+			InnerJoin("release r ON r.id = ras.release_id").
+			Where(sq.Eq{"ras.status": string(domain.ReleasePushStatusApproved)}).
+			Where("r.indexer IS NOT NULL AND r.indexer != ''").
+			GroupBy("1"), "ras.timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).PushApprovedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseTopIndexersStats{Days: days, Top: []domain.ReleaseIndexerStats{}}
+	for _, b := range indexers {
+		stats.Top = append(stats.Top, *b)
+	}
+	slices.SortFunc(stats.Top, func(a, b domain.ReleaseIndexerStats) int {
+		if c := cmp.Compare(b.PushApprovedCount, a.PushApprovedCount); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(b.MatchedCount, a.MatchedCount); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Indexer, b.Indexer)
+	})
+	if len(stats.Top) > 10 {
+		stats.Top = stats.Top[:10]
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error) {
+	window := repo.statsWindow(days)
+
+	filters := map[string]*domain.ReleaseFilterStats{}
+	bucket := func(name string) *domain.ReleaseFilterStats {
+		if b, ok := filters[name]; ok {
+			return b
+		}
+		b := &domain.ReleaseFilterStats{Filter: name}
+		filters[name] = b
+		return b
+	}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("filter", "COUNT(*)").From("release").
+			Where("filter IS NOT NULL AND filter != ''").GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).MatchedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("filter", "COUNT(*)").From("release_action_status").
+			Where(sq.Eq{"status": string(domain.ReleasePushStatusApproved)}).
+			Where("filter IS NOT NULL AND filter != ''").
+			GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).PushApprovedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseTopFiltersStats{Days: days, Top: []domain.ReleaseFilterStats{}}
+	for _, b := range filters {
+		stats.Top = append(stats.Top, *b)
+	}
+	slices.SortFunc(stats.Top, func(a, b domain.ReleaseFilterStats) int {
+		if c := cmp.Compare(b.MatchedCount, a.MatchedCount); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(b.PushApprovedCount, a.PushApprovedCount); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Filter, b.Filter)
+	})
+	if len(stats.Top) > 10 {
+		stats.Top = stats.Top[:10]
+	}
+
+	return stats, nil
 }
 
 func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {

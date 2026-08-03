@@ -475,6 +475,9 @@ CREATE INDEX release_cut_index
 CREATE INDEX release_hybrid_index
     ON "release" (hybrid);
 
+CREATE INDEX release_filter_status_index
+    ON "release" (filter_status);
+
 CREATE TABLE release_action_status
 (
     id         INTEGER PRIMARY KEY,
@@ -501,6 +504,9 @@ CREATE TABLE release_action_status
 
 CREATE INDEX release_action_status_status_index
     ON release_action_status (status);
+
+CREATE INDEX release_action_status_timestamp_status_index
+    ON release_action_status (timestamp, status);
 
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);

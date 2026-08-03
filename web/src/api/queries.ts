@@ -156,12 +156,60 @@ export const ReleasesLatestQueryOptions = () =>
     refetchInterval: 15000  // refetch recent activity table on dashboard page every 15s
   });
 
+// Dashboard widget queries contain failures in their own card: no throw to
+// the route error boundary (the global default) and only quick retries so
+// the widget's error state appears in seconds instead of minutes. The
+// expired-cookie error must not retry so the login redirect stays prompt.
+const widgetQueryDefaults = {
+  placeholderData: keepPreviousData,
+  staleTime: 5000,
+  refetchOnWindowFocus: true,
+  refetchInterval: 15000,
+  throwOnError: false,
+  retry: (failureCount: number, error: Error) =>
+    error.message !== "Cookie expired or invalid." && failureCount < 2
+};
+
 export const ReleasesStatsQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.stats(),
     queryFn: () => APIClient.release.stats(),
-    refetchOnWindowFocus: true,
-    refetchInterval: 15000  // refetch stats on dashboard page every 15s
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesActivityQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsActivity(days),
+    queryFn: () => APIClient.release.statsActivity(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesVolumeQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsVolume(days),
+    queryFn: () => APIClient.release.statsVolume(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesHeatmapQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsHeatmap(days),
+    queryFn: () => APIClient.release.statsHeatmap(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesTopIndexersQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsTopIndexers(days),
+    queryFn: () => APIClient.release.statsTopIndexers(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesTopFiltersQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsTopFilters(days),
+    queryFn: () => APIClient.release.statsTopFilters(days),
+    ...widgetQueryDefaults
   });
 
 // ReleasesIndexersQueryOptions get basic list of used indexers by identifier
