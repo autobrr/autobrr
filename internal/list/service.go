@@ -129,7 +129,12 @@ func (s *Service) Update(ctx context.Context, list *domain.List) error {
 
 	existingList, err := s.FindByID(ctx, list.ID)
 	if err != nil {
-		s.log.Error().Err(err).Int64("list_id", list.ID).Msg("could not find list by id")
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			s.log.Error().Err(err).Int64("list_id", list.ID).Msg("could not find list by id")
+		} else {
+			s.log.Error().Err(err).Int64("list_id", list.ID).Msg("could not get list by id")
+		}
+
 		return err
 	}
 
