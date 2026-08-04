@@ -9,6 +9,3 @@ ALTER TABLE feed
 
 ALTER TABLE feed
     ADD COLUMN cookie TEXT;
-    
-ALTER TABLE feed
-    ADD COLUMN user_agent TEXT;
