@@ -59,6 +59,10 @@
       "label": "Readarr",
       "description": "Send to Readarr and let it decide"
     },
+    "SPORTARR": {
+      "label": "Sportarr",
+      "description": "Send to Sportarr and let it decide"
+    },
     "SABNZBD": {
       "label": "SABnzbd",
       "description": "Add nzbs directly to SABnzbd"
@@ -136,6 +140,10 @@
     "READARR": {
       "label": "Readarr",
       "description": "Send to Readarr and let it decide"
+    },
+    "SPORTARR": {
+      "label": "Sportarr",
+      "description": "Send to Sportarr and let it decide"
     },
     "SABNZBD": {
       "label": "SABnzbd",

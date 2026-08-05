@@ -392,6 +392,8 @@
         "maxAgeHelp": "Maximální věk obsahu kanálu v sekundách. Použijte 0 k vypnutí filtru věku a zpracování všech položek.",
         "cookie": "Cookie",
         "cookieHelp": "Ne často používané",
+        "userAgent": "User-Agent",
+        "userAgentHelp": "Vlastní User-Agent pro RSS požadavky. Použijte, když Cloudflare cookies vyžadují odpovídající User-Agent (např. z byparr)",
         "categoriesTitle": "Kategorie",
         "categoriesDescription": "Stáhnout dostupné kategorie a vybrat, co má být zahrnuto.",
         "fetch": "Stáhnout",

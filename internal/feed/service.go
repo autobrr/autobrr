@@ -138,6 +138,10 @@ func (s *Service) GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCa
 }
 
 func (s *Service) Store(ctx context.Context, feed *domain.Feed) error {
+	if err := feed.Validate(); err != nil {
+		return err
+	}
+
 	return s.repo.Store(ctx, feed)
 }
 
@@ -170,6 +174,10 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) update(ctx context.Context, feed *domain.Feed) error {
+	if err := feed.Validate(); err != nil {
+		return err
+	}
+
 	existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not find feed")
@@ -274,6 +282,10 @@ func (s *Service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 }
 
 func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
+	if err := feed.Validate(); err != nil {
+		return err
+	}
+
 	existingFeed, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feed.ID})
 	if err != nil {
 		s.log.Error().Err(err).Int("feed_id", feed.ID).Msg("could not find feed")
@@ -329,7 +341,7 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 }
 
 func (s *Service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie, feed.TLSSkipVerify)
+	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie, feed.UserAgent, feed.TLSSkipVerify)
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {

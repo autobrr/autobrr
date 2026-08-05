@@ -55,6 +55,7 @@ type actionService interface {
 
 type indexerService interface {
 	FindByFilterID(ctx context.Context, filterID int) ([]domain.Indexer, error)
+	List(ctx context.Context) ([]domain.Indexer, error)
 }
 
 type indexerAPIService interface {
@@ -243,6 +244,11 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
+		return err
+	}
+
 	// update
 	err = s.repo.Update(ctx, filter)
 	if err != nil {
@@ -283,6 +289,33 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	return nil
 }
 
+// validateIndexers rejects indexers that do not exist. The database cannot be
+// relied on for this: SQLite runs without foreign key enforcement for legacy
+// reasons, so unknown ids would otherwise be stored as orphaned connections.
+func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexer) error {
+	if len(indexers) == 0 {
+		return nil
+	}
+
+	existing, err := s.indexerSvc.List(ctx)
+	if err != nil {
+		return err
+	}
+
+	existingIDs := make(map[int64]struct{}, len(existing))
+	for _, indexer := range existing {
+		existingIDs[indexer.ID] = struct{}{}
+	}
+
+	for _, indexer := range indexers {
+		if _, ok := existingIDs[indexer.ID]; !ok {
+			return errors.Wrap(domain.ErrIndexerNotFound, "indexer with id %d does not exist", indexer.ID)
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
 	// cleanup
 	if filter.Shows != nil {
@@ -291,6 +324,13 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		clean = strings.ReplaceAll(clean, ",,", ",")
 
 		filter.Shows = &clean
+	}
+
+	if filter.Indexers != nil {
+		if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
+			return err
+		}
 	}
 
 	// update

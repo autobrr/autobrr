@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
+	"github.com/autobrr/autobrr/pkg/arr/sportarr"
 	"github.com/autobrr/autobrr/pkg/arr/whisparr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/nzbget"
@@ -65,6 +66,9 @@ func (s *Service) testConnection(ctx context.Context, client domain.DownloadClie
 
 	case domain.DownloadClientTypeReadarr:
 		return s.testReadarrConnection(ctx, client)
+
+	case domain.DownloadClientTypeSportarr:
+		return s.testSportarrConnection(ctx, client)
 
 	case domain.DownloadClientTypeSabnzbd:
 		return s.testSabnzbdConnection(ctx, client)
@@ -258,6 +262,34 @@ func (s *Service) testRadarrConnection(ctx context.Context, client domain.Downlo
 	}
 
 	s.log.Debug().Msg("test client connection for Radarr: success")
+
+	return nil
+}
+
+func (s *Service) testSportarrConnection(ctx context.Context, client domain.DownloadClient) error {
+	r := sportarr.New(sportarr.Config{
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
+	})
+
+	status, err := r.Test(ctx)
+	if err != nil {
+		return errors.Wrap(err, "sportarr: connection test failed: %v", client.Host)
+	}
+
+	// The native release/push route ships with 4.0.1024; older versions
+	// answer system/status fine but 404 the push, so fail the test early
+	// with an actionable message instead of failing on the first release.
+	if !status.SupportsNativeAPI() {
+		return errors.New("sportarr: version %s is too old, autobrr needs Sportarr %s or newer", status.Version, sportarr.MinimumVersion)
+	}
+
+	s.log.Debug().Str("version", status.Version).Msg("test client connection for Sportarr: success")
 
 	return nil
 }

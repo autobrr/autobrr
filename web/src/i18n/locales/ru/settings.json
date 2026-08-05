@@ -392,6 +392,8 @@
       "maxAgeHelp": "Максимальный возраст в секундах (0 = без фильтра).",
       "cookie": "Cookie",
       "cookieHelp": "Редко используется",
+      "userAgent": "User-Agent",
+      "userAgentHelp": "Пользовательский User-Agent для RSS-запросов. Используйте, если куки Cloudflare требуют совпадающий User-Agent (например от byparr)",
       "categoriesTitle": "Категории",
       "categoriesDescription": "Получить и выбрать категории.",
       "fetch": "Получить",
