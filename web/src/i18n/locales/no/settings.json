@@ -392,6 +392,8 @@
       "maxAgeHelp": "Maksimum alder på feedinnhold i sekunder. Bruk 0 for å deaktivere aldersfilteret og behandle alle elementer.",
       "cookie": "Informasjonskapsel (Cookie)",
       "cookieHelp": "Brukes vanligvis ikke",
+      "userAgent": "User-Agent",
+      "userAgentHelp": "Egendefinert User-Agent for RSS-forespørsler. Bruk når Cloudflare-cookies krever samsvarende User-Agent (f.eks. fra byparr)",
       "categoriesTitle": "Kategorier",
       "categoriesDescription": "Hent tilgjengelige kategorier og velg hva som skal inkluderes.",
       "fetch": "Hent",

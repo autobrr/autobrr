@@ -535,6 +535,7 @@ CREATE TABLE feed
     capabilities    JSON      DEFAULT '{}'::json NOT NULL,
     api_key         TEXT,
     cookie          TEXT,
+    user_agent      TEXT,
     tls_skip_verify BOOLEAN DEFAULT FALSE,
     settings        TEXT,
     indexer_id      INTEGER,

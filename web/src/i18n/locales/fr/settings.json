@@ -392,6 +392,8 @@
       "maxAgeHelp": "Âge maximum du contenu du feed en secondes. Utiliser 0 pour désactiver le filtre d'âge et traiter tous les éléments.",
       "cookie": "Cookie",
       "cookieHelp": "Rarement utilisé",
+      "userAgent": "User-Agent",
+      "userAgentHelp": "User-Agent personnalisé pour les requêtes RSS. À utiliser lorsque les cookies Cloudflare nécessitent un User-Agent correspondant (par exemple de byparr)",
       "categoriesTitle": "Catégories",
       "categoriesDescription": "Récupérer les catégories disponibles et sélectionner celles à inclure.",
       "fetch": "Récupérer",

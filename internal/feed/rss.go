@@ -371,6 +371,9 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	if j.Feed.Cookie != "" {
 		rls.RawCookie = j.Feed.Cookie
 	}
+	if j.Feed.UserAgent != "" {
+		rls.UserAgent = j.Feed.UserAgent
+	}
 
 	return rls
 }
@@ -379,7 +382,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 	ctx, cancel := context.WithTimeout(ctx, j.Timeout)
 	defer cancel()
 
-	feedParser := NewFeedParser(j.Timeout, j.Feed.Cookie, j.Feed.TLSSkipVerify)
+	feedParser := NewFeedParser(j.Timeout, j.Feed.Cookie, j.Feed.UserAgent, j.Feed.TLSSkipVerify)
 
 	if j.Feed.UseProxy && j.Feed.Proxy != nil {
 		proxyClient, err := proxy.GetProxiedHTTPClient(j.Feed.Proxy)
