@@ -105,7 +105,7 @@ type Release struct {
 	PreTime                            string                `json:"pre_time"`
 	Other                              []string              `json:"-"`
 	RawCookie                          string                `json:"-"`
-	UserAgent						   string                `json:"-"`
+	UserAgent                          string                `json:"-"`
 	Seeders                            int                   `json:"-"`
 	Leechers                           int                   `json:"-"`
 	AdditionalSizeCheckRequired        bool                  `json:"-"`
