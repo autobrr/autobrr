@@ -44,12 +44,12 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-    - name: invite_command
-      type: secret
-      default: "erica letmeinannounce USERNAME IRCKEY"
-      required: true
-      label: Invite command
-      help: Invite auth with Erica, please replace USERNAME and IRCKEY.
+#    - name: invite_command
+#      type: secret
+#      default: "erica letmeinannounce USERNAME IRCKEY"
+#      required: true
+#      label: Invite command
+#      help: Invite auth with Erica, please replace USERNAME and IRCKEY.
 
   channels:
     - name: "#torrentbytes-announce"
