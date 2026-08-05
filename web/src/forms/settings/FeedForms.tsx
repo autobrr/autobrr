@@ -290,7 +290,7 @@ function FormFieldsRSS() {
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
 
       <PasswordFieldWide name="cookie" label={t("forms.feed.cookie")} help={t("forms.feed.cookieHelp")} />
-      
+
       <TextFieldWide name="user_agent" label={t("forms.feed.userAgent")} help={t("forms.feed.userAgentHelp")} />
     </div>
   );

@@ -71,7 +71,6 @@ func (c *RSSParser) ParseURLWithContext(ctx context.Context, feedURL string) (fe
 		return nil, err
 	}
 
-	// Use custom user-agent if provided, otherwise fall back to Gofeed
 	userAgent := c.userAgent
 	if userAgent == "" {
 		userAgent = "Gofeed/1.0"

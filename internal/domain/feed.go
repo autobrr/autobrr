@@ -8,8 +8,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
 	"github.com/autobrr/autobrr/pkg/torznab"
+
+	"golang.org/x/net/http/httpguts"
 )
 
 type Feed struct {
@@ -40,6 +43,15 @@ type Feed struct {
 	ProxyID  int64  `json:"-"`
 	UseProxy bool   `json:"-"`
 	Proxy    *Proxy `json:"-"`
+}
+
+// Validate rejects field values that would make every feed request fail at the transport layer.
+func (f Feed) Validate() error {
+	if !httpguts.ValidHeaderFieldValue(f.UserAgent) {
+		return errors.New("user agent must not contain control characters")
+	}
+
+	return nil
 }
 
 func (f Feed) MarshalJSON() ([]byte, error) {
