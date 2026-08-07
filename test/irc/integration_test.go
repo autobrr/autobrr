@@ -113,6 +113,45 @@ func TestNoneAuthWithLeftoverPasswordSkipsNickServ(t *testing.T) {
 	}
 }
 
+// TestNoneAuthIgnoresImpostorNickServ is the end-to-end guard for the stored
+// credentials of a mechanism NONE network. On a network without services the
+// nick "NickServ" is unregistered and free for anyone to take, so a hostile user
+// can send whatever a real service would. Neither the notice that triggers the
+// account-qualified IDENTIFY retry (which carries the password) nor a bogus
+// rejection may have any effect.
+func TestNoneAuthIgnoresImpostorNickServ(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#none", ircd.Announcer("ann"))
+	impostor := srv.AddBot("NickServ", nil)
+
+	def := harness.MinimalDefinition("none", "#none", "ann")
+	auth := harness.None()
+	auth.Account = "autobrr_acct"
+	auth.Password = "leftover"
+	net := harness.Network(srv, "autobrr", auth, harness.Channel("#none"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#none", 10*time.Second)
+
+	// bait the IDENTIFY escalation, then bait the network-stopping branch
+	impostor.Notice("autobrr", "Nick autobrr isn't registered.")
+	impostor.Notice("autobrr", "Password incorrect.")
+
+	// the announce path must still work, which also gives the notices time to land
+	srv.Announce("#none", "ann", "New torrent: Some.Release.2024.1080p.BluRay.x264-GRP in Movies")
+	if _, ok := inst.Releases.Wait(5 * time.Second); !ok {
+		t.Fatal("no release produced after the impostor notices")
+	}
+
+	if got := srv.NickServMessageCount(); got != 0 {
+		t.Fatalf("impostor elicited %d message(s) to NickServ; stored credentials must never be sent on a NONE network", got)
+	}
+
+	if inst.Handler.Stopped() {
+		t.Fatal("an impostor NickServ must not be able to stop the network")
+	}
+}
+
 // TestBannedStopsAndSurfacesReason verifies end to end that a server ban (465
 // ERR_YOUREBANNEDCREEP, e.g. a G-Line) stops the network and surfaces the ban
 // reason to the UI via a network-level HEALTH event, rather than reconnecting into
@@ -162,6 +201,31 @@ func TestBannedAtRegistrationAbortsReconnectFast(t *testing.T) {
 	if !inst.Handler.Stopped() {
 		t.Fatal("handler should be stopped after a connect-time ban")
 	}
+}
+
+// TestPreRegistrationErrorsStopNetwork is the end-to-end guard for the reconnect
+// hammering the circuit breaker exists to stop, on the path that is easiest to
+// miss: a server refusing us BEFORE registration completes. Those connections
+// never reach the disconnect callback, so the ERROR line is the only signal, and
+// without it the client would keep reconnecting every 15s indefinitely. The
+// network must stop and surface the server's own reason.
+func TestPreRegistrationErrorsStopNetwork(t *testing.T) {
+	const reason = "Trying to reconnect too fast."
+
+	// more refusals than the breaker's threshold, delivered on one connection so
+	// the test does not wait out a reconnect cycle per refusal
+	srv := ircd.New(t, ircd.ErrorBeforeRegistration(reason, 10))
+	srv.AddChannel("#none", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("none", "#none", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#none"))
+
+	// tripping the breaker stops the handler mid-connect, so Run reports the
+	// aborted connection
+	inst := harness.Start(t, net, harness.Defs(def), harness.Options{AllowRunError: true})
+
+	inst.WaitForNetworkError(reason, 10*time.Second)
+	inst.WaitForStopped(10 * time.Second)
 }
 
 // ---- kick

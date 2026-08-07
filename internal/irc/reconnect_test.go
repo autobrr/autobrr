@@ -274,6 +274,102 @@ func TestLongSessionResetsFlappingCount(t *testing.T) {
 	}
 }
 
+// serverError delivers an ERROR line from the server, the way one arrives when
+// the link is refused before registration completes.
+func serverError(h *Handler, reason string) {
+	h.handleServerError(ircmsg.Message{Command: "ERROR", Params: []string{reason}})
+}
+
+// TestPreRegistrationErrorsTripBreaker covers the blind spot the disconnect
+// callback cannot see: irc-go runs it only for connections that finished
+// registering, so a server that throttles us before 001 ("Trying to reconnect
+// too fast") produces no disconnect event at all while Loop() keeps retrying
+// every 15s forever. The ERROR line has to feed the breaker for the network to
+// ever stop, and the server's own explanation is the most useful reason to show.
+func TestPreRegistrationErrorsTripBreaker(t *testing.T) {
+	const reason = "Trying to reconnect too fast."
+
+	h, _ := newTestHandler()
+
+	for range flappingStopThreshold - 1 {
+		serverError(h, reason)
+		if h.Stopped() {
+			t.Fatal("breaker tripped before reaching the threshold")
+		}
+	}
+
+	serverError(h, reason)
+
+	if !h.Stopped() {
+		t.Fatal("expected repeated pre-registration refusals to stop the network")
+	}
+
+	if !hasConnectError(h, reason) {
+		t.Errorf("expected the server's own reason to be surfaced, got %v", h.connectionErrors)
+	}
+}
+
+// TestServerErrorAfterRegistrationLeftToDisconnect prevents double counting: a
+// server closing an established link commonly sends ERROR *and* triggers the
+// disconnect callback, which would otherwise advance the streak twice for one
+// session.
+func TestServerErrorAfterRegistrationLeftToDisconnect(t *testing.T) {
+	h, _ := newTestHandler()
+
+	h.m.Lock()
+	h.connectedSince = time.Now().Add(-time.Second)
+	h.m.Unlock()
+
+	serverError(h, "Closing link: (ping timeout)")
+
+	h.m.RLock()
+	count := h.consecutiveShortSessions
+	h.m.RUnlock()
+
+	if count != 0 {
+		t.Errorf("registered session must be accounted by onDisconnect only, got count %d", count)
+	}
+}
+
+// TestServerErrorOnManualStopIgnored keeps our own QUIT out of the breaker:
+// most servers answer it with an ERROR line.
+func TestServerErrorOnManualStopIgnored(t *testing.T) {
+	h, _ := newTestHandler()
+	h.m.Lock()
+	h.clientState = ircStopped
+	h.m.Unlock()
+
+	for range flappingStopThreshold + 1 {
+		serverError(h, "Closing link: (Quit: bye from autobrr)")
+	}
+
+	if hasConnectError(h, "connection flapping") {
+		t.Errorf("our own quit must not trip the breaker, got %v", h.connectionErrors)
+	}
+}
+
+// TestMixedFailureModesShareOneStreak verifies the two feeds are one breaker: a
+// server that alternates between refusing us early and dropping us just after
+// registration must still be counted as flapping.
+func TestMixedFailureModesShareOneStreak(t *testing.T) {
+	h, _ := newTestHandler()
+
+	serverError(h, "Trying to reconnect too fast.")
+	disconnectAfter(h, time.Second)
+	serverError(h, "Trying to reconnect too fast.")
+	disconnectAfter(h, time.Second)
+
+	if h.Stopped() {
+		t.Fatal("breaker tripped before reaching the threshold")
+	}
+
+	serverError(h, "Trying to reconnect too fast.")
+
+	if !h.Stopped() {
+		t.Fatal("expected mixed early refusals and short sessions to share one streak")
+	}
+}
+
 // TestManualStopDoesNotCountTowardFlapping keeps user-initiated stops and
 // restarts out of the breaker: only disconnects the server forced on us count.
 func TestManualStopDoesNotCountTowardFlapping(t *testing.T) {

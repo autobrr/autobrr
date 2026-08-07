@@ -60,14 +60,21 @@ const (
 
 // Flapping circuit breaker: the irc-go client reconnects from inside Loop()
 // every ReconnectFreq (15s) with no attempt cap or backoff growth, so a server
-// that keeps killing us shortly after registration would otherwise be
-// reconnected to forever, hammering the ircd at ~4 connects/minute until the
-// user notices. A session shorter than flappingSessionMinLifetime counts toward
+// that keeps refusing or dropping us would otherwise be reconnected to forever,
+// hammering the ircd at ~4 connects/minute until the user notices. A connection
+// that fails or lasts less than flappingSessionMinLifetime counts toward
 // flappingStopThreshold; reaching it stops the network and surfaces the reason,
-// and a longer session resets the count. This only guards the post-registration
-// path: irc-go runs disconnect callbacks solely for registered connections, so
-// registration-time failures are bounded by the Run() retry cap and the in-band
-// fatal handlers (SASL fail, 465, TLS) instead.
+// while a session that lives longer clears the count.
+//
+// Two paths feed it, because irc-go runs the disconnect callback only for
+// connections that finished registering: onDisconnect covers registered
+// sessions, and handleServerError covers a server that rejects us earlier with
+// an ERROR line (the usual "reconnecting too fast" throttle). Note that Loop()'s
+// reconnects never pass back through Run(), so its 25-attempt retry cap bounds
+// only the very first connect. A pre-registration failure that is entirely
+// silent - a TCP reset or timeout with no ERROR line - therefore still retries
+// indefinitely; bounding that too would mean replacing Loop() with our own
+// reconnect loop.
 const (
 	flappingSessionMinLifetime = 30 * time.Second
 	flappingStopThreshold      = 5
@@ -418,6 +425,10 @@ func (h *Handler) Run() (err error) {
 	// the server has banned us (K-Line/G-Line); stop and surface the reason
 	client.AddCallback(ircevent.ERR_YOUREBANNEDCREEP, h.handleBanned) // 465
 
+	// the server is closing the link and saying why; the pre-registration case
+	// is invisible to the disconnect callback, so the breaker counts it here
+	client.AddCallback("ERROR", h.handleServerError)
+
 	// surface failed JOIN attempts on the affected channel
 	client.AddCallback(ircevent.ERR_CHANNELISFULL, h.handleJoinError)  // 471
 	client.AddCallback(ircevent.ERR_INVITEONLYCHAN, h.handleJoinError) // 473
@@ -694,39 +705,14 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 	manuallyDisconnected := h.clientState == ircStopped
 	networkName := h.network.Name
 
-	flapping := false
-	if !manuallyDisconnected {
-		if sessionLifetime < flappingSessionMinLifetime {
-			h.consecutiveShortSessions++
-		} else {
-			h.consecutiveShortSessions = 0
-		}
-
-		if h.consecutiveShortSessions >= flappingStopThreshold {
-			flapping = true
-			h.consecutiveShortSessions = 0
-		}
-	}
-
 	h.m.Unlock()
 
 	// reset channels monitored status and channel state machines so they
 	// rejoin cleanly on reconnect instead of getting stuck in Monitoring
 	h.resetChannelState()
 
-	if flapping {
-		errMsg := fmt.Sprintf("connection flapping: %d consecutive sessions lasted under %s; network stopped to avoid hammering the server - fix the underlying issue, then restart the network", flappingStopThreshold, flappingSessionMinLifetime)
-		h.log.Error().Int("sessions", flappingStopThreshold).Dur("min_lifetime", flappingSessionMinLifetime).Msg("connection flapping; stopping network")
-
-		h.addConnectError(errMsg)
-
-		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
-			Subject: "IRC network stopped",
-			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections", networkName),
-		})
-
-		h.stateMachine.OnError(errMsg)
-		h.Stop()
+	if !manuallyDisconnected && h.noteSessionEnded(sessionLifetime) {
+		h.tripFlappingBreaker("")
 		return
 	}
 
@@ -739,6 +725,87 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 	}
 
 	h.stateMachine.OnDisconnected()
+}
+
+// noteSessionEnded records the outcome of one connection attempt and reports
+// whether it completed a flapping streak. A session that reached
+// flappingSessionMinLifetime proves the connection can hold and clears the
+// streak, so only genuinely repeated failures trip the breaker.
+func (h *Handler) noteSessionEnded(lifetime time.Duration) bool {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	if lifetime >= flappingSessionMinLifetime {
+		h.consecutiveShortSessions = 0
+		return false
+	}
+
+	h.consecutiveShortSessions++
+	if h.consecutiveShortSessions < flappingStopThreshold {
+		return false
+	}
+
+	h.consecutiveShortSessions = 0
+
+	return true
+}
+
+// tripFlappingBreaker stops the network after repeated failed connections and
+// surfaces why. serverReason is the server's own explanation when it gave one
+// (an ERROR line), otherwise empty.
+func (h *Handler) tripFlappingBreaker(serverReason string) {
+	errMsg := fmt.Sprintf("connection flapping: %d consecutive connections failed or lasted under %s; network stopped to avoid hammering the server - fix the underlying issue, then restart the network", flappingStopThreshold, flappingSessionMinLifetime)
+	if serverReason != "" {
+		errMsg = fmt.Sprintf("%s. Server said: %s", errMsg, serverReason)
+	}
+
+	h.log.Error().Int("attempts", flappingStopThreshold).Dur("min_lifetime", flappingSessionMinLifetime).Str("server_reason", serverReason).Msg("connection flapping; stopping network")
+
+	h.addConnectError(errMsg)
+
+	h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
+		Subject: "IRC network stopped",
+		Message: fmt.Sprintf("Network: %s stopped after repeated failed connections", h.GetNetwork().Name),
+	})
+
+	h.stateMachine.OnError(errMsg)
+	h.Stop()
+}
+
+// handleServerError handles an ERROR line, which is how a server explains why it
+// is closing the link - most importantly BEFORE registration completes
+// ("Trying to reconnect too fast", connection-limit and ban messages). Those
+// sessions never reach the disconnect callback (irc-go only runs it for
+// registered connections), so without counting them here the client would
+// reconnect every ReconnectFreq indefinitely, which is exactly the hammering the
+// breaker exists to stop. A registered session is left to onDisconnect so one
+// failure is never counted twice.
+func (h *Handler) handleServerError(msg ircmsg.Message) {
+	reason := ""
+	if n := len(msg.Params); n > 0 {
+		reason = strings.TrimSpace(msg.Params[n-1])
+	}
+
+	h.m.RLock()
+	manuallyDisconnected := h.clientState == ircStopped
+	registered := !h.connectedSince.IsZero()
+	h.m.RUnlock()
+
+	// servers commonly answer our own QUIT with an ERROR line
+	if manuallyDisconnected {
+		return
+	}
+
+	if registered {
+		// onDisconnect owns the accounting for a session that got this far
+		return
+	}
+
+	h.log.Warn().Str("reason", reason).Msg("server refused the connection before registration")
+
+	if h.noteSessionEnded(0) {
+		h.tripFlappingBreaker(reason)
+	}
 }
 
 // onNotice handles NOTICE events
@@ -758,6 +825,21 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	h.log.Trace().Interface("msg_params", msg.Params).Msg("NOTICE from nickserv")
 
 	if len(msg.Params) < 2 {
+		return
+	}
+
+	// We never identify on this network, so nothing sent by a nick calling itself
+	// NickServ is an answer to us. Ignoring it outright matters most on the very
+	// networks the user opted out of services for: nick registration is not
+	// enforced there, so anyone can take the nick and would otherwise be able to
+	// elicit an IDENTIFY (escalation sends the stored password) or stop the
+	// network with a bogus rejection.
+	h.m.RLock()
+	nickServEnabled := h.network.Auth.NickServEnabled()
+	h.m.RUnlock()
+
+	if !nickServEnabled {
+		h.log.Trace().Msg("ignoring nickserv notice: services authentication is not enabled for this network")
 		return
 	}
 
@@ -1767,7 +1849,9 @@ func (h *Handler) canEscalateIdentify(currentNick string) bool {
 		return false
 	}
 
-	if h.network.Auth.Account == "" || h.network.Auth.Password == "" {
+	// escalation sends the password, so it answers to the same gate as the first
+	// IDENTIFY: a network that does not use services must never emit one
+	if !h.network.Auth.NickServEnabled() || h.network.Auth.Account == "" {
 		return false
 	}
 

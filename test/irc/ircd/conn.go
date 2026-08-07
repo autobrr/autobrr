@@ -201,6 +201,14 @@ func (c *conn) tryRegister() {
 		return
 	}
 
+	// ERROR lines delivered before the welcome, the way a throttling server
+	// refuses a reconnect. The link is deliberately left open afterwards so the
+	// test can observe how the client accounts for them without waiting out a
+	// reconnect cycle per refusal; a real server sends one and closes here.
+	for range c.srv.preRegistrationErrorCount {
+		c.sendf("ERROR :%s", c.srv.preRegistrationError)
+	}
+
 	c.registered = true
 	c.srv.registerConn(c)
 

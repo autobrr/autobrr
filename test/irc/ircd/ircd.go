@@ -56,6 +56,11 @@ type Server struct {
 	banReason         string
 	banAtRegistration bool
 
+	// preRegistrationError, if set, is sent as ERROR lines just before the
+	// welcome burst - see ErrorBeforeRegistration.
+	preRegistrationError      string
+	preRegistrationErrorCount int
+
 	closed chan struct{}
 	wg     sync.WaitGroup
 }
@@ -79,6 +84,16 @@ func RequireValidSASL() Option {
 // in-session K-Line/G-Line. Use it to exercise the handler's ban handling.
 func Banned(reason string) Option {
 	return func(s *Server) { s.banReason = reason }
+}
+
+// ErrorBeforeRegistration makes the server send count ERROR lines carrying
+// reason just before completing registration, modelling a throttling server
+// ("Trying to reconnect too fast"). A real server sends one and closes the link;
+// repeating it on a single connection lets a test drive the client's
+// accounting of repeated refusals without waiting out count reconnect cycles,
+// which the client paces at 15s each.
+func ErrorBeforeRegistration(reason string, count int) Option {
+	return func(s *Server) { s.preRegistrationError = reason; s.preRegistrationErrorCount = count }
 }
 
 // BannedAtRegistration makes the server reject every client BEFORE registration

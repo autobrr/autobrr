@@ -131,6 +131,71 @@ func TestOnConnectedSkipsAuthenticatingWhenMechanismNone(t *testing.T) {
 	}
 }
 
+// TestNickServNoticesIgnoredWhenServicesDisabled is the regression test for the
+// escalation bypass: the IDENTIFY escalation is driven straight from a NOTICE,
+// so gating only the connect-time paths still let a nick calling itself NickServ
+// pull the stored password out of a network that opted out of services - on the
+// services-less networks where mechanism NONE is used, that nick is free for
+// anyone to take. A bogus rejection must not stop the network either.
+func TestNickServNoticesIgnoredWhenServicesDisabled(t *testing.T) {
+	auth := func(m domain.IRCAuthMechanism) domain.IRCAuth {
+		return domain.IRCAuth{Mechanism: m, Account: "test_bot", Password: "hunter2"}
+	}
+
+	tests := []struct {
+		name   string
+		auth   domain.IRCAuth
+		notice string
+	}{
+		{"escalation bait on none", auth(domain.IRCAuthMechanismNone), "Nick user_bot isn't registered."},
+		{"stop bait on none", auth(domain.IRCAuthMechanismNone), "Password incorrect."},
+		{"account bait on none", auth(domain.IRCAuthMechanismNone), "Nick user_bot isn't registered."},
+		{"escalation bait without a password", domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNickServ, Account: "test_bot"}, "Nick user_bot isn't registered."},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			h.network.Nick = "user_bot"
+			h.network.Auth = tt.auth
+
+			h.handleNickServ(nickServNotice("user_bot", tt.notice))
+
+			if h.identifyAttempt != identifyFormBare {
+				t.Errorf("credential leak: escalated to %q on a network that does not use services", h.identifyCommand())
+			}
+
+			if h.identifyEscalated {
+				t.Error("escalation must not be armed when services auth is disabled")
+			}
+
+			if h.Stopped() {
+				t.Error("an unsolicited nickserv notice must not stop the network")
+			}
+
+			if len(h.connectionErrors) != 0 {
+				t.Errorf("expected no connection errors, got %v", h.connectionErrors)
+			}
+		})
+	}
+}
+
+// TestCanEscalateIdentifyRequiresServicesAuth pins the predicate itself, so the
+// gate survives a future caller that reaches it by another route.
+func TestCanEscalateIdentifyRequiresServicesAuth(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.Nick = "user_bot"
+	h.network.Auth = domain.IRCAuth{
+		Mechanism: domain.IRCAuthMechanismNone,
+		Account:   "test_bot",
+		Password:  "hunter2",
+	}
+
+	if h.canEscalateIdentify("user_bot") {
+		t.Error("canEscalateIdentify must be false when the mechanism is NONE")
+	}
+}
+
 // TestNoticeAllowsIdentifyEscalation covers the verbatim replies of each
 // services package. The "no" cases matter most: escalating on a bad password
 // would loop, and escalating on success would be pointless.
