@@ -36,19 +36,19 @@ func NewFilterRepo(log zerolog.Logger, db *DB) *FilterRepo {
 
 const (
 	filterDownloadsSQLite = `SELECT
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', '-1 hour')) AS INTEGER) THEN release_id END) as "hour_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', '-1 day')) AS INTEGER) THEN release_id END) as "day_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', '-7 days')) AS INTEGER) THEN release_id END) as "week_count",
+	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', '-30 days')) AS INTEGER) THEN release_id END) as "month_count",
 	COUNT(DISTINCT release_id) as "total_count"
 FROM release_action_status
 WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = ?;`
 
 	filterDownloadsPG = `SELECT
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= NOW() - INTERVAL '1 hour' THEN release_id END) as "hour_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= NOW() - INTERVAL '1 day' THEN release_id END) as "day_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN release_id END) as "week_count",
+    COUNT(DISTINCT CASE WHEN timestamp >= NOW() - INTERVAL '30 days' THEN release_id END) as "month_count",
     COUNT(DISTINCT release_id) as "total_count"
 FROM release_action_status
 WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = $1;`

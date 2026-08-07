@@ -1052,6 +1052,64 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
 		})
 
+		t.Run(fmt.Sprintf("GetFilterDownloads_Rolling_Windows [%s]", dbType), func(t *testing.T) {
+			mockFilter := getMockFilter()
+			err := repo.Store(t.Context(), mockFilter)
+			assert.NoError(t, err)
+
+			mockClient := getMockDownloadClient()
+			err = downloadClientRepo.Store(t.Context(), &mockClient)
+			assert.NoError(t, err)
+
+			mockAction := getMockAction()
+			mockAction.FilterID = mockFilter.ID
+			mockAction.ClientID = mockClient.ID
+			err = actionRepo.Store(t.Context(), mockAction)
+			assert.NoError(t, err)
+
+			now := time.Now()
+			offsets := []time.Duration{
+				-30 * time.Minute,
+				-2 * time.Hour,
+				-2 * 24 * time.Hour,
+				-10 * 24 * time.Hour,
+				-35 * 24 * time.Hour,
+			}
+
+			for i, offset := range offsets {
+				mockRelease := getMockRelease()
+				mockRelease.FilterID = mockFilter.ID
+				mockRelease.TorrentName = fmt.Sprintf("Torrent %d", i)
+				err = releaseRepo.Store(t.Context(), mockRelease)
+				assert.NoError(t, err)
+
+				ras := getMockReleaseActionStatus()
+				ras.ActionID = int64(mockAction.ID)
+				ras.FilterID = int64(mockFilter.ID)
+				ras.ReleaseID = mockRelease.ID
+				ras.Timestamp = now.Add(offset)
+
+				err = releaseRepo.StoreReleaseActionStatus(t.Context(), ras)
+				assert.NoError(t, err)
+			}
+
+			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
+			assert.NoError(t, err)
+			assert.NotNil(t, mockFilter.Downloads)
+			assert.Equal(t, &domain.FilterDownloads{
+				HourCount:  1,
+				DayCount:   2,
+				WeekCount:  3,
+				MonthCount: 4,
+				TotalCount: 5,
+			}, mockFilter.Downloads)
+
+			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
+			_ = repo.Delete(t.Context(), mockFilter.ID)
+			_ = downloadClientRepo.Delete(t.Context(), mockClient.ID)
+			_ = releaseRepo.Delete(t.Context(), &domain.DeleteReleaseRequest{OlderThan: 0})
+		})
+
 		t.Run(fmt.Sprintf("GetFilterDownloads_No_Releases [%s]", dbType), func(t *testing.T) {
 			// Setup
 			mockFilter := getMockFilter()
