@@ -37,11 +37,12 @@ type Server struct {
 	tb testing.TB
 	ln net.Listener
 
-	mu       sync.Mutex
-	channels map[string]*Channel // lowercase name -> channel
-	bots     map[string]*Bot     // lowercase nick -> virtual bot
-	conns    map[string]*conn    // lowercase nick -> registered real connection
-	accounts map[string]string   // lowercase account -> password (SASL/NickServ)
+	mu           sync.Mutex
+	channels     map[string]*Channel // lowercase name -> channel
+	bots         map[string]*Bot     // lowercase nick -> virtual bot
+	conns        map[string]*conn    // lowercase nick -> registered real connection
+	accounts     map[string]string   // lowercase account -> password (SASL/NickServ)
+	nickservMsgs int                 // count of PRIVMSGs addressed to NickServ
 
 	// requireValidSASL rejects SASL logins that don't match a registered account.
 	// Off by default so tests that don't care about credentials just work.
@@ -190,6 +191,14 @@ func (s *Server) JoinCount(channel string) int {
 		return ch.joins
 	}
 	return 0
+}
+
+// NickServMessageCount returns how many PRIVMSGs any client has sent to
+// NickServ. Tests use it to assert that auth mechanism NONE produces none.
+func (s *Server) NickServMessageCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.nickservMsgs
 }
 
 // ChannelOption configures a channel.

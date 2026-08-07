@@ -53,6 +53,16 @@ func (ia IRCAuth) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// NickServEnabled reports whether NickServ identification is configured: a
+// password is set and the mechanism permits services auth (NICKSERV, or
+// SASL_PLAIN as the fallback when SASL does not complete). Mechanism NONE is an
+// explicit opt-out: a leftover password must not send IDENTIFY on networks
+// without services. An empty mechanism (rows written via the API without one)
+// keeps the historical password-only behavior.
+func (ia IRCAuth) NickServEnabled() bool {
+	return ia.Password != "" && ia.Mechanism != IRCAuthMechanismNone
+}
+
 type IrcNetwork struct {
 	ID               int64        `json:"id"`
 	Name             string       `json:"name"`

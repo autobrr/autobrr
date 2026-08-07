@@ -90,6 +90,29 @@ func TestNoneAuthJoinsDirectly(t *testing.T) {
 	inst.WaitForMonitoring("#none", 10*time.Second)
 }
 
+// TestNoneAuthWithLeftoverPasswordSkipsNickServ is the regression test for the
+// 2026-08 TorrentLeech ban wave: mechanism NONE with leftover credentials used
+// to send a NickServ IDENTIFY on every connect, because the fallback was gated
+// on password presence alone. The network must join and monitor without a
+// single message to NickServ.
+func TestNoneAuthWithLeftoverPasswordSkipsNickServ(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#none", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("none", "#none", "ann")
+	auth := harness.None()
+	auth.Account = "autobrr"
+	auth.Password = "leftover"
+	net := harness.Network(srv, "autobrr", auth, harness.Channel("#none"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#none", 10*time.Second)
+
+	if got := srv.NickServMessageCount(); got != 0 {
+		t.Fatalf("mechanism NONE must not message NickServ, got %d message(s)", got)
+	}
+}
+
 // TestBannedStopsAndSurfacesReason verifies end to end that a server ban (465
 // ERR_YOUREBANNEDCREEP, e.g. a G-Line) stops the network and surfaces the ban
 // reason to the UI via a network-level HEALTH event, rather than reconnecting into

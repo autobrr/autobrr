@@ -322,6 +322,9 @@ func (c *conn) handleMessage(msg ircmsg.Message, notice bool) {
 
 	// direct message: NickServ, a virtual bot, another client, or nobody
 	if strings.EqualFold(target, "NickServ") {
+		c.srv.mu.Lock()
+		c.srv.nickservMsgs++
+		c.srv.mu.Unlock()
 		c.handleNickServ(text)
 		return
 	}

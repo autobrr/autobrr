@@ -45,6 +45,92 @@ func withNickServAuth(h *Handler, account string) {
 	}
 }
 
+// TestAuthenticateGatesNickServOnMechanism verifies IDENTIFY is gated on the
+// auth mechanism, not on password presence alone: mechanism NONE with a
+// leftover password used to send IDENTIFY on every connect, spamming networks
+// without services (the 2026-08 TorrentLeech ban wave). authenticate() marks
+// the handler authenticated immediately when it decides not to IDENTIFY, while
+// the IDENTIFY path waits for NickServ's reply, so h.authenticated doubles as
+// the observable outcome.
+func TestAuthenticateGatesNickServOnMechanism(t *testing.T) {
+	tests := []struct {
+		name         string
+		auth         domain.IRCAuth
+		saslauthed   bool
+		wantIdentify bool
+	}{
+		{
+			name:         "none with leftover password",
+			auth:         domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNone, Password: "hunter2"},
+			wantIdentify: false,
+		},
+		{
+			name:         "nickserv",
+			auth:         domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNickServ, Password: "hunter2"},
+			wantIdentify: true,
+		},
+		{
+			name:         "sasl plain falls back when sasl did not complete",
+			auth:         domain.IRCAuth{Mechanism: domain.IRCAuthMechanismSASLPlain, Account: "test_bot", Password: "hunter2"},
+			wantIdentify: true,
+		},
+		{
+			name:         "sasl plain already authenticated over sasl",
+			auth:         domain.IRCAuth{Mechanism: domain.IRCAuthMechanismSASLPlain, Account: "test_bot", Password: "hunter2"},
+			saslauthed:   true,
+			wantIdentify: false,
+		},
+		{
+			name:         "empty mechanism keeps historical password-only behavior",
+			auth:         domain.IRCAuth{Password: "hunter2"},
+			wantIdentify: true,
+		},
+		{
+			name:         "nickserv without password",
+			auth:         domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNickServ},
+			wantIdentify: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			h.network.Auth = tt.auth
+			h.saslauthed = tt.saslauthed
+
+			h.authenticate()
+
+			if identified := !h.authenticated; identified != tt.wantIdentify {
+				t.Errorf("authenticate() took the IDENTIFY path = %v, want %v", identified, tt.wantIdentify)
+			}
+		})
+	}
+}
+
+// TestOnConnectedSkipsAuthenticatingWhenMechanismNone covers the state machine
+// entry point of the same gate: with mechanism NONE the connection must go
+// straight to joining channels instead of parking in Authenticating to wait for
+// a NickServ reply that never comes.
+func TestOnConnectedSkipsAuthenticatingWhenMechanismNone(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.Auth = domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNone, Password: "hunter2"}
+
+	h.stateMachine.OnConnected()
+
+	if state := h.stateMachine.GetState(); state == StateAuthenticating {
+		t.Error("expected mechanism NONE to skip the Authenticating state")
+	}
+
+	h2, _ := newTestHandler()
+	h2.network.Auth = domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNickServ, Password: "hunter2"}
+
+	h2.stateMachine.OnConnected()
+
+	if state := h2.stateMachine.GetState(); state != StateAuthenticating {
+		t.Errorf("expected mechanism NICKSERV to authenticate, got state %s", state)
+	}
+}
+
 // TestNoticeAllowsIdentifyEscalation covers the verbatim replies of each
 // services package. The "no" cases matter most: escalating on a bad password
 // would loop, and escalating on success would be pointless.

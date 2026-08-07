@@ -858,7 +858,7 @@ func (h *Handler) setBotMode() {
 // authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() {
 	h.m.RLock()
-	shouldSendNickserv := !h.authenticated && !h.saslauthed && h.network.Auth.Password != ""
+	shouldSendNickserv := !h.authenticated && !h.saslauthed && h.network.Auth.NickServEnabled()
 	h.m.RUnlock()
 
 	if shouldSendNickserv {
