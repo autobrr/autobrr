@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -195,6 +196,104 @@ func TestReconnectResetsChannelStateMachines(t *testing.T) {
 				t.Errorf("expected a STATE=Idle SSE event for %s on disconnect, got %+v", tt.channel, sseMock.stateEvents())
 			}
 		})
+	}
+}
+
+// disconnectAfter simulates an unexpected disconnect ending a session that
+// lived for the given duration. Zero models a session that died before the
+// connect time was recorded.
+func disconnectAfter(h *Handler, lifetime time.Duration) {
+	h.m.Lock()
+	if lifetime > 0 {
+		h.connectedSince = time.Now().Add(-lifetime)
+	} else {
+		h.connectedSince = time.Time{}
+	}
+	h.m.Unlock()
+
+	h.onDisconnect(ircmsg.Message{})
+}
+
+// TestFlappingConnectionsTripBreaker covers the circuit breaker: the irc-go
+// client reconnects every 15s forever, so a server that keeps killing us right
+// after registration must stop the network at the threshold instead of being
+// hammered indefinitely (the TorrentLeech 2026-08 ban-wave failure mode).
+func TestFlappingConnectionsTripBreaker(t *testing.T) {
+	tests := []struct {
+		name     string
+		lifetime time.Duration
+	}{
+		{"short sessions", 2 * time.Second},
+		{"connect time never recorded", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+
+			for i := 0; i < flappingStopThreshold; i++ {
+				if h.Stopped() {
+					t.Fatalf("network stopped after %d short sessions, want %d", i, flappingStopThreshold)
+				}
+				disconnectAfter(h, tt.lifetime)
+			}
+
+			if !h.Stopped() {
+				t.Fatal("expected the network to stop once the flapping threshold was reached")
+			}
+
+			if !hasConnectError(h, "connection flapping") {
+				t.Errorf("expected a flapping connection error, got %v", h.connectionErrors)
+			}
+		})
+	}
+}
+
+// TestLongSessionResetsFlappingCount verifies the consecutive requirement: a
+// session that lives past the threshold proves the connection can hold, so the
+// count starts over and ordinary occasional disconnects never accumulate.
+func TestLongSessionResetsFlappingCount(t *testing.T) {
+	h, _ := newTestHandler()
+
+	for range flappingStopThreshold - 1 {
+		disconnectAfter(h, time.Second)
+	}
+	disconnectAfter(h, 10*time.Minute)
+	for range flappingStopThreshold - 1 {
+		disconnectAfter(h, time.Second)
+	}
+
+	if h.Stopped() {
+		t.Fatal("breaker tripped although a long session broke the streak")
+	}
+
+	disconnectAfter(h, time.Second)
+
+	if !h.Stopped() {
+		t.Fatal("expected the network to stop on the next full streak of short sessions")
+	}
+}
+
+// TestManualStopDoesNotCountTowardFlapping keeps user-initiated stops and
+// restarts out of the breaker: only disconnects the server forced on us count.
+func TestManualStopDoesNotCountTowardFlapping(t *testing.T) {
+	h, _ := newTestHandler()
+	h.m.Lock()
+	h.clientState = ircStopped
+	h.m.Unlock()
+
+	for range flappingStopThreshold + 1 {
+		disconnectAfter(h, time.Second)
+	}
+
+	if hasConnectError(h, "connection flapping") {
+		t.Errorf("manual disconnects must not trip the breaker, got %v", h.connectionErrors)
+	}
+
+	h.m.RLock()
+	defer h.m.RUnlock()
+	if h.consecutiveShortSessions != 0 {
+		t.Errorf("consecutiveShortSessions = %d, want 0 for manual disconnects", h.consecutiveShortSessions)
 	}
 }
 

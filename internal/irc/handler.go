@@ -58,6 +58,21 @@ const (
 	ircLive                       // (Handler.client) is non-nil and valid
 )
 
+// Flapping circuit breaker: the irc-go client reconnects from inside Loop()
+// every ReconnectFreq (15s) with no attempt cap or backoff growth, so a server
+// that keeps killing us shortly after registration would otherwise be
+// reconnected to forever, hammering the ircd at ~4 connects/minute until the
+// user notices. A session shorter than flappingSessionMinLifetime counts toward
+// flappingStopThreshold; reaching it stops the network and surfaces the reason,
+// and a longer session resets the count. This only guards the post-registration
+// path: irc-go runs disconnect callbacks solely for registered connections, so
+// registration-time failures are bounded by the Run() retry cap and the in-band
+// fatal handlers (SASL fail, 465, TLS) instead.
+const (
+	flappingSessionMinLifetime = 30 * time.Second
+	flappingStopThreshold      = 5
+)
+
 // identifyForm is the argument form of the outstanding NickServ IDENTIFY.
 //
 // The bare form is the default because its failures are always loud and are
@@ -84,12 +99,13 @@ type Handler struct {
 	announceProcessors  map[string]announce.Processor
 	definitions         map[string]*domain.IndexerDefinition
 
-	client           *ircevent.Connection
-	clientState      ircState
-	connectedSince   time.Time
-	haveDisconnected bool
-	authenticated    bool
-	saslauthed       bool
+	client                   *ircevent.Connection
+	clientState              ircState
+	connectedSince           time.Time
+	haveDisconnected         bool
+	consecutiveShortSessions int
+	authenticated            bool
+	saslauthed               bool
 
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
@@ -413,6 +429,8 @@ func (h *Handler) Run() (err error) {
 	//h.setConnectionStatus()
 	h.m.Lock()
 	h.saslauthed = false
+	// a manual (re)start opens a fresh flapping window
+	h.consecutiveShortSessions = 0
 	h.client = client
 	h.resetIdentifyForm()
 	h.m.Unlock()
@@ -657,10 +675,14 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 
 	h.m.Lock()
 
-	// reset connectedSince
-	h.connectedSince = time.Time{}
+	// connectedSince can be zero if the session died before StateConnected's
+	// entry action recorded it; that is still a short session, not a long one
+	sessionLifetime := time.Duration(0)
+	if !h.connectedSince.IsZero() {
+		sessionLifetime = time.Since(h.connectedSince)
+	}
 
-	// reset authenticated
+	h.connectedSince = time.Time{}
 	h.authenticated = false
 
 	// a reconnect starts the identify ladder over: the nick we get back may
@@ -672,13 +694,42 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 	manuallyDisconnected := h.clientState == ircStopped
 	networkName := h.network.Name
 
+	flapping := false
+	if !manuallyDisconnected {
+		if sessionLifetime < flappingSessionMinLifetime {
+			h.consecutiveShortSessions++
+		} else {
+			h.consecutiveShortSessions = 0
+		}
+
+		if h.consecutiveShortSessions >= flappingStopThreshold {
+			flapping = true
+			h.consecutiveShortSessions = 0
+		}
+	}
+
 	h.m.Unlock()
 
 	// reset channels monitored status and channel state machines so they
 	// rejoin cleanly on reconnect instead of getting stuck in Monitoring
 	h.resetChannelState()
 
-	// check if we are responsible for disconnect
+	if flapping {
+		errMsg := fmt.Sprintf("connection flapping: %d consecutive sessions lasted under %s; network stopped to avoid hammering the server - fix the underlying issue, then restart the network", flappingStopThreshold, flappingSessionMinLifetime)
+		h.log.Error().Int("sessions", flappingStopThreshold).Dur("min_lifetime", flappingSessionMinLifetime).Msg("connection flapping; stopping network")
+
+		h.addConnectError(errMsg)
+
+		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
+			Subject: "IRC network stopped",
+			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections", networkName),
+		})
+
+		h.stateMachine.OnError(errMsg)
+		h.Stop()
+		return
+	}
+
 	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
 		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{

@@ -65,8 +65,9 @@ var validTransitions = map[ConnectionState][]ConnectionState{
 	// INVARIANT this relies on: every ConnectionStateMachine.OnError caller must tear
 	// the connection down (Handler.Stop()) so no channel JOIN can arrive afterwards
 	// and falsely climb the network back out of a real connection-level error. All
-	// current callers do (they are pre-authentication auth failures + Stop()). Do not
-	// add an OnError path that leaves the socket live without also gating this climb.
+	// current callers do (auth failures, bans, TLS failures and the flapping breaker,
+	// each followed by Stop()). Do not add an OnError path that leaves the socket
+	// live without also gating this climb.
 	StateError: {StateDisconnected, StateConnecting, StateFullyOperational, StatePartiallyOperational},
 }
 
