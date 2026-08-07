@@ -571,8 +571,6 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           nick: formData.irc.nick,
           auth: {
             mechanism: "NONE"
-            // account: formData.irc.auth.account,
-            // password: formData.irc.auth.password
           },
           invite_command: formData.irc.invite_command,
           channels: channels
@@ -580,7 +578,9 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
 
         if (formData.irc.auth) {
           if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
-            network.auth.mechanism = "SASL_PLAIN";
+            // definitions declare the mechanism their network supports; SASL_PLAIN
+            // (with its NickServ fallback) is the historical default when undeclared
+            network.auth.mechanism = ind.irc.auth?.mechanism ?? "SASL_PLAIN";
             network.auth.account = formData.irc.auth.account;
             network.auth.password = formData.irc.auth.password;
           }

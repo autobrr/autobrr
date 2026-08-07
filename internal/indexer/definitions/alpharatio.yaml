@@ -31,6 +31,8 @@ irc:
   server: irc.alpharatio.cc
   port: 7000
   tls: true
+  auth:
+    mechanism: NICKSERV
   settings:
     - name: nick
       type: text

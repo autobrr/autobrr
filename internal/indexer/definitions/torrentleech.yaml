@@ -30,6 +30,8 @@ irc:
   server: irc.torrentleech.org
   port: 7021
   tls: true
+  auth:
+    mechanism: NICKSERV
   settings:
     - name: nick
       type: text
@@ -41,13 +43,13 @@ irc:
       type: text
       required: false
       label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
+      help: OPTIONAL. NickServ account. Make sure to group your user and bot.
 
     - name: auth.password
       type: secret
       required: false
       label: NickServ Password
-      help: NickServ password
+      help: OPTIONAL. NickServ password
 
   channels:
     - name: "#tlannounces"

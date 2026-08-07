@@ -4,11 +4,19 @@
 package indexer
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/stretchr/testify/assert"
 )
+
+var validIRCAuthMechanisms = []domain.IRCAuthMechanism{
+	domain.IRCAuthMechanismNone,
+	domain.IRCAuthMechanismSASLPlain,
+	domain.IRCAuthMechanismNickServ,
+}
 
 func TestIndexerYamlExpectations(t *testing.T) {
 	t.Parallel()
@@ -22,6 +30,10 @@ func TestIndexerYamlExpectations(t *testing.T) {
 		}
 
 		t.Run(d.Name, func(t *testing.T) {
+			if d.IRC.Auth != nil {
+				assert.Contains(t, validIRCAuthMechanisms, d.IRC.Auth.Mechanism, "invalid irc auth mechanism %q", d.IRC.Auth.Mechanism)
+			}
+
 			for channelName, channel := range d.IRC.ChannelsMap {
 				for _, parseLine := range channel.Parse.Lines {
 					for _, test := range parseLine.Tests {
@@ -35,4 +47,92 @@ func TestIndexerYamlExpectations(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDefinitionIRCAuthMechanism verifies a definition-declared auth mechanism
+// survives YAML decoding in both formats, including the v1 compatibility
+// conversion, since the wizard reads it from the served definition.
+func TestDefinitionIRCAuthMechanism(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		yaml string
+		want domain.IRCAuthMechanism
+	}{
+		{
+			name: "v1 declared",
+			yaml: `---
+name: TestTracker
+identifier: testtracker
+implementation: irc
+irc:
+  network: Test.Net
+  server: irc.test.net
+  port: 6697
+  tls: true
+  auth:
+    mechanism: NICKSERV
+`,
+			want: domain.IRCAuthMechanismNickServ,
+		},
+		{
+			name: "v2 declared",
+			yaml: `---
+version: 2
+name: TestTracker
+identifier: testtracker
+implementation: irc
+irc:
+  network: Test.Net
+  server: irc.test.net
+  port: 6697
+  tls: true
+  auth:
+    mechanism: NONE
+`,
+			want: domain.IRCAuthMechanismNone,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "testtracker.yaml")
+			if err := os.WriteFile(file, []byte(tt.yaml), 0o644); err != nil {
+				t.Fatal(err)
+			}
+
+			d, err := OpenAndProcessDefinition(file)
+			assert.NoError(t, err)
+			assert.NotNil(t, d.IRC)
+			assert.NotNil(t, d.IRC.Auth)
+			assert.Equal(t, tt.want, d.IRC.Auth.Mechanism)
+		})
+	}
+}
+
+// TestDefinitionIRCAuthAbsent pins the default: no auth block decodes to a nil
+// Auth, which is what keeps the wizard on its historical SASL_PLAIN fallback.
+func TestDefinitionIRCAuthAbsent(t *testing.T) {
+	t.Parallel()
+
+	yaml := `---
+name: TestTracker
+identifier: testtracker
+implementation: irc
+irc:
+  network: Test.Net
+  server: irc.test.net
+  port: 6697
+  tls: true
+`
+	file := filepath.Join(t.TempDir(), "testtracker.yaml")
+	if err := os.WriteFile(file, []byte(yaml), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	d, err := OpenAndProcessDefinition(file)
+	assert.NoError(t, err)
+	assert.NotNil(t, d.IRC)
+	assert.Nil(t, d.IRC.Auth)
 }

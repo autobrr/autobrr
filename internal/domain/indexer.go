@@ -235,6 +235,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 			Server:      i.IRC.Server,
 			Port:        i.IRC.Port,
 			TLS:         i.IRC.TLS,
+			Auth:        i.IRC.Auth,
 			SettingsMap: i.IRC.SettingsMap,
 			Settings:    i.IRC.Settings,
 			Channels:    make([]IndexerIRCV2Channel, 0),
@@ -347,11 +348,21 @@ type IndexerIRC struct {
 	Server      string            `json:"server"`
 	Port        int               `json:"port"`
 	TLS         bool              `json:"tls"`
+	Auth        *IndexerIRCAuth   `json:"auth,omitempty"`
 	Channels    []string          `json:"channels"`
 	Announcers  []string          `json:"announcers"`
 	SettingsMap map[string]string `json:"-"`
 	Settings    []IndexerSetting  `json:"settings"`
 	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
+}
+
+// IndexerIRCAuth declares how a tracker's IRC network authenticates, so the
+// add-indexer flow can pick the mechanism the network actually supports instead
+// of assuming SASL whenever credentials are entered. Absent means undeclared:
+// the wizard keeps its historical SASL_PLAIN default (which falls back to
+// NickServ), so existing definitions are unaffected.
+type IndexerIRCAuth struct {
+	Mechanism IRCAuthMechanism `json:"mechanism,omitempty"`
 }
 
 type IRCMappings map[string]map[string]map[string]string
@@ -361,6 +372,7 @@ type IndexerIRCV2 struct {
 	Server      string                          `json:"server"`
 	Port        int                             `json:"port"`
 	TLS         bool                            `json:"tls"`
+	Auth        *IndexerIRCAuth                 `json:"auth,omitempty"`
 	SettingsMap map[string]string               `json:"-"`
 	Settings    []IndexerSetting                `json:"settings"`
 	Channels    []IndexerIRCV2Channel           `json:"channels"`
