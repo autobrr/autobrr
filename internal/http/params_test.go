@@ -45,3 +45,32 @@ func Test_parseURLParamInt(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseQueryParamInt(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		query   string
+		want    int
+		wantErr bool
+	}{
+		{name: "valid", query: "?limit=42", want: 42},
+		{name: "missing_uses_default", query: "", want: 20},
+		{name: "malformed", query: "?limit=not-an-integer", wantErr: true},
+		{name: "negative", query: "?limit=-1", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodGet, "/"+tt.query, nil)
+
+			got, err := parseQueryParamInt(r, "limit", 20)
+			if tt.wantErr {
+				assert.EqualError(t, err, "limit parameter is invalid")
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

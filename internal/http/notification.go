@@ -154,7 +154,7 @@ func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
 func (h notificationHandler) pushoverSounds(w http.ResponseWriter, r *http.Request) {
 	apiToken := r.URL.Query().Get("token")
 	if apiToken == "" {
-		h.encoder.Error(w, errors.New("api token is required"))
+		h.encoder.BadRequestErr(w, errors.New("token parameter is required"))
 		return
 	}
 

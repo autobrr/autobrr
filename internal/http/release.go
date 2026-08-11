@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -107,22 +105,17 @@ func (h releaseHandler) Routes(r chi.Router) {
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
-	limitP := r.URL.Query().Get("limit")
-	limit, err := strconv.Atoi(limitP)
-	if err != nil && limitP != "" {
+	limit, err := parseQueryParamInt(r, "limit", 20)
+	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "limit parameter is invalid",
 		})
 		return
 	}
-	if limit == 0 {
-		limit = 20
-	}
 
-	offsetP := r.URL.Query().Get("offset")
-	offset, err := strconv.Atoi(offsetP)
-	if err != nil && offsetP != "" {
+	offset, err := parseQueryParamInt(r, "offset", 0)
+	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 			"code":    "BAD_REQUEST_PARAMS",
 			"message": "offset parameter is invalid",
@@ -130,29 +123,16 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cursorP := r.URL.Query().Get("cursor")
-	cursor := 0
-	if cursorP != "" {
-		cursor, err = strconv.Atoi(cursorP)
-		if err != nil {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "cursor parameter is invalid",
-			})
-			return
-		}
-	}
-
-	u, err := url.Parse(r.URL.String())
+	cursor, err := parseQueryParamInt(r, "cursor", 0)
 	if err != nil {
 		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 			"code":    "BAD_REQUEST_PARAMS",
-			"message": "indexer parameter is invalid",
+			"message": "cursor parameter is invalid",
 		})
 		return
 	}
-	vals := u.Query()
-	indexer := vals["indexer"]
+
+	indexer := r.URL.Query()["indexer"]
 
 	pushStatus := r.URL.Query().Get("push_status")
 	if pushStatus != "" {
@@ -253,17 +233,13 @@ func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 
 func (h releaseHandler) statsHandler(fetch func(ctx context.Context, days int) (any, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		days := 30
-		if daysP := r.URL.Query().Get("days"); daysP != "" {
-			parsed, err := strconv.Atoi(daysP)
-			if err != nil || parsed < 0 || parsed > 3650 {
-				h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-					"code":    "BAD_REQUEST_PARAMS",
-					"message": "days parameter is invalid",
-				})
-				return
-			}
-			days = parsed
+		days, err := parseQueryParamInt(r, "days", 30)
+		if err != nil || days > 3650 {
+			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
+				"code":    "BAD_REQUEST_PARAMS",
+				"message": "days parameter is invalid",
+			})
+			return
 		}
 
 		stats, err := fetch(r.Context(), days)
@@ -282,18 +258,15 @@ func (h releaseHandler) statsHandler(fetch func(ctx context.Context, days int) (
 func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	req := domain.DeleteReleaseRequest{}
 
-	olderThanParam := r.URL.Query().Get("olderThan")
-	if olderThanParam != "" {
-		duration, err := strconv.Atoi(olderThanParam)
-		if err != nil {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "olderThan parameter is invalid",
-			})
-			return
-		}
-		req.OlderThan = duration
+	olderThan, err := parseQueryParamInt(r, "olderThan", 0)
+	if err != nil {
+		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
+			"code":    "BAD_REQUEST_PARAMS",
+			"message": "olderThan parameter is invalid",
+		})
+		return
 	}
+	req.OlderThan = olderThan
 
 	indexers := r.URL.Query()["indexer"]
 	if len(indexers) > 0 {
