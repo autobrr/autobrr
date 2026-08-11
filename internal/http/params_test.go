@@ -46,6 +46,39 @@ func Test_parseURLParamInt(t *testing.T) {
 	}
 }
 
+func Test_parseURLParamInt32(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		value   string
+		want    int32
+		wantErr bool
+	}{
+		{name: "valid", value: "42", want: 42},
+		{name: "max_int32", value: "2147483647", want: 2147483647},
+		{name: "overflows_int32", value: "2147483648", wantErr: true},
+		{name: "malformed", value: "not-an-integer", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("clientID", tt.value)
+
+			r := httptest.NewRequest(http.MethodGet, "/", nil)
+			r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+
+			got, err := parseURLParamInt32(r, "clientID")
+			if tt.wantErr {
+				assert.EqualError(t, err, "clientID parameter is invalid")
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func Test_parseQueryParamInt(t *testing.T) {
 	t.Parallel()
 

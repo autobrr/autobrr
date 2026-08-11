@@ -61,13 +61,13 @@ func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *htt
 }
 
 func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) {
-	clientID, err := parseURLParamInt(r, "clientID")
+	clientID, err := parseURLParamInt32(r, "clientID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	client, err := h.service.FindByID(r.Context(), int32(clientID))
+	client, err := h.service.FindByID(r.Context(), clientID)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
@@ -82,13 +82,13 @@ func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h downloadClientHandler) findArrTagsByID(w http.ResponseWriter, r *http.Request) {
-	clientID, err := parseURLParamInt(r, "clientID")
+	clientID, err := parseURLParamInt32(r, "clientID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	client, err := h.service.GetArrTags(r.Context(), int32(clientID))
+	client, err := h.service.GetArrTags(r.Context(), clientID)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
@@ -160,13 +160,13 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
-	clientID, err := parseURLParamInt(r, "clientID")
+	clientID, err := parseURLParamInt32(r, "clientID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	if err = h.service.Delete(r.Context(), int32(clientID)); err != nil {
+	if err = h.service.Delete(r.Context(), clientID); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
 			return

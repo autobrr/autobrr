@@ -21,6 +21,15 @@ func parseURLParamInt(r *http.Request, param string) (int, error) {
 	return value, nil
 }
 
+func parseURLParamInt32(r *http.Request, param string) (int32, error) {
+	value, err := strconv.ParseInt(chi.URLParam(r, param), 10, 32)
+	if err != nil {
+		return 0, errors.New("%s parameter is invalid", param)
+	}
+
+	return int32(value), nil
+}
+
 func parseQueryParamInt(r *http.Request, param string, defaultValue int) (int, error) {
 	value := r.URL.Query().Get(param)
 	if value == "" {
