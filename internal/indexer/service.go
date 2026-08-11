@@ -155,10 +155,11 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 		return err
 	}
 
-	changed := currentIndexer.Enabled != indexer.Enabled
-	if currentIndexer.ImplementationIsFeed() && changed {
-		// publish the stored indexer, not the update payload, so the handler sees a
-		// populated Implementation regardless of what the request carried
+	// always publish: a changed-gate computed from the pre-write snapshot misses racing
+	// opposite toggles, and the handler reconciles idempotently against persisted state.
+	// Publish the stored indexer, not the update payload, so the handler sees a populated
+	// Implementation regardless of what the request carried
+	if currentIndexer.ImplementationIsFeed() {
 		toggled := *currentIndexer
 		toggled.Enabled = indexer.Enabled
 		s.bus.Publish(domain.EventIndexerToggleEnabled, &toggled)
@@ -768,7 +769,6 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 		return err
 	}
 
-	changed := indexer.Enabled != enabled
 	indexer.Enabled = enabled
 
 	// update indexerInstances
@@ -778,8 +778,9 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	}
 
 	// feed jobs are stopped and started by the feed service via event because the feed service
-	// can't be imported here
-	if indexer.ImplementationIsFeed() && changed {
+	// can't be imported here. Always published: a changed-gate computed from the pre-write
+	// snapshot misses racing opposite toggles, and the handler reconciles idempotently
+	if indexer.ImplementationIsFeed() {
 		s.bus.Publish(domain.EventIndexerToggleEnabled, indexer)
 	}
 
