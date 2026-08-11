@@ -58,7 +58,7 @@ func (j *CleanupJob) Run() {
 		for s := range strings.SplitSeq(j.job.Statuses, ",") {
 			trimmed := strings.TrimSpace(s)
 			if trimmed != "" {
-				if domain.ValidDeletableReleasePushStatus(trimmed) {
+				if domain.ValidReleasePushStatus(trimmed) {
 					statuses = append(statuses, trimmed)
 				} else {
 					j.log.Warn().Str("status", trimmed).Msg("invalid release status ignored")
