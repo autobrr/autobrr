@@ -49,7 +49,7 @@ type feedCacheRepo interface {
 }
 
 type schedulerService interface {
-	ScheduleJobJittered(job cron.Job, interval time.Duration, identifier string) (int, error)
+	ScheduleJobAnchored(job cron.Job, interval time.Duration, lastRun time.Time, identifier string) (int, error)
 	AddJob(job cron.Job, spec string, identifier string) (int, error)
 	RemoveJobByIdentifier(id string) error
 	GetNextRun(id string) (time.Time, error)
@@ -85,8 +85,7 @@ func (k feedKey) ToString() string {
 }
 
 type Service struct {
-	log  zerolog.Logger
-	jobs map[string]int
+	log zerolog.Logger
 
 	repo       feedRepo
 	cacheRepo  feedCacheRepo
@@ -98,7 +97,6 @@ type Service struct {
 func NewService(log zerolog.Logger, repo feedRepo, cacheRepo feedCacheRepo, releaseSvc releaseService, proxySvc proxyService, scheduler schedulerService) *Service {
 	return &Service{
 		log:        log.With().Str("module", "feed").Logger(),
-		jobs:       map[string]int{},
 		repo:       repo,
 		cacheRepo:  cacheRepo,
 		releaseSvc: releaseSvc,
@@ -480,22 +478,23 @@ func (s *Service) start() error {
 }
 
 func (s *Service) restartJob(f *domain.Feed) error {
-	s.log.Debug().Str("feed", f.Name).Msg("stopping feed")
-
-	// stop feed job
-	if err := s.stopFeedJob(f.ID); err != nil {
-		s.log.Error().Err(err).Msg("error stopping feed job")
-		return err
-	}
-
-	if f.Enabled {
-		if err := s.startJob(f); err != nil {
-			s.log.Error().Err(err).Msg("error starting feed job")
+	if !f.Enabled {
+		if err := s.stopFeedJob(f.ID); err != nil {
+			s.log.Error().Err(err).Msg("error stopping feed job")
 			return err
 		}
 
-		s.log.Debug().Str("feed", f.Name).Msg("restarted feed")
+		return nil
 	}
+
+	// startJob replaces any existing entry for the feed, so the old job is never removed
+	// before its replacement is registered; a failed start leaves the old schedule running
+	if err := s.startJob(f); err != nil {
+		s.log.Error().Err(err).Msg("error starting feed job")
+		return err
+	}
+
+	s.log.Debug().Str("feed", f.Name).Msg("restarted feed")
 
 	return nil
 }
@@ -583,14 +582,9 @@ func (s *Service) startJob(f *domain.Feed) error {
 func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
 	identifierKey := feedKey{fi.Feed.ID}.ToString()
 
-	// schedule job
-	id, err := s.scheduler.ScheduleJobJittered(job, fi.CronSchedule, identifierKey)
-	if err != nil {
+	if _, err := s.scheduler.ScheduleJobAnchored(job, fi.CronSchedule, fi.Feed.LastRun, identifierKey); err != nil {
 		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}
-
-	// add to job map
-	s.jobs[identifierKey] = id
 
 	return nil
 }
@@ -667,13 +661,9 @@ func (s *Service) createCleanupJob() error {
 	identifierKey := "feed-cache-cleanup"
 
 	// schedule job for every day at 03:05
-	id, err := s.scheduler.AddJob(job, "5 3 * * *", identifierKey)
-	if err != nil {
+	if _, err := s.scheduler.AddJob(job, "5 3 * * *", identifierKey); err != nil {
 		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}
-
-	// add to job map
-	s.jobs[identifierKey] = id
 
 	return nil
 }
@@ -731,6 +721,19 @@ func (s *Service) ForceRun(ctx context.Context, id int) error {
 	if err := job.RunE(ctx); err != nil {
 		s.log.Error().Err(err).Msg("failed to refresh feed")
 		return err
+	}
+
+	// the schedule anchors to last_run, which the run just updated; reschedule so the next
+	// scheduled run is a full interval from now instead of from the previous run. Detached
+	// from ctx so a client disconnect after the fetch cannot leave the stale schedule behind
+	feed, err = s.FindByID(context.WithoutCancel(ctx), id)
+	if err != nil {
+		s.log.Error().Err(err).Int("feed_id", id).Msg("could not find feed after force run")
+		return nil
+	}
+
+	if err := s.restartJob(feed); err != nil {
+		s.log.Error().Err(err).Int("feed_id", id).Msg("could not reschedule feed after force run")
 	}
 
 	return nil
