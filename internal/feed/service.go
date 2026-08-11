@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -74,6 +75,24 @@ type feedInstance struct {
 	Timeout        time.Duration
 }
 
+// guardedJob wraps a scheduled feed job with the feed's run guard so it cannot overlap a force
+// run; an overlapping fire is skipped, the next interval catches up.
+type guardedJob struct {
+	guard *sync.Mutex
+	log   zerolog.Logger
+	job   cron.Job
+}
+
+func (g *guardedJob) Run() {
+	if !g.guard.TryLock() {
+		g.log.Debug().Msg("feed refresh already running, skipping scheduled run")
+		return
+	}
+	defer g.guard.Unlock()
+
+	g.job.Run()
+}
+
 // feedKey creates a unique identifier to be used for controlling jobs in the scheduler
 type feedKey struct {
 	id int
@@ -86,6 +105,11 @@ func (k feedKey) ToString() string {
 
 type Service struct {
 	log zerolog.Logger
+
+	// runGuards holds one mutex per feed so a force run and a scheduled run cannot fetch and
+	// process the same feed concurrently; cron's SkipIfStillRunning only covers a single entry
+	// and force runs use their own job instance
+	runGuards sync.Map
 
 	repo       feedRepo
 	cacheRepo  feedCacheRepo
@@ -167,6 +191,32 @@ func (s *Service) Test(ctx context.Context, feed *domain.Feed) error {
 	return s.test(ctx, feed)
 }
 
+// ToggleIndexerEnabled stops or starts the feed job when its indexer is toggled; the feed's own
+// enabled flag is left untouched so the job comes back when the indexer does.
+func (s *Service) ToggleIndexerEnabled(ctx context.Context, indexerID int, enabled bool) error {
+	feed, err := s.repo.FindOne(ctx, domain.FindOneParams{IndexerID: indexerID})
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return nil
+		}
+
+		return errors.Wrap(err, "could not find feed for indexer %d", indexerID)
+	}
+
+	if !enabled {
+		s.log.Debug().Str("feed", feed.Name).Msg("indexer disabled, stopping feed job")
+		return s.stopFeedJob(feed.ID)
+	}
+
+	if !feed.Enabled {
+		return nil
+	}
+
+	s.log.Debug().Str("feed", feed.Name).Msg("indexer enabled, starting feed job")
+
+	return s.startJob(feed)
+}
+
 func (s *Service) Start() error {
 	return s.start()
 }
@@ -234,6 +284,8 @@ func (s *Service) delete(ctx context.Context, id int) error {
 		s.log.Error().Err(err).Str("feed", f.Name).Msg("error deleting feed cache")
 	}
 
+	s.runGuards.Delete(id)
+
 	return nil
 }
 
@@ -253,6 +305,11 @@ func (s *Service) toggleEnabled(ctx context.Context, id int, enabled bool) error
 		if enabled {
 			// override enabled
 			f.Enabled = true
+
+			if !f.IndexerEnabled {
+				s.log.Debug().Str("feed", f.Name).Msg("indexer disabled, feed job starts when the indexer is enabled")
+				return nil
+			}
 
 			if err := s.startJob(f); err != nil {
 				s.log.Error().Err(err).Msg("error starting feed job")
@@ -464,8 +521,26 @@ func (s *Service) start() error {
 				continue
 			}
 
-			if err := s.startJob(&feed); err != nil {
-				s.log.Error().Err(err).Str("feed", feed.Name).Msg("failed to initialize feed job")
+			if !feed.IndexerEnabled {
+				s.log.Trace().Str("feed", feed.Name).Msg("indexer disabled, skipping feed")
+				continue
+			}
+
+			// the staggered sleeps make the snapshot minutes old by the tail, so re-fetch;
+			// a feed or indexer toggled during the window must not be started from stale state
+			fresh, err := s.repo.FindOne(context.TODO(), domain.FindOneParams{FeedID: feed.ID})
+			if err != nil {
+				s.log.Error().Err(err).Str("feed", feed.Name).Msg("failed to refresh feed before start")
+				continue
+			}
+
+			if !fresh.Enabled || !fresh.IndexerEnabled {
+				s.log.Trace().Str("feed", fresh.Name).Msg("feed or indexer disabled since startup, skipping")
+				continue
+			}
+
+			if err := s.startJob(fresh); err != nil {
+				s.log.Error().Err(err).Str("feed", fresh.Name).Msg("failed to initialize feed job")
 				continue
 			}
 
@@ -478,7 +553,7 @@ func (s *Service) start() error {
 }
 
 func (s *Service) restartJob(f *domain.Feed) error {
-	if !f.Enabled {
+	if !f.Enabled || !f.IndexerEnabled {
 		if err := s.stopFeedJob(f.ID); err != nil {
 			s.log.Error().Err(err).Msg("error stopping feed job")
 			return err
@@ -546,6 +621,10 @@ func (s *Service) startJob(f *domain.Feed) error {
 		return errors.New("feed %s not enabled", f.Name)
 	}
 
+	if !f.IndexerEnabled {
+		return errors.New("indexer for feed %s not enabled", f.Name)
+	}
+
 	// get url from settings
 	if f.URL == "" {
 		return errors.New("no URL provided for feed: %s", f.Name)
@@ -582,11 +661,22 @@ func (s *Service) startJob(f *domain.Feed) error {
 func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
 	identifierKey := feedKey{fi.Feed.ID}.ToString()
 
-	if _, err := s.scheduler.ScheduleJobAnchored(job, fi.CronSchedule, fi.Feed.LastRun, identifierKey); err != nil {
+	guarded := &guardedJob{
+		guard: s.runGuard(fi.Feed.ID),
+		log:   s.log.With().Str("feed", fi.Name).Int("feed_id", fi.Feed.ID).Logger(),
+		job:   job,
+	}
+
+	if _, err := s.scheduler.ScheduleJobAnchored(guarded, fi.CronSchedule, fi.Feed.LastRun, identifierKey); err != nil {
 		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}
 
 	return nil
+}
+
+func (s *Service) runGuard(feedID int) *sync.Mutex {
+	guard, _ := s.runGuards.LoadOrStore(feedID, &sync.Mutex{})
+	return guard.(*sync.Mutex)
 }
 
 func (s *Service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
@@ -717,6 +807,12 @@ func (s *Service) ForceRun(ctx context.Context, id int) error {
 		s.log.Error().Err(err).Msg("failed to initialize feed job")
 		return err
 	}
+
+	guard := s.runGuard(feed.ID)
+	if !guard.TryLock() {
+		return errors.New("feed %s is already running", feed.Name)
+	}
+	defer guard.Unlock()
 
 	if err := job.RunE(ctx); err != nil {
 		s.log.Error().Err(err).Msg("failed to refresh feed")
