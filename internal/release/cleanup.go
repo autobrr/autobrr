@@ -67,6 +67,20 @@ func (j *CleanupJob) Run() {
 		}
 	}
 
+	// A configured status filter that yields no valid statuses must not fall
+	// through to an unfiltered delete - that would drop the status predicate
+	// and the approved-release protection entirely.
+	if j.job.Statuses != "" && len(statuses) == 0 {
+		j.log.Error().Str("statuses", j.job.Statuses).Msg("no valid statuses in configured filter, aborting cleanup")
+
+		j.job.LastRunStatus = domain.ReleaseCleanupStatusError
+		j.job.LastRunData = "no valid statuses in configured filter: " + j.job.Statuses
+		if err := j.releaseRepo.UpdateCleanupJobLastRun(ctx, j.job); err != nil {
+			j.log.Error().Err(err).Msg("error updating cleanup job status")
+		}
+		return
+	}
+
 	// Build delete request
 	req := &domain.DeleteReleaseRequest{
 		OlderThan:       j.job.OlderThan,
