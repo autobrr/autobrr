@@ -496,21 +496,6 @@ func ValidReleasePushStatus(s string) bool {
 	}
 }
 
-// ValidDeletableReleasePushStatus checks if a status is valid for deletion operations.
-// Excludes PENDING status as it's not applicable for completed release deletions.
-func ValidDeletableReleasePushStatus(s string) bool {
-	switch s {
-	case string(ReleasePushStatusApproved):
-		return true
-	case string(ReleasePushStatusRejected):
-		return true
-	case string(ReleasePushStatusErr):
-		return true
-	default:
-		return false
-	}
-}
-
 // ReleaseCleanupStatus represents the status of a cleanup job execution
 type ReleaseCleanupStatus string
 
@@ -558,10 +543,9 @@ func (j *ReleaseCleanupJob) Validate() error {
 
 	// Validate statuses if provided
 	if j.Statuses != "" {
-		statuses := strings.Split(j.Statuses, ",")
-		for _, status := range statuses {
+		for status := range strings.SplitSeq(j.Statuses, ",") {
 			status = strings.TrimSpace(status)
-			if status != "" && !ValidDeletableReleasePushStatus(status) {
+			if status != "" && !ValidReleasePushStatus(status) {
 				return errors.New("invalid status: %s", status)
 			}
 		}
