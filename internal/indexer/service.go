@@ -127,6 +127,18 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 		indexer.Settings[key] = sanitize.String(val)
 	}
 
+	// settings are persisted wholesale, so an update that omits a saved credential would
+	// silently delete it; require the client to echo it back, redacted or not
+	for key, val := range currentIndexer.Settings {
+		if val == "" || !domain.IsSecretIndexerSetting(key) {
+			continue
+		}
+
+		if _, ok := indexer.Settings[key]; !ok {
+			return errors.New("update omits saved secret setting '%s'", key)
+		}
+	}
+
 	// only IRC indexers have baseURL set
 	if indexer.Implementation == domain.IndexerImplementationIRC {
 		if indexer.BaseURL == "" {
