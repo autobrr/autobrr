@@ -1,0 +1,86 @@
+---
+version: 2
+#id: retrotoonworld
+name: RetroToon World
+identifier: retrotoonworld
+description: RetroToon World (RTW) is a private torrent tracker for CARTOONS / ANIME
+language: en-us
+urls:
+  - https://retrotoon.world/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: unknown
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: Passkey
+    help: "Copy your passkey from your profile and paste it in the field below."
+
+irc:
+  network: RetroToon World
+  server: irc.retrotoon.world
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - RetroToon
+      parse:
+        type: single
+        lines:
+          - pattern: '\[NEW\] (?P<releaseName>.*) \((?P<category>.*)\) (?P<baseUrl>https?\:\/\/.*\/).*id=(?P<torrentId>\d+)'
+            tests:
+              - line: '[NEW] Berserk Collection v01-42 (danke-Empire & LuCaZ) (Manga) https://retrotoon.world/details.php?id=3575'
+                expect:
+                  releaseName: Berserk Collection v01-42 (danke-Empire & LuCaZ)
+                  category: Manga
+                  baseUrl: https://retrotoon.world/
+                  torrentId: "3575"
+
+              - line: '[NEW] Asterix Complete Movie Pack BluRay REMUX 1080p x264 DTS HD-MA 2.0/5.1-chrisj72 (Retro) https://retrotoon.world/details.php?id=3576'
+                expect:
+                  releaseName: Asterix Complete Movie Pack BluRay REMUX 1080p x264 DTS HD-MA 2.0/5.1-chrisj72
+                  category: Retro
+                  baseUrl: https://retrotoon.world/
+                  torrentId: "3576"
+
+              - line: '[NEW] Dingo.Comment.brancher.son.Home.Cinema.2007.MULTI.VFF.1080p.BLURAY.REMUX.DTS.HD.MA.5.1.AVC-DownLord (Shorts) https://retrotoon.world/details.php?id=3691'
+                expect:
+                  releaseName: Dingo.Comment.brancher.son.Home.Cinema.2007.MULTI.VFF.1080p.BLURAY.REMUX.DTS.HD.MA.5.1.AVC-DownLord
+                  category: Shorts
+                  baseUrl: https://retrotoon.world/
+                  torrentId: "3691"
+
+              - line: '[NEW] Maria the Virgin Witch (2015) [1080p HDTV x264 AAC] (Anime) https://retrotoon.world/details.php?id=3709'
+                expect:
+                  releaseName: Maria the Virgin Witch (2015) [1080p HDTV x264 AAC]
+                  category: Anime
+                  baseUrl: https://retrotoon.world/
+                  torrentId: "3709"
+
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/download.php?id={{ .torrentId }}&torrent_pass={{ .passkey }}"
