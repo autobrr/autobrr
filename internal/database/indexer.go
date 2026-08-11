@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -48,10 +47,10 @@ func (r *IndexerRepo) Store(ctx context.Context, indexer domain.Indexer) (*domai
 	return &indexer, nil
 }
 
-func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+func (r *IndexerRepo) Update(ctx context.Context, indexer *domain.Indexer) error {
 	settings, err := json.Marshal(indexer.Settings)
 	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling json data")
+		return errors.Wrap(err, "error marshaling json data")
 	}
 
 	queryBuilder := r.db.squirrel.
@@ -63,29 +62,29 @@ func (r *IndexerRepo) Update(ctx context.Context, indexer domain.Indexer) (*doma
 		Set("use_proxy", indexer.UseProxy).
 		Set("proxy_id", toNullInt64(indexer.ProxyID)).
 		Set("settings", settings).
-		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": indexer.ID})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		return nil, errors.Wrap(err, "error building query")
+		return errors.Wrap(err, "error building query")
 	}
 
 	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
-		return nil, errors.Wrap(err, "error executing query")
+		return errors.Wrap(err, "error executing query")
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return nil, errors.Wrap(err, "error rows affected")
+		return errors.Wrap(err, "error rows affected")
 	}
 
 	if rowsAffected == 0 {
-		return nil, domain.ErrUpdateFailed
+		return domain.ErrUpdateFailed
 	}
 
-	return &indexer, nil
+	return nil
 }
 
 func (r *IndexerRepo) List(ctx context.Context) ([]domain.Indexer, error) {

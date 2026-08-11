@@ -10,6 +10,7 @@ const (
 	EventReleasePushStatus        = "release:push"
 	EventNotificationSend         = "events:notification"
 	EventIndexerDelete            = "indexer:delete"
+	EventIndexerToggleEnabled     = "indexer:toggle-enabled"
 )
 
 type EventsReleasePushed struct {
