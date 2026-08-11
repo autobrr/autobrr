@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -94,9 +93,9 @@ func (h proxyHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h proxyHandler) findByID(w http.ResponseWriter, r *http.Request) {
-	proxyID, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
+	proxyID, err := parseURLParamInt(r, "proxyID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -115,9 +114,9 @@ func (h proxyHandler) findByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h proxyHandler) delete(w http.ResponseWriter, r *http.Request) {
-	proxyID, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
+	proxyID, err := parseURLParamInt(r, "proxyID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -143,6 +142,11 @@ func (h proxyHandler) test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Test(r.Context(), &data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find proxy"))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

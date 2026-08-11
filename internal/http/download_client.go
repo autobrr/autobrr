@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -62,9 +61,9 @@ func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *htt
 }
 
 func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) {
-	clientID, err := strconv.ParseInt(chi.URLParam(r, "clientID"), 10, 32)
+	clientID, err := parseURLParamInt(r, "clientID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -72,6 +71,7 @@ func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
+			return
 		}
 
 		h.encoder.Error(w, err)
@@ -82,9 +82,9 @@ func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h downloadClientHandler) findArrTagsByID(w http.ResponseWriter, r *http.Request) {
-	clientID, err := strconv.ParseInt(chi.URLParam(r, "clientID"), 10, 32)
+	clientID, err := parseURLParamInt(r, "clientID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -92,6 +92,7 @@ func (h downloadClientHandler) findArrTagsByID(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
+			return
 		}
 
 		h.encoder.Error(w, err)
@@ -125,6 +126,11 @@ func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Test(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", data.ID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -141,6 +147,11 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.Update(r.Context(), data)
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", data.ID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -149,13 +160,18 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
-	clientID, err := strconv.ParseInt(chi.URLParam(r, "clientID"), 10, 32)
+	clientID, err := parseURLParamInt(r, "clientID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	if err = h.service.Delete(r.Context(), int32(clientID)); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", clientID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

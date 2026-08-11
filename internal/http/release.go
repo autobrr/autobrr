@@ -134,13 +134,13 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	cursor := 0
 	if cursorP != "" {
 		cursor, err = strconv.Atoi(cursorP)
-		if err != nil && cursorP != "" {
+		if err != nil {
 			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
 				"code":    "BAD_REQUEST_PARAMS",
 				"message": "cursor parameter is invalid",
 			})
+			return
 		}
-		return
 	}
 
 	u, err := url.Parse(r.URL.String())
@@ -205,9 +205,9 @@ func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Reques
 }
 
 func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {
-	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
+	releaseID, err := parseURLParamInt(r, "releaseID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -342,6 +342,7 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 			"code":    "VALIDATION_ERROR",
 			"message": "field indexer_identifier empty",
 		})
+		return
 	}
 
 	if len(req.AnnounceLines) == 0 {
@@ -349,6 +350,7 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 			"code":    "VALIDATION_ERROR",
 			"message": "field announce_lines empty",
 		})
+		return
 	}
 
 	err = h.service.ProcessManual(r.Context(), req)
@@ -361,15 +363,15 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
-	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
+	releaseID, err := parseURLParamInt(r, "releaseID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	actionStatusId, err := strconv.Atoi(chi.URLParam(r, "actionStatusID"))
+	actionStatusId, err := parseURLParamInt(r, "actionStatusID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -427,11 +429,9 @@ func (h releaseHandler) findReleaseProfileDuplicate(w http.ResponseWriter, r *ht
 }
 
 func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
-	//profileIdParam := chi.URLParam(r, "releaseId")
-
-	profileId, err := strconv.Atoi(chi.URLParam(r, "profileId"))
+	profileId, err := parseURLParamInt(r, "profileId")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -456,9 +456,9 @@ func (h releaseHandler) listCleanupJobs(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h releaseHandler) getCleanupJob(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -512,9 +512,9 @@ func (h releaseHandler) updateCleanupJob(w http.ResponseWriter, r *http.Request)
 }
 
 func (h releaseHandler) deleteCleanupJob(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -532,9 +532,9 @@ func (h releaseHandler) deleteCleanupJob(w http.ResponseWriter, r *http.Request)
 }
 
 func (h releaseHandler) toggleCleanupJobEnabled(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -561,9 +561,9 @@ func (h releaseHandler) toggleCleanupJobEnabled(w http.ResponseWriter, r *http.R
 }
 
 func (h releaseHandler) forceRunCleanupJob(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 

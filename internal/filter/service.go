@@ -249,6 +249,11 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
+	if _, err := s.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
+		return err
+	}
+
 	// update
 	err = s.repo.Update(ctx, filter)
 	if err != nil {
@@ -333,6 +338,11 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		}
 	}
 
+	if _, err := s.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
+		return err
+	}
+
 	// update
 	if err := s.repo.UpdatePartial(ctx, filter); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not update partial filter")
@@ -378,6 +388,7 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	// find filter with actions, indexers and external filters
 	filter, err := s.FindByID(ctx, filterID)
 	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
 		return nil, err
 	}
 
@@ -421,6 +432,12 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 }
 
 func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+	_, err := s.FindByID(ctx, filterID)
+	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
+		return err
+	}
+
 	if err := s.repo.ToggleEnabled(ctx, filterID, enabled); err != nil {
 		s.log.Error().Err(err).Msg("could not update filter enabled")
 		return err
@@ -434,6 +451,12 @@ func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool)
 func (s *Service) Delete(ctx context.Context, filterID int) error {
 	if filterID == 0 {
 		return nil
+	}
+
+	_, err := s.FindByID(ctx, filterID)
+	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
+		return err
 	}
 
 	// take care of filter actions

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -108,9 +107,9 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
-	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	filterID, err := parseURLParamInt(r, "filterID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -129,9 +128,9 @@ func (h filterHandler) getByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
-	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	filterID, err := parseURLParamInt(r, "filterID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -172,6 +171,11 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Update(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", data.ID))
+			return
+		}
+
 		if errors.Is(err, domain.ErrIndexerNotFound) {
 			h.encoder.StatusError(w, http.StatusBadRequest, err)
 			return
@@ -186,9 +190,9 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 
 func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 	var data domain.FilterUpdate
-	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	filterID, err := parseURLParamInt(r, "filterID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 	data.ID = filterID
@@ -199,6 +203,11 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.UpdatePartial(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", data.ID))
+			return
+		}
+
 		if errors.Is(err, domain.ErrIndexerNotFound) {
 			h.encoder.StatusError(w, http.StatusBadRequest, err)
 			return
@@ -212,9 +221,9 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
-	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	filterID, err := parseURLParamInt(r, "filterID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -228,6 +237,11 @@ func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.ToggleEnabled(r.Context(), filterID, data.Enabled); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -236,13 +250,18 @@ func (h filterHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
-	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	filterID, err := parseURLParamInt(r, "filterID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	if err := h.service.Delete(r.Context(), filterID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -251,14 +270,19 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) getFilterNotifications(w http.ResponseWriter, r *http.Request) {
-	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	filterID, err := parseURLParamInt(r, "filterID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	filter, err := h.service.FindByID(r.Context(), filterID)
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -268,9 +292,9 @@ func (h filterHandler) getFilterNotifications(w http.ResponseWriter, r *http.Req
 }
 
 func (h filterHandler) updateFilterNotifications(w http.ResponseWriter, r *http.Request) {
-	filterID, err := strconv.Atoi(chi.URLParam(r, "filterID"))
+	filterID, err := parseURLParamInt(r, "filterID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -287,6 +311,11 @@ func (h filterHandler) updateFilterNotifications(w http.ResponseWriter, r *http.
 	}
 
 	if err := h.service.UpdatePartial(r.Context(), update); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

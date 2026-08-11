@@ -98,6 +98,20 @@ func (e encoder) NotFoundErr(w http.ResponseWriter, err error) {
 	}
 }
 
+func (e encoder) BadRequestErr(w http.ResponseWriter, err error) {
+	res := errorResponse{
+		Message: err.Error(),
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusBadRequest)
+
+	if encErr := json.NewEncoder(w).Encode(res); encErr != nil {
+		e.log.Error().Err(encErr).Msg("failed to encode bad request error response")
+		return
+	}
+}
+
 func (e encoder) Error(w http.ResponseWriter, err error) {
 	res := errorResponse{
 		Message: err.Error(),

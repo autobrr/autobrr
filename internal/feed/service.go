@@ -22,9 +22,9 @@ import (
 
 type feedRepo interface {
 	FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error)
-	FindByID(ctx context.Context, id int) (*domain.Feed, error)
+	FindByID(ctx context.Context, feedID int) (*domain.Feed, error)
 	Find(ctx context.Context) ([]domain.Feed, error)
-	GetLastRunDataByID(ctx context.Context, id int) (string, error)
+	GetLastRunDataByID(ctx context.Context, feedID int) (string, error)
 	Store(ctx context.Context, feed *domain.Feed) error
 	Update(ctx context.Context, feed *domain.Feed) error
 	UpdateLastRun(ctx context.Context, feedID int) error
@@ -111,8 +111,8 @@ func (s *Service) FindOne(ctx context.Context, params domain.FindOneParams) (*do
 	return s.repo.FindOne(ctx, params)
 }
 
-func (s *Service) FindByID(ctx context.Context, id int) (*domain.Feed, error) {
-	return s.repo.FindByID(ctx, id)
+func (s *Service) FindByID(ctx context.Context, feedID int) (*domain.Feed, error) {
+	return s.repo.FindByID(ctx, feedID)
 }
 
 func (s *Service) Find(ctx context.Context) ([]domain.Feed, error) {
@@ -133,8 +133,8 @@ func (s *Service) Find(ctx context.Context) ([]domain.Feed, error) {
 	return feeds, nil
 }
 
-func (s *Service) GetCacheByID(ctx context.Context, feedId int) ([]domain.FeedCacheItem, error) {
-	return s.cacheRepo.GetByFeed(ctx, feedId)
+func (s *Service) GetCacheByID(ctx context.Context, feedID int) ([]domain.FeedCacheItem, error) {
+	return s.cacheRepo.GetByFeed(ctx, feedID)
 }
 
 func (s *Service) Store(ctx context.Context, feed *domain.Feed) error {
@@ -149,20 +149,28 @@ func (s *Service) Update(ctx context.Context, feed *domain.Feed) error {
 	return s.update(ctx, feed)
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
-	return s.delete(ctx, id)
+func (s *Service) Delete(ctx context.Context, feedID int) error {
+	return s.delete(ctx, feedID)
 }
 
-func (s *Service) DeleteFeedCache(ctx context.Context, id int) error {
-	return s.cacheRepo.DeleteByFeed(ctx, id)
+func (s *Service) DeleteFeedCache(ctx context.Context, feedCacheID int) error {
+	if _, err := s.repo.FindByID(ctx, feedCacheID); err != nil {
+		return err
+	}
+
+	if err := s.cacheRepo.DeleteByFeed(ctx, feedCacheID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) DeleteFeedCacheStale(ctx context.Context) error {
 	return s.cacheRepo.DeleteStale(ctx)
 }
 
-func (s *Service) ToggleEnabled(ctx context.Context, id int, enabled bool) error {
-	return s.toggleEnabled(ctx, id, enabled)
+func (s *Service) ToggleEnabled(ctx context.Context, feedID int, enabled bool) error {
+	return s.toggleEnabled(ctx, feedID, enabled)
 }
 
 func (s *Service) Test(ctx context.Context, feed *domain.Feed) error {
@@ -211,8 +219,8 @@ func (s *Service) update(ctx context.Context, feed *domain.Feed) error {
 	return nil
 }
 
-func (s *Service) delete(ctx context.Context, id int) error {
-	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: id})
+func (s *Service) delete(ctx context.Context, feedID int) error {
+	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feedID})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
@@ -232,21 +240,21 @@ func (s *Service) delete(ctx context.Context, id int) error {
 	}
 
 	// if foreign keys are not enforced in SQLite clear feed cache explicitly
-	if err := s.cacheRepo.DeleteByFeed(ctx, id); err != nil {
+	if err := s.cacheRepo.DeleteByFeed(ctx, feedID); err != nil {
 		s.log.Error().Err(err).Str("feed", f.Name).Msg("error deleting feed cache")
 	}
 
 	return nil
 }
 
-func (s *Service) toggleEnabled(ctx context.Context, id int, enabled bool) error {
-	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: id})
+func (s *Service) toggleEnabled(ctx context.Context, feedID int, enabled bool) error {
+	f, err := s.repo.FindOne(ctx, domain.FindOneParams{FeedID: feedID})
 	if err != nil {
 		s.log.Error().Err(err).Msg("error finding feed")
 		return err
 	}
 
-	if err := s.repo.ToggleEnabled(ctx, id, enabled); err != nil {
+	if err := s.repo.ToggleEnabled(ctx, feedID, enabled); err != nil {
 		s.log.Error().Err(err).Msg("error feed toggle enabled")
 		return err
 	}

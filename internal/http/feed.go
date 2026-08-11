@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -71,9 +70,9 @@ func (h feedHandler) find(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) findByID(w http.ResponseWriter, r *http.Request) {
-	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	feedID, err := parseURLParamInt(r, "feedID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -115,6 +114,11 @@ func (h feedHandler) test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Test(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", data.ID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -147,6 +151,11 @@ func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.Update(r.Context(), data)
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", data.ID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -155,9 +164,9 @@ func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
-	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	feedID, err := parseURLParamInt(r, "feedID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -175,9 +184,9 @@ func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) capsByID(w http.ResponseWriter, r *http.Request) {
-	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	feedID, err := parseURLParamInt(r, "feedID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -196,9 +205,9 @@ func (h feedHandler) capsByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
-	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	feedID, err := parseURLParamInt(r, "feedID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -225,9 +234,9 @@ func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
-	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	feedID, err := parseURLParamInt(r, "feedID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -245,13 +254,18 @@ func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) deleteCache(w http.ResponseWriter, r *http.Request) {
-	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	feedID, err := parseURLParamInt(r, "feedID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	if err := h.service.DeleteFeedCache(r.Context(), feedID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", feedID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -260,14 +274,19 @@ func (h feedHandler) deleteCache(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
-	feedID, err := strconv.Atoi(chi.URLParam(r, "feedID"))
+	feedID, err := parseURLParamInt(r, "feedID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	feed, err := h.service.GetLastRunData(r.Context(), feedID)
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", feedID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

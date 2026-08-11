@@ -6,9 +6,7 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -88,9 +86,9 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
-	actionID, err := parseInt(chi.URLParam(r, "actionID"))
+	actionID, err := parseURLParamInt(r, "actionID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("bad param id"))
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -103,9 +101,9 @@ func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Request) {
-	actionID, err := parseInt(chi.URLParam(r, "actionID"))
+	actionID, err := parseURLParamInt(r, "actionID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("bad param id"))
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -115,12 +113,4 @@ func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Reques
 	}
 
 	h.encoder.StatusResponse(w, http.StatusCreated, nil)
-}
-
-func parseInt(s string) (int, error) {
-	u, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return int(u), nil
 }
