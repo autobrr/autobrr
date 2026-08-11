@@ -156,7 +156,7 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, data)
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {

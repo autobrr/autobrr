@@ -6,7 +6,6 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -107,42 +106,28 @@ func (h releaseHandler) Routes(r chi.Router) {
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	limit, err := parseQueryParamInt(r, "limit", 20)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "limit parameter is invalid",
-		})
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	offset, err := parseQueryParamInt(r, "offset", 0)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "offset parameter is invalid",
-		})
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	cursor, err := parseQueryParamInt(r, "cursor", 0)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "cursor parameter is invalid",
-		})
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	indexer := r.URL.Query()["indexer"]
 
 	pushStatus := r.URL.Query().Get("push_status")
-	if pushStatus != "" {
-		if !domain.ValidReleasePushStatus(pushStatus) {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": fmt.Sprintf("push_status parameter is of invalid type: %v", pushStatus),
-			})
-			return
-		}
+	if pushStatus != "" && !domain.ValidReleasePushStatus(pushStatus) {
+		h.encoder.BadRequestErr(w, errors.New("push_status parameter is of invalid type: %v", pushStatus))
+		return
 	}
 
 	search := r.URL.Query().Get("q")
@@ -161,10 +146,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.service.Find(r.Context(), query)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -174,10 +156,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Find(r.Context(), domain.ReleaseQueryParams{Limit: 10})
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -208,10 +187,7 @@ func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetIndexerOptions(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -221,10 +197,7 @@ func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.Stats(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -235,19 +208,13 @@ func (h releaseHandler) statsHandler(fetch func(ctx context.Context, days int) (
 	return func(w http.ResponseWriter, r *http.Request) {
 		days, err := parseQueryParamInt(r, "days", 30)
 		if err != nil || days > 3650 {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "days parameter is invalid",
-			})
+			h.encoder.BadRequestErr(w, errors.New("days parameter is invalid"))
 			return
 		}
 
 		stats, err := fetch(r.Context(), days)
 		if err != nil {
-			h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-				"code":    "INTERNAL_SERVER_ERROR",
-				"message": err.Error(),
-			})
+			h.encoder.Error(w, err)
 			return
 		}
 
@@ -260,10 +227,7 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 
 	olderThan, err := parseQueryParamInt(r, "olderThan", 0)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "olderThan parameter is invalid",
-		})
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 	req.OlderThan = olderThan
@@ -285,10 +249,7 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		if _, valid := validStatuses[status]; valid {
 			filteredStatuses = append(filteredStatuses, status)
 		} else {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "INVALID_RELEASE_STATUS",
-				"message": "releaseStatus contains invalid value",
-			})
+			h.encoder.BadRequestErr(w, errors.New("releaseStatus contains invalid value: %v", status))
 			return
 		}
 	}
@@ -311,18 +272,12 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.IndexerIdentifier == "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "VALIDATION_ERROR",
-			"message": "field indexer_identifier empty",
-		})
+		h.encoder.BadRequestErr(w, errors.New("field indexer_identifier empty"))
 		return
 	}
 
 	if len(req.AnnounceLines) == 0 {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "VALIDATION_ERROR",
-			"message": "field announce_lines empty",
-		})
+		h.encoder.BadRequestErr(w, errors.New("field announce_lines empty"))
 		return
 	}
 
@@ -355,7 +310,7 @@ func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.Retry(r.Context(), req); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, err)
+			h.encoder.NotFoundErr(w, errors.New("action status with id %d not found for release %d", actionStatusId, releaseID))
 			return
 		}
 
@@ -385,18 +340,9 @@ func (h releaseHandler) storeReleaseProfileDuplicate(w http.ResponseWriter, r *h
 func (h releaseHandler) findReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
 	profiles, err := h.service.FindDuplicateReleaseProfiles(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
-
-	//ret := struct {
-	//	Data       []*domain.DuplicateReleaseProfile `json:"data"`
-	//}{
-	//	Data:       profiles,
-	//}
 
 	h.encoder.StatusResponse(w, http.StatusOK, profiles)
 }
@@ -481,7 +427,7 @@ func (h releaseHandler) updateCleanupJob(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, data)
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h releaseHandler) deleteCleanupJob(w http.ResponseWriter, r *http.Request) {

@@ -97,7 +97,7 @@ func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Request) {
@@ -112,5 +112,5 @@ func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, nil)
+	h.encoder.NoContent(w)
 }

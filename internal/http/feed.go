@@ -160,7 +160,7 @@ func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, data)
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
@@ -180,7 +180,7 @@ func (h feedHandler) forceRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h feedHandler) capsByID(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +230,7 @@ func (h feedHandler) toggleEnabled(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
@@ -250,7 +250,7 @@ func (h feedHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h feedHandler) deleteCache(w http.ResponseWriter, r *http.Request) {
@@ -270,7 +270,7 @@ func (h feedHandler) deleteCache(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
@@ -292,11 +292,11 @@ func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if feed == "" {
-		h.encoder.StatusNotFound(w)
-		w.Write([]byte("No data found"))
+		h.encoder.NotFoundErr(w, errors.New("no last run data found for feed with id %d", feedID))
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(feed))
+
 }

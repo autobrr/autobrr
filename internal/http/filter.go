@@ -74,10 +74,7 @@ func (h filterHandler) getFilters(w http.ResponseWriter, r *http.Request) {
 		validField := field == "name" || field == "priority" || field == "created_at" || field == "updated_at"
 		validOrder := order == "asc" || order == "desc"
 		if !found || !validField || !validOrder {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "sort parameter is invalid",
-			})
+			h.encoder.BadRequestErr(w, errors.New("sort parameter is invalid"))
 			return
 		}
 
@@ -255,7 +252,7 @@ func (h filterHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h filterHandler) getFilterNotifications(w http.ResponseWriter, r *http.Request) {

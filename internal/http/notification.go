@@ -52,7 +52,7 @@ func (h notificationHandler) Routes(r chi.Router) {
 func (h notificationHandler) list(w http.ResponseWriter, r *http.Request) {
 	list, _, err := h.service.Find(r.Context(), domain.NotificationQueryParams{})
 	if err != nil {
-		h.encoder.StatusNotFound(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notification, err := h.service.FindByID(r.Context(), notificationID)
+	notif, err := h.service.FindByID(r.Context(), notificationID)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", notificationID))
@@ -93,7 +93,7 @@ func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, notification)
+	h.encoder.StatusResponse(w, http.StatusOK, notif)
 }
 
 func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +133,7 @@ func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {

@@ -56,7 +56,7 @@ func (h indexerHandler) Routes(r chi.Router) {
 	})
 }
 
-func (h indexerHandler) getSchema(w http.ResponseWriter, r *http.Request) {
+func (h indexerHandler) getSchema(w http.ResponseWriter, _ *http.Request) {
 	indexers, err := h.service.GetTemplates()
 	if err != nil {
 		h.encoder.Error(w, err)
@@ -120,10 +120,10 @@ func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
-func (h indexerHandler) getAll(w http.ResponseWriter, r *http.Request) {
+func (h indexerHandler) getAll(w http.ResponseWriter, _ *http.Request) {
 	indexers, err := h.service.GetAll()
 	if err != nil {
 		h.encoder.Error(w, err)
