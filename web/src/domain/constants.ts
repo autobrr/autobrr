@@ -192,6 +192,39 @@ export const RELEASE_TYPE_MUSIC_OPTIONS: MultiSelectOption[] = releaseTypeMusic.
   key: v
 }));
 
+export const formatBooks = [
+  "epub",
+  "pdf",
+  "mobi",
+  "azw3",
+  "azw",
+  "cbz",
+  "cbr",
+  "pdb",
+  "doc",
+  "docx",
+  "lit",
+  "chm",
+  "djvu",
+  "lrf",
+  "fb2",
+  "html",
+  "htm",
+  "txt",
+  "rtf",
+  "xml",
+  "mp3",
+  "m4a",
+  "m4b",
+  "aac",
+  "ogg",
+  "wma",
+  "flac",
+  "wav"
+];
+
+export const FORMATS_BOOKS_OPTIONS: MultiSelectOption[] = formatBooks.map(r => ({ value: r, label: r, key: r }));
+
 export const originOptions = [
   "P2P",
   "Internal",

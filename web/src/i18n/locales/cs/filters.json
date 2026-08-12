@@ -58,6 +58,7 @@
         "general": "Obecné",
         "moviesTv": "Filmy a TV",
         "music": "Hudba",
+        "books": "Knihy",
         "advanced": "Pokročilé",
         "external": "Externí",
         "actions": "Akce",
@@ -368,6 +369,30 @@
         "perfectFlacDescription": "Přepíše všechny možnosti o kvalitě, zdroji, formátu a cue/log/logové skóre.",
         "perfectFlacTooltip": "Přepíše všechny možnosti o kvalitě, zdroji, formátu a CUE/LOG/LOGové skóre.",
         "perfectFlacHint": "Toto je to, co chcete v 90% případů (místo možností výše)."
+      }
+    },
+    "books": {
+      "authors": "Autoři",
+      "authorsPlaceholder": "např. Autor 1",
+      "titles": "Názvy",
+      "titlesPlaceholder": "např. Ta Kniha",
+      "wildcardTooltip": "Můžete použít základní filtraci jako hvězdičky * nebo nahradit jednotlivé znaky s ?",
+      "years": "Roky",
+      "yearsPlaceholder": "např. 2018,2019-2021",
+      "yearsTooltip": "Toto pole přijímá rozsah let a/nebo čárkou oddělené jednotlivé roky.",
+      "options": {
+        "title": "Možnosti",
+        "subtitle": "Jazyk, formát a tagy",
+        "matchLanguage": "Podmínka shody jazyků",
+        "exceptLanguage": "Ignorovat jazyky",
+        "format": "Formát",
+        "formatTooltip": "Shoduje releasy, které obsahují jakékoli z vybraných formátů.",
+        "matchTags": "Podmínka shody tagů",
+        "matchTagsPlaceholder": "např. tag1,tag2",
+        "matchTagsTooltip": "Seznam tagů, které mají být shodovány (oddělené čárkami).",
+        "exceptTags": "Ignorovat tagy",
+        "exceptTagsPlaceholder": "např. tag1,tag2",
+        "exceptTagsTooltip": "Seznam tagů, které mají být ignorovány (přednost před Podmínka shody tagů)."
       }
     },
     "external": {
