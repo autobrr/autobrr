@@ -25,6 +25,20 @@ func (s *indexerSvcStub) List(_ context.Context) ([]domain.Indexer, error) {
 	return s.indexers, nil
 }
 
+// filterRepoStub answers the existence check; every other repo method panics
+// through the embedded nil interface, so reaching persistence fails the test.
+type filterRepoStub struct {
+	filterRepo
+	filter *domain.Filter
+}
+
+func (s *filterRepoStub) FindByID(_ context.Context, filterID int) (*domain.Filter, error) {
+	if s.filter == nil || s.filter.ID != filterID {
+		return nil, domain.ErrRecordNotFound
+	}
+	return s.filter, nil
+}
+
 func TestService_validateIndexers(t *testing.T) {
 	svc := &Service{
 		log:        zerolog.Nop(),
@@ -45,11 +59,10 @@ func TestService_validateIndexers(t *testing.T) {
 	})
 }
 
-// The repo fields are nil, so reaching any persistence call would panic. A
-// clean ErrIndexerNotFound proves validation runs before anything is stored.
 func TestService_Update_ValidatesIndexersBeforePersisting(t *testing.T) {
 	svc := &Service{
 		log:        zerolog.Nop(),
+		repo:       &filterRepoStub{filter: &domain.Filter{ID: 1}},
 		indexerSvc: &indexerSvcStub{indexers: []domain.Indexer{{ID: 1}}},
 	}
 
@@ -61,9 +74,25 @@ func TestService_Update_ValidatesIndexersBeforePersisting(t *testing.T) {
 	assert.ErrorIs(t, err, domain.ErrIndexerNotFound)
 }
 
+func TestService_Update_MissingFilterWinsOverUnknownIndexer(t *testing.T) {
+	svc := &Service{
+		log:        zerolog.Nop(),
+		repo:       &filterRepoStub{},
+		indexerSvc: &indexerSvcStub{indexers: []domain.Indexer{{ID: 1}}},
+	}
+
+	err := svc.Update(t.Context(), &domain.Filter{
+		ID:       99,
+		Name:     "filter",
+		Indexers: []domain.Indexer{{ID: 99}},
+	})
+	assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+}
+
 func TestService_UpdatePartial_ValidatesIndexersBeforePersisting(t *testing.T) {
 	svc := &Service{
 		log:        zerolog.Nop(),
+		repo:       &filterRepoStub{filter: &domain.Filter{ID: 1}},
 		indexerSvc: &indexerSvcStub{indexers: []domain.Indexer{{ID: 1}}},
 	}
 
@@ -72,4 +101,18 @@ func TestService_UpdatePartial_ValidatesIndexersBeforePersisting(t *testing.T) {
 		Indexers: []domain.Indexer{{ID: 99}},
 	})
 	assert.ErrorIs(t, err, domain.ErrIndexerNotFound)
+}
+
+func TestService_UpdatePartial_MissingFilterWinsOverUnknownIndexer(t *testing.T) {
+	svc := &Service{
+		log:        zerolog.Nop(),
+		repo:       &filterRepoStub{},
+		indexerSvc: &indexerSvcStub{indexers: []domain.Indexer{{ID: 1}}},
+	}
+
+	err := svc.UpdatePartial(t.Context(), domain.FilterUpdate{
+		ID:       99,
+		Indexers: []domain.Indexer{{ID: 99}},
+	})
+	assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 }

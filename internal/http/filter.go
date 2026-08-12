@@ -163,7 +163,7 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if errors.Is(err, domain.ErrIndexerNotFound) {
-			h.encoder.StatusError(w, http.StatusBadRequest, err)
+			h.encoder.BadRequestErr(w, err)
 			return
 		}
 

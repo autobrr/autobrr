@@ -219,7 +219,7 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
-	if filter.AnnounceTypes == nil || len(filter.AnnounceTypes) == 0 {
+	if len(filter.AnnounceTypes) == 0 {
 		filter.AnnounceTypes = []string{string(domain.AnnounceTypeNew)}
 	}
 
@@ -232,15 +232,18 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
-	err := filter.Validate()
-	if err != nil {
+	if err := filter.Validate(); err != nil {
 		s.log.Error().Err(err).Interface("filter_data", filter).Msg("validation error")
 		return err
 	}
 
-	err = filter.Sanitize()
-	if err != nil {
+	if err := filter.Sanitize(); err != nil {
 		s.log.Error().Err(err).Interface("filter_data", filter).Msg("could not sanitize filter")
+		return err
+	}
+
+	if _, err := s.repo.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
 		return err
 	}
 
@@ -249,28 +252,20 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
-	if _, err := s.FindByID(ctx, filter.ID); err != nil {
-		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
-		return err
-	}
-
 	// update
-	err = s.repo.Update(ctx, filter)
-	if err != nil {
+	if err := s.repo.Update(ctx, filter); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not update filter")
 		return err
 	}
 
 	// take care of connected indexers
-	err = s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers)
-	if err != nil {
+	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter indexer connections")
 		return err
 	}
 
 	// take care of connected external filters
-	err = s.repo.StoreFilterExternal(ctx, filter.ID, filter.External)
-	if err != nil {
+	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store external filters")
 		return err
 	}
@@ -285,8 +280,7 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	filter.Actions = actions
 
 	// take care of filter notifications
-	err = s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
-	if err != nil {
+	if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter notifications")
 		return err
 	}
@@ -322,6 +316,16 @@ func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexe
 }
 
 func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+	if _, err := s.repo.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
+		return err
+	}
+
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
+		return err
+	}
+
 	// cleanup
 	if filter.Shows != nil {
 		// replace newline with comma
@@ -329,18 +333,6 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		clean = strings.ReplaceAll(clean, ",,", ",")
 
 		filter.Shows = &clean
-	}
-
-	if filter.Indexers != nil {
-		if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
-			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
-			return err
-		}
-	}
-
-	if _, err := s.FindByID(ctx, filter.ID); err != nil {
-		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
-		return err
 	}
 
 	// update
