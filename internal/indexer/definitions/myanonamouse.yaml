@@ -51,65 +51,69 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '(?P<releaseName>.+?) By: (?P<author>.+?) \[(?P<language>[^\]]+)\] \[(?P<category>[^\]]+)\] \[(?P<fictionType>[^\]]+)\] \[(?P<releaseTags>[^\]]+)\] \[(?P<torrentSize>[^\]]+)\] - (?P<tags>.+) - (?P<baseUrl>https?\:\/\/[^\/]+\/)t\/(?P<torrentId>\d+)\s*(?P<freeleech>VIP|Normal)?'
+          - pattern: '(?P<releaseName>.*?(?P<title>.+?) By: (?P<author>.+?) \[(?P<language>[^\]]+)\] \[(?P<category>[^\]]+)\] \[(?P<subCategory>[^\]]+)\] \[(?P<container>[^\]]+)\]) \[(?P<torrentSize>[^\]]+)\] - (?P<tags>.+) - (?P<baseUrl>https?\:\/\/[^\/]+\/)t\/(?P<torrentId>\d+)\s*(?P<releaseTags>VIP|Normal)?'
             tests:
               - line: 'Frost Hunger By: Indigo Frey [English] [Ebook] [Fiction] [epub] [1.07 MiB] - Fantasy, LGBTQIA+, Erotica/Sexual Content, Romance - https://www.myanonamouse.net/t/1262654 VIP'
                 expect:
-                  releaseName: Frost Hunger
+                  releaseName: 'Frost Hunger By: Indigo Frey [English] [Ebook] [Fiction] [epub]'
+                  title: Frost Hunger
                   author: Indigo Frey
                   language: English
                   category: Ebook
-                  fictionType: Fiction
-                  releaseTags: epub
+                  subCategory: Fiction
+                  container: epub
                   torrentSize: 1.07 MiB
                   tags: Fantasy, LGBTQIA+, Erotica/Sexual Content, Romance
                   baseUrl: https://www.myanonamouse.net/
                   torrentId: "1262654"
-                  freeleech: VIP
+                  releaseTags: VIP
 
               - line: 'The Long Game: A Playbook of the World''s Most Enduring Companies By: Eric Becker [English] [Audiobook] [Non-Fiction] [m4b] [132.69 MiB] - Business/Money - https://www.myanonamouse.net/t/1262674 Normal'
                 expect:
-                  releaseName: 'The Long Game: A Playbook of the World''s Most Enduring Companies'
+                  releaseName: 'The Long Game: A Playbook of the World''s Most Enduring Companies By: Eric Becker [English] [Audiobook] [Non-Fiction] [m4b]'
+                  title: 'The Long Game: A Playbook of the World''s Most Enduring Companies'
                   author: Eric Becker
                   language: English
                   category: Audiobook
-                  fictionType: Non-Fiction
-                  releaseTags: m4b
+                  subCategory: Non-Fiction
+                  container: m4b
                   torrentSize: 132.69 MiB
                   tags: Business/Money
                   baseUrl: https://www.myanonamouse.net/
                   torrentId: "1262674"
-                  freeleech: Normal
+                  releaseTags: Normal
 
               - line: 'El bestiario de Axlin By: Laura Gallego [Spanish] [Ebook] [Fiction] [epub] [1.26 MiB] - Fantasy,  Young Adult - https://www.myanonamouse.net/t/1262675 Normal'
                 expect:
-                  releaseName: El bestiario de Axlin
+                  releaseName: 'El bestiario de Axlin By: Laura Gallego [Spanish] [Ebook] [Fiction] [epub]'
+                  title: El bestiario de Axlin
                   author: Laura Gallego
                   language: Spanish
                   category: Ebook
-                  fictionType: Fiction
-                  releaseTags: epub
+                  subCategory: Fiction
+                  container: epub
                   torrentSize: 1.26 MiB
                   tags: 'Fantasy,  Young Adult'
                   baseUrl: https://www.myanonamouse.net/
                   torrentId: "1262675"
-                  freeleech: Normal
+                  releaseTags: Normal
 
               - line: 'Villains Unleashed By: Manos Kourizidis, George Antoniu, Gianis Makris, Lina Anagnostou, and 3 more [English] [Ebook] [Fiction] [pdf] [32.06 MiB] - Fantasy,  RPG - https://www.myanonamouse.net/t/1262681 VIP'
                 expect:
-                  releaseName: Villains Unleashed
+                  releaseName: 'Villains Unleashed By: Manos Kourizidis, George Antoniu, Gianis Makris, Lina Anagnostou, and 3 more [English] [Ebook] [Fiction] [pdf]'
+                  title: Villains Unleashed
                   author: Manos Kourizidis, George Antoniu, Gianis Makris, Lina Anagnostou, and 3 more
                   language: English
                   category: Ebook
-                  fictionType: Fiction
-                  releaseTags: pdf
+                  subCategory: Fiction
+                  container: pdf
                   torrentSize: 32.06 MiB
                   tags: 'Fantasy,  RPG'
                   baseUrl: https://www.myanonamouse.net/
                   torrentId: "1262681"
-                  freeleech: VIP
+                  releaseTags: VIP
 
         match:
           infourl: "/t/{{ .torrentId }}"
           downloadurl: "/tor/download.php?tid={{ .torrentId }}"
-          releasename: "{{ .releaseName }} by {{ .author }} [{{ .language }} / {{ .releaseTags }}]"
+          releasename: "{{ .title }} by {{ .author }} [{{ .language }} / {{ .category }} / {{ .container }}]"
