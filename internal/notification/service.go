@@ -138,15 +138,19 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 	return nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
-	err := s.repo.Delete(ctx, id)
-	if err != nil {
-		s.log.Error().Err(err).Int("notification_id", id).Msg("could not delete notification")
+func (s *Service) Delete(ctx context.Context, notificationID int) error {
+	if _, err := s.repo.FindByID(ctx, notificationID); err != nil {
+		s.log.Error().Err(err).Int("notification_id", notificationID).Msg("could not find notification by id")
+		return err
+	}
+
+	if err := s.repo.Delete(ctx, notificationID); err != nil {
+		s.log.Error().Err(err).Int("notification_id", notificationID).Msg("could not delete notification")
 		return err
 	}
 
 	// delete sender
-	delete(s.senders, id)
+	delete(s.senders, notificationID)
 
 	return nil
 }

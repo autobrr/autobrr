@@ -161,14 +161,18 @@ func (s *Service) Update(ctx context.Context, list *domain.List) error {
 	return nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int64) error {
-	err := s.repo.Delete(ctx, id)
-	if err != nil {
-		s.log.Error().Err(err).Int64("list_id", id).Msg("could not delete list by id")
+func (s *Service) Delete(ctx context.Context, listID int64) error {
+	if _, err := s.repo.FindByID(ctx, listID); err != nil {
+		s.log.Error().Err(err).Int64("list_id", listID).Msg("could not find list by id")
 		return err
 	}
 
-	s.log.Debug().Int64("list_id", id).Msg("successfully deleted list")
+	if err := s.repo.Delete(ctx, listID); err != nil {
+		s.log.Error().Err(err).Int64("list_id", listID).Msg("could not delete list by id")
+		return err
+	}
+
+	s.log.Debug().Int64("list_id", listID).Msg("successfully deleted list")
 
 	return nil
 }

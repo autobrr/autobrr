@@ -383,14 +383,13 @@ func (s *Service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManu
 
 	handler, found := s.networkHandlers.Get(network.ID)
 	if !found {
-		return errors.New("could not find irc handler with id: %d", network.ID)
+		return errors.Wrap(domain.ErrRecordNotFound, "could not find irc handler with id: %d", network.ID)
 	}
 
 	// send to channels announce processor
 	channel, foundChannel := handler.channels.Get(req.Channel)
-
 	if !foundChannel {
-		return errors.New("could not find channel: %s", req.Channel)
+		return errors.Wrap(domain.ErrRecordNotFound, "could not find channel: %s", req.Channel)
 	}
 
 	if err := channel.QueueAnnounceLine(req.Message); err != nil {
@@ -763,6 +762,12 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 }
 
 func (s *Service) StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error {
+	_, err := s.GetNetworkByID(ctx, networkID)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not find existing network")
+		return err
+	}
+
 	if err := s.repo.StoreChannel(ctx, networkID, channel); err != nil {
 		return err
 	}
@@ -773,7 +778,7 @@ func (s *Service) StoreChannel(ctx context.Context, networkID int64, channel *do
 func (s *Service) SendCmd(_ context.Context, req *domain.SendIrcCmdRequest) error {
 	handler, found := s.networkHandlers.Get(req.NetworkId)
 	if !found {
-		return errors.New("could not find irc handler with id: %d", req.NetworkId)
+		return errors.Wrap(domain.ErrRecordNotFound, "could not find irc handler with id: %d", req.NetworkId)
 	}
 
 	if err := handler.SendMsg(req.Channel, req.Message); err != nil {

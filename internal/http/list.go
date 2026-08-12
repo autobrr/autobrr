@@ -7,9 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -80,6 +80,11 @@ func (h listHandler) update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.listSvc.Update(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find list"))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -88,13 +93,18 @@ func (h listHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h listHandler) delete(w http.ResponseWriter, r *http.Request) {
-	listID, err := strconv.Atoi(chi.URLParam(r, "listID"))
+	listID, err := parseURLParamInt(r, "listID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	if err := h.listSvc.Delete(r.Context(), int64(listID)); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find list"))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -112,13 +122,18 @@ func (h listHandler) refreshAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h listHandler) refreshList(w http.ResponseWriter, r *http.Request) {
-	listID, err := strconv.Atoi(chi.URLParam(r, "listID"))
+	listID, err := parseURLParamInt(r, "listID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	if err := h.listSvc.RefreshList(r.Context(), int64(listID)); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find list"))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

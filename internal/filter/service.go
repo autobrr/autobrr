@@ -67,6 +67,8 @@ type downloadService interface {
 }
 
 type notificationService interface {
+	Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error)
+
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
 	StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
 	DeleteFilterNotifications(ctx context.Context, filterID int) error
@@ -219,7 +221,7 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
-	if filter.AnnounceTypes == nil || len(filter.AnnounceTypes) == 0 {
+	if len(filter.AnnounceTypes) == 0 {
 		filter.AnnounceTypes = []string{string(domain.AnnounceTypeNew)}
 	}
 
@@ -232,15 +234,18 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
-	err := filter.Validate()
-	if err != nil {
+	if err := filter.Validate(); err != nil {
 		s.log.Error().Err(err).Interface("filter_data", filter).Msg("validation error")
 		return err
 	}
 
-	err = filter.Sanitize()
-	if err != nil {
+	if err := filter.Sanitize(); err != nil {
 		s.log.Error().Err(err).Interface("filter_data", filter).Msg("could not sanitize filter")
+		return err
+	}
+
+	if _, err := s.repo.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
 		return err
 	}
 
@@ -249,23 +254,25 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
+	if err := s.validateNotifications(ctx, filter.Notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid notifications for filter")
+		return err
+	}
+
 	// update
-	err = s.repo.Update(ctx, filter)
-	if err != nil {
+	if err := s.repo.Update(ctx, filter); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not update filter")
 		return err
 	}
 
 	// take care of connected indexers
-	err = s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers)
-	if err != nil {
+	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter indexer connections")
 		return err
 	}
 
 	// take care of connected external filters
-	err = s.repo.StoreFilterExternal(ctx, filter.ID, filter.External)
-	if err != nil {
+	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store external filters")
 		return err
 	}
@@ -280,8 +287,7 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	filter.Actions = actions
 
 	// take care of filter notifications
-	err = s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
-	if err != nil {
+	if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter notifications")
 		return err
 	}
@@ -316,7 +322,49 @@ func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexe
 	return nil
 }
 
+// validateNotifications rejects notifications that do not exist, for the same
+// reason as validateIndexers: without foreign key enforcement unknown ids
+// would be stored as orphaned links and silently never fire.
+func (s *Service) validateNotifications(ctx context.Context, notifications []domain.FilterNotification) error {
+	if len(notifications) == 0 {
+		return nil
+	}
+
+	existing, _, err := s.notificationSvc.Find(ctx, domain.NotificationQueryParams{})
+	if err != nil {
+		return err
+	}
+
+	existingIDs := make(map[int]struct{}, len(existing))
+	for _, notification := range existing {
+		existingIDs[notification.ID] = struct{}{}
+	}
+
+	for _, notification := range notifications {
+		if _, ok := existingIDs[notification.NotificationID]; !ok {
+			return errors.Wrap(domain.ErrNotificationNotFound, "notification with id %d does not exist", notification.NotificationID)
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+	if _, err := s.repo.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
+		return err
+	}
+
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
+		return err
+	}
+
+	if err := s.validateNotifications(ctx, filter.Notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid notifications for filter")
+		return err
+	}
+
 	// cleanup
 	if filter.Shows != nil {
 		// replace newline with comma
@@ -324,13 +372,6 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		clean = strings.ReplaceAll(clean, ",,", ",")
 
 		filter.Shows = &clean
-	}
-
-	if filter.Indexers != nil {
-		if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
-			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
-			return err
-		}
 	}
 
 	// update
@@ -378,6 +419,7 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	// find filter with actions, indexers and external filters
 	filter, err := s.FindByID(ctx, filterID)
 	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
 		return nil, err
 	}
 
@@ -421,6 +463,12 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 }
 
 func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+	_, err := s.FindByID(ctx, filterID)
+	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
+		return err
+	}
+
 	if err := s.repo.ToggleEnabled(ctx, filterID, enabled); err != nil {
 		s.log.Error().Err(err).Msg("could not update filter enabled")
 		return err
@@ -434,6 +482,12 @@ func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool)
 func (s *Service) Delete(ctx context.Context, filterID int) error {
 	if filterID == 0 {
 		return nil
+	}
+
+	_, err := s.FindByID(ctx, filterID)
+	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
+		return err
 	}
 
 	// take care of filter actions

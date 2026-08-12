@@ -16,5 +16,6 @@ var (
 	ErrNoActiveFiltersFoundForIndexer = errors.New("no active filters found for indexer")
 	ErrUnexpectedLine                 = errors.New("unexpected line")
 	ErrIndexerNotFound                = errors.New("indexer not found")
+	ErrNotificationNotFound           = errors.New("notification not found")
 	ErrIRCNetworkHandlerNotFound      = errors.New("could not find network handler")
 )

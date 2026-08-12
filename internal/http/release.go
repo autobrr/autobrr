@@ -6,10 +6,7 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -107,62 +104,30 @@ func (h releaseHandler) Routes(r chi.Router) {
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
-	limitP := r.URL.Query().Get("limit")
-	limit, err := strconv.Atoi(limitP)
-	if err != nil && limitP != "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "limit parameter is invalid",
-		})
-		return
-	}
-	if limit == 0 {
-		limit = 20
-	}
-
-	offsetP := r.URL.Query().Get("offset")
-	offset, err := strconv.Atoi(offsetP)
-	if err != nil && offsetP != "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "offset parameter is invalid",
-		})
+	limit, err := parseQueryParamInt(r, "limit", 20)
+	if err != nil || limit == 0 {
+		h.encoder.BadRequestErr(w, errors.New("limit parameter is invalid"))
 		return
 	}
 
-	cursorP := r.URL.Query().Get("cursor")
-	cursor := 0
-	if cursorP != "" {
-		cursor, err = strconv.Atoi(cursorP)
-		if err != nil && cursorP != "" {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "cursor parameter is invalid",
-			})
-		}
-		return
-	}
-
-	u, err := url.Parse(r.URL.String())
+	offset, err := parseQueryParamInt(r, "offset", 0)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "indexer parameter is invalid",
-		})
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
-	vals := u.Query()
-	indexer := vals["indexer"]
+
+	cursor, err := parseQueryParamInt(r, "cursor", 0)
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	indexer := r.URL.Query()["indexer"]
 
 	pushStatus := r.URL.Query().Get("push_status")
-	if pushStatus != "" {
-		if !domain.ValidReleasePushStatus(pushStatus) {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": fmt.Sprintf("push_status parameter is of invalid type: %v", pushStatus),
-			})
-			return
-		}
+	if pushStatus != "" && !domain.ValidReleasePushStatus(pushStatus) {
+		h.encoder.BadRequestErr(w, errors.New("push_status parameter is of invalid type: %v", pushStatus))
+		return
 	}
 
 	search := r.URL.Query().Get("q")
@@ -181,10 +146,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.service.Find(r.Context(), query)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -194,10 +156,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Find(r.Context(), domain.ReleaseQueryParams{Limit: 10})
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -205,9 +164,9 @@ func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Reques
 }
 
 func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {
-	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
+	releaseID, err := parseURLParamInt(r, "releaseID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -228,10 +187,7 @@ func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetIndexerOptions(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -241,10 +197,7 @@ func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.Stats(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -253,25 +206,15 @@ func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 
 func (h releaseHandler) statsHandler(fetch func(ctx context.Context, days int) (any, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		days := 30
-		if daysP := r.URL.Query().Get("days"); daysP != "" {
-			parsed, err := strconv.Atoi(daysP)
-			if err != nil || parsed < 0 || parsed > 3650 {
-				h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-					"code":    "BAD_REQUEST_PARAMS",
-					"message": "days parameter is invalid",
-				})
-				return
-			}
-			days = parsed
+		days, err := parseQueryParamInt(r, "days", 30)
+		if err != nil || days > 3650 {
+			h.encoder.BadRequestErr(w, errors.New("days parameter is invalid"))
+			return
 		}
 
 		stats, err := fetch(r.Context(), days)
 		if err != nil {
-			h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-				"code":    "INTERNAL_SERVER_ERROR",
-				"message": err.Error(),
-			})
+			h.encoder.Error(w, err)
 			return
 		}
 
@@ -282,18 +225,12 @@ func (h releaseHandler) statsHandler(fetch func(ctx context.Context, days int) (
 func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	req := domain.DeleteReleaseRequest{}
 
-	olderThanParam := r.URL.Query().Get("olderThan")
-	if olderThanParam != "" {
-		duration, err := strconv.Atoi(olderThanParam)
-		if err != nil {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "olderThan parameter is invalid",
-			})
-			return
-		}
-		req.OlderThan = duration
+	olderThan, err := parseQueryParamInt(r, "olderThan", 0)
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
 	}
+	req.OlderThan = olderThan
 
 	indexers := r.URL.Query()["indexer"]
 	if len(indexers) > 0 {
@@ -312,10 +249,7 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		if _, valid := validStatuses[status]; valid {
 			filteredStatuses = append(filteredStatuses, status)
 		} else {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "INVALID_RELEASE_STATUS",
-				"message": "releaseStatus contains invalid value",
-			})
+			h.encoder.BadRequestErr(w, errors.New("releaseStatus contains invalid value: %v", status))
 			return
 		}
 	}
@@ -338,17 +272,13 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.IndexerIdentifier == "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "VALIDATION_ERROR",
-			"message": "field indexer_identifier empty",
-		})
+		h.encoder.BadRequestErr(w, errors.New("field indexer_identifier empty"))
+		return
 	}
 
 	if len(req.AnnounceLines) == 0 {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "VALIDATION_ERROR",
-			"message": "field announce_lines empty",
-		})
+		h.encoder.BadRequestErr(w, errors.New("field announce_lines empty"))
+		return
 	}
 
 	err = h.service.ProcessManual(r.Context(), req)
@@ -361,15 +291,15 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
-	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
+	releaseID, err := parseURLParamInt(r, "releaseID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	actionStatusId, err := strconv.Atoi(chi.URLParam(r, "actionStatusID"))
+	actionStatusId, err := parseURLParamInt(r, "actionStatusID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -380,7 +310,7 @@ func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.Retry(r.Context(), req); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, err)
+			h.encoder.NotFoundErr(w, errors.New("action status with id %d not found for release %d", actionStatusId, releaseID))
 			return
 		}
 
@@ -410,28 +340,17 @@ func (h releaseHandler) storeReleaseProfileDuplicate(w http.ResponseWriter, r *h
 func (h releaseHandler) findReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
 	profiles, err := h.service.FindDuplicateReleaseProfiles(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
-
-	//ret := struct {
-	//	Data       []*domain.DuplicateReleaseProfile `json:"data"`
-	//}{
-	//	Data:       profiles,
-	//}
 
 	h.encoder.StatusResponse(w, http.StatusOK, profiles)
 }
 
 func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
-	//profileIdParam := chi.URLParam(r, "releaseId")
-
-	profileId, err := strconv.Atoi(chi.URLParam(r, "profileId"))
+	profileId, err := parseURLParamInt(r, "profileId")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -456,9 +375,9 @@ func (h releaseHandler) listCleanupJobs(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h releaseHandler) getCleanupJob(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -508,13 +427,13 @@ func (h releaseHandler) updateCleanupJob(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, data)
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h releaseHandler) deleteCleanupJob(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -532,9 +451,9 @@ func (h releaseHandler) deleteCleanupJob(w http.ResponseWriter, r *http.Request)
 }
 
 func (h releaseHandler) toggleCleanupJobEnabled(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -561,9 +480,9 @@ func (h releaseHandler) toggleCleanupJobEnabled(w http.ResponseWriter, r *http.R
 }
 
 func (h releaseHandler) forceRunCleanupJob(w http.ResponseWriter, r *http.Request) {
-	jobID, err := strconv.Atoi(chi.URLParam(r, "jobID"))
+	jobID, err := parseURLParamInt(r, "jobID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 

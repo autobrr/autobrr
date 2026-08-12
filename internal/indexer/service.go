@@ -212,17 +212,17 @@ func (s *Service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer,
 		return nil, err
 	}
 
-	return indexers, err
+	return indexers, nil
 }
 
 func (s *Service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
-	indexers, err := s.repo.FindByID(ctx, id)
+	indexer, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not find indexer by id")
 		return nil, err
 	}
 
-	return indexers, err
+	return indexer, nil
 }
 
 func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
@@ -232,7 +232,7 @@ func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
 		return nil, err
 	}
 
-	return indexers, err
+	return indexers, nil
 }
 
 func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
@@ -242,7 +242,7 @@ func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*dom
 		return nil, err
 	}
 
-	return indexer, err
+	return indexer, nil
 }
 
 func (s *Service) GetAll() ([]*domain.IndexerDefinition, error) {
