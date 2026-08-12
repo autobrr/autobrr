@@ -58,6 +58,7 @@
       "general": "Generelt",
       "moviesTv": "Filmer og serier",
       "music": "Musikk",
+      "books": "Bøker",
       "advanced": "Avansert",
       "external": "Ekstern",
       "actions": "Handlinger",
@@ -368,6 +369,30 @@
       "perfectFlacDescription": "Overstyr alle alternativer om kvalitet, kilde, format og cue/log/logg-poengsum.",
       "perfectFlacTooltip": "Overstyr alle alternativer om kvalitet, kilde, format og CUE/LOG/LOG-poengsum.",
       "perfectFlacHint": "Dette er hva du vil ha i 90 % av tilfellene (i stedet for alternativene ovenfor)."
+    }
+  },
+  "books": {
+    "authors": "Forfattere",
+    "authorsPlaceholder": "f.eks. Forfatter En",
+    "titles": "Titler",
+    "titlesPlaceholder": "f.eks. Den Boken",
+    "wildcardTooltip": "Du kan bruke grunnleggende filtrering som jokertegn * eller erstatte enkelttegn med ?",
+    "years": "År",
+    "yearsPlaceholder": "f.eks. 2018,2019-2021",
+    "yearsTooltip": "Dette feltet tar et område av år og/eller kommaseparerte enkeltår.",
+    "options": {
+      "title": "Alternativer",
+      "subtitle": "Språk, format og tagger",
+      "matchLanguage": "Samsvar med språk",
+      "exceptLanguage": "Ekskluder språk",
+      "format": "Format",
+      "formatTooltip": "Vil kun samsvare med utgivelser med noen av de valgte formatene.",
+      "matchTags": "Samsvar med tagger",
+      "matchTagsPlaceholder": "f.eks. tag1,tag2",
+      "matchTagsTooltip": "Kommaseparert liste over tagger som skal samsvare.",
+      "exceptTags": "Ekskluder tagger",
+      "exceptTagsPlaceholder": "f.eks. tag1,tag2",
+      "exceptTagsTooltip": "Kommaseparert liste over tagger som skal ignoreres (prioriteres foran Samsvar med tagger)."
     }
   },
   "external": {

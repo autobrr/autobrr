@@ -58,6 +58,7 @@
       "general": "General",
       "moviesTv": "Películas y TV",
       "music": "Música",
+      "books": "Libros",
       "advanced": "Avanzado",
       "external": "Externo",
       "actions": "Acciones",
@@ -368,6 +369,30 @@
       "perfectFlacDescription": "Anular todas las opciones sobre calidad, fuente, formato, y cue/log/puntuación de log.",
       "perfectFlacTooltip": "Anular todas las opciones sobre calidad, fuente, formato, y CUE/LOG/puntuación de LOG.",
       "perfectFlacHint": "Esto es lo que quieres en el 90% de los casos (en lugar de las opciones anteriores)."
+    }
+  },
+  "books": {
+    "authors": "Autores",
+    "authorsPlaceholder": "ej. Autor Uno",
+    "titles": "Títulos",
+    "titlesPlaceholder": "ej. Ese Libro",
+    "wildcardTooltip": "Puedes usar filtrado básico como comodines * o reemplazar caracteres individuales con ?",
+    "years": "Años",
+    "yearsPlaceholder": "ej. 2018,2019-2021",
+    "yearsTooltip": "Este campo acepta un rango de años y/o años individuales separados por comas.",
+    "options": {
+      "title": "Opciones",
+      "subtitle": "Idioma, formato y etiquetas",
+      "matchLanguage": "Coincidir idioma",
+      "exceptLanguage": "Excepto idioma",
+      "format": "Formato",
+      "formatTooltip": "Solo coincidirá con lanzamientos de cualquiera de los formatos seleccionados.",
+      "matchTags": "Coincidir etiquetas",
+      "matchTagsPlaceholder": "ej. etiqueta1,etiqueta2",
+      "matchTagsTooltip": "Lista separada por comas de etiquetas a coincidir.",
+      "exceptTags": "Excepto etiquetas",
+      "exceptTagsPlaceholder": "ej. etiqueta1,etiqueta2",
+      "exceptTagsTooltip": "Lista separada por comas de etiquetas a ignorar (tiene prioridad sobre Coincidir etiquetas)."
     }
   },
   "external": {
