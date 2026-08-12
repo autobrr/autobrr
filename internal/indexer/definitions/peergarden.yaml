@@ -21,8 +21,8 @@ settings:
     help: "Click the cog icon in the top right corner, RSS key is located in the sidebar."
 
 irc:
-  network: P2P-Network
-  server: irc.p2p-network.net
+  network: PeerGarden
+  server: irc.peergarden.org
   port: 6697
   tls: true
   settings:
@@ -45,7 +45,7 @@ irc:
       help: NickServ password
 
   channels:
-    - name: "#peergarden"
+    - name: "#announce"
       announcers:
         - "PeerGarden"
       parse:
