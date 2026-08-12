@@ -38,7 +38,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
+		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req)")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)
@@ -79,7 +79,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
+		return errors.Wrap(err, "sonarr.http.Do(req)")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)
@@ -124,7 +124,7 @@ func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		return res, errors.Wrap(err, "could not make request: %+v", req)
+		return res, errors.Wrap(err, "could not make request")
 	}
 
 	// validate response
@@ -165,7 +165,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req): %+v", req)
+		return 0, nil, errors.Wrap(err, "sonarr.http.Do(req)")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)

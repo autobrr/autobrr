@@ -57,7 +57,7 @@ func (s *Service) lidarr(ctx context.Context, action *domain.Action, release *do
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {
-		l.Error().Err(err).Interface("release_data", r).Msg("lidarr: failed to push release")
+		l.Error().Err(err).Str("release", r.Title).Msg("lidarr: failed to push release")
 		return nil, err
 	}
 

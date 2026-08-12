@@ -38,7 +38,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "sportarr.http.Do(req): %+v", req)
+		return 0, nil, errors.Wrap(err, "sportarr.http.Do(req)")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)
@@ -79,7 +79,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "sportarr.http.Do(req): %+v", req)
+		return errors.Wrap(err, "sportarr.http.Do(req)")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)
@@ -128,7 +128,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data any) (int, 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "sportarr.http.Do(req): %+v", req)
+		return 0, nil, errors.Wrap(err, "sportarr.http.Do(req)")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)

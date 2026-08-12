@@ -79,7 +79,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "lidarr.http.Do(req): %+v", req)
+		return errors.Wrap(err, "lidarr.http.Do(req)")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)

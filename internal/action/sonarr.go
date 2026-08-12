@@ -66,7 +66,7 @@ func (s *Service) sonarr(ctx context.Context, action *domain.Action, release *do
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {
-		return nil, errors.Wrap(err, "sonarr: failed to push release: %v", r)
+		return nil, errors.Wrap(err, "sonarr: failed to push release: %v", r.Title)
 	}
 
 	if rejections != nil {
