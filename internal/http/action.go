@@ -17,6 +17,7 @@ import (
 type actionService interface {
 	List(ctx context.Context) ([]domain.Action, error)
 	Store(ctx context.Context, action *domain.Action) error
+	Update(ctx context.Context, action *domain.Action) (*domain.Action, error)
 	Delete(ctx context.Context, req *domain.DeleteActionRequest) error
 	ToggleEnabled(actionID int) error
 }
@@ -71,19 +72,32 @@ func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
+	actionID, err := parseURLParamInt(r, "actionID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.Action
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.Store(r.Context(), data)
+	data.ID = actionID
+
+	action, err := h.service.Update(r.Context(), data)
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("action with id %d not found", actionID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, data)
+	h.encoder.StatusResponse(w, http.StatusOK, action)
 }
 
 func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {

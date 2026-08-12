@@ -851,8 +851,15 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return nil, errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return nil, domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Int("action_id", action.ID).Msg("action update")
@@ -869,8 +876,6 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 	defer tx.Rollback()
 
 	for _, action := range actions {
-		action := action
-
 		if action.ID > 0 {
 			queryBuilder := r.db.squirrel.
 				Update("action").

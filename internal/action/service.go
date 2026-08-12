@@ -17,6 +17,7 @@ import (
 
 type actionRepo interface {
 	Store(ctx context.Context, action *domain.Action) error
+	Update(ctx context.Context, action domain.Action) (*domain.Action, error)
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
@@ -65,6 +66,10 @@ func NewService(log zerolog.Logger, repo actionRepo, clientSvc clientService, do
 
 func (s *Service) Store(ctx context.Context, action *domain.Action) error {
 	return s.repo.Store(ctx, action)
+}
+
+func (s *Service) Update(ctx context.Context, action *domain.Action) (*domain.Action, error) {
+	return s.repo.Update(ctx, *action)
 }
 
 func (s *Service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {
