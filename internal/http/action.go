@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -93,6 +94,11 @@ func (h actionHandler) deleteAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Delete(r.Context(), &domain.DeleteActionRequest{ActionId: actionID}); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("action with id %d not found", actionID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -108,6 +114,11 @@ func (h actionHandler) toggleActionEnabled(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.service.ToggleEnabled(actionID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("action with id %d not found", actionID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
