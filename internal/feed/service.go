@@ -283,7 +283,7 @@ func (s *Service) delete(ctx context.Context, feedID int) error {
 		s.log.Error().Err(err).Str("feed", f.Name).Msg("error deleting feed cache")
 	}
 
-	s.guards.Delete(id)
+	s.guards.Delete(feedID)
 
 	return nil
 }
@@ -304,7 +304,7 @@ func (s *Service) toggleEnabled(ctx context.Context, feedID int, enabled bool) e
 		s.log.Debug().Str("feed", f.Name).Bool("enabled", enabled).Msg("feed toggled")
 	}
 
-	return s.syncFeedJob(ctx, id)
+	return s.syncFeedJob(ctx, feedID)
 }
 
 func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
