@@ -162,7 +162,7 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(err, domain.ErrIndexerNotFound) {
+		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrNotificationNotFound) {
 			h.encoder.BadRequestErr(w, err)
 			return
 		}
@@ -194,8 +194,8 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(err, domain.ErrIndexerNotFound) {
-			h.encoder.StatusError(w, http.StatusBadRequest, err)
+		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrNotificationNotFound) {
+			h.encoder.BadRequestErr(w, err)
 			return
 		}
 
@@ -299,6 +299,11 @@ func (h filterHandler) updateFilterNotifications(w http.ResponseWriter, r *http.
 	if err := h.service.UpdatePartial(r.Context(), update); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
+			return
+		}
+
+		if errors.Is(err, domain.ErrNotificationNotFound) {
+			h.encoder.BadRequestErr(w, err)
 			return
 		}
 

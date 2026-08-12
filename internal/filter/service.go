@@ -67,6 +67,8 @@ type downloadService interface {
 }
 
 type notificationService interface {
+	Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error)
+
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
 	StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
 	DeleteFilterNotifications(ctx context.Context, filterID int) error
@@ -252,6 +254,11 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
+	if err := s.validateNotifications(ctx, filter.Notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid notifications for filter")
+		return err
+	}
+
 	// update
 	if err := s.repo.Update(ctx, filter); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not update filter")
@@ -315,6 +322,33 @@ func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexe
 	return nil
 }
 
+// validateNotifications rejects notifications that do not exist, for the same
+// reason as validateIndexers: without foreign key enforcement unknown ids
+// would be stored as orphaned links and silently never fire.
+func (s *Service) validateNotifications(ctx context.Context, notifications []domain.FilterNotification) error {
+	if len(notifications) == 0 {
+		return nil
+	}
+
+	existing, _, err := s.notificationSvc.Find(ctx, domain.NotificationQueryParams{})
+	if err != nil {
+		return err
+	}
+
+	existingIDs := make(map[int]struct{}, len(existing))
+	for _, notification := range existing {
+		existingIDs[notification.ID] = struct{}{}
+	}
+
+	for _, notification := range notifications {
+		if _, ok := existingIDs[notification.NotificationID]; !ok {
+			return errors.Wrap(domain.ErrNotificationNotFound, "notification with id %d does not exist", notification.NotificationID)
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
 	if _, err := s.repo.FindByID(ctx, filter.ID); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
@@ -323,6 +357,11 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 
 	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
+		return err
+	}
+
+	if err := s.validateNotifications(ctx, filter.Notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid notifications for filter")
 		return err
 	}
 

@@ -39,6 +39,15 @@ func (s *filterRepoStub) FindByID(_ context.Context, filterID int) (*domain.Filt
 	return s.filter, nil
 }
 
+type notificationSvcStub struct {
+	notificationService
+	notifications []domain.Notification
+}
+
+func (s *notificationSvcStub) Find(_ context.Context, _ domain.NotificationQueryParams) ([]domain.Notification, int, error) {
+	return s.notifications, len(s.notifications), nil
+}
+
 func TestService_validateIndexers(t *testing.T) {
 	svc := &Service{
 		log:        zerolog.Nop(),
@@ -115,4 +124,35 @@ func TestService_UpdatePartial_MissingFilterWinsOverUnknownIndexer(t *testing.T)
 		Indexers: []domain.Indexer{{ID: 99}},
 	})
 	assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+}
+
+func TestService_Update_ValidatesNotificationsBeforePersisting(t *testing.T) {
+	svc := &Service{
+		log:             zerolog.Nop(),
+		repo:            &filterRepoStub{filter: &domain.Filter{ID: 1}},
+		indexerSvc:      &indexerSvcStub{},
+		notificationSvc: &notificationSvcStub{notifications: []domain.Notification{{ID: 1}}},
+	}
+
+	err := svc.Update(t.Context(), &domain.Filter{
+		ID:            1,
+		Name:          "filter",
+		Notifications: []domain.FilterNotification{{NotificationID: 99}},
+	})
+	assert.ErrorIs(t, err, domain.ErrNotificationNotFound)
+}
+
+func TestService_UpdatePartial_ValidatesNotificationsBeforePersisting(t *testing.T) {
+	svc := &Service{
+		log:             zerolog.Nop(),
+		repo:            &filterRepoStub{filter: &domain.Filter{ID: 1}},
+		indexerSvc:      &indexerSvcStub{},
+		notificationSvc: &notificationSvcStub{notifications: []domain.Notification{{ID: 1}}},
+	}
+
+	err := svc.UpdatePartial(t.Context(), domain.FilterUpdate{
+		ID:            1,
+		Notifications: []domain.FilterNotification{{NotificationID: 99}},
+	})
+	assert.ErrorIs(t, err, domain.ErrNotificationNotFound)
 }
