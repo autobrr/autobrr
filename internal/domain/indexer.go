@@ -34,27 +34,35 @@ type Indexer struct {
 	Settings           map[string]string     `json:"settings,omitempty"`
 }
 
-func (i Indexer) MarshalJSON() ([]byte, error) {
-	// Define secret keys that should be redacted
-	secretKeys := map[string]bool{
-		"rsskey":       true,
-		"rss_key":      true,
-		"passkey":      true,
-		"authkey":      true,
-		"torrentpass":  true,
-		"torrent_pass": true,
-		"api_key":      true,
-		"apikey":       true,
-		"uid":          true,
-		"key":          true,
-		"token":        true,
-		"cookie":       true,
-	}
+// secretSettingKeys are indexer settings redacted in API responses; updates must echo them
+// back, redacted or not, so a saved credential is never silently dropped.
+var secretSettingKeys = map[string]struct{}{
+	"rsskey":       {},
+	"rss_key":      {},
+	"passkey":      {},
+	"authkey":      {},
+	"torrentpass":  {},
+	"torrent_pass": {},
+	"api_key":      {},
+	"apikey":       {},
+	"uid":          {},
+	"userid":       {},
+	"key":          {},
+	"token":        {},
+	"cookie":       {},
+}
 
+// IsSecretIndexerSetting reports whether an indexer setting key holds a credential.
+func IsSecretIndexerSetting(key string) bool {
+	_, ok := secretSettingKeys[strings.ToLower(key)]
+	return ok
+}
+
+func (i Indexer) MarshalJSON() ([]byte, error) {
 	// Create a copy of the settings map with redacted secrets
 	redactedSettings := make(map[string]string)
 	for key, value := range i.Settings {
-		if secretKeys[strings.ToLower(key)] {
+		if IsSecretIndexerSetting(key) {
 			redactedSettings[key] = RedactString(value)
 		} else {
 			redactedSettings[key] = value

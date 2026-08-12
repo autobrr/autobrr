@@ -23,17 +23,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type schedulerService interface {
-	RemoveJobByIdentifier(id string) error
-}
-
 type releaseRepo interface {
 	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
 }
 
 type indexerRepo interface {
 	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
-	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
+	Update(ctx context.Context, indexer *domain.Indexer) error
 	List(ctx context.Context) ([]domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
@@ -48,7 +44,6 @@ type Service struct {
 	repo        indexerRepo
 	releaseRepo releaseRepo
 	ApiService  apiService
-	scheduler   schedulerService
 	bus         EventBus.Bus
 
 	// contains all raw indexer definitions
@@ -57,21 +52,17 @@ type Service struct {
 	mappedDefinitions map[string]*domain.IndexerDefinition
 	// map server:channel:announce to indexer.Identifier
 	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
-	// feed indexers
-	feedIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(log zerolog.Logger, config *domain.Config, bus EventBus.Bus, repo indexerRepo, releaseRepo releaseRepo, apiService apiService, scheduler schedulerService) *Service {
+func NewService(log zerolog.Logger, config *domain.Config, bus EventBus.Bus, repo indexerRepo, releaseRepo releaseRepo, apiService apiService) *Service {
 	return &Service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		config:                    config,
 		repo:                      repo,
 		releaseRepo:               releaseRepo,
 		ApiService:                apiService,
-		scheduler:                 scheduler,
 		bus:                       bus,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
-		feedIndexers:              make(map[string]*domain.IndexerDefinition),
 		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
@@ -113,10 +104,10 @@ func (s *Service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 	return i, nil
 }
 
-func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
 	if err != nil {
-		return nil, errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
+		return errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
 	}
 
 	// sanitize user input
@@ -126,7 +117,7 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		if domain.IsRedactedString(val) {
 			currentVal, ok := currentIndexer.Settings[key]
 			if !ok {
-				return nil, errors.New("could not find setting in current indexer")
+				return errors.New("could not find setting in current indexer")
 			}
 			//indexer.Settings[key] = sanitize.String(currentVal)
 			indexer.Settings[key] = currentVal
@@ -136,10 +127,22 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		indexer.Settings[key] = sanitize.String(val)
 	}
 
+	// settings are persisted wholesale, so an update that omits a saved credential would
+	// silently delete it; require the client to echo it back, redacted or not
+	for key, val := range currentIndexer.Settings {
+		if val == "" || !domain.IsSecretIndexerSetting(key) {
+			continue
+		}
+
+		if _, ok := indexer.Settings[key]; !ok {
+			return errors.New("update omits saved secret setting '%s'", key)
+		}
+	}
+
 	// only IRC indexers have baseURL set
 	if indexer.Implementation == domain.IndexerImplementationIRC {
 		if indexer.BaseURL == "" {
-			return nil, errors.New("indexer baseURL must not be empty")
+			return errors.New("indexer baseURL must not be empty")
 		}
 
 		// check if baseURL has been updated and update releases if it was
@@ -148,32 +151,35 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 			// update urls of releases
 			err = s.releaseRepo.UpdateBaseURL(ctx, indexer.Identifier, currentIndexer.BaseURL, indexer.BaseURL)
 			if err != nil {
-				return nil, errors.Wrap(err, "could not update release urls with new baseURL: %s", indexer.BaseURL)
+				return errors.Wrap(err, "could not update release urls with new baseURL: %s", indexer.BaseURL)
 			}
 		}
 	}
 
-	i, err := s.repo.Update(ctx, indexer)
-	if err != nil {
+	if err := s.repo.Update(ctx, indexer); err != nil {
 		s.log.Error().Err(err).Interface("indexer", indexer).Msg("could not update indexer")
-		return nil, err
+		return err
 	}
 
 	// add to indexerInstances
-	if err = s.updateIndexer(*i); err != nil {
+	if err = s.updateIndexer(indexer); err != nil {
 		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to add indexer")
-		return nil, err
+		return err
 	}
 
+	// always publish: a changed-gate computed from the pre-write snapshot misses racing
+	// opposite toggles, and the handler reconciles idempotently against persisted state.
+	// Publish the stored indexer, not the update payload, so the handler sees a populated
+	// Implementation regardless of what the request carried
 	if currentIndexer.ImplementationIsFeed() {
-		if currentIndexer.Enabled && !indexer.Enabled {
-			s.stopFeed(indexer.Identifier)
-		}
+		toggled := *currentIndexer
+		toggled.Enabled = indexer.Enabled
+		s.bus.Publish(domain.EventIndexerToggleEnabled, &toggled)
 	}
 
 	s.log.Debug().Str("indexer", indexer.Name).Msg("successfully updated indexer")
 
-	return i, nil
+	return nil
 }
 
 func (s *Service) Delete(ctx context.Context, id int) error {
@@ -206,17 +212,17 @@ func (s *Service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer,
 		return nil, err
 	}
 
-	return indexers, err
+	return indexers, nil
 }
 
 func (s *Service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
-	indexers, err := s.repo.FindByID(ctx, id)
+	indexer, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not find indexer by id")
 		return nil, err
 	}
 
-	return indexers, err
+	return indexer, nil
 }
 
 func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
@@ -226,7 +232,7 @@ func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
 		return nil, err
 	}
 
-	return indexers, err
+	return indexers, nil
 }
 
 func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
@@ -236,7 +242,7 @@ func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*dom
 		return nil, err
 	}
 
-	return indexer, err
+	return indexer, nil
 }
 
 func (s *Service) GetAll() ([]*domain.IndexerDefinition, error) {
@@ -328,7 +334,7 @@ func (s *Service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	return d, nil
 }
 
-func (s *Service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
+func (s *Service) updateMapIndexer(indexer *domain.Indexer) (*domain.IndexerDefinition, error) {
 	d, ok := s.mappedDefinitions[indexer.Identifier]
 	if !ok {
 		return nil, domain.ErrIndexerNotFound
@@ -416,10 +422,6 @@ func (s *Service) Start() error {
 					s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.start: could not init indexer api client")
 				}
 			}
-
-		// handle feeds
-		case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-			s.feedIndexers[indexer.Identifier] = indexer
 		}
 	}
 
@@ -429,12 +431,6 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) removeIndexer(indexer domain.Indexer) {
-	// handle feeds
-	switch indexer.Implementation {
-	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-		delete(s.feedIndexers, indexer.Identifier)
-	}
-
 	// remove mapped definition
 	delete(s.mappedDefinitions, indexer.Identifier)
 }
@@ -460,10 +456,6 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.addIndexer: could not init indexer api client")
 			}
 		}
-
-	// handle feeds
-	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-		s.feedIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -471,7 +463,7 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 	return nil
 }
 
-func (s *Service) updateIndexer(indexer domain.Indexer) error {
+func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 	indexerDefinition, err := s.updateMapIndexer(indexer)
 	if err != nil {
 		return err
@@ -492,10 +484,6 @@ func (s *Service) updateIndexer(indexer domain.Indexer) error {
 				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.updateIndexer: could not init indexer api client")
 			}
 		}
-
-	// handle feeds
-	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-		s.feedIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -744,17 +732,6 @@ func (s *Service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinit
 	return v, true
 }
 
-func (s *Service) stopFeed(indexer string) {
-	_, ok := s.feedIndexers[indexer]
-	if !ok {
-		return
-	}
-
-	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
-		return
-	}
-}
-
 func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error {
 	indexer, err := s.FindByID(ctx, req.IndexerId)
 	if err != nil {
@@ -807,13 +784,16 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	indexer.Enabled = enabled
 
 	// update indexerInstances
-	if err := s.updateIndexer(*indexer); err != nil {
+	if err := s.updateIndexer(indexer); err != nil {
 		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to update indexer")
 		return err
 	}
 
-	if indexer.ImplementationIsFeed() && !enabled {
-		s.stopFeed(indexer.Identifier)
+	// feed jobs are stopped and started by the feed service via event because the feed service
+	// can't be imported here. Always published: a changed-gate computed from the pre-write
+	// snapshot misses racing opposite toggles, and the handler reconciles idempotently
+	if indexer.ImplementationIsFeed() {
+		s.bus.Publish(domain.EventIndexerToggleEnabled, indexer)
 	}
 
 	s.log.Debug().Str("indexer", indexer.Name).Int("indexer_id", indexerID).Bool("enabled", enabled).Msg("indexer.toggleEnabled: update indexer state")

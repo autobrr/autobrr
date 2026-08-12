@@ -75,9 +75,9 @@ func (s *Service) List(ctx context.Context) ([]domain.DownloadClient, error) {
 }
 
 func (s *Service) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
-	client := s.cache.Get(id)
-	if client != nil {
-		return client, nil
+	cachedClient := s.cache.Get(id)
+	if cachedClient != nil {
+		return cachedClient, nil
 	}
 
 	s.log.Trace().Int32("client_id", id).Msg("cache miss for client, continue to repo lookup")
@@ -236,6 +236,12 @@ func (s *Service) Update(ctx context.Context, client *domain.DownloadClient) err
 }
 
 func (s *Service) Delete(ctx context.Context, clientID int32) error {
+	_, err := s.FindByID(ctx, clientID)
+	if err != nil {
+		s.log.Error().Err(err).Int32("client_id", clientID).Msg("could not find download client")
+		return err
+	}
+
 	if err := s.repo.Delete(ctx, clientID); err != nil {
 		s.log.Error().Err(err).Int32("client_id", clientID).Msg("could not delete download client")
 		return err

@@ -58,6 +58,7 @@
       "general": "Général",
       "moviesTv": "Films et séries",
       "music": "Musique",
+      "books": "Livres",
       "advanced": "Avancé",
       "external": "Externe",
       "actions": "Actions",
@@ -368,6 +369,30 @@
       "perfectFlacDescription": "Remplacer toutes les options de qualité, source, format et cue/log/score de log.",
       "perfectFlacTooltip": "Remplacer toutes les options de qualité, source, format et CUE/LOG/score de LOG.",
       "perfectFlacHint": "C'est ce que tu veux dans 90% des cas (plutôt que les options ci-dessus)."
+    }
+  },
+  "books": {
+    "authors": "Auteurs",
+    "authorsPlaceholder": "ex. Auteur Un",
+    "titles": "Titres",
+    "titlesPlaceholder": "ex. Ce Livre",
+    "wildcardTooltip": "Filtrage de base avec les jokers * ou remplacer des caractères uniques avec ?",
+    "years": "Années",
+    "yearsPlaceholder": "ex. 2018,2019-2021",
+    "yearsTooltip": "Ce champ accepte une plage d'années et/ou des années séparées par des virgules.",
+    "options": {
+      "title": "Options",
+      "subtitle": "Langue, format et tags",
+      "matchLanguage": "Correspondre à la langue",
+      "exceptLanguage": "Exclure la langue",
+      "format": "Format",
+      "formatTooltip": "Correspondra uniquement aux releases avec l'un des formats sélectionnés.",
+      "matchTags": "Correspondre aux tags",
+      "matchTagsPlaceholder": "ex. tag1,tag2",
+      "matchTagsTooltip": "Liste de tags séparés par des virgules à faire correspondre.",
+      "exceptTags": "Exclure les tags",
+      "exceptTagsPlaceholder": "ex. tag1,tag2",
+      "exceptTagsTooltip": "Liste de tags séparés par des virgules à ignorer (prioritaire sur Correspondre aux tags)."
     }
   },
   "external": {

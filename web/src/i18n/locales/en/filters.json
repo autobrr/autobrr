@@ -58,6 +58,7 @@
       "general": "General",
       "moviesTv": "Movies and TV",
       "music": "Music",
+      "books": "Books",
       "advanced": "Advanced",
       "external": "External",
       "actions": "Actions",
@@ -368,6 +369,30 @@
       "perfectFlacDescription": "Override all options about quality, source, format, and cue/log/log score.",
       "perfectFlacTooltip": "Override all options about quality, source, format, and CUE/LOG/LOG score.",
       "perfectFlacHint": "This is what you want in 90% of cases (instead of options above)."
+    }
+  },
+  "books": {
+    "authors": "Authors",
+    "authorsPlaceholder": "eg. Author One",
+    "titles": "Titles",
+    "titlesPlaceholder": "eg. That Book",
+    "wildcardTooltip": "You can use basic filtering like wildcards * or replace single characters with ?",
+    "years": "Years",
+    "yearsPlaceholder": "eg. 2018,2019-2021",
+    "yearsTooltip": "This field takes a range of years and/or comma separated single years.",
+    "options": {
+      "title": "Options",
+      "subtitle": "Language, format, and tags",
+      "matchLanguage": "Match Language",
+      "exceptLanguage": "Except Language",
+      "format": "Format",
+      "formatTooltip": "Will only match releases with any of the selected formats.",
+      "matchTags": "Match tags",
+      "matchTagsPlaceholder": "eg. tag1,tag2",
+      "matchTagsTooltip": "Comma separated list of tags to match.",
+      "exceptTags": "Except tags",
+      "exceptTagsPlaceholder": "eg. tag1,tag2",
+      "exceptTagsTooltip": "Comma separated list of tags to ignore (takes priority over Match tags)."
     }
   },
   "external": {

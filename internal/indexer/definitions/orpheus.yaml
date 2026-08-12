@@ -16,7 +16,7 @@ supports:
 # source: gazelle
 settings:
   - name: torrent_pass
-    type: text
+    type: secret
     required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.

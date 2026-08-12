@@ -16,6 +16,7 @@ import (
 type feedService interface {
 	FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error)
 	Delete(ctx context.Context, id int) error
+	ToggleIndexerEnabled(ctx context.Context, indexerID int) error
 }
 
 type notificationSender interface {
@@ -54,6 +55,7 @@ func (s *Subscriber) Register() {
 	s.eventbus.Subscribe(domain.EventReleasePushStatus, s.handleReleasePushStatus)
 	s.eventbus.Subscribe(domain.EventNotificationSend, s.handleSendNotification)
 	s.eventbus.Subscribe(domain.EventIndexerDelete, s.handleIndexerDelete)
+	s.eventbus.Subscribe(domain.EventIndexerToggleEnabled, s.handleIndexerToggleEnabled)
 }
 
 func (s *Subscriber) handleReleaseActionStatus(actionStatus *domain.ReleaseActionStatus) {
@@ -101,5 +103,21 @@ func (s *Subscriber) handleIndexerDelete(indexer *domain.Indexer) {
 		}
 
 		s.log.Debug().Str("feed_name", feedItem.Name).Msg("removed feed")
+	}
+}
+
+// handleIndexerToggleEnabled reconciles the indexer's feed job via event because the feed
+// service can't be imported in the indexer service. The payload's enabled flag is deliberately
+// not forwarded: racing toggles can deliver events out of order, so the feed service re-reads
+// the persisted state instead.
+func (s *Subscriber) handleIndexerToggleEnabled(indexer *domain.Indexer) {
+	s.log.Trace().Str("event", domain.EventIndexerToggleEnabled).Int("indexer_id", int(indexer.ID)).Bool("enabled", indexer.Enabled).Msg("indexer toggle enabled event")
+
+	if !indexer.ImplementationIsFeed() {
+		return
+	}
+
+	if err := s.feedSvc.ToggleIndexerEnabled(context.Background(), int(indexer.ID)); err != nil {
+		s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("could not toggle feed job for indexer")
 	}
 }

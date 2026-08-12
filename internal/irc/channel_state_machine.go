@@ -81,6 +81,7 @@ var validChannelTransitions = map[ChannelState][]ChannelState{
 	ChannelStateIdle: {
 		ChannelStateJoining,
 		ChannelStateAwaitingInvite,
+		ChannelStateMonitoring,
 		ChannelStateError,
 		ChannelStateKicked,
 		ChannelStateParted,
@@ -251,6 +252,10 @@ func (sm *ChannelStateMachine) onStateEntry(state ChannelState) {
 }
 
 func (sm *ChannelStateMachine) Start() {
+	if sm.CurrentState() == ChannelStateMonitoring {
+		return
+	}
+
 	if !sm.channel.IsEnabled() {
 		sm.log.Debug().Msg("channel disabled, skipping join workflow")
 		sm.transition(ChannelStateDisabled)
