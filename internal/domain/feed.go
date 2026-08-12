@@ -40,9 +40,10 @@ type Feed struct {
 	NextRun       time.Time         `json:"next_run"`
 
 	// belongs to Indexer
-	ProxyID  int64  `json:"-"`
-	UseProxy bool   `json:"-"`
-	Proxy    *Proxy `json:"-"`
+	IndexerEnabled bool   `json:"-"`
+	ProxyID        int64  `json:"-"`
+	UseProxy       bool   `json:"-"`
+	Proxy          *Proxy `json:"-"`
 }
 
 // Validate rejects field values that would make every feed request fail at the transport layer.

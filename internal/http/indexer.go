@@ -16,7 +16,7 @@ import (
 
 type indexerService interface {
 	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
-	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
+	Update(ctx context.Context, indexer *domain.Indexer) error
 	List(ctx context.Context) ([]domain.Indexer, error)
 	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	GetAll() ([]*domain.IndexerDefinition, error)
@@ -89,8 +89,7 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	indexer, err := h.service.Update(r.Context(), data)
-	if err != nil {
+	if err := h.service.Update(r.Context(), &data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("indexer with id %d not found", data.ID))
 			return
@@ -100,7 +99,7 @@ func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusOK, indexer)
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h indexerHandler) delete(w http.ResponseWriter, r *http.Request) {
