@@ -105,8 +105,8 @@ func (h releaseHandler) Routes(r chi.Router) {
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	limit, err := parseQueryParamInt(r, "limit", 20)
-	if err != nil {
-		h.encoder.BadRequestErr(w, err)
+	if err != nil || limit == 0 {
+		h.encoder.BadRequestErr(w, errors.New("limit parameter is invalid"))
 		return
 	}
 
