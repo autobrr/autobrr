@@ -27,7 +27,7 @@ const (
 )
 
 func (s ConnectionState) String() string {
-	return [...]string{
+	names := [...]string{
 		"Disconnected",
 		"Connecting",
 		"Connected",
@@ -37,7 +37,13 @@ func (s ConnectionState) String() string {
 		"FullyOperational",
 		"PartiallyOperational",
 		"Error",
-	}[s]
+	}
+
+	if s < 0 || int(s) >= len(names) {
+		return fmt.Sprintf("ConnectionState(%d)", int(s))
+	}
+
+	return names[s]
 }
 
 var validTransitions = map[ConnectionState][]ConnectionState{
@@ -210,6 +216,9 @@ func (sm *ConnectionStateMachine) allEnabledChannelsMonitoring() bool {
 
 func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 	switch state {
+	case StateConnecting:
+		// the connect attempt itself is driven by the handler; no entry action
+
 	case StateConnected:
 		sm.m.Lock()
 		sm.authAttempts = 0
