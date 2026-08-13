@@ -262,7 +262,7 @@ func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 
 func (sm *ConnectionStateMachine) handleAuthentication() {
 	sm.handler.m.RLock()
-	needsAuth := sm.handler.network.Auth.Password != "" && !sm.handler.saslauthed
+	needsAuth := sm.handler.network.Auth.NickServEnabled() && !sm.handler.saslauthed
 	sm.handler.m.RUnlock()
 
 	if needsAuth {
@@ -308,7 +308,7 @@ func (sm *ConnectionStateMachine) OnConnected() {
 	// Determine next state based on auth requirements
 	sm.handler.m.RLock()
 	botMode := sm.handler.network.BotMode
-	needsAuth := sm.handler.network.Auth.Password != "" && !sm.handler.saslauthed
+	needsAuth := sm.handler.network.Auth.NickServEnabled() && !sm.handler.saslauthed
 	sm.handler.m.RUnlock()
 
 	if botMode && sm.handler.botModeSupported() {

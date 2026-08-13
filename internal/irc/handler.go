@@ -103,6 +103,7 @@ type Handler struct {
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
 	identifyFormLearned identifyForm
+	identifyOutstanding bool
 
 	channels *haxmap.Map[string, *Channel]
 
@@ -581,6 +582,7 @@ func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 func (h *Handler) setNetworkLocked(network *domain.IrcNetwork) {
 	if h.network == nil || h.network.Auth != network.Auth {
 		h.identifyFormLearned = identifyFormBare
+		h.identifyOutstanding = false
 	}
 
 	h.network = network
@@ -604,6 +606,7 @@ func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
 	h.resetFlappingBreakerLocked()
+	h.identifyOutstanding = false
 	client := h.client
 	h.clientState = ircStopped
 	h.client = nil
@@ -799,6 +802,13 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		return
 	}
 
+	h.m.RLock()
+	expectingReply := h.identifyOutstanding && !h.authenticated && !h.saslauthed && h.network.Auth.NickServEnabled()
+	h.m.RUnlock()
+	if !expectingReply {
+		return
+	}
+
 	// You're now logged in as test-bot
 	// Password accepted - you are now recognized.
 	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized", "you are now identified", "you are already logged in") {
@@ -947,13 +957,21 @@ func (h *Handler) setBotMode() {
 // authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() {
 	h.m.RLock()
-	shouldSendNickserv := !h.authenticated && !h.saslauthed && h.network.Auth.Password != ""
+	authenticated := h.authenticated
+	saslauthed := h.saslauthed
+	identifyOutstanding := h.identifyOutstanding
+	nickServEnabled := h.network.Auth.NickServEnabled()
 	h.m.RUnlock()
 
-	if shouldSendNickserv {
-		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
+	switch {
+	case authenticated || saslauthed:
+		h.setAuthenticated()
+	case identifyOutstanding:
+		return
+	case nickServEnabled:
+		h.log.Trace().Msg("sending NickServ identify")
 		h.NickServIdentify()
-	} else {
+	default:
 		h.setAuthenticated()
 	}
 }
@@ -981,6 +999,7 @@ func (h *Handler) handleLoggedIn(m ircmsg.Message) {
 func (h *Handler) handleSASLSuccess(_ ircmsg.Message) {
 	h.m.Lock()
 	h.saslauthed = true
+	h.identifyOutstanding = false
 	h.m.Unlock()
 }
 
@@ -1027,6 +1046,7 @@ func (h *Handler) handleSASLFail(_ ircmsg.Message) {
 func (h *Handler) setAuthenticated() {
 	h.m.Lock()
 	alreadyAuthenticated := h.authenticated
+	h.identifyOutstanding = false
 	if !alreadyAuthenticated {
 		h.authenticated = true
 		h.connectionErrors = []string{}
@@ -1768,10 +1788,15 @@ func (h *Handler) handleInviteResponse(msg ircmsg.Message) {
 // account-qualified form.
 func (h *Handler) identifyCommand() string {
 	h.m.RLock()
+	defer h.m.RUnlock()
+
+	return h.identifyCommandLocked()
+}
+
+func (h *Handler) identifyCommandLocked() string {
 	form := h.identifyAttempt
 	account := h.network.Auth.Account
 	password := h.network.Auth.Password
-	h.m.RUnlock()
 
 	if form == identifyFormAccount && account != "" {
 		return fmt.Sprintf("IDENTIFY %s %s", account, password)
@@ -1784,7 +1809,21 @@ func (h *Handler) identifyCommand() string {
 // PRIVMSG parameter: split across parameters it lands past the message body,
 // where every ircd discards it.
 func (h *Handler) NickServIdentify() error {
-	if err := h.Send("PRIVMSG", "NickServ", h.identifyCommand()); err != nil {
+	h.m.Lock()
+	if h.authenticated || h.saslauthed || !h.network.Auth.NickServEnabled() {
+		h.identifyOutstanding = false
+		h.m.Unlock()
+		return nil
+	}
+
+	command := h.identifyCommandLocked()
+	h.identifyOutstanding = true
+	h.m.Unlock()
+
+	if err := h.Send("PRIVMSG", "NickServ", command); err != nil {
+		h.m.Lock()
+		h.identifyOutstanding = false
+		h.m.Unlock()
 		h.log.Error().Stack().Err(err).Msg("error identifying with nickserv")
 		return err
 	}
@@ -1805,7 +1844,7 @@ func (h *Handler) canEscalateIdentify(currentNick string) bool {
 		return false
 	}
 
-	if h.network.Auth.Account == "" || h.network.Auth.Password == "" {
+	if !h.network.Auth.NickServEnabled() || h.network.Auth.Account == "" {
 		return false
 	}
 
@@ -1868,6 +1907,7 @@ func (h *Handler) escalateIdentify() {
 func (h *Handler) resetIdentifyForm() {
 	h.identifyAttempt = h.identifyFormLearned
 	h.identifyEscalated = false
+	h.identifyOutstanding = false
 }
 
 // unlearnIdentifyForm drops a remembered account-qualified form once it has
@@ -1897,18 +1937,18 @@ func (h *Handler) NickChange(nick string) error {
 func (h *Handler) CurrentNick() string {
 	if client := h.getClient(); client != nil {
 		return client.CurrentNick()
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // PreferredNick returns our preferred nick from settings
 func (h *Handler) PreferredNick() string {
 	if client := h.getClient(); client != nil {
 		return client.PreferredNick()
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // listens for MODE events

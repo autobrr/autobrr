@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"text/template"
@@ -183,12 +184,16 @@ func (i IndexerImplementation) String() string {
 }
 
 func (i IndexerDefinition) HasApi() bool {
-	for _, a := range i.Supports {
-		if a == "api" {
-			return true
-		}
+	return slices.Contains(i.Supports, "api")
+}
+
+// ValidateIRCAuth rejects invalid authentication metadata in an indexer definition.
+func (i IndexerDefinition) ValidateIRCAuth() error {
+	if i.IRC == nil || i.IRC.Auth == nil {
+		return nil
 	}
-	return false
+
+	return i.IRC.Auth.Validate()
 }
 
 type IndexerDefinitionCustom struct {
@@ -243,6 +248,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 			Server:      i.IRC.Server,
 			Port:        i.IRC.Port,
 			TLS:         i.IRC.TLS,
+			Auth:        i.IRC.Auth,
 			SettingsMap: i.IRC.SettingsMap,
 			Settings:    i.IRC.Settings,
 			Channels:    make([]IndexerIRCV2Channel, 0),
@@ -355,11 +361,26 @@ type IndexerIRC struct {
 	Server      string            `json:"server"`
 	Port        int               `json:"port"`
 	TLS         bool              `json:"tls"`
+	Auth        *IndexerIRCAuth   `json:"auth,omitempty"`
 	Channels    []string          `json:"channels"`
 	Announcers  []string          `json:"announcers"`
 	SettingsMap map[string]string `json:"-"`
 	Settings    []IndexerSetting  `json:"settings"`
 	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
+}
+
+// IndexerIRCAuth declares the authentication mechanism used by an IRC network.
+type IndexerIRCAuth struct {
+	Mechanism IRCAuthMechanism `json:"mechanism"`
+}
+
+// Validate rejects undeclared and unknown authentication mechanisms.
+func (a IndexerIRCAuth) Validate() error {
+	if !a.Mechanism.IsValid() {
+		return errors.New("invalid IRC authentication mechanism: %q", a.Mechanism)
+	}
+
+	return nil
 }
 
 type IRCMappings map[string]map[string]map[string]string
@@ -369,6 +390,7 @@ type IndexerIRCV2 struct {
 	Server      string                          `json:"server"`
 	Port        int                             `json:"port"`
 	TLS         bool                            `json:"tls"`
+	Auth        *IndexerIRCAuth                 `json:"auth,omitempty"`
 	SettingsMap map[string]string               `json:"-"`
 	Settings    []IndexerSetting                `json:"settings"`
 	Channels    []IndexerIRCV2Channel           `json:"channels"`

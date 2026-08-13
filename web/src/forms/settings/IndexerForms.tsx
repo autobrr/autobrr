@@ -420,6 +420,29 @@ type SelectValue = {
   value: string;
 };
 
+const buildIndexerIRCAuth = (
+  definitionAuth: IndexerIRCAuth | undefined,
+  formAuth: Partial<IrcAuth> | undefined
+): IrcAuth => {
+  const mechanism = definitionAuth?.mechanism ?? "SASL_PLAIN";
+  const account = formAuth?.account ?? "";
+  const password = formAuth?.password ?? "";
+
+  if (mechanism === "NICKSERV" && password !== "") {
+    return {
+      mechanism,
+      ...(account !== "" && { account }),
+      password
+    };
+  }
+
+  if (mechanism === "SASL_PLAIN" && account !== "" && password !== "") {
+    return { mechanism, account, password };
+  }
+
+  return { mechanism: "NONE" };
+};
+
 export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
   const { t } = useTranslation("settings");
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
@@ -569,22 +592,10 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           tls: ind.irc.tls,
           tls_skip_verify: false,
           nick: formData.irc.nick,
-          auth: {
-            mechanism: "NONE"
-            // account: formData.irc.auth.account,
-            // password: formData.irc.auth.password
-          },
+          auth: buildIndexerIRCAuth(ind.irc.auth, formData.irc.auth),
           invite_command: formData.irc.invite_command,
           channels: channels
         };
-
-        if (formData.irc.auth) {
-          if (formData.irc.auth.account !== "" && formData.irc.auth.password !== "") {
-            network.auth.mechanism = "SASL_PLAIN";
-            network.auth.account = formData.irc.auth.account;
-            network.auth.password = formData.irc.auth.password;
-          }
-        }
 
         mutation.mutate(formData as Indexer, {
           onSuccess: () => {

@@ -30,6 +30,8 @@ irc:
   server: irc.torrentleech.org
   port: 7021
   tls: true
+  auth:
+    mechanism: NICKSERV
   settings:
     - name: nick
       type: text

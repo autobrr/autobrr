@@ -539,6 +539,9 @@ func (s *Service) LoadIndexerDefinitions() error {
 		if err = dec.Decode(&d); err != nil {
 			return errors.Wrap(err, "could not unmarshal indexer definition file: %s", file)
 		}
+		if err = d.ValidateIRCAuth(); err != nil {
+			return errors.Wrap(err, "invalid indexer definition file: %s", file)
+		}
 
 		d.Prepare()
 
@@ -580,6 +583,9 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 		if err := dec.Decode(&d); err != nil {
 			return nil, errors.Wrap(err, "could not decode definition file: %s", file)
 		}
+		if err := d.ValidateIRCAuth(); err != nil {
+			return nil, errors.Wrap(err, "invalid definition file: %s", file)
+		}
 
 		d.Prepare()
 
@@ -604,7 +610,12 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 		d.Implementation = domain.IndexerImplementationIRC
 	}
 
-	return d.ToIndexerDefinition(), nil
+	definition := d.ToIndexerDefinition()
+	if err := definition.ValidateIRCAuth(); err != nil {
+		return nil, errors.Wrap(err, "invalid definition file: %s", file)
+	}
+
+	return definition, nil
 }
 
 func OpenAndDecodeDefinition(file string, data any) error {
