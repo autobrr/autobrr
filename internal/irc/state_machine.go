@@ -27,7 +27,7 @@ const (
 )
 
 func (s ConnectionState) String() string {
-	return [...]string{
+	names := [...]string{
 		"Disconnected",
 		"Connecting",
 		"Connected",
@@ -37,7 +37,13 @@ func (s ConnectionState) String() string {
 		"FullyOperational",
 		"PartiallyOperational",
 		"Error",
-	}[s]
+	}
+
+	if s < 0 || int(s) >= len(names) {
+		return fmt.Sprintf("ConnectionState(%d)", int(s))
+	}
+
+	return names[s]
 }
 
 var validTransitions = map[ConnectionState][]ConnectionState{

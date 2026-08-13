@@ -26,3 +26,19 @@ func TestOnStateEntryConnectingIsQuiet(t *testing.T) {
 
 	assert.Empty(t, buf.String())
 }
+
+// TestOnStateEntryUnknownStateLogs guards the default branch: it evaluates
+// state.String() while building the log event, so an out-of-range value must
+// stringify to a fallback instead of panicking on the name array index before
+// the diagnostic is emitted.
+func TestOnStateEntryUnknownStateLogs(t *testing.T) {
+	var buf bytes.Buffer
+	h, _ := newTestHandler()
+	h.log = zerolog.New(&buf)
+	sm := NewConnectionStateMachine(h)
+
+	sm.onStateEntry(ConnectionState(99))
+
+	assert.Contains(t, buf.String(), "invalid state")
+	assert.Contains(t, buf.String(), "ConnectionState(99)")
+}
