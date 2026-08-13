@@ -200,7 +200,15 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	s.log.Debug().Str("server", network.Server).Msg("decide if irc network handler needs restart or updating")
 
 	if handler.Stopped() {
-		s.log.Debug().Str("server", network.Server).Msg("handler stopped, skipping")
+		// A stopped handler still has to take the new config: it keeps its own copy
+		// of the network, and starting it again reads that copy rather than the
+		// database. Skipping the update here means a user who edits a stopped
+		// network (which is exactly what they do after a ban, an auth failure or
+		// the flapping breaker) reconnects on the settings that failed.
+		handler.SetNetwork(network)
+
+		s.log.Debug().Str("server", network.Server).Msg("handler stopped, updated config without restarting")
+
 		return nil
 	}
 
@@ -318,6 +326,19 @@ func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
 
 	if !network.Enabled {
 		return errors.New("network disabled, could not restart")
+	}
+
+	// attach proxy: when no handler exists yet (its startup init failed), this
+	// copy is what the new handler connects with, and a proxied network handed a
+	// config without its proxy refuses to connect
+	network.Proxy = nil
+	if network.UseProxy && network.ProxyId != 0 {
+		networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
+		if err != nil {
+			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
+			return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
+		}
+		network.Proxy = networkProxy
 	}
 
 	return s.restartNetwork(*network)
@@ -724,6 +745,19 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		s.log.Error().Err(err).Str("server", existingNetwork.Server).Msg("failed to list channels for network")
 	}
 	existingNetwork.Channels = existingChannels
+
+	// attach proxy the same way UpdateNetwork does: this copy reaches the handler
+	// via SetNetwork below, and a proxied network handed a config without its
+	// proxy would dial the tracker directly on the next reconnect
+	existingNetwork.Proxy = nil
+	if existingNetwork.UseProxy && existingNetwork.ProxyId != 0 {
+		networkProxy, err := s.proxyService.FindByID(ctx, existingNetwork.ProxyId)
+		if err != nil {
+			s.log.Error().Err(err).Str("server", existingNetwork.Server).Msg("failed to get proxy for network")
+			return errors.Wrap(err, "could not get proxy for network: %s", existingNetwork.Server)
+		}
+		existingNetwork.Proxy = networkProxy
+	}
 
 	s.networkCache.Set(network.ID, existingNetwork)
 

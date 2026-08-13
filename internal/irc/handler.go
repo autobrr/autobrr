@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	stdErr "errors"
 	"fmt"
+	"math/rand/v2"
 	"net/url"
 	"slices"
 	"strconv"
@@ -20,7 +21,6 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
-	"github.com/avast/retry-go"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircfmt"
@@ -35,7 +35,7 @@ var (
 
 	clientDisconnected = errors.New("Message cannot be sent because client is disconnected")
 
-	clientManuallyDisconnected = retry.Unrecoverable(errors.New("IRC client was manually disconnected"))
+	clientManuallyDisconnected = errors.New("IRC client was manually disconnected")
 )
 
 const (
@@ -58,26 +58,39 @@ const (
 	ircLive                       // (Handler.client) is non-nil and valid
 )
 
-// Flapping circuit breaker: the irc-go client reconnects from inside Loop()
-// every ReconnectFreq (15s) with no attempt cap or backoff growth, so a server
-// that keeps refusing or dropping us would otherwise be reconnected to forever,
-// hammering the ircd at ~4 connects/minute until the user notices. A connection
-// that fails or lasts less than flappingSessionMinLifetime counts toward
-// flappingStopThreshold; reaching it stops the network and surfaces the reason,
-// while a session that lives longer clears the count.
+// Flapping circuit breaker. A connection that repeatedly comes up and dies
+// again cannot be fixed by reconnecting to it, so at some point the network has
+// to stop and say why rather than keep returning to a server that clearly does
+// not want it. flappingStopThreshold sessions shorter than
+// flappingSessionMinLifetime, all within flappingWindow, stop the network; a
+// session that lives longer clears the count, and so does time passing, because
+// one drop per maintenance window is not flapping however often it recurs.
 //
 // Two paths feed it, because irc-go runs the disconnect callback only for
 // connections that finished registering: onDisconnect covers registered
 // sessions, and handleServerError covers a server that rejects us earlier with
-// an ERROR line (the usual "reconnecting too fast" throttle). Note that Loop()'s
-// reconnects never pass back through Run(), so its 25-attempt retry cap bounds
-// only the very first connect. A pre-registration failure that is entirely
-// silent - a TCP reset or timeout with no ERROR line - therefore still retries
-// indefinitely; bounding that too would mean replacing Loop() with our own
-// reconnect loop.
+// an ERROR line (the usual "reconnecting too fast" throttle), counted once per
+// attempt. Connect-level failures - refused, unreachable, TLS - are not strikes:
+// the reconnect backoff already paces those, and a tracker being down should
+// not stop a network that will work again when it returns.
 const (
 	flappingSessionMinLifetime = 30 * time.Second
 	flappingStopThreshold      = 5
+	flappingWindow             = 15 * time.Minute
+)
+
+// Reconnect backoff. autobrr drives its own reconnect loop rather than the
+// irc-go client's, which retries at a flat interval forever and reports nothing
+// about attempts that fail before registration. Delays double from
+// reconnectBaseDelay and level off at reconnectMaxDelay instead of the loop ever
+// giving up, so an unreachable network recovers by itself once the server is
+// back. Reaching the server resets the schedule. Jitter spreads the return of
+// every autobrr instance across the window, so a tracker coming back up is not
+// met by all of them at once.
+const (
+	reconnectBaseDelay     = 15 * time.Second
+	reconnectMaxDelay      = 15 * time.Minute
+	reconnectJitterDivisor = 5 // up to a fifth of the delay on top
 )
 
 // identifyForm is the argument form of the outstanding NickServ IDENTIFY.
@@ -108,11 +121,20 @@ type Handler struct {
 
 	client                   *ircevent.Connection
 	clientState              ircState
+	clientGen                uint64
 	connectedSince           time.Time
 	haveDisconnected         bool
 	consecutiveShortSessions int
+	firstShortSession        time.Time
+	connectAttempts          int
+	errorCounted             bool
 	authenticated            bool
 	saslauthed               bool
+
+	// stopSig is closed by Stop to wake superviseConnection out of either its wait
+	// for the session to end or a reconnect backoff. It is replaced on every Run,
+	// which is also how a run recognises that it has been superseded.
+	stopSig chan struct{}
 
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
@@ -272,11 +294,93 @@ func (h *Handler) removeIndexer() {
 	// TODO remove announceProcessor
 }
 
+// Run brings the network up and, once it is live, hands it to
+// superviseConnection which owns every reconnect from then on. It returns nil
+// as soon as the network is connected, or an error if connecting was abandoned.
 func (h *Handler) Run() (err error) {
 	// TODO validate
 	// check if network requires nickserv
 	// check if network or channels requires invite command
 
+	// A manual (re)start opens a fresh window for the backoff and the breaker
+	// alike, and gets its own signalling channels so a previous run's supervisor
+	// can never be woken by this one. Claiming the state and publishing the
+	// channels together means a Stop can never land in between and go unnoticed.
+	sessionEnded := make(chan uint64, 1)
+	stopSig := make(chan struct{})
+
+	shouldConnect := false
+	h.m.Lock()
+	if h.clientState == ircStopped {
+		shouldConnect = true
+		h.clientState = ircConnecting
+		h.connectAttempts = 0
+		h.consecutiveShortSessions = 0
+		h.stopSig = stopSig
+	}
+	h.m.Unlock()
+
+	if !shouldConnect {
+		return connectionInProgress
+	}
+
+	h.stateMachine.OnConnecting()
+
+	// either we will successfully transition to `StateRunning`, or else
+	// we need to reset the state to `ircStopped`
+	defer h.releaseConnectingState(stopSig)
+
+	client, err := h.connectWithBackoff(sessionEnded, stopSig)
+	if err != nil {
+		return err
+	}
+
+	shouldDisconnect := false
+	h.m.Lock()
+	switch {
+	case h.stopSig != stopSig:
+		// stopped, or superseded by a newer run, while we were connecting
+		shouldDisconnect = true
+	case h.clientState == ircConnecting:
+		// success!
+		h.clientState = ircLive
+	default:
+		h.log.Error().Stack().Str("state", strconv.Itoa(int(h.clientState))).Msg("unexpected client state after connecting")
+		shouldDisconnect = true
+	}
+	h.m.Unlock()
+
+	if shouldDisconnect {
+		// quit the connection this run built, not whatever is current: a Stop has
+		// already cleared h.client, and a newer run's client must not be touched
+		client.Quit()
+		return clientManuallyDisconnected
+	}
+
+	go h.superviseConnection(sessionEnded, stopSig)
+
+	return nil
+}
+
+// releaseConnectingState returns the handler to stopped if this run is still the
+// one holding the connecting state. The ownership check is what makes Stop safe
+// to call while a run is mid-connect: Stop wakes that run immediately and the
+// caller starts a new one, and clearing the state the new run just claimed would
+// abort it before it ever connects.
+func (h *Handler) releaseConnectingState(stopSig chan struct{}) {
+	h.m.Lock()
+	if h.stopSig == stopSig && h.clientState == ircConnecting {
+		h.clientState = ircStopped
+	}
+	h.m.Unlock()
+}
+
+// newClient builds the connection for a single attempt. Every attempt gets its
+// own Connection because the library closes a session's socket only from
+// Connect's error path or from Loop, so a Connection whose session has ended
+// cannot be reused safely. Callbacks are registered separately by
+// wireCallbacks, once the attempt has claimed its generation.
+func (h *Handler) newClient() (*ircevent.Connection, error) {
 	// snapshot the network once so a concurrent SetNetwork/UpdateNetwork cannot
 	// tear the config we build the connection from
 	network := h.GetNetwork()
@@ -291,56 +395,43 @@ func (h *Handler) Run() (err error) {
 	// we change back to TraceLevel in the handleJoined method.
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
 
-	shouldConnect := false
-	h.m.Lock()
-	if h.clientState == ircStopped {
-		shouldConnect = true
-		h.clientState = ircConnecting
-	}
-	h.m.Unlock()
-
-	if !shouldConnect {
-		return connectionInProgress
-	}
-
-	h.stateMachine.OnConnecting()
-
-	// either we will successfully transition to `StateRunning`, or else
-	// we need to reset the state to `ircStopped`
-	defer func() {
-		h.m.Lock()
-		if h.clientState == ircConnecting {
-			h.clientState = ircStopped
-		}
-		h.m.Unlock()
-	}()
-
 	client := &ircevent.Connection{
-		Nick:          network.Nick,
-		User:          network.Auth.Account,
-		RealName:      network.Auth.Account,
-		Password:      network.Pass,
-		Server:        addr,
-		KeepAlive:     4 * time.Minute,
-		Timeout:       2 * time.Minute,
-		ReconnectFreq: 15 * time.Second,
+		Nick:      network.Nick,
+		User:      network.Auth.Account,
+		RealName:  network.Auth.Account,
+		Password:  network.Pass,
+		Server:    addr,
+		KeepAlive: 4 * time.Minute,
+		Timeout:   2 * time.Minute,
+		// Loop() never gets to use this: every session quits it from the disconnect
+		// callback, so reconnecting is superviseConnection's alone. Keep it absurdly
+		// long anyway - if a library upgrade ever broke that teardown, a second
+		// reconnect loop firing every 15 seconds would be the worst way to find out.
+		ReconnectFreq: 24 * time.Hour,
 		Version:       "autobrr",
 		QuitMessage:   "bye from autobrr",
 		Debug:         true,
 		Log:           subLogger,
 	}
 
+	// a proxied network must never fall back to a direct connection - the proxy
+	// missing here is a service-side bug, and dialling on regardless would hand
+	// the tracker the user's real IP with nothing in the UI saying so
+	if network.UseProxy && network.Proxy == nil {
+		return nil, errors.New("network is set to use a proxy but none is attached")
+	}
+
 	if network.UseProxy && network.Proxy != nil {
 		if !network.Proxy.Enabled {
-			h.log.Debug().Msg("proxy disabled, skipping")
+			h.log.Warn().Str("proxy", network.Proxy.Name).Msg("network is set to use a proxy but the proxy is disabled; connecting directly")
 		} else {
 			if network.Proxy.Addr == "" {
-				return errors.New("proxy addr missing")
+				return nil, errors.New("proxy addr missing")
 			}
 
 			proxyUrl, err := url.Parse(network.Proxy.Addr)
 			if err != nil {
-				return errors.Wrap(err, "could not parse proxy url: %s", network.Proxy.Addr)
+				return nil, errors.Wrap(err, "could not parse proxy url: %s", network.Proxy.Addr)
 			}
 
 			// set user and pass if not empty
@@ -359,13 +450,13 @@ func (h *Handler) Run() (err error) {
 				h.log.Debug().Str("proxy_scheme", proxyUrl.Scheme).Str("proxy", proxyUrl.Host).Msg("using proxy")
 				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
 				if err != nil {
-					return errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
+					return nil, errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
 				}
 			}
 
 			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
 			if !ok {
-				return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
+				return nil, errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
 			}
 
 			client.DialContext = proxyContextDialer.DialContext
@@ -399,158 +490,392 @@ func (h *Handler) Run() (err error) {
 		}
 	}
 
-	client.AddConnectCallback(h.onConnect)
-	client.AddDisconnectCallback(h.onDisconnect)
+	return client, nil
+}
 
-	client.AddCallback("MODE", h.handleMode)
-	if network.BotMode {
-		client.AddCallback(ircevent.ERR_UMODEUNKNOWNFLAG, h.handleModeUnknownFlag)
+// gated wraps a callback so it runs only while the attempt identified by gen is
+// still the current one. The library delivers callbacks asynchronously: a
+// message read moments before its session was superseded - by a stop, a restart
+// or a newer attempt - can arrive after the replacement is already live, and
+// un-gated it would mutate the replacement's state: advance its state machine,
+// stop the network over the old session's stale failure, feed its breaker.
+func (h *Handler) gated(gen uint64, fn func(ircmsg.Message)) func(ircmsg.Message) {
+	return func(msg ircmsg.Message) {
+		if !h.ownsClientGen(gen) {
+			return
+		}
+
+		fn(msg)
 	}
-	client.AddCallback("INVITE", h.handleInvite)
-	client.AddCallback("PART", h.handlePart)
-	client.AddCallback("PRIVMSG", h.onPrivMessage)
-	client.AddCallback("NOTICE", h.onNotice)
-	client.AddCallback("NICK", h.onNick)
-	client.AddCallback("KICK", h.onKick)
-	client.AddCallback("JOIN", h.handleJoin)
+}
 
-	client.AddCallback("TOPIC", h.handleTopicChange)
-	client.AddCallback(ircevent.RPL_TOPIC, h.handleTopic)
-	client.AddCallback(ircevent.RPL_ENDOFNAMES, h.handleJoined) // end of names
+// wireCallbacks registers every handler callback on the client, each gated to
+// the attempt that owns gen.
+func (h *Handler) wireCallbacks(client *ircevent.Connection, gen uint64) {
+	on := func(command string, fn func(ircmsg.Message)) {
+		client.AddCallback(command, h.gated(gen, fn))
+	}
 
-	client.AddCallback(ircevent.RPL_LOGGEDIN, h.handleLoggedIn)
-	client.AddCallback(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
-	client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
+	// onConnect and the handlers that can stop the network get gen threaded in:
+	// their bodies re-check ownership before acting, because the entry gate
+	// cannot cover a body that is paused - by onConnect's own sleep, or by the
+	// scheduler across a stop and restart - and resumes against the replacement
+	client.AddConnectCallback(h.gated(gen, func(m ircmsg.Message) { h.onConnect(gen, m) }))
+
+	on("MODE", h.handleMode)
+	if h.GetNetwork().BotMode {
+		on(ircevent.ERR_UMODEUNKNOWNFLAG, h.handleModeUnknownFlag)
+	}
+	on("INVITE", h.handleInvite)
+	on("PART", h.handlePart)
+	on("PRIVMSG", h.onPrivMessage)
+	on("NOTICE", func(m ircmsg.Message) { h.onNotice(gen, m) })
+	on("NICK", h.onNick)
+	on("KICK", h.onKick)
+	on("JOIN", h.handleJoin)
+
+	on("TOPIC", h.handleTopicChange)
+	on(ircevent.RPL_TOPIC, h.handleTopic)
+	on(ircevent.RPL_ENDOFNAMES, h.handleJoined) // end of names
+
+	on(ircevent.RPL_LOGGEDIN, h.handleLoggedIn)
+	on(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
+	on(ircevent.ERR_SASLFAIL, func(m ircmsg.Message) { h.handleSASLFail(gen, m) })
 
 	// the server has banned us (K-Line/G-Line); stop and surface the reason
-	client.AddCallback(ircevent.ERR_YOUREBANNEDCREEP, h.handleBanned) // 465
+	on(ircevent.ERR_YOUREBANNEDCREEP, func(m ircmsg.Message) { h.handleBanned(gen, m) }) // 465
 
 	// the server is closing the link and saying why; the pre-registration case
 	// is invisible to the disconnect callback, so the breaker counts it here
-	client.AddCallback("ERROR", h.handleServerError)
+	on("ERROR", h.handleServerError)
 
 	// surface failed JOIN attempts on the affected channel
-	client.AddCallback(ircevent.ERR_CHANNELISFULL, h.handleJoinError)  // 471
-	client.AddCallback(ircevent.ERR_INVITEONLYCHAN, h.handleJoinError) // 473
-	client.AddCallback(ircevent.ERR_BANNEDFROMCHAN, h.handleJoinError) // 474
-	client.AddCallback(ircevent.ERR_BADCHANNELKEY, h.handleJoinError)  // 475
-	client.AddCallback(ircevent.ERR_NEEDREGGEDNICK, h.handleJoinError) // 477
-	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
+	on(ircevent.ERR_CHANNELISFULL, h.handleJoinError)  // 471
+	on(ircevent.ERR_INVITEONLYCHAN, h.handleJoinError) // 473
+	on(ircevent.ERR_BANNEDFROMCHAN, h.handleJoinError) // 474
+	on(ircevent.ERR_BADCHANNELKEY, h.handleJoinError)  // 475
+	on(ircevent.ERR_NEEDREGGEDNICK, h.handleJoinError) // 477
+	on(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
+}
 
-	//h.setConnectionStatus()
+// connectOnce runs a single connection attempt on a freshly built client and
+// returns the live connection, or the reason there is not one.
+func (h *Handler) connectOnce(sessionEnded chan uint64, stopSig <-chan struct{}) (*ircevent.Connection, error) {
+	client, err := h.newClient()
+	if err != nil {
+		return nil, configError{err}
+	}
+
 	h.m.Lock()
+	// The claim below must be refused outright for a run that is no longer the
+	// current one, not merely resolved by the ownership checks after Connect. An
+	// attempt from a stopped run that was already past its loop's stop check
+	// would otherwise supersede the replacement run's connection and gate every
+	// one of its callbacks off.
+	if h.stopSig != stopSig {
+		h.m.Unlock()
+		return nil, clientManuallyDisconnected
+	}
+
 	h.saslauthed = false
-	// a manual (re)start opens a fresh flapping window
-	h.consecutiveShortSessions = 0
+	h.errorCounted = false
+	h.clientGen++
+	gen := h.clientGen
 	h.client = client
 	h.resetIdentifyForm()
 	h.m.Unlock()
 
-	if err := func() error {
-		// count connect attempts
-		connectAttempts := 0
-		disconnectTime := time.Now()
+	h.wireCallbacks(client, gen)
 
-		// retry initial connect if network is down
-		// using exponential backoff of 15 seconds
-		return retry.Do(
-			func() error {
-				h.log.Debug().Int("attempt", connectAttempts).Msg("connect attempt")
-
-				// #1239: don't retry if the user manually disconnected with Stop()
-				h.m.RLock()
-				manuallyDisconnected := h.clientState == ircStopped
-				h.m.RUnlock()
-
-				if manuallyDisconnected {
-					return clientManuallyDisconnected
-				}
-
-				if err := client.Connect(); err != nil {
-					h.log.Error().Err(err).Msg("client encountered connection error")
-					connectAttempts++
-
-					// A fatal in-band failure (a ban/G-Line, or a NickServ auth
-					// failure) is detected by its callback DURING registration and
-					// calls Stop() (setting ircStopped) before Connect() returns its
-					// error. Such a failure is not transient, so abort the reconnect
-					// loop immediately instead of waiting out the 15s backoff before
-					// the next attempt notices the stop.
-					h.m.RLock()
-					stopped := h.clientState == ircStopped
-					h.m.RUnlock()
-					if stopped {
-						return retry.Unrecoverable(err)
-					}
-
-					// A TLS certificate verification failure (expired or not yet
-					// valid cert, unknown CA, hostname mismatch) is not transient:
-					// every retry fails identically until the tracker fixes its
-					// certificate or the user enables TLSSkipVerify. Surface the
-					// reason and stop the network instead of burning the whole
-					// backoff schedule on a doomed loop.
-					if certErr, ok := stdErr.AsType[*tls.CertificateVerificationError](err); ok {
-						errMsg := fmt.Sprintf("TLS certificate verification failed: %v", certErr.Err)
-						h.log.Error().Str("reason", errMsg).Msg("stopping network: TLS certificate verification failed")
-
-						h.addConnectError(errMsg)
-						h.stateMachine.OnError(errMsg)
-						h.Stop()
-
-						return retry.Unrecoverable(err)
-					}
-
-					return err
-				}
-
-				if connectAttempts > 0 {
-					h.log.Debug().Int("attempt", connectAttempts).Dur("offline_duration", time.Since(disconnectTime)).Msg("connected at attempt")
-					return nil
-				}
-
-				return nil
-			},
-			retry.OnRetry(func(n uint, err error) {
-				if n > 0 {
-					h.log.Debug().Uint("attempt", n).Msg("connect attempt")
-				}
-			}),
-			retry.Delay(time.Second*15),
-			retry.Attempts(25),
-			retry.MaxJitter(time.Second*10),
-			retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
-				return retry.BackOffDelay(n, err, config)
-			}),
-		)
-	}(); err != nil {
-		return err
-	}
-
-	shouldDisconnect := false
-	h.m.Lock()
-	switch h.clientState {
-	case ircStopped:
-		// concurrent Stop(), bail
-		shouldDisconnect = true
-	case ircConnecting:
-		// success!
-		//h.client = client
-		h.clientState = ircLive
-	case ircLive:
-		// impossible
-		h.log.Error().Stack().Msg("two concurrent connection attempts detected")
-		shouldDisconnect = true
-	}
-	h.m.Unlock()
-
-	if shouldDisconnect {
+	client.AddDisconnectCallback(func(msg ircmsg.Message) {
+		// This session is over and the Connection is single-use, so make the
+		// library's Loop() exit and tear the socket down instead of reconnecting on
+		// its own schedule - reconnecting is superviseConnection's job. Disconnect
+		// callbacks run before the read loop releases the wait group Loop is
+		// blocked on, so Loop is guaranteed to observe the quit.
 		client.Quit()
-		return clientManuallyDisconnected
+
+		h.onSessionEnded(gen, msg, sessionEnded)
+	})
+
+	if err := client.Connect(); err != nil {
+		return nil, err
 	}
 
+	// Loop only tears this session down once it ends; every reconnect goes
+	// through superviseConnection so that one policy governs all of them.
 	go client.Loop()
 
-	return nil
+	// The run can be stopped, or superseded by a restart, while this attempt is
+	// still dialling - and Stop can only quit a client that was already published,
+	// which this one may not have been. Nothing else will ever tear this session
+	// down, so quit it here rather than leave it registered, joined to the
+	// announce channels and feeding a network the user has stopped.
+	if h.stoppedFor(stopSig) || !h.ownsClientGen(gen) {
+		h.log.Debug().Msg("discarding a connection that completed after the network was stopped")
+
+		client.Quit()
+
+		return nil, clientManuallyDisconnected
+	}
+
+	return client, nil
+}
+
+// onSessionEnded handles a finished session on behalf of the attempt that owns
+// gen. An attempt that has been superseded must stay silent: its connection is
+// no longer the network's, so letting it run the disconnect bookkeeping would
+// reset the live session's channels, drive its state machine to Disconnected
+// and count a foreign failure toward the flapping breaker.
+func (h *Handler) onSessionEnded(gen uint64, msg ircmsg.Message, sessionEnded chan uint64) {
+	if !h.ownsClientGen(gen) {
+		h.log.Debug().Msg("ignoring the end of a superseded connection")
+		return
+	}
+
+	// Deliver the wakeup even if the bookkeeping below panics: the library
+	// swallows callback panics, and a lost token leaves the supervisor waiting
+	// forever for a session end that already happened.
+	defer func() {
+		select {
+		case sessionEnded <- gen:
+		default:
+			// The buffer can be holding a stale token: an attempt can complete
+			// registration and still fail Connect (a SASL stall, a socket dying on
+			// the welcome boundary), and its leftover would turn this send into a
+			// no-op right as the live session ends - permanently, since nothing else
+			// wakes the supervisor. Only the newest token matters, so displace the
+			// old one. The retry cannot race another send: generations are claimed
+			// under the lock, so there is never more than one current sender.
+			select {
+			case <-sessionEnded:
+			default:
+			}
+			select {
+			case sessionEnded <- gen:
+			default:
+			}
+		}
+	}()
+
+	h.onDisconnect(msg)
+}
+
+// ownsClientGen reports whether the attempt identified by gen is still the most
+// recent one, i.e. whether its connection is the network's current connection.
+func (h *Handler) ownsClientGen(gen uint64) bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	return h.clientGen == gen
+}
+
+// waitForSessionEnd blocks until the current session ends, reporting false if
+// the network was stopped instead. Signals are tagged with the attempt that sent
+// them: an attempt can register and then still fail, leaving a token behind that
+// would otherwise wake the supervisor while a later connection is live and send
+// it off to reconnect on top of it.
+func (h *Handler) waitForSessionEnd(sessionEnded chan uint64, stopSig <-chan struct{}) bool {
+	for {
+		select {
+		case gen := <-sessionEnded:
+			if h.ownsClientGen(gen) {
+				return true
+			}
+
+			h.log.Debug().Msg("ignoring a session-end signal from a superseded connection")
+
+		case <-stopSig:
+			return false
+		}
+	}
+}
+
+// connectWithBackoff attempts to connect until it succeeds, the network is
+// stopped, or the failure is one that retrying cannot fix. Delays grow
+// exponentially from reconnectBaseDelay and level off at reconnectMaxDelay
+// rather than giving up, so a network that is merely unreachable recovers on
+// its own whenever the server comes back.
+func (h *Handler) connectWithBackoff(sessionEnded chan uint64, stopSig <-chan struct{}) (*ircevent.Connection, error) {
+	for {
+		// #1239: don't retry if the user manually disconnected with Stop()
+		if h.stoppedFor(stopSig) {
+			return nil, clientManuallyDisconnected
+		}
+
+		client, err := h.connectOnce(sessionEnded, stopSig)
+		if err == nil {
+			// reaching the server clears the schedule: an outage tomorrow must not
+			// inherit the delay an outage today grew to
+			h.resetConnectBackoff()
+
+			return client, nil
+		}
+
+		h.log.Error().Err(err).Msg("client encountered connection error")
+
+		// A fatal in-band failure (a ban/G-Line, a SASL or NickServ auth failure)
+		// is detected by its callback DURING registration and stops the network
+		// before Connect() returns its error. Such a failure is not transient, so
+		// abort immediately rather than waiting out a delay to notice the stop.
+		if h.stoppedFor(stopSig) {
+			return nil, err
+		}
+
+		if reason, fatal := fatalConnectError(err); fatal {
+			h.log.Error().Str("reason", reason).Msg("stopping network: connection cannot succeed")
+
+			h.addConnectError(reason)
+			h.stateMachine.OnError(reason)
+			h.Stop()
+
+			return nil, err
+		}
+
+		delay := h.nextConnectDelay()
+		h.log.Debug().Dur("delay", delay).Msg("waiting before next connect attempt")
+
+		if !h.waitOrStop(delay, stopSig) {
+			return nil, clientManuallyDisconnected
+		}
+	}
+}
+
+// superviseConnection owns the connection for the rest of its life: it waits
+// for the live session to end and then reconnects under the same policy as the
+// first connect. The irc-go client would otherwise reconnect on its own at a
+// flat interval, with no attempt accounting and no visibility into failures
+// that happen before registration.
+func (h *Handler) superviseConnection(sessionEnded chan uint64, stopSig <-chan struct{}) {
+	for {
+		connectedAt := time.Now()
+
+		if !h.waitForSessionEnd(sessionEnded, stopSig) {
+			return
+		}
+
+		if h.stoppedFor(stopSig) {
+			return
+		}
+
+		if delay := h.reconnectDelayAfter(time.Since(connectedAt)); delay > 0 {
+			if !h.waitOrStop(delay, stopSig) {
+				return
+			}
+		}
+
+		client, err := h.connectWithBackoff(sessionEnded, stopSig)
+		if err != nil {
+			h.log.Debug().Err(err).Msg("stopped reconnecting")
+			return
+		}
+
+		// the network can be stopped while the attempt is in flight; connectOnce
+		// discards such a connection, but re-check so the supervisor never settles
+		// down to wait for a session that will not arrive
+		if h.stoppedFor(stopSig) {
+			client.Quit()
+			return
+		}
+	}
+}
+
+// fatalConnectError reports failures that every subsequent attempt would repeat
+// identically, so the network should stop with a reason instead of retrying.
+func fatalConnectError(err error) (string, bool) {
+	// An expired or not-yet-valid certificate, an unknown CA or a hostname
+	// mismatch keeps failing until the tracker fixes its certificate or the user
+	// enables TLSSkipVerify.
+	if certErr, ok := stdErr.AsType[*tls.CertificateVerificationError](err); ok {
+		return fmt.Sprintf("TLS certificate verification failed: %v", certErr.Err), true
+	}
+
+	// The network's own settings cannot be dialled at all - a malformed proxy
+	// URL, say. Retrying re-reads the same settings, so it can only fail again.
+	if cfgErr, ok := stdErr.AsType[configError](err); ok {
+		return cfgErr.Error(), true
+	}
+
+	return "", false
+}
+
+// configError marks a failure to build a connection out of the network's own
+// settings, as opposed to a failure to reach the server.
+type configError struct{ error }
+
+func (e configError) Unwrap() error { return e.error }
+
+// nextConnectDelay returns how long to wait before the next attempt, doubling
+// per consecutive failure up to the cap. The jitter keeps every autobrr from
+// returning to a recovering tracker in the same instant.
+func (h *Handler) nextConnectDelay() time.Duration {
+	h.m.Lock()
+	h.connectAttempts++
+	attempt := h.connectAttempts
+	h.m.Unlock()
+
+	delay := reconnectBaseDelay
+	for range attempt - 1 {
+		if delay >= reconnectMaxDelay {
+			break
+		}
+		delay *= 2
+	}
+
+	if delay > reconnectMaxDelay {
+		delay = reconnectMaxDelay
+	}
+
+	return delay + rand.N(delay/reconnectJitterDivisor)
+}
+
+func (h *Handler) resetConnectBackoff() {
+	h.m.Lock()
+	h.connectAttempts = 0
+	h.m.Unlock()
+}
+
+// reconnectDelayAfter returns how long to wait before reconnecting, given how
+// long the session that just ended lasted. A session that held for a useful
+// length of time proves the connection works, so we come straight back the way
+// any IRC client does after a netsplit - pausing there would cost announces for
+// nothing. A session that did not hold is the flapping case: pace the return so
+// a server that keeps dropping us is not hammered.
+func (h *Handler) reconnectDelayAfter(lifetime time.Duration) time.Duration {
+	if lifetime >= flappingSessionMinLifetime {
+		return 0
+	}
+
+	return h.nextConnectDelay()
+}
+
+// stoppedFor reports whether the run that owns stopSig should give up. It
+// answers for that run specifically rather than for the handler as a whole:
+// a Restart replaces the handler's state, so a supervisor from the previous run
+// that was blocked in Connect while the swap happened would otherwise see a
+// freshly live handler and keep reconnecting alongside the new one.
+func (h *Handler) stoppedFor(stopSig <-chan struct{}) bool {
+	select {
+	case <-stopSig:
+		return true
+	default:
+	}
+
+	return h.Stopped()
+}
+
+// waitOrStop sleeps for d, reporting false if the network was stopped first so
+// a user disabling a network is not left waiting out a long backoff.
+func (h *Handler) waitOrStop(d time.Duration, stopSig <-chan struct{}) bool {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		return true
+	case <-stopSig:
+		return false
+	}
 }
 
 func (h *Handler) isOurNick(nick string) bool {
@@ -621,9 +946,24 @@ func (h *Handler) resetChannelState() {
 func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
+	h.authenticated = false
+	h.haveDisconnected = false
+	h.resetIdentifyForm()
 	client := h.client
 	h.clientState = ircStopped
 	h.client = nil
+	// everything the stopped session still delivers is stale from here on: its
+	// drain can outlive this stop by minutes when the server ignores our QUIT,
+	// and un-superseded its callbacks would be charged to whatever runs next -
+	// a strike on the breaker, a bogus disconnect notification, a stale auth
+	// failure stopping a freshly fixed network
+	h.clientGen++
+	// wake superviseConnection wherever it is waiting; cleared so a second Stop
+	// (the breaker and a user action can race) cannot close it twice
+	if h.stopSig != nil {
+		close(h.stopSig)
+		h.stopSig = nil
+	}
 	h.m.Unlock()
 
 	if client != nil {
@@ -631,6 +971,11 @@ func (h *Handler) Stop() {
 		h.resetChannelState()
 		client.Quit()
 	}
+
+	// the disconnect callback used to park the state machine, but it is gated
+	// off for a superseded generation, so the stop owns it - including a stop
+	// that lands mid-dial, before any client was published
+	h.stateMachine.OnStopped()
 }
 
 func (h *Handler) Stopped() bool {
@@ -649,7 +994,7 @@ func (h *Handler) Restart() error {
 }
 
 // onConnect is the connect callback
-func (h *Handler) onConnect(m ircmsg.Message) {
+func (h *Handler) onConnect(gen uint64, m ircmsg.Message) {
 	h.setConnectionStatus()
 
 	networkName := h.GetNetwork().Name
@@ -674,7 +1019,27 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	h.log.Info().Msg("network connected")
 
+	// stored credentials that the mechanism excludes are silently unused, which
+	// looks exactly like an auth failure from the outside (registered-only
+	// channels refuse the join) - say so once per connection instead
+	h.m.RLock()
+	auth := h.network.Auth
+	h.m.RUnlock()
+
+	if auth.Mechanism == domain.IRCAuthMechanismNone && auth.Password != "" {
+		h.log.Warn().Msg("network has stored credentials but its identification mechanism is None, so they are not used")
+	}
+
 	time.Sleep(1 * time.Second)
+
+	// The gate passed a full second ago; a stop or restart fits comfortably
+	// inside that sleep. Driving the state machine for a superseded session is
+	// not self-healing: OnConnected walks it to JoiningChannels, every channel
+	// errors against the quit client, and the next session's OnConnected has no
+	// valid transition out - the network registers but monitors nothing.
+	if !h.ownsClientGen(gen) {
+		return
+	}
 
 	// Notify state machine of connection - it will handle auth and channel joining
 	h.stateMachine.OnConnected()
@@ -740,6 +1105,16 @@ func (h *Handler) noteSessionEnded(lifetime time.Duration) bool {
 		return false
 	}
 
+	// Strikes expire. Flapping means failing repeatedly in quick succession; a
+	// network dropped once during a maintenance window is not flapping however
+	// many maintenance windows it sees, and stopping it for that would leave a
+	// perfectly good network down until someone noticed.
+	now := time.Now()
+	if h.consecutiveShortSessions == 0 || now.Sub(h.firstShortSession) > flappingWindow {
+		h.consecutiveShortSessions = 0
+		h.firstShortSession = now
+	}
+
 	h.consecutiveShortSessions++
 	if h.consecutiveShortSessions < flappingStopThreshold {
 		return false
@@ -776,10 +1151,10 @@ func (h *Handler) tripFlappingBreaker(serverReason string) {
 // is closing the link - most importantly BEFORE registration completes
 // ("Trying to reconnect too fast", connection-limit and ban messages). Those
 // sessions never reach the disconnect callback (irc-go only runs it for
-// registered connections), so without counting them here the client would
-// reconnect every ReconnectFreq indefinitely, which is exactly the hammering the
-// breaker exists to stop. A registered session is left to onDisconnect so one
-// failure is never counted twice.
+// registered connections), so without counting them here the backoff loop
+// would keep returning to a server that is actively refusing us, which is
+// exactly the hammering the breaker exists to stop. A registered session is
+// left to onDisconnect so one failure is never counted twice.
 func (h *Handler) handleServerError(msg ircmsg.Message) {
 	reason := ""
 	if n := len(msg.Params); n > 0 {
@@ -803,16 +1178,37 @@ func (h *Handler) handleServerError(msg ircmsg.Message) {
 
 	h.log.Warn().Str("reason", reason).Msg("server refused the connection before registration")
 
+	// surface the server's own words: the connection error is otherwise the only
+	// thing the user can see, and "connection refused" says far less than the
+	// reason the server gave for refusing. No state changes here, so nothing
+	// else broadcasts the update - push it rather than wait for the next poll
+	if reason != "" {
+		h.addConnectError(fmt.Sprintf("server refused the connection: %s", reason))
+		h.broadcastHealth()
+	}
+
+	// One attempt is one strike. Servers are free to send several ERROR lines
+	// before closing the link, and counting each of them would stop the network
+	// on a single refusal while reporting it as five.
+	h.m.Lock()
+	alreadyCounted := h.errorCounted
+	h.errorCounted = true
+	h.m.Unlock()
+
+	if alreadyCounted {
+		return
+	}
+
 	if h.noteSessionEnded(0) {
 		h.tripFlappingBreaker(reason)
 	}
 }
 
 // onNotice handles NOTICE events
-func (h *Handler) onNotice(msg ircmsg.Message) {
+func (h *Handler) onNotice(gen uint64, msg ircmsg.Message) {
 	switch msg.Nick() {
 	case "NickServ":
-		h.handleNickServ(msg)
+		h.handleNickServ(gen, msg)
 	default:
 		// a NOTICE from an invite bot while a channel is still awaiting its
 		// invite is a rejection, not the invite itself (that arrives as INVITE)
@@ -821,7 +1217,14 @@ func (h *Handler) onNotice(msg ircmsg.Message) {
 }
 
 // handleNickServ is called from NOTICE events
-func (h *Handler) handleNickServ(msg ircmsg.Message) {
+func (h *Handler) handleNickServ(gen uint64, msg ircmsg.Message) {
+	// re-checked past the entry gate: several branches below stop the network,
+	// and a delivery paused across a stop and restart must act on the session it
+	// belongs to, not on the replacement
+	if !h.ownsClientGen(gen) {
+		return
+	}
+
 	h.log.Trace().Interface("msg_params", msg.Params).Msg("NOTICE from nickserv")
 
 	if len(msg.Params) < 2 {
@@ -1033,7 +1436,13 @@ func (h *Handler) handleSASLSuccess(_ ircmsg.Message) {
 // rejection, so we surface the ban reason and STOP the network rather than letting
 // it reconnect - reconnecting cannot help and typically deepens the ban (the
 // example G-Line is literally "reconnect loop").
-func (h *Handler) handleBanned(msg ircmsg.Message) {
+func (h *Handler) handleBanned(gen uint64, msg ircmsg.Message) {
+	// re-checked past the entry gate: this stops the network, and a delivery
+	// paused across a stop and restart must not stop the replacement
+	if !h.ownsClientGen(gen) {
+		return
+	}
+
 	// the ban reason is the trailing parameter, e.g.
 	//   465 <nick> :You are not welcome on this network. G-Lined: reconnect loop.
 	reason := ""
@@ -1055,7 +1464,13 @@ func (h *Handler) handleBanned(msg ircmsg.Message) {
 	h.Stop()
 }
 
-func (h *Handler) handleSASLFail(_ ircmsg.Message) {
+func (h *Handler) handleSASLFail(gen uint64, _ ircmsg.Message) {
+	// re-checked past the entry gate: this stops the network, and a delivery
+	// paused across a stop and restart must not stop the replacement
+	if !h.ownsClientGen(gen) {
+		return
+	}
+
 	h.addConnectError("authentication failed: SASL negotiation failed")
 	h.stateMachine.OnError("sasl authentication failed")
 

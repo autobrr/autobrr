@@ -370,6 +370,23 @@ func (s *Server) ForceJoin(nick, channel string) {
 	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, nick, ch.name)
 }
 
+// DropConnection closes a registered client's socket without any IRC courtesy,
+// modelling a server that drops the link (netsplit, restart, KILL). Reports
+// whether a connection was found. Tests use it to drive real reconnects.
+func (s *Server) DropConnection(nick string) bool {
+	s.mu.Lock()
+	c := s.conns[strings.ToLower(nick)]
+	s.mu.Unlock()
+
+	if c == nil {
+		return false
+	}
+
+	_ = c.nc.Close()
+
+	return true
+}
+
 // sendToNick delivers a raw line to a registered client by nick (no-op if the
 // nick is not a connected client).
 func (s *Server) sendToNick(nick, line string) {

@@ -41,13 +41,13 @@ func (s ConnectionState) String() string {
 }
 
 var validTransitions = map[ConnectionState][]ConnectionState{
-	// StateError is reachable from Disconnected because the irc-go client auto-
-	// reconnects from inside Loop() without going back through Handler.Run() (so
-	// OnConnecting is never called and the SM stays Disconnected during the new
-	// registration). A fatal in-band failure on that reconnect - e.g. a 465 G-Line -
-	// calls OnError while still Disconnected; allowing the transition surfaces the
-	// reason in real time instead of logging a spurious invalid-transition. Safe per
-	// the StateError invariant below: every OnError caller also Stop()s.
+	// StateError is reachable from Disconnected because a reconnect does not go
+	// back through Handler.Run(), so OnConnecting is never called and the SM stays
+	// Disconnected while the new registration runs. A fatal in-band failure on that
+	// reconnect - e.g. a 465 G-Line - calls OnError while still Disconnected;
+	// allowing the transition surfaces the reason in real time instead of logging a
+	// spurious invalid-transition. Safe per the StateError invariant below: every
+	// OnError caller also Stop()s.
 	StateDisconnected:         {StateConnecting, StateConnected, StateError},
 	StateConnecting:           {StateConnected, StateError, StateDisconnected},
 	StateConnected:            {StateAuthenticating, StateAuthenticated, StatePartiallyOperational, StateError, StateDisconnected},
@@ -94,6 +94,10 @@ func (sm *ConnectionStateMachine) transition(to ConnectionState) error {
 	sm.m.Lock()
 	defer sm.m.Unlock()
 
+	return sm.transitionLocked(to)
+}
+
+func (sm *ConnectionStateMachine) transitionLocked(to ConnectionState) error {
 	from := sm.currentState
 
 	// Validate transition
@@ -366,6 +370,22 @@ func (sm *ConnectionStateMachine) OnError(reason string) {
 
 func (sm *ConnectionStateMachine) OnDisconnected() {
 	sm.transition(StateDisconnected)
+}
+
+// OnStopped parks the machine in Disconnected when the network is stopped,
+// without papering over an Error: the fatal paths record their reason, drive
+// the machine to Error and then stop, and the reason must stay on display. The
+// check and the transition share one lock hold so a fatal callback's OnError
+// racing the stop cannot slip between them and be wiped.
+func (sm *ConnectionStateMachine) OnStopped() {
+	sm.m.Lock()
+	defer sm.m.Unlock()
+
+	if sm.currentState == StateError || sm.currentState == StateDisconnected {
+		return
+	}
+
+	sm.transitionLocked(StateDisconnected)
 }
 
 func (sm *ConnectionStateMachine) GetState() ConnectionState {

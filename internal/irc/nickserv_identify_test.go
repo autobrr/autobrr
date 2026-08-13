@@ -159,7 +159,7 @@ func TestNickServNoticesIgnoredWhenServicesDisabled(t *testing.T) {
 			h.network.Nick = "user_bot"
 			h.network.Auth = tt.auth
 
-			h.handleNickServ(nickServNotice("user_bot", tt.notice))
+			h.handleNickServ(0, nickServNotice("user_bot", tt.notice))
 
 			if h.identifyAttempt != identifyFormBare {
 				t.Errorf("credential leak: escalated to %q on a network that does not use services", h.identifyCommand())
@@ -355,8 +355,8 @@ func TestIdentifyFormIsStickyPerNetwork(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
-	h.handleNickServ(nickServNotice("user_bot", "Password accepted - you are now recognized."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Nick user_bot isn't registered."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Password accepted - you are now recognized."))
 
 	if !h.authenticated {
 		t.Fatal("expected the escalated identify to authenticate")
@@ -379,7 +379,7 @@ func TestIdentifyFormStaysBareWhenBareWorks(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	h.handleNickServ(nickServNotice("user_bot", "Password accepted - you are now recognized."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Password accepted - you are now recognized."))
 	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
 
 	if h.identifyAttempt != identifyFormBare {
@@ -406,7 +406,7 @@ func TestIdentifyFormUnlearnedAfterRejection(t *testing.T) {
 			h.identifyFormLearned = identifyFormAccount
 			h.identifyAttempt = identifyFormAccount
 
-			h.handleNickServ(nickServNotice("user_bot", tt.notice))
+			h.handleNickServ(0, nickServNotice("user_bot", tt.notice))
 
 			if h.identifyFormLearned != identifyFormBare {
 				t.Error("expected the rejected account form to be forgotten")
@@ -471,7 +471,7 @@ func TestHandleNickServEscalatesBeforeStopping(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Nick user_bot isn't registered."))
 
 	if h.identifyAttempt != identifyFormAccount {
 		t.Error("expected the notice to escalate to the account-qualified form")
@@ -492,8 +492,8 @@ func TestHandleNickServStopsWhenAccountUnknownAfterEscalation(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
-	h.handleNickServ(nickServNotice("user_bot", "Nick test_bot isn't registered."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Nick user_bot isn't registered."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Nick test_bot isn't registered."))
 
 	if !h.Stopped() {
 		t.Error("expected the network to stop once the account form also failed")
@@ -512,8 +512,8 @@ func TestHandleNickServBadCredentialsAfterEscalation(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	h.handleNickServ(nickServNotice("user_bot", "Your nick isn't registered."))
-	h.handleNickServ(nickServNotice("user_bot", "Password incorrect."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Your nick isn't registered."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Password incorrect."))
 
 	if !h.Stopped() {
 		t.Fatal("expected the network to stop on a rejected password")
@@ -530,7 +530,7 @@ func TestHandleNickServBadCredentialsBare(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	h.handleNickServ(nickServNotice("user_bot", "Password incorrect."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Password incorrect."))
 
 	if !h.Stopped() {
 		t.Fatal("expected the network to stop on a rejected password")
@@ -548,7 +548,7 @@ func TestHandleNickServNoEscalationWithoutAccount(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "")
 
-	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
+	h.handleNickServ(0, nickServNotice("user_bot", "Nick user_bot isn't registered."))
 
 	if h.identifyAttempt != identifyFormBare {
 		t.Error("expected no escalation without a configured account")
@@ -565,7 +565,7 @@ func TestHandleNickServShortParams(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	h.handleNickServ(ircmsg.Message{
+	h.handleNickServ(0, ircmsg.Message{
 		Source:  "NickServ!services@services.example.test",
 		Command: "NOTICE",
 		Params:  []string{"user_bot"},

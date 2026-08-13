@@ -175,9 +175,9 @@ func TestBannedStopsAndSurfacesReason(t *testing.T) {
 // TestBannedAtRegistrationAbortsReconnectFast verifies the fatal-error
 // short-circuit of the reconnect backoff: a connect-time ban (465 sent before
 // registration completes) fails Connect(), but because handleBanned already
-// stopped the handler, the retry loop aborts IMMEDIATELY (returns Unrecoverable)
-// instead of waiting out the 15s reconnect backoff before noticing. The reason is
-// still surfaced and the handler ends stopped.
+// stopped the handler, the connect loop aborts IMMEDIATELY instead of waiting out
+// a reconnect backoff before noticing. The reason is still surfaced and the
+// handler ends stopped.
 func TestBannedAtRegistrationAbortsReconnectFast(t *testing.T) {
 	const reason = "You are not welcome on this network. G-Lined: reconnect loop."
 	srv := ircd.New(t, ircd.BannedAtRegistration(reason))
@@ -203,29 +203,82 @@ func TestBannedAtRegistrationAbortsReconnectFast(t *testing.T) {
 	}
 }
 
+// TestReconnectsAfterServerDropsUs is the end-to-end proof that autobrr's own
+// reconnect loop works: the server drops the link with no warning, and the
+// handler must come back, rejoin, and resume announcing without any user action.
+// It also pins the floor - autobrr must not return instantly, because returning
+// the moment a server drops you is what gets clients throttled and banned.
+func TestReconnectsAfterServerDropsUs(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#re", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("re", "#re", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#re"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#re", 10*time.Second)
+
+	if got := srv.JoinCount("#re"); got != 1 {
+		t.Fatalf("expected 1 join before the drop, got %d", got)
+	}
+
+	dropped := time.Now()
+	if !srv.DropConnection("autobrr") {
+		t.Fatal("client was not connected to the test server")
+	}
+
+	// the reconnect is paced, so allow well past the floor for it to land
+	deadline := time.Now().Add(40 * time.Second)
+	for srv.JoinCount("#re") < 2 && time.Now().Before(deadline) {
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	if got := srv.JoinCount("#re"); got < 2 {
+		t.Fatalf("network never rejoined after being dropped, join count = %d", got)
+	}
+
+	if elapsed := time.Since(dropped); elapsed < 10*time.Second {
+		t.Errorf("reconnected after %s; must not return to a server that just dropped us", elapsed)
+	}
+
+	inst.WaitForMonitoring("#re", 10*time.Second)
+
+	// and the reconnected session is fully functional, not merely connected
+	srv.Announce("#re", "ann", "New torrent: Rejoined.Release.2024.1080p.BluRay.x264-GRP in Movies")
+
+	rls, ok := inst.Releases.Wait(10 * time.Second)
+	if !ok {
+		t.Fatal("no release produced after reconnecting")
+	}
+	if rls.TorrentName != "Rejoined.Release.2024.1080p.BluRay.x264-GRP" {
+		t.Fatalf("unexpected release after reconnect: %q", rls.TorrentName)
+	}
+}
+
 // TestPreRegistrationErrorsStopNetwork is the end-to-end guard for the reconnect
 // hammering the circuit breaker exists to stop, on the path that is easiest to
 // miss: a server refusing us BEFORE registration completes. Those connections
-// never reach the disconnect callback, so the ERROR line is the only signal, and
-// without it the client would keep reconnecting every 15s indefinitely. The
-// network must stop and surface the server's own reason.
-func TestPreRegistrationErrorsStopNetwork(t *testing.T) {
-	const reason = "Trying to reconnect too fast."
-
-	// more refusals than the breaker's threshold, delivered on one connection so
-	// the test does not wait out a reconnect cycle per refusal
-	srv := ircd.New(t, ircd.ErrorBeforeRegistration(reason, 10))
+// never reach the disconnect callback, so the ERROR line is the only signal that
+// the server is actively refusing us. The reason must reach the user, and
+// repeated refusals must stop the network.
+func TestPreRegistrationErrorsCountAsOneRefusal(t *testing.T) {
+	// Several ERROR lines on ONE connection. Servers are free to send more than
+	// one before closing the link, and the whole attempt is still a single
+	// refusal - counting each line would stop the network on the first connection
+	// while reporting it as five consecutive failures.
+	srv := ircd.New(t, ircd.ErrorBeforeRegistration("Trying to reconnect too fast.", 10))
 	srv.AddChannel("#none", ircd.Announcer("ann"))
 
 	def := harness.MinimalDefinition("none", "#none", "ann")
 	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#none"))
 
-	// tripping the breaker stops the handler mid-connect, so Run reports the
-	// aborted connection
 	inst := harness.Start(t, net, harness.Defs(def), harness.Options{AllowRunError: true})
 
-	inst.WaitForNetworkError(reason, 10*time.Second)
-	inst.WaitForStopped(10 * time.Second)
+	inst.WaitForMonitoring("#none", 10*time.Second)
+
+	if inst.Handler.Stopped() {
+		t.Fatal("one refused connection must not stop the network")
+	}
 }
 
 // ---- kick

@@ -116,7 +116,7 @@ func TestHandleBannedStopsAndSurfacesReason(t *testing.T) {
 
 	msg := ircmsg.MakeMessage(nil, "irc.orpheus.network", ircevent.ERR_YOUREBANNEDCREEP,
 		"indokiwijuice|bot", "You are not welcome on this network. G-Lined: reconnect loop.")
-	h.handleBanned(msg)
+	h.handleBanned(0, msg)
 
 	// the ban reason is surfaced at the network level
 	h.m.RLock()
@@ -152,7 +152,7 @@ func TestHandleBannedNoReason(t *testing.T) {
 	h.stateMachine.m.Unlock()
 
 	// no params at all
-	h.handleBanned(ircmsg.MakeMessage(nil, "srv", ircevent.ERR_YOUREBANNEDCREEP))
+	h.handleBanned(0, ircmsg.MakeMessage(nil, "srv", ircevent.ERR_YOUREBANNEDCREEP))
 
 	h.m.RLock()
 	errs := slices.Clone(h.connectionErrors)
