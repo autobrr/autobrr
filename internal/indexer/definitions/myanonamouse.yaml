@@ -113,6 +113,11 @@ irc:
                   torrentId: "1262681"
                   releaseTags: VIP
 
+        mappings:
+          releaseTags:
+            "VIP":
+              freeleech: VIP
+
         match:
           infourl: "/t/{{ .torrentId }}"
           downloadurl: "/tor/download.php?tid={{ .torrentId }}"
