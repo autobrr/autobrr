@@ -609,6 +609,9 @@ func (s *Service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	if domain.IsRedactedString(network.Auth.Password) {
 		network.Auth.Password = existingNetwork.Auth.Password
 	}
+	if err := network.Auth.Validate(); err != nil {
+		return err
+	}
 
 	s.log.Debug().Str("network", network.Name).Msg("update network")
 
@@ -673,6 +676,10 @@ func (s *Service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 }
 
 func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error {
+	if err := network.Auth.Validate(); err != nil {
+		return err
+	}
+
 	existingNetwork, err := s.repo.CheckExistingNetwork(ctx, network)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not check for existing network")

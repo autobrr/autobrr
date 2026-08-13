@@ -6,6 +6,8 @@ package domain
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
 
 type IrcChannel struct {
@@ -40,6 +42,48 @@ type IRCAuth struct {
 	Mechanism IRCAuthMechanism `json:"mechanism,omitempty"`
 	Account   string           `json:"account,omitempty"`
 	Password  string           `json:"password,omitempty"`
+}
+
+// IsValid reports whether the mechanism is one of the supported explicit values.
+func (m IRCAuthMechanism) IsValid() bool {
+	switch m {
+	case IRCAuthMechanismNone, IRCAuthMechanismSASLPlain, IRCAuthMechanismNickServ:
+		return true
+	default:
+		return false
+	}
+}
+
+// Validate rejects unknown authentication mechanisms. Incomplete credentials
+// remain accepted so existing networks can still be edited; they simply do not
+// enable authentication at runtime.
+func (ia IRCAuth) Validate() error {
+	if ia.Mechanism == "" {
+		return nil
+	}
+
+	if !ia.Mechanism.IsValid() {
+		return errors.New("invalid IRC authentication mechanism: %q", ia.Mechanism)
+	}
+
+	return nil
+}
+
+// NickServEnabled reports whether NickServ identification is permitted. SASL
+// permits the existing NickServ fallback when negotiation does not complete. An
+// empty mechanism retains the historical password-only behavior for database
+// rows and API clients created before mechanisms were required.
+func (ia IRCAuth) NickServEnabled() bool {
+	switch ia.Mechanism {
+	case IRCAuthMechanismNickServ:
+		return ia.Password != ""
+	case IRCAuthMechanismSASLPlain:
+		return ia.Account != "" && ia.Password != ""
+	case "":
+		return ia.Password != ""
+	default:
+		return false
+	}
 }
 
 func (ia IRCAuth) MarshalJSON() ([]byte, error) {
