@@ -65,8 +65,13 @@ interface IndexerIRC {
   server: string;
   port: number;
   tls: boolean;
+  auth?: IndexerIRCAuth;
   settings: IndexerSetting[];
   channels: IndexerIRCChannel[];
+}
+
+interface IndexerIRCAuth {
+  mechanism: IrcAuthMechanism;
 }
 
 interface IndexerIRCChannel {

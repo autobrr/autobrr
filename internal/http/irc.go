@@ -136,6 +136,11 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := data.Auth.Validate(); err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	if err := h.service.StoreNetwork(r.Context(), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -148,6 +153,11 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 	var data domain.IrcNetwork
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := data.Auth.Validate(); err != nil {
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 

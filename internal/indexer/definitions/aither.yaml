@@ -25,6 +25,8 @@ irc:
   server: irc.aither.cc
   port: 6697
   tls: true
+  auth:
+    mechanism: NICKSERV
   settings:
     - name: nick
       type: text
