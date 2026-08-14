@@ -47,7 +47,7 @@ func runMigrationTestSQLite(t *testing.T, testCase MigrationTestCase) {
 	db, cleanup := setupTestSQLiteDB(t)
 	defer cleanup()
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	migrate := migrations.SQLiteMigrations(db.Handler, log.With().Logger())
 
@@ -593,7 +593,7 @@ func setupTestSQLiteDB(t *testing.T) (*database.DB, func()) {
 		DatabaseDSN:  dbPath,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	require.NoError(t, err)
 
@@ -613,7 +613,7 @@ func TestFullMigrationSequenceSQLite(t *testing.T) {
 	db, cleanup := setupTestSQLiteDB(t)
 	defer cleanup()
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	// This will run all migrations
 	migrate := migrations.SQLiteMigrations(db.Handler, log.With().Logger())

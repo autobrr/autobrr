@@ -13,19 +13,17 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+	"github.com/autobrr/go-torrent/bencode"
+	"github.com/autobrr/go-torrent/metainfo"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go/v4"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/publicsuffix"
@@ -59,12 +57,25 @@ type DownloadService struct {
 	proxySvc    proxyService
 }
 
-func NewDownloadService(log logger.Logger, indexerRepo indexerRepo, proxySvc proxyService) *DownloadService {
+func NewDownloadService(log zerolog.Logger, indexerRepo indexerRepo, proxySvc proxyService) *DownloadService {
 	return &DownloadService{
 		log:         log.With().Str("module", "release-download").Logger(),
 		indexerRepo: indexerRepo,
 		proxySvc:    proxySvc,
 	}
+}
+
+// releaseLogger derives from s.log rather than the ctx logger because callers
+// live in both the action and filter packages, and inheriting their logger
+// would report the wrong module.
+func (s *DownloadService) releaseLogger(r *domain.Release) *zerolog.Logger {
+	l := s.log.With().
+		Str("trace_id", r.TraceID).
+		Str("release", r.TorrentName).
+		Str("indexer", r.Indexer.Identifier).
+		Logger()
+
+	return &l
 }
 
 func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Release) error {
@@ -76,10 +87,12 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 
 	if rls.DownloadURL == "" {
 		return errors.New("download_file: url can't be empty")
-	} else if rls.TorrentTmpFile != "" {
+	} else if len(rls.TorrentDataRawBytes) != 0 {
 		// already downloaded
 		return nil
 	}
+
+	l := s.releaseLogger(rls)
 
 	// get indexer
 	indexer, err := s.indexerRepo.FindByID(ctx, rls.Indexer.ID)
@@ -95,11 +108,11 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 		}
 
 		if proxyConf.Enabled {
-			s.log.Debug().Msgf("using proxy: %s", proxyConf.Name)
+			l.Debug().Str("proxy", proxyConf.Name).Msg("using proxy")
 
 			indexer.Proxy = proxyConf
 		} else {
-			s.log.Debug().Msgf("proxy disabled, skip: %s", proxyConf.Name)
+			l.Debug().Str("proxy", proxyConf.Name).Msg("proxy disabled, skipping")
 		}
 	}
 
@@ -113,12 +126,18 @@ func (s *DownloadService) DownloadRelease(ctx context.Context, rls *domain.Relea
 }
 
 func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *domain.Indexer, r *domain.Release) error {
+	l := s.releaseLogger(r)
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.DownloadURL, nil)
 	if err != nil {
 		return errors.Wrap(err, "error downloading file")
 	}
 
-	req.Header.Set("User-Agent", "autobrr")
+	userAgent := "autobrr"
+	if r.UserAgent != "" {
+		userAgent = r.UserAgent
+	}
+	req.Header.Set("User-Agent", userAgent)
 
 	httpClient := &http.Client{
 		Timeout:   30 * time.Second,
@@ -127,7 +146,7 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 
 	// handle proxy
 	if indexer.Proxy != nil {
-		s.log.Debug().Msgf("using proxy: %s", indexer.Proxy.Name)
+		l.Debug().Str("proxy", indexer.Proxy.Name).Msg("using proxy")
 
 		proxiedClient, err := proxy.GetProxiedHTTPClient(indexer.Proxy)
 		if err != nil {
@@ -149,39 +168,17 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 		req.Header.Set("Cookie", r.RawCookie)
 	}
 
-	tmpFilePattern := "autobrr-"
-	tmpDir := os.TempDir()
-
-	// Create tmp file
-	// TODO check if tmp file is wanted
-	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
-	if err != nil {
-		if os.IsNotExist(err) {
-			if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
-				return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
-			}
-
-			tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
-			if err != nil {
-				return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
-			}
-		} else {
-			return errors.Wrap(err, "error creating tmp file")
-		}
-	}
-	defer tmpFile.Close()
-
 	errFunc := retry.Do(
-		retryableRequest(httpClient, req, r, tmpFile),
+		retryableRequest(httpClient, req, r),
 		retry.Attempts(3),
 		retry.MaxJitter(time.Second*1),
 		//retry.Delay(time.Second*3),
 		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
-			s.log.Error().Err(err).Msg("http call encountered error")
+			l.Error().Err(err).Uint("attempt", n).Msg("http call encountered error")
 
 			var retriable *RetriableError
 			if errors.As(err, &retriable) {
-				s.log.Debug().Msgf("http call rate-limited, retry after %v", retriable.RetryAfter)
+				l.Debug().Uint("attempt", n).Dur("retry_after", retriable.RetryAfter).Msg("http call rate-limited")
 				return retriable.RetryAfter
 			}
 			return time.Second * 3
@@ -193,7 +190,7 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 	return errFunc
 }
 
-func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Release, tmpFile *os.File) func() error {
+func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Release) func() error {
 	return func() error {
 		// Get the data
 		resp, err := httpClient.Do(req)
@@ -269,11 +266,6 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer.Name))
 		}
 
-		resetTmpFile := func() {
-			tmpFile.Seek(0, io.SeekStart)
-			tmpFile.Truncate(0)
-		}
-
 		// Read the body into bytes
 		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
 		if err != nil {
@@ -286,8 +278,6 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		// Try to decode as torrent file
 		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
-			resetTmpFile()
-
 			// explicitly check for unexpected content type that match html
 			var bse *bencode.SyntaxError
 			if errors.As(err, &bse) {
@@ -300,26 +290,23 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
-			resetTmpFile()
-			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", tmpFile.Name()))
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", r.TorrentName))
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
-			resetTmpFile()
 			return retry.Unrecoverable(errors.New("could not read infohash"))
 		}
 
-		// Write the body to file
-		// TODO move to io.Reader and pass around in the future
-		if _, err := tmpFile.Write(bodyBytes); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
-		}
-
-		r.TorrentTmpFile = tmpFile.Name()
+		// keep the torrent in memory, a tmp file is only written on demand
+		// for the path macros via Release.WriteTemporaryFile
+		r.TorrentDataRawBytes = bodyBytes
 		r.TorrentHash = meta.HashInfoBytes().String()
-		r.Size = uint64(torrentMetaInfo.TotalLength())
+		// A malformed torrent can carry negative file lengths; keep the
+		// announce-derived size rather than storing a wrapped uint64.
+		if size := torrentMetaInfo.TotalLength(); size > 0 {
+			r.Size = uint64(size)
+		}
 
 		return nil
 	}
@@ -350,7 +337,7 @@ func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Releas
 			return err
 		}
 
-		s.log.Debug().Msgf("using proxy: %s", proxyConf.Name)
+		s.releaseLogger(r).Debug().Str("proxy", proxyConf.Name).Msg("using proxy")
 
 		proxiedClient, err := proxy.GetProxiedHTTPClient(proxyConf)
 		if err != nil {
@@ -384,10 +371,15 @@ func (s *DownloadService) ResolveMagnetURI(ctx context.Context, r *domain.Releas
 		return errors.Wrap(err, "could not read response body")
 	}
 
-	magnet := string(body)
-	if magnet != "" {
-		r.MagnetURI = magnet
+	magnet := strings.TrimSpace(string(body))
+	if !strings.HasPrefix(magnet, domain.MagnetURIPrefix) {
+		// the url did not lead to a magnet after all, drop it so HasMagnetUri stays
+		// false and the release falls back to downloading from DownloadURL
+		r.MagnetURI = ""
+		return nil
 	}
+
+	r.MagnetURI = magnet
 
 	return nil
 }

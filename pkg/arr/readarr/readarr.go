@@ -6,17 +6,15 @@ package readarr
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
-
-	"log"
 
 	"github.com/autobrr/autobrr/pkg/arr"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
@@ -30,7 +28,7 @@ type Config struct {
 
 	TLSSkipVerify bool
 
-	Log *log.Logger
+	Log zerolog.Logger
 }
 
 type ClientInterface interface {
@@ -42,7 +40,7 @@ type Client struct {
 	config Config
 	http   *http.Client
 
-	Log *log.Logger
+	log zerolog.Logger
 }
 
 // New create new readarr Client
@@ -57,17 +55,20 @@ func New(config Config) *Client {
 		Transport: transport,
 	}
 
-	c := &Client{
+	return &Client{
 		config: config,
 		http:   httpClient,
-		Log:    log.New(io.Discard, "", log.LstdFlags),
+		log:    config.Log,
 	}
+}
 
-	if config.Log != nil {
-		c.Log = config.Log
+// logger prefers the request-scoped logger from ctx, which carries trace_id
+// and other correlation fields, over the static client logger.
+func (c *Client) logger(ctx context.Context) *zerolog.Logger {
+	if l := zerolog.Ctx(ctx); l.GetLevel() != zerolog.Disabled {
+		return l
 	}
-
-	return c
+	return &c.log
 }
 
 func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
@@ -80,7 +81,7 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.New("unauthorized: bad credentials")
 	}
 
-	c.Log.Printf("readarr system/status status: (%v) response: %v\n", status, string(res))
+	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("readarr system/status response")
 
 	response := SystemStatusResponse{}
 	if err = json.Unmarshal(res, &response); err != nil {
@@ -96,7 +97,7 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		return nil, errors.Wrap(err, "could not push release to readarr")
 	}
 
-	c.Log.Printf("readarr release/push status: (%v) response: %v\n", status, string(res))
+	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("readarr release/push response")
 
 	if status == http.StatusBadRequest {
 		badRequestResponses := make([]*BadRequestResponse, 0)
@@ -121,9 +122,7 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 
 	// log and return if rejected
 	if pushResponse.Rejected {
-		rejections := strings.Join(pushResponse.Rejections, ", ")
-
-		c.Log.Printf("readarr release/push rejected %v reasons: %q\n", release.Title, rejections)
+		c.logger(ctx).Debug().Strs("rejections", pushResponse.Rejections).Msg("readarr release/push rejected")
 		return pushResponse.Rejections, nil
 	}
 

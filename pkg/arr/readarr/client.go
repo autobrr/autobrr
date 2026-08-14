@@ -84,7 +84,6 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 
 	defer sharedhttp.DrainAndClose(resp)
 
-
 	if resp.Body == nil {
 		return errors.New("response body is nil")
 	}
@@ -153,7 +152,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 		return 0, nil, errors.Wrap(err, "could not marshal data: %+v", data)
 	}
 
-	c.Log.Printf("readarr push JSON: %s\n", string(jsonData))
+	c.logger(ctx).Trace().Str("endpoint", endpoint).Str("payload", string(jsonData)).Msg("readarr post payload")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {

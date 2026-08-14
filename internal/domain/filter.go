@@ -6,6 +6,7 @@ package domain
 import (
 	"fmt"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -199,20 +200,24 @@ type FilterExternal struct {
 	FilterId                 int                   `json:"-"`
 }
 
+// macroFields returns the external filter fields that get macro expanded and
+// could reference the torrent file.
+func (f FilterExternal) macroFields() []string {
+	return []string{f.ExecArgs, f.WebhookData}
+}
+
+// NeedTorrentDownloaded check if the external filter needs the torrent contents.
+// This is a superset of NeedTorrentTmpFile since a tmp file can only be written
+// once we hold the contents.
 func (f FilterExternal) NeedTorrentDownloaded() bool {
-	if strings.Contains(f.ExecArgs, "TorrentHash") || strings.Contains(f.WebhookData, "TorrentHash") {
-		return true
-	}
+	return containsAnyMacro(f.macroFields(), "TorrentPathName", "TorrentTmpFile", "TorrentDataRawBytes", "TorrentHash")
+}
 
-	if strings.Contains(f.ExecArgs, "TorrentPathName") || strings.Contains(f.WebhookData, "TorrentPathName") {
-		return true
-	}
-
-	if strings.Contains(f.WebhookData, "TorrentDataRawBytes") {
-		return true
-	}
-
-	return false
+// NeedTorrentTmpFile check if the external filter needs the torrent written to
+// disk. The torrent is otherwise kept in memory, so only the path macros need
+// an actual file to hand to the script or webhook.
+func (f FilterExternal) NeedTorrentTmpFile() bool {
+	return containsAnyMacro(f.macroFields(), "TorrentPathName", "TorrentTmpFile")
 }
 
 type FilterExternalType string
@@ -230,12 +235,7 @@ type FilterNotification struct {
 }
 
 func (f FilterNotification) EventEnabled(event string) bool {
-	for _, e := range f.Events {
-		if e == event {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f.Events, event)
 }
 
 type FilterUpdate struct {
@@ -611,9 +611,15 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		f.RejectReasons.Add("albums", r.Title, f.Albums)
 	}
 
-	// Perfect flac requires Cue, Log, Log Score 100, FLAC and 24bit Lossless
-	if f.PerfectFlac && !f.isPerfectFLAC(r) {
-		f.RejectReasons.Add("perfect flac", r.Audio, "Cue, Log, Log Score 100, FLAC and 24bit Lossless")
+	// Perfect flac: FLAC and either CD with 100% log score,
+	// or any non-CD media where log/cue don't apply (RED/OPS definition)
+	if f.PerfectFlac {
+		if rejections, ok := f.IsPerfectFLAC(r); !ok {
+			f.RejectReasons.Add("perfect flac",
+				fmt.Sprintf("%s %s %s (log: %t, score: %d)", r.Source, r.AudioFormat, r.Bitrate, r.HasLog, r.LogScore),
+				strings.Join(rejections, ", "),
+			)
+		}
 	}
 
 	if len(f.Formats) > 0 && !sliceContainsSlice(r.Audio, f.Formats) {
@@ -705,30 +711,6 @@ func (f *Filter) checkMaxDownloads() bool {
 	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads)
 }
 
-// isPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
-func (f *Filter) isPerfectFLAC(r *Release) bool {
-	if !contains(r.Source, "CD") {
-		return false
-	}
-	if !containsAny(r.Audio, "Cue") {
-		return false
-	}
-	if !containsAny(r.Audio, "Log") {
-		return false
-	}
-	if !containsAny(r.Audio, "Log100") || r.LogScore != 100 {
-		return false
-	}
-	if !containsAny(r.Audio, "FLAC") {
-		return false
-	}
-	if !containsAnySlice(r.Audio, []string{"Lossless", "24bit Lossless"}) {
-		return false
-	}
-
-	return true
-}
-
 // checkSizeFilter compares the filter size limits to a release's size if it is
 // known from the announce line.
 func (f *Filter) checkSizeFilter(r *Release) bool {
@@ -793,27 +775,35 @@ func (f *Filter) checkRecordLabel(r *Release) bool {
 	return true
 }
 
-// IsPerfectFLAC Perfect is "CD FLAC Cue Log 100% Lossless or 24bit Lossless"
+// IsPerfectFLAC matches the RED/OPS definition of a Perfect FLAC:
+// FLAC and either a CD rip with a 100% log score, or a rip from any
+// non-CD media (Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT),
+// where log/cue do not apply.
 func (f *Filter) IsPerfectFLAC(r *Release) ([]string, bool) {
 	rejections := []string{}
 
-	if r.Source != "CD" {
-		rejections = append(rejections, fmt.Sprintf("wanted Source CD, got %s", r.Source))
-	}
 	if r.AudioFormat != "FLAC" {
 		rejections = append(rejections, fmt.Sprintf("wanted Format FLAC, got %s", r.AudioFormat))
 	}
-	if !r.HasCue {
-		rejections = append(rejections, fmt.Sprintf("wanted Cue, got %t", r.HasCue))
-	}
-	if !r.HasLog {
-		rejections = append(rejections, fmt.Sprintf("wanted Log, got %t", r.HasLog))
-	}
-	if r.LogScore != 100 {
-		rejections = append(rejections, fmt.Sprintf("wanted Log Score 100, got %d", r.LogScore))
-	}
+
 	if !containsSlice(r.Bitrate, []string{"Lossless", "24bit Lossless"}) {
 		rejections = append(rejections, fmt.Sprintf("wanted Bitrate Lossless / 24bit Lossless, got %s", r.Bitrate))
+	}
+
+	switch {
+	case containsSlice(r.Source, []string{"CD"}):
+		if !r.HasLog {
+			rejections = append(rejections, fmt.Sprintf("wanted Log, got %t", r.HasLog))
+		}
+		if r.LogScore != 100 {
+			rejections = append(rejections, fmt.Sprintf("wanted Log Score 100, got %d", r.LogScore))
+		}
+
+	case containsSlice(r.Source, []string{"Vinyl", "WEB", "DVD", "Soundboard", "Cassette", "SACD", "Blu-Ray", "Blu-ray", "BD", "DAT"}):
+		// perfect by definition for FLAC; log/cue don't apply to non-CD media
+
+	default:
+		rejections = append(rejections, fmt.Sprintf("wanted Source CD (100%% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got %s", r.Source))
 	}
 
 	return rejections, len(rejections) == 0

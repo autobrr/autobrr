@@ -70,16 +70,16 @@ func TestIndexerRepo_Update(t *testing.T) {
 			createdIndexer.Enabled = false
 
 			// Execute
-			updatedIndexer, err := repo.Update(context.Background(), *createdIndexer)
+			err = repo.Update(context.Background(), createdIndexer)
 			assert.NoError(t, err)
 
 			// Verify
 			assert.NoError(t, err)
-			assert.Equal(t, "UpdatedName", updatedIndexer.Name)
-			assert.Equal(t, createdIndexer.Enabled, updatedIndexer.Enabled)
+			assert.Equal(t, "UpdatedName", createdIndexer.Name)
+			assert.Equal(t, createdIndexer.Enabled, false)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(updatedIndexer.ID))
+			_ = repo.Delete(context.Background(), int(createdIndexer.ID))
 		})
 	}
 }

@@ -45,6 +45,7 @@ func waitFor(cond func() bool, timeout time.Duration) bool {
 // states are no longer terminal: a retry or a successful join can leave them.
 func TestChannelStateTransitions_Recoverable(t *testing.T) {
 	cases := []struct{ from, to ChannelState }{
+		{ChannelStateIdle, ChannelStateMonitoring},
 		{ChannelStateError, ChannelStateJoining},
 		{ChannelStateError, ChannelStateAwaitingInvite},
 		{ChannelStateError, ChannelStateMonitoring},
@@ -71,6 +72,27 @@ func TestOnInviteRecoversFromError(t *testing.T) {
 
 	if !waitFor(func() bool { return sse.hasStateEvent("#announce", "Joining") }, time.Second) {
 		t.Fatalf("OnInvite from Error did not restart the join workflow, state=%s", sm.CurrentState())
+	}
+}
+
+// TestForceJoinBeforeStart covers servers (e.g. InspIRCd trackers) that
+// force-join the bot on connect: the join confirms while the channel is still
+// Idle, and the later Start() must not re-send a JOIN the server would
+// silently drop.
+func TestForceJoinBeforeStart(t *testing.T) {
+	h, _ := newTestHandler()
+	sm := newIdleSM(h, "#announce", "")
+
+	sm.OnJoinSuccess()
+
+	if !waitForState(sm, ChannelStateMonitoring, time.Second) {
+		t.Fatalf("force-join while Idle did not confirm the channel, state=%s", sm.CurrentState())
+	}
+
+	sm.Start()
+
+	if got := sm.CurrentState(); got != ChannelStateMonitoring {
+		t.Fatalf("Start() after a force-join disturbed the channel, state=%s", got)
 	}
 }
 

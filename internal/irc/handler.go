@@ -58,6 +58,29 @@ const (
 	ircLive                       // (Handler.client) is non-nil and valid
 )
 
+// irc-go invokes disconnect callbacks only for registered sessions, so the
+// breaker does not count dial or registration failures handled by Run.
+const (
+	flappingSessionMinLifetime = 30 * time.Second
+	flappingStopThreshold      = 5
+	flappingWindow             = 15 * time.Minute
+)
+
+// identifyForm is the argument form of the outstanding NickServ IDENTIFY.
+//
+// The bare form is the default because its failures are always loud and are
+// returned before any password comparison. Services that do not accept an
+// account argument (Anope 1.8 and its derivatives, still deployed on Rizon)
+// parse only the first token as the password, so an account-qualified IDENTIFY
+// there is silently read as a wrong password and burns a bad_password strike.
+// See https://github.com/autobrr/autobrr/issues/2528.
+type identifyForm int
+
+const (
+	identifyFormBare identifyForm = iota
+	identifyFormAccount
+)
+
 type Handler struct {
 	m sync.RWMutex
 
@@ -73,8 +96,14 @@ type Handler struct {
 	clientState      ircState
 	connectedSince   time.Time
 	haveDisconnected bool
+	shortSessionEnds []time.Time
 	authenticated    bool
 	saslauthed       bool
+
+	identifyAttempt     identifyForm
+	identifyEscalated   bool
+	identifyFormLearned identifyForm
+	identifyOutstanding bool
 
 	channels *haxmap.Map[string, *Channel]
 
@@ -180,7 +209,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			// skip announce channels not configured on this network instance -
 			// they belong to another instance sharing the same server.
 			if _, ok := configuredChannels[channelName]; !ok {
-				h.log.Trace().Msgf("skipping announce channel %s: not configured on this network instance", channelName)
+				h.log.Trace().Str("channel", channelName).Msg("skipping announce channel: not configured on this network instance")
 				continue
 			}
 
@@ -290,7 +319,7 @@ func (h *Handler) Run() (err error) {
 
 	if network.UseProxy && network.Proxy != nil {
 		if !network.Proxy.Enabled {
-			h.log.Debug().Msgf("proxy disabled, skip")
+			h.log.Debug().Msg("proxy disabled, skipping")
 		} else {
 			if network.Proxy.Addr == "" {
 				return errors.New("proxy addr missing")
@@ -310,11 +339,11 @@ func (h *Handler) Run() (err error) {
 
 			switch proxyUrl.Scheme {
 			case "http", "https":
-				h.log.Debug().Msgf("Using HTTP CONNECT proxy: %s for IRC server %s:%d", proxyUrl.Host, network.Server, network.Port)
+				h.log.Debug().Str("proxy", proxyUrl.Host).Str("server", network.Server).Int("port", network.Port).Msg("using HTTP CONNECT proxy for IRC server")
 				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, network.TLSSkipVerify)
 
 			default:
-				h.log.Debug().Msgf("Using %s proxy: %s", proxyUrl.Scheme, proxyUrl.Host)
+				h.log.Debug().Str("proxy_scheme", proxyUrl.Scheme).Str("proxy", proxyUrl.Host).Msg("using proxy")
 				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
 				if err != nil {
 					return errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
@@ -358,7 +387,9 @@ func (h *Handler) Run() (err error) {
 	}
 
 	client.AddConnectCallback(h.onConnect)
-	client.AddDisconnectCallback(h.onDisconnect)
+	client.AddDisconnectCallback(func(msg ircmsg.Message) {
+		h.onClientDisconnect(client, msg)
+	})
 
 	client.AddCallback("MODE", h.handleMode)
 	if network.BotMode {
@@ -395,6 +426,7 @@ func (h *Handler) Run() (err error) {
 	h.m.Lock()
 	h.saslauthed = false
 	h.client = client
+	h.resetIdentifyForm()
 	h.m.Unlock()
 
 	if err := func() error {
@@ -406,7 +438,7 @@ func (h *Handler) Run() (err error) {
 		// using exponential backoff of 15 seconds
 		return retry.Do(
 			func() error {
-				h.log.Debug().Msgf("connect attempt %d", connectAttempts)
+				h.log.Debug().Int("attempt", connectAttempts).Msg("connect attempt")
 
 				// #1239: don't retry if the user manually disconnected with Stop()
 				h.m.RLock()
@@ -455,7 +487,7 @@ func (h *Handler) Run() (err error) {
 				}
 
 				if connectAttempts > 0 {
-					h.log.Debug().Msgf("connected at attempt (%d) offline for %s", connectAttempts, time.Since(disconnectTime))
+					h.log.Debug().Int("attempt", connectAttempts).Dur("offline_duration", time.Since(disconnectTime)).Msg("connected at attempt")
 					return nil
 				}
 
@@ -463,7 +495,7 @@ func (h *Handler) Run() (err error) {
 			},
 			retry.OnRetry(func(n uint, err error) {
 				if n > 0 {
-					h.log.Debug().Msgf("%s connect attempt %d", network.Name, n)
+					h.log.Debug().Uint("attempt", n).Msg("connect attempt")
 				}
 			}),
 			retry.Delay(time.Second*15),
@@ -489,7 +521,7 @@ func (h *Handler) Run() (err error) {
 		h.clientState = ircLive
 	case ircLive:
 		// impossible
-		h.log.Error().Stack().Msgf("two concurrent connection attempts detected")
+		h.log.Error().Stack().Msg("two concurrent connection attempts detected")
 		shouldDisconnect = true
 	}
 	h.m.Unlock()
@@ -533,14 +565,27 @@ func (h *Handler) GetNetwork() *domain.IrcNetwork {
 
 func (h *Handler) UpdateNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
-	h.network = network
+	h.setNetworkLocked(network)
 	h.m.Unlock()
 }
 
 func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 	h.m.Lock()
-	h.network = network
+	h.setNetworkLocked(network)
 	h.m.Unlock()
+}
+
+// setNetworkLocked swaps the network config, dropping the learned IDENTIFY form
+// if the credentials changed: which form works is a property of the account we
+// authenticate as, so it cannot outlive an edit to it.
+// The caller must hold h.m.
+func (h *Handler) setNetworkLocked(network *domain.IrcNetwork) {
+	if h.network == nil || h.network.Auth != network.Auth {
+		h.identifyFormLearned = identifyFormBare
+		h.identifyOutstanding = false
+	}
+
+	h.network = network
 }
 
 func (h *Handler) resetChannelState() {
@@ -560,6 +605,8 @@ func (h *Handler) resetChannelState() {
 func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
+	h.resetFlappingBreakerLocked()
+	h.identifyOutstanding = false
 	client := h.client
 	h.clientState = ircStopped
 	h.client = nil
@@ -603,7 +650,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 
 	// notify outside the lock so we never hold h.m across the notification I/O
 	if reconnected {
-		h.log.Info().Msgf("network re-connected after unexpected disconnect: %s", networkName)
+		h.log.Info().Msg("network re-connected after unexpected disconnect")
 
 		h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
 			Subject: "IRC Reconnected",
@@ -611,7 +658,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		})
 	}
 
-	h.log.Info().Msgf("network connected to: %s", networkName)
+	h.log.Info().Msg("network connected")
 
 	time.Sleep(1 * time.Second)
 
@@ -619,28 +666,81 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	h.stateMachine.OnConnected()
 }
 
-// onDisconnect is the disconnect callback
-func (h *Handler) onDisconnect(_ ircmsg.Message) {
-	h.log.Debug().Msgf("DISCONNECT")
+func (h *Handler) onDisconnect(msg ircmsg.Message) {
+	h.onClientDisconnect(h.getClient(), msg)
+}
+
+// onClientDisconnect handles a disconnect from the client that emitted it.
+func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Message) {
+	h.log.Debug().Msg("disconnect")
 
 	h.m.Lock()
+	if h.client != client {
+		if h.clientState == ircStopped && h.stateMachine.GetState() != StateDisconnected {
+			h.stateMachine.OnDisconnected()
+		}
+		h.m.Unlock()
+		return
+	}
 
-	// reset connectedSince
+	endedAt := time.Now()
+	sessionLifetime := time.Duration(0)
+	if !h.connectedSince.IsZero() {
+		sessionLifetime = endedAt.Sub(h.connectedSince)
+	}
+
 	h.connectedSince = time.Time{}
 
 	// reset authenticated
 	h.authenticated = false
 
+	// a reconnect starts the identify ladder over: the nick we get back may
+	// differ, and the previous connection's escalation says nothing about this one
+	h.resetIdentifyForm()
+
 	h.haveDisconnected = true
 
 	manuallyDisconnected := h.clientState == ircStopped
 	networkName := h.network.Name
+	stopForFlapping := !manuallyDisconnected && h.recordSessionEndLocked(sessionLifetime, endedAt)
+	var flappingError string
+	if stopForFlapping {
+		flappingError = fmt.Sprintf("connection flapping: %d sessions lasted under %s within %s; network stopped to avoid repeated reconnects", flappingStopThreshold, flappingSessionMinLifetime, flappingWindow)
+		if !slices.Contains(h.connectionErrors, flappingError) {
+			h.connectionErrors = append(h.connectionErrors, flappingError)
+		}
+		h.haveDisconnected = false
+		h.clientState = ircStopped
+		h.client = nil
+		h.resetFlappingBreakerLocked()
+		h.resetChannelState()
+		h.stateMachine.OnError(flappingError)
+	}
 
 	h.m.Unlock()
 
 	// reset channels monitored status and channel state machines so they
 	// rejoin cleanly on reconnect instead of getting stuck in Monitoring
-	h.resetChannelState()
+	if !stopForFlapping {
+		h.resetChannelState()
+	}
+
+	if stopForFlapping {
+		h.log.Error().
+			Int("sessions", flappingStopThreshold).
+			Dur("min_lifetime", flappingSessionMinLifetime).
+			Dur("window", flappingWindow).
+			Msg("connection flapping; stopping network")
+
+		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
+			Subject: "IRC network stopped",
+			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; restart it after resolving the connection issue", networkName),
+		})
+		if client != nil {
+			client.Quit()
+		}
+		return
+	}
 
 	// check if we are responsible for disconnect
 	if !manuallyDisconnected {
@@ -652,6 +752,34 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 	}
 
 	h.stateMachine.OnDisconnected()
+}
+
+// recordSessionEndLocked records one registered session and reports whether the
+// flapping threshold was reached. The caller must hold h.m.
+func (h *Handler) recordSessionEndLocked(lifetime time.Duration, endedAt time.Time) bool {
+	if lifetime >= flappingSessionMinLifetime {
+		h.resetFlappingBreakerLocked()
+		return false
+	}
+
+	keepFrom := 0
+	for keepFrom < len(h.shortSessionEnds) && endedAt.Sub(h.shortSessionEnds[keepFrom]) >= flappingWindow {
+		keepFrom++
+	}
+	h.shortSessionEnds = append(h.shortSessionEnds[keepFrom:], endedAt)
+
+	if len(h.shortSessionEnds) < flappingStopThreshold {
+		return false
+	}
+
+	h.resetFlappingBreakerLocked()
+	return true
+}
+
+// resetFlappingBreakerLocked clears the current short-session streak. The
+// caller must hold h.m.
+func (h *Handler) resetFlappingBreakerLocked() {
+	h.shortSessionEnds = nil
 }
 
 // onNotice handles NOTICE events
@@ -668,13 +796,40 @@ func (h *Handler) onNotice(msg ircmsg.Message) {
 
 // handleNickServ is called from NOTICE events
 func (h *Handler) handleNickServ(msg ircmsg.Message) {
-	h.log.Trace().Msgf("NOTICE from nickserv: %v", msg.Params)
+	h.log.Trace().Interface("msg_params", msg.Params).Msg("NOTICE from nickserv")
+
+	if len(msg.Params) < 2 {
+		return
+	}
+
+	h.m.RLock()
+	expectingReply := h.identifyOutstanding && !h.authenticated && !h.saslauthed && h.network.Auth.NickServEnabled()
+	h.m.RUnlock()
+	if !expectingReply {
+		return
+	}
 
 	// You're now logged in as test-bot
 	// Password accepted - you are now recognized.
 	if contains(msg.Params[1], "you're now logged in as", "password accepted", "you are now recognized", "you are now identified", "you are already logged in") {
-		h.log.Debug().Msgf("NOTICE nickserv logged in: %v", msg.Params)
+		h.log.Debug().Interface("msg_params", msg.Params).Msg("NOTICE nickserv logged in")
 		h.setAuthenticated()
+		return
+	}
+
+	// The bare IDENTIFY cannot succeed on this network: either NickServ does not
+	// know the nick we are connected as (it is not the account and has not been
+	// grouped to it), or it wants the account spelled out. Both are fixed by the
+	// account-qualified form, so retry once with it before treating anything as
+	// terminal. Evaluated ahead of the failure branches below, which would
+	// otherwise stop the network on the very notices that make escalation the
+	// right move.
+	if h.shouldEscalateIdentify(msg.Params[1]) {
+		h.escalateIdentify()
+
+		h.log.Debug().Str("notice", msg.Params[1]).Msg("nickserv rejected bare identify, retrying with account")
+
+		h.NickServIdentify()
 		return
 	}
 
@@ -682,9 +837,12 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		"Invalid account credentials",
 		"Authentication failed: Invalid account credentials",
 		"password incorrect",
+		"invalid password for", // atheme
 	) {
-		h.addConnectError("authentication failed: Bad account credentials")
+		h.addConnectError(h.badCredentialsError())
 		h.log.Error().Msg("NickServ: authentication failed - bad account credentials")
+
+		h.unlearnIdentifyForm()
 
 		h.stateMachine.OnError("nickserv authentication failed: bad credentials")
 
@@ -696,10 +854,13 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	if contains(msg.Params[1],
 		"Account does not exist",
 		"Authentication failed: Account does not exist",
-		"isn't registered.", // Nick ANICK isn't registered
+		"isn't registered.",            // Nick ANICK isn't registered
+		"is not a registered nickname", // atheme
 	) {
 		if h.CurrentNick() == h.PreferredNick() {
 			h.addConnectError("authentication failed: account does not exist")
+
+			h.unlearnIdentifyForm()
 
 			h.stateMachine.OnError("nickserv authentication failed: account does not exist")
 
@@ -722,7 +883,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		h.m.Unlock()
 
 		if attempts >= 3 {
-			h.log.Warn().Msgf("NickServ %d failed login attempts", attempts)
+			h.log.Warn().Int("attempt", attempts).Msg("NickServ failed login attempts")
 			h.addConnectError("authentication failed: nick in use and not authenticated")
 
 			h.stateMachine.OnError("nickserv authentication failed: nick in use")
@@ -730,15 +891,6 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 			// stop network and notify user
 			h.Stop()
 		}
-	}
-
-	// fallback for networks that require both password and nick to NickServ IDENTIFY
-	// Invalid parameters. For usage, do /msg NickServ HELP IDENTIFY
-	if contains(msg.Params[1], "invalid parameters", "help identify") {
-		h.log.Debug().Msgf("NOTICE nickserv invalid: %v", msg.Params)
-
-		net := h.GetNetwork()
-		h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s %s", net.Auth.Account, net.Auth.Password))
 	}
 }
 
@@ -805,30 +957,49 @@ func (h *Handler) setBotMode() {
 // authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() {
 	h.m.RLock()
-	password := h.network.Auth.Password
-	shouldSendNickserv := !h.authenticated && !h.saslauthed && password != ""
+	authenticated := h.authenticated
+	saslauthed := h.saslauthed
+	identifyOutstanding := h.identifyOutstanding
+	nickServEnabled := h.network.Auth.NickServEnabled()
 	h.m.RUnlock()
 
-	if shouldSendNickserv {
-		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
-		h.NickServIdentify(password)
-	} else {
+	switch {
+	case authenticated || saslauthed:
+		h.setAuthenticated()
+	case identifyOutstanding:
+		return
+	case nickServEnabled:
+		h.log.Trace().Msg("sending NickServ identify")
+		h.NickServIdentify()
+	default:
 		h.setAuthenticated()
 	}
 }
 
+// handleLoggedIn handles RPL_LOGGEDIN (900):
+// <nick> <nick>!<user>@<host> <account> :You are now logged in as <account>
+//
+// The source of a numeric is the server, not a nick, so the target has to be
+// read from the parameters.
 func (h *Handler) handleLoggedIn(m ircmsg.Message) {
-	h.log.Trace().Str("event", "900").Msg("logged in")
-	nick := m.Nick()
-	if h.isOurCurrentNick(nick) {
-		h.setAuthenticated()
+	if len(m.Params) < 3 {
+		return
 	}
+
+	if !h.isOurCurrentNick(m.Params[0]) {
+		return
+	}
+
+	h.log.Debug().Str("event", "900").Str("account", m.Params[2]).Msg("logged in")
+
+	h.setAuthenticated()
 }
 
 // handleSASLSuccess we get here early so set saslauthed before we hit onConnect
 func (h *Handler) handleSASLSuccess(_ ircmsg.Message) {
 	h.m.Lock()
 	h.saslauthed = true
+	h.identifyOutstanding = false
 	h.m.Unlock()
 }
 
@@ -875,10 +1046,14 @@ func (h *Handler) handleSASLFail(_ ircmsg.Message) {
 func (h *Handler) setAuthenticated() {
 	h.m.Lock()
 	alreadyAuthenticated := h.authenticated
+	h.identifyOutstanding = false
 	if !alreadyAuthenticated {
 		h.authenticated = true
 		h.connectionErrors = []string{}
 		h.failedNickServAttempts = 0
+
+		// remember the form that worked so the next connect starts on it
+		h.identifyFormLearned = h.identifyAttempt
 	}
 	h.m.Unlock()
 
@@ -895,7 +1070,7 @@ func (h *Handler) inviteCommand() {
 	if h.network.InviteCommand != "" {
 		h.log.Trace().Msg("on connect invite command not empty: send connect commands")
 		if err := h.sendConnectCommands(h.network.InviteCommand); err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error sending connect command %s", h.network.InviteCommand)
+			h.log.Error().Stack().Err(err).Str("command", h.network.InviteCommand).Msg("error sending connect command")
 			return
 		}
 	}
@@ -989,16 +1164,13 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[0])
 	message := msg.Params[1]
 
-	// clean message
-	cleanedMsg := cleanMessage(message)
-
 	if message == "CLIENTINFO" {
 		return
 	}
 
 	if channel == h.CurrentNick() {
 		// this is a DM - possibly an invite bot answering our invite command
-		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanedMsg).Msg("got direct-message")
+		h.log.Debug().Str("direct-message", channel).Str("from-nick", nick).Str("msg", cleanMessage(message)).Msg("got direct-message")
 
 		// a DM from an invite bot while a channel is still awaiting its invite is
 		// a rejection, not the invite itself (that arrives as INVITE)
@@ -1010,18 +1182,17 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 
 	ircChannel, found := h.channels.Get(channel)
 	if !found {
-		h.log.Error().Msgf("channel %s not found", channel)
+		h.log.Error().Str("channel", channel).Msg("channel not found")
 		return
 	}
 
-	ircChannel.OnMsg(msg)
+	ircMsg, ok := ircChannel.OnMsg(msg)
+	if !ok {
+		return
+	}
 
 	// publish to SSE stream
-	h.broadcastMessage(domain.IrcMessage{Network: h.GetNetwork().ID, Channel: channel, Nick: nick, Message: cleanedMsg, Time: time.Now()})
-
-	//h.log.Debug().Str("channel", channel).Str("nick", nick).Msg(cleanedMsg)
-
-	return
+	h.broadcastMessage(ircMsg)
 }
 
 // JoinChannels sends multiple join commands
@@ -1036,7 +1207,7 @@ func (h *Handler) JoinChannels() {
 			sm.Start()
 		} else {
 			if err := h.JoinChannel(channel.Name, channel.GetPassword()); err != nil {
-				h.log.Error().Stack().Err(err).Msgf("error joining channel %s", channel.Name)
+				h.log.Error().Stack().Err(err).Str("channel", channel.Name).Msg("error joining channel")
 			}
 		}
 	}
@@ -1050,7 +1221,7 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 		params = append(params, password)
 	}
 
-	h.log.Debug().Msgf("sending JOIN command %s", strings.Join(params, " "))
+	h.log.Debug().Str("command", strings.Join(params, " ")).Msg("sending JOIN command")
 
 	return h.Send("JOIN", params...)
 }
@@ -1076,7 +1247,7 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 	ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
 
 	if !ircChannel.IsEnabled() {
-		h.log.Debug().Msgf("channel %s added but disabled, not joining", channelName)
+		h.log.Debug().Str("channel", channelName).Msg("channel added but disabled, not joining")
 		return
 	}
 
@@ -1085,7 +1256,7 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 		return
 	}
 
-	h.log.Debug().Msgf("adding and joining channel %s", channelName)
+	h.log.Debug().Str("channel", channelName).Msg("adding and joining channel")
 
 	if sm := ircChannel.StateMachine(); sm != nil {
 		// Reset() first (mirrors UpdateChannel's re-join branch): Start() runs its
@@ -1099,7 +1270,7 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 	}
 
 	if err := h.JoinChannel(ircChannel.Name, ircChannel.GetPassword()); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error joining channel %s", channelName)
+		h.log.Error().Stack().Err(err).Str("channel", channelName).Msg("error joining channel")
 	}
 }
 
@@ -1109,10 +1280,10 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 func (h *Handler) RemoveChannel(name string) {
 	channelName := strings.ToLower(name)
 
-	h.log.Debug().Msgf("removing channel %s", channelName)
+	h.log.Debug().Str("channel", channelName).Msg("removing channel")
 
 	if err := h.PartChannel(channelName); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channelName)
+		h.log.Error().Stack().Err(err).Str("channel", channelName).Msg("error parting channel")
 	}
 
 	if ch, found := h.channels.Get(channelName); found {
@@ -1155,9 +1326,9 @@ func (h *Handler) UpdateChannel(channel domain.IrcChannel) {
 		// nothing actionable changed
 
 	case !channel.Enabled:
-		h.log.Debug().Msgf("channel %s disabled, parting", channelName)
+		h.log.Debug().Str("channel", channelName).Msg("channel disabled, parting")
 		if err := h.PartChannel(channelName); err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channelName)
+			h.log.Error().Stack().Err(err).Str("channel", channelName).Msg("error parting channel")
 		}
 		ircChannel.ResetMonitoring()
 		if sm := ircChannel.StateMachine(); sm != nil {
@@ -1165,14 +1336,14 @@ func (h *Handler) UpdateChannel(channel domain.IrcChannel) {
 		}
 
 	case !monitoring:
-		h.log.Debug().Msgf("channel %s config changed, (re)joining", channelName)
+		h.log.Debug().Str("channel", channelName).Msg("channel config changed, (re)joining")
 		if sm := ircChannel.StateMachine(); sm != nil {
 			sm.Reset()
 			sm.Start()
 		}
 
 	default:
-		h.log.Debug().Msgf("channel %s config updated while monitoring; applied for next reconnect", channelName)
+		h.log.Debug().Str("channel", channelName).Msg("channel config updated while monitoring; applied for next reconnect")
 	}
 }
 
@@ -1188,16 +1359,16 @@ func (h *Handler) handleJoin(msg ircmsg.Message) {
 	}
 
 	if _, found := h.channels.Get(channel); !found {
-		h.log.Debug().Msgf("Joined unwanted channel %s, lets part it..", channel)
+		h.log.Debug().Str("channel", channel).Msg("joined unwanted channel, parting")
 
 		if err := h.PartChannel(channel); err != nil {
-			h.log.Error().Stack().Err(err).Msgf("error parting channel %s", channel)
+			h.log.Error().Stack().Err(err).Str("channel", channel).Msg("error parting channel")
 		}
 
 		return
 	}
 
-	h.log.Info().Msgf("Join channel %s", channel)
+	h.log.Info().Str("channel", channel).Msg("join channel")
 }
 
 func (h *Handler) setChannelError(channelName, errMsg string) {
@@ -1237,7 +1408,7 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 		return
 	}
 
-	h.log.Debug().Msgf("PART channel %s", channel)
+	h.log.Debug().Str("channel", channel).Msg("PART channel")
 
 	ircChannel, found := h.channels.Get(channel)
 	if !found {
@@ -1254,18 +1425,18 @@ func (h *Handler) handlePart(msg ircmsg.Message) {
 
 	h.channels.Swap(channel, ircChannel)
 
-	h.log.Debug().Msgf("Left channel %s", channel)
+	h.log.Debug().Str("channel", channel).Msg("left channel")
 }
 
 // PartChannel parts/leaves channel
 func (h *Handler) PartChannel(channel string) error {
 	// if using bouncer we do not want to part any channels
 	if h.usesBouncer() {
-		h.log.Debug().Msgf("using bouncer, skip part channel %s", channel)
+		h.log.Debug().Str("channel", channel).Msg("using bouncer, skipping part channel")
 		return nil
 	}
 
-	h.log.Debug().Msgf("Leaving channel %s", channel)
+	h.log.Debug().Str("channel", channel).Msg("leaving channel")
 
 	return h.Send("PART", channel)
 
@@ -1321,14 +1492,14 @@ func (h *Handler) handleTopicChange(msg ircmsg.Message) {
 // handleJoined listens for ENF OF NAMES event, this is where we know we are monitoring a channel
 func (h *Handler) handleJoined(msg ircmsg.Message) {
 	if !h.isOurCurrentNick(msg.Params[0]) {
-		h.log.Trace().Msgf("JOINED other user: %+v", msg)
+		h.log.Trace().Interface("msg", msg).Msg("JOINED other user")
 		return
 	}
 
 	// get channel
 	channel := strings.ToLower(msg.Params[1])
 
-	h.log.Debug().Msgf("JOINED: %s", channel)
+	h.log.Debug().Str("channel", channel).Msg("JOINED")
 
 	// check if channel is valid and if not lets part
 	ircChannel, found := h.channels.Get(channel)
@@ -1341,12 +1512,12 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 
 		h.channels.Swap(channel, ircChannel)
 
-		h.log.Trace().Msgf("set monitoring: %s", ircChannel.Name)
+		h.log.Trace().Str("channel", ircChannel.Name).Msg("set monitoring")
 
 		if ircChannel.DefaultChannel {
-			h.log.Info().Msgf("Monitoring channel %s", channel)
+			h.log.Info().Str("channel", channel).Msg("monitoring channel")
 		} else {
-			h.log.Info().Msgf("Joined extra channel %s", channel)
+			h.log.Info().Str("channel", channel).Msg("joined extra channel")
 		}
 
 		// Notify state machine that we've joined a channel
@@ -1371,14 +1542,6 @@ func parseInviteCommands(msg string) ([]string, error) {
 		}
 
 		parsedCommands = append(parsedCommands, cmd)
-
-		//params := strings.SplitN(cmd, " ", 2)
-
-		//if err := h.Send("PRIVMSG", params...); err != nil {
-		//	h.log.Error().Err(err).Msgf("error handling connect command: %s", cmd)
-		//	return nil, err
-		//}
-
 	}
 
 	return parsedCommands, nil
@@ -1399,25 +1562,25 @@ func (h *Handler) sendConnectCommands(msg string) error {
 		if strings.HasPrefix(cmd, "/sleep") {
 			parts := strings.SplitN(cmd, " ", 2)
 			if len(parts) < 2 {
-				h.log.Warn().Msgf("sleep command missing duration: %s", cmd)
+				h.log.Warn().Str("command", cmd).Msg("sleep command missing duration")
 				continue
 			}
 			secs, err := strconv.Atoi(strings.TrimSpace(parts[1]))
 			if err != nil {
-				h.log.Error().Err(err).Msgf("error parsing sleep command: %s", cmd)
+				h.log.Error().Err(err).Str("command", cmd).Msg("error parsing sleep command")
 				continue
 			}
-			h.log.Debug().Msgf("sleeping for %d seconds: %s", secs, cmd)
+			h.log.Debug().Int("seconds", secs).Str("command", cmd).Msg("sleeping")
 			time.Sleep(time.Duration(secs) * time.Second)
 			continue
 		}
 
-		h.log.Debug().Msgf("sending connect command: %s", cmd)
+		h.log.Debug().Str("command", cmd).Msg("sending connect command")
 
 		params := strings.SplitN(cmd, " ", 2)
 
 		if err := h.Send("PRIVMSG", params...); err != nil {
-			h.log.Error().Err(err).Msgf("error handling connect command: %s", cmd)
+			h.log.Error().Err(err).Str("command", cmd).Msg("error handling connect command")
 			return err
 		}
 
@@ -1439,12 +1602,12 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	channel := strings.ToLower(msg.Params[1])
 	nick := msg.Nick()
 
-	h.log.Trace().Msgf("INVITE from %s to join: %s", nick, channel)
-	h.log.Debug().Msgf("INVITE from %s, joining %s", nick, channel)
+	h.log.Trace().Str("nick", nick).Str("channel", channel).Msg("INVITE to join")
+	h.log.Debug().Str("nick", nick).Str("channel", channel).Msg("INVITE, joining")
 
 	ircChannel, found := h.channels.Get(channel)
 	if !found {
-		h.log.Trace().Msgf("invite from %s to join: %s - unwanted channel, skip joining", nick, channel)
+		h.log.Trace().Str("nick", nick).Str("channel", channel).Msg("invite to join unwanted channel, skipping")
 		return
 	}
 
@@ -1454,7 +1617,7 @@ func (h *Handler) handleInvite(msg ircmsg.Message) {
 	}
 
 	if err := h.Send("JOIN", channel); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error handling join: %s", channel)
+		h.log.Error().Stack().Err(err).Str("channel", channel).Msg("error handling join")
 	}
 }
 
@@ -1516,7 +1679,7 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 	// get channel
 	nick := strings.ToLower(msg.Params[1])
 
-	h.log.Debug().Str("nick", nick).Msgf("No such nick")
+	h.log.Debug().Str("nick", nick).Msg("no such nick")
 
 	for _, channel := range h.channels.Iterator() {
 		if !channel.IsEnabled() {
@@ -1524,7 +1687,7 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 		}
 
 		if inviteBotNick(channel.InviteCommand()) == nick {
-			h.log.Debug().Str("nick", nick).Msgf("No such nick, sending invite command")
+			h.log.Debug().Str("nick", nick).Msg("no such nick, sending invite command")
 
 			// start retry loop of invite command here
 			if sm := channel.StateMachine(); sm != nil {
@@ -1620,19 +1783,148 @@ func (h *Handler) handleInviteResponse(msg ircmsg.Message) {
 	}
 }
 
-// NickServIdentify sends NickServ Identify commands
-func (h *Handler) NickServIdentify(password string) error {
-	if err := h.Send("PRIVMSG", "NickServ", fmt.Sprintf("IDENTIFY %s", password)); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error identifying with nickserv")
+// identifyCommand builds the NickServ IDENTIFY for the form currently selected
+// for this connection, bare unless escalateIdentify has moved us to the
+// account-qualified form.
+func (h *Handler) identifyCommand() string {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	return h.identifyCommandLocked()
+}
+
+func (h *Handler) identifyCommandLocked() string {
+	form := h.identifyAttempt
+	account := h.network.Auth.Account
+	password := h.network.Auth.Password
+
+	if form == identifyFormAccount && account != "" {
+		return fmt.Sprintf("IDENTIFY %s %s", account, password)
+	}
+
+	return fmt.Sprintf("IDENTIFY %s", password)
+}
+
+// NickServIdentify sends a NickServ IDENTIFY. The whole command is one trailing
+// PRIVMSG parameter: split across parameters it lands past the message body,
+// where every ircd discards it.
+func (h *Handler) NickServIdentify() error {
+	h.m.Lock()
+	if h.authenticated || h.saslauthed || !h.network.Auth.NickServEnabled() {
+		h.identifyOutstanding = false
+		h.m.Unlock()
+		return nil
+	}
+
+	command := h.identifyCommandLocked()
+	h.identifyOutstanding = true
+	h.m.Unlock()
+
+	if err := h.Send("PRIVMSG", "NickServ", command); err != nil {
+		h.m.Lock()
+		h.identifyOutstanding = false
+		h.m.Unlock()
+		h.log.Error().Stack().Err(err).Msg("error identifying with nickserv")
 		return err
 	}
 
 	return nil
 }
 
+// canEscalateIdentify reports whether a failed bare IDENTIFY may be retried in
+// the account-qualified form. Escalation is forward-only and happens at most
+// once per connection: on services that do not support the account argument the
+// retry comes back as "password incorrect", which is indistinguishable from
+// genuinely bad credentials and must never drive another attempt.
+func (h *Handler) canEscalateIdentify(currentNick string) bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	if h.authenticated || h.saslauthed || h.identifyEscalated || h.identifyAttempt != identifyFormBare {
+		return false
+	}
+
+	if !h.network.Auth.NickServEnabled() || h.network.Auth.Account == "" {
+		return false
+	}
+
+	// the account form resolves the same target as the bare form, so it can only
+	// help when the account differs from the nick we are connected as
+	return !strings.EqualFold(h.network.Auth.Account, currentNick)
+}
+
+// noticeAllowsIdentifyEscalation reports whether a NickServ NOTICE proves the
+// bare IDENTIFY failed for a reason the account-qualified form can fix: either
+// the nick we are connected as is unknown to NickServ, or NickServ wants the
+// account spelled out.
+func noticeAllowsIdentifyEscalation(notice string) bool {
+	return contains(notice,
+		"isn't registered",             // anope: Nick X isn't registered.
+		"is not a registered nickname", // atheme
+		"account does not exist",       // ergo
+		"insufficient parameters",      // atheme with nickserv::no_nick_ownership
+		"invalid parameters",           // ergo
+		"help identify",                // anope, ircservices
+		"syntax: identify",             // atheme, anope
+	)
+}
+
+// shouldEscalateIdentify reports whether this NOTICE should move the connection
+// to the account-qualified IDENTIFY form.
+func (h *Handler) shouldEscalateIdentify(notice string) bool {
+	return noticeAllowsIdentifyEscalation(notice) && h.canEscalateIdentify(h.CurrentNick())
+}
+
+// badCredentialsError describes a rejected password. An account-qualified
+// attempt is ambiguous: the password may really be wrong, or the network may be
+// running services that took the account name as the password.
+func (h *Handler) badCredentialsError() string {
+	h.m.RLock()
+	escalated := h.identifyAttempt == identifyFormAccount
+	h.m.RUnlock()
+
+	if escalated {
+		return "authentication failed: NickServ rejected the account-qualified IDENTIFY. Either the password is wrong, or this network only supports 'IDENTIFY <password>' and needs the nick grouped to the account instead"
+	}
+
+	return "authentication failed: Bad account credentials"
+}
+
+// escalateIdentify moves this connection to the account-qualified IDENTIFY form.
+func (h *Handler) escalateIdentify() {
+	h.m.Lock()
+	h.identifyAttempt = identifyFormAccount
+	h.identifyEscalated = true
+	h.m.Unlock()
+}
+
+// resetIdentifyForm starts a connection on the form that last authenticated on
+// this network and re-arms escalation. Seeding from the learned form keeps a
+// reconnect from re-sending a bare IDENTIFY already known to fail here; the
+// escalation guards reject escalating out of the account form, so a connection
+// that starts there stays there.
+// The caller must hold h.m.
+func (h *Handler) resetIdentifyForm() {
+	h.identifyAttempt = h.identifyFormLearned
+	h.identifyEscalated = false
+	h.identifyOutstanding = false
+}
+
+// unlearnIdentifyForm drops a remembered account-qualified form once it has
+// itself been rejected, so a later nick grouping or services change heals on the
+// next connect instead of failing the same way forever.
+func (h *Handler) unlearnIdentifyForm() {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	if h.identifyAttempt == identifyFormAccount {
+		h.identifyFormLearned = identifyFormBare
+	}
+}
+
 // NickChange sets a new nick for our user
 func (h *Handler) NickChange(nick string) error {
-	h.log.Debug().Msgf("NICK change: %s", nick)
+	h.log.Debug().Str("nick", nick).Msg("NICK change")
 
 	if client := h.getClient(); client != nil {
 		client.SetNick(nick)
@@ -1645,23 +1937,23 @@ func (h *Handler) NickChange(nick string) error {
 func (h *Handler) CurrentNick() string {
 	if client := h.getClient(); client != nil {
 		return client.CurrentNick()
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // PreferredNick returns our preferred nick from settings
 func (h *Handler) PreferredNick() string {
 	if client := h.getClient(); client != nil {
 		return client.PreferredNick()
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // listens for MODE events
 func (h *Handler) handleMode(msg ircmsg.Message) {
-	h.log.Trace().Msgf("MODE: %+v", msg)
+	h.log.Trace().Interface("msg", msg).Msg("MODE")
 
 	// MODE <target> <modestring> [<args>...]
 	if len(msg.Params) < 2 {
@@ -1711,10 +2003,10 @@ func (h *Handler) handleModeUnknownFlag(_ ircmsg.Message) {
 }
 
 func (h *Handler) SendMsg(channel, msg string) error {
-	h.log.Debug().Msgf("sending msg command: %s", msg)
+	h.log.Debug().Str("command", msg).Msg("sending msg command")
 
 	if err := h.Send("PRIVMSG", channel, msg); err != nil {
-		h.log.Error().Stack().Err(err).Msgf("error sending msg: %s", msg)
+		h.log.Error().Stack().Err(err).Str("command", msg).Msg("error sending msg")
 		return err
 	}
 

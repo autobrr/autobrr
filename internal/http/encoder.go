@@ -21,6 +21,7 @@ func newEncoder(log zerolog.Logger) encoder {
 }
 
 type errorResponse struct {
+	Code    string `json:"code,omitempty"`
 	Message string `json:"message"`
 	Status  int    `json:"status,omitempty"`
 }
@@ -79,12 +80,9 @@ func (e encoder) NoContent(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (e encoder) StatusNotFound(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-}
-
 func (e encoder) NotFoundErr(w http.ResponseWriter, err error) {
 	res := errorResponse{
+		Code:    "RECORD_NOT_FOUND",
 		Message: err.Error(),
 	}
 
@@ -98,8 +96,24 @@ func (e encoder) NotFoundErr(w http.ResponseWriter, err error) {
 	}
 }
 
+func (e encoder) BadRequestErr(w http.ResponseWriter, err error) {
+	res := errorResponse{
+		Code:    "BAD_REQUEST_PARAMS",
+		Message: err.Error(),
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusBadRequest)
+
+	if encErr := json.NewEncoder(w).Encode(res); encErr != nil {
+		e.log.Error().Err(encErr).Msg("failed to encode bad request error response")
+		return
+	}
+}
+
 func (e encoder) Error(w http.ResponseWriter, err error) {
 	res := errorResponse{
+		Code:    "INTERNAL_SERVER_ERROR",
 		Message: err.Error(),
 	}
 
@@ -141,5 +155,19 @@ func (e encoder) StatusWarning(w http.ResponseWriter, status int, message string
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		e.log.Error().Err(err).Msg("failed to encode status warning")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (e encoder) PlainText(w http.ResponseWriter, body string) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte(body)); err != nil {
+		e.log.Error().Err(err).Msg("failed to encode plain text response")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }

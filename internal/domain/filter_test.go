@@ -1233,7 +1233,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"320", "MP3"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: "SINGLE MP3 320 (log: false, score: 0)", want: "wanted Format FLAC, got MP3, wanted Bitrate Lossless / 24bit Lossless, got 320, wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got SINGLE"}}},
 			},
 			want: false,
 		},
@@ -1251,9 +1251,9 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"FLAC", "Lossless", "Log100", "Log"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "match_music_4",
@@ -2438,6 +2438,98 @@ func Test_containsFuzzy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, containsFuzzy(tt.args.tag, tt.args.filter), "containsFuzzy(%v, %v)", tt.args.tag, tt.args.filter)
+		})
+	}
+}
+
+func TestFilter_IsPerfectFLAC(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		release        *Release
+		wantRejections []string
+		wantOk         bool
+	}{
+		{
+			name:    "cd_log_100_lossless",
+			release: &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: true, LogScore: 100},
+			wantOk:  true,
+		},
+		{
+			name:    "cd_log_100_24bit_lossless",
+			release: &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "24bit Lossless", HasLog: true, LogScore: 100},
+			wantOk:  true,
+		},
+		{
+			name:           "cd_missing_log",
+			release:        &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: false, LogScore: 0},
+			wantRejections: []string{"wanted Log, got false", "wanted Log Score 100, got 0"},
+			wantOk:         false,
+		},
+		{
+			name:           "cd_log_score_99",
+			release:        &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: true, LogScore: 99},
+			wantRejections: []string{"wanted Log Score 100, got 99"},
+			wantOk:         false,
+		},
+		{
+			name:    "web_lossless",
+			release: &Release{Source: "WEB", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "vinyl_24bit_lossless",
+			release: &Release{Source: "Vinyl", AudioFormat: "FLAC", Bitrate: "24bit Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "sacd_lossless",
+			release: &Release{Source: "SACD", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "blu_ray_lossless",
+			release: &Release{Source: "Blu-Ray", AudioFormat: "FLAC", Bitrate: "24bit Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "dat_lossless",
+			release: &Release{Source: "DAT", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:           "web_mp3_320",
+			release:        &Release{Source: "WEB", AudioFormat: "MP3", Bitrate: "320"},
+			wantRejections: []string{"wanted Format FLAC, got MP3", "wanted Bitrate Lossless / 24bit Lossless, got 320"},
+			wantOk:         false,
+		},
+		{
+			name:           "unknown_source",
+			release:        &Release{Source: "Unknown", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantRejections: []string{"wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got Unknown"},
+			wantOk:         false,
+		},
+		{
+			name:    "empty_release",
+			release: &Release{},
+			wantRejections: []string{
+				"wanted Format FLAC, got ",
+				"wanted Bitrate Lossless / 24bit Lossless, got ",
+				"wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got ",
+			},
+			wantOk: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := Filter{}
+			rejections, ok := f.IsPerfectFLAC(tt.release)
+			assert.Equal(t, tt.wantOk, ok)
+			if tt.wantRejections == nil {
+				assert.Empty(t, rejections)
+			} else {
+				assert.Equal(t, tt.wantRejections, rejections)
+			}
 		})
 	}
 }

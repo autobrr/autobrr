@@ -10,11 +10,14 @@ type DownloadClientType =
   "RTORRENT" |
   "TRANSMISSION" |
   "PORLA" |
+  "ARIA2" |
   "RADARR" |
   "SONARR" |
   "LIDARR" |
   "WHISPARR" |
+  "WHISPARR_V3" |
   "READARR" |
+  "SPORTARR" |
   "SABNZBD" |
   "NZBGET";
 

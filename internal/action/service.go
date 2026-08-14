@@ -5,21 +5,19 @@ package action
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/asaskevich/EventBus"
-	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
 type actionRepo interface {
 	Store(ctx context.Context, action *domain.Action) error
+	Update(ctx context.Context, action domain.Action) (*domain.Action, error)
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
@@ -41,7 +39,6 @@ type downloadService interface {
 
 type Service struct {
 	log         zerolog.Logger
-	subLogger   *log.Logger
 	repo        actionRepo
 	clientSvc   clientService
 	downloadSvc downloadService
@@ -50,7 +47,7 @@ type Service struct {
 	httpClient *http.Client
 }
 
-func NewService(log logger.Logger, repo actionRepo, clientSvc clientService, downloadSvc downloadService, bus EventBus.Bus) *Service {
+func NewService(log zerolog.Logger, repo actionRepo, clientSvc clientService, downloadSvc downloadService, bus EventBus.Bus) *Service {
 	s := &Service{
 		log:         log.With().Str("module", "action").Logger(),
 		repo:        repo,
@@ -64,13 +61,15 @@ func NewService(log logger.Logger, repo actionRepo, clientSvc clientService, dow
 		},
 	}
 
-	s.subLogger = zstdlog.NewStdLoggerWithLevel(s.log.With().Logger(), zerolog.TraceLevel)
-
 	return s
 }
 
 func (s *Service) Store(ctx context.Context, action *domain.Action) error {
 	return s.repo.Store(ctx, action)
+}
+
+func (s *Service) Update(ctx context.Context, action *domain.Action) (*domain.Action, error) {
+	return s.repo.Update(ctx, *action)
 }
 
 func (s *Service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {

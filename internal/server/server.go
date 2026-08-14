@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/rs/zerolog"
 )
@@ -68,7 +67,7 @@ type Server struct {
 	lock   sync.Mutex
 }
 
-func NewServer(log logger.Logger, config *domain.Config, ircSvc ircService, indexerSvc indexerService, feedSvc feedService, releaseSvc releaseService, listSvc listService, scheduler schedulerService, updateSvc updateService) *Server {
+func NewServer(log zerolog.Logger, config *domain.Config, ircSvc ircService, indexerSvc indexerService, feedSvc feedService, releaseSvc releaseService, listSvc listService, scheduler schedulerService, updateSvc updateService) *Server {
 	return &Server{
 		log:            log.With().Str("module", "server").Logger(),
 		config:         config,

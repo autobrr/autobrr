@@ -517,6 +517,21 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
+    statsActivity: (days: number) => appClient.Get<ReleaseActivityStats>("api/release/stats/activity", {
+      queryString: { days }
+    }),
+    statsVolume: (days: number) => appClient.Get<ReleaseVolumeStats>("api/release/stats/volume", {
+      queryString: { days }
+    }),
+    statsHeatmap: (days: number) => appClient.Get<ReleaseHeatmapStats>("api/release/stats/heatmap", {
+      queryString: { days }
+    }),
+    statsTopIndexers: (days: number) => appClient.Get<ReleaseTopIndexersStats>("api/release/stats/indexers", {
+      queryString: { days }
+    }),
+    statsTopFilters: (days: number) => appClient.Get<ReleaseTopFiltersStats>("api/release/stats/filters", {
+      queryString: { days }
+    }),
     delete: (params: DeleteParams) => {
       return appClient.Delete("api/release", {
         queryString: {

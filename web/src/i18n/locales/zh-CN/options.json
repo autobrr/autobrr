@@ -31,6 +31,10 @@
       "label": "Porla",
       "description": "直接添加种子到 Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "直接添加种子到 aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "发送到 Radarr，由它决定如何处理"
@@ -44,7 +48,11 @@
       "description": "发送到 Lidarr，由它决定如何处理"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "发送到 Whisparr，由它决定如何处理"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "发送到 Whisparr，由它决定如何处理"
     },
     "READARR": {
@@ -101,6 +109,10 @@
       "label": "Porla",
       "description": "直接添加种子到 Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "直接添加种子到 aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "发送到 Radarr，由它决定如何处理"
@@ -114,7 +126,11 @@
       "description": "发送到 Lidarr，由它决定如何处理"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "发送到 Whisparr，由它决定如何处理"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "发送到 Whisparr，由它决定如何处理"
     },
     "READARR": {
