@@ -54,6 +54,7 @@ type ListType =
   | "WHISPARR"
   | "WHISPARR_V3"
   | "SPORTARR"
+  | "CHAPTARR"
   | "MDBLIST"
   | "TRAKT"
   | "METACRITIC"

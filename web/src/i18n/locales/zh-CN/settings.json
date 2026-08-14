@@ -436,7 +436,7 @@
       "settingsLegend": "设置",
       "source": "来源",
       "sourceList": "来源列表",
-      "arrSourceDescription": "从 Radarr、Sonarr、Lidarr、Readarr 或 Whisparr 中的标题更新过滤器。",
+      "arrSourceDescription": "从 Radarr、Sonarr、Lidarr、Readarr、Whisparr、Sportarr 或 Chaptarr 中的标题更新过滤器。",
       "traktSourceDescription": "使用 Trakt 列表或 autobrr 默认托管列表。",
       "anilistSourceDescription": "使用 autobrr 默认托管的 AniList 列表。",
       "plaintextSourceDescription": "使用纯文本列表，每行一个条目。",

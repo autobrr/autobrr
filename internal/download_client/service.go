@@ -14,6 +14,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/aria2"
+	"github.com/autobrr/autobrr/pkg/arr/chaptarr"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
@@ -490,6 +491,17 @@ func (s *Service) GetClient(ctx context.Context, clientId int32) (*domain.Downlo
 			Hostname:      client.Host,
 			APIKey:        client.Settings.APIKey,
 			Log:           s.log.With().Str("type", "Sportarr").Str("client", client.Name).Logger(),
+			BasicAuth:     client.Settings.Auth.Enabled,
+			Username:      client.Settings.Auth.Username,
+			Password:      client.Settings.Auth.Password,
+			TLSSkipVerify: client.TLSSkipVerify,
+		})
+
+	case domain.DownloadClientTypeChaptarr:
+		client.Client = chaptarr.New(chaptarr.Config{
+			Hostname:      client.Host,
+			APIKey:        client.Settings.APIKey,
+			Log:           s.log.With().Str("type", "Chaptarr").Str("client", client.Name).Logger(),
 			BasicAuth:     client.Settings.Auth.Enabled,
 			Username:      client.Settings.Auth.Username,
 			Password:      client.Settings.Auth.Password,

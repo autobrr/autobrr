@@ -436,7 +436,7 @@
       "settingsLegend": "Настройки",
       "source": "Источник",
       "sourceList": "Список-источник",
-      "arrSourceDescription": "Обновление фильтров по названиям из Radarr, Sonarr, Lidarr, Readarr или Whisparr.",
+      "arrSourceDescription": "Обновление фильтров по названиям из Radarr, Sonarr, Lidarr, Readarr, Whisparr, Sportarr или Chaptarr.",
       "traktSourceDescription": "Использовать список Trakt или один из встроенных списков autobrr.",
       "anilistSourceDescription": "Использовать список AniList или один из встроенных списков autobrr.",
       "plaintextSourceDescription": "Использовать текстовый список (по одному элементу на строку).",

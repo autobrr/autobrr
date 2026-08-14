@@ -436,7 +436,7 @@
       "settingsLegend": "Paramètres",
       "source": "Source",
       "sourceList": "Liste source",
-      "arrSourceDescription": "Mettre à jour les filtres depuis les titres dans Radarr, Sonarr, Lidarr, Readarr ou Whisparr.",
+      "arrSourceDescription": "Mettre à jour les filtres depuis les titres dans Radarr, Sonarr, Lidarr, Readarr, Whisparr, Sportarr ou Chaptarr.",
       "traktSourceDescription": "Utiliser une liste Trakt ou l'une des listes hébergées par autobrr par défaut.",
       "anilistSourceDescription": "Utiliser une liste AniList parmi les listes hébergées par autobrr par défaut.",
       "plaintextSourceDescription": "Utiliser une liste en texte brut avec un élément par ligne.",

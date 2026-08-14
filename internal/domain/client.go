@@ -191,6 +191,7 @@ const (
 	DownloadClientTypeWhisparrV3   DownloadClientType = "WHISPARR_V3"
 	DownloadClientTypeReadarr      DownloadClientType = "READARR"
 	DownloadClientTypeSportarr     DownloadClientType = "SPORTARR"
+	DownloadClientTypeChaptarr     DownloadClientType = "CHAPTARR"
 	DownloadClientTypeSabnzbd      DownloadClientType = "SABNZBD"
 	DownloadClientTypeNzbget       DownloadClientType = "NZBGET"
 )

@@ -59,6 +59,10 @@
         "label": "Readarr",
         "description": "Odeslat do Readarr a nechat ho rozhodnout"
       },
+      "CHAPTARR": {
+        "label": "Chaptarr",
+        "description": "Odeslat do Chaptarr a nechat ho rozhodnout"
+      },
       "SABNZBD": {
         "label": "SABnzbd",
         "description": "Přidat nzbs přímo do SABnzbd"
@@ -136,6 +140,10 @@
       "READARR": {
         "label": "Readarr",
         "description": "Odeslat do Readarr a nechat ho rozhodnout"
+      },
+      "CHAPTARR": {
+        "label": "Chaptarr",
+        "description": "Odeslat do Chaptarr a nechat ho rozhodnout"
       },
       "SABNZBD": {
         "label": "SABnzbd",

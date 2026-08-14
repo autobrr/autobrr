@@ -59,6 +59,10 @@
       "label": "Readarr",
       "description": "Отправить в Readarr, пусть он решает"
     },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "Отправить в Chaptarr, пусть он решает"
+    },
     "SABNZBD": {
       "label": "SABnzbd",
       "description": "Добавить nzb напрямую в SABnzbd"
@@ -136,6 +140,10 @@
     "READARR": {
       "label": "Readarr",
       "description": "Отправить в Readarr, пусть он решает"
+    },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "Отправить в Chaptarr, пусть он решает"
     },
     "SABNZBD": {
       "label": "SABnzbd",

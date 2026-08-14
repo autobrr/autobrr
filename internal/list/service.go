@@ -250,6 +250,9 @@ func (s *Service) refreshList(ctx context.Context, listItem *domain.List) error 
 	case domain.ListTypeSportarr:
 		err = s.sportarr(ctx, listItem)
 
+	case domain.ListTypeChaptarr:
+		err = s.chaptarr(ctx, listItem)
+
 	case domain.ListTypeMDBList:
 		err = s.mdblist(ctx, listItem)
 

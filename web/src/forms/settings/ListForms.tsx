@@ -516,6 +516,7 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "WHISPARR_V3":
       return <ListTypeArr {...props} />;
     case "SPORTARR":
+    case "CHAPTARR":
       return <ListTypeArr {...props} />;
     case "TRAKT":
       return <ListTypeTrakt />;
@@ -551,6 +552,7 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
     case "WHISPARR":
     case "READARR":
     case "SPORTARR":
+    case "CHAPTARR":
       return (
         <fieldset>
           <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>

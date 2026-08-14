@@ -436,7 +436,7 @@
         "settingsLegend": "Nastavení",
         "source": "Zdroj",
         "sourceList": "Zdroj listu",
-        "arrSourceDescription": "Aktualizovat filtry z titulů v Radarr, Sonarr, Lidarr, Readarr, nebo Whisparr.",
+        "arrSourceDescription": "Aktualizovat filtry z titulů v Radarr, Sonarr, Lidarr, Readarr, Whisparr, Sportarr, nebo Chaptarr.",
         "traktSourceDescription": "Použijte Trakt list nebo jeden z výchozích autobrr hostovaných listů.",
         "anilistSourceDescription": "Použijte AniList z jednoho z výchozích autobrr hostovaných listů.",
         "plaintextSourceDescription": "Použijte plain text list s jednou položkou na řádek.",

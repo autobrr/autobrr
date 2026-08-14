@@ -437,7 +437,7 @@
       "settingsLegend": "Settings",
       "source": "Source",
       "sourceList": "Source list",
-      "arrSourceDescription": "Update filters from titles in Radarr, Sonarr, Lidarr, Readarr, Whisparr, or Sportarr.",
+      "arrSourceDescription": "Update filters from titles in Radarr, Sonarr, Lidarr, Readarr, Whisparr, Sportarr, or Chaptarr.",
       "traktSourceDescription": "Use a Trakt list or one of the default autobrr hosted lists.",
       "anilistSourceDescription": "Use an AniList list from one of the default autobrr hosted lists.",
       "plaintextSourceDescription": "Use a plain text list with one item per line.",

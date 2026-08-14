@@ -1,0 +1,19 @@
+{
+  "guid": "PUSH-https://www.mock-indexer.test/tor/download.php?tid=000001",
+  "size": 1048576,
+  "indexerId": 0,
+  "indexer": "mock-indexer",
+  "title": "The Best Book by Famous Author [MKV]",
+  "mediaType": "audiobook",
+  "approved": false,
+  "temporarilyRejected": false,
+  "rejected": true,
+  "rejections": [
+    "Unknown author",
+    "File type mkv is not a supported release file type"
+  ],
+  "publishDate": "2026-08-09T17:36:15Z",
+  "downloadUrl": "https://www.mock-indexer.test/tor/download.php?tid=000001",
+  "downloadAllowed": false,
+  "protocol": "torrent"
+}

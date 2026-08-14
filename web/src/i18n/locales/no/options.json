@@ -59,6 +59,10 @@
       "label": "Readarr",
       "description": "Send til Readarr og la den bestemme"
     },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "Send til Chaptarr og la den bestemme"
+    },
     "SABNZBD": {
       "label": "SABnzbd",
       "description": "Legg nzber direkte til SABnzbd"
@@ -136,6 +140,10 @@
     "READARR": {
       "label": "Readarr",
       "description": "Send til Readarr og la den bestemme"
+    },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "Send til Chaptarr og la den bestemme"
     },
     "SABNZBD": {
       "label": "SABnzbd",

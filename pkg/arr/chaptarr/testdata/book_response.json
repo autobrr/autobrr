@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "title": "The Best Book",
+    "authorTitle": "famous author the best book",
+    "seriesTitle": "",
+    "authorId": 1,
+    "foreignBookId": "hc:12345",
+    "titleSlug": "the-best-book",
+    "monitored": true,
+    "audiobookMonitored": true,
+    "ebookMonitored": false,
+    "anyEditionOk": true,
+    "mediaType": "audiobook",
+    "narrator": "Famous Narrator",
+    "pageCount": 0,
+    "genres": ["Fantasy", "Fiction"],
+    "ratings": {
+      "votes": 100,
+      "value": 4.5
+    },
+    "added": "2026-08-01T10:00:00Z",
+    "author": {
+      "id": 1,
+      "status": "continuing",
+      "authorName": "Famous Author",
+      "foreignAuthorId": "hc:999",
+      "titleSlug": "famous-author",
+      "cleanName": "famousauthor",
+      "sortName": "famous author",
+      "tags": [1],
+      "genres": "Fantasy, Fiction",
+      "monitored": true
+    }
+  },
+  {
+    "id": 2,
+    "title": "The Best Book",
+    "authorTitle": "famous author the best book",
+    "authorId": 1,
+    "foreignBookId": "hc:12345",
+    "titleSlug": "the-best-book",
+    "monitored": true,
+    "mediaType": "ebook",
+    "genres": "Fantasy, Fiction",
+    "added": "2026-08-01T10:00:00Z"
+  },
+  {
+    "id": 3,
+    "title": "An Unmonitored Book",
+    "authorId": 2,
+    "titleSlug": "an-unmonitored-book",
+    "monitored": false,
+    "mediaType": "ebook",
+    "genres": [],
+    "added": "2026-08-02T10:00:00Z"
+  }
+]

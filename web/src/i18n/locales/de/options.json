@@ -59,6 +59,10 @@
       "label": "Readarr",
       "description": "An Readarr senden und entscheiden lassen"
     },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "An Chaptarr senden und entscheiden lassen"
+    },
     "SABNZBD": {
       "label": "SABnzbd",
       "description": "NZBs direkt zu SABnzbd hinzufügen"
@@ -136,6 +140,10 @@
     "READARR": {
       "label": "Readarr",
       "description": "An Readarr senden und entscheiden lassen"
+    },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "An Chaptarr senden und entscheiden lassen"
     },
     "SABNZBD": {
       "label": "SABnzbd",

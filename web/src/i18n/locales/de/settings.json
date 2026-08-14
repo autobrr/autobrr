@@ -436,7 +436,7 @@
       "settingsLegend": "Einstellungen",
       "source": "Quelle",
       "sourceList": "Quellliste",
-      "arrSourceDescription": "Filter aus Titeln in Radarr, Sonarr, Lidarr, Readarr oder Whisparr aktualisieren.",
+      "arrSourceDescription": "Filter aus Titeln in Radarr, Sonarr, Lidarr, Readarr, Whisparr, Sportarr oder Chaptarr aktualisieren.",
       "traktSourceDescription": "Eine Traktliste oder eine der Standard-autobrr-gehosteten Listen verwenden.",
       "anilistSourceDescription": "Eine AniListliste aus einer der Standard-autobrr-gehosteten Listen verwenden.",
       "plaintextSourceDescription": "Eine Klartextliste mit einem Element pro Zeile verwenden.",

@@ -12,6 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/aria2"
+	"github.com/autobrr/autobrr/pkg/arr/chaptarr"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
@@ -69,6 +70,9 @@ func (s *Service) testConnection(ctx context.Context, client domain.DownloadClie
 
 	case domain.DownloadClientTypeSportarr:
 		return s.testSportarrConnection(ctx, client)
+
+	case domain.DownloadClientTypeChaptarr:
+		return s.testChaptarrConnection(ctx, client)
 
 	case domain.DownloadClientTypeSabnzbd:
 		return s.testSabnzbdConnection(ctx, client)
@@ -383,6 +387,27 @@ func (s *Service) testReadarrConnection(ctx context.Context, client domain.Downl
 	}
 
 	s.log.Debug().Msg("test client connection for readarr: success")
+
+	return nil
+}
+
+func (s *Service) testChaptarrConnection(ctx context.Context, client domain.DownloadClient) error {
+	r := chaptarr.New(chaptarr.Config{
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
+	})
+
+	status, err := r.Test(ctx)
+	if err != nil {
+		return errors.Wrap(err, "chaptarr: connection test failed: %v", client.Host)
+	}
+
+	s.log.Debug().Str("version", status.Version).Msg("test client connection for chaptarr: success")
 
 	return nil
 }

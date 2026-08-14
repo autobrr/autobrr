@@ -1,0 +1,9 @@
+{
+  "appName": "Chaptarr",
+  "instanceName": "Chaptarr",
+  "version": "0.9.925.0",
+  "branch": "develop",
+  "authentication": "forms",
+  "urlBase": "",
+  "isDocker": true
+}

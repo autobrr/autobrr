@@ -93,6 +93,9 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	case domain.ActionTypeSportarr:
 		rejections, err = s.sportarr(ctx, action, release)
 
+	case domain.ActionTypeChaptarr:
+		rejections, err = s.chaptarr(ctx, action, release)
+
 	case domain.ActionTypeSabnzbd:
 		rejections, err = s.sabnzbd(ctx, action, release)
 

@@ -63,6 +63,10 @@
       "label": "Sportarr",
       "description": "Send to Sportarr and let it decide"
     },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "Send to Chaptarr and let it decide"
+    },
     "SABNZBD": {
       "label": "SABnzbd",
       "description": "Add nzbs directly to SABnzbd"
@@ -144,6 +148,10 @@
     "SPORTARR": {
       "label": "Sportarr",
       "description": "Send to Sportarr and let it decide"
+    },
+    "CHAPTARR": {
+      "label": "Chaptarr",
+      "description": "Send to Chaptarr and let it decide"
     },
     "SABNZBD": {
       "label": "SABnzbd",

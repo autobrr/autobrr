@@ -436,7 +436,7 @@
       "settingsLegend": "Innstillinger",
       "source": "Kilde",
       "sourceList": "Kildeliste",
-      "arrSourceDescription": "Oppdater filtre fra titler i Radarr, Sonarr, Lidarr, Readarr eller Whisparr.",
+      "arrSourceDescription": "Oppdater filtre fra titler i Radarr, Sonarr, Lidarr, Readarr, Whisparr, Sportarr eller Chaptarr.",
       "traktSourceDescription": "Bruk en Trakt-liste eller en av standardlistene som hostes av autobrr.",
       "anilistSourceDescription": "Bruk en AniList-liste fra en av standardlistene som hostes av autobrr.",
       "plaintextSourceDescription": "Bruk en ren tekstliste med ett element per linje.",
