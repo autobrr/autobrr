@@ -54,7 +54,7 @@ func Test_client_Push(t *testing.T) {
 		case "":
 			status = http.StatusBadRequest
 			fixture = "testdata/release_push_bad_request_response.json"
-		case "The Best Book by Famous Author [MKV]":
+		case "Some Unknown Author - A Book Nobody Has [MKV]":
 			fixture = "testdata/release_push_rejected_response.json"
 		}
 
@@ -90,9 +90,9 @@ func Test_client_Push(t *testing.T) {
 				},
 			},
 			args: args{release: Release{
-				Title:            "The Best Book by Famous Author Read by Famous Narrator [M4B]",
+				Title:            "Brandon Sanderson - The Way of Kings (2010) [M4B]",
 				DownloadUrl:      "https://www.mock-indexer.test/tor/download.php?tid=000000",
-				Size:             1048576,
+				Size:             734003200,
 				Indexer:          "mock-indexer",
 				DownloadProtocol: "torrent",
 				Protocol:         "torrent",
@@ -112,7 +112,7 @@ func Test_client_Push(t *testing.T) {
 				},
 			},
 			args: args{release: Release{
-				Title:            "The Best Book by Famous Author [MKV]",
+				Title:            "Some Unknown Author - A Book Nobody Has [MKV]",
 				DownloadUrl:      "https://www.mock-indexer.test/tor/download.php?tid=000001",
 				Size:             1048576,
 				Indexer:          "mock-indexer",
@@ -120,7 +120,7 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2026-08-09T17:36:15Z",
 			}},
-			rejections: []string{"Unknown author", "File type mkv is not a supported release file type"},
+			rejections: []string{"Unknown Author"},
 		},
 		{
 			name: "push_bad_request",
@@ -140,7 +140,7 @@ func Test_client_Push(t *testing.T) {
 				Protocol:         "torrent",
 				PublishDate:      "2026-08-09T17:36:15Z",
 			}},
-			rejections: []string{"Title: Unable to parse"},
+			rejections: []string{"Title: 'Title' must not be empty."},
 		},
 	}
 	for _, tt := range tests {
@@ -247,7 +247,7 @@ func Test_client_Test(t *testing.T) {
 				Username:  "",
 				Password:  "",
 			},
-			want:        &SystemStatusResponse{AppName: "Chaptarr", Version: "0.9.925.0"},
+			want:        &SystemStatusResponse{AppName: "Chaptarr", Version: "0.9.911.0"},
 			expectedErr: "",
 			wantErr:     false,
 		},

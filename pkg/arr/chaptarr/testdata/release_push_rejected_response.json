@@ -1,19 +1,61 @@
 {
-  "guid": "PUSH-https://www.mock-indexer.test/tor/download.php?tid=000001",
+  "guid": "PUSH-https://mock-indexer.test/tor/download.php?tid=000030",
+  "quality": {
+    "quality": {
+      "id": 0,
+      "name": "Unknown Text",
+      "isConversionTarget": false
+    },
+    "revision": {
+      "version": 1,
+      "real": 0,
+      "isRepack": false
+    }
+  },
+  "qualityWeight": 1,
+  "isMultiFormat": false,
+  "age": 4,
+  "ageHours": 116.32849987736111,
+  "ageMinutes": 6979.709992645,
   "size": 1048576,
   "indexerId": 0,
   "indexer": "mock-indexer",
-  "title": "The Best Book by Famous Author [MKV]",
-  "mediaType": "audiobook",
+  "releaseHash": "",
+  "title": "Some Unknown Author - A Book Nobody Has [MKV]",
+  "displayTitle": "Some Unknown Author - A Book Nobody Has [MKV]",
+  "discography": false,
+  "sceneSource": false,
+  "authorName": "Some Unknown Author",
+  "bookTitle": "A Book Nobody Has",
   "approved": false,
   "temporarilyRejected": false,
   "rejected": true,
   "rejections": [
-    "Unknown author",
-    "File type mkv is not a supported release file type"
+    "Unknown Author"
   ],
+  "rejectionDetails": [
+    {
+      "reason": "Unknown Author",
+      "type": "Permanent",
+      "category": "Author",
+      "canBypass": false,
+      "severity": 3
+    }
+  ],
+  "hasSoftFilters": false,
+  "hasHardFilters": true,
+  "canBypassFilters": false,
   "publishDate": "2026-08-09T17:36:15Z",
-  "downloadUrl": "https://www.mock-indexer.test/tor/download.php?tid=000001",
+  "downloadUrl": "https://mock-indexer.test/tor/download.php?tid=000030",
   "downloadAllowed": false,
-  "protocol": "torrent"
+  "releaseWeight": 0,
+  "rank": 1,
+  "customFormats": [],
+  "customFormatScore": 0,
+  "isPreferredChoice": false,
+  "autoPickReasons": [],
+  "protocol": "torrent",
+  "indexerFlags": 0,
+  "isGraphicAudio": false,
+  "formatType": "ebook"
 }

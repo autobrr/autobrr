@@ -1,9 +1,10 @@
 {
-  "guid": "PUSH-https://www.mock-indexer.test/tor/download.php?tid=000000",
+  "guid": "PUSH-https://mock-indexer.test/tor/download.php?tid=000011",
   "quality": {
     "quality": {
-      "id": 10,
-      "name": "M4B"
+      "id": 12,
+      "name": "M4B",
+      "isConversionTarget": true
     },
     "revision": {
       "version": 1,
@@ -11,27 +12,42 @@
       "isRepack": false
     }
   },
-  "qualityWeight": 501,
-  "age": 0,
-  "ageHours": 0.00138141025,
-  "ageMinutes": 0.08288463833333333,
-  "size": 1048576,
+  "qualityWeight": 301,
+  "isMultiFormat": false,
+  "age": 4,
+  "ageHours": 116.23690600319445,
+  "ageMinutes": 6974.214360195,
+  "size": 734003200,
   "indexerId": 0,
   "indexer": "mock-indexer",
   "releaseHash": "",
-  "title": "The Best Book by Famous Author Read by Famous Narrator [M4B]",
+  "title": "Brandon Sanderson - The Way of Kings (2010) [M4B]",
+  "displayTitle": "Brandon Sanderson - The Way of Kings (2010)",
   "discography": false,
   "sceneSource": false,
-  "authorName": "Famous Author",
-  "bookTitle": "The best book",
-  "mediaType": "audiobook",
+  "authorName": "Brandon Sanderson",
+  "bookTitle": "The Way of Kings",
   "approved": true,
   "temporarilyRejected": false,
   "rejected": false,
   "rejections": [],
+  "rejectionDetails": [],
+  "hasSoftFilters": false,
+  "hasHardFilters": false,
+  "canBypassFilters": false,
   "publishDate": "2026-08-09T17:36:15Z",
-  "downloadUrl": "https://www.mock-indexer.test/tor/download.php?tid=000000",
+  "downloadUrl": "https://mock-indexer.test/tor/download.php?tid=000011",
   "downloadAllowed": true,
   "releaseWeight": 0,
-  "protocol": "torrent"
+  "rank": 1,
+  "customFormats": [],
+  "customFormatScore": 0,
+  "isPreferredChoice": true,
+  "autoPickReasons": [],
+  "protocol": "torrent",
+  "indexerFlags": 0,
+  "isGraphicAudio": false,
+  "authorId": 1,
+  "bookId": 2,
+  "formatType": "audiobook"
 }
