@@ -6,7 +6,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { ArchiveBoxXMarkIcon } from "@heroicons/react/24/outline";
+import { ArchiveBoxXMarkIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Trans, useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
@@ -249,12 +249,15 @@ function DeprecatedIndexers() {
   const queryClient = useQueryClient();
 
   const cancelModalButtonRef = useRef(null);
-  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+  const [pendingAction, setPendingAction] = useState<
+    | { type: "prune"; identifiers: string[]; name?: string }
+    | { type: "purge"; id: number; name: string }
+    | null
+  >(null);
 
   const optionsQuery = useSuspenseQuery(IndexersOptionsQueryOptions());
   const deprecationsQuery = useSuspenseQuery(IndexerDeprecationsQueryOptions());
 
-  // only the deprecated indexers this user actually still has a (tombstone) row for
   const archived = useMemo(
     () => (optionsQuery.data || []).filter((indexer) => indexer.archived),
     [optionsQuery.data]
@@ -271,7 +274,7 @@ function DeprecatedIndexers() {
   );
 
   const pruneMutation = useMutation({
-    mutationFn: () => APIClient.filters.pruneDeprecatedIndexers(),
+    mutationFn: (identifiers: string[]) => APIClient.filters.pruneDeprecatedIndexers(identifiers),
     onSuccess: (res) => {
       toast.custom((tt) => (
         <Toast
@@ -280,7 +283,7 @@ function DeprecatedIndexers() {
           t={tt}
         />
       ));
-      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.all });
       queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
     },
     onError: () => {
@@ -289,6 +292,35 @@ function DeprecatedIndexers() {
       ));
     }
   });
+
+  const purgeMutation = useMutation({
+    mutationFn: (id: number) => APIClient.indexers.deleteArchived(id),
+    onSuccess: () => {
+      toast.custom((tt) => (
+        <Toast type="success" body={t("listScreens.indexers.deprecated.purgeSuccess")} t={tt} />
+      ));
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+    },
+    onError: () => {
+      toast.custom((tt) => (
+        <Toast type="error" body={t("listScreens.indexers.deprecated.purgeError")} t={tt} />
+      ));
+    }
+  });
+
+  const closeModal = () => setPendingAction(null);
+  const modalIsLoading = pruneMutation.isPending || purgeMutation.isPending;
+  const modalTitle = pendingAction?.type === "purge"
+    ? t("listScreens.indexers.deprecated.purgeTitle", { name: pendingAction.name })
+    : pendingAction?.name
+      ? t("listScreens.indexers.deprecated.pruneOneTitle", { name: pendingAction.name })
+      : t("listScreens.indexers.deprecated.pruneTitle");
+  const modalText = pendingAction?.type === "purge"
+    ? t("listScreens.indexers.deprecated.purgeText")
+    : pendingAction?.name
+      ? t("listScreens.indexers.deprecated.pruneOneText", { name: pendingAction.name })
+      : t("listScreens.indexers.deprecated.pruneText");
 
   if (!archived.length) {
     return null;
@@ -303,7 +335,7 @@ function DeprecatedIndexers() {
           totalFilterUsage > 0 ? (
             <button
               type="button"
-              onClick={toggleDeleteModal}
+              onClick={() => setPendingAction({ type: "prune", identifiers: [] })}
               disabled={pruneMutation.isPending}
               className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
             >
@@ -314,16 +346,19 @@ function DeprecatedIndexers() {
         }
       >
         <DeleteModal
-          isOpen={deleteModalIsOpen}
-          isLoading={pruneMutation.isPending}
-          toggle={toggleDeleteModal}
+          isOpen={pendingAction !== null}
+          isLoading={modalIsLoading}
+          toggle={closeModal}
           buttonRef={cancelModalButtonRef}
           deleteAction={() => {
-            pruneMutation.mutate();
-            toggleDeleteModal();
+            if (pendingAction?.type === "prune") {
+              pruneMutation.mutate(pendingAction.identifiers);
+            } else if (pendingAction?.type === "purge") {
+              purgeMutation.mutate(pendingAction.id);
+            }
           }}
-          title={t("listScreens.indexers.deprecated.pruneTitle")}
-          text={t("listScreens.indexers.deprecated.pruneText")}
+          title={modalTitle}
+          text={modalText}
         />
 
         <div className="flex flex-col">
@@ -336,13 +371,13 @@ function DeprecatedIndexers() {
                   key={indexer.id}
                   className="grid grid-cols-12 gap-2 items-center border-b border-gray-200 dark:border-gray-700 py-3"
                 >
-                  <div className="col-span-12 sm:col-span-4 pl-0 sm:pl-3 flex items-center gap-x-2">
+                  <div className="col-span-12 sm:col-span-3 pl-0 sm:pl-3 flex items-center gap-x-2">
                     <ArchiveBoxXMarkIcon className="h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden="true" />
                     <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {meta?.name || indexer.name}
                     </span>
                   </div>
-                  <div className="col-span-8 sm:col-span-5 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="col-span-8 sm:col-span-4 text-sm text-gray-500 dark:text-gray-400">
                     {meta?.reason || t("listScreens.indexers.deprecated.removed")}
                     {meta?.issue_url ? (
                       <>
@@ -353,8 +388,38 @@ function DeprecatedIndexers() {
                       </>
                     ) : null}
                   </div>
-                  <div className="col-span-4 sm:col-span-3 text-right pr-0 sm:pr-3 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="col-span-4 sm:col-span-2 text-right text-xs text-gray-500 dark:text-gray-400">
                     {t("listScreens.indexers.deprecated.usedByFilters", { count: usage })}
+                  </div>
+                  <div className="col-span-12 sm:col-span-3 pr-0 sm:pr-3 flex justify-end">
+                    {usage > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction({
+                          type: "prune",
+                          identifiers: [indexer.identifier],
+                          name: meta?.name || indexer.name
+                        })}
+                        disabled={pruneMutation.isPending}
+                        className="text-sm font-medium text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 disabled:opacity-50"
+                      >
+                        {t("listScreens.indexers.deprecated.pruneOne")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction({
+                          type: "purge",
+                          id: indexer.id,
+                          name: meta?.name || indexer.name
+                        })}
+                        disabled={purgeMutation.isPending}
+                        className="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                      >
+                        <TrashIcon className="h-4 w-4 mr-1" aria-hidden="true" />
+                        {t("listScreens.indexers.deprecated.purge")}
+                      </button>
+                    )}
                   </div>
                 </li>
               );

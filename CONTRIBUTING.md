@@ -204,6 +204,14 @@ Adding support for a new indexer is the most common contribution. Indexer defini
 
 Definitions are embedded into the binary at build time, so restart the backend after changing one. Use the mock indexer below to test announce parsing end-to-end.
 
+### Retiring an indexer
+
+When a tracker shuts down, remove its active definition and add a minimal tombstone at `internal/indexer/definitions/deprecated/<identifier>.yaml`. The tombstone records its identifier, display name, reason, issue or pull request URL, and deprecation date. It lets existing installations archive the configured indexer without deleting user data and preserves friendly names for historical releases.
+
+Keep tombstones across releases so installations can safely skip versions. If the same identifier becomes active again, remove its tombstone; startup reconciliation will restore archived configurations.
+
+Pull request CI rejects a removed or changed identifier that has neither an active definition nor a matching tombstone, and rejects dropping an existing tombstone unless its identifier is active again.
+
 ## Mock indexer
 
 We have a mock indexer you can run locally that features:

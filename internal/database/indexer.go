@@ -335,6 +335,51 @@ func (r *IndexerRepo) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
+// DeleteArchived removes an archived indexer after all filter references have been pruned.
+func (r *IndexerRepo) DeleteArchived(ctx context.Context, id int) error {
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error beginning archived indexer delete")
+	}
+	defer tx.Rollback()
+
+	var archived bool
+	var filterCount int
+	err = tx.QueryRowContext(ctx, `
+		SELECT archived, (SELECT COUNT(*) FROM filter_indexer WHERE indexer_id = indexer.id)
+		FROM indexer
+		WHERE id = $1`, id).Scan(&archived, &filterCount)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrRecordNotFound
+		}
+		return errors.Wrap(err, "could not find archived indexer")
+	}
+	if !archived {
+		return domain.ErrIndexerNotArchived
+	}
+	if filterCount > 0 {
+		return domain.ErrIndexerInUse
+	}
+
+	query, args, err := r.db.squirrel.
+		Delete("indexer").
+		Where(sq.Eq{"id": id, "archived": true}).
+		ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error deleting archived indexer")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error committing archived indexer delete")
+	}
+
+	return nil
+}
+
 func (r *IndexerRepo) ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error {
 	queryBuilder := r.db.squirrel.
 		Update("indexer").
@@ -414,6 +459,14 @@ func (r *IndexerRepo) UnarchiveByIdentifier(ctx context.Context, identifier stri
 // UpsertDeprecation writes (or refreshes) the metadata for a deprecated indexer, keyed by
 // identifier so it survives even when the indexer row was hard-deleted.
 func (r *IndexerRepo) UpsertDeprecation(ctx context.Context, d domain.IndexerDeprecation) error {
+	return r.upsertDeprecation(ctx, r.db.Handler, d)
+}
+
+type contextExecer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+func (r *IndexerRepo) upsertDeprecation(ctx context.Context, exec contextExecer, d domain.IndexerDeprecation) error {
 	queryBuilder := r.db.squirrel.
 		Insert("indexer_deprecation").
 		Columns("identifier", "name", "reason", "issue_url", "alias_of", "deprecated_at").
@@ -425,8 +478,69 @@ func (r *IndexerRepo) UpsertDeprecation(ctx context.Context, d domain.IndexerDep
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err := exec.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+// ReconcileDeprecations atomically refreshes tombstone metadata and projects archive state.
+func (r *IndexerRepo) ReconcileDeprecations(ctx context.Context, deprecations []domain.IndexerDeprecation, activeIdentifiers map[string]struct{}) error {
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error beginning indexer deprecation reconcile")
+	}
+	defer tx.Rollback()
+
+	for _, deprecation := range deprecations {
+		if err := r.upsertDeprecation(ctx, tx, deprecation); err != nil {
+			return errors.Wrap(err, "could not upsert indexer deprecation: %s", deprecation.Identifier)
+		}
+
+		if _, active := activeIdentifiers[deprecation.Identifier]; active {
+			continue
+		}
+
+		queryBuilder := r.db.squirrel.
+			Update("indexer").
+			Set("archived", true).
+			Set("archived_at", sq.Expr("COALESCE(archived_at, CURRENT_TIMESTAMP)")).
+			Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+			Where(sq.Eq{"identifier": deprecation.Identifier, "archived": false})
+
+		query, args, err := queryBuilder.ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building deprecation reconcile query")
+		}
+		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+			return errors.Wrap(err, "could not reconcile indexer: %s", deprecation.Identifier)
+		}
+	}
+
+	if len(activeIdentifiers) > 0 {
+		identifiers := make([]string, 0, len(activeIdentifiers))
+		for identifier := range activeIdentifiers {
+			identifiers = append(identifiers, identifier)
+		}
+
+		query, args, err := r.db.squirrel.
+			Update("indexer").
+			Set("archived", false).
+			Set("archived_at", nil).
+			Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+			Where(sq.Eq{"identifier": identifiers, "archived": true}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building active indexer reconcile query")
+		}
+		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+			return errors.Wrap(err, "could not reconcile active indexers")
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error committing indexer deprecation reconcile")
 	}
 
 	return nil

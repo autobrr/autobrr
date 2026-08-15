@@ -104,19 +104,14 @@ func (m IndexerMinimal) GetExternalIdentifier() string {
 }
 
 // IndexerDeprecation describes an indexer whose definition has been removed.
-// The canonical list lives in the embedded registry (internal/indexer/deprecations.go);
-// the boot reconcile projects these rows into the indexer_deprecation table so friendly
-// names and metadata survive even a hard-deleted indexer row.
 type IndexerDeprecation struct {
-	Identifier   string    `json:"identifier"`
-	Name         string    `json:"name"`
-	Reason       string    `json:"reason"`
-	IssueURL     string    `json:"issue_url"`
-	AliasOf      string    `json:"alias_of,omitempty"`
-	DeprecatedAt time.Time `json:"deprecated_at"`
-	// FilterCount is how many filters still reference this indexer. Computed on read
-	// (not stored / not set by the registry).
-	FilterCount int `json:"filter_count"`
+	Identifier   string    `json:"identifier" yaml:"identifier"`
+	Name         string    `json:"name" yaml:"name"`
+	Reason       string    `json:"reason" yaml:"reason"`
+	IssueURL     string    `json:"issue_url" yaml:"issue_url"`
+	AliasOf      string    `json:"alias_of,omitempty" yaml:"alias_of,omitempty"`
+	DeprecatedAt time.Time `json:"deprecated_at" yaml:"deprecated_at"`
+	FilterCount  int       `json:"filter_count" yaml:"-"`
 }
 
 type IndexerDefinition struct {

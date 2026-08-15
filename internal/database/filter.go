@@ -533,6 +533,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
+		Where(sq.Eq{"i.archived": false}).
 		Where(sq.Eq{"f.enabled": true}).
 		OrderBy("f.priority DESC")
 
@@ -1358,103 +1359,6 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 	return nil
 }
 
-func (r *FilterRepo) StoreIndexerConnectionsWithCheck(ctx context.Context, filterID int, indexers []domain.Indexer) error {
-	tx, err := r.db.Handler.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	defer tx.Rollback()
-
-	deleteQueryBuilder := r.db.squirrel.
-		Delete("filter_indexer").
-		Where(sq.Eq{"filter_id": filterID})
-
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	_, err = tx.ExecContext(ctx, deleteQuery, deleteArgs...)
-	if err != nil {
-		return errors.Wrap(err, "error executing query")
-	}
-
-	if len(indexers) == 0 {
-		if err := tx.Commit(); err != nil {
-			return errors.Wrap(err, "error store indexers for filter: %d", filterID)
-		}
-
-		return nil
-	}
-
-	ids := make([]int64, 0, len(indexers))
-	for _, indexer := range indexers {
-		ids = append(ids, indexer.ID)
-	}
-
-	// Resolve which of the submitted indexers are still selectable (not archived) directly
-	// from the DB - never trust the payload's archived flag. This is the single choke-point
-	// that prevents a deprecated/archived indexer from being (re)attached to a filter via
-	// save, duplicate, or import.
-	selectableBuilder := r.db.squirrel.
-		Select("id").
-		From("indexer").
-		Where(sq.Eq{"id": ids}).
-		Where(sq.Eq{"archived": false})
-
-	selectableQuery, selectableArgs, err := selectableBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	rows, err := tx.QueryContext(ctx, selectableQuery, selectableArgs...)
-	if err != nil {
-		return errors.Wrap(err, "error executing query")
-	}
-
-	selectableIDs := make([]int64, 0, len(ids))
-	for rows.Next() {
-		var id int64
-		if err := rows.Scan(&id); err != nil {
-			rows.Close()
-			return errors.Wrap(err, "error scanning row")
-		}
-		selectableIDs = append(selectableIDs, id)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return errors.Wrap(err, "error rows")
-	}
-
-	if len(selectableIDs) > 0 {
-		queryBuilder := r.db.squirrel.
-			Insert("filter_indexer").
-			Columns("filter_id", "indexer_id")
-
-		for _, id := range selectableIDs {
-			queryBuilder = queryBuilder.Values(filterID, id)
-		}
-
-		query, args, err := queryBuilder.ToSql()
-		if err != nil {
-			return errors.Wrap(err, "error building query")
-		}
-
-		if _, err = tx.ExecContext(ctx, query, args...); err != nil {
-			return errors.Wrap(err, "error executing query")
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error store indexers for filter: %d", filterID)
-	}
-
-	r.log.Debug().Msgf("filter.StoreIndexerConnections: indexers on filter: %d", filterID)
-
-	return nil
-}
-
 // StoreIndexerConnections syncs the filter_indexer connections for the filter
 // to the given indexers, deleting stale connections and inserting missing ones.
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
@@ -1465,20 +1369,58 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	defer tx.Rollback()
 
-	indexerIDs := make([]int64, 0, len(indexers))
+	uniqueIDs := make(map[int64]struct{}, len(indexers))
 	for _, indexer := range indexers {
-		indexerIDs = append(indexerIDs, indexer.ID)
+		uniqueIDs[indexer.ID] = struct{}{}
 	}
 
-	deleteQueryBuilder := r.db.squirrel.
-		Delete("filter_indexer").
-		Where(sq.Eq{"filter_id": filterID})
+	indexerIDs := make([]int64, 0, len(uniqueIDs))
+	for id := range uniqueIDs {
+		indexerIDs = append(indexerIDs, id)
+	}
 
 	if len(indexerIDs) > 0 {
-		deleteQueryBuilder = deleteQueryBuilder.Where(sq.NotEq{"indexer_id": indexerIDs})
+		query, args, err := r.db.squirrel.
+			Select("id", "archived").
+			From("indexer").
+			Where(sq.Eq{"id": indexerIDs}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		rows, err := tx.QueryContext(ctx, query, args...)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		found := 0
+		for rows.Next() {
+			var id int64
+			var archived bool
+			if err := rows.Scan(&id, &archived); err != nil {
+				rows.Close()
+				return errors.Wrap(err, "error scanning row")
+			}
+			found++
+			if archived {
+				rows.Close()
+				return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", id)
+			}
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return errors.Wrap(err, "error rows")
+		}
+		if found != len(indexerIDs) {
+			return domain.ErrIndexerNotFound
+		}
 	}
 
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
+	deleteQuery, deleteArgs, err := r.db.squirrel.
+		Delete("filter_indexer").
+		Where(sq.Eq{"filter_id": filterID}).
+		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
@@ -1519,6 +1461,18 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 }
 
 func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
+	var archived bool
+	err := r.db.Handler.QueryRowContext(ctx, "SELECT archived FROM indexer WHERE id = $1", indexerID).Scan(&archived)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrIndexerNotFound
+		}
+		return errors.Wrap(err, "could not find indexer")
+	}
+	if archived {
+		return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", indexerID)
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("filter_indexer").Columns("filter_id", "indexer_id").
 		Values(filterID, indexerID)
@@ -1554,14 +1508,15 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 	return nil
 }
 
-// DeleteArchivedIndexerConnections removes every filter_indexer link to an archived
-// (deprecated) indexer, across all filters. Returns the number of connections removed.
-// User-initiated cleanup only - never called automatically at upgrade.
-func (r *FilterRepo) DeleteArchivedIndexerConnections(ctx context.Context) (int64, error) {
+// DeleteArchivedIndexerConnections removes filter links to archived indexers.
+func (r *FilterRepo) DeleteArchivedIndexerConnections(ctx context.Context, identifiers []string) (int64, error) {
 	subBuilder := r.db.squirrel.
 		Select("id").
 		From("indexer").
 		Where(sq.Eq{"archived": true})
+	if len(identifiers) > 0 {
+		subBuilder = subBuilder.Where(sq.Eq{"identifier": identifiers})
+	}
 
 	subQuery, subArgs, err := subBuilder.ToSql()
 	if err != nil {

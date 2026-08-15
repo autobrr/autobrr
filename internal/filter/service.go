@@ -40,7 +40,7 @@ type filterRepo interface {
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error
 	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
-	DeleteArchivedIndexerConnections(ctx context.Context) (int64, error)
+	DeleteArchivedIndexerConnections(ctx context.Context, identifiers []string) (int64, error)
 	DeleteFilterExternal(ctx context.Context, filterID int) error
 	GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) error
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
@@ -225,6 +225,9 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 	if len(filter.AnnounceTypes) == 0 {
 		filter.AnnounceTypes = []string{string(domain.AnnounceTypeNew)}
 	}
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		return err
+	}
 
 	if err := s.repo.Store(ctx, filter); err != nil {
 		s.log.Error().Err(err).Interface("filter_data", filter).Msg("could not store filter")
@@ -296,27 +299,29 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	return nil
 }
 
-// validateIndexers rejects indexers that do not exist. The database cannot be
-// relied on for this: SQLite runs without foreign key enforcement for legacy
-// reasons, so unknown ids would otherwise be stored as orphaned connections.
+// validateIndexers rejects unknown and archived indexers using persisted state.
 func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexer) error {
 	if len(indexers) == 0 {
 		return nil
 	}
 
-	existing, err := s.indexerSvc.List(ctx)
+	existingIndexers, err := s.indexerSvc.List(ctx)
 	if err != nil {
 		return err
 	}
 
-	existingIDs := make(map[int64]struct{}, len(existing))
-	for _, indexer := range existing {
-		existingIDs[indexer.ID] = struct{}{}
+	existingByID := make(map[int64]domain.Indexer, len(existingIndexers))
+	for _, indexer := range existingIndexers {
+		existingByID[indexer.ID] = indexer
 	}
 
 	for _, indexer := range indexers {
-		if _, ok := existingIDs[indexer.ID]; !ok {
+		existing, ok := existingByID[indexer.ID]
+		if !ok {
 			return errors.Wrap(domain.ErrIndexerNotFound, "indexer with id %d does not exist", indexer.ID)
+		}
+		if existing.Archived {
+			return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", indexer.ID)
 		}
 	}
 
@@ -428,6 +433,9 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	filter.ID = 0
 	filter.Name = fmt.Sprintf("%s Copy", filter.Name)
 	filter.Enabled = false
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		return nil, err
+	}
 
 	// store new filter
 	if err := s.repo.Store(ctx, filter); err != nil {
@@ -523,10 +531,9 @@ func (s *Service) Delete(ctx context.Context, filterID int) error {
 	return nil
 }
 
-// PruneDeprecatedIndexers removes every filter connection to a deprecated (archived) indexer,
-// across all filters. User-initiated cleanup. Returns the number of connections removed.
-func (s *Service) PruneDeprecatedIndexers(ctx context.Context) (int64, error) {
-	removed, err := s.repo.DeleteArchivedIndexerConnections(ctx)
+// PruneDeprecatedIndexers removes filter connections to archived indexers.
+func (s *Service) PruneDeprecatedIndexers(ctx context.Context, identifiers []string) (int64, error) {
+	removed, err := s.repo.DeleteArchivedIndexerConnections(ctx, identifiers)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not prune deprecated indexers from filters")
 		return 0, err

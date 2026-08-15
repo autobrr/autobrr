@@ -237,10 +237,8 @@ func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
 		ctx := context.Background()
 
 		t.Run(fmt.Sprintf("ArchiveAndDeprecation_Succeeds [%s]", dbType), func(t *testing.T) {
-			// Setup
 			stored := storeTestIndexer(t, repo, "fnp")
 
-			// upsert deprecation metadata, then upsert again with different values (ON CONFLICT path)
 			require.NoError(t, repo.UpsertDeprecation(ctx, domain.IndexerDeprecation{
 				Identifier:   "fnp",
 				Name:         "old name",
@@ -255,7 +253,6 @@ func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
 				DeprecatedAt: time.Date(2026, time.May, 11, 0, 0, 0, 0, time.UTC),
 			}))
 
-			// Execute + Verify: archive the orphaned row; enabled must be left untouched
 			require.NoError(t, repo.ArchiveByIdentifier(ctx, "fnp"))
 
 			got, err := repo.FindByID(ctx, int(stored.ID))
@@ -264,7 +261,6 @@ func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
 			assert.NotNil(t, got.ArchivedAt, "archived_at should be stamped")
 			assert.True(t, got.Enabled, "archiving must not clobber the enabled flag")
 
-			// deprecation list reflects the latest upsert
 			deps, err := repo.ListDeprecations(ctx)
 			require.NoError(t, err)
 			require.Len(t, deps, 1)
@@ -272,7 +268,6 @@ func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
 			assert.Equal(t, "Tracker shut down", deps[0].Reason)
 			assert.Equal(t, 0, deps[0].FilterCount, "no filters reference it yet")
 
-			// idempotency: archiving again is a no-op and must not move archived_at
 			firstStamp := *got.ArchivedAt
 			require.NoError(t, repo.ArchiveByIdentifier(ctx, "fnp"))
 			got2, err := repo.FindByID(ctx, int(stored.ID))
@@ -280,7 +275,6 @@ func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
 			require.NotNil(t, got2.ArchivedAt)
 			assert.Equal(t, firstStamp.UTC(), got2.ArchivedAt.UTC(), "archived_at must be stable across re-archive")
 
-			// un-archive (definition came back) clears the flag and stamp
 			require.NoError(t, repo.UnarchiveByIdentifier(ctx, "fnp"))
 			got3, err := repo.FindByID(ctx, int(stored.ID))
 			require.NoError(t, err)
@@ -288,7 +282,6 @@ func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
 			assert.Nil(t, got3.ArchivedAt)
 			assert.True(t, got3.Enabled, "un-archive must leave enabled untouched")
 
-			// Cleanup
 			_ = repo.Delete(ctx, int(stored.ID))
 			_, _ = db.Handler.ExecContext(ctx, "DELETE FROM indexer_deprecation WHERE identifier = 'fnp'")
 		})
@@ -305,9 +298,7 @@ func TestReleaseNameResolution_Coalesce(t *testing.T) {
 		ctx := context.Background()
 
 		t.Run(fmt.Sprintf("ReleaseNameResolution_Coalesce [%s]", dbType), func(t *testing.T) {
-			// Setup: live indexer with a row
 			storeTestIndexer(t, repo, "activetracker")
-			// deprecated indexer whose row was hard-deleted: only a deprecation entry exists
 			require.NoError(t, repo.UpsertDeprecation(ctx, domain.IndexerDeprecation{Identifier: "fnp", Name: "FearNoPeer"}))
 
 			// identifiers are test-controlled constants, so inlining them keeps the query
@@ -323,12 +314,10 @@ func TestReleaseNameResolution_Coalesce(t *testing.T) {
 				return name
 			}
 
-			// Verify
 			assert.Equal(t, "activetracker", resolve("activetracker"), "live indexer resolves via indexer.name")
 			assert.Equal(t, "FearNoPeer", resolve("fnp"), "hard-deleted indexer resolves via deprecation.name")
 			assert.Equal(t, "ghosttracker", resolve("ghosttracker"), "unknown indexer falls back to the raw identifier")
 
-			// Cleanup
 			active, err := repo.GetBy(ctx, domain.GetIndexerRequest{Identifier: "activetracker"})
 			require.NoError(t, err)
 			_ = repo.Delete(ctx, int(active.ID))
@@ -337,15 +326,14 @@ func TestReleaseNameResolution_Coalesce(t *testing.T) {
 	}
 }
 
-func TestStoreIndexerConnections_SkipsArchived(t *testing.T) {
+func TestStoreIndexerConnections_RejectsArchived(t *testing.T) {
 	for dbType, db := range testDBs {
 		log := setupLoggerForTest()
 		indexerRepo := NewIndexerRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		ctx := context.Background()
 
-		t.Run(fmt.Sprintf("StoreIndexerConnections_SkipsArchived [%s]", dbType), func(t *testing.T) {
-			// Setup
+		t.Run(fmt.Sprintf("StoreIndexerConnections_RejectsArchived [%s]", dbType), func(t *testing.T) {
 			active := storeTestIndexer(t, indexerRepo, "activetracker")
 			dead := storeTestIndexer(t, indexerRepo, "fnp")
 			require.NoError(t, indexerRepo.UpsertDeprecation(ctx, domain.IndexerDeprecation{Identifier: "fnp", Name: "FearNoPeer"}))
@@ -353,29 +341,42 @@ func TestStoreIndexerConnections_SkipsArchived(t *testing.T) {
 
 			filter := getMockFilter()
 			require.NoError(t, filterRepo.Store(ctx, filter))
+			t.Cleanup(func() {
+				_ = indexerRepo.Delete(ctx, int(active.ID))
+				_ = indexerRepo.Delete(ctx, int(dead.ID))
+				_ = filterRepo.Delete(ctx, filter.ID)
+				_, _ = db.Handler.ExecContext(ctx, "DELETE FROM indexer_deprecation WHERE identifier = 'fnp'")
+			})
 
-			// Execute: submitting both a live and an archived indexer must persist only the live one
-			require.NoError(t, filterRepo.StoreIndexerConnections(ctx, filter.ID, []domain.Indexer{
+			require.NoError(t, filterRepo.StoreIndexerConnections(ctx, filter.ID, []domain.Indexer{{ID: active.ID}}))
+
+			err := filterRepo.StoreIndexerConnections(ctx, filter.ID, []domain.Indexer{
 				{ID: active.ID},
 				{ID: dead.ID},
-			}))
+			})
+			require.ErrorIs(t, err, domain.ErrIndexerArchived)
 
-			// Verify
 			connected, err := indexerRepo.FindByFilterID(ctx, filter.ID)
 			require.NoError(t, err)
-			require.Len(t, connected, 1, "archived indexer must not be attached")
+			require.Len(t, connected, 1, "a rejected update must preserve existing connections")
 			assert.Equal(t, "activetracker", connected[0].Identifier)
 
-			// simulate a pre-existing (legacy) connection to the now-archived indexer, made before
-			// it was archived, then prove the bulk prune + filter_count see it.
+			require.NoError(t, indexerRepo.UnarchiveByIdentifier(ctx, "fnp"))
 			require.NoError(t, filterRepo.StoreIndexerConnection(ctx, filter.ID, int(dead.ID)))
+			require.NoError(t, indexerRepo.ArchiveByIdentifier(ctx, "fnp"))
+
+			matchingFilters, err := filterRepo.FindByIndexerIdentifier(ctx, "fnp")
+			require.NoError(t, err)
+			assert.Empty(t, matchingFilters, "archived indexers must not dispatch releases to filters")
 
 			deps, err := indexerRepo.ListDeprecations(ctx)
 			require.NoError(t, err)
 			require.Len(t, deps, 1)
 			assert.Equal(t, 1, deps[0].FilterCount, "filter_count should see the legacy connection")
 
-			removed, err := filterRepo.DeleteArchivedIndexerConnections(ctx)
+			require.ErrorIs(t, indexerRepo.DeleteArchived(ctx, int(dead.ID)), domain.ErrIndexerInUse)
+
+			removed, err := filterRepo.DeleteArchivedIndexerConnections(ctx, []string{"fnp"})
 			require.NoError(t, err)
 			assert.Equal(t, int64(1), removed)
 
@@ -384,11 +385,12 @@ func TestStoreIndexerConnections_SkipsArchived(t *testing.T) {
 			require.Len(t, connected, 1, "only the live indexer remains after prune")
 			assert.Equal(t, "activetracker", connected[0].Identifier)
 
-			// Cleanup: delete indexers first so filter_indexer rows cascade before the filter
-			_ = indexerRepo.Delete(ctx, int(active.ID))
-			_ = indexerRepo.Delete(ctx, int(dead.ID))
-			_ = filterRepo.Delete(ctx, filter.ID)
-			_, _ = db.Handler.ExecContext(ctx, "DELETE FROM indexer_deprecation WHERE identifier = 'fnp'")
+			require.NoError(t, indexerRepo.DeleteArchived(ctx, int(dead.ID)))
+			_, err = indexerRepo.GetBy(ctx, domain.GetIndexerRequest{Identifier: "fnp"})
+			require.ErrorIs(t, err, domain.ErrRecordNotFound)
+			deprecations, err := indexerRepo.ListDeprecations(ctx)
+			require.NoError(t, err)
+			require.Len(t, deprecations, 1, "purging saved settings must preserve release metadata")
 		})
 	}
 }

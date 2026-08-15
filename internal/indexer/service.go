@@ -32,13 +32,12 @@ type indexerRepo interface {
 	Update(ctx context.Context, indexer *domain.Indexer) error
 	List(ctx context.Context) ([]domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
+	DeleteArchived(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error)
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
-	ArchiveByIdentifier(ctx context.Context, identifier string) error
-	UnarchiveByIdentifier(ctx context.Context, identifier string) error
-	UpsertDeprecation(ctx context.Context, d domain.IndexerDeprecation) error
+	ReconcileDeprecations(ctx context.Context, deprecations []domain.IndexerDeprecation, activeIdentifiers map[string]struct{}) error
 	ListDeprecations(ctx context.Context) ([]domain.IndexerDeprecation, error)
 }
 
@@ -112,6 +111,9 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
 	if err != nil {
 		return errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
+	}
+	if currentIndexer.Archived {
+		return domain.ErrIndexerArchived
 	}
 
 	// sanitize user input
@@ -191,6 +193,9 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
+	if indexer.Archived {
+		return domain.ErrIndexerArchived
+	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not delete indexer")
@@ -205,6 +210,16 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	}
 
 	s.bus.Publish(domain.EventIndexerDelete, indexer)
+
+	return nil
+}
+
+// DeleteArchived permanently removes an archived indexer whose filter links were pruned.
+func (s *Service) DeleteArchived(ctx context.Context, id int) error {
+	if err := s.repo.DeleteArchived(ctx, id); err != nil {
+		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not delete archived indexer")
+		return err
+	}
 
 	return nil
 }
@@ -400,46 +415,29 @@ func (s *Service) ListDeprecations(ctx context.Context) ([]domain.IndexerDepreca
 	return s.repo.ListDeprecations(ctx)
 }
 
-// reconcileDeprecations projects the embedded deprecation registry into the database. It is
-// idempotent and safe to run on every boot. For each registered deprecation it refreshes the
-// metadata row, then either archives the (orphaned) indexer row or - if the definition is
-// present again (e.g. re-added as a custom definition) - revives it. Finally it warns about
-// any orphaned indexer row that has neither a definition nor a registry entry.
+// reconcileDeprecations projects bundled tombstones into the database before runtime indexers
+// are mapped. A custom or bundled active definition with the same identifier revives the row.
 func (s *Service) reconcileDeprecations(ctx context.Context, deprecations []domain.IndexerDeprecation) error {
 	registered := make(map[string]struct{}, len(deprecations))
-
 	for _, dep := range deprecations {
 		registered[dep.Identifier] = struct{}{}
-
-		if err := s.repo.UpsertDeprecation(ctx, dep); err != nil {
-			s.log.Error().Err(err).Msgf("could not upsert indexer deprecation: %s", dep.Identifier)
-			continue
-		}
-
-		if _, live := s.mappedDefinitions[dep.Identifier]; live {
-			// the definition is present again - make sure the row is not left archived
-			if err := s.repo.UnarchiveByIdentifier(ctx, dep.Identifier); err != nil {
-				s.log.Error().Err(err).Msgf("could not un-archive indexer: %s", dep.Identifier)
-			}
-			continue
-		}
-
-		// no live definition - archive any matching (orphaned) indexer row as a tombstone
-		if err := s.repo.ArchiveByIdentifier(ctx, dep.Identifier); err != nil {
-			s.log.Error().Err(err).Msgf("could not archive indexer: %s", dep.Identifier)
-		}
 	}
 
-	// tripwire: surface orphaned indexer rows that have no definition AND no registry entry,
-	// i.e. a definition was removed but no deprecation entry was added.
 	indexers, err := s.repo.List(ctx)
 	if err != nil {
 		return err
 	}
 
+	activeIdentifiers := make(map[string]struct{}, len(indexers))
 	var untracked []string
 	for _, indexer := range indexers {
-		if _, live := s.mappedDefinitions[indexer.Identifier]; live {
+		definitionName := indexer.Identifier
+		if indexer.ImplementationIsFeed() {
+			definitionName = string(indexer.Implementation)
+		}
+
+		if _, live := s.definitions[definitionName]; live {
+			activeIdentifiers[indexer.Identifier] = struct{}{}
 			continue
 		}
 		if _, known := registered[indexer.Identifier]; known {
@@ -448,8 +446,13 @@ func (s *Service) reconcileDeprecations(ctx context.Context, deprecations []doma
 		untracked = append(untracked, indexer.Identifier)
 	}
 
+	if err := s.repo.ReconcileDeprecations(ctx, deprecations, activeIdentifiers); err != nil {
+		return err
+	}
+
 	if len(untracked) > 0 {
-		s.log.Warn().Msgf("found %d indexer(s) with no definition and no deprecation entry: %s - consider adding them to internal/indexer/deprecations.go", len(untracked), strings.Join(untracked, ", "))
+		sort.Strings(untracked)
+		s.log.Warn().Msgf("found %d indexer(s) with no active definition or bundled tombstone: %s - restore a custom definition or report the missing tombstone", len(untracked), strings.Join(untracked, ", "))
 	}
 
 	return nil
@@ -469,16 +472,19 @@ func (s *Service) Start() error {
 		}
 	}
 
-	// load the indexers' setup by the user
-	indexerDefinitions, err := s.mapIndexers()
+	deprecations, err := LoadDeprecatedIndexerDefinitions()
 	if err != nil {
 		return err
 	}
 
-	// reconcile removed indexers against the deprecation registry (archive orphans, revive
-	// re-added ones, refresh metadata). Non-fatal: a hiccup here must not block startup.
-	if err := s.reconcileDeprecations(context.Background(), Deprecations); err != nil {
-		s.log.Error().Err(err).Msg("could not reconcile indexer deprecations")
+	if err := s.reconcileDeprecations(context.Background(), deprecations); err != nil {
+		return errors.Wrap(err, "could not reconcile indexer deprecations")
+	}
+
+	// load the indexers' setup by the user
+	indexerDefinitions, err := s.mapIndexers()
+	if err != nil {
+		return err
 	}
 
 	for _, indexer := range indexerDefinitions {
@@ -819,6 +825,9 @@ func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 	if err != nil {
 		return err
 	}
+	if indexer.Archived {
+		return domain.ErrIndexerArchived
+	}
 
 	def, ok := s.GetMappedDefinitionByName(indexer.Identifier)
 	if !ok {
@@ -856,6 +865,9 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	indexer, err := s.FindByID(ctx, indexerID)
 	if err != nil {
 		return err
+	}
+	if indexer.Archived {
+		return domain.ErrIndexerArchived
 	}
 
 	if err := s.repo.ToggleEnabled(ctx, int(indexer.ID), enabled); err != nil {

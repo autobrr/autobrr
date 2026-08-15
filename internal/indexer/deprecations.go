@@ -4,129 +4,86 @@
 package indexer
 
 import (
-	"time"
+	"bytes"
+	"io/fs"
+	"net/url"
+	"path"
+	"sort"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"gopkg.in/yaml.v3"
 )
 
-// Deprecations is the canonical, embedded source of truth for indexers that have been
-// removed/retired from the shipped definitions.
-//
-// To sunset an indexer:
-//  1. delete internal/indexer/definitions/<identifier>.yaml
-//  2. append one entry below
-//
-// On every boot, reconcileDeprecations() projects this list into the database:
-// it upserts the metadata into the indexer_deprecation table and flips the archived
-// flag on any matching (orphaned) indexer row. There is no per-removal SQL migration.
-//
-// Notes:
-//   - Identifier must match the removed definition's identifier (and the value stored in
-//     release.indexer / indexer.identifier).
-//   - Name is the friendly display name; it powers name resolution even for users who
-//     hard-deleted the indexer row before upgrading (COALESCE(i.name, d.name, r.indexer)).
-//   - AliasOf is display-only. True renames (where the tracker lives on under a new
-//     identifier) are handled by a rename migration instead (see migration 92,
-//     rotorrent -> seedcore); use AliasOf only to hint at a successor for the UI.
-//   - DeprecatedAt is stamped in code (a fixed date), never time.Now(), so reconcile is
-//     deterministic across restarts.
-var Deprecations = []domain.IndexerDeprecation{
-	{
-		Identifier:   "fnp",
-		Name:         "FearNoPeer",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/2453",
-		DeprecatedAt: time.Date(2026, time.May, 11, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "ianon",
-		Name:         "iAnon",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/2221",
-		DeprecatedAt: time.Date(2025, time.October, 15, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "lillesky",
-		Name:         "LilleSky",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/1735",
-		DeprecatedAt: time.Date(2024, time.September, 21, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "lusthive",
-		Name:         "LustHive",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/2007",
-		DeprecatedAt: time.Date(2025, time.March, 23, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "oppaitime",
-		Name:         "OppaiTime",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/631",
-		DeprecatedAt: time.Date(2023, time.January, 8, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "polishsource",
-		Name:         "PolishSource",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/1943",
-		DeprecatedAt: time.Date(2025, time.January, 18, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "ptn",
-		Name:         "Piratethenet",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/1185",
-		DeprecatedAt: time.Date(2023, time.October, 16, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "stt",
-		Name:         "SkipTheTrailers",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/1708",
-		DeprecatedAt: time.Date(2024, time.September, 4, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "tfm",
-		Name:         "ToonsForMe",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/1407",
-		DeprecatedAt: time.Date(2024, time.February, 14, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "torrentdb",
-		Name:         "TorrentDB",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/626",
-		DeprecatedAt: time.Date(2023, time.January, 6, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "torrentseeds",
-		Name:         "TorrentSeeds",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/2040",
-		DeprecatedAt: time.Date(2025, time.April, 22, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "torrentseeds-music",
-		Name:         "TorrentSeeds Music",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/2040",
-		DeprecatedAt: time.Date(2025, time.April, 22, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "tsc",
-		Name:         "TorrentSectorCrew",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/1917",
-		DeprecatedAt: time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC),
-	},
-	{
-		Identifier:   "uhdbits",
-		Name:         "UHDBits",
-		Reason:       "Tracker shut down",
-		IssueURL:     "https://github.com/autobrr/autobrr/pull/2361",
-		DeprecatedAt: time.Date(2026, time.February, 28, 0, 0, 0, 0, time.UTC),
-	},
+const deprecatedDefinitionsDir = "definitions/deprecated"
+
+// LoadDeprecatedIndexerDefinitions loads the bundled tombstones for retired indexers.
+func LoadDeprecatedIndexerDefinitions() ([]domain.IndexerDeprecation, error) {
+	entries, err := fs.ReadDir(Definitions, deprecatedDefinitionsDir)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not read deprecated indexer definitions")
+	}
+
+	deprecations := make([]domain.IndexerDeprecation, 0, len(entries))
+	seen := make(map[string]struct{}, len(entries))
+
+	for _, entry := range entries {
+		if entry.IsDir() || path.Ext(entry.Name()) != ".yaml" {
+			continue
+		}
+
+		file := path.Join(deprecatedDefinitionsDir, entry.Name())
+		data, err := fs.ReadFile(Definitions, file)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not read deprecated indexer definition: %s", file)
+		}
+
+		var deprecation domain.IndexerDeprecation
+		decoder := yaml.NewDecoder(bytes.NewReader(data))
+		decoder.KnownFields(true)
+		if err := decoder.Decode(&deprecation); err != nil {
+			return nil, errors.Wrap(err, "could not decode deprecated indexer definition: %s", file)
+		}
+
+		if err := validateDeprecation(entry.Name(), deprecation, seen); err != nil {
+			return nil, err
+		}
+
+		seen[deprecation.Identifier] = struct{}{}
+		deprecations = append(deprecations, deprecation)
+	}
+
+	sort.Slice(deprecations, func(i, j int) bool {
+		return deprecations[i].Identifier < deprecations[j].Identifier
+	})
+
+	return deprecations, nil
+}
+
+func validateDeprecation(fileName string, deprecation domain.IndexerDeprecation, seen map[string]struct{}) error {
+	if deprecation.Identifier == "" {
+		return errors.New("deprecated indexer definition %s has no identifier", fileName)
+	}
+	if path.Base(fileName) != deprecation.Identifier+".yaml" {
+		return errors.New("deprecated indexer definition %s must be named %s.yaml", fileName, deprecation.Identifier)
+	}
+	if deprecation.Name == "" {
+		return errors.New("deprecated indexer %s has no name", deprecation.Identifier)
+	}
+	if deprecation.Reason == "" {
+		return errors.New("deprecated indexer %s has no reason", deprecation.Identifier)
+	}
+	issueURL, err := url.ParseRequestURI(deprecation.IssueURL)
+	if err != nil || issueURL.Scheme == "" || issueURL.Host == "" {
+		return errors.New("deprecated indexer %s has an invalid issue URL", deprecation.Identifier)
+	}
+	if deprecation.DeprecatedAt.IsZero() {
+		return errors.New("deprecated indexer %s has no deprecation date", deprecation.Identifier)
+	}
+	if _, ok := seen[deprecation.Identifier]; ok {
+		return errors.New("duplicate deprecated indexer identifier: %s", deprecation.Identifier)
+	}
+
+	return nil
 }

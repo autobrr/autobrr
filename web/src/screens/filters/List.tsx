@@ -558,8 +558,6 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
   const { t } = useTranslation("filters");
   const queryClient = useQueryClient();
 
-  // Check if this filter uses any disabled indexers and get their names.
-  // Archived (deprecated) indexers are excluded here and surfaced separately below.
   const disabledIndexersInfo = useMemo(() => {
     if (!filter.enabled || !filter.indexers || filter.indexers.length === 0) {
       return { hasDisabled: false, names: [] };
@@ -571,7 +569,6 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
     };
   }, [filter.enabled, filter.indexers]);
 
-  // Check if this filter still references any removed/deprecated indexers
   const deprecatedIndexersInfo = useMemo(() => {
     if (!filter.indexers || filter.indexers.length === 0) {
       return { hasDeprecated: false, names: [] };
