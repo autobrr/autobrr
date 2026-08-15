@@ -872,7 +872,29 @@
         "implementation": "Implementace",
         "noItems": "Žádné indexery",
         "addNewItem": "Přidat nový indexer",
-        "updated": "{{name}} byl úspěšně aktualizován"
+        "updated": "{{name}} byl úspěšně aktualizován",
+        "deprecated": {
+          "title": "Vyřazené indexery",
+          "description": "Tyto indexery byly z autobrr odstraněny. Nelze je používat ani vybírat ve filtrech. Jejich releasy zůstávají zachovány a nadále zobrazují svůj název.",
+          "removed": "Odstraněný indexer",
+          "moreInfo": "Více informací",
+          "usedByFilters_one": "Použito v {{count}} filtru",
+          "usedByFilters_other": "Použito ve filtrech: {{count}}",
+          "pruneAll": "Odebrat ze všech filtrů",
+          "pruneOne": "Odebrat z filtrů",
+          "pruneTitle": "Odebrat vyřazené indexery z filtrů",
+          "pruneText": "Chcete opravdu odebrat všechny vyřazené indexery ze svých filtrů? Jejich releasy zůstanou zachovány, ale indexery již nebudou připojeny k žádnému filtru. Tuto akci nelze vrátit zpět.",
+          "pruneOneTitle": "Odebrat {{name}} z filtrů",
+          "pruneOneText": "Chcete opravdu odebrat {{name}} ze všech filtrů? Historické releasy a uložená data indexeru zůstanou zachovány.",
+          "pruneSuccess_one": "Z filtrů bylo odebráno {{count}} připojení vyřazeného indexeru",
+          "pruneSuccess_other": "Z filtrů bylo odebráno {{count}} připojení vyřazených indexerů",
+          "pruneError": "Vyřazené indexery se nepodařilo odebrat z filtrů",
+          "purge": "Smazat uložená data",
+          "purgeTitle": "Smazat uložená data pro {{name}}",
+          "purgeText": "Tímto trvale smažete uloženou konfiguraci a přihlašovací údaje indexeru. Historické releasy si zachovají čitelný název indexeru. Tuto akci nelze vrátit zpět.",
+          "purgeSuccess": "Uložená data archivovaného indexeru byla smazána",
+          "purgeError": "Uložená data archivovaného indexeru se nepodařilo smazat"
+        }
       },
       "proxies": {
         "title": "Proxy servery",

@@ -95,6 +95,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check indexer deprecation tombstones
+        if: github.event_name == 'pull_request'
+        run: scripts/check-indexer-deprecations.sh "${{ github.event.pull_request.base.sha }}"
+
       - name: Set up Go
         uses: actions/setup-go@v7
         with:

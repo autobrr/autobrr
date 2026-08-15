@@ -6,6 +6,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 
@@ -25,6 +26,7 @@ type filterService interface {
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
+	PruneDeprecatedIndexers(ctx context.Context, identifiers []string) (int64, error)
 }
 
 type filterHandler struct {
@@ -42,6 +44,8 @@ func newFilterHandler(encoder encoder, service filterService) *filterHandler {
 func (h filterHandler) Routes(r chi.Router) {
 	r.Get("/", h.getFilters)
 	r.Post("/", h.store)
+
+	r.Post("/indexers/prune-deprecated", h.pruneDeprecatedIndexers)
 
 	r.Route("/{filterID}", func(r chi.Router) {
 		r.Get("/", h.getByID)
@@ -126,12 +130,34 @@ func (h filterHandler) duplicate(w http.ResponseWriter, r *http.Request) {
 			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
 			return
 		}
+		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrIndexerArchived) {
+			h.encoder.BadRequestErr(w, err)
+			return
+		}
 
 		h.encoder.Error(w, err)
 		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, filter)
+}
+
+func (h filterHandler) pruneDeprecatedIndexers(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		Identifiers []string `json:"identifiers"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil && !errors.Is(err, io.EOF) {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	removed, err := h.service.PruneDeprecatedIndexers(r.Context(), data.Identifiers)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, map[string]int64{"removed": removed})
 }
 
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +168,10 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Store(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrIndexerArchived) {
+			h.encoder.BadRequestErr(w, err)
+			return
+		}
 		h.encoder.Error(w, err)
 		return
 	}
@@ -162,7 +192,7 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrNotificationNotFound) {
+		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrIndexerArchived) || errors.Is(err, domain.ErrNotificationNotFound) {
 			h.encoder.BadRequestErr(w, err)
 			return
 		}
@@ -194,7 +224,7 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrNotificationNotFound) {
+		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrIndexerArchived) || errors.Is(err, domain.ErrNotificationNotFound) {
 			h.encoder.BadRequestErr(w, err)
 			return
 		}

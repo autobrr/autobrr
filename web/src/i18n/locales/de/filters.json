@@ -35,6 +35,7 @@
     "downloads": "Downloads",
     "per": "pro",
     "usesDisabledIndexers": "Verwendet deaktivierte(n) Indexer: {{names}}",
+    "usesDeprecatedIndexers": "Verwendet entfernte oder nicht mehr unterstützte Indexer: {{names}}. Bearbeite den Filter, um sie zu entfernen, oder verwende Einstellungen → Indexer.",
     "noIndexer": "KEIN INDEXER",
     "sort": {
       "label": "Sortierung",

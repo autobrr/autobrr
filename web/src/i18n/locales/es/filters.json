@@ -35,6 +35,7 @@
     "downloads": "Descargas",
     "per": "por",
     "usesDisabledIndexers": "Usa indexador(es) deshabilitado(s): {{names}}",
+    "usesDeprecatedIndexers": "Usa indexadores eliminados u obsoletos: {{names}}. Edita el filtro para eliminarlos o usa Configuración → Indexadores.",
     "noIndexer": "SIN INDEXADOR",
     "sort": {
       "label": "Ordenar",

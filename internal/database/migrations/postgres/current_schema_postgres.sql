@@ -65,12 +65,28 @@ CREATE TABLE indexer
     proxy_id            INTEGER,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    archived            BOOLEAN NOT NULL DEFAULT FALSE,
+    archived_at         TIMESTAMP,
     FOREIGN KEY (proxy_id) REFERENCES proxy (id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
 
 CREATE INDEX indexer_identifier_index
     ON indexer (identifier);
+
+CREATE INDEX indexer_archived_index
+    ON indexer (archived);
+
+CREATE TABLE indexer_deprecation
+(
+    id            SERIAL PRIMARY KEY,
+    identifier    TEXT NOT NULL UNIQUE,
+    name          TEXT,
+    reason        TEXT,
+    issue_url     TEXT,
+    alias_of      TEXT,
+    deprecated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE irc_network
 (

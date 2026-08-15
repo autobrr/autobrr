@@ -1,0 +1,5 @@
+identifier: tsc
+name: TorrentSectorCrew
+reason: Tracker shut down
+issue_url: https://github.com/autobrr/autobrr/pull/1917
+deprecated_at: 2025-01-01T00:00:00Z

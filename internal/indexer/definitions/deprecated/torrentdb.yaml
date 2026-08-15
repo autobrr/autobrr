@@ -1,0 +1,5 @@
+identifier: torrentdb
+name: TorrentDB
+reason: Tracker shut down
+issue_url: https://github.com/autobrr/autobrr/pull/626
+deprecated_at: 2023-01-06T00:00:00Z
