@@ -35,6 +35,7 @@
       "downloads": "Stažení",
       "per": "za",
       "usesDisabledIndexers": "Používá vypnuté indexery: {{names}}",
+      "usesDeprecatedIndexers": "Používá odstraněné nebo vyřazené indexery: {{names}}. Odeberte je úpravou filtru nebo použijte Nastavení → Indexery.",
       "noIndexer": "ŽÁDNÝ INDEXER",
       "sort": {
         "label": "Seřadit",

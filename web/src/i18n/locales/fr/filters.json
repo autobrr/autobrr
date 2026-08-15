@@ -35,6 +35,7 @@
     "downloads": "Téléchargements",
     "per": "par",
     "usesDisabledIndexers": "Utilise des indexeur(s) désactivé(s) : {{names}}",
+    "usesDeprecatedIndexers": "Utilise des indexeurs retirés ou obsolètes : {{names}}. Modifiez le filtre pour les retirer ou utilisez Paramètres → Indexeurs.",
     "noIndexer": "AUCUN INDEXEUR",
     "sort": {
       "label": "Trier",
