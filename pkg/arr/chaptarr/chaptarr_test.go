@@ -50,12 +50,14 @@ func Test_client_Push(t *testing.T) {
 		status := http.StatusOK
 		fixture := "testdata/release_push_response.json"
 
-		switch release.Title {
-		case "":
+		switch {
+		case release.Title == "":
 			status = http.StatusBadRequest
 			fixture = "testdata/release_push_bad_request_response.json"
-		case "Some Unknown Author - A Book Nobody Has [MKV]":
+		case release.Title == "Some Unknown Author - A Book Nobody Has [MKV]":
 			fixture = "testdata/release_push_rejected_response.json"
+		case release.Indexer == "myanonamouse":
+			fixture = "testdata/release_push_temp_rejected_response.json"
 		}
 
 		jsonPayload, _ := os.ReadFile(fixture)
@@ -121,6 +123,30 @@ func Test_client_Push(t *testing.T) {
 				PublishDate:      "2026-08-09T17:36:15Z",
 			}},
 			rejections: []string{"Unknown Author"},
+		},
+		{
+			// a MAM safety pause comes back with rejected false and only
+			// temporarilyRejected set, and must still surface as a rejection
+			name: "push_temporarily_rejected",
+			fields: fields{
+				config: Config{
+					Hostname:  ts.URL,
+					APIKey:    key,
+					BasicAuth: false,
+					Username:  "",
+					Password:  "",
+				},
+			},
+			args: args{release: Release{
+				Title:            "Brandon Sanderson - The Way of Kings (2010) [M4B]",
+				DownloadUrl:      "https://www.mock-indexer.test/tor/download.php?tid=12345",
+				Size:             734003200,
+				Indexer:          "myanonamouse",
+				DownloadProtocol: "torrent",
+				Protocol:         "torrent",
+				PublishDate:      "2026-08-09T17:36:15Z",
+			}},
+			rejections: []string{"MAM safety pause: this release has no valid MAM torrent identity"},
 		},
 		{
 			name: "push_bad_request",

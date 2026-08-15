@@ -121,9 +121,11 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		return nil, errors.Wrap(err, "could not unmarshal data")
 	}
 
-	// log and return if rejected
-	if pushResponse.Rejected {
-		c.logger(ctx).Debug().Strs("rejections", pushResponse.Rejections).Msg("chaptarr release/push rejected")
+	// rejected is false when every rejection is temporary, and a temporarily
+	// rejected release sits in the pending queue instead of being grabbed, so
+	// reporting only rejected would log those pushes as successful
+	if pushResponse.Rejected || pushResponse.TempRejected {
+		c.logger(ctx).Debug().Bool("temporary", pushResponse.TempRejected).Strs("rejections", pushResponse.Rejections).Msg("chaptarr release/push rejected")
 		return pushResponse.Rejections, nil
 	}
 

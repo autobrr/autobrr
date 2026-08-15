@@ -1,0 +1,63 @@
+{
+  "guid": "PUSH-http://127.0.0.1:9/tor/download.php?tid=12345",
+  "quality": {
+    "quality": {
+      "id": 12,
+      "name": "M4B",
+      "isConversionTarget": true
+    },
+    "revision": {
+      "version": 1,
+      "real": 0,
+      "isRepack": false
+    }
+  },
+  "qualityWeight": 301,
+  "isMultiFormat": false,
+  "age": 4,
+  "ageHours": 118.16512940741667,
+  "ageMinutes": 7089.9077644516665,
+  "size": 734003200,
+  "indexerId": 3,
+  "indexer": "myanonamouse",
+  "releaseHash": "",
+  "title": "Brandon Sanderson - The Way of Kings (2010) [M4B]",
+  "displayTitle": "Brandon Sanderson - The Way of Kings (2010)",
+  "discography": false,
+  "sceneSource": false,
+  "authorName": "Brandon Sanderson",
+  "bookTitle": "The Way of Kings",
+  "approved": false,
+  "temporarilyRejected": true,
+  "rejected": false,
+  "rejections": [
+    "MAM safety pause: this release has no valid MAM torrent identity"
+  ],
+  "rejectionDetails": [
+    {
+      "reason": "MAM safety pause: this release has no valid MAM torrent identity",
+      "type": "Temporary",
+      "category": "General",
+      "canBypass": false,
+      "severity": 3
+    }
+  ],
+  "hasSoftFilters": true,
+  "hasHardFilters": false,
+  "canBypassFilters": false,
+  "publishDate": "2026-08-09T17:36:15Z",
+  "downloadUrl": "http://127.0.0.1:9/tor/download.php?tid=12345",
+  "downloadAllowed": false,
+  "releaseWeight": 0,
+  "rank": 1,
+  "customFormats": [],
+  "customFormatScore": 0,
+  "isPreferredChoice": false,
+  "autoPickReasons": [],
+  "protocol": "torrent",
+  "indexerFlags": 0,
+  "isGraphicAudio": false,
+  "authorId": 1,
+  "bookId": 2,
+  "formatType": "audiobook"
+}
