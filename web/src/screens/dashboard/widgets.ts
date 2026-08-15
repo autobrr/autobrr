@@ -12,22 +12,81 @@ import { ActivityTable } from "./ActivityTable";
 
 export interface DashboardWidgetDef {
   id: string;
+  size: "compact" | "half" | "full";
   spanClass: string;
+  titleKey: string;
   Component: React.ComponentType;
 }
 
-// Registry order is the default layout. Adding a widget here is enough:
-// stored configs are reconciled against the registry, unknown ids dropped
-// and new ones appended.
 export const DASHBOARD_WIDGETS: DashboardWidgetDef[] = [
-  { id: "stat-filtered", spanClass: "sm:col-span-1", Component: FilteredTile },
-  { id: "stat-approved", spanClass: "sm:col-span-1", Component: ApprovedTile },
-  { id: "stat-rejected", spanClass: "sm:col-span-1", Component: RejectedTile },
-  { id: "stat-errored", spanClass: "sm:col-span-1", Component: ErroredTile },
-  { id: "activity", spanClass: "sm:col-span-2 lg:col-span-4", Component: ActivityChart },
-  { id: "volume", spanClass: "sm:col-span-2 lg:col-span-2", Component: VolumeChart },
-  { id: "heatmap", spanClass: "sm:col-span-2 lg:col-span-2", Component: HourHeatmap },
-  { id: "top-indexers", spanClass: "sm:col-span-2 lg:col-span-2", Component: TopIndexers },
-  { id: "top-filters", spanClass: "sm:col-span-2 lg:col-span-2", Component: TopFilters },
-  { id: "recent-activity", spanClass: "sm:col-span-2 lg:col-span-4", Component: ActivityTable }
+  {
+    id: "stat-filtered",
+    size: "compact",
+    spanClass: "sm:col-span-1",
+    titleKey: "dashboardStats.filteredReleases",
+    Component: FilteredTile
+  },
+  {
+    id: "stat-approved",
+    size: "compact",
+    spanClass: "sm:col-span-1",
+    titleKey: "dashboardStats.approvedPushes",
+    Component: ApprovedTile
+  },
+  {
+    id: "stat-rejected",
+    size: "compact",
+    spanClass: "sm:col-span-1",
+    titleKey: "dashboardStats.rejectedPushes",
+    Component: RejectedTile
+  },
+  {
+    id: "stat-errored",
+    size: "compact",
+    spanClass: "sm:col-span-1",
+    titleKey: "dashboardStats.erroredPushes",
+    Component: ErroredTile
+  },
+  {
+    id: "activity",
+    size: "full",
+    spanClass: "sm:col-span-2 lg:col-span-4",
+    titleKey: "dashboardCharts.activityTitle",
+    Component: ActivityChart
+  },
+  {
+    id: "volume",
+    size: "half",
+    spanClass: "sm:col-span-2 lg:col-span-2",
+    titleKey: "dashboardCharts.volumeTitle",
+    Component: VolumeChart
+  },
+  {
+    id: "heatmap",
+    size: "half",
+    spanClass: "sm:col-span-2 lg:col-span-2",
+    titleKey: "dashboardCharts.heatmapTitle",
+    Component: HourHeatmap
+  },
+  {
+    id: "top-indexers",
+    size: "half",
+    spanClass: "sm:col-span-2 lg:col-span-2",
+    titleKey: "dashboardCharts.topIndexersTitle",
+    Component: TopIndexers
+  },
+  {
+    id: "top-filters",
+    size: "half",
+    spanClass: "sm:col-span-2 lg:col-span-2",
+    titleKey: "dashboardCharts.topFiltersTitle",
+    Component: TopFilters
+  },
+  {
+    id: "recent-activity",
+    size: "full",
+    spanClass: "sm:col-span-2 lg:col-span-4",
+    titleKey: "activityTable.title",
+    Component: ActivityTable
+  }
 ];

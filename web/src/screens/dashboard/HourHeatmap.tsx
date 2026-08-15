@@ -19,6 +19,8 @@ interface HeatmapDatum {
   count: number;
 }
 
+const squareCellChartAspectRatio = 3.15;
+
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DISPLAY_DOWS = [1, 2, 3, 4, 5, 6, 0];
 
@@ -116,10 +118,10 @@ export const HourHeatmap = () => {
           <Chart
             definition={definition}
             ariaLabel={t("dashboardCharts.heatmapTitle")}
-            height={210}
+            aspectRatio={squareCellChartAspectRatio}
             className="mt-2 w-full"
           />
-          <div className="flex items-center justify-end gap-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <div className="mt-auto flex items-center justify-end gap-1 pt-1 text-xs text-gray-500 dark:text-gray-400">
             {t("dashboardCharts.heatmapLess")}
             <span className="inline-block w-3 h-3 rounded-xs" style={{ backgroundColor: zeroFill }} aria-hidden="true" />
             {ramp.map((color) => (
