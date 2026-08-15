@@ -80,6 +80,7 @@ export const IndexerKeys = {
   all: ["indexers"] as const,
   schema: () => [...IndexerKeys.all, "indexer-definitions"] as const,
   options: () => [...IndexerKeys.all, "options"] as const,
+  deprecations: () => [...IndexerKeys.all, "deprecations"] as const,
   lists: () => [...IndexerKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...IndexerKeys.all, "detail"] as const,

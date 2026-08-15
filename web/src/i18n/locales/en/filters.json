@@ -35,6 +35,7 @@
     "downloads": "Downloads",
     "per": "per",
     "usesDisabledIndexers": "Uses disabled indexer(s): {{names}}",
+    "usesDeprecatedIndexers": "Uses removed/deprecated indexer(s): {{names}}. Edit the filter to remove them or use Settings → Indexers to clean up.",
     "noIndexer": "NO INDEXER",
     "sort": {
       "label": "Sort",

@@ -57,9 +57,9 @@ interface ChartCardProps {
 }
 
 export const ChartCard = ({ title, className, action, children }: ChartCardProps) => (
-  <div className={classNames("px-4 py-3 overflow-hidden rounded-lg shadow-lg bg-white dark:bg-gray-800", className ?? "")}>
-    <div className="flex items-center justify-between gap-2">
-      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{title}</h3>
+  <div className={classNames("flex h-full min-w-0 flex-col overflow-hidden rounded-lg bg-white px-4 py-3 shadow-lg dark:bg-gray-800", className ?? "")}>
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+      <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h3>
       {action}
     </div>
     {children}
@@ -81,7 +81,7 @@ export const RangeSelect = <T extends string>({ options, value, onChange }: Rang
         aria-pressed={option.value === value}
         onClick={() => onChange(option.value)}
         className={classNames(
-          "px-2 py-0.5 rounded-md text-xs transition-colors duration-200 ease-in-out",
+          "inline-flex min-h-9 items-center rounded-md px-2.5 text-xs transition-colors duration-200 ease-in-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500",
           option.value === value
             ? "bg-gray-150 dark:bg-gray-750 font-medium text-gray-900 dark:text-gray-200"
             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"

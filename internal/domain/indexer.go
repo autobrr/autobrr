@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/regexcache"
@@ -33,6 +34,8 @@ type Indexer struct {
 	Proxy              *Proxy                `json:"proxy"`
 	ProxyID            int64                 `json:"proxy_id"`
 	Settings           map[string]string     `json:"settings,omitempty"`
+	Archived           bool                  `json:"archived"`
+	ArchivedAt         *time.Time            `json:"archived_at,omitempty"`
 }
 
 // secretSettingKeys are indexer settings redacted in API responses; updates must echo them
@@ -98,6 +101,17 @@ func (m IndexerMinimal) GetExternalIdentifier() string {
 	}
 
 	return m.Identifier
+}
+
+// IndexerDeprecation describes an indexer whose definition has been removed.
+type IndexerDeprecation struct {
+	Identifier   string    `json:"identifier" yaml:"identifier"`
+	Name         string    `json:"name" yaml:"name"`
+	Reason       string    `json:"reason" yaml:"reason"`
+	IssueURL     string    `json:"issue_url" yaml:"issue_url"`
+	AliasOf      string    `json:"alias_of,omitempty" yaml:"alias_of,omitempty"`
+	DeprecatedAt time.Time `json:"deprecated_at" yaml:"deprecated_at"`
+	FilterCount  int       `json:"filter_count" yaml:"-"`
 }
 
 type IndexerDefinition struct {

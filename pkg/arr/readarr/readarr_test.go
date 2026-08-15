@@ -162,3 +162,36 @@ func Test_client_Test(t *testing.T) {
 		})
 	}
 }
+
+// A temporarily rejected release comes back with rejected false and temporarilyRejected
+// true, and waits in Readarr's pending queue instead of being grabbed, so its rejections
+// still have to reach the caller.
+func Test_client_Push_temporarilyRejected(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	mux := http.NewServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	mux.HandleFunc("/api/v1/release/push", func(w http.ResponseWriter, r *http.Request) {
+		jsonPayload, _ := os.ReadFile("testdata/release_push_temporarily_rejected_response.json")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonPayload)
+	})
+
+	c := New(Config{Hostname: ts.URL})
+
+	rejections, err := c.Push(context.Background(), Release{
+		Title:            "The Best Book by Famous Author [English / epub, mobi]",
+		DownloadUrl:      "https://www.mock-indexer.test/tor/download.php?tid=000000",
+		Size:             1048576,
+		Indexer:          "mock-indexer",
+		DownloadProtocol: "torrent",
+		Protocol:         "torrent",
+		PublishDate:      "2026-08-15T17:36:15Z",
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"Waiting for a better quality release"}, rejections)
+}

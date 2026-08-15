@@ -35,6 +35,7 @@
     "downloads": "Nedlastinger",
     "per": "per",
     "usesDisabledIndexers": "Bruker deaktiverte indekserere: {{names}}",
+    "usesDeprecatedIndexers": "Bruker fjernede eller utgåtte indekserere: {{names}}. Rediger filteret for å fjerne dem, eller bruk Innstillinger → Indekserere.",
     "noIndexer": "INGEN INDEKSERER",
     "sort": {
       "label": "Sorter",

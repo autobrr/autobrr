@@ -872,7 +872,29 @@
       "implementation": "Implementasjon",
       "noItems": "Ingen indekserere",
       "addNewItem": "Legg til ny indekserer",
-      "updated": "{{name}} ble oppdatert"
+      "updated": "{{name}} ble oppdatert",
+      "deprecated": {
+        "title": "Utgåtte indekserere",
+        "description": "Disse indeksererne er fjernet fra autobrr. De kan ikke brukes eller velges i filtre. Utgivelsene beholdes og viser fortsatt navnet sitt.",
+        "removed": "Fjernet indekserer",
+        "moreInfo": "Mer informasjon",
+        "usedByFilters_one": "Brukes av {{count}} filter",
+        "usedByFilters_other": "Brukes av {{count}} filtre",
+        "pruneAll": "Fjern fra alle filtre",
+        "pruneOne": "Fjern fra filtre",
+        "pruneTitle": "Fjern utgåtte indekserere fra filtre",
+        "pruneText": "Er du sikker på at du vil fjerne alle utgåtte indekserere fra filtrene dine? Utgivelsene beholdes, men indeksererne vil ikke lenger være knyttet til noen filtre. Denne handlingen kan ikke angres.",
+        "pruneOneTitle": "Fjern {{name}} fra filtre",
+        "pruneOneText": "Er du sikker på at du vil fjerne {{name}} fra alle filtre? Historiske utgivelser og lagrede indeksererdata beholdes.",
+        "pruneSuccess_one": "Fjernet {{count}} tilkobling for en utgått indekserer fra filtre",
+        "pruneSuccess_other": "Fjernet {{count}} tilkoblinger for utgåtte indekserere fra filtre",
+        "pruneError": "Kunne ikke fjerne utgåtte indekserere fra filtre",
+        "purge": "Slett lagrede data",
+        "purgeTitle": "Slett lagrede data for {{name}}",
+        "purgeText": "Dette sletter den lagrede indeksererkonfigurasjonen og påloggingsinformasjonen permanent. Historiske utgivelser beholder det lesbare indekserernavnet. Denne handlingen kan ikke angres.",
+        "purgeSuccess": "De lagrede dataene for den arkiverte indeksereren ble slettet",
+        "purgeError": "Kunne ikke slette de lagrede dataene for den arkiverte indeksereren"
+      }
     },
     "proxies": {
       "title": "Proxyer",

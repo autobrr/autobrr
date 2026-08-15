@@ -66,6 +66,12 @@ func TestService_validateIndexers(t *testing.T) {
 		err := svc.validateIndexers(t.Context(), []domain.Indexer{{ID: 1}, {ID: 99}})
 		assert.ErrorIs(t, err, domain.ErrIndexerNotFound)
 	})
+
+	t.Run("rejects archived indexer", func(t *testing.T) {
+		svc.indexerSvc = &indexerSvcStub{indexers: []domain.Indexer{{ID: 1, Archived: true}}}
+		err := svc.validateIndexers(t.Context(), []domain.Indexer{{ID: 1, Archived: false}})
+		assert.ErrorIs(t, err, domain.ErrIndexerArchived)
+	})
 }
 
 func TestService_Update_ValidatesIndexersBeforePersisting(t *testing.T) {

@@ -872,7 +872,29 @@
       "implementation": "Implementierung",
       "noItems": "Keine Indexer",
       "addNewItem": "Neuen Indexer hinzufügen",
-      "updated": "{{name}} wurde erfolgreich aktualisiert"
+      "updated": "{{name}} wurde erfolgreich aktualisiert",
+      "deprecated": {
+        "title": "Nicht mehr unterstützte Indexer",
+        "description": "Diese Indexer wurden aus autobrr entfernt. Sie können nicht mehr verwendet oder in Filtern ausgewählt werden. Ihre Releases bleiben erhalten und werden weiterhin unter ihrem Namen angezeigt.",
+        "removed": "Entfernter Indexer",
+        "moreInfo": "Weitere Informationen",
+        "usedByFilters_one": "Von {{count}} Filter verwendet",
+        "usedByFilters_other": "Von {{count}} Filtern verwendet",
+        "pruneAll": "Aus allen Filtern entfernen",
+        "pruneOne": "Aus Filtern entfernen",
+        "pruneTitle": "Nicht mehr unterstützte Indexer aus Filtern entfernen",
+        "pruneText": "Möchtest du wirklich alle nicht mehr unterstützten Indexer aus deinen Filtern entfernen? Ihre Releases bleiben erhalten, die Indexer sind jedoch keinem Filter mehr zugeordnet. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "pruneOneTitle": "{{name}} aus Filtern entfernen",
+        "pruneOneText": "Möchtest du {{name}} wirklich aus allen Filtern entfernen? Historische Releases und gespeicherte Indexerdaten bleiben erhalten.",
+        "pruneSuccess_one": "{{count}} Verknüpfung eines nicht mehr unterstützten Indexers wurde aus Filtern entfernt",
+        "pruneSuccess_other": "{{count}} Verknüpfungen nicht mehr unterstützter Indexer wurden aus Filtern entfernt",
+        "pruneError": "Nicht mehr unterstützte Indexer konnten nicht aus den Filtern entfernt werden",
+        "purge": "Gespeicherte Daten löschen",
+        "purgeTitle": "Gespeicherte Daten für {{name}} löschen",
+        "purgeText": "Dadurch werden die gespeicherte Indexerkonfiguration und die Zugangsdaten dauerhaft gelöscht. Historische Releases behalten den lesbaren Indexernamen. Diese Aktion kann nicht rückgängig gemacht werden.",
+        "purgeSuccess": "Die gespeicherten Daten des archivierten Indexers wurden gelöscht",
+        "purgeError": "Die gespeicherten Daten des archivierten Indexers konnten nicht gelöscht werden"
+      }
     },
     "proxies": {
       "title": "Proxys",

@@ -3,16 +3,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { ArchiveBoxXMarkIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Trans, useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { IndexerKeys } from "@api/query_keys";
-import { IndexersQueryOptions } from "@api/queries";
+import { FilterKeys, IndexerKeys } from "@api/query_keys";
+import { IndexerDeprecationsQueryOptions, IndexersOptionsQueryOptions, IndexersQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
+import { ExternalLink } from "@components/ExternalLink";
+import { DeleteModal } from "@components/modals";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptySimple } from "@components/emptystates";
@@ -241,4 +244,200 @@ function IndexerSettings() {
   );
 }
 
-export default IndexerSettings;
+function DeprecatedIndexers() {
+  const { t } = useTranslation("settings");
+  const queryClient = useQueryClient();
+
+  const cancelModalButtonRef = useRef(null);
+  const [pendingAction, setPendingAction] = useState<
+    | { type: "prune"; identifiers: string[]; name?: string }
+    | { type: "purge"; id: number; name: string }
+    | null
+  >(null);
+
+  const optionsQuery = useSuspenseQuery(IndexersOptionsQueryOptions());
+  const deprecationsQuery = useSuspenseQuery(IndexerDeprecationsQueryOptions());
+
+  const archived = useMemo(
+    () => (optionsQuery.data || []).filter((indexer) => indexer.archived),
+    [optionsQuery.data]
+  );
+
+  const metaByIdentifier = useMemo(
+    () => new Map((deprecationsQuery.data || []).map((d) => [d.identifier, d])),
+    [deprecationsQuery.data]
+  );
+
+  const totalFilterUsage = useMemo(
+    () => archived.reduce((sum, indexer) => sum + (metaByIdentifier.get(indexer.identifier)?.filter_count ?? 0), 0),
+    [archived, metaByIdentifier]
+  );
+
+  const pruneMutation = useMutation({
+    mutationFn: (identifiers: string[]) => APIClient.filters.pruneDeprecatedIndexers(identifiers),
+    onSuccess: (res) => {
+      toast.custom((tt) => (
+        <Toast
+          type="success"
+          body={t("listScreens.indexers.deprecated.pruneSuccess", { count: res?.removed ?? 0 })}
+          t={tt}
+        />
+      ));
+      queryClient.invalidateQueries({ queryKey: FilterKeys.all });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+    },
+    onError: () => {
+      toast.custom((tt) => (
+        <Toast type="error" body={t("listScreens.indexers.deprecated.pruneError")} t={tt} />
+      ));
+    }
+  });
+
+  const purgeMutation = useMutation({
+    mutationFn: (id: number) => APIClient.indexers.deleteArchived(id),
+    onSuccess: () => {
+      toast.custom((tt) => (
+        <Toast type="success" body={t("listScreens.indexers.deprecated.purgeSuccess")} t={tt} />
+      ));
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+    },
+    onError: () => {
+      toast.custom((tt) => (
+        <Toast type="error" body={t("listScreens.indexers.deprecated.purgeError")} t={tt} />
+      ));
+    }
+  });
+
+  const closeModal = () => setPendingAction(null);
+  const modalIsLoading = pruneMutation.isPending || purgeMutation.isPending;
+  const modalTitle = pendingAction?.type === "purge"
+    ? t("listScreens.indexers.deprecated.purgeTitle", { name: pendingAction.name })
+    : pendingAction?.name
+      ? t("listScreens.indexers.deprecated.pruneOneTitle", { name: pendingAction.name })
+      : t("listScreens.indexers.deprecated.pruneTitle");
+  const modalText = pendingAction?.type === "purge"
+    ? t("listScreens.indexers.deprecated.purgeText")
+    : pendingAction?.name
+      ? t("listScreens.indexers.deprecated.pruneOneText", { name: pendingAction.name })
+      : t("listScreens.indexers.deprecated.pruneText");
+
+  if (!archived.length) {
+    return null;
+  }
+
+  return (
+    <div className="pt-6">
+      <Section
+        title={t("listScreens.indexers.deprecated.title")}
+        description={t("listScreens.indexers.deprecated.description")}
+        rightSide={
+          totalFilterUsage > 0 ? (
+            <button
+              type="button"
+              onClick={() => setPendingAction({ type: "prune", identifiers: [] })}
+              disabled={pruneMutation.isPending}
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            >
+              <ArchiveBoxXMarkIcon className="h-5 w-5 mr-1" />
+              {t("listScreens.indexers.deprecated.pruneAll")}
+            </button>
+          ) : undefined
+        }
+      >
+        <DeleteModal
+          isOpen={pendingAction !== null}
+          isLoading={modalIsLoading}
+          toggle={closeModal}
+          buttonRef={cancelModalButtonRef}
+          deleteAction={() => {
+            if (pendingAction?.type === "prune") {
+              pruneMutation.mutate(pendingAction.identifiers);
+            } else if (pendingAction?.type === "purge") {
+              purgeMutation.mutate(pendingAction.id);
+            }
+          }}
+          title={modalTitle}
+          text={modalText}
+        />
+
+        <div className="flex flex-col">
+          <ul className="min-w-full relative">
+            {archived.map((indexer) => {
+              const meta = metaByIdentifier.get(indexer.identifier);
+              const usage = meta?.filter_count ?? 0;
+              return (
+                <li
+                  key={indexer.id}
+                  className="grid grid-cols-12 gap-2 items-center border-b border-gray-200 dark:border-gray-700 py-3"
+                >
+                  <div className="col-span-12 sm:col-span-3 pl-0 sm:pl-3 flex items-center gap-x-2">
+                    <ArchiveBoxXMarkIcon className="h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden="true" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {meta?.name || indexer.name}
+                    </span>
+                  </div>
+                  <div className="col-span-8 sm:col-span-4 text-sm text-gray-500 dark:text-gray-400">
+                    {meta?.reason || t("listScreens.indexers.deprecated.removed")}
+                    {meta?.issue_url ? (
+                      <>
+                        {" "}
+                        <ExternalLink href={meta.issue_url} className="text-blue-600 dark:text-blue-400 hover:underline">
+                          {t("listScreens.indexers.deprecated.moreInfo")}
+                        </ExternalLink>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="col-span-4 sm:col-span-2 text-right text-xs text-gray-500 dark:text-gray-400">
+                    {t("listScreens.indexers.deprecated.usedByFilters", { count: usage })}
+                  </div>
+                  <div className="col-span-12 sm:col-span-3 pr-0 sm:pr-3 flex justify-end">
+                    {usage > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction({
+                          type: "prune",
+                          identifiers: [indexer.identifier],
+                          name: meta?.name || indexer.name
+                        })}
+                        disabled={pruneMutation.isPending}
+                        className="text-sm font-medium text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 disabled:opacity-50"
+                      >
+                        {t("listScreens.indexers.deprecated.pruneOne")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction({
+                          type: "purge",
+                          id: indexer.id,
+                          name: meta?.name || indexer.name
+                        })}
+                        disabled={purgeMutation.isPending}
+                        className="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                      >
+                        <TrashIcon className="h-4 w-4 mr-1" aria-hidden="true" />
+                        {t("listScreens.indexers.deprecated.purge")}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+function IndexerSettingsPage() {
+  return (
+    <div className="lg:col-span-9">
+      <IndexerSettings />
+      <DeprecatedIndexers />
+    </div>
+  );
+}
+
+export default IndexerSettingsPage;

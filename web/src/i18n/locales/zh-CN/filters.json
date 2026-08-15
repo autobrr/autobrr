@@ -35,6 +35,7 @@
     "downloads": "下载",
     "per": "每",
     "usesDisabledIndexers": "使用了已禁用的索引器：{{names}}",
+    "usesDeprecatedIndexers": "使用了已移除或弃用的索引器：{{names}}。请编辑过滤器将其移除，或前往“设置 → 索引器”进行清理。",
     "noIndexer": "无索引器",
     "sort": {
       "label": "排序",

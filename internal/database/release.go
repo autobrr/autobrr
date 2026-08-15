@@ -298,7 +298,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			"r.rejections",
 			"r.indexer",
 			"i.id",
-			"i.name",
+			"COALESCE(i.name, d.name, r.indexer) AS indexer_name",
 			"i.identifier_external",
 			"r.filter",
 			"r.protocol",
@@ -340,7 +340,8 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		OrderBy("r.id DESC").
 		Where("r.id IN ("+subQuery+")", subArgs...).
 		LeftJoin("release_action_status ras ON r.id = ras.release_id").
-		LeftJoin("indexer i ON r.indexer = i.identifier")
+		LeftJoin("indexer i ON r.indexer = i.identifier").
+		LeftJoin("indexer_deprecation d ON r.indexer = d.identifier")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
