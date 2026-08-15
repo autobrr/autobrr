@@ -65,6 +65,7 @@ irc:
                   releaseName: Example Book - Example Author [2026] [ENG]
                   torrentId: "10003"
                   torrentSize: "3.35 MiB"
+                  tmdb:
 
         match:
           infourl: "/torrents/{{ .torrentId }}"
