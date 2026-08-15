@@ -22,26 +22,14 @@ settings:
 irc:
   network: SamaritanoNet
   server: irc.samaritano.cc
-  port: 6667
-  tls: false
+  port: 6697
+  tls: true
   settings:
     - name: nick
       type: text
       required: true
       label: Nick
       help: Bot nick. Eg. user|bot
-
-    - name: auth.account
-      type: text
-      required: false
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
-
-    - name: auth.password
-      type: secret
-      required: false
-      label: NickServ Password
-      help: NickServ password
 
   channels:
     - name: "#samaritano"
@@ -52,23 +40,31 @@ irc:
         lines:
           - pattern: '\[(?P<category>.+?)\] \[(?P<releaseTags>.+?)\] \[(?P<releaseName>.+?)\] \[TORRENT ID: (?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\](?: \[tmdb-(?P<tmdb>\d+)\])?'
             tests:
-              - line: "[Filmes] [WEB-DL] [Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin] [TORRENT ID: 10837] [2.1 GiB] [tmdb-912649]"
+              - line: "[Filmes] [WEB-DL] [Example Movie 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Group] [TORRENT ID: 10837] [2.1 GiB] [tmdb-912649]"
                 expect:
                   category: Filmes
                   releaseTags: WEB-DL
-                  releaseName: Venom The Last Dance 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Potatin
+                  releaseName: Example Movie 2024 1080p HMAX WEB-DL DDP2.0 H.265 DUAL-Group
                   torrentId: "10837"
                   torrentSize: "2.1 GiB"
                   tmdb: 912649
 
-              - line: "[Series] [WEB-DL] [The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN] [TORRENT ID: 10840] [43.1 GiB] [tmdb-72710]"
+              - line: "[Series] [WEB-DL] [Example Series S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-Group] [TORRENT ID: 10840] [43.1 GiB] [tmdb-72710]"
                 expect:
                   category: Series
                   releaseTags: WEB-DL
-                  releaseName: The Continental From the World of John Wick S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-BTBN
+                  releaseName: Example Series S01 2160p AMZN WEB-DL DTS-HD MA 5.1 DV HDR H.265-Group
                   torrentId: "10840"
                   torrentSize: "43.1 GiB"
                   tmdb: 72710
+
+              - line: "[Livros] [ePUB] [Example Book - Example Author [2026] [ENG]] [TORRENT ID: 10003] [3.35 MiB]"
+                expect:
+                  category: Livros
+                  releaseTags: ePUB
+                  releaseName: Example Book - Example Author [2026] [ENG]
+                  torrentId: "10003"
+                  torrentSize: "3.35 MiB"
 
         match:
           infourl: "/torrents/{{ .torrentId }}"
