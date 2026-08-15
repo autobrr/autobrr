@@ -180,7 +180,8 @@
     "customize": "Customize",
     "done": "Done",
     "reset": "Reset",
-    "hint": "Drag widgets to reorder them. Use the eye toggle to show or hide a widget.",
+    "hint": "Drag the handle to reorder widgets of the same size. Use the eye toggle to show or hide a widget.",
+    "move": "Move widget",
     "show": "Show widget",
     "hide": "Hide widget"
   },
