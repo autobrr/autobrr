@@ -440,6 +440,21 @@ func TestReleaseRepo_Get(t *testing.T) {
 		repo := NewReleaseRepo(log, db)
 
 		mockData := getMockRelease()
+		mockData.Title = "Troy"
+		mockData.NormalizedHash = "troy-2004"
+		mockData.Year = 2004
+		mockData.Month = 5
+		mockData.Day = 14
+		mockData.Audio = []string{"DTS-HD MA", "Atmos"}
+		mockData.AudioChannels = "7.1"
+		mockData.Region = "US"
+		mockData.Language = []string{"English", "French"}
+		mockData.Cut = []string{"Director's Cut"}
+		mockData.Edition = []string{"Extended"}
+		mockData.Hybrid = true
+		mockData.Repack = true
+		mockData.MediaProcessing = "Remux"
+		mockData.Other = []string{"Remastered"}
 		releaseActionMockData := getMockReleaseActionStatus()
 		actionMockData := getMockAction()
 
@@ -480,6 +495,92 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, release)
 			assert.Equal(t, mockData.ID, release.ID)
+			assert.Equal(t, mockData.Title, release.Title)
+			assert.Equal(t, mockData.NormalizedHash, release.NormalizedHash)
+			assert.Equal(t, mockData.Season, release.Season)
+			assert.Equal(t, mockData.Episode, release.Episode)
+			assert.Equal(t, mockData.Year, release.Year)
+			assert.Equal(t, mockData.Month, release.Month)
+			assert.Equal(t, mockData.Day, release.Day)
+			assert.Equal(t, mockData.Resolution, release.Resolution)
+			assert.Equal(t, mockData.Source, release.Source)
+			assert.Equal(t, mockData.Codec, release.Codec)
+			assert.Equal(t, mockData.Container, release.Container)
+			assert.Equal(t, mockData.HDR, release.HDR)
+			assert.Equal(t, mockData.Audio, release.Audio)
+			assert.Equal(t, mockData.AudioChannels, release.AudioChannels)
+			assert.Equal(t, mockData.Group, release.Group)
+			assert.Equal(t, mockData.Region, release.Region)
+			assert.Equal(t, mockData.Language, release.Language)
+			assert.Equal(t, mockData.Cut, release.Cut)
+			assert.Equal(t, mockData.Edition, release.Edition)
+			assert.Equal(t, mockData.Hybrid, release.Hybrid)
+			assert.Equal(t, mockData.Proper, release.Proper)
+			assert.Equal(t, mockData.Repack, release.Repack)
+			assert.Equal(t, mockData.Website, release.Website)
+			assert.Equal(t, mockData.MediaProcessing, release.MediaProcessing)
+			assert.Equal(t, mockData.Type, release.Type)
+			assert.Equal(t, mockData.Origin, release.Origin)
+			assert.Equal(t, mockData.Tags, release.Tags)
+			assert.Equal(t, mockData.PreTime, release.PreTime)
+			assert.Equal(t, mockData.Other, release.Other)
+
+			episode := &domain.Release{
+				Rejections: []string{},
+				Timestamp:  time.Now(),
+				Title:      "Example Show",
+				Season:     4,
+				Episode:    7,
+				Type:       rls.Episode,
+				Tags:       []string{},
+				Other:      []string{},
+				FilterID:   createdFilters[0].ID,
+			}
+
+			err = repo.Store(context.Background(), episode)
+			assert.NoError(t, err)
+
+			_, err = db.squirrel.
+				Update("release").
+				Set("year", nil).
+				Set("resolution", nil).
+				Set("codec", nil).
+				Set("hdr", nil).
+				Set("audio", nil).
+				Set("language", nil).
+				Set("cut", nil).
+				Set("edition", nil).
+				Set("proper", nil).
+				Set("repack", nil).
+				Set("hybrid", nil).
+				Where("id = ?", episode.ID).
+				RunWith(db.Handler).
+				ExecContext(context.Background())
+			assert.NoError(t, err)
+
+			storedEpisode, err := repo.Get(context.Background(), &domain.GetReleaseRequest{Id: int(episode.ID)})
+			assert.NoError(t, err)
+			assert.NotNil(t, storedEpisode)
+			assert.Equal(t, episode.Season, storedEpisode.Season)
+			assert.Equal(t, episode.Episode, storedEpisode.Episode)
+			assert.Equal(t, episode.Type, storedEpisode.Type)
+			assert.Zero(t, storedEpisode.Year)
+			assert.Empty(t, storedEpisode.Resolution)
+			assert.Empty(t, storedEpisode.Codec)
+			assert.Empty(t, storedEpisode.HDR)
+			assert.Empty(t, storedEpisode.Audio)
+			assert.Empty(t, storedEpisode.Language)
+			assert.Empty(t, storedEpisode.Cut)
+			assert.Empty(t, storedEpisode.Edition)
+			assert.False(t, storedEpisode.Proper)
+			assert.False(t, storedEpisode.Repack)
+			assert.False(t, storedEpisode.Hybrid)
+			assert.Empty(t, storedEpisode.Tags)
+			assert.Empty(t, storedEpisode.Other)
+
+			missing, err := repo.Get(context.Background(), &domain.GetReleaseRequest{Id: -1})
+			assert.Nil(t, missing)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
