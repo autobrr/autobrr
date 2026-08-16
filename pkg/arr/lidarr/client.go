@@ -27,7 +27,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "lidarr Client request error : %v", reqUrl)
+		return 0, nil, errors.Wrap(err, "could not build request: %s", u.Redacted())
 	}
 
 	if c.config.BasicAuth {
@@ -38,7 +38,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "lidarr.http.Do(req)")
+		return 0, nil, errors.Wrap(err, "could not make request")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)
@@ -66,7 +66,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		return errors.Wrap(err, "could not build request")
+		return errors.Wrap(err, "could not build request: %s", u.Redacted())
 	}
 
 	if c.config.BasicAuth {
@@ -79,7 +79,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "lidarr.http.Do(req)")
+		return errors.Wrap(err, "could not make request")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)
@@ -111,7 +111,7 @@ func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, errors.Wrap(err, "lidarr Client request error: %v", reqUrl)
+		return nil, errors.Wrap(err, "could not build request: %s", u.Redacted())
 	}
 
 	if c.config.BasicAuth {
@@ -124,7 +124,7 @@ func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		return res, errors.Wrap(err, "lidarr Client request error: %v", reqUrl)
+		return nil, errors.Wrap(err, "could not make request")
 	}
 
 	// validate response
@@ -154,7 +154,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "lidarr Client request error: %v", reqUrl)
+		return 0, nil, errors.Wrap(err, "could not build request: %s", u.Redacted())
 	}
 
 	if c.config.BasicAuth {
@@ -165,7 +165,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "lidarr.http.Do(req)")
+		return 0, nil, errors.Wrap(err, "could not make request")
 	}
 
 	defer sharedhttp.DrainAndClose(resp)
