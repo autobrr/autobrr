@@ -6,7 +6,6 @@
 package ggn
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -109,7 +108,7 @@ func Test_client_GetTorrentByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
-			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
+			got, err := c.GetTorrentByID(t.Context(), tt.args.torrentID)
 			if tt.wantErr && assert.Error(t, err) {
 				t.Logf("got err: %v", err)
 				assert.Equal(t, tt.wantErr, err)

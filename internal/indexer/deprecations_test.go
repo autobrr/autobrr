@@ -71,7 +71,7 @@ func TestReconcileDeprecations(t *testing.T) {
 		{Identifier: "customreadded", Name: "Custom Re-Added"},
 	}
 
-	require.NoError(t, s.reconcileDeprecations(context.Background(), deprecations))
+	require.NoError(t, s.reconcileDeprecations(t.Context(), deprecations))
 
 	assert.Equal(t, deprecations, fake.deprecations)
 	assert.Contains(t, fake.activeIdentifiers, "customreadded")

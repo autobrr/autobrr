@@ -108,7 +108,8 @@ func getMockFilterExternal() domain.FilterExternal {
 }
 
 func TestFilterRepo_Store(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
@@ -151,7 +152,8 @@ func TestFilterRepo_Store(t *testing.T) {
 }
 
 func TestFilterRepo_Update(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
@@ -189,7 +191,8 @@ func TestFilterRepo_Update(t *testing.T) {
 }
 
 func TestFilterRepo_Delete(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
@@ -223,7 +226,8 @@ func TestFilterRepo_Delete(t *testing.T) {
 }
 
 func TestFilterRepo_UpdatePartial(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
@@ -264,7 +268,8 @@ func TestFilterRepo_UpdatePartial(t *testing.T) {
 }
 
 func TestFilterRepo_ToggleEnabled(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
@@ -302,7 +307,8 @@ func TestFilterRepo_ToggleEnabled(t *testing.T) {
 }
 
 func TestFilterRepo_ListFilters(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
@@ -336,7 +342,8 @@ func TestFilterRepo_ListFilters(t *testing.T) {
 }
 
 func TestFilterRepo_Find(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -429,7 +436,8 @@ func TestFilterRepo_Find(t *testing.T) {
 }
 
 func TestFilterRepo_FindByID(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		mockData := getMockFilter()
@@ -464,7 +472,8 @@ func TestFilterRepo_FindByID(t *testing.T) {
 }
 
 func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -556,7 +565,8 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 }
 
 func TestFilterRepo_FindExternalFiltersByID(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 
@@ -590,7 +600,8 @@ func TestFilterRepo_FindExternalFiltersByID(t *testing.T) {
 }
 
 func TestFilterRepo_FindExternalFiltersByFilterIDs(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 
@@ -655,7 +666,8 @@ func TestFilterRepo_FindExternalFiltersByFilterIDs(t *testing.T) {
 }
 
 func TestFilterRepo_StoreIndexerConnection(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -690,7 +702,8 @@ func TestFilterRepo_StoreIndexerConnection(t *testing.T) {
 }
 
 func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -736,7 +749,8 @@ func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
 }
 
 func TestFilterRepo_StoreFilterExternal(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 
@@ -763,7 +777,8 @@ func TestFilterRepo_StoreFilterExternal(t *testing.T) {
 }
 
 func TestFilterRepo_DeleteIndexerConnections(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		indexerRepo := NewIndexerRepo(log, db)
@@ -805,7 +820,8 @@ func TestFilterRepo_DeleteIndexerConnections(t *testing.T) {
 }
 
 func TestFilterRepo_DeleteFilterExternal(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 
@@ -841,7 +857,8 @@ func TestFilterRepo_DeleteFilterExternal(t *testing.T) {
 }
 
 func TestFilterRepo_GetFilterDownloads(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		releaseRepo := NewReleaseRepo(log, db)

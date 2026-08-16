@@ -6,7 +6,6 @@
 package database
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -43,7 +42,8 @@ func getMockNotification() domain.Notification {
 }
 
 func TestNotificationRepo_Store(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -57,7 +57,7 @@ func TestNotificationRepo_Store(t *testing.T) {
 			notification := getMockNotification()
 
 			// Execute
-			err := repo.Store(context.Background(), &notification)
+			err := repo.Store(t.Context(), &notification)
 
 			// Verify
 			assert.NoError(t, err)
@@ -65,13 +65,14 @@ func TestNotificationRepo_Store(t *testing.T) {
 			assert.Equal(t, mockData.Type, notification.Type)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = repo.Delete(t.Context(), mockData.ID)
 		})
 	}
 }
 
 func TestNotificationRepo_Update(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -79,7 +80,7 @@ func TestNotificationRepo_Update(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Initial setup and Store
-			err := repo.Store(context.Background(), &mockData)
+			err := repo.Store(t.Context(), &mockData)
 			assert.NoError(t, err)
 			assert.NotNil(t, &mockData)
 
@@ -94,7 +95,7 @@ func TestNotificationRepo_Update(t *testing.T) {
 			updatedMockData.Priority = newPriority
 
 			// Execute Update
-			err = repo.Update(context.Background(), updatedMockData)
+			err = repo.Update(t.Context(), updatedMockData)
 
 			// Verify
 			assert.NoError(t, err)
@@ -104,13 +105,14 @@ func TestNotificationRepo_Update(t *testing.T) {
 			assert.Equal(t, updatedMockData.Priority, newPriority)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = repo.Delete(t.Context(), mockData.ID)
 		})
 	}
 }
 
 func TestNotificationRepo_Delete(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -120,18 +122,18 @@ func TestNotificationRepo_Delete(t *testing.T) {
 			notification := getMockNotification()
 
 			// Initial setup and Store
-			err := repo.Store(context.Background(), &notification)
+			err := repo.Store(t.Context(), &notification)
 			assert.NoError(t, err)
 			assert.NotNil(t, notification)
 
 			// Execute Delete
-			err = repo.Delete(context.Background(), notification.ID)
+			err = repo.Delete(t.Context(), notification.ID)
 
 			// Verify
 			assert.NoError(t, err)
 
 			// Further verification: Attempt to fetch deleted notification, expect an error or a nil result
-			deletedNotification, err := repo.FindByID(context.Background(), notification.ID)
+			deletedNotification, err := repo.FindByID(t.Context(), notification.ID)
 			assert.Error(t, err)
 			assert.Nil(t, deletedNotification)
 		})
@@ -139,7 +141,8 @@ func TestNotificationRepo_Delete(t *testing.T) {
 }
 
 func TestNotificationRepo_Find(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -151,16 +154,16 @@ func TestNotificationRepo_Find(t *testing.T) {
 			// Setup
 
 			// Clear out any existing notifications
-			notificationsList, _ := repo.List(context.Background())
+			notificationsList, _ := repo.List(t.Context())
 			for _, notification := range notificationsList {
-				_ = repo.Delete(context.Background(), notification.ID)
+				_ = repo.Delete(t.Context(), notification.ID)
 			}
 
-			err := repo.Store(context.Background(), &mockData1)
+			err := repo.Store(t.Context(), &mockData1)
 			assert.NoError(t, err)
-			err = repo.Store(context.Background(), &mockData2)
+			err = repo.Store(t.Context(), &mockData2)
 			assert.NoError(t, err)
-			err = repo.Store(context.Background(), &mockData3)
+			err = repo.Store(t.Context(), &mockData3)
 			assert.NoError(t, err)
 
 			// Setup query params
@@ -170,7 +173,7 @@ func TestNotificationRepo_Find(t *testing.T) {
 			}
 
 			// Execute Find
-			notifications, totalCount, err := repo.Find(context.Background(), params)
+			notifications, totalCount, err := repo.Find(t.Context(), params)
 
 			// Verify
 			assert.NoError(t, err)
@@ -178,16 +181,17 @@ func TestNotificationRepo_Find(t *testing.T) {
 			assert.Equal(t, 3, totalCount)
 
 			// Cleanup
-			notificationsList, _ = repo.List(context.Background())
+			notificationsList, _ = repo.List(t.Context())
 			for _, notification := range notificationsList {
-				_ = repo.Delete(context.Background(), notification.ID)
+				_ = repo.Delete(t.Context(), notification.ID)
 			}
 		})
 	}
 }
 
 func TestNotificationRepo_FindByID(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -199,10 +203,10 @@ func TestNotificationRepo_FindByID(t *testing.T) {
 			//notification := getMockNotification()
 
 			assert.NotNil(t, mockData)
-			err := repo.Store(context.Background(), &mockData)
+			err := repo.Store(t.Context(), &mockData)
 
 			// Execute
-			notification, err := repo.FindByID(context.Background(), mockData.ID)
+			notification, err := repo.FindByID(t.Context(), mockData.ID)
 
 			// Verify
 			assert.NoError(t, err)
@@ -211,13 +215,14 @@ func TestNotificationRepo_FindByID(t *testing.T) {
 			assert.Equal(t, mockData.Type, notification.Type)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = repo.Delete(t.Context(), mockData.ID)
 		})
 	}
 }
 
 func TestNotificationRepo_List(t *testing.T) {
-	for dbType, db := range testDBs {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewNotificationRepo(log, db)
@@ -225,18 +230,18 @@ func TestNotificationRepo_List(t *testing.T) {
 
 		t.Run(fmt.Sprintf("List_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			notificationsList, _ := repo.List(context.Background())
+			notificationsList, _ := repo.List(t.Context())
 			for _, notification := range notificationsList {
-				_ = repo.Delete(context.Background(), notification.ID)
+				_ = repo.Delete(t.Context(), notification.ID)
 			}
 
 			for i := 0; i < 10; i++ {
-				err := repo.Store(context.Background(), &mockData)
+				err := repo.Store(t.Context(), &mockData)
 				assert.NoError(t, err)
 			}
 
 			// Execute
-			notifications, err := repo.List(context.Background())
+			notifications, err := repo.List(t.Context())
 
 			// Verify
 			assert.NoError(t, err)
@@ -244,7 +249,7 @@ func TestNotificationRepo_List(t *testing.T) {
 
 			// Cleanup
 			for _, notification := range notifications {
-				_ = repo.Delete(context.Background(), notification.ID)
+				_ = repo.Delete(t.Context(), notification.ID)
 			}
 		})
 	}

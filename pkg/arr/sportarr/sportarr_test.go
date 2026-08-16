@@ -6,7 +6,6 @@
 package sportarr
 
 import (
-	"context"
 	"io"
 	"log"
 	"net/http"
@@ -110,7 +109,7 @@ func Test_client_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			rejections, err := c.Push(context.Background(), tt.args.release)
+			rejections, err := c.Push(t.Context(), tt.args.release)
 			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
@@ -180,7 +179,7 @@ func Test_client_Test(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.cfg)
 
-			got, err := c.Test(context.Background())
+			got, err := c.Test(t.Context())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.expectedErr, err)
 			}
@@ -232,7 +231,7 @@ func Test_client_Push_temporarilyRejected(t *testing.T) {
 
 	c := New(Config{Hostname: ts.URL})
 
-	rejections, err := c.Push(context.Background(), ReleasePushRequest{
+	rejections, err := c.Push(t.Context(), ReleasePushRequest{
 		Title:            "Formula.1.2026x10.Belgium.Race.SkyF1HD.1080p",
 		DownloadUrl:      "https://www.mock-indexer.test/tor/download.php?tid=000000",
 		Size:             1048576,
