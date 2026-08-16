@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type FeedCacheRepo struct {
 	db  *DB
 }
 
-func NewFeedCacheRepo(log logger.Logger, db *DB) *FeedCacheRepo {
+func NewFeedCacheRepo(log zerolog.Logger, db *DB) *FeedCacheRepo {
 	return &FeedCacheRepo{
 		log: log.With().Str("module", "database").Str("repo", "feed_cache").Logger(),
 		db:  db,
@@ -281,7 +280,7 @@ func (r *FeedCacheRepo) DeleteByFeed(ctx context.Context, feedId int) error {
 		return errors.Wrap(err, "error exec result")
 	}
 
-	r.log.Debug().Msgf("deleted %d rows from feed cache: %d", rows, feedId)
+	r.log.Debug().Int64("rows_affected", rows).Int("feed_id", feedId).Msg("deleted rows from feed cache")
 
 	return nil
 }

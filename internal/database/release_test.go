@@ -240,6 +240,20 @@ func TestReleaseRepo_Find(t *testing.T) {
 			assert.NotEqual(t, int64(0), resp.TotalCount)
 			assert.True(t, resp.NextCursor >= 0)
 
+			// Search by type
+			queryParams.Search = "type:movie"
+			resp, err = repo.Find(context.Background(), queryParams)
+			assert.NoError(t, err)
+			assert.NotNil(t, resp)
+			assert.Equal(t, uint64(1), resp.TotalCount)
+
+			// Search by type with no matches
+			queryParams.Search = "type:episode"
+			resp, err = repo.Find(context.Background(), queryParams)
+			assert.NoError(t, err)
+			assert.NotNil(t, resp)
+			assert.Equal(t, uint64(0), resp.TotalCount)
+
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
 			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
@@ -525,7 +539,97 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			// Verify
 			assert.NoError(t, err)
 			assert.NotNil(t, stats)
+			assert.Equal(t, int64(1), stats.TotalCount)
+			assert.Equal(t, int64(1), stats.FilteredCount)
+			assert.Equal(t, int64(0), stats.FilterRejectedCount)
 			assert.Equal(t, int64(1), stats.PushApprovedCount)
+			assert.Equal(t, int64(0), stats.PushRejectedCount)
+			assert.Equal(t, int64(0), stats.PushErrorCount)
+
+			// Cleanup
+			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})
+			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionMockData.ID})
+			_ = filterRepo.Delete(context.Background(), createdFilters[0].ID)
+			_ = downloadClientRepo.Delete(context.Background(), mock.ID)
+		})
+	}
+}
+
+func TestReleaseRepo_StatsDashboard(t *testing.T) {
+	for dbType, db := range testDBs {
+		log := setupLoggerForTest()
+
+		downloadClientRepo := NewDownloadClientRepo(log, db)
+		filterRepo := NewFilterRepo(log, db)
+		actionRepo := NewActionRepo(log, db)
+		repo := NewReleaseRepo(log, db)
+
+		mockData := getMockRelease()
+		releaseActionMockData := getMockReleaseActionStatus()
+		actionMockData := getMockAction()
+
+		t.Run(fmt.Sprintf("StatsDashboard_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mock := getMockDownloadClient()
+			err := downloadClientRepo.Store(context.Background(), &mock)
+			assert.NoError(t, err)
+
+			err = filterRepo.Store(context.Background(), getMockFilter())
+			assert.NoError(t, err)
+
+			createdFilters, err := filterRepo.ListFilters(context.Background())
+			assert.NoError(t, err)
+			assert.NotNil(t, createdFilters)
+
+			actionMockData.FilterID = createdFilters[0].ID
+			actionMockData.ClientID = mock.ID
+			mockData.FilterID = createdFilters[0].ID
+
+			err = repo.Store(context.Background(), mockData)
+			assert.NoError(t, err)
+			err = actionRepo.Store(context.Background(), actionMockData)
+			assert.NoError(t, err)
+
+			releaseActionMockData.ReleaseID = mockData.ID
+			releaseActionMockData.ActionID = int64(actionMockData.ID)
+			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
+
+			err = repo.StoreReleaseActionStatus(context.Background(), releaseActionMockData)
+			assert.NoError(t, err)
+
+			for _, days := range []int{30, 0} {
+				activity, err := repo.StatsActivity(context.Background(), days)
+				assert.NoError(t, err)
+				assert.Equal(t, days, activity.Days)
+				assert.NotEmpty(t, activity.Daily)
+				today := activity.Daily[len(activity.Daily)-1]
+				assert.Equal(t, int64(1), today.MatchedCount)
+				assert.Equal(t, int64(1), today.PushApprovedCount)
+				assert.Equal(t, int64(0), today.PushRejectedCount)
+
+				volume, err := repo.StatsVolume(context.Background(), days)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, volume.Daily)
+
+				heatmap, err := repo.StatsHeatmap(context.Background(), days)
+				assert.NoError(t, err)
+				assert.Len(t, heatmap.Heatmap, 168)
+				var heatmapTotal int64
+				for _, count := range heatmap.Heatmap {
+					heatmapTotal += count
+				}
+				assert.Equal(t, int64(1), heatmapTotal)
+
+				indexers, err := repo.StatsTopIndexers(context.Background(), days)
+				assert.NoError(t, err)
+				assert.Len(t, indexers.Top, 1)
+				assert.Equal(t, int64(1), indexers.Top[0].MatchedCount)
+				assert.Equal(t, int64(1), indexers.Top[0].PushApprovedCount)
+
+				filters, err := repo.StatsTopFilters(context.Background(), days)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, filters.Top)
+			}
 
 			// Cleanup
 			_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{OlderThan: 0})

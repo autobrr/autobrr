@@ -35,6 +35,7 @@
     "downloads": "Downloads",
     "per": "pro",
     "usesDisabledIndexers": "Verwendet deaktivierte(n) Indexer: {{names}}",
+    "usesDeprecatedIndexers": "Verwendet entfernte oder nicht mehr unterstützte Indexer: {{names}}. Bearbeite den Filter, um sie zu entfernen, oder verwende Einstellungen → Indexer.",
     "noIndexer": "KEIN INDEXER",
     "sort": {
       "label": "Sortierung",
@@ -58,6 +59,7 @@
       "general": "Allgemein",
       "moviesTv": "Filme & Serien",
       "music": "Musik",
+      "books": "Bücher",
       "advanced": "Erweitert",
       "external": "Extern",
       "actions": "Aktionen",
@@ -368,6 +370,30 @@
       "perfectFlacDescription": "Alle Optionen zu Qualität, Quelle, Format und CUE/Log/Log-Punktzahl überschreiben.",
       "perfectFlacTooltip": "Alle Optionen zu Qualität, Quelle, Format und CUE/Log/Log-Punktzahl überschreiben.",
       "perfectFlacHint": "Dies ist in 90% der Fälle die richtige Wahl (anstelle der obigen Optionen)."
+    }
+  },
+  "books": {
+    "authors": "Autoren",
+    "authorsPlaceholder": "z.B. Autor Eins",
+    "titles": "Titel",
+    "titlesPlaceholder": "z.B. Jenes Buch",
+    "wildcardTooltip": "Grundlegendes Filtern mit Platzhaltern * oder einzelne Zeichen mit ? ersetzen",
+    "years": "Jahre",
+    "yearsPlaceholder": "z.B. 2018,2019-2021",
+    "yearsTooltip": "Dieses Feld nimmt einen Jahresbereich und/oder durch Komma getrennte Einzeljahre.",
+    "options": {
+      "title": "Optionen",
+      "subtitle": "Sprache, Format und Tags",
+      "matchLanguage": "Sprache filtern",
+      "exceptLanguage": "Sprache ausschließen",
+      "format": "Format",
+      "formatTooltip": "Filtert nur Releases mit einem der ausgewählten Formate.",
+      "matchTags": "Tags filtern",
+      "matchTagsPlaceholder": "z.B. tag1,tag2",
+      "matchTagsTooltip": "Durch Komma getrennte Liste von Tags zum Filtern.",
+      "exceptTags": "Tags ausschließen",
+      "exceptTagsPlaceholder": "z.B. tag1,tag2",
+      "exceptTagsTooltip": "Durch Komma getrennte Liste von Tags die ausgeschlossen werden (hat Vorrang vor Tags filtern)."
     }
   },
   "external": {

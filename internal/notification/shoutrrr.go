@@ -6,7 +6,7 @@ package notification
 import (
 	"github.com/autobrr/autobrr/internal/domain"
 
-	"github.com/containrrr/shoutrrr"
+	"github.com/nicholas-fedor/shoutrrr"
 	"github.com/rs/zerolog"
 )
 

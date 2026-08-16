@@ -171,7 +171,7 @@ func deepMatchRune(str, pattern string, simple bool, original string, bulk bool)
 			var err error
 			user, err = regexcache.Compile(pattern)
 			if err != nil {
-				log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
+				log.Error().Err(err).Str("pattern", pattern).Msg("unable to parse regex")
 				return false
 			}
 		}

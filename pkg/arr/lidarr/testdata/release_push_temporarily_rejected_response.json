@@ -1,0 +1,11 @@
+{
+  "title": "Famous Artist - Great Album (2026) [FLAC]",
+  "indexer": "mock-indexer",
+  "protocol": "torrent",
+  "approved": false,
+  "rejected": false,
+  "temporarilyRejected": true,
+  "rejections": [
+    "Waiting for a better quality release"
+  ]
+}

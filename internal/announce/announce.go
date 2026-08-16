@@ -4,6 +4,7 @@
 package announce
 
 import (
+	"context"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -17,7 +18,7 @@ type Processor interface {
 }
 
 type releaseService interface {
-	Process(release *domain.Release)
+	Process(ctx context.Context, release *domain.Release)
 }
 
 type announceProcessor struct {
@@ -49,7 +50,7 @@ func (a *announceProcessor) setupQueues() {
 		channelName := strings.ToLower(channel.Name)
 
 		queues[channelName] = make(chan string, 128)
-		a.log.Trace().Msgf("announce: setup queue: %s", channelName)
+		a.log.Trace().Str("channel", channelName).Msg("setup channel queue")
 	}
 
 	a.queues = queues
@@ -58,17 +59,29 @@ func (a *announceProcessor) setupQueues() {
 func (a *announceProcessor) setupQueueConsumers() {
 	for queueName, queue := range a.queues {
 		go func(name string, q chan string) {
-			a.log.Trace().Msgf("announce: setup queue consumer: %s", name)
+			a.log.Trace().Str("channel", name).Msg("announce: setup queue consumer")
 			a.processQueue(name, q)
-			a.log.Trace().Msgf("announce: queue consumer stopped: %s", name)
+			a.log.Trace().Str("channel", name).Msg("announce: queue consumer stopped")
 		}(queueName, queue)
 	}
 }
 
+func (a *announceProcessor) Stop() {
+	for name, queue := range a.queues {
+		close(queue)
+		a.log.Trace().Str("channel", name).Msg("announce: stopped queue")
+	}
+}
+
 func (a *announceProcessor) processQueue(channelName string, queue chan string) {
-	channel, ok := a.indexer.IRC.ChannelsMap[channelName]
+	// the channel config is static for the life of the consumer, so resolve it once.
+	channel, ok := a.indexer.IRC.GetChannel(channelName)
 	if !ok {
-		a.log.Error().Msgf("announce: no channel found for name: %s", channelName)
+		a.log.Error().Str("channel", channelName).Msg("no channel found")
+		return
+	}
+	if channel.Parse == nil {
+		a.log.Error().Str("channel", channelName).Msg("channel has no parse configuration")
 		return
 	}
 
@@ -77,30 +90,34 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 		parseFailed := false
 		//patternParsed := false
 
+		// one trace id per announce, which can span multiple lines
+		traceID := domain.NewTraceID()
+		l := a.log.With().Str("trace_id", traceID).Logger()
+
 		for _, parseLine := range channel.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
-				a.log.Error().Err(err).Msg("could not get line from queue")
+				l.Error().Err(err).Msg("could not get line from queue")
 				return
 			}
 
-			a.log.Trace().Msgf("announce: process line: %s", line)
+			l.Trace().Str("line", line).Msg("announce: process line")
 
 			if !a.indexer.Enabled {
-				a.log.Warn().Msgf("indexer %s disabled", a.indexer.Name)
+				l.Warn().Msg("indexer disabled, skipping further processing")
 			}
 
 			// check should ignore
 			match, err := parseLine.ParseLine(tmpVars, line, parseLine.Ignore)
 			if err != nil {
-				a.log.Error().Err(err).Msgf("error parsing extract for line: %s", line)
+				l.Error().Err(err).Str("line", line).Msg("error parsing extract for line")
 
 				parseFailed = true
 				break
 			}
 
 			if !match {
-				a.log.Debug().Msgf("line not matching expected regex pattern: %s", line)
+				l.Debug().Str("pattern", parseLine.Pattern).Str("line", line).Msg("line did not match expected regex pattern")
 				parseFailed = true
 				break
 			}
@@ -111,16 +128,17 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 		}
 
 		rls := domain.NewRelease(domain.IndexerMinimal{ID: a.indexer.ID, Name: a.indexer.Name, Identifier: a.indexer.Identifier, IdentifierExternal: a.indexer.IdentifierExternal})
+		rls.TraceID = traceID
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched
 		if err := channel.Parse.Parse(a.indexer, channelName, tmpVars, rls); err != nil {
-			a.log.Error().Err(err).Msg("announce: could not parse announce for release")
+			l.Error().Err(err).Msg("announce: could not parse announce for release")
 			continue
 		}
 
 		// process release in a new go routine
-		go a.releaseSvc.Process(rls)
+		go a.releaseSvc.Process(context.Background(), rls)
 	}
 }
 
@@ -144,7 +162,7 @@ func (a *announceProcessor) AddLineToQueue(channel string, line string) error {
 
 	queue <- line
 
-	a.log.Trace().Msgf("announce: queued line: %s", line)
+	a.log.Trace().Str("line", line).Msg("announce: queued line")
 
 	return nil
 }

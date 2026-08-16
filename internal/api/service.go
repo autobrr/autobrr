@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
@@ -29,7 +28,7 @@ type Service struct {
 	keyCache map[string]domain.APIKey
 }
 
-func NewService(log logger.Logger, repo repo) *Service {
+func NewService(log zerolog.Logger, repo repo) *Service {
 	return &Service{
 		log:      log.With().Str("module", "api").Logger(),
 		repo:     repo,
@@ -85,17 +84,17 @@ func (s *Service) Delete(ctx context.Context, key string) error {
 
 func (s *Service) ValidateAPIKey(ctx context.Context, key string) bool {
 	if _, ok := s.keyCache[key]; ok {
-		s.log.Trace().Msgf("api service key cache hit: %s", key)
+		s.log.Trace().Str("api_key", key).Msg("cache hit")
 		return true
 	}
 
 	apiKey, err := s.repo.GetKey(ctx, key)
 	if err != nil {
-		s.log.Trace().Msgf("api service key cache invalid key: %s", key)
+		s.log.Trace().Str("api_key", key).Msg("cache invalid key")
 		return false
 	}
 
-	s.log.Trace().Msgf("api service key cache miss: %s", key)
+	s.log.Trace().Str("api_key", key).Msg("cache miss")
 
 	s.keyCache[key] = *apiKey
 

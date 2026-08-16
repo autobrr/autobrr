@@ -66,6 +66,7 @@ type Macro struct {
 	LogScore                  int
 	MagnetURI                 string
 	MetaIMDB                  string
+	MetaTMDB                  int
 	Origin                    string
 	Other                     []string
 	PreTime                   string
@@ -147,6 +148,7 @@ func NewMacro(release Release) Macro {
 		LogScore:                  release.LogScore,
 		MagnetURI:                 release.MagnetURI,
 		MetaIMDB:                  release.MetaIMDB,
+		MetaTMDB:                  release.MetaTMDB,
 		Origin:                    release.Origin,
 		Other:                     release.Other,
 		PreTime:                   release.PreTime,

@@ -47,7 +47,7 @@ func runMigrationTestSQLite(t *testing.T, testCase MigrationTestCase) {
 	db, cleanup := setupTestSQLiteDB(t)
 	defer cleanup()
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	migrate := migrations.SQLiteMigrations(db.Handler, log.With().Logger())
 
@@ -532,6 +532,40 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "Indexer archived + deprecation migration",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Indexer archived + deprecation migration",
+				MigrationIndex:      94,
+				MigrationsUntilName: "94_feeds_add_user_agent",
+				MigrationToRun:      "95_add_indexer_archived_and_deprecation",
+
+				SetupData: func(db *sql.DB) error {
+					_, err := db.Exec(`INSERT INTO indexer (identifier, name, enabled) VALUES ('fnp', 'FearNoPeer', 1)`)
+					return err
+				},
+				ValidateResult: func(db *sql.DB, t *testing.T) {
+					var archived bool
+					err := db.QueryRow(`SELECT archived FROM indexer WHERE identifier = 'fnp'`).Scan(&archived)
+					require.NoError(t, err)
+					assert.False(t, archived, "existing rows must default to not archived")
+
+					_, err = db.Exec(`INSERT INTO indexer_deprecation (identifier, name) VALUES ('fnp', 'FearNoPeer') ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name`)
+					require.NoError(t, err)
+					_, err = db.Exec(`INSERT INTO indexer_deprecation (identifier, name) VALUES ('fnp', 'FearNoPeer (updated)') ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name`)
+					require.NoError(t, err, "indexer_deprecation should support ON CONFLICT upsert")
+
+					var count int
+					var name string
+					err = db.QueryRow(`SELECT COUNT(*), MAX(name) FROM indexer_deprecation WHERE identifier = 'fnp'`).Scan(&count, &name)
+					require.NoError(t, err)
+					assert.Equal(t, 1, count, "upsert must not create a duplicate row")
+					assert.Equal(t, "FearNoPeer (updated)", name, "upsert must update the existing row")
+				},
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -552,7 +586,7 @@ func setupTestSQLiteDB(t *testing.T) (*database.DB, func()) {
 		DatabaseDSN:  dbPath,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	require.NoError(t, err)
 
@@ -572,7 +606,7 @@ func TestFullMigrationSequenceSQLite(t *testing.T) {
 	db, cleanup := setupTestSQLiteDB(t)
 	defer cleanup()
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	// This will run all migrations
 	migrate := migrations.SQLiteMigrations(db.Handler, log.With().Logger())

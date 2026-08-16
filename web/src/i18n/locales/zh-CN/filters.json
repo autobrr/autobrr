@@ -35,6 +35,7 @@
     "downloads": "下载",
     "per": "每",
     "usesDisabledIndexers": "使用了已禁用的索引器：{{names}}",
+    "usesDeprecatedIndexers": "使用了已移除或弃用的索引器：{{names}}。请编辑过滤器将其移除，或前往“设置 → 索引器”进行清理。",
     "noIndexer": "无索引器",
     "sort": {
       "label": "排序",
@@ -58,6 +59,7 @@
       "general": "常规",
       "moviesTv": "电影和剧集",
       "music": "音乐",
+      "books": "图书",
       "advanced": "高级",
       "external": "外部",
       "actions": "动作",
@@ -368,6 +370,30 @@
       "perfectFlacDescription": "覆盖所有关于质量、来源、格式以及 cue/log/log score 的选项。",
       "perfectFlacTooltip": "覆盖所有关于质量、来源、格式以及 CUE/LOG/LOG score 的选项。",
       "perfectFlacHint": "在 90% 的场景里，你真正想要的通常就是这个，而不是上面的细项。"
+    }
+  },
+  "books": {
+    "authors": "作者",
+    "authorsPlaceholder": "例如：Author One",
+    "titles": "书名",
+    "titlesPlaceholder": "例如：That Book",
+    "wildcardTooltip": "你可以使用通配符 *，或者用 ? 替代单个字符进行基础匹配。",
+    "years": "年份",
+    "yearsPlaceholder": "例如：2018,2019-2021",
+    "yearsTooltip": "该字段支持年份范围和逗号分隔的单个年份。",
+    "options": {
+      "title": "选项",
+      "subtitle": "语言、格式和标签",
+      "matchLanguage": "匹配语言",
+      "exceptLanguage": "排除语言",
+      "format": "格式",
+      "formatTooltip": "仅匹配包含任一所选格式的发布。",
+      "matchTags": "匹配标签",
+      "matchTagsPlaceholder": "例如：tag1,tag2",
+      "matchTagsTooltip": "用逗号分隔要匹配的标签列表。",
+      "exceptTags": "排除标签",
+      "exceptTagsPlaceholder": "例如：tag1,tag2",
+      "exceptTagsTooltip": "用逗号分隔要忽略的标签列表（优先级高于匹配标签）。"
     }
   },
   "external": {

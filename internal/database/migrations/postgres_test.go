@@ -28,7 +28,7 @@ func runMigrationTestPostgres(t *testing.T, testCase MigrationTestCase) {
 	db, cleanup := setupTestPostgresDB(t)
 	defer cleanup()
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
 
@@ -97,7 +97,7 @@ func setupPGTestDB() (*database.DB, func(), error) {
 		DatabaseAutoMigrate: false,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	if err != nil {
 		return nil, nil, err
@@ -125,7 +125,7 @@ func setupTestPostgresDB(t *testing.T) (*database.DB, func()) {
 		DatabaseAutoMigrate: false,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	require.NoError(t, err)
 
@@ -147,7 +147,7 @@ func TestFullMigrationSequencePostgres(t *testing.T) {
 	defer cleanup()
 	require.NoError(t, err)
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
 	// This will run all migrations
 	migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
@@ -211,7 +211,7 @@ func startEmbeddedPGOnPort(t *testing.T, port int) (*database.DB, func()) {
 		DatabaseAutoMigrate: false,
 	}
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 	db, err := database.NewDB(cfg, log)
 	require.NoError(t, err)
 	require.NoError(t, db.Open())
@@ -464,13 +464,42 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 				assert.Equal(t, 0, count, "both old p2p-network rows should be deleted")
 			},
 		},
+		{
+			Name:                "Indexer archived + deprecation migration",
+			MigrationIndex:      84,
+			MigrationsUntilName: "84_feeds_add_user_agent",
+			MigrationToRun:      "85_add_indexer_archived_and_deprecation",
+
+			SetupData: func(db *sql.DB) error {
+				_, err := db.Exec(`INSERT INTO indexer (identifier, name, enabled) VALUES ('fnp', 'FearNoPeer', true)`)
+				return err
+			},
+			ValidateResult: func(db *sql.DB, t *testing.T) {
+				var archived bool
+				err := db.QueryRow(`SELECT archived FROM indexer WHERE identifier = 'fnp'`).Scan(&archived)
+				require.NoError(t, err)
+				assert.False(t, archived, "existing rows must default to not archived")
+
+				_, err = db.Exec(`INSERT INTO indexer_deprecation (identifier, name) VALUES ('fnp', 'FearNoPeer') ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name`)
+				require.NoError(t, err)
+				_, err = db.Exec(`INSERT INTO indexer_deprecation (identifier, name) VALUES ('fnp', 'FearNoPeer (updated)') ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name`)
+				require.NoError(t, err, "indexer_deprecation should support ON CONFLICT upsert")
+
+				var count int
+				var name string
+				err = db.QueryRow(`SELECT COUNT(*), MAX(name) FROM indexer_deprecation WHERE identifier = 'fnp'`).Scan(&count, &name)
+				require.NoError(t, err)
+				assert.Equal(t, 1, count, "upsert must not create a duplicate row")
+				assert.Equal(t, "FearNoPeer (updated)", name, "upsert must update the existing row")
+			},
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			resetPublicSchema(t, db.Handler)
 
-			log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+			log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 			migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
 
 			require.NoError(t, migrate.InitVersionTable())

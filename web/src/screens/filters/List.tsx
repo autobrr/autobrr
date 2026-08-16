@@ -29,7 +29,8 @@ import {
   PencilSquareIcon,
   PlusIcon, SparklesIcon,
   TrashIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ArchiveBoxXMarkIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
@@ -557,17 +558,27 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
   const { t } = useTranslation("filters");
   const queryClient = useQueryClient();
 
-  // Check if this filter uses any disabled indexers and get their names
   const disabledIndexersInfo = useMemo(() => {
     if (!filter.enabled || !filter.indexers || filter.indexers.length === 0) {
       return { hasDisabled: false, names: [] };
     }
-    const disabled = filter.indexers.filter(indexer => !indexer.enabled);
+    const disabled = filter.indexers.filter(indexer => !indexer.enabled && !indexer.archived);
     return {
       hasDisabled: disabled.length > 0,
       names: disabled.map(indexer => indexer.name)
     };
   }, [filter.enabled, filter.indexers]);
+
+  const deprecatedIndexersInfo = useMemo(() => {
+    if (!filter.indexers || filter.indexers.length === 0) {
+      return { hasDeprecated: false, names: [] };
+    }
+    const deprecated = filter.indexers.filter(indexer => indexer.archived);
+    return {
+      hasDeprecated: deprecated.length > 0,
+      names: deprecated.map(indexer => indexer.name)
+    };
+  }, [filter.indexers]);
 
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
@@ -608,6 +619,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
         className="pl-2 pr-4 sm:px-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
       >
         <Checkbox
+          name="enabled"
           value={filter.enabled}
           setValue={toggleActive}
         />
@@ -677,13 +689,21 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           )}
         </div>
       </div>
-      <span className="hidden md:flex items-center justify-center py-4">
+      <span className="hidden md:flex items-center justify-center gap-x-1 py-4">
         {disabledIndexersInfo.hasDisabled && (
           <span
             className="inline-flex items-center"
             title={t("list.usesDisabledIndexers", { names: disabledIndexersInfo.names.join(", ") })}
           >
             <ExclamationTriangleIcon className="w-4 h-4 text-red-500 dark:text-red-400 relative top-px" aria-hidden="true"/>
+          </span>
+        )}
+        {deprecatedIndexersInfo.hasDeprecated && (
+          <span
+            className="inline-flex items-center"
+            title={t("list.usesDeprecatedIndexers", { names: deprecatedIndexersInfo.names.join(", ") })}
+          >
+            <ArchiveBoxXMarkIcon className="w-4 h-4 text-amber-500 dark:text-amber-400 relative top-px" aria-hidden="true"/>
           </span>
         )}
       </span>

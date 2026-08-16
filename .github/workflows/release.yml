@@ -44,18 +44,18 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
         with:
           package_json_file: web/package.json
 
       # It can not be done before installing pnpm
       - name: Set up cache
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml
@@ -95,8 +95,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check indexer deprecation tombstones
+        if: github.event_name == 'pull_request'
+        run: scripts/check-indexer-deprecations.sh "${{ github.event.pull_request.base.sha }}"
+
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -104,7 +108,7 @@ jobs:
       - name: Create Profile environment
         run:
           |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" -tags=integration "$pkg"\ndone' | tee -a profile.sh;
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list -tags=integration,irc_integration_test "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" -tags=integration,irc_integration_test "$pkg"\ndone' | tee -a profile.sh;
           chmod +x profile.sh;
           mkdir profile;
 
@@ -143,7 +147,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -152,7 +156,7 @@ jobs:
         shell: bash
         run:
           |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" ${{ startsWith(matrix.os, 'ubuntu') && '-tags=integration ' || '' }}"$pkg"\ndone' | tee -a profile.sh;
+          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" "$pkg"\ndone' | tee -a profile.sh;
           chmod +x profile.sh;
           mkdir profile;
 
@@ -199,7 +203,7 @@ jobs:
           path: web/dist
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -232,7 +236,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: false
@@ -282,7 +286,7 @@ jobs:
           name: pprof
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
@@ -360,7 +364,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true

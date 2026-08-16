@@ -24,13 +24,15 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+	"github.com/autobrr/go-torrent/bencode"
+	"github.com/autobrr/go-torrent/metainfo"
 
-	"github.com/anacrolix/torrent/bencode"
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
 	"github.com/moistari/rls"
 	"github.com/robfig/cron/v3"
+	"github.com/rs/xid"
+	"github.com/rs/zerolog/hlog"
 	"golang.org/x/net/publicsuffix"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -38,6 +40,7 @@ import (
 
 type Release struct {
 	ID                                 int64                 `json:"id"`
+	TraceID                            string                `json:"-"`
 	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
 	Rejections                         []string              `json:"rejections"`
 	Indexer                            IndexerMinimal        `json:"indexer"`
@@ -102,6 +105,7 @@ type Release struct {
 	PreTime                            string                `json:"pre_time"`
 	Other                              []string              `json:"-"`
 	RawCookie                          string                `json:"-"`
+	UserAgent                          string                `json:"-"`
 	Seeders                            int                   `json:"-"`
 	Leechers                           int                   `json:"-"`
 	AdditionalSizeCheckRequired        bool                  `json:"-"`
@@ -114,6 +118,7 @@ type Release struct {
 	Filter                             *Filter               `json:"-"`
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
 	MetaIMDB                           string                `json:"-"`
+	MetaTMDB                           int                   `json:"-"`
 }
 
 // Hash return md5 hashed normalized release name
@@ -390,6 +395,68 @@ type ReleaseStats struct {
 	PushErrorCount      int64 `json:"push_error_count"`
 }
 
+// Dashboard widget stats. Days <= 0 means all-time in all of these.
+
+// ReleaseActivityStats is daily match and push counts for the activity chart.
+type ReleaseActivityStats struct {
+	Days  int                    `json:"days"`
+	Daily []ReleaseActivityDaily `json:"daily"`
+}
+
+// ReleaseActivityDaily is one day bucket of activity, Date as YYYY-MM-DD.
+type ReleaseActivityDaily struct {
+	Date              string `json:"date"`
+	MatchedCount      int64  `json:"matched_count"`
+	PushApprovedCount int64  `json:"push_approved_count"`
+	PushRejectedCount int64  `json:"push_rejected_count"`
+	PushErrorCount    int64  `json:"push_error_count"`
+}
+
+// ReleaseVolumeStats is daily downloaded bytes of releases with an approved push.
+type ReleaseVolumeStats struct {
+	Days  int                  `json:"days"`
+	Daily []ReleaseVolumeDaily `json:"daily"`
+}
+
+// ReleaseVolumeDaily is one day bucket of download volume, Date as YYYY-MM-DD.
+type ReleaseVolumeDaily struct {
+	Date            string `json:"date"`
+	DownloadedBytes int64  `json:"downloaded_bytes"`
+}
+
+// ReleaseHeatmapStats has 168 cells indexed dow*24+hour (dow 0 = Sunday),
+// hours as stored (UTC for SQLite CURRENT_TIMESTAMP rows).
+type ReleaseHeatmapStats struct {
+	Days    int     `json:"days"`
+	Heatmap []int64 `json:"heatmap"`
+}
+
+// ReleaseTopIndexersStats is the top indexers by approved pushes.
+type ReleaseTopIndexersStats struct {
+	Days int                   `json:"days"`
+	Top  []ReleaseIndexerStats `json:"top"`
+}
+
+// ReleaseTopFiltersStats is the top filters by matches.
+type ReleaseTopFiltersStats struct {
+	Days int                  `json:"days"`
+	Top  []ReleaseFilterStats `json:"top"`
+}
+
+// ReleaseIndexerStats is per-indexer match and approved push totals.
+type ReleaseIndexerStats struct {
+	Indexer           string `json:"indexer"`
+	MatchedCount      int64  `json:"matched_count"`
+	PushApprovedCount int64  `json:"push_approved_count"`
+}
+
+// ReleaseFilterStats is per-filter match and approved push totals.
+type ReleaseFilterStats struct {
+	Filter            string `json:"filter"`
+	MatchedCount      int64  `json:"matched_count"`
+	PushApprovedCount int64  `json:"push_approved_count"`
+}
+
 type ReleasePushStatus string
 
 const (
@@ -418,21 +485,6 @@ func ValidReleasePushStatus(s string) bool {
 	switch s {
 	case string(ReleasePushStatusPending):
 		return true
-	case string(ReleasePushStatusApproved):
-		return true
-	case string(ReleasePushStatusRejected):
-		return true
-	case string(ReleasePushStatusErr):
-		return true
-	default:
-		return false
-	}
-}
-
-// ValidDeletableReleasePushStatus checks if a status is valid for deletion operations.
-// Excludes PENDING status as it's not applicable for completed release deletions.
-func ValidDeletableReleasePushStatus(s string) bool {
-	switch s {
 	case string(ReleasePushStatusApproved):
 		return true
 	case string(ReleasePushStatusRejected):
@@ -491,10 +543,9 @@ func (j *ReleaseCleanupJob) Validate() error {
 
 	// Validate statuses if provided
 	if j.Statuses != "" {
-		statuses := strings.Split(j.Statuses, ",")
-		for _, status := range statuses {
+		for status := range strings.SplitSeq(j.Statuses, ",") {
 			status = strings.TrimSpace(status)
-			if status != "" && !ValidDeletableReleasePushStatus(status) {
+			if status != "" && !ValidReleasePushStatus(status) {
 				return errors.New("invalid status: %s", status)
 			}
 		}
@@ -509,7 +560,8 @@ const (
 	ReleaseStatusFilterApproved ReleaseFilterStatus = "FILTER_APPROVED"
 	ReleaseStatusFilterPending  ReleaseFilterStatus = "PENDING"
 
-	//ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
+	// ReleaseStatusFilterRejected is no longer written on new rejections, but old databases still contain it
+	ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
 )
 
 type ReleaseProtocol string
@@ -592,8 +644,27 @@ type GetReleaseActionStatusRequest struct {
 	Id int
 }
 
+// NewTraceID returns a unique id used to correlate log lines for a single
+// release across the announce, release, filter and action layers. It uses the
+// same xid format as zerolog's hlog request ids, so http-originated flows can
+// share ids with request logging.
+func NewTraceID() string {
+	return xid.New().String()
+}
+
+// TraceIDFromCtx returns the hlog request id embedded in ctx, so releases
+// processed in response to an http request share their trace id with the
+// request log. It returns a fresh id when ctx carries none.
+func TraceIDFromCtx(ctx context.Context) string {
+	if id, ok := hlog.IDFromCtx(ctx); ok {
+		return id.String()
+	}
+	return NewTraceID()
+}
+
 func NewRelease(indexer IndexerMinimal) *Release {
 	r := &Release{
+		TraceID:        NewTraceID(),
 		Indexer:        indexer,
 		FilterStatus:   ReleaseStatusFilterPending,
 		Rejections:     []string{},
@@ -632,7 +703,9 @@ func (r *Release) ParseString(title string) {
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
-	r.Artists = rel.Artist
+	if rel.Artist != "" {
+		r.Artists = rel.Artist
+	}
 
 	if rel.Other != nil {
 		r.Other = rel.Other
@@ -808,13 +881,54 @@ func (r *Release) ParseSizeBytesString(size string) {
 	}
 }
 
-func (r *Release) OpenTorrentFile() error {
-	tmpFile, err := os.ReadFile(r.TorrentTmpFile)
-	if err != nil {
-		return errors.Wrap(err, "could not read torrent file: %v", r.TorrentTmpFile)
+// TorrentReader returns a reader over the in-memory torrent. Consumers that
+// want an io.Reader should go through this instead of wrapping
+// TorrentDataRawBytes themselves, so the bytes stay owned by the release.
+func (r *Release) TorrentReader() io.Reader {
+	return bytes.NewReader(r.TorrentDataRawBytes)
+}
+
+// WriteTemporaryFile writes the in-memory torrent to a temporary file on disk.
+// The torrent is otherwise passed around as raw bytes, so this is only needed
+// for the TorrentPathName and TorrentTmpFile macros which hand a path to an
+// external script or webhook.
+func (r *Release) WriteTemporaryFile() error {
+	if len(r.TorrentDataRawBytes) == 0 {
+		return errors.New("could not write temporary file: torrent data is empty for release: %s", r.TorrentName)
 	}
 
-	r.TorrentDataRawBytes = tmpFile
+	if r.TorrentTmpFile != "" {
+		// already written
+		return nil
+	}
+
+	tmpFilePattern := "autobrr-"
+	tmpDir := os.TempDir()
+
+	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
+	if err != nil {
+		// inverse the err check to make it a bit cleaner
+		if !errors.Is(err, os.ErrNotExist) {
+			return errors.Wrap(err, "error creating tmp file")
+		}
+
+		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
+			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
+		}
+
+		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
+		if err != nil {
+			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
+		}
+	}
+	defer tmpFile.Close()
+
+	if _, err := tmpFile.Write(r.TorrentDataRawBytes); err != nil {
+		os.Remove(tmpFile.Name())
+		return errors.Wrap(err, "error writing tmp file: %s", tmpFile.Name())
+	}
+
+	r.TorrentTmpFile = tmpFile.Name()
 
 	return nil
 }
@@ -846,7 +960,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 
 	if r.DownloadURL == "" {
 		return errors.New("download_file: url can't be empty")
-	} else if r.TorrentTmpFile != "" {
+	} else if len(r.TorrentDataRawBytes) != 0 {
 		// already downloaded
 		return nil
 	}
@@ -874,28 +988,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		// since we have a raw cookie like "uid=10; pass=000"
 		req.Header.Set("Cookie", r.RawCookie)
 	}
-
-	tmpFilePattern := "autobrr-"
-	tmpDir := os.TempDir()
-
-	// Create tmp file
-	tmpFile, err := os.CreateTemp(tmpDir, tmpFilePattern)
-	if err != nil {
-		// inverse the err check to make it a bit cleaner
-		if !errors.Is(err, os.ErrNotExist) {
-			return errors.Wrap(err, "error creating tmp file")
-		}
-
-		if mkdirErr := os.MkdirAll(tmpDir, os.ModePerm); mkdirErr != nil {
-			return errors.Wrap(mkdirErr, "could not create TMP dir: %s", tmpDir)
-		}
-
-		tmpFile, err = os.CreateTemp(tmpDir, tmpFilePattern)
-		if err != nil {
-			return errors.Wrap(err, "error creating tmp file in: %s", tmpDir)
-		}
-	}
-	defer tmpFile.Close()
 
 	errFunc := retry.Do(func() error {
 		// Get the data
@@ -931,11 +1023,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer.Name))
 		}
 
-		resetTmpFile := func() {
-			tmpFile.Seek(0, io.SeekStart)
-			tmpFile.Truncate(0)
-		}
-
 		// Read the body into bytes
 		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
 		if err != nil {
@@ -948,8 +1035,6 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		// Try to decode as torrent file
 		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
-			resetTmpFile()
-
 			// explicitly check for unexpected content type that match html
 			var bse *bencode.SyntaxError
 			if errors.As(err, &bse) {
@@ -960,27 +1045,23 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 			return retry.Unrecoverable(errors.Wrap(err, "metainfo unexpected content type. check indexer keys for %s - %s", r.Indexer.Name, r.TorrentName))
 		}
 
-		// Write the body to file
-		if _, err := tmpFile.Write(bodyBytes); err != nil {
-			resetTmpFile()
-			return errors.Wrap(err, "error writing downloaded file: %s", tmpFile.Name())
-		}
-
 		torrentMetaInfo, err := meta.UnmarshalInfo()
 		if err != nil {
-			resetTmpFile()
-			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", tmpFile.Name()))
+			return retry.Unrecoverable(errors.Wrap(err, "metainfo could not unmarshal info from torrent: %s", r.TorrentName))
 		}
 
 		hashInfoBytes := meta.HashInfoBytes().Bytes()
 		if len(hashInfoBytes) < 1 {
-			resetTmpFile()
 			return retry.Unrecoverable(errors.New("could not read infohash"))
 		}
 
-		r.TorrentTmpFile = tmpFile.Name()
+		r.TorrentDataRawBytes = bodyBytes
 		r.TorrentHash = meta.HashInfoBytes().String()
-		r.Size = uint64(torrentMetaInfo.TotalLength())
+		// A malformed torrent can carry negative file lengths; keep the
+		// announce-derived size rather than storing a wrapped uint64.
+		if size := torrentMetaInfo.TotalLength(); size > 0 {
+			r.Size = uint64(size)
+		}
 
 		return nil
 	},
@@ -993,11 +1074,16 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 }
 
 func (r *Release) CleanupTemporaryFiles() error {
+	// the torrent is held in memory for the duration of the release processing,
+	// so drop it here to not keep it around longer than needed
+	r.TorrentDataRawBytes = nil
+
 	if r.TorrentTmpFile == "" {
 		return nil
 	}
 
-	if err := os.Remove(r.TorrentTmpFile); err != nil {
+	// an exec script handed the path may well have consumed the file already
+	if err := os.Remove(r.TorrentTmpFile); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return errors.Wrap(err, "could not remove tmp file: %s", r.TorrentTmpFile)
 	}
 	r.TorrentTmpFile = ""
@@ -1017,32 +1103,39 @@ const MagnetURIPrefix = "magnet:?"
 
 // MapVars map vars from regex captures to fields on release
 func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error {
-	releaseName, err := getStringMapValueAlt(varMap, "releaseName", "torrentName")
-	if err != nil {
-		return errors.Wrap(err, "failed parsing required field: torrentName or releaseName")
+	releaseName, ok := getStringMapValueAlt(varMap, "releaseName", "torrentName")
+	if !ok {
+		return errors.New("failed parsing required field: torrentName or releaseName")
 	}
 	r.TorrentName = html.UnescapeString(releaseName)
 
-	if torrentHash, err := getStringMapValue(varMap, "torrentHash"); err == nil {
+	if torrentHash, ok := getStringMapValue(varMap, "torrentHash"); ok {
 		r.TorrentHash = torrentHash
 	}
 
-	if torrentID, err := getStringMapValue(varMap, "torrentId"); err == nil {
+	if torrentID, ok := getStringMapValue(varMap, "torrentId"); ok {
 		r.TorrentID = torrentID
 	}
 
-	if category, err := getStringMapValue(varMap, "category"); err == nil {
+	if category, ok := getStringMapValue(varMap, "category"); ok {
 		r.Category = category
 	}
 
-	if announceType, err := getStringMapValue(varMap, "announceType"); err == nil {
+	if subCategory, ok := getStringMapValue(varMap, "subCategory"); ok {
+		if r.Category != "" {
+			mainCategory := r.Category
+			r.Category = fmt.Sprintf("%s/%s", mainCategory, subCategory)
+		}
+	}
+
+	if announceType, ok := getStringMapValue(varMap, "announceType"); ok {
 		annType, parseErr := ParseAnnounceType(announceType)
 		if parseErr == nil {
 			r.AnnounceType = annType
 		}
 	}
 
-	if freeleech, err := getStringMapValue(varMap, "freeleech"); err == nil {
+	if freeleech, ok := getStringMapValue(varMap, "freeleech"); ok {
 		fl := StringEqualFoldMulti(freeleech, "1", "fl", "free", "freeleech", "freeleech!", "yes", "VIP", "★")
 		if fl {
 			r.Freeleech = true
@@ -1052,7 +1145,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	if freeleechPercent, err := getStringMapValue(varMap, "freeleechPercent"); err == nil {
+	if freeleechPercent, ok := getStringMapValue(varMap, "freeleechPercent"); ok {
 		// remove % and trim spaces
 		freeleechPercent = strings.Replace(freeleechPercent, "%", "", -1)
 		freeleechPercent = strings.Trim(freeleechPercent, " ")
@@ -1101,7 +1194,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	//if uploadVolumeFactor, err := getStringMapValue(varMap, "uploadVolumeFactor"); err == nil {
+	//if uploadVolumeFactor, ok := getStringMapValue(varMap, "uploadVolumeFactor"); ok {
 	//	r.uploadVolumeFactor = uploadVolumeFactor
 	//
 	//	//freeleechPercentInt, err := strconv.Atoi(freeleechPercent)
@@ -1115,15 +1208,15 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 	//	//}
 	//}
 
-	if uploader, err := getStringMapValue(varMap, "uploader"); err == nil {
+	if uploader, ok := getStringMapValue(varMap, "uploader"); ok {
 		r.Uploader = uploader
 	}
 
-	if recordLabel, err := getStringMapValue(varMap, "recordLabel"); err == nil {
+	if recordLabel, ok := getStringMapValue(varMap, "recordLabel"); ok {
 		r.RecordLabel = recordLabel
 	}
 
-	if torrentSize, err := getStringMapValue(varMap, "torrentSize"); err == nil {
+	if torrentSize, ok := getStringMapValue(varMap, "torrentSize"); ok {
 		// Some indexers like BTFiles announces size with comma. Humanize does not handle that well and strips it.
 		torrentSize = strings.Replace(torrentSize, ",", ".", 1)
 
@@ -1138,105 +1231,124 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	if torrentSizeBytes, err := getStringMapValue(varMap, "torrentSizeBytes"); err == nil {
+	if torrentSizeBytes, ok := getStringMapValue(varMap, "torrentSizeBytes"); ok {
 		size, parseErr := strconv.ParseUint(torrentSizeBytes, 10, 64)
 		if parseErr == nil {
 			r.Size = size
 		}
 	}
 
-	if scene, err := getStringMapValue(varMap, "scene"); err == nil {
+	if scene, ok := getStringMapValue(varMap, "scene"); ok {
 		if StringEqualFoldMulti(scene, "true", "yes", "1") {
 			r.Origin = "SCENE"
 		}
 	}
 
 	// set origin. P2P, SCENE, O-SCENE and Internal
-	if origin, err := getStringMapValue(varMap, "origin"); err == nil {
+	if origin, ok := getStringMapValue(varMap, "origin"); ok {
 		r.Origin = origin
 	}
 
-	if internal, err := getStringMapValue(varMap, "internal"); err == nil {
+	if internal, ok := getStringMapValue(varMap, "internal"); ok {
 		if StringEqualFoldMulti(internal, "internal", "yes", "1") {
 			r.Origin = "INTERNAL"
 		}
 	}
 
-	if yearVal, err := getStringMapValue(varMap, "year"); err == nil {
+	if yearVal, ok := getStringMapValue(varMap, "year"); ok {
 		year, parseErr := strconv.Atoi(yearVal)
 		if parseErr == nil {
 			r.Year = year
 		}
 	}
 
-	if tags, err := getStringMapValue(varMap, "tags"); err == nil {
+	if tags, ok := getStringMapValue(varMap, "tags"); ok {
 		if tags != "" && tags != "*" {
 			tagsArr := []string{}
-			s := strings.Split(tags, ",")
-			for _, t := range s {
+			for t := range strings.SplitSeq(tags, ",") {
 				tagsArr = append(tagsArr, strings.Trim(t, " "))
 			}
 			r.Tags = tagsArr
 		}
 	}
 
-	if title, err := getStringMapValue(varMap, "title"); err == nil {
+	if title, ok := getStringMapValue(varMap, "title"); ok {
 		if title != "" && title != "*" {
 			r.Title = title
 		}
 	}
 
+	if v, ok := getStringMapValue(varMap, "author"); ok {
+		r.Artists = v
+	}
+
 	// handle releaseTags. Most of them are redundant but some are useful
-	if releaseTags, err := getStringMapValue(varMap, "releaseTags"); err == nil {
+	if releaseTags, ok := getStringMapValue(varMap, "releaseTags"); ok {
 		r.ReleaseTags = releaseTags
 	}
 
-	if resolution, err := getStringMapValue(varMap, "resolution"); err == nil {
+	if resolution, ok := getStringMapValue(varMap, "resolution"); ok {
 		r.Resolution = resolution
 	}
 
-	if releaseGroup, err := getStringMapValue(varMap, "releaseGroup"); err == nil {
+	if releaseGroup, ok := getStringMapValue(varMap, "releaseGroup"); ok {
 		r.Group = releaseGroup
 	}
 
-	if episodeVal, err := getStringMapValue(varMap, "releaseEpisode"); err == nil {
+	if episodeVal, ok := getStringMapValue(varMap, "releaseEpisode"); ok {
 		episode, _ := strconv.Atoi(episodeVal)
 		r.Episode = episode
 	}
 
-	if metaImdb, err := getStringMapValue(varMap, "imdb"); err == nil {
-		r.MetaIMDB = metaImdb
+	if language, ok := getStringMapValue(varMap, "language"); ok {
+		r.Language = append(r.Language, language)
+	}
+
+	if v, ok := getStringMapValue(varMap, "container"); ok {
+		r.Container = v
+	}
+
+	if metaId, ok := getStringMapValue(varMap, "imdb"); ok && metaId != "" {
+		if !strings.HasPrefix(metaId, "tt") {
+			metaId = "tt" + metaId
+		}
+		r.MetaIMDB = metaId
+	}
+
+	if metaId, ok := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); ok {
+		if tmdbId, err := strconv.Atoi(metaId); err == nil {
+			r.MetaTMDB = tmdbId
+		}
 	}
 
 	return nil
 }
 
-func getStringMapValue(stringMap map[string]string, key string) (string, error) {
-	lowerKey := strings.ToLower(key)
+// getStringMapValue looks up key, preferring an exact match and falling back to
+// a case-insensitive one. Most of the keys a release is built from are optional,
+// so a miss is ordinary control flow rather than an error worth allocating for.
+func getStringMapValue(stringMap map[string]string, key string) (string, bool) {
+	if value, ok := stringMap[key]; ok {
+		return value, true
+	}
 
-	// case-insensitive match
 	for k, v := range stringMap {
-		if strings.ToLower(k) == lowerKey {
-			return v, nil
+		if strings.EqualFold(k, key) {
+			return v, true
 		}
 	}
 
-	return "", errors.New("key was not found in map: %q", lowerKey)
+	return "", false
 }
 
-func getStringMapValueAlt(stringMap map[string]string, keys ...string) (string, error) {
+func getStringMapValueAlt(stringMap map[string]string, keys ...string) (string, bool) {
 	for _, key := range keys {
-		lowerKey := strings.ToLower(key)
-
-		// case-insensitive match
-		for k, v := range stringMap {
-			if strings.ToLower(k) == lowerKey {
-				return v, nil
-			}
+		if value, ok := getStringMapValue(stringMap, key); ok {
+			return value, true
 		}
 	}
 
-	return "", errors.New("could not find any key in map: %v", keys)
+	return "", false
 }
 
 func SplitAny(s string, seps string) []string {

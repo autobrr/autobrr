@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
+func TestIndexerIRCV2ParseMatch_ParseUrls(t *testing.T) {
 	t.Parallel()
 	type fields struct {
-		TorrentURL  string
-		TorrentName string
+		ReleaseName string
+		DownloadURL string
 		MagnetURI   string
 		InfoURL     string
 		Encode      []string
@@ -32,14 +32,14 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				TorrentURL: "rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
-				Encode:     []string{"torrentName"},
+				DownloadURL: "rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .releaseName }}.torrent",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "TV :: Episodes HD",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"freeleech":   "",
 					"baseUrl":     "https://mock.local/",
@@ -55,13 +55,13 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				TorrentURL: "/torrent/{{ .torrentId }}/download/{{ .passkey }}",
-				Encode:     nil,
+				DownloadURL: "/torrent/{{ .torrentId }}/download/{{ .passkey }}",
+				Encode:      nil,
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
-					"torrentName":    "Great BluRay SoftSubbed Anime",
+					"releaseName":    "Great BluRay SoftSubbed Anime",
 					"category":       "TV Series",
 					"year":           "2020",
 					"releaseTags":    "Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech",
@@ -83,14 +83,14 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				TorrentURL: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
-				Encode:     []string{"torrentName"},
+				DownloadURL: "{{ .baseUrl }}rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .releaseName }}.torrent",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "TV :: Episodes HD",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"freeleech":   "",
 					"baseUrl":     "https://mock.local/",
@@ -106,14 +106,14 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				TorrentURL: "https://mock.local/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .torrentName }}.torrent",
-				Encode:     []string{"torrentName"},
+				DownloadURL: "https://mock.local/rss/download/{{ .torrentId }}/{{ .rsskey }}/{{ .releaseName }}.torrent",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "TV :: Episodes HD",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"freeleech":   "",
 					"baseUrl":     "https://mock.local/",
@@ -129,14 +129,14 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				TorrentURL: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .torrentName }}",
-				Encode:     []string{"torrentName"},
+				DownloadURL: "/rss/?action=download&key={{ .key }}&token={{ .token }}&hash={{ .torrentId }}&title={{ .releaseName }}",
+				Encode:      []string{"releaseName"},
 			},
 			args: args{
 				baseURL: "https://mock.local/",
 				vars: map[string]string{
 					"category":    "Movies/Remux",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 					"uploader":    "Anonymous",
 					"torrentSize": "",
 					"baseUrl":     "https://mock.local/",
@@ -154,12 +154,12 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 		{
 			name: "magnet_uri",
 			fields: fields{
-				MagnetURI: "magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .torrentName }}",
+				MagnetURI: "magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .releaseName }}",
 			},
 			args: args{
 				vars: map[string]string{
 					"torrentHash": "81c758d0eca5372d59e43879ecf2e2bce33a06c4",
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 				},
 				rls: &Release{},
 			},
@@ -170,9 +170,9 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &IndexerIRCParseMatch{
-				TorrentURL:  tt.fields.TorrentURL,
-				TorrentName: tt.fields.TorrentName,
+			p := &IndexerIRCV2ParseMatch{
+				ReleaseName: tt.fields.ReleaseName,
+				DownloadURL: tt.fields.DownloadURL,
 				MagnetURI:   tt.fields.MagnetURI,
 				InfoURL:     tt.fields.InfoURL,
 				Encode:      tt.fields.Encode,
@@ -184,11 +184,11 @@ func TestIndexerIRCParseMatch_ParseUrls(t *testing.T) {
 	}
 }
 
-func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
+func TestIndexerIRCV2ParseMatch_ParseTorrentName(t *testing.T) {
 	t.Parallel()
 	type fields struct {
-		TorrentURL  string
-		TorrentName string
+		ReleaseName string
+		DownloadURL string
 		InfoURL     string
 		Encode      []string
 	}
@@ -205,11 +205,11 @@ func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				TorrentName: "",
+				ReleaseName: "",
 			},
 			args: args{
 				vars: map[string]string{
-					"torrentName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
+					"releaseName": "The Show 2019 S03E08 2160p DV WEBRip 6CH x265 HEVC-GROUP",
 				},
 				rls: &Release{},
 			},
@@ -220,11 +220,11 @@ func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				TorrentName: `{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .torrentName }} [{{ .year }}] {{ if .releaseEpisode }}{{ printf "- %02s " .releaseEpisode }}{{ end }}{{ print "[" .releaseTags "]" | replace " / " "][" }}`,
+				ReleaseName: `{{ if .releaseGroup }}[{{ .releaseGroup }}] {{ end }}{{ .releaseName }} [{{ .year }}] {{ if .releaseEpisode }}{{ printf "- %02s " .releaseEpisode }}{{ end }}{{ print "[" .releaseTags "]" | replace " / " "][" }}`,
 			},
 			args: args{
 				vars: map[string]string{
-					"torrentName":    "Great BluRay SoftSubbed Anime",
+					"releaseName":    "Great BluRay SoftSubbed Anime",
 					"category":       "TV Series",
 					"year":           "2020",
 					"releaseTags":    "Blu-ray / MKV / h264 10-bit / 1080p / FLAC 2.0 / Dual Audio / Softsubs (Sub Group) / Freeleech",
@@ -246,123 +246,20 @@ func TestIndexerIRCParseMatch_ParseTorrentName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &IndexerIRCParseMatch{
-				TorrentURL:  tt.fields.TorrentURL,
-				TorrentName: tt.fields.TorrentName,
+			p := &IndexerIRCV2ParseMatch{
+				ReleaseName: tt.fields.ReleaseName,
+				DownloadURL: tt.fields.DownloadURL,
 				InfoURL:     tt.fields.InfoURL,
 				Encode:      tt.fields.Encode,
 			}
-			p.ParseTorrentName(tt.args.vars, tt.args.rls)
+			err := p.ParseReleaseName(tt.args.vars, tt.args.rls)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.want, tt.args.rls)
 		})
 	}
 }
 
-func TestIndexerIRCParse_MapCustomVariables1(t *testing.T) {
-	type fields struct {
-		Type          string
-		ForceSizeUnit string
-		Lines         []IndexerIRCParseLine
-		Match         IndexerIRCParseMatch
-		Mappings      IRCMappings
-	}
-	type args struct {
-		vars       map[string]string
-		expectVars map[string]string
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "",
-			fields: fields{
-				Mappings: map[string]map[string]map[string]string{
-					"announceType": {
-						"0": map[string]string{
-							"announceType": "NEW",
-						},
-						"1": map[string]string{
-							"announceType": "PROMO",
-						},
-					},
-					"categoryEnum": {
-						"0": map[string]string{
-							"category": "Feature Film",
-						},
-						"1": map[string]string{
-							"category": "Short Film",
-						},
-						"2": map[string]string{
-							"category": "Miniseries",
-						},
-						"3": map[string]string{
-							"category": "Stand-up Comedy",
-						},
-						"4": map[string]string{
-							"category": "Live Performance",
-						},
-						"5": map[string]string{
-							"category": "Movie Collection",
-						},
-					},
-					"freeleechEnum": {
-						"0": map[string]string{
-							"downloadVolumeFactor": "1.0",
-							"uploadVolumeFactor":   "1.0",
-						},
-						"1": map[string]string{
-							"downloadVolumeFactor": "0",
-							"uploadVolumeFactor":   "1.0",
-						},
-						"2": map[string]string{
-							"downloadVolumeFactor": "0.5",
-							"uploadVolumeFactor":   "1.0",
-						},
-						"3": map[string]string{
-							"downloadVolumeFactor": "0",
-							"uploadVolumeFactor":   "0",
-						},
-					},
-				},
-			},
-			args: args{
-				vars: map[string]string{
-					"announceType":  "1",
-					"categoryEnum":  "0",
-					"freeleechEnum": "1",
-				},
-				expectVars: map[string]string{
-					"announceType":         "PROMO",
-					"category":             "Feature Film",
-					"categoryEnum":         "0",
-					"freeleechEnum":        "1",
-					"downloadVolumeFactor": "0",
-					"uploadVolumeFactor":   "1.0",
-				},
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := &IndexerIRCParse{
-				Type:          tt.fields.Type,
-				ForceSizeUnit: tt.fields.ForceSizeUnit,
-				Lines:         tt.fields.Lines,
-				Match:         tt.fields.Match,
-				Mappings:      tt.fields.Mappings,
-			}
-			err := p.MapCustomVariables(tt.args.vars)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.args.expectVars, tt.args.vars)
-		})
-	}
-}
-
-func TestIndexerIRCV2Parse_MapCustomVariables1(t *testing.T) {
+func TestIndexerIRCV2Parse_MapCustomVariables(t *testing.T) {
 	type fields struct {
 		Type          string
 		ForceSizeUnit string

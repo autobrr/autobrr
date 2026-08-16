@@ -1,0 +1,82 @@
+---
+version: 2
+#id: peergarden
+name: PeerGarden
+identifier: peergarden
+description: PeerGarden (PG) is a private torrent tracker for MOVIES / TV / GENERAL.
+language: en-us
+urls:
+  - https://peergarden.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key
+    help: "Click the cog icon in the top right corner, RSS key is located in the sidebar."
+
+irc:
+  network: PeerGarden
+  server: irc.peergarden.org
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Username of bot must be set to username|bot.
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - "PeerGarden"
+      parse:
+        type: single
+        lines:
+          - pattern: ':\[N\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<resolution>.*)\]-\[(?P<torrentSize>.*)\]-\[(?P<releaseName>.*)\]-\[(?P<uploader>.*)\]-\[(?P<baseUrl>.*\/)(?:.*\/)(?P<torrentId>.*)\]-\[FL: (?P<freeleech>.*)\]-\[DU: .*\];'
+            tests:
+              - line: ':[N]-[Movies]-[Encode]-[1080p]-[6.55 GiB]-[The Example 2016 1080p BluRay DTS 5.1 x264-VETO]-[]-[https://peergarden.org/torrents/5621]-[FL: 1]-[DU: ];'
+                expect:
+                  category: Movies
+                  releaseTags: Encode
+                  resolution: 1080p
+                  torrentSize: 6.55 GiB
+                  releaseName: The Example 2016 1080p BluRay DTS 5.1 x264-VETO
+                  uploader: ""
+                  baseUrl: https://peergarden.org/
+                  torrentId: "5621"
+                  freeleech: "1"
+
+              - line: ':[N]-[Movies]-[Remux]-[1080p]-[15.96 GiB]-[Example Dogs 2 2014 1080p BluRay REMUX AVC Dubbed DTS-HD MA 5.1-NCmt]-[]-[https://peergarden.org/torrents/5622]-[FL: 1]-[DU: ];'
+                expect:
+                  category: Movies
+                  releaseTags: Remux
+                  resolution: 1080p
+                  torrentSize: 15.96 GiB
+                  releaseName: Example Dogs 2 2014 1080p BluRay REMUX AVC Dubbed DTS-HD MA 5.1-NCmt
+                  uploader: ""
+                  baseUrl: https://peergarden.org/
+                  torrentId: "5622"
+                  freeleech: "1"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/version"
 
@@ -37,7 +36,7 @@ type Service struct {
 	m    sync.RWMutex
 }
 
-func NewService(log logger.Logger, config *domain.Config, notificationSvc notificationSender, updateSvc updateChecker) *Service {
+func NewService(log zerolog.Logger, config *domain.Config, notificationSvc notificationSender, updateSvc updateChecker) *Service {
 	return &Service{
 		log:             log.With().Str("module", "scheduler").Logger(),
 		config:          config,
@@ -76,53 +75,73 @@ func (s *Service) addAppJobs() {
 		}
 
 		if id, err := s.ScheduleJob(checkUpdates, 2*time.Hour, "app-check-updates"); err != nil {
-			s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding job: %v", id)
+			s.log.Error().Err(err).Int("job_id", id).Msg("error adding job")
 		}
 	}
 
 	tempDirCleanup := NewTempDirCleanupJob(s.log.With().Str("job", "temp-dir-cleanup").Logger())
 
 	if id, err := s.AddJob(tempDirCleanup, "0 4 * * *", "temp-dir-cleanup"); err != nil {
-		s.log.Error().Err(err).Msgf("scheduler.addAppJobs: error adding temp dir cleanup job: %v", id)
+		s.log.Error().Err(err).Int("job_id", id).Msg("error adding temp dir cleanup job")
 	}
 }
 
 func (s *Service) Stop() {
 	s.log.Debug().Msg("scheduler.Stop")
 	s.cron.Stop()
-	return
+}
+
+// registerJob replaces any entry already registered under identifier while holding the lock, so
+// concurrent (re)schedules of the same job cannot leave an orphaned entry firing alongside the
+// new one.
+func (s *Service) registerJob(identifier string, schedule cron.Schedule, job cron.Job) int {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if old, ok := s.jobs[identifier]; ok {
+		s.cron.Remove(old)
+	}
+
+	id := s.cron.Schedule(schedule, cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
+	s.jobs[identifier] = id
+
+	return int(id)
 }
 
 // ScheduleJob takes a time duration and adds a job
 func (s *Service) ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error) {
-	id := s.cron.Schedule(cron.Every(interval), cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
+	id := s.registerJob(identifier, cron.Every(interval), job)
 
-	s.log.Debug().Msgf("scheduler.ScheduleJob: job successfully added: %s id %d", identifier, id)
+	s.log.Debug().Str("job", identifier).Int("job_id", id).Msg("job scheduled")
 
-	s.m.Lock()
-	// add to job map
-	s.jobs[identifier] = id
-	s.m.Unlock()
+	return id, nil
+}
 
-	return int(id), nil
+// ScheduleJobAnchored adds a job that runs every interval anchored to its last run: the next fire
+// is lastRun+interval, or shortly after now when the job never ran or is overdue. Jobs sharing an
+// interval fire on distinct identifier-derived seconds so they do not run in lockstep.
+func (s *Service) ScheduleJobAnchored(job cron.Job, interval time.Duration, lastRun time.Time, identifier string) (int, error) {
+	schedule := newAnchoredSchedule(interval, lastRun, time.Now(), identifier)
+
+	id := s.registerJob(identifier, schedule, job)
+
+	s.log.Debug().Str("job", identifier).Int("job_id", id).Dur("interval", schedule.interval).Time("first_run", schedule.first).Msg("job scheduled anchored")
+
+	return id, nil
 }
 
 // AddJob takes a cron schedule and adds a job
 func (s *Service) AddJob(job cron.Job, spec string, identifier string) (int, error) {
-	id, err := s.cron.AddJob(spec, cron.NewChain(cron.SkipIfStillRunning(cron.DiscardLogger)).Then(job))
-
+	schedule, err := cron.ParseStandard(spec)
 	if err != nil {
-		return 0, errors.Wrap(err, "could not add job to cron")
+		return 0, errors.Wrap(err, "could not parse cron spec: %s", spec)
 	}
 
-	s.log.Debug().Msgf("scheduler.AddJob: job successfully added: %s id %d", identifier, id)
+	id := s.registerJob(identifier, schedule, job)
 
-	s.m.Lock()
-	// add to job map
-	s.jobs[identifier] = id
-	s.m.Unlock()
+	s.log.Debug().Str("job", identifier).Int("job_id", id).Msg("job added")
 
-	return int(id), nil
+	return id, nil
 }
 
 func (s *Service) RemoveJobByIdentifier(id string) error {
@@ -134,7 +153,7 @@ func (s *Service) RemoveJobByIdentifier(id string) error {
 		return nil
 	}
 
-	s.log.Debug().Msgf("scheduler.Remove: removing job: %v", id)
+	s.log.Debug().Str("job", id).Msg("removing job")
 
 	// remove from cron
 	s.cron.Remove(v)
@@ -152,7 +171,7 @@ func (s *Service) GetNextRun(id string) (time.Time, error) {
 		return time.Time{}, nil
 	}
 
-	s.log.Debug().Msgf("scheduler.GetNextRun: %s next run: %s", id, entry.Next)
+	s.log.Debug().Str("job", id).Time("next_run", entry.Next).Msg("job next run")
 
 	return entry.Next, nil
 }

@@ -101,7 +101,7 @@ type = "sqlite"
 			DatabaseAutoMigrate: false,
 		}
 
-		log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+		log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 		db, err := database.NewDB(cfg, log)
 		require.NoError(t, err, "Failed to create database connection")
 
@@ -199,7 +199,7 @@ postgresDatabase = %q
 			DatabaseAutoMigrate: false,
 		}
 
-		log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""})
+		log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 		db, err := database.NewDB(cfg, log)
 		require.NoError(t, err, "Failed to create database connection")
 
