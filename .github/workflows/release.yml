@@ -77,16 +77,6 @@ jobs:
   test:
     name: Test ubuntu-latest
     runs-on: ubuntu-latest
-    services:
-      test_postgres:
-        image: postgres:12.10
-        ports:
-          - "5437:5432"
-        env:
-          POSTGRES_USER: testdb
-          POSTGRES_PASSWORD: testdb
-          POSTGRES_DB: autobrr
-        options: --health-cmd pg_isready --health-interval 1s --health-timeout 5s --health-retries 60
     env:
       CGO_ENABLED: 0
     steps:

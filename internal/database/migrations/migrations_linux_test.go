@@ -149,6 +149,8 @@ type = "sqlite"
 			dbPort     = 9877
 		)
 
+		binariesPath, runtimePath := embeddedPGPaths(t)
+
 		pgLogger := &bytes.Buffer{}
 		postgres := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().
 			Username(dbUsername).
@@ -156,7 +158,8 @@ type = "sqlite"
 			Database(dbName).
 			Port(uint32(dbPort)).
 			Version(embeddedpostgres.V17).
-			//RuntimePath("/tmp").
+			BinariesPath(binariesPath).
+			RuntimePath(runtimePath).
 			StartTimeout(45 * time.Second).
 			StartParameters(map[string]string{"max_connections": "200"}).
 			Logger(pgLogger))

@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -23,6 +25,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// embeddedPGPaths returns the directory the Postgres binaries are extracted to along with a
+// runtime directory for a single instance. embedded-postgres wipes its runtime path on every
+// Start, so instances must not share one; the binaries are extracted once and reused. The
+// binaries path is package specific so a cold start can never have two test binaries
+// extracting into the same directory.
+func embeddedPGPaths(t *testing.T) (binariesPath, runtimePath string) {
+	t.Helper()
+
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		cacheDir = os.TempDir()
+	}
+
+	return filepath.Join(cacheDir, "autobrr", "embedded-postgres", "v17-migrations"), t.TempDir()
+}
+
 func setupPGTestDB(t *testing.T) (*database.DB, func(), error) {
 	t.Helper()
 
@@ -33,6 +51,8 @@ func setupPGTestDB(t *testing.T) (*database.DB, func(), error) {
 		dbPort     = 9876
 	)
 
+	binariesPath, runtimePath := embeddedPGPaths(t)
+
 	pgLogger := &bytes.Buffer{}
 	postgres := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().
 		Username(dbUsername).
@@ -40,8 +60,8 @@ func setupPGTestDB(t *testing.T) (*database.DB, func(), error) {
 		Database(dbName).
 		Port(uint32(dbPort)).
 		Version(embeddedpostgres.V17).
-		//RuntimePath("/tmp").
-		//BinaryRepositoryURL("https://repo.local/central.proxy").
+		BinariesPath(binariesPath).
+		RuntimePath(runtimePath).
 		StartTimeout(45 * time.Second).
 		StartParameters(map[string]string{"max_connections": "200"}).
 		Logger(pgLogger))
@@ -130,6 +150,8 @@ func startEmbeddedPGOnPort(t *testing.T, port int) (*database.DB, func()) {
 		dbName     = "autobrr"
 	)
 
+	binariesPath, runtimePath := embeddedPGPaths(t)
+
 	pgLogger := &bytes.Buffer{}
 	pg := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().
 		Username(dbUsername).
@@ -137,6 +159,8 @@ func startEmbeddedPGOnPort(t *testing.T, port int) (*database.DB, func()) {
 		Database(dbName).
 		Port(uint32(port)).
 		Version(embeddedpostgres.V17).
+		BinariesPath(binariesPath).
+		RuntimePath(runtimePath).
 		StartTimeout(45 * time.Second).
 		StartParameters(map[string]string{"max_connections": "200"}).
 		Logger(pgLogger))
