@@ -30,6 +30,8 @@ func getMockProxy() *domain.Proxy {
 }
 
 func TestProxyRepo_Store(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -38,24 +40,24 @@ func TestProxyRepo_Store(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.Store(t.Context(), mockData)
+			err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
-			proxies, err := repo.List(t.Context())
+			proxies, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, proxies)
 			assert.Equal(t, mockData.Name, proxies[0].Name)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), mockData.ID)
+			_ = repo.Delete(ctx, mockData.ID)
 		})
 
 		t.Run(fmt.Sprintf("Store_Fails_With_Missing_or_empty_fields [%s]", dbType), func(t *testing.T) {
 			mockData := domain.Proxy{}
-			err := repo.Store(t.Context(), &mockData)
+			err := repo.Store(ctx, &mockData)
 			assert.Error(t, err)
 
-			proxies, err := repo.List(t.Context())
+			proxies, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.Empty(t, proxies)
 			//assert.Nil(t, proxies)
@@ -65,16 +67,18 @@ func TestProxyRepo_Store(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Store_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(t.Context(), 1*time.Nanosecond)
+			timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
 			defer cancel()
 
-			err := repo.Store(ctx, mockData)
+			err := repo.Store(timeoutCtx, mockData)
 			assert.Error(t, err)
 		})
 	}
 }
 
 func TestProxyRepo_Update(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -83,7 +87,7 @@ func TestProxyRepo_Update(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.Store(t.Context(), mockData)
+			err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
 			// Update mockData
@@ -92,22 +96,22 @@ func TestProxyRepo_Update(t *testing.T) {
 			updatedProxy.Enabled = false
 
 			// Execute
-			err = repo.Update(t.Context(), updatedProxy)
+			err = repo.Update(ctx, updatedProxy)
 			assert.NoError(t, err)
 
-			proxies, err := repo.List(t.Context())
+			proxies, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, proxies)
 			assert.Equal(t, "Updated Proxy", proxies[0].Name)
 			assert.Equal(t, false, proxies[0].Enabled)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), proxies[0].ID)
+			_ = repo.Delete(ctx, proxies[0].ID)
 		})
 
 		t.Run(fmt.Sprintf("Update_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
 			mockData.ID = -1
-			err := repo.Update(t.Context(), mockData)
+			err := repo.Update(ctx, mockData)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrUpdateFailed)
 		})
@@ -115,6 +119,8 @@ func TestProxyRepo_Update(t *testing.T) {
 }
 
 func TestProxyRepo_Delete(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -123,26 +129,26 @@ func TestProxyRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.Store(t.Context(), mockData)
+			err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
-			proxies, err := repo.List(t.Context())
+			proxies, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, proxies)
 			assert.Equal(t, mockData.Name, proxies[0].Name)
 
 			// Execute
-			err = repo.Delete(t.Context(), proxies[0].ID)
+			err = repo.Delete(ctx, proxies[0].ID)
 			assert.NoError(t, err)
 
 			// Verify that the proxy is deleted and return error ErrRecordNotFound
-			proxy, err := repo.FindByID(t.Context(), proxies[0].ID)
+			proxy, err := repo.FindByID(ctx, proxies[0].ID)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 			assert.Nil(t, proxy)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_No_Record [%s]", dbType), func(t *testing.T) {
-			err := repo.Delete(t.Context(), 9999)
+			err := repo.Delete(ctx, 9999)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrDeleteFailed)
 		})
@@ -150,6 +156,8 @@ func TestProxyRepo_Delete(t *testing.T) {
 }
 
 func TestProxyRepo_ToggleEnabled(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -158,30 +166,30 @@ func TestProxyRepo_ToggleEnabled(t *testing.T) {
 
 		t.Run(fmt.Sprintf("ToggleEnabled_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.Store(t.Context(), mockData)
+			err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
-			proxies, err := repo.List(t.Context())
+			proxies, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, proxies)
 			assert.Equal(t, true, proxies[0].Enabled)
 
 			// Execute
-			err = repo.ToggleEnabled(t.Context(), mockData.ID, false)
+			err = repo.ToggleEnabled(ctx, mockData.ID, false)
 			assert.NoError(t, err)
 
 			// Verify that the proxy is updated
-			proxy, err := repo.FindByID(t.Context(), proxies[0].ID)
+			proxy, err := repo.FindByID(ctx, proxies[0].ID)
 			assert.NoError(t, err)
 			assert.NotNil(t, proxy)
 			assert.Equal(t, false, proxy.Enabled)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), proxies[0].ID)
+			_ = repo.Delete(ctx, proxies[0].ID)
 		})
 
 		t.Run(fmt.Sprintf("ToggleEnabled_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
-			err := repo.ToggleEnabled(t.Context(), -1, false)
+			err := repo.ToggleEnabled(ctx, -1, false)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrUpdateFailed)
 		})
@@ -189,6 +197,8 @@ func TestProxyRepo_ToggleEnabled(t *testing.T) {
 }
 
 func TestProxyRepo_FindByID(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -197,26 +207,26 @@ func TestProxyRepo_FindByID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.Store(t.Context(), mockData)
+			err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
-			proxies, err := repo.List(t.Context())
+			proxies, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.NotNil(t, proxies)
 
 			// Execute
-			proxy, err := repo.FindByID(t.Context(), proxies[0].ID)
+			proxy, err := repo.FindByID(ctx, proxies[0].ID)
 			assert.NoError(t, err)
 			assert.NotNil(t, proxy)
 			assert.Equal(t, proxies[0].ID, proxy.ID)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), proxies[0].ID)
+			_ = repo.Delete(ctx, proxies[0].ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
 			// Test using an invalid ID
-			proxy, err := repo.FindByID(t.Context(), -1)
+			proxy, err := repo.FindByID(ctx, -1)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound) // should return an error
 			assert.Nil(t, proxy)                             // should be nil
 		})

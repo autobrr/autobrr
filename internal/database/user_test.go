@@ -23,6 +23,8 @@ func getMockUser() domain.User {
 }
 
 func TestUserRepo_Store(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -33,7 +35,7 @@ func TestUserRepo_Store(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreUser_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Execute
-			err := repo.Store(t.Context(), domain.CreateUserRequest{
+			err := repo.Store(ctx, domain.CreateUserRequest{
 				Username: userMockData.Username,
 				Password: userMockData.Password,
 			})
@@ -42,12 +44,14 @@ func TestUserRepo_Store(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), userMockData.Username)
+			_ = repo.Delete(ctx, userMockData.Username)
 		})
 	}
 }
 
 func TestUserRepo_Update(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -55,13 +59,13 @@ func TestUserRepo_Update(t *testing.T) {
 		repo := NewUserRepo(log, db)
 
 		user := getMockUser()
-		err := repo.Store(t.Context(), domain.CreateUserRequest{
+		err := repo.Store(ctx, domain.CreateUserRequest{
 			Username: user.Username,
 			Password: user.Password,
 		})
 		assert.NoError(t, err)
 
-		storedUser, err := repo.FindByUsername(t.Context(), user.Username)
+		storedUser, err := repo.FindByUsername(ctx, user.Username)
 		assert.NoError(t, err)
 		user.ID = storedUser.ID
 
@@ -73,21 +77,23 @@ func TestUserRepo_Update(t *testing.T) {
 				UsernameCurrent: user.Username,
 				PasswordNewHash: newPassword,
 			}
-			err := repo.Update(t.Context(), req)
+			err := repo.Update(ctx, req)
 			assert.NoError(t, err)
 
 			// Verify
-			updatedUser, err := repo.FindByUsername(t.Context(), user.Username)
+			updatedUser, err := repo.FindByUsername(ctx, user.Username)
 			assert.NoError(t, err)
 			assert.Equal(t, newPassword, updatedUser.Password)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), updatedUser.Username)
+			_ = repo.Delete(ctx, updatedUser.Username)
 		})
 	}
 }
 
 func TestUserRepo_GetUserCount(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -96,28 +102,30 @@ func TestUserRepo_GetUserCount(t *testing.T) {
 
 		t.Run(fmt.Sprintf("GetUserCount_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			initialCount, err := repo.GetUserCount(t.Context())
+			initialCount, err := repo.GetUserCount(ctx)
 			assert.NoError(t, err)
 
 			user := getMockUser()
-			err = repo.Store(t.Context(), domain.CreateUserRequest{
+			err = repo.Store(ctx, domain.CreateUserRequest{
 				Username: user.Username,
 				Password: user.Password,
 			})
 			assert.NoError(t, err)
 
 			// Verify
-			updatedCount, err := repo.GetUserCount(t.Context())
+			updatedCount, err := repo.GetUserCount(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, initialCount+1, updatedCount)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), user.Username)
+			_ = repo.Delete(ctx, user.Username)
 		})
 	}
 }
 
 func TestUserRepo_FindByUsername(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -128,25 +136,27 @@ func TestUserRepo_FindByUsername(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByUsername_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Execute
-			err := repo.Store(t.Context(), domain.CreateUserRequest{
+			err := repo.Store(ctx, domain.CreateUserRequest{
 				Username: userMockData.Username,
 				Password: userMockData.Password,
 			})
 			assert.NoError(t, err)
 
 			// Verify
-			user, err := repo.FindByUsername(t.Context(), userMockData.Username)
+			user, err := repo.FindByUsername(ctx, userMockData.Username)
 			assert.NoError(t, err)
 			assert.NotNil(t, user)
 			assert.Equal(t, userMockData.Username, user.Username)
 
 			// Cleanup
-			_ = repo.Delete(t.Context(), userMockData.Username)
+			_ = repo.Delete(ctx, userMockData.Username)
 		})
 	}
 }
 
 func TestUserRepo_Delete(t *testing.T) {
+	ctx := t.Context()
+
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
@@ -154,7 +164,7 @@ func TestUserRepo_Delete(t *testing.T) {
 		repo := NewUserRepo(log, db)
 
 		user := getMockUser()
-		err := repo.Store(t.Context(), domain.CreateUserRequest{
+		err := repo.Store(ctx, domain.CreateUserRequest{
 			Username: user.Username,
 			Password: user.Password,
 		})
@@ -162,11 +172,11 @@ func TestUserRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("DeleteUser_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.Delete(t.Context(), user.Username)
+			err := repo.Delete(ctx, user.Username)
 			assert.NoError(t, err)
 
 			// Verify
-			_, err = repo.FindByUsername(t.Context(), user.Username)
+			_, err = repo.FindByUsername(ctx, user.Username)
 			assert.Error(t, err)
 			assert.Equal(t, domain.ErrRecordNotFound, err)
 		})
