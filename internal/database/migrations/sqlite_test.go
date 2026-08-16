@@ -566,6 +566,60 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "Samaritano IRC port and TLS migration",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Samaritano IRC port and TLS migration",
+				MigrationIndex:      95,
+				MigrationsUntilName: "95_add_indexer_archived_and_deprecation",
+				MigrationToRun:      "96_irc_update_samaritano_port_and_tls",
+
+				SetupData: func(db *sql.DB) error {
+					_, err := db.Exec(`
+					INSERT INTO irc_network (
+						id, enabled, name, server, port, tls, tls_skip_verify, pass, nick,
+						auth_mechanism, auth_account, auth_password, invite_command,
+						use_bouncer, bouncer_addr, bot_mode, connected, connected_since,
+						use_proxy, proxy_id, created_at, updated_at
+					) VALUES
+						(1, 1, 'SamaritanoNet', 'irc.samaritano.cc', 6667, 0, 0, '', 'bot_a',
+						 'NONE', '', '', '', 0, '', 0, 0, NULL, 0, NULL,
+						 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+						(2, 1, 'SamaritanoNet', 'irc.samaritano.cc', 6697, 1, 0, '', 'bot_b',
+						 'NONE', '', '', '', 0, '', 0, 0, NULL, 0, NULL,
+						 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+						(3, 1, 'SamaritanoNet', 'irc.samaritano.cc', 6667, 0, 0, '', 'bot_b',
+						 'NONE', '', '', '', 0, '', 0, 0, NULL, 0, NULL,
+						 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+						(4, 1, 'P2P-Network', 'irc.p2p-network.net', 6667, 0, 0, '', 'bot_a',
+						 'NONE', '', '', '', 0, '', 0, 0, NULL, 0, NULL,
+						 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`)
+					return err
+				},
+				ValidateResult: func(db *sql.DB, t *testing.T) {
+					var port int
+					var tls bool
+
+					err := db.QueryRow(`SELECT port, tls FROM irc_network WHERE id = 1`).Scan(&port, &tls)
+					require.NoError(t, err)
+					assert.Equal(t, 6697, port)
+					assert.True(t, tls)
+
+					// Row 3 would collide with row 2 on (server, port, nick) and must be left alone.
+					err = db.QueryRow(`SELECT port, tls FROM irc_network WHERE id = 3`).Scan(&port, &tls)
+					require.NoError(t, err)
+					assert.Equal(t, 6667, port)
+					assert.False(t, tls)
+
+					err = db.QueryRow(`SELECT port, tls FROM irc_network WHERE id = 4`).Scan(&port, &tls)
+					require.NoError(t, err)
+					assert.Equal(t, 6667, port, "other networks must not be touched")
+					assert.False(t, tls)
+				},
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
