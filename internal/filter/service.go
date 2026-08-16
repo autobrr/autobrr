@@ -40,6 +40,7 @@ type filterRepo interface {
 	StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error
 	StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error
 	DeleteIndexerConnections(ctx context.Context, filterID int) error
+	DeleteArchivedIndexerConnections(ctx context.Context, identifiers []string) (int64, error)
 	DeleteFilterExternal(ctx context.Context, filterID int) error
 	GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) error
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
@@ -67,6 +68,8 @@ type downloadService interface {
 }
 
 type notificationService interface {
+	Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error)
+
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
 	StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
 	DeleteFilterNotifications(ctx context.Context, filterID int) error
@@ -219,8 +222,11 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
-	if filter.AnnounceTypes == nil || len(filter.AnnounceTypes) == 0 {
+	if len(filter.AnnounceTypes) == 0 {
 		filter.AnnounceTypes = []string{string(domain.AnnounceTypeNew)}
+	}
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		return err
 	}
 
 	if err := s.repo.Store(ctx, filter); err != nil {
@@ -232,15 +238,18 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
-	err := filter.Validate()
-	if err != nil {
+	if err := filter.Validate(); err != nil {
 		s.log.Error().Err(err).Interface("filter_data", filter).Msg("validation error")
 		return err
 	}
 
-	err = filter.Sanitize()
-	if err != nil {
+	if err := filter.Sanitize(); err != nil {
 		s.log.Error().Err(err).Interface("filter_data", filter).Msg("could not sanitize filter")
+		return err
+	}
+
+	if _, err := s.repo.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
 		return err
 	}
 
@@ -249,23 +258,25 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
+	if err := s.validateNotifications(ctx, filter.Notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid notifications for filter")
+		return err
+	}
+
 	// update
-	err = s.repo.Update(ctx, filter)
-	if err != nil {
+	if err := s.repo.Update(ctx, filter); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not update filter")
 		return err
 	}
 
 	// take care of connected indexers
-	err = s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers)
-	if err != nil {
+	if err := s.repo.StoreIndexerConnections(ctx, filter.ID, filter.Indexers); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter indexer connections")
 		return err
 	}
 
 	// take care of connected external filters
-	err = s.repo.StoreFilterExternal(ctx, filter.ID, filter.External)
-	if err != nil {
+	if err := s.repo.StoreFilterExternal(ctx, filter.ID, filter.External); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store external filters")
 		return err
 	}
@@ -280,8 +291,7 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	filter.Actions = actions
 
 	// take care of filter notifications
-	err = s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications)
-	if err != nil {
+	if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter notifications")
 		return err
 	}
@@ -289,27 +299,56 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 	return nil
 }
 
-// validateIndexers rejects indexers that do not exist. The database cannot be
-// relied on for this: SQLite runs without foreign key enforcement for legacy
-// reasons, so unknown ids would otherwise be stored as orphaned connections.
+// validateIndexers rejects unknown and archived indexers using persisted state.
 func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexer) error {
 	if len(indexers) == 0 {
 		return nil
 	}
 
-	existing, err := s.indexerSvc.List(ctx)
+	existingIndexers, err := s.indexerSvc.List(ctx)
 	if err != nil {
 		return err
 	}
 
-	existingIDs := make(map[int64]struct{}, len(existing))
-	for _, indexer := range existing {
-		existingIDs[indexer.ID] = struct{}{}
+	existingByID := make(map[int64]domain.Indexer, len(existingIndexers))
+	for _, indexer := range existingIndexers {
+		existingByID[indexer.ID] = indexer
 	}
 
 	for _, indexer := range indexers {
-		if _, ok := existingIDs[indexer.ID]; !ok {
+		existing, ok := existingByID[indexer.ID]
+		if !ok {
 			return errors.Wrap(domain.ErrIndexerNotFound, "indexer with id %d does not exist", indexer.ID)
+		}
+		if existing.Archived {
+			return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", indexer.ID)
+		}
+	}
+
+	return nil
+}
+
+// validateNotifications rejects notifications that do not exist, for the same
+// reason as validateIndexers: without foreign key enforcement unknown ids
+// would be stored as orphaned links and silently never fire.
+func (s *Service) validateNotifications(ctx context.Context, notifications []domain.FilterNotification) error {
+	if len(notifications) == 0 {
+		return nil
+	}
+
+	existing, _, err := s.notificationSvc.Find(ctx, domain.NotificationQueryParams{})
+	if err != nil {
+		return err
+	}
+
+	existingIDs := make(map[int]struct{}, len(existing))
+	for _, notification := range existing {
+		existingIDs[notification.ID] = struct{}{}
+	}
+
+	for _, notification := range notifications {
+		if _, ok := existingIDs[notification.NotificationID]; !ok {
+			return errors.Wrap(domain.ErrNotificationNotFound, "notification with id %d does not exist", notification.NotificationID)
 		}
 	}
 
@@ -317,6 +356,21 @@ func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexe
 }
 
 func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
+	if _, err := s.repo.FindByID(ctx, filter.ID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find filter")
+		return err
+	}
+
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
+		return err
+	}
+
+	if err := s.validateNotifications(ctx, filter.Notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid notifications for filter")
+		return err
+	}
+
 	// cleanup
 	if filter.Shows != nil {
 		// replace newline with comma
@@ -324,13 +378,6 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		clean = strings.ReplaceAll(clean, ",,", ",")
 
 		filter.Shows = &clean
-	}
-
-	if filter.Indexers != nil {
-		if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
-			s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
-			return err
-		}
 	}
 
 	// update
@@ -378,6 +425,7 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	// find filter with actions, indexers and external filters
 	filter, err := s.FindByID(ctx, filterID)
 	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
 		return nil, err
 	}
 
@@ -385,6 +433,9 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	filter.ID = 0
 	filter.Name = fmt.Sprintf("%s Copy", filter.Name)
 	filter.Enabled = false
+	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+		return nil, err
+	}
 
 	// store new filter
 	if err := s.repo.Store(ctx, filter); err != nil {
@@ -421,6 +472,12 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 }
 
 func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool) error {
+	_, err := s.FindByID(ctx, filterID)
+	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
+		return err
+	}
+
 	if err := s.repo.ToggleEnabled(ctx, filterID, enabled); err != nil {
 		s.log.Error().Err(err).Msg("could not update filter enabled")
 		return err
@@ -434,6 +491,12 @@ func (s *Service) ToggleEnabled(ctx context.Context, filterID int, enabled bool)
 func (s *Service) Delete(ctx context.Context, filterID int) error {
 	if filterID == 0 {
 		return nil
+	}
+
+	_, err := s.FindByID(ctx, filterID)
+	if err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
+		return err
 	}
 
 	// take care of filter actions
@@ -466,6 +529,19 @@ func (s *Service) Delete(ctx context.Context, filterID int) error {
 	}
 
 	return nil
+}
+
+// PruneDeprecatedIndexers removes filter connections to archived indexers.
+func (s *Service) PruneDeprecatedIndexers(ctx context.Context, identifiers []string) (int64, error) {
+	removed, err := s.repo.DeleteArchivedIndexerConnections(ctx, identifiers)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not prune deprecated indexers from filters")
+		return 0, err
+	}
+
+	s.log.Info().Msgf("pruned %d deprecated indexer connection(s) from filters", removed)
+
+	return removed, nil
 }
 
 func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {

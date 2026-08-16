@@ -464,6 +464,84 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 				assert.Equal(t, 0, count, "both old p2p-network rows should be deleted")
 			},
 		},
+		{
+			Name:                "Indexer archived + deprecation migration",
+			MigrationIndex:      84,
+			MigrationsUntilName: "84_feeds_add_user_agent",
+			MigrationToRun:      "85_add_indexer_archived_and_deprecation",
+
+			SetupData: func(db *sql.DB) error {
+				_, err := db.Exec(`INSERT INTO indexer (identifier, name, enabled) VALUES ('fnp', 'FearNoPeer', true)`)
+				return err
+			},
+			ValidateResult: func(db *sql.DB, t *testing.T) {
+				var archived bool
+				err := db.QueryRow(`SELECT archived FROM indexer WHERE identifier = 'fnp'`).Scan(&archived)
+				require.NoError(t, err)
+				assert.False(t, archived, "existing rows must default to not archived")
+
+				_, err = db.Exec(`INSERT INTO indexer_deprecation (identifier, name) VALUES ('fnp', 'FearNoPeer') ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name`)
+				require.NoError(t, err)
+				_, err = db.Exec(`INSERT INTO indexer_deprecation (identifier, name) VALUES ('fnp', 'FearNoPeer (updated)') ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name`)
+				require.NoError(t, err, "indexer_deprecation should support ON CONFLICT upsert")
+
+				var count int
+				var name string
+				err = db.QueryRow(`SELECT COUNT(*), MAX(name) FROM indexer_deprecation WHERE identifier = 'fnp'`).Scan(&count, &name)
+				require.NoError(t, err)
+				assert.Equal(t, 1, count, "upsert must not create a duplicate row")
+				assert.Equal(t, "FearNoPeer (updated)", name, "upsert must update the existing row")
+			},
+		},
+		{
+			Name:                "Samaritano IRC port and TLS migration",
+			MigrationIndex:      85,
+			MigrationsUntilName: "85_add_indexer_archived_and_deprecation",
+			MigrationToRun:      "86_irc_update_samaritano_port_and_tls",
+
+			SetupData: func(db *sql.DB) error {
+				_, err := db.Exec(`
+				INSERT INTO irc_network (
+					id, enabled, name, server, port, tls, tls_skip_verify, pass, nick,
+					auth_mechanism, auth_account, auth_password, invite_command,
+					use_bouncer, bouncer_addr, bot_mode, connected, connected_since,
+					use_proxy, proxy_id, created_at, updated_at
+				) VALUES
+					(1, true, 'SamaritanoNet', 'irc.samaritano.cc', 6667, false, false, '', 'bot_a',
+					 'NONE', '', '', '', false, '', false, false, NULL, false, NULL,
+					 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+					(2, true, 'SamaritanoNet', 'irc.samaritano.cc', 6697, true, false, '', 'bot_b',
+					 'NONE', '', '', '', false, '', false, false, NULL, false, NULL,
+					 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+					(3, true, 'SamaritanoNet', 'irc.samaritano.cc', 6667, false, false, '', 'bot_b',
+					 'NONE', '', '', '', false, '', false, false, NULL, false, NULL,
+					 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+					(4, true, 'P2P-Network', 'irc.p2p-network.net', 6667, false, false, '', 'bot_a',
+					 'NONE', '', '', '', false, '', false, false, NULL, false, NULL,
+					 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`)
+				return err
+			},
+			ValidateResult: func(db *sql.DB, t *testing.T) {
+				var port int
+				var tls bool
+
+				err := db.QueryRow(`SELECT port, tls FROM irc_network WHERE id = 1`).Scan(&port, &tls)
+				require.NoError(t, err)
+				assert.Equal(t, 6697, port)
+				assert.True(t, tls)
+
+				// Row 3 would collide with row 2 on (server, port, nick) and must be left alone.
+				err = db.QueryRow(`SELECT port, tls FROM irc_network WHERE id = 3`).Scan(&port, &tls)
+				require.NoError(t, err)
+				assert.Equal(t, 6667, port)
+				assert.False(t, tls)
+
+				err = db.QueryRow(`SELECT port, tls FROM irc_network WHERE id = 4`).Scan(&port, &tls)
+				require.NoError(t, err)
+				assert.Equal(t, 6667, port, "other networks must not be touched")
+				assert.False(t, tls)
+			},
+		},
 	}
 
 	for _, tc := range tests {

@@ -209,3 +209,35 @@ func TestClient_Push(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Unknown Movie. Unable to match to existing movie in Library using release title."}, rejections)
 }
+
+// A temporarily rejected release comes back with rejected false and temporarilyRejected
+// true, and waits in Whisparr's pending queue instead of being grabbed, so its rejections
+// still have to reach the caller.
+func TestClient_Push_temporarilyRejected(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		payload, err := os.ReadFile("testdata/release_push_temporarily_rejected_response.json")
+		require.NoError(t, err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(payload)
+	})
+
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	rejections, err := newTestClient(ts.URL, VersionV3).Push(context.Background(), ReleasePushRequest{
+		Title:            "Brazzers.Goes.Black.2018.1080p.BluRay.x264-GROUP",
+		DownloadUrl:      ts.URL + "/download",
+		Size:             1073741824,
+		Indexer:          "autobrr",
+		Protocol:         "torrent",
+		DownloadProtocol: "torrent",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Waiting for a better quality release"}, rejections)
+}

@@ -1,0 +1,5 @@
+identifier: stt
+name: SkipTheTrailers
+reason: Tracker shut down
+issue_url: https://github.com/autobrr/autobrr/pull/1708
+deprecated_at: 2024-09-04T00:00:00Z

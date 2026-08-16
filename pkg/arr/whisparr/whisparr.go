@@ -159,9 +159,10 @@ func (c *Client) Push(ctx context.Context, release ReleasePushRequest) ([]string
 		return nil, errors.New("whisparr push returned an empty response")
 	}
 
-	// log and return if rejected
-	if pushResponse[0].Rejected {
-		c.logger(ctx).Debug().Strs("rejections", pushResponse[0].Rejections).Msg("whisparr release/push rejected")
+	// rejected is false when every rejection is temporary, and a temporarily rejected release
+	// waits in the pending queue instead of being grabbed, so both flags have to be reported
+	if pushResponse[0].Rejected || pushResponse[0].TempRejected {
+		c.logger(ctx).Debug().Bool("temporary", pushResponse[0].TempRejected).Strs("rejections", pushResponse[0].Rejections).Msg("whisparr release/push rejected")
 		return pushResponse[0].Rejections, nil
 	}
 

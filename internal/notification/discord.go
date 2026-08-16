@@ -47,6 +47,48 @@ const (
 	GRAY       EmbedColors = 10070709 // 99aab5
 )
 
+// Per-field limits. Exceeding any of them makes Discord reject the whole
+// message with 400 rather than truncating it.
+// https://docs.discord.com/developers/resources/message#embed-object-embed-limits
+const (
+	discordEmbedTitleLimit       = 256
+	discordEmbedDescriptionLimit = 4096
+	discordEmbedFieldNameLimit   = 256
+	discordEmbedFieldValueLimit  = 1024
+)
+
+const discordTruncationMarker = " [...] "
+
+// truncateForDiscord shortens s to at most limit characters by dropping the
+// middle. A failed *arr push wraps its cause last, so keeping only the head
+// would discard the one part worth reading. Discord counts characters rather
+// than bytes.
+func truncateForDiscord(s string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+
+	if len(s) <= limit {
+		return s
+	}
+
+	runes := []rune(s)
+	if len(runes) <= limit {
+		return s
+	}
+
+	marker := []rune(discordTruncationMarker)
+	if limit <= len(marker) {
+		return string(runes[:limit])
+	}
+
+	keep := limit - len(marker)
+	head := (keep + 1) / 2
+	tail := keep - head
+
+	return string(runes[:head]) + discordTruncationMarker + string(runes[len(runes)-tail:])
+}
+
 type discordSender struct {
 	log      zerolog.Logger
 	Settings *domain.Notification
@@ -280,6 +322,12 @@ func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 	if payload.Subject != "" && payload.Message != "" {
 		embed.Title = payload.Subject
 		embed.Description = payload.Message
+	}
+
+	embed.Title = truncateForDiscord(embed.Title, discordEmbedTitleLimit)
+	embed.Description = truncateForDiscord(embed.Description, discordEmbedDescriptionLimit)
+	for i := range embed.Fields {
+		embed.Fields[i].Value = truncateForDiscord(embed.Fields[i].Value, discordEmbedFieldValueLimit)
 	}
 
 	return embed

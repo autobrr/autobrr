@@ -371,7 +371,7 @@ func TestReleaseHandler_UpdateCleanupJob(t *testing.T) {
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	var updated domain.ReleaseCleanupJob
 	err = json.NewDecoder(resp.Body).Decode(&updated)

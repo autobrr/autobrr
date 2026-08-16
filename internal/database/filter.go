@@ -533,6 +533,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
+		Where(sq.Eq{"i.archived": false}).
 		Where(sq.Eq{"f.enabled": true}).
 		OrderBy("f.priority DESC")
 
@@ -1368,20 +1369,58 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	defer tx.Rollback()
 
-	indexerIDs := make([]int64, 0, len(indexers))
+	uniqueIDs := make(map[int64]struct{}, len(indexers))
 	for _, indexer := range indexers {
-		indexerIDs = append(indexerIDs, indexer.ID)
+		uniqueIDs[indexer.ID] = struct{}{}
 	}
 
-	deleteQueryBuilder := r.db.squirrel.
-		Delete("filter_indexer").
-		Where(sq.Eq{"filter_id": filterID})
+	indexerIDs := make([]int64, 0, len(uniqueIDs))
+	for id := range uniqueIDs {
+		indexerIDs = append(indexerIDs, id)
+	}
 
 	if len(indexerIDs) > 0 {
-		deleteQueryBuilder = deleteQueryBuilder.Where(sq.NotEq{"indexer_id": indexerIDs})
+		query, args, err := r.db.squirrel.
+			Select("id", "archived").
+			From("indexer").
+			Where(sq.Eq{"id": indexerIDs}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		rows, err := tx.QueryContext(ctx, query, args...)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		found := 0
+		for rows.Next() {
+			var id int64
+			var archived bool
+			if err := rows.Scan(&id, &archived); err != nil {
+				rows.Close()
+				return errors.Wrap(err, "error scanning row")
+			}
+			found++
+			if archived {
+				rows.Close()
+				return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", id)
+			}
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return errors.Wrap(err, "error rows")
+		}
+		if found != len(indexerIDs) {
+			return domain.ErrIndexerNotFound
+		}
 	}
 
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
+	deleteQuery, deleteArgs, err := r.db.squirrel.
+		Delete("filter_indexer").
+		Where(sq.Eq{"filter_id": filterID}).
+		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
@@ -1422,6 +1461,18 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 }
 
 func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
+	var archived bool
+	err := r.db.Handler.QueryRowContext(ctx, "SELECT archived FROM indexer WHERE id = $1", indexerID).Scan(&archived)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrIndexerNotFound
+		}
+		return errors.Wrap(err, "could not find indexer")
+	}
+	if archived {
+		return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", indexerID)
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("filter_indexer").Columns("filter_id", "indexer_id").
 		Values(filterID, indexerID)
@@ -1455,6 +1506,38 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 	}
 
 	return nil
+}
+
+// DeleteArchivedIndexerConnections removes filter links to archived indexers.
+func (r *FilterRepo) DeleteArchivedIndexerConnections(ctx context.Context, identifiers []string) (int64, error) {
+	subBuilder := r.db.squirrel.
+		Select("id").
+		From("indexer").
+		Where(sq.Eq{"archived": true})
+	if len(identifiers) > 0 {
+		subBuilder = subBuilder.Where(sq.Eq{"identifier": identifiers})
+	}
+
+	subQuery, subArgs, err := subBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	queryBuilder := r.db.squirrel.
+		Delete("filter_indexer").
+		Where("indexer_id IN ("+subQuery+")", subArgs...)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, errors.Wrap(err, "error executing query")
+	}
+
+	return result.RowsAffected()
 }
 
 func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) error {

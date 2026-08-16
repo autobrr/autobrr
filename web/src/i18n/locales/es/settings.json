@@ -872,7 +872,29 @@
       "implementation": "Implementación",
       "noItems": "No hay indexadores",
       "addNewItem": "Agregar nuevo indexador",
-      "updated": "{{name}} fue actualizado exitosamente"
+      "updated": "{{name}} fue actualizado exitosamente",
+      "deprecated": {
+        "title": "Indexadores obsoletos",
+        "description": "Estos indexadores se han eliminado de autobrr. Ya no se pueden usar ni seleccionar en los filtros. Sus lanzamientos se conservan y siguen mostrando su nombre.",
+        "removed": "Indexador eliminado",
+        "moreInfo": "Más información",
+        "usedByFilters_one": "Usado por {{count}} filtro",
+        "usedByFilters_other": "Usado por {{count}} filtros",
+        "pruneAll": "Eliminar de todos los filtros",
+        "pruneOne": "Eliminar de los filtros",
+        "pruneTitle": "Eliminar los indexadores obsoletos de los filtros",
+        "pruneText": "¿Seguro que quieres eliminar todos los indexadores obsoletos de tus filtros? Sus lanzamientos se conservarán, pero dejarán de estar asociados a cualquier filtro. Esta acción no se puede deshacer.",
+        "pruneOneTitle": "Eliminar {{name}} de los filtros",
+        "pruneOneText": "¿Seguro que quieres eliminar {{name}} de todos los filtros? Los lanzamientos históricos y los datos guardados del indexador se conservarán.",
+        "pruneSuccess_one": "Se eliminó {{count}} asociación de un indexador obsoleto de los filtros",
+        "pruneSuccess_other": "Se eliminaron {{count}} asociaciones de indexadores obsoletos de los filtros",
+        "pruneError": "No se pudieron eliminar los indexadores obsoletos de los filtros",
+        "purge": "Eliminar datos guardados",
+        "purgeTitle": "Eliminar los datos guardados de {{name}}",
+        "purgeText": "Esto elimina permanentemente la configuración y las credenciales guardadas del indexador. Los lanzamientos históricos conservarán el nombre del indexador. Esta acción no se puede deshacer.",
+        "purgeSuccess": "Se eliminaron los datos guardados del indexador archivado",
+        "purgeError": "No se pudieron eliminar los datos guardados del indexador archivado"
+      }
     },
     "proxies": {
       "title": "Proxies",

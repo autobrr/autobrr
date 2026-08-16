@@ -1,0 +1,13 @@
+[
+  {
+    "title": "Movie.Title.2026.1080p.BluRay.x264-GROUP",
+    "indexer": "mock-indexer",
+    "protocol": "torrent",
+    "approved": false,
+    "rejected": false,
+    "temporarilyRejected": true,
+    "rejections": [
+      "Waiting for a better quality release"
+    ]
+  }
+]

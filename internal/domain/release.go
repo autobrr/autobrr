@@ -703,7 +703,9 @@ func (r *Release) ParseString(title string) {
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
-	r.Artists = rel.Artist
+	if rel.Artist != "" {
+		r.Artists = rel.Artist
+	}
 
 	if rel.Other != nil {
 		r.Other = rel.Other
@@ -1119,6 +1121,13 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		r.Category = category
 	}
 
+	if subCategory, ok := getStringMapValue(varMap, "subCategory"); ok {
+		if r.Category != "" {
+			mainCategory := r.Category
+			r.Category = fmt.Sprintf("%s/%s", mainCategory, subCategory)
+		}
+	}
+
 	if announceType, ok := getStringMapValue(varMap, "announceType"); ok {
 		annType, parseErr := ParseAnnounceType(announceType)
 		if parseErr == nil {
@@ -1256,8 +1265,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 	if tags, ok := getStringMapValue(varMap, "tags"); ok {
 		if tags != "" && tags != "*" {
 			tagsArr := []string{}
-			s := strings.Split(tags, ",")
-			for _, t := range s {
+			for t := range strings.SplitSeq(tags, ",") {
 				tagsArr = append(tagsArr, strings.Trim(t, " "))
 			}
 			r.Tags = tagsArr
@@ -1268,6 +1276,10 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		if title != "" && title != "*" {
 			r.Title = title
 		}
+	}
+
+	if v, ok := getStringMapValue(varMap, "author"); ok {
+		r.Artists = v
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful
@@ -1286,6 +1298,14 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 	if episodeVal, ok := getStringMapValue(varMap, "releaseEpisode"); ok {
 		episode, _ := strconv.Atoi(episodeVal)
 		r.Episode = episode
+	}
+
+	if language, ok := getStringMapValue(varMap, "language"); ok {
+		r.Language = append(r.Language, language)
+	}
+
+	if v, ok := getStringMapValue(varMap, "container"); ok {
+		r.Container = v
 	}
 
 	if metaId, ok := getStringMapValue(varMap, "imdb"); ok && metaId != "" {
