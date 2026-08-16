@@ -557,7 +557,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 				FilterID:   createdFilters[0].ID,
 			}
 
-			err = repo.Store(context.Background(), episode)
+			err = repo.Store(ctx, episode)
 			assert.NoError(t, err)
 
 			_, err = db.squirrel.
@@ -575,10 +575,10 @@ func TestReleaseRepo_Get(t *testing.T) {
 				Set("hybrid", nil).
 				Where("id = ?", episode.ID).
 				RunWith(db.Handler).
-				ExecContext(context.Background())
+				ExecContext(ctx)
 			assert.NoError(t, err)
 
-			storedEpisode, err := repo.Get(context.Background(), &domain.GetReleaseRequest{Id: int(episode.ID)})
+			storedEpisode, err := repo.Get(ctx, &domain.GetReleaseRequest{Id: int(episode.ID)})
 			assert.NoError(t, err)
 			assert.NotNil(t, storedEpisode)
 			assert.Equal(t, episode.Season, storedEpisode.Season)
@@ -598,7 +598,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.Empty(t, storedEpisode.Tags)
 			assert.Empty(t, storedEpisode.Other)
 
-			missing, err := repo.Get(context.Background(), &domain.GetReleaseRequest{Id: -1})
+			missing, err := repo.Get(ctx, &domain.GetReleaseRequest{Id: -1})
 			assert.Nil(t, missing)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
