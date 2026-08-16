@@ -642,7 +642,56 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.implementation", "r.announce_type", "r.info_url", "r.download_url", "r.title", "r.sub_title", "r.torrent_name", "r.category", "r.size", "r.group_id", "r.torrent_id", "r.uploader", "r.timestamp").
+		Select(
+			"r.id",
+			"r.filter_status",
+			"r.rejections",
+			"r.indexer",
+			"r.filter",
+			"r.filter_id",
+			"r.protocol",
+			"r.implementation",
+			"r.announce_type",
+			"r.info_url",
+			"r.download_url",
+			"r.title",
+			"r.sub_title",
+			"r.torrent_name",
+			"r.normalized_hash",
+			"r.category",
+			"r.size",
+			"r.group_id",
+			"r.torrent_id",
+			"r.season",
+			"r.episode",
+			"r.year",
+			"r.month",
+			"r.day",
+			"r.resolution",
+			"r.source",
+			"r.codec",
+			"r.container",
+			"r.hdr",
+			"r.audio",
+			"r.audio_channels",
+			"r.release_group",
+			"r.proper",
+			"r.repack",
+			"r.region",
+			"r.language",
+			"r.cut",
+			"r.edition",
+			"r.hybrid",
+			"r.media_processing",
+			"r.website",
+			"r.type",
+			"r.origin",
+			"r.tags",
+			"r.uploader",
+			"r.pre_time",
+			"r.other",
+			"r.timestamp",
+		).
 		From("release r").
 		OrderBy("r.id DESC").
 		Where(sq.Eq{"r.id": req.Id})
@@ -661,10 +710,61 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	var rls domain.Release
 
-	var indexerName, filterName, announceType, infoUrl, downloadUrl, subTitle, groupId, torrentId, category, uploader sql.NullString
+	var indexerName, filterName, announceType, infoUrl, downloadUrl, subTitle, normalizedHash, groupId, torrentId, category, resolution, source, codec, container, hdr, audio, audioChannels, releaseGroup, region, language, cut, edition, mediaProcessing, website, releaseType, origin, uploader, preTime sql.NullString
 	var filterId sql.NullInt64
+	var season, episode, year, month, day sql.NullInt64
+	var proper, repack, hybrid sql.NullBool
 
-	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &announceType, &infoUrl, &downloadUrl, &rls.Title, &subTitle, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
+	if err := row.Scan(
+		&rls.ID,
+		&rls.FilterStatus,
+		pq.Array(&rls.Rejections),
+		&indexerName,
+		&filterName,
+		&filterId,
+		&rls.Protocol,
+		&rls.Implementation,
+		&announceType,
+		&infoUrl,
+		&downloadUrl,
+		&rls.Title,
+		&subTitle,
+		&rls.TorrentName,
+		&normalizedHash,
+		&category,
+		&rls.Size,
+		&groupId,
+		&torrentId,
+		&season,
+		&episode,
+		&year,
+		&month,
+		&day,
+		&resolution,
+		&source,
+		&codec,
+		&container,
+		&hdr,
+		&audio,
+		&audioChannels,
+		&releaseGroup,
+		&proper,
+		&repack,
+		&region,
+		&language,
+		&cut,
+		&edition,
+		&hybrid,
+		&mediaProcessing,
+		&website,
+		&releaseType,
+		&origin,
+		pq.Array(&rls.Tags),
+		&uploader,
+		&preTime,
+		pq.Array(&rls.Other),
+		&rls.Timestamp,
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -680,10 +780,50 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 	rls.InfoURL = infoUrl.String
 	rls.DownloadURL = downloadUrl.String
 	rls.SubTitle = subTitle.String
+	rls.NormalizedHash = normalizedHash.String
 	rls.Category = category.String
 	rls.GroupID = groupId.String
 	rls.TorrentID = torrentId.String
+	rls.Season = int(season.Int64)
+	rls.Episode = int(episode.Int64)
+	rls.Year = int(year.Int64)
+	rls.Month = int(month.Int64)
+	rls.Day = int(day.Int64)
+	rls.Resolution = resolution.String
+	rls.Source = source.String
+	if codec.String != "" {
+		rls.Codec = strings.Split(codec.String, ",")
+	}
+	rls.Container = container.String
+	if hdr.String != "" {
+		rls.HDR = strings.Split(hdr.String, ",")
+	}
+	if audio.String != "" {
+		rls.Audio = strings.Split(audio.String, ",")
+	}
+	rls.AudioChannels = audioChannels.String
+	rls.Group = releaseGroup.String
+	rls.Proper = proper.Bool
+	rls.Repack = repack.Bool
+	rls.Region = region.String
+	if language.String != "" {
+		rls.Language = strings.Split(language.String, ",")
+	}
+	if cut.String != "" {
+		rls.Cut = strings.Split(cut.String, ",")
+	}
+	if edition.String != "" {
+		rls.Edition = strings.Split(edition.String, ",")
+	}
+	rls.Hybrid = hybrid.Bool
+	rls.MediaProcessing = mediaProcessing.String
+	rls.Website = website.String
+	if releaseType.Valid {
+		rls.ParseType(releaseType.String)
+	}
+	rls.Origin = origin.String
 	rls.Uploader = uploader.String
+	rls.PreTime = preTime.String
 
 	return &rls, nil
 }
