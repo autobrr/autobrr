@@ -198,7 +198,10 @@ func resetPublicSchema(t *testing.T, db *sql.DB) {
 }
 
 func TestRunMigrationTest_Postgres(t *testing.T) {
-	db, cleanup := startEmbeddedPGOnPort(t, 9879)
+	freePort, err := GetFreePort()
+	require.NoError(t, err)
+
+	db, cleanup := startEmbeddedPGOnPort(t, freePort)
 	defer cleanup()
 
 	tests := []MigrationTestCase{

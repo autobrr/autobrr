@@ -8,6 +8,7 @@ package migrations_test
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"testing"
@@ -22,6 +23,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// GetFreePort asks the kernel for a free open port that is ready to use.
+func GetFreePort() (port int, err error) {
+	var a *net.TCPAddr
+	if a, err = net.ResolveTCPAddr("tcp", "localhost:0"); err == nil {
+		var l *net.TCPListener
+		if l, err = net.ListenTCP("tcp", a); err == nil {
+			defer l.Close()
+			return l.Addr().(*net.TCPAddr).Port, nil
+		}
+	}
+	return
+}
 
 func TestMigrateOldVersionsToLatest(t *testing.T) {
 	// This test downloads an old version of autobrr (v1.30.0), initializes a database with it,
@@ -142,11 +156,14 @@ type = "sqlite"
 
 		configPath := workDir + "/config.toml"
 
+		freePort, err := GetFreePort()
+		require.NoError(t, err, "Failed to get free port")
+
 		var (
 			dbUsername = "postgres"
 			dbPassword = "postgres"
 			dbName     = "autobrr"
-			dbPort     = 9877
+			dbPort     = freePort
 		)
 
 		binariesPath, runtimePath := embeddedPGPaths(t)
@@ -164,7 +181,7 @@ type = "sqlite"
 			StartParameters(map[string]string{"max_connections": "200"}).
 			Logger(pgLogger))
 
-		err := postgres.Start()
+		err = postgres.Start()
 		require.NoError(t, err, "Failed to start postgres")
 
 		dsn := fmt.Sprintf("postgres://%s:%s@localhost:%d/%s?sslmode=disable", dbUsername, dbPassword, dbPort, dbName)
