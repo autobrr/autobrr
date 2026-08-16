@@ -58,7 +58,7 @@ func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
 	}
 
 	for _, action := range actions {
-		err := svc.CheckActionPreconditions(context.Background(), action, release)
+		err := svc.CheckActionPreconditions(t.Context(), action, release)
 		assert.NoError(t, err)
 	}
 
@@ -79,7 +79,7 @@ func TestCheckActionPreconditions_SkipsDownloadForMagnet(t *testing.T) {
 		MagnetURI:   "magnet:?xt=urn:btih:abc123",
 	}
 
-	err := svc.CheckActionPreconditions(context.Background(), &domain.Action{Type: domain.ActionTypeQbittorrent}, release)
+	err := svc.CheckActionPreconditions(t.Context(), &domain.Action{Type: domain.ActionTypeQbittorrent}, release)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, dl.fetches, "magnet releases must not trigger a torrent download")
@@ -94,7 +94,7 @@ func TestCheckActionPreconditions_SkipsDownloadForArrActions(t *testing.T) {
 
 	release := &domain.Release{TorrentName: "Test.Release-GRP", Protocol: domain.ReleaseProtocolTorrent}
 
-	err := svc.CheckActionPreconditions(context.Background(), &domain.Action{Type: domain.ActionTypeRadarr}, release)
+	err := svc.CheckActionPreconditions(t.Context(), &domain.Action{Type: domain.ActionTypeRadarr}, release)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, dl.fetches)
@@ -110,7 +110,7 @@ func TestCheckActionPreconditions_WritesTmpFileForPathMacro(t *testing.T) {
 	release := &domain.Release{TorrentName: "Test.Release-GRP", Protocol: domain.ReleaseProtocolTorrent}
 	action := &domain.Action{Type: domain.ActionTypeExec, ExecArgs: "--torrent {{.TorrentPathName}}"}
 
-	err := svc.CheckActionPreconditions(context.Background(), action, release)
+	err := svc.CheckActionPreconditions(t.Context(), action, release)
 	assert.NoError(t, err)
 
 	assert.Equal(t, 1, dl.fetches)
@@ -131,7 +131,7 @@ func TestCheckActionPreconditions_SkipsDownloadForPlainExec(t *testing.T) {
 	release := &domain.Release{TorrentName: "Test.Release-GRP", Protocol: domain.ReleaseProtocolTorrent}
 	action := &domain.Action{Type: domain.ActionTypeExec, ExecArgs: "--name {{.TorrentName}}"}
 
-	err := svc.CheckActionPreconditions(context.Background(), action, release)
+	err := svc.CheckActionPreconditions(t.Context(), action, release)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, dl.fetches)

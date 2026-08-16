@@ -4,7 +4,6 @@
 package action
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,7 +33,7 @@ func TestWatchFolder_WritesTorrentNamedAfterInfoHash(t *testing.T) {
 	dir := t.TempDir()
 	release := testTorrentRelease()
 
-	err := (&Service{}).watchFolder(context.Background(), &domain.Action{WatchFolder: dir}, release)
+	err := (&Service{}).watchFolder(t.Context(), &domain.Action{WatchFolder: dir}, release)
 	require.NoError(t, err)
 
 	want := filepath.Join(dir, "autobrr-"+testInfoHash+".torrent")
@@ -52,7 +51,7 @@ func TestWatchFolder_HonoursExplicitFileName(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "nested", "chosen-name.torrent")
 
-	err := (&Service{}).watchFolder(context.Background(), &domain.Action{WatchFolder: target}, testTorrentRelease())
+	err := (&Service{}).watchFolder(t.Context(), &domain.Action{WatchFolder: target}, testTorrentRelease())
 	require.NoError(t, err)
 
 	assert.FileExists(t, target)
@@ -64,7 +63,7 @@ func TestWatchFolder_RejectsMagnet(t *testing.T) {
 	release := testTorrentRelease()
 	release.MagnetURI = "magnet:?xt=urn:btih:" + testInfoHash
 
-	err := (&Service{}).watchFolder(context.Background(), &domain.Action{WatchFolder: t.TempDir()}, release)
+	err := (&Service{}).watchFolder(t.Context(), &domain.Action{WatchFolder: t.TempDir()}, release)
 
 	assert.Error(t, err, "watch folder cannot write a magnet link")
 }
@@ -79,7 +78,7 @@ func TestWatchFolder_RejectsMissingTorrent(t *testing.T) {
 	release := testTorrentRelease()
 	release.TorrentDataRawBytes = nil
 
-	err := (&Service{}).watchFolder(context.Background(), &domain.Action{WatchFolder: dir}, release)
+	err := (&Service{}).watchFolder(t.Context(), &domain.Action{WatchFolder: dir}, release)
 	require.Error(t, err)
 
 	entries, readErr := os.ReadDir(dir)

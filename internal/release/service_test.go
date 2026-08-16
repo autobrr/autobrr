@@ -97,7 +97,7 @@ func TestService_Process_PublishesEvent(t *testing.T) {
 		Indexer:     domain.IndexerMinimal{Name: "MockIndexer", Identifier: "mock"},
 	}
 
-	s.Process(context.Background(), release)
+	s.Process(t.Context(), release)
 
 	// s.bus.Publish is synchronous in EventBus when using standard Publish
 	assert.True(t, published, "RELEASE_NEW event should have been published")

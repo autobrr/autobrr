@@ -6,7 +6,6 @@
 package ptp
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -96,7 +95,7 @@ func TestPTPClient_GetTorrentByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.APIUser, tt.fields.APIKey, WithUrl(ts.URL))
 
-			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
+			got, err := c.GetTorrentByID(t.Context(), tt.args.torrentID)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -179,7 +178,7 @@ func Test(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.APIUser, tt.fields.APIKey, WithUrl(ts.URL))
 
-			got, err := c.TestAPI(context.Background())
+			got, err := c.TestAPI(t.Context())
 
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.wantErr, err)

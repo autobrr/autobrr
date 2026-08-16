@@ -410,7 +410,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 
 					// release/service.go
 
-					//ctx := context.Background()
+					//ctx := t.Context()
 					//filterSvc := filter.NewService(l, nil, nil, nil, nil, nil)
 
 					for _, filterT := range subT.args.filters {

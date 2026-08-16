@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -23,51 +25,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// runMigrationTestPostgres executes a pluggable migration test
-func runMigrationTestPostgres(t *testing.T, testCase MigrationTestCase) {
-	db, cleanup := setupTestPostgresDB(t)
-	defer cleanup()
+// embeddedPGPaths returns the directory the Postgres binaries are extracted to along with a
+// runtime directory for a single instance. embedded-postgres wipes its runtime path on every
+// Start, so instances must not share one; the binaries are extracted once and reused. The
+// binaries path is package specific so a cold start can never have two test binaries
+// extracting into the same directory.
+func embeddedPGPaths(t *testing.T) (binariesPath, runtimePath string) {
+	t.Helper()
 
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
-
-	migrate := migrations.PostgresMigrations(db.Handler, log.With().Logger())
-
-	err := migrate.InitVersionTable()
-	require.NoError(t, err)
-
-	// Run initial schema setup (all migrations up to the target migration - 1)
-	m := migrate.GetUpTo(testCase.MigrationsUntilName)
-
-	err = migrate.RunMigrations(m)
-	require.NoError(t, err)
-
-	// Insert test data
-	if testCase.SetupData != nil {
-		err = testCase.SetupData(db.Handler)
-		require.NoError(t, err, "Failed to setup test data")
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		cacheDir = os.TempDir()
 	}
 
-	// Get the migration to run
-	currentMigration, err := migrate.Get(testCase.MigrationToRun)
-	require.NoError(t, err, "Failed to get migration")
-
-	// Run the specific migration being tested
-	err = migrate.RunMigrations([]*migrator.Migration{currentMigration})
-	require.NoError(t, err, "Failed to run target migration")
-
-	// Validate the results
-	if testCase.ValidateResult != nil {
-		testCase.ValidateResult(db.Handler, t)
-	}
+	return filepath.Join(cacheDir, "autobrr", "embedded-postgres", "v17-migrations"), t.TempDir()
 }
 
-func setupPGTestDB() (*database.DB, func(), error) {
+func setupPGTestDB(t *testing.T) (*database.DB, func(), error) {
+	t.Helper()
+
 	var (
 		dbUsername = "postgres"
 		dbPassword = "postgres"
 		dbName     = "autobrr"
 		dbPort     = 9876
 	)
+
+	binariesPath, runtimePath := embeddedPGPaths(t)
 
 	pgLogger := &bytes.Buffer{}
 	postgres := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().
@@ -76,8 +60,8 @@ func setupPGTestDB() (*database.DB, func(), error) {
 		Database(dbName).
 		Port(uint32(dbPort)).
 		Version(embeddedpostgres.V17).
-		//RuntimePath("/tmp").
-		//BinaryRepositoryURL("https://repo.local/central.proxy").
+		BinariesPath(binariesPath).
+		RuntimePath(runtimePath).
 		StartTimeout(45 * time.Second).
 		StartParameters(map[string]string{"max_connections": "200"}).
 		Logger(pgLogger))
@@ -116,34 +100,9 @@ func setupPGTestDB() (*database.DB, func(), error) {
 	return db, cleanup, nil
 }
 
-func setupTestPostgresDB(t *testing.T) (*database.DB, func()) {
-	dsn := "postgres://postgres:postgres@localhost:9876/autobrr?sslmode=disable"
-
-	cfg := &domain.Config{
-		DatabaseType:        "postgres",
-		DatabaseDSN:         dsn,
-		DatabaseAutoMigrate: false,
-	}
-
-	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
-	db, err := database.NewDB(cfg, log)
-	require.NoError(t, err)
-
-	err = db.Open()
-	require.NoError(t, err)
-
-	cleanup := func() {
-		_ = db.Close()
-		//_ = os.Remove(dbPath)
-	}
-
-	return db, cleanup
-}
-
 // Test full migration sequence
 func TestFullMigrationSequencePostgres(t *testing.T) {
-	//db, cleanup := setupTestPostgresDB(t)
-	db, cleanup, err := setupPGTestDB()
+	db, cleanup, err := setupPGTestDB(t)
 	defer cleanup()
 	require.NoError(t, err)
 
@@ -191,6 +150,8 @@ func startEmbeddedPGOnPort(t *testing.T, port int) (*database.DB, func()) {
 		dbName     = "autobrr"
 	)
 
+	binariesPath, runtimePath := embeddedPGPaths(t)
+
 	pgLogger := &bytes.Buffer{}
 	pg := embeddedpostgres.NewDatabase(embeddedpostgres.DefaultConfig().
 		Username(dbUsername).
@@ -198,6 +159,8 @@ func startEmbeddedPGOnPort(t *testing.T, port int) (*database.DB, func()) {
 		Database(dbName).
 		Port(uint32(port)).
 		Version(embeddedpostgres.V17).
+		BinariesPath(binariesPath).
+		RuntimePath(runtimePath).
 		StartTimeout(45 * time.Second).
 		StartParameters(map[string]string{"max_connections": "200"}).
 		Logger(pgLogger))
@@ -235,7 +198,10 @@ func resetPublicSchema(t *testing.T, db *sql.DB) {
 }
 
 func TestRunMigrationTest_Postgres(t *testing.T) {
-	db, cleanup := startEmbeddedPGOnPort(t, 9879)
+	freePort, err := GetFreePort()
+	require.NoError(t, err)
+
+	db, cleanup := startEmbeddedPGOnPort(t, freePort)
 	defer cleanup()
 
 	tests := []MigrationTestCase{
