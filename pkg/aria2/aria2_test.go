@@ -4,7 +4,6 @@
 package aria2
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -89,7 +88,7 @@ func TestClientAddURI(t *testing.T) {
 	c, err := NewClient(Config{Host: ts.URL, Secret: "mock-secret"})
 	require.NoError(t, err)
 
-	gid, err := c.AddURI(context.Background(), []string{"magnet:?xt=urn:btih:mock"}, Options{"dir": "/downloads"})
+	gid, err := c.AddURI(t.Context(), []string{"magnet:?xt=urn:btih:mock"}, Options{"dir": "/downloads"})
 	require.NoError(t, err)
 	assert.Equal(t, "2089b05ecca3d829", gid)
 
@@ -108,7 +107,7 @@ func TestClientAddURIWithoutSecret(t *testing.T) {
 	c, err := NewClient(Config{Host: ts.URL})
 	require.NoError(t, err)
 
-	_, err = c.AddURI(context.Background(), []string{"magnet:?xt=urn:btih:mock"}, nil)
+	_, err = c.AddURI(t.Context(), []string{"magnet:?xt=urn:btih:mock"}, nil)
 	require.NoError(t, err)
 
 	require.Len(t, *calls, 1)
@@ -124,7 +123,7 @@ func TestClientAddTorrent(t *testing.T) {
 	c, err := NewClient(Config{Host: ts.URL, Secret: "mock-secret"})
 	require.NoError(t, err)
 
-	gid, err := c.AddTorrent(context.Background(), []byte("d4:infod4:name4:mockee"), Options{"pause": "true"})
+	gid, err := c.AddTorrent(t.Context(), []byte("d4:infod4:name4:mockee"), Options{"pause": "true"})
 	require.NoError(t, err)
 	assert.Equal(t, "2089b05ecca3d829", gid)
 
@@ -148,7 +147,7 @@ func TestClientTellActive(t *testing.T) {
 	c, err := NewClient(Config{Host: ts.URL})
 	require.NoError(t, err)
 
-	active, err := c.TellActive(context.Background())
+	active, err := c.TellActive(t.Context())
 	require.NoError(t, err)
 	require.Len(t, active, 3)
 
@@ -171,7 +170,7 @@ func TestClientRPCError(t *testing.T) {
 	c, err := NewClient(Config{Host: ts.URL, Secret: "wrong"})
 	require.NoError(t, err)
 
-	_, err = c.GetVersion(context.Background())
+	_, err = c.GetVersion(t.Context())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Unauthorized")
 }

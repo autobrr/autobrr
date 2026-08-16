@@ -126,7 +126,7 @@ func TestServiceUpdate_SecretSettings(t *testing.T) {
 
 			update := &domain.Indexer{ID: 1, Name: "Test RSS", Identifier: current.Identifier, Implementation: "rss", Enabled: true, Settings: tt.settings}
 
-			err := svc.Update(context.Background(), update)
+			err := svc.Update(t.Context(), update)
 
 			if tt.wantErr != "" {
 				assert.ErrorContains(t, err, tt.wantErr)
@@ -155,7 +155,7 @@ func TestServiceUpdate_EmptySavedSecretMayBeOmitted(t *testing.T) {
 	svc := NewService(zerolog.Nop(), nil, EventBus.New(), repo, nil, nil)
 	svc.mappedDefinitions["rss-test-rss"] = &domain.IndexerDefinition{Identifier: "rss-test-rss", Implementation: "rss"}
 
-	err := svc.Update(context.Background(), &domain.Indexer{ID: 1, Name: "Test RSS", Identifier: "rss-test-rss", Implementation: "rss", Settings: map[string]string{}})
+	err := svc.Update(t.Context(), &domain.Indexer{ID: 1, Name: "Test RSS", Identifier: "rss-test-rss", Implementation: "rss", Settings: map[string]string{}})
 
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.updated)

@@ -1182,6 +1182,11 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 
 	ircChannel, found := h.channels.Get(channel)
 	if !found {
+		if h.usesBouncer() {
+			h.log.Trace().Str("channel", channel).Msg("ignoring message from unmonitored bouncer channel")
+			return
+		}
+
 		h.log.Error().Str("channel", channel).Msg("channel not found")
 		return
 	}

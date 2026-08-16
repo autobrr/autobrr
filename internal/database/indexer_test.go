@@ -6,7 +6,6 @@
 package database
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -30,32 +29,38 @@ func getMockIndexer() domain.Indexer {
 }
 
 func TestIndexerRepo_Store(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 		mockData := getMockIndexer()
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdIndexer, err := repo.Store(context.Background(), mockData)
+			createdIndexer, err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
 			// Verify
-			indexer, err := repo.FindByID(context.Background(), int(createdIndexer.ID))
+			indexer, err := repo.FindByID(ctx, int(createdIndexer.ID))
 			assert.NoError(t, err)
 			assert.Equal(t, mockData.Name, createdIndexer.Name)
 			assert.Equal(t, mockData.Identifier, createdIndexer.Identifier)
 			assert.Equal(t, mockData.Enabled, indexer.Enabled)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(createdIndexer.ID))
+			_ = repo.Delete(ctx, int(createdIndexer.ID))
 		})
 
 	}
 }
 
 func TestIndexerRepo_Update(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 
@@ -63,14 +68,14 @@ func TestIndexerRepo_Update(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdIndexer, err := repo.Store(context.Background(), initialData)
+			createdIndexer, err := repo.Store(ctx, initialData)
 			assert.NoError(t, err)
 
 			createdIndexer.Name = "UpdatedName"
 			createdIndexer.Enabled = false
 
 			// Execute
-			err = repo.Update(context.Background(), createdIndexer)
+			err = repo.Update(ctx, createdIndexer)
 			assert.NoError(t, err)
 
 			// Verify
@@ -79,13 +84,16 @@ func TestIndexerRepo_Update(t *testing.T) {
 			assert.Equal(t, createdIndexer.Enabled, false)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(createdIndexer.ID))
+			_ = repo.Delete(ctx, int(createdIndexer.ID))
 		})
 	}
 }
 
 func TestIndexerRepo_List(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 
@@ -99,13 +107,13 @@ func TestIndexerRepo_List(t *testing.T) {
 			mockData2.Name = "Indexer2"
 			mockData2.Identifier = "Identifier2"
 
-			createdIndexer1, err := repo.Store(context.Background(), mockData1)
+			createdIndexer1, err := repo.Store(ctx, mockData1)
 			assert.NoError(t, err)
-			createdIndexer2, err := repo.Store(context.Background(), mockData2)
+			createdIndexer2, err := repo.Store(ctx, mockData2)
 			assert.NoError(t, err)
 
 			// Execute
-			indexers, err := repo.List(context.Background())
+			indexers, err := repo.List(ctx)
 			assert.NoError(t, err)
 
 			// Verify
@@ -115,14 +123,17 @@ func TestIndexerRepo_List(t *testing.T) {
 			assert.Equal(t, 2, len(indexers))
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(createdIndexer1.ID))
-			_ = repo.Delete(context.Background(), int(createdIndexer2.ID))
+			_ = repo.Delete(ctx, int(createdIndexer1.ID))
+			_ = repo.Delete(ctx, int(createdIndexer2.ID))
 		})
 	}
 }
 
 func TestIndexerRepo_FindByID(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
 		mockData := getMockIndexer()
@@ -132,11 +143,11 @@ func TestIndexerRepo_FindByID(t *testing.T) {
 			mockData.Name = "TestIndexer"
 			mockData.Identifier = "TestIdentifier"
 
-			createdIndexer, err := repo.Store(context.Background(), mockData)
+			createdIndexer, err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
 			// Execute
-			foundIndexer, err := repo.FindByID(context.Background(), int(createdIndexer.ID))
+			foundIndexer, err := repo.FindByID(ctx, int(createdIndexer.ID))
 			assert.NoError(t, err)
 
 			// Verify
@@ -146,13 +157,16 @@ func TestIndexerRepo_FindByID(t *testing.T) {
 			assert.Equal(t, createdIndexer.Enabled, foundIndexer.Enabled)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(createdIndexer.ID))
+			_ = repo.Delete(ctx, int(createdIndexer.ID))
 		})
 	}
 }
 
 func TestIndexerRepo_FindByFilterID(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIndexerRepo(log, db)
@@ -163,18 +177,18 @@ func TestIndexerRepo_FindByFilterID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := filterRepo.Store(context.Background(), filterMockData)
+			err := filterRepo.Store(ctx, filterMockData)
 			assert.NoError(t, err)
 
-			indexer, err := repo.Store(context.Background(), mockData)
+			indexer, err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 			assert.NotNil(t, indexer)
 
-			err = filterRepo.StoreIndexerConnection(context.Background(), filterMockData.ID, int(indexer.ID))
+			err = filterRepo.StoreIndexerConnection(ctx, filterMockData.ID, int(indexer.ID))
 			assert.NoError(t, err)
 
 			// Execute
-			foundIndexers, err := repo.FindByFilterID(context.Background(), filterMockData.ID)
+			foundIndexers, err := repo.FindByFilterID(ctx, filterMockData.ID)
 			assert.NoError(t, err)
 
 			// Verify
@@ -183,14 +197,17 @@ func TestIndexerRepo_FindByFilterID(t *testing.T) {
 			assert.Equal(t, indexer.Identifier, foundIndexers[0].Identifier)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), int(indexer.ID))
-			_ = filterRepo.Delete(context.Background(), filterMockData.ID)
+			_ = repo.Delete(ctx, int(indexer.ID))
+			_ = filterRepo.Delete(ctx, filterMockData.ID)
 		})
 	}
 }
 
 func TestIndexerRepo_Delete(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIndexerRepo(log, db)
@@ -198,16 +215,16 @@ func TestIndexerRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			createdIndexer, err := repo.Store(context.Background(), mockData)
+			createdIndexer, err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 			assert.NotNil(t, createdIndexer)
 
 			// Execute
-			err = repo.Delete(context.Background(), int(createdIndexer.ID))
+			err = repo.Delete(ctx, int(createdIndexer.ID))
 			assert.NoError(t, err)
 
 			// Verify
-			_, err = repo.FindByID(context.Background(), int(createdIndexer.ID))
+			_, err = repo.FindByID(ctx, int(createdIndexer.ID))
 			assert.Error(t, err)
 		})
 	}
@@ -217,7 +234,7 @@ func TestIndexerRepo_Delete(t *testing.T) {
 func storeTestIndexer(t *testing.T, repo *IndexerRepo, identifier string) *domain.Indexer {
 	t.Helper()
 
-	indexer, err := repo.Store(context.Background(), domain.Indexer{
+	indexer, err := repo.Store(t.Context(), domain.Indexer{
 		Enabled:        true,
 		Name:           identifier,
 		Identifier:     identifier,
@@ -231,10 +248,12 @@ func storeTestIndexer(t *testing.T, repo *IndexerRepo, identifier string) *domai
 }
 
 func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
-		ctx := context.Background()
 
 		t.Run(fmt.Sprintf("ArchiveAndDeprecation_Succeeds [%s]", dbType), func(t *testing.T) {
 			stored := storeTestIndexer(t, repo, "fnp")
@@ -292,10 +311,12 @@ func TestIndexerRepo_ArchiveAndDeprecation(t *testing.T) {
 // the release list relies on, including the hard-deleted-row case (no indexer row, name still
 // resolved from the deprecation table).
 func TestReleaseNameResolution_Coalesce(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewIndexerRepo(log, db)
-		ctx := context.Background()
 
 		t.Run(fmt.Sprintf("ReleaseNameResolution_Coalesce [%s]", dbType), func(t *testing.T) {
 			storeTestIndexer(t, repo, "activetracker")
@@ -327,11 +348,13 @@ func TestReleaseNameResolution_Coalesce(t *testing.T) {
 }
 
 func TestStoreIndexerConnections_RejectsArchived(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		indexerRepo := NewIndexerRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
-		ctx := context.Background()
 
 		t.Run(fmt.Sprintf("StoreIndexerConnections_RejectsArchived [%s]", dbType), func(t *testing.T) {
 			active := storeTestIndexer(t, indexerRepo, "activetracker")

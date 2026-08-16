@@ -6,7 +6,6 @@
 package btn
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -71,7 +70,7 @@ func TestAPI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
-			got, err := c.TestAPI(context.Background())
+			got, err := c.TestAPI(t.Context())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.wantErr, err)
 			}
@@ -170,7 +169,7 @@ func TestClient_GetTorrentByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
-			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
+			got, err := c.GetTorrentByID(t.Context(), tt.args.torrentID)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.wantErr, err)
 			}
@@ -197,12 +196,12 @@ func TestClient_ThrottleOn503(t *testing.T) {
 
 	c := NewClient("mock-key", WithUrl(ts.URL))
 
-	_, err := c.GetTorrentByID(context.Background(), "9555073")
+	_, err := c.GetTorrentByID(t.Context(), "9555073")
 	assert.Error(t, err)
 	assert.Equal(t, int64(1), requests.Load())
 
 	// the second call must be refused locally instead of spending more budget
-	_, err = c.GetTorrentByID(context.Background(), "9555073")
+	_, err = c.GetTorrentByID(t.Context(), "9555073")
 	assert.ErrorContains(t, err, "not calling again until")
 	assert.Equal(t, int64(1), requests.Load())
 }

@@ -4,7 +4,6 @@
 package database
 
 import (
-	"context"
 	"database/sql"
 	"testing"
 	"time"
@@ -58,7 +57,7 @@ func newDeprecationTestDB(t *testing.T) *DB {
 func TestIndexerRepoReconcileDeprecations(t *testing.T) {
 	db := newDeprecationTestDB(t)
 	repo := NewIndexerRepo(zerolog.Nop(), db)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := db.Handler.ExecContext(ctx, `
 		INSERT INTO indexer (identifier, archived, archived_at)
@@ -93,7 +92,7 @@ func TestIndexerRepoReconcileDeprecations(t *testing.T) {
 func TestIndexerRepoReconcileDeprecationsRollsBack(t *testing.T) {
 	db := newDeprecationTestDB(t)
 	repo := NewIndexerRepo(zerolog.Nop(), db)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := db.Handler.ExecContext(ctx, "INSERT INTO indexer (identifier) VALUES ('first')")
 	require.NoError(t, err)
@@ -116,7 +115,7 @@ func TestIndexerRepoReconcileDeprecationsRollsBack(t *testing.T) {
 func TestDeleteArchivedIndexerConnectionsScope(t *testing.T) {
 	db := newDeprecationTestDB(t)
 	repo := NewFilterRepo(zerolog.Nop(), db)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	_, err := db.Handler.ExecContext(ctx, `
 		INSERT INTO indexer (id, identifier, archived)
