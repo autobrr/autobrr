@@ -60,7 +60,7 @@ func (s *Service) whisparr(ctx context.Context, action *domain.Action, release *
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {
-		return nil, errors.Wrap(err, "whisparr: failed to push release: %v", r)
+		return nil, errors.Wrap(err, "whisparr: failed to push release: %s", r.Title)
 	}
 
 	if rejections != nil {
