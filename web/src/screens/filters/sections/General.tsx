@@ -5,6 +5,7 @@
 
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useFormikContext } from "formik";
 
 import { downloadsPerUnitOptions } from "@domain/constants";
 import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
@@ -33,8 +34,17 @@ const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
 
 export const General = () => {
   const { t } = useTranslation(["options", "filters"]);
+  const { values } = useFormikContext<Filter>();
+
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
-  const indexerOptions = indexersQuery.data && indexersQuery.data.filter((indexer) => !indexer.archived).map(MapIndexer)
+
+  // deprecated indexers stay listed while still selected so they can be unticked individually
+  const selectedIndexerIds = new Set((values.indexers || []).map((indexer) => indexer.id));
+  const indexerOptions = indexersQuery.data && indexersQuery.data
+    .filter((indexer) => !indexer.archived || selectedIndexerIds.has(indexer.id))
+    .map((indexer) => indexer.archived
+      ? { label: t("filters:general.deprecatedIndexer", { name: indexer.name }), value: indexer.id } as MultiSelectOption
+      : MapIndexer(indexer))
 
   const duplicateProfilesQuery = useSuspenseQuery(ReleaseProfileDuplicateList())
   const duplicateProfilesOptions = duplicateProfilesQuery.data && duplicateProfilesQuery.data.map(MapReleaseProfile)

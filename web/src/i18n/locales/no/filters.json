@@ -96,6 +96,7 @@
     "announceTypes": "Annonseringstyper",
     "announceTypesTooltip": "NY! La samsvare med utgivelser som inneholder noen av de valgte annonseringstypene.",
     "indexers": "Indekserere",
+    "deprecatedIndexer": "{{name}} (utgått)",
     "rulesTitle": "Regler",
     "rulesSubtitle": "Spesifiser regler for hvordan torrenter skal håndteres/velges.",
     "minSize": "Min. størrelse",

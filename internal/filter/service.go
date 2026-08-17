@@ -225,7 +225,7 @@ func (s *Service) Store(ctx context.Context, filter *domain.Filter) error {
 	if len(filter.AnnounceTypes) == 0 {
 		filter.AnnounceTypes = []string{string(domain.AnnounceTypeNew)}
 	}
-	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+	if err := s.validateIndexers(ctx, 0, filter.Indexers); err != nil {
 		return err
 	}
 
@@ -253,7 +253,7 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 		return err
 	}
 
-	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+	if err := s.validateIndexers(ctx, filter.ID, filter.Indexers); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
 		return err
 	}
@@ -300,7 +300,10 @@ func (s *Service) Update(ctx context.Context, filter *domain.Filter) error {
 }
 
 // validateIndexers rejects unknown and archived indexers using persisted state.
-func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexer) error {
+// Archived indexers already connected to the filter are allowed so that saving a
+// filter holding a deprecated indexer keeps working; only new archived
+// connections are rejected. Pass filterID 0 for new filters.
+func (s *Service) validateIndexers(ctx context.Context, filterID int, indexers []domain.Indexer) error {
 	if len(indexers) == 0 {
 		return nil
 	}
@@ -315,12 +318,24 @@ func (s *Service) validateIndexers(ctx context.Context, indexers []domain.Indexe
 		existingByID[indexer.ID] = indexer
 	}
 
+	connectedIDs := make(map[int64]struct{})
+	if filterID > 0 {
+		connectedIndexers, err := s.indexerSvc.FindByFilterID(ctx, filterID)
+		if err != nil {
+			return err
+		}
+
+		for _, indexer := range connectedIndexers {
+			connectedIDs[indexer.ID] = struct{}{}
+		}
+	}
+
 	for _, indexer := range indexers {
 		existing, ok := existingByID[indexer.ID]
 		if !ok {
 			return errors.Wrap(domain.ErrIndexerNotFound, "indexer with id %d does not exist", indexer.ID)
 		}
-		if existing.Archived {
+		if _, connected := connectedIDs[indexer.ID]; existing.Archived && !connected {
 			return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", indexer.ID)
 		}
 	}
@@ -361,7 +376,7 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 		return err
 	}
 
-	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+	if err := s.validateIndexers(ctx, filter.ID, filter.Indexers); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("invalid indexers for filter")
 		return err
 	}
@@ -433,7 +448,18 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	filter.ID = 0
 	filter.Name = fmt.Sprintf("%s Copy", filter.Name)
 	filter.Enabled = false
-	if err := s.validateIndexers(ctx, filter.Indexers); err != nil {
+
+	// the copy is a new filter, so archived indexer connections do not carry over
+	activeIndexers := make([]domain.Indexer, 0, len(filter.Indexers))
+	for _, indexer := range filter.Indexers {
+		if indexer.Archived {
+			continue
+		}
+		activeIndexers = append(activeIndexers, indexer)
+	}
+	filter.Indexers = activeIndexers
+
+	if err := s.validateIndexers(ctx, 0, filter.Indexers); err != nil {
 		return nil, err
 	}
 
