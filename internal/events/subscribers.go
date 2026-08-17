@@ -20,7 +20,7 @@ type feedService interface {
 }
 
 type notificationSender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
+	Send(payload domain.NotificationPayload)
 }
 
 type releaseService interface {
@@ -78,7 +78,7 @@ func (s *Subscriber) handleReleasePushStatus(actionStatus *domain.ReleaseActionS
 func (s *Subscriber) handleSendNotification(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
 	s.log.Trace().Str("event", domain.EventNotificationSend).Interface("notification_event", *event).Interface("payload", payload).Msg("send notification event")
 
-	s.notificationSvc.Send(*event, *payload)
+	s.notificationSvc.Send(*payload)
 }
 
 // handleIndexerDelete handle feed cleanup via event because feed service can't be imported in indexer service

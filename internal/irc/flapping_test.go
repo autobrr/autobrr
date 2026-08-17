@@ -21,11 +21,11 @@ type recordingNotificationSender struct {
 	payload []domain.NotificationPayload
 }
 
-func (s *recordingNotificationSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
+func (s *recordingNotificationSender) Send(payload domain.NotificationPayload) {
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	s.events = append(s.events, event)
+	s.events = append(s.events, payload.Event)
 	s.payload = append(s.payload, payload)
 }
 

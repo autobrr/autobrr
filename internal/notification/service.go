@@ -5,10 +5,9 @@ package notification
 
 import (
 	"context"
+	"slices"
 	"sync"
 	"time"
-
-	"golang.org/x/sync/errgroup"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -32,10 +31,10 @@ type notificationRepo interface {
 }
 
 type Sender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload) error
-	CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool
-	IsEnabled() bool
 	Name() string
+	IsEnabled() bool
+	CanSendPayload(payload domain.NotificationPayload) bool
+	Send(ctx context.Context, payload domain.NotificationPayload) error
 }
 
 type Service struct {
@@ -301,44 +300,43 @@ func (s *Service) registerSender(notification *domain.Notification) {
 		return
 	}
 
-	switch notification.Type {
-	case domain.NotificationTypeDiscord:
-		s.senders[notification.ID] = NewDiscordSender(s.log, notification)
-		break
-	case domain.NotificationTypeGotify:
-		s.senders[notification.ID] = NewGotifySender(s.log, notification)
-		break
-	case domain.NotificationTypeLunaSea:
-		s.senders[notification.ID] = NewLunaSeaSender(s.log, notification)
-		break
-	case domain.NotificationTypeNotifiarr:
-		s.senders[notification.ID] = NewNotifiarrSender(s.log, notification)
-		break
-	case domain.NotificationTypeNtfy:
-		s.senders[notification.ID] = NewNtfySender(s.log, notification)
-		break
-	case domain.NotificationTypePushover:
-		s.senders[notification.ID] = NewPushoverSender(s.log, notification)
-		break
-	case domain.NotificationTypeShoutrrr:
-		s.senders[notification.ID] = NewShoutrrrSender(s.log, notification)
-		break
-	case domain.NotificationTypeTelegram:
-		s.senders[notification.ID] = NewTelegramSender(s.log, notification)
-		break
-	case domain.NotificationTypeWebhook:
-		s.senders[notification.ID] = NewWebhookSender(s.log, notification)
-		break
-	default:
-		s.log.Error().Str("notification_type", string(notification.Type)).Msg("unsupported notification type")
+	sender, err := newSender(s.log, notification)
+	if err != nil {
+		s.log.Error().Err(err).Str("notification_type", string(notification.Type)).Msg("could not register sender")
 		return
 	}
 
-	return
+	s.senders[notification.ID] = sender
+}
+
+// newSender builds the sender for the notification type.
+func newSender(log zerolog.Logger, notification *domain.Notification) (Sender, error) {
+	switch notification.Type {
+	case domain.NotificationTypeDiscord:
+		return NewDiscordService(log, notification), nil
+	case domain.NotificationTypeGotify:
+		return NewGotifyService(log, notification), nil
+	case domain.NotificationTypeLunaSea:
+		return NewLunaSeaService(log, notification), nil
+	case domain.NotificationTypeNotifiarr:
+		return NewNotifiarrService(log, notification), nil
+	case domain.NotificationTypeNtfy:
+		return NewNtfyService(log, notification), nil
+	case domain.NotificationTypePushover:
+		return NewPushoverService(log, notification), nil
+	case domain.NotificationTypeShoutrrr:
+		return NewShoutrrrService(log, notification), nil
+	case domain.NotificationTypeTelegram:
+		return NewTelegramService(log, notification), nil
+	case domain.NotificationTypeWebhook:
+		return NewWebhookService(log, notification), nil
+	}
+
+	return nil, errors.New("unsupported notification type: %s", notification.Type)
 }
 
 // Send notifications
-func (s *Service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
+func (s *Service) Send(payload domain.NotificationPayload) {
 	// Select interested senders under a read lock, then release it before any
 	// network I/O. Each sender's CanSendPayload already encodes the full
 	// per-(filter, notification) decision - mute, per-filter override, and the
@@ -349,26 +347,31 @@ func (s *Service) Send(event domain.NotificationEvent, payload domain.Notificati
 	s.mu.RLock()
 	var interestedSenders []Sender
 	for _, sender := range s.senders {
-		if sender.CanSendPayload(event, payload) {
+		if sender.CanSendPayload(payload) {
 			interestedSenders = append(interestedSenders, sender)
 		}
 	}
 	s.mu.RUnlock()
 
 	if len(interestedSenders) == 0 {
-		s.log.Trace().Str("event", string(event)).Msg("no interested notification senders for event")
+		s.log.Trace().Str("event", string(payload.Event)).Msg("no interested notification senders for event")
 		return
 	}
 
-	go func(interested []Sender, event domain.NotificationEvent, payload domain.NotificationPayload) {
+	go func(interested []Sender, payload domain.NotificationPayload) {
 		for _, sender := range interested {
-			s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+			func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
 
-			if err := sender.Send(event, payload); err != nil {
-				s.log.Error().Err(err).Str("sender", sender.Name()).Str("event", string(event)).Msg("could not send notification")
-			}
+				s.log.Debug().Str("sender", sender.Name()).Str("event", string(payload.Event)).Msg("sending notification")
+
+				if err := sender.Send(ctx, payload); err != nil {
+					s.log.Error().Err(err).Str("sender", sender.Name()).Str("event", string(payload.Event)).Msg("could not send notification")
+				}
+			}()
 		}
-	}(interestedSenders, event, payload)
+	}(interestedSenders, payload)
 }
 
 func (s *Service) Test(ctx context.Context, notification *domain.Notification) error {
@@ -390,20 +393,18 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		}
 	}
 
-	var agent Sender
-
 	// send test events
 	events := []domain.NotificationPayload{
 		{
+			Event:     domain.NotificationEventTest,
 			Subject:   "Test Notification",
 			Message:   "autobrr goes brr!!",
-			Event:     domain.NotificationEventTest,
 			Timestamp: time.Now(),
 		},
 		{
+			Event:          domain.NotificationEventPushApproved,
 			Subject:        "New release!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventPushApproved,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -432,9 +433,9 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
+			Event:          domain.NotificationEventPushRejected,
 			Subject:        "New release!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventPushRejected,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -462,9 +463,9 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
+			Event:          domain.NotificationEventPushError,
 			Subject:        "New release!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventPushError,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -492,27 +493,30 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
+			Event:     domain.NotificationEventIRCDisconnected,
 			Subject:   "IRC Disconnected unexpectedly",
 			Message:   "Network: P2P-Network",
-			Event:     domain.NotificationEventIRCDisconnected,
 			Timestamp: time.Now(),
 		},
 		{
+			Event:     domain.NotificationEventIRCReconnected,
 			Subject:   "IRC Reconnected",
 			Message:   "Network: P2P-Network",
-			Event:     domain.NotificationEventIRCReconnected,
 			Timestamp: time.Now(),
 		},
 		{
-			Subject:   "New update available!",
-			Message:   "v1.6.0",
-			Event:     domain.NotificationEventAppUpdateAvailable,
-			Timestamp: time.Now(),
+			Event:          domain.NotificationEventAppUpdateAvailable,
+			Subject:        "New update available!",
+			Message:        "v1.6.0",
+			CurrentVersion: "v1.6.0",
+			NewVersion:     "v1.7.0",
+			URL:            "https://github.com/autobrr/autobrr/releases/tag/v1.7.0",
+			Timestamp:      time.Now(),
 		},
 		{
+			Event:          domain.NotificationEventReleaseNew,
 			Subject:        "New release received!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventReleaseNew,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -536,38 +540,18 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		},
 	}
 
-	switch notification.Type {
-	case domain.NotificationTypeDiscord:
-		agent = NewDiscordSender(s.log, notification)
-	case domain.NotificationTypeGotify:
-		agent = NewGotifySender(s.log, notification)
-	case domain.NotificationTypeLunaSea:
-		agent = NewLunaSeaSender(s.log, notification)
-	case domain.NotificationTypeNotifiarr:
-		agent = NewNotifiarrSender(s.log, notification)
-	case domain.NotificationTypeNtfy:
-		agent = NewNtfySender(s.log, notification)
-	case domain.NotificationTypePushover:
-		agent = NewPushoverSender(s.log, notification)
-	case domain.NotificationTypeShoutrrr:
-		agent = NewShoutrrrSender(s.log, notification)
-	case domain.NotificationTypeTelegram:
-		agent = NewTelegramSender(s.log, notification)
-	case domain.NotificationTypeWebhook:
-		agent = NewWebhookSender(s.log, notification)
-	default:
-		s.log.Error().Str("notification_type", string(notification.Type)).Msg("unsupported notification type")
-		return errors.New("unsupported notification type")
+	sender, err := newSender(s.log, notification)
+	if err != nil {
+		s.log.Error().Err(err).Str("notification_type", string(notification.Type)).Msg("could not create sender")
+		return err
 	}
-
-	g, _ := errgroup.WithContext(ctx)
 
 	for _, event := range events {
 		if !enabledEvent(notification.Events, event.Event) {
 			continue
 		}
 
-		if err := agent.Send(event.Event, event); err != nil {
+		if err := sender.Send(ctx, event); err != nil {
 			s.log.Error().Err(err).Interface("notification", notification).Msg("error sending test notification")
 			return err
 		}
@@ -575,20 +559,9 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		time.Sleep(1 * time.Second)
 	}
 
-	if err := g.Wait(); err != nil {
-		s.log.Error().Err(err).Str("notification_type", string(notification.Type)).Msg("something went wrong sending test notifications")
-		return err
-	}
-
 	return nil
 }
 
 func enabledEvent(events []string, e domain.NotificationEvent) bool {
-	for _, v := range events {
-		if v == string(e) {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(events, string(e))
 }

@@ -19,7 +19,7 @@ import (
 
 type noopNotificationSender struct{}
 
-func (noopNotificationSender) Send(_ domain.NotificationEvent, _ domain.NotificationPayload) {}
+func (noopNotificationSender) Send(payload domain.NotificationPayload) {}
 
 // mockSSEServer records published events so tests can assert what was broadcast.
 type mockSSEServer struct {

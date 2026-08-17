@@ -27,7 +27,10 @@ type CheckUpdatesJob struct {
 }
 
 func (j *CheckUpdatesJob) Run() {
-	newRelease, err := j.updateService.CheckUpdateAvailable(context.TODO())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	newRelease, err := j.updateService.CheckUpdateAvailable(ctx)
 	if err != nil {
 		j.Log.Error().Err(err).Msg("could not check for new release")
 		return
@@ -39,11 +42,14 @@ func (j *CheckUpdatesJob) Run() {
 		if newRelease.TagName != j.lastCheckVersion {
 			j.Log.Info().Str("version", newRelease.TagName).Msg("new release available")
 
-			j.NotifSvc.Send(domain.NotificationEventAppUpdateAvailable, domain.NotificationPayload{
-				Subject:   "New update available!",
-				Message:   newRelease.TagName,
-				Event:     domain.NotificationEventAppUpdateAvailable,
-				Timestamp: time.Now(),
+			j.NotifSvc.Send(domain.NotificationPayload{
+				Subject:        "New update available!",
+				Message:        newRelease.TagName,
+				Event:          domain.NotificationEventAppUpdateAvailable,
+				URL:            newRelease.HtmlURL,
+				CurrentVersion: j.Version,
+				NewVersion:     newRelease.TagName,
+				Timestamp:      time.Now(),
 			})
 		}
 

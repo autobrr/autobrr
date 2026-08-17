@@ -39,7 +39,7 @@ type indexerService interface {
 }
 
 type notificationSender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
+	Send(payload domain.NotificationPayload)
 }
 
 type releaseService interface {

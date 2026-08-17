@@ -17,13 +17,13 @@ type mockSender struct {
 	mock.Mock
 }
 
-func (m *mockSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
-	args := m.Called(event, payload)
+func (m *mockSender) Send(ctx context.Context, payload domain.NotificationPayload) error {
+	args := m.Called(ctx, payload)
 	return args.Error(0)
 }
 
-func (m *mockSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
-	args := m.Called(event, payload)
+func (m *mockSender) CanSendPayload(payload domain.NotificationPayload) bool {
+	args := m.Called(payload)
 	return args.Bool(0)
 }
 
@@ -52,9 +52,9 @@ func TestService_Send_Optimization(t *testing.T) {
 		payload := domain.NotificationPayload{Event: event}
 
 		// Configure mock to say it's NOT interested
-		sender.On("CanSendPayload", event, payload).Return(false)
+		sender.On("CanSendPayload", payload).Return(false)
 
-		svc.Send(event, payload)
+		svc.Send(payload)
 
 		// Wait a bit to ensure no goroutine work happened
 		time.Sleep(50 * time.Millisecond)
@@ -75,10 +75,10 @@ func TestService_Send_Optimization(t *testing.T) {
 		payload := domain.NotificationPayload{Event: event}
 
 		// Configure mock to say it IS interested
-		sender.On("CanSendPayload", event, payload).Return(true)
-		sender.On("Send", event, payload).Return(nil)
+		sender.On("CanSendPayload", payload).Return(true)
+		sender.On("Send", mock.Anything, payload).Return(nil)
 
-		svc.Send(event, payload)
+		svc.Send(payload)
 
 		// Wait for goroutine
 		time.Sleep(100 * time.Millisecond)
@@ -104,16 +104,16 @@ func TestService_Send_Optimization(t *testing.T) {
 		event := domain.NotificationEventPushApproved
 		payload := domain.NotificationPayload{Event: event, FilterID: 42}
 
-		muted.On("CanSendPayload", event, payload).Return(false)
-		global.On("CanSendPayload", event, payload).Return(true)
-		global.On("Send", event, payload).Return(nil)
+		muted.On("CanSendPayload", payload).Return(false)
+		global.On("CanSendPayload", payload).Return(true)
+		global.On("Send", mock.Anything, payload).Return(nil)
 
-		svc.Send(event, payload)
+		svc.Send(payload)
 
 		time.Sleep(100 * time.Millisecond)
 
 		global.AssertExpectations(t)
-		muted.AssertCalled(t, "CanSendPayload", event, payload)
+		muted.AssertCalled(t, "CanSendPayload", payload)
 		muted.AssertNotCalled(t, "Send", mock.Anything, mock.Anything)
 	})
 }
@@ -256,7 +256,7 @@ func TestService_Update_PreservesFilterMute(t *testing.T) {
 	if !ok {
 		t.Fatal("expected sender to be registered at startup")
 	}
-	if sender.CanSendPayload(domain.NotificationEventPushApproved, payload) {
+	if sender.CanSendPayload(payload) {
 		t.Fatal("expected notification to be muted for filter before update")
 	}
 
@@ -277,7 +277,7 @@ func TestService_Update_PreservesFilterMute(t *testing.T) {
 	if !ok {
 		t.Fatal("expected sender to remain registered after update")
 	}
-	if sender.CanSendPayload(domain.NotificationEventPushApproved, payload) {
+	if sender.CanSendPayload(payload) {
 		t.Fatal("mute was lost after editing the notification (regression #2235)")
 	}
 }
@@ -310,7 +310,7 @@ func TestService_StoreThenMute(t *testing.T) {
 	payload := domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: filterID}
 
 	// Global fallback fires before any per-filter config exists.
-	if !svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+	if !svc.senders[notifID].CanSendPayload(payload) {
 		t.Fatal("expected global fallback to fire for unconfigured filter")
 	}
 
@@ -321,7 +321,7 @@ func TestService_StoreThenMute(t *testing.T) {
 		t.Fatalf("store filter notifications failed: %v", err)
 	}
 
-	if svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+	if svc.senders[notifID].CanSendPayload(payload) {
 		t.Fatal("mute did not take effect for a freshly created notification")
 	}
 }
@@ -368,7 +368,7 @@ func TestService_ConcurrentSendAndConfig(t *testing.T) {
 				case <-stop:
 					return
 				default:
-					svc.Send(domain.NotificationEventPushRejected, payload)
+					svc.Send(payload)
 				}
 			}
 		}()
@@ -427,15 +427,15 @@ func TestSender_FilterOnlyScope(t *testing.T) {
 		t.Fatal("expected sender to be registered at startup")
 	}
 
-	if !sender.CanSendPayload(domain.NotificationEventPushApproved, domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: configuredFilterID}) {
+	if !sender.CanSendPayload(domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: configuredFilterID}) {
 		t.Fatal("expected configured filter to fire with FILTER_ONLY scope")
 	}
 
-	if sender.CanSendPayload(domain.NotificationEventPushApproved, domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: otherFilterID}) {
+	if sender.CanSendPayload(domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: otherFilterID}) {
 		t.Fatal("expected unconfigured filter to stay silent with FILTER_ONLY scope")
 	}
 
-	if !sender.CanSendPayload(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{Event: domain.NotificationEventIRCDisconnected}) {
+	if !sender.CanSendPayload(domain.NotificationPayload{Event: domain.NotificationEventIRCDisconnected}) {
 		t.Fatal("expected system event to fire regardless of scope")
 	}
 }
@@ -512,7 +512,7 @@ func TestService_HydrateErrorKeepsMute(t *testing.T) {
 
 	payload := domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: filterID}
 
-	if svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+	if svc.senders[notifID].CanSendPayload(payload) {
 		t.Fatal("expected notification to be muted for filter before the edit")
 	}
 
@@ -531,7 +531,7 @@ func TestService_HydrateErrorKeepsMute(t *testing.T) {
 		t.Fatalf("update failed: %v", err)
 	}
 
-	if svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+	if svc.senders[notifID].CanSendPayload(payload) {
 		t.Fatal("mute was lost after a failed per-filter reload")
 	}
 
@@ -546,7 +546,7 @@ func TestService_HydrateErrorKeepsMute(t *testing.T) {
 	if svc.notifications[notifID].Name != "Discord renamed" {
 		t.Fatal("expected rename to be applied after the repository recovered")
 	}
-	if svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+	if svc.senders[notifID].CanSendPayload(payload) {
 		t.Fatal("expected mute to hold after the repository recovered")
 	}
 }

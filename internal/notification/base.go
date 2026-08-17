@@ -24,18 +24,18 @@ func newBaseSender(name string, log zerolog.Logger, settings *domain.Notificatio
 	}
 }
 
-func (s *baseSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
+func (s *baseSender) CanSendPayload(payload domain.NotificationPayload) bool {
 	if !s.IsEnabled() {
 		return false
 	}
 
 	if payload.FilterID > 0 {
 		if s.Settings.FilterMuted(payload.FilterID) {
-			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
+			s.log.Trace().Str("event", string(payload.Event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
 			return false
 		}
 
-		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
+		if s.Settings.FilterEventEnabled(payload.FilterID, payload.Event) {
 			return true
 		}
 
@@ -52,7 +52,7 @@ func (s *baseSender) CanSendPayload(event domain.NotificationEvent, payload doma
 		}
 	}
 
-	if s.isEnabledEvent(event) {
+	if s.isEnabledEvent(payload.Event) {
 		return true
 	}
 

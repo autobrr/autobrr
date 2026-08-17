@@ -17,7 +17,7 @@ import (
 )
 
 type notificationSender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
+	Send(payload domain.NotificationPayload)
 }
 
 type updateChecker interface {

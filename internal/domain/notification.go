@@ -5,6 +5,7 @@ package domain
 
 import (
 	"encoding/json"
+	"slices"
 	"time"
 )
 
@@ -125,12 +126,7 @@ func (n *Notification) FilterEventEnabled(filterID int, event NotificationEvent)
 }
 
 func (n *Notification) EventEnabled(event string) bool {
-	for _, e := range n.Events {
-		if e == event {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(n.Events, event)
 }
 
 func (n *Notification) SetFilterEvents(filterID int, events NotificationEvents) {
@@ -176,27 +172,24 @@ type NotificationPayload struct {
 	Sender              string
 	FilterNotifications []FilterNotification // per-filter notifications
 	Release             *Release             // full release data for webhook
+	CurrentVersion      string
+	NewVersion          string
+	URL                 string
 }
 
 type NotificationType string
 
 const (
-	NotificationTypeDiscord    NotificationType = "DISCORD"
-	NotificationTypeNotifiarr  NotificationType = "NOTIFIARR"
-	NotificationTypeIFTTT      NotificationType = "IFTTT"
-	NotificationTypeJoin       NotificationType = "JOIN"
-	NotificationTypeMattermost NotificationType = "MATTERMOST"
-	NotificationTypeMatrix     NotificationType = "MATRIX"
-	NotificationTypePushBullet NotificationType = "PUSH_BULLET"
-	NotificationTypePushover   NotificationType = "PUSHOVER"
-	NotificationTypeRocketChat NotificationType = "ROCKETCHAT"
-	NotificationTypeSlack      NotificationType = "SLACK"
-	NotificationTypeTelegram   NotificationType = "TELEGRAM"
-	NotificationTypeGotify     NotificationType = "GOTIFY"
-	NotificationTypeNtfy       NotificationType = "NTFY"
-	NotificationTypeLunaSea    NotificationType = "LUNASEA"
-	NotificationTypeShoutrrr   NotificationType = "SHOUTRRR"
-	NotificationTypeWebhook    NotificationType = "WEBHOOK"
+	NotificationTypeDiscord   NotificationType = "DISCORD"
+	NotificationTypeNotifiarr NotificationType = "NOTIFIARR"
+	NotificationTypePushover  NotificationType = "PUSHOVER"
+	NotificationTypeSlack     NotificationType = "SLACK"
+	NotificationTypeTelegram  NotificationType = "TELEGRAM"
+	NotificationTypeGotify    NotificationType = "GOTIFY"
+	NotificationTypeNtfy      NotificationType = "NTFY"
+	NotificationTypeLunaSea   NotificationType = "LUNASEA"
+	NotificationTypeShoutrrr  NotificationType = "SHOUTRRR"
+	NotificationTypeWebhook   NotificationType = "WEBHOOK"
 )
 
 // NotificationFilterScope controls the global-events fallback for filters

@@ -61,7 +61,7 @@ func TestGenericWebhookSender_Send(t *testing.T) {
 	}
 
 	log := logger.Mock().With().Logger()
-	sender := NewWebhookSender(log, settings)
+	sender := NewWebhookService(log, settings)
 
 	payload := domain.NotificationPayload{
 		Event:       domain.NotificationEventReleaseNew,
@@ -75,7 +75,7 @@ func TestGenericWebhookSender_Send(t *testing.T) {
 		},
 	}
 
-	err := sender.Send(domain.NotificationEventReleaseNew, payload)
+	err := sender.Send(t.Context(), payload)
 	assert.NoError(t, err)
 }
 
@@ -95,9 +95,9 @@ func TestGenericWebhookSender_Send_Error(t *testing.T) {
 	}
 
 	log := logger.Mock().With().Logger()
-	sender := NewWebhookSender(log, settings)
+	sender := NewWebhookService(log, settings)
 
-	err := sender.Send(domain.NotificationEventTest, domain.NotificationPayload{Event: domain.NotificationEventTest})
+	err := sender.Send(t.Context(), domain.NotificationPayload{Event: domain.NotificationEventTest})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected status: 400")
 	assert.Contains(t, err.Error(), "bad request")
@@ -111,16 +111,14 @@ func TestGenericWebhookSender_CanSendPayload(t *testing.T) {
 		Events:  []string{"RELEASE_NEW", "TEST"},
 	}
 
-	sender := NewWebhookSender(logger.Mock().With().Logger(), settings)
+	sender := NewWebhookService(logger.Mock().With().Logger(), settings)
 
-	payload := domain.NotificationPayload{}
-
-	assert.True(t, sender.CanSendPayload(domain.NotificationEventReleaseNew, payload))
-	assert.True(t, sender.CanSendPayload(domain.NotificationEventTest, payload))
-	assert.False(t, sender.CanSendPayload(domain.NotificationEventPushApproved, payload))
+	assert.True(t, sender.CanSendPayload(domain.NotificationPayload{Event: domain.NotificationEventReleaseNew}))
+	assert.True(t, sender.CanSendPayload(domain.NotificationPayload{Event: domain.NotificationEventTest}))
+	assert.False(t, sender.CanSendPayload(domain.NotificationPayload{Event: domain.NotificationEventPushApproved}))
 
 	settings.Enabled = false
-	assert.False(t, sender.CanSendPayload(domain.NotificationEventReleaseNew, payload))
+	assert.False(t, sender.CanSendPayload(domain.NotificationPayload{Event: domain.NotificationEventReleaseNew}))
 }
 
 func TestGenericWebhookSender_Send_CustomMethod(t *testing.T) {
@@ -141,9 +139,9 @@ func TestGenericWebhookSender_Send_CustomMethod(t *testing.T) {
 	}
 
 	log := logger.Mock().With().Logger()
-	sender := NewWebhookSender(log, settings)
+	sender := NewWebhookService(log, settings)
 
-	err := sender.Send(domain.NotificationEventTest, domain.NotificationPayload{Event: domain.NotificationEventTest})
+	err := sender.Send(t.Context(), domain.NotificationPayload{Event: domain.NotificationEventTest})
 	assert.NoError(t, err)
 }
 
@@ -171,8 +169,8 @@ func TestGenericWebhookSender_Send_CustomHeaders(t *testing.T) {
 	}
 
 	log := logger.Mock().With().Logger()
-	sender := NewWebhookSender(log, settings)
+	sender := NewWebhookService(log, settings)
 
-	err := sender.Send(domain.NotificationEventTest, domain.NotificationPayload{Event: domain.NotificationEventTest})
+	err := sender.Send(t.Context(), domain.NotificationPayload{Event: domain.NotificationEventTest})
 	assert.NoError(t, err)
 }

@@ -652,7 +652,8 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if reconnected {
 		h.log.Info().Msg("network re-connected after unexpected disconnect")
 
-		h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
+		h.notificationService.Send(domain.NotificationPayload{
+			Event:   domain.NotificationEventIRCReconnected,
 			Subject: "IRC Reconnected",
 			Message: fmt.Sprintf("Network: %s", networkName),
 		})
@@ -732,7 +733,8 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 			Dur("window", flappingWindow).
 			Msg("connection flapping; stopping network")
 
-		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
+		h.notificationService.Send(domain.NotificationPayload{
+			Event:   domain.NotificationEventIRCDisconnected,
 			Subject: "IRC network stopped",
 			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; restart it after resolving the connection issue", networkName),
 		})
@@ -745,7 +747,8 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 	// check if we are responsible for disconnect
 	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
-		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
+		h.notificationService.Send(domain.NotificationPayload{
+			Event:   domain.NotificationEventIRCDisconnected,
 			Subject: "IRC Disconnected unexpectedly",
 			Message: fmt.Sprintf("Network: %s", networkName),
 		})
