@@ -33,20 +33,10 @@ type notificationRepo interface {
 
 type Sender interface {
 	Send(event domain.NotificationEvent, payload domain.NotificationPayload) error
-	CanSend(event domain.NotificationEvent) bool
 	CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool
 	IsEnabled() bool
 	Name() string
-	HasFilterEvents(filterID int) bool
 }
-
-//type Sender interface {
-//	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
-//}
-//
-//type Tester interface {
-//	Test(ctx context.Context, notification *domain.Notification) error
-//}
 
 type Service struct {
 	log  zerolog.Logger
@@ -100,6 +90,12 @@ func (s *Service) FindByID(ctx context.Context, notificationID int) (*domain.Not
 }
 
 func (s *Service) Store(ctx context.Context, notification *domain.Notification) error {
+	if notification.FilterScope == "" {
+		notification.FilterScope = domain.NotificationFilterScopeGlobal
+	} else if !notification.FilterScope.Valid() {
+		return errors.New("invalid filter_scope: %s", notification.FilterScope)
+	}
+
 	err := s.repo.Store(ctx, notification)
 	if err != nil {
 		s.log.Error().Err(err).Interface("notification", notification).Msg("could not store notification")
@@ -112,7 +108,7 @@ func (s *Service) Store(ctx context.Context, notification *domain.Notification) 
 	// register a fresh canonical copy so the sender is never bound to the raw
 	// request object (whose private filters map is always nil) and so a newly
 	// created notification is tracked in s.notifications for later filter saves.
-	s.hydrateAndRegister(ctx, notification)
+	s.hydrateAndRegister(ctx, notification.ID)
 
 	return nil
 }
@@ -134,6 +130,12 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 		notification.APIKey = existing.APIKey
 	}
 
+	if notification.FilterScope == "" {
+		notification.FilterScope = domain.NotificationFilterScopeGlobal
+	} else if !notification.FilterScope.Valid() {
+		return errors.New("invalid filter_scope: %s", notification.FilterScope)
+	}
+
 	if err := s.repo.Update(ctx, notification); err != nil {
 		s.log.Error().Err(err).Interface("notification", notification).Msg("could not update notification")
 		return err
@@ -146,7 +148,7 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 	// persisted per-filter rows. The incoming object is decoded from JSON and
 	// its private filters map is always nil, so registering it directly would
 	// silently drop every per-filter mute/override until restart.
-	s.hydrateAndRegister(ctx, notification)
+	s.hydrateAndRegister(ctx, notification.ID)
 
 	return nil
 }
@@ -206,18 +208,7 @@ func (s *Service) StoreFilterNotifications(ctx context.Context, filterID int, no
 	}
 
 	for id := range affected {
-		base, ok := s.notifications[id]
-		if !ok {
-			// Not tracked in memory yet (e.g. created before the process last
-			// (re)loaded senders) - load it so its sender still gets the config.
-			loaded, err := s.repo.FindByID(ctx, id)
-			if err != nil {
-				s.log.Error().Err(err).Int("notification_id", id).Msg("could not find notification by id")
-				continue
-			}
-			base = loaded
-		}
-		s.hydrateAndRegister(ctx, base)
+		s.hydrateAndRegister(ctx, id)
 	}
 
 	return nil
@@ -241,7 +232,7 @@ func (s *Service) DeleteFilterNotifications(ctx context.Context, filterID int) e
 		}
 	}
 	for _, id := range ids {
-		s.hydrateAndRegister(ctx, s.notifications[id])
+		s.hydrateAndRegister(ctx, id)
 	}
 
 	return nil
@@ -258,30 +249,47 @@ func (s *Service) registerSenders() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	for i := range notifications {
-		s.hydrateAndRegister(ctx, &notifications[i])
+	for _, notification := range notifications {
+		s.hydrateAndRegister(ctx, notification.ID)
 	}
 }
 
-// hydrateAndRegister builds a fresh canonical *domain.Notification from base
-// with its per-filter events reloaded from the database, stores it as the
-// authoritative object in s.notifications, and (re)registers its sender. The
-// previous object is never mutated (copy-on-write), so a concurrent Send
-// goroutine reading it cannot race. Callers must hold s.mu for writing.
-func (s *Service) hydrateAndRegister(ctx context.Context, base *domain.Notification) {
-	fresh := base.Clone()
-	fresh.ClearFilterEvents()
+// hydrateAndRegister rebuilds the canonical *domain.Notification for the id
+// from the database - global config and per-filter events - stores it in
+// s.notifications and (re)registers its sender. The database is authoritative:
+// a row deleted by a concurrent request deregisters the sender instead of
+// resurrecting it, and a read error keeps the previous state instead of
+// registering a half-hydrated object. The previous object is never mutated
+// (copy-on-write), so a concurrent Send goroutine reading it cannot race.
+// Callers must hold s.mu for writing.
+func (s *Service) hydrateAndRegister(ctx context.Context, notificationID int) {
+	// a client disconnect right after the preceding commit must not cancel the
+	// rebuild and corrupt in-memory state
+	ctx = context.WithoutCancel(ctx)
 
-	filterNotifications, err := s.repo.GetNotificationFilters(ctx, base.ID)
+	fresh, err := s.repo.FindByID(ctx, notificationID)
 	if err != nil {
-		s.log.Error().Err(err).Int("notification_id", base.ID).Msg("could not find filter notifications for notification")
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			delete(s.senders, notificationID)
+			delete(s.notifications, notificationID)
+			return
+		}
+
+		s.log.Error().Err(err).Int("notification_id", notificationID).Msg("could not find notification by id")
+		return
+	}
+
+	filterNotifications, err := s.repo.GetNotificationFilters(ctx, notificationID)
+	if err != nil {
+		s.log.Error().Err(err).Int("notification_id", notificationID).Msg("could not find filter notifications for notification")
+		return
 	}
 
 	for _, fn := range filterNotifications {
 		fresh.SetFilterEvents(fn.FilterID, domain.NewNotificationEventsFromStrings(fn.Events))
 	}
 
-	s.notifications[base.ID] = fresh
+	s.notifications[notificationID] = fresh
 	s.registerSender(fresh)
 }
 

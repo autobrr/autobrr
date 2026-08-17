@@ -90,8 +90,7 @@ func truncateForDiscord(s string, limit int) string {
 }
 
 type discordSender struct {
-	log      zerolog.Logger
-	Settings *domain.Notification
+	baseSender
 
 	httpClient *http.Client
 }
@@ -102,8 +101,7 @@ func (s *discordSender) Name() string {
 
 func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &discordSender{
-		log:      log.With().Str("sender", "discord").Str("name", settings.Name).Logger(),
-		Settings: settings,
+		baseSender: newBaseSender("discord", log, settings),
 		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
@@ -158,58 +156,6 @@ func (s *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	return nil
 }
 
-func (s *discordSender) CanSend(event domain.NotificationEvent) bool {
-	if s.IsEnabled() && s.isEnabledEvent(event) {
-		return true
-	}
-	return false
-}
-
-func (s *discordSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
-	if !s.IsEnabled() {
-		return false
-	}
-
-	if payload.FilterID > 0 {
-		if s.Settings.FilterMuted(payload.FilterID) {
-			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
-			return false
-		}
-
-		// Check if the filter has custom notifications configured
-		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
-			return true
-		}
-
-		// If the filter has custom notifications but the event is not enabled, don't fall back to global
-		if s.Settings.HasFilterNotifications(payload.FilterID) {
-			return false
-		}
-	}
-
-	// Fall back to global events for non-filter events or filters without custom notifications
-	if s.isEnabledEvent(event) {
-		return true
-	}
-
-	return false
-}
-
-func (s *discordSender) HasFilterEvents(filterID int) bool {
-	if s.Settings.HasFilterNotifications(filterID) {
-		return true
-	}
-	return false
-}
-
-func (s *discordSender) IsEnabled() bool {
-	return s.Settings.IsEnabled()
-}
-
-func (s *discordSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	return s.Settings.EventEnabled(string(event))
-}
-
 func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domain.NotificationPayload) DiscordEmbeds {
 
 	color := LIGHT_BLUE
@@ -238,7 +184,7 @@ func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
-	if payload.Indexer != "" {
+	if strings.TrimSpace(payload.Indexer) != "" {
 		f := DiscordEmbedsFields{
 			Name:   "Indexer",
 			Value:  payload.Indexer,
@@ -246,7 +192,7 @@ func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
-	if payload.Filter != "" {
+	if strings.TrimSpace(payload.Filter) != "" {
 		f := DiscordEmbedsFields{
 			Name:   "Filter",
 			Value:  payload.Filter,
@@ -254,7 +200,7 @@ func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
-	if payload.Action != "" {
+	if strings.TrimSpace(payload.Action) != "" {
 		f := DiscordEmbedsFields{
 			Name:   "Action",
 			Value:  payload.Action,
@@ -270,7 +216,7 @@ func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 		}
 		fields = append(fields, f)
 	}
-	if payload.ActionClient != "" {
+	if strings.TrimSpace(payload.ActionClient) != "" {
 		f := DiscordEmbedsFields{
 			Name:   "Action client",
 			Value:  payload.ActionClient,

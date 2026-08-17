@@ -170,6 +170,5 @@ interface FilterDownloads {
 
 interface FilterNotification {
   notification_id: number;
-  notification?: ServiceNotification;
   events: string[];
 }

@@ -30,7 +30,7 @@ func NewNotificationRepo(log zerolog.Logger, db *DB) *NotificationRepo {
 
 func (r *NotificationRepo) Find(ctx context.Context, _ domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "sound", "event_sounds", "host", "username", "password", "method", "headers", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
+		Select("id", "name", "type", "enabled", "events", "filter_scope", "webhook", "token", "api_key", "channel", "priority", "topic", "sound", "event_sounds", "host", "username", "password", "method", "headers", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
 		OrderBy("name")
 
@@ -53,7 +53,7 @@ func (r *NotificationRepo) Find(ctx context.Context, _ domain.NotificationQueryP
 
 		var webhook, token, apiKey, channel, host, topic, sound, eventSounds, username, password, method, headers sql.Null[string]
 
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &sound, &eventSounds, &host, &username, &password, &method, &headers, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &n.FilterScope, &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &sound, &eventSounds, &host, &username, &password, &method, &headers, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
 			return nil, 0, errors.Wrap(err, "error scanning row")
 		}
 
@@ -85,7 +85,7 @@ func (r *NotificationRepo) Find(ctx context.Context, _ domain.NotificationQueryP
 }
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
-	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, sound, event_sounds, method, headers, created_at, updated_at FROM notification ORDER BY name ASC")
+	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, filter_scope, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, sound, event_sounds, method, headers, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -98,7 +98,7 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		//var eventsSlice []string
 
 		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds, method, headers sql.Null[string]
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &n.FilterScope, &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -142,6 +142,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 			"type",
 			"enabled",
 			"events",
+			"filter_scope",
 			"token",
 			"api_key",
 			"webhook",
@@ -178,7 +179,7 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 	n := domain.NewNotification()
 
 	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds, method, headers sql.Null[string]
-	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
+	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &n.FilterScope, &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -224,6 +225,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			"type",
 			"enabled",
 			"events",
+			"filter_scope",
 			"webhook",
 			"token",
 			"api_key",
@@ -243,6 +245,7 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			notification.Type,
 			notification.Enabled,
 			pq.Array(notification.Events),
+			notification.FilterScope,
 			toNullString(notification.Webhook),
 			toNullString(notification.Token),
 			toNullString(notification.APIKey),
@@ -280,6 +283,7 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		Set("type", notification.Type).
 		Set("enabled", notification.Enabled).
 		Set("events", pq.Array(notification.Events)).
+		Set("filter_scope", notification.FilterScope).
 		Set("webhook", toNullString(notification.Webhook)).
 		Set("token", toNullString(notification.Token)).
 		Set("api_key", toNullString(notification.APIKey)).
@@ -311,17 +315,37 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 }
 
 func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error {
-	queryBuilder := r.db.squirrel.
-		Delete("notification").
-		Where(sq.Eq{"id": notificationID})
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error begin transaction")
+	}
 
-	query, args, err := queryBuilder.ToSql()
+	defer tx.Rollback()
+
+	// SQLite runs without foreign_keys enforcement in production, so the
+	// ON DELETE CASCADE on filter_notification never fires there. Delete the
+	// rows explicitly; SQLite reuses freed rowids for notification.id, so an
+	// orphaned row could otherwise bind its events to a future notification.
+	filterQuery, filterArgs, err := r.db.squirrel.Delete("filter_notification").Where(sq.Eq{"notification_id": notificationID}).ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = tx.ExecContext(ctx, filterQuery, filterArgs...); err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	query, args, err := r.db.squirrel.Delete("notification").Where(sq.Eq{"id": notificationID}).ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error deleting notification: %d", notificationID)
 	}
 
 	r.log.Debug().Int("notification_id", notificationID).Msg("notification deleted")

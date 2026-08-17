@@ -190,7 +190,7 @@
     },
     "RELEASE_NEW": {
       "label": "Ny utgivelse",
-      "description": "Ved ny utgivelse fra indekserer (før filtrering)"
+      "description": "Ved ny release fra indexer (før filtrering). Sendes for hver release og kan ikke begrenses per filter"
     }
   }
 }

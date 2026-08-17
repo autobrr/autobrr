@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useFormikContext, FieldArray, FieldArrayRenderProps } from "formik";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChevronRightIcon, InformationCircleIcon } from "@heroicons/react/24/solid";
@@ -46,19 +46,16 @@ export function Notifications() {
   // Fetch all available notifications
   const { data: availableNotifications = [] } = useSuspenseQuery({
     queryKey: NotificationKeys.lists(),
-    queryFn: () => APIClient.notifications.getAll(),
-    select: (data) => data.filter(n => n.enabled)
+    queryFn: () => APIClient.notifications.getAll()
   });
 
   // Create a new notification object
   const createNewNotification = (): FilterNotification => {
-    const firstAvailable = availableNotifications.find(
-      n => !values.notifications?.some(sn => sn.notification_id === n.id)
-    );
-    
+    const unused = (n: ServiceNotification) => !values.notifications?.some(sn => sn.notification_id === n.id);
+    const firstAvailable = availableNotifications.find(n => n.enabled && unused(n)) ?? availableNotifications.find(unused);
+
     return {
       notification_id: firstAvailable?.id || 0,
-      notification: firstAvailable,
       events: ["PUSH_APPROVED"]
     };
   };
@@ -144,17 +141,6 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
     setFieldValue(`notifications.${idx}.events`, newEvents);
   };
 
-  // Update notification object when ID changes
-  const currentNotificationId = values.notifications?.[idx]?.notification_id;
-  useEffect(() => {
-    if (currentNotificationId) {
-      const notif = availableNotifications.find(n => n.id === currentNotificationId);
-      if (notif) {
-        setFieldValue(`notifications.${idx}.notification`, notif);
-      }
-    }
-  }, [currentNotificationId, availableNotifications, idx, setFieldValue, values.notifications]);
-
   const selectedNotification = availableNotifications.find(
     n => n.id === notification.notification_id
   );
@@ -162,7 +148,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
   const availableOptions = availableNotifications
     .filter(n => n.id === notification.notification_id || 
       !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id))
-    .map(n => ({ label: `${n.name} (${NOTIFICATION_TYPE_MAP[n.type] || n.type})`, value: n.id }));
+    .map(n => ({ label: `${n.name} (${NOTIFICATION_TYPE_MAP[n.type] || n.type})${n.enabled ? "" : ` - ${t("notificationsSection.disabled")}`}`, value: n.id }));
 
   return (
     <li>
@@ -185,6 +171,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                   {NOTIFICATION_TYPE_MAP[selectedNotification?.type || ""] || selectedNotification?.type}
+                  {selectedNotification && !selectedNotification.enabled ? ` • ${t("notificationsSection.disabled")}` : ""}
                   {notification.events?.length === 0 ? ` • ${t("notificationsSection.muted")}` : notification.events?.length > 0 ? ` • ${t("notificationsSection.eventsCount", { count: notification.events.length })}` : ""}
                 </span>
               </div>

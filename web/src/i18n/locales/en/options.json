@@ -198,7 +198,7 @@
     },
     "RELEASE_NEW": {
       "label": "New Release",
-      "description": "On new release from indexer (before filtering)"
+      "description": "On new release from indexer (before filtering). Sent for every release and cannot be limited per filter"
     }
   }
 }

@@ -11,6 +11,7 @@ import Select from "react-select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { TFunction } from "i18next";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
@@ -22,7 +23,7 @@ import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import * as common from "@components/inputs/common";
-import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, RadioFieldsetWide, SelectFieldWide, SwitchGroupWide, TextFieldWide, radioFieldsetOption } from "@components/inputs";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
 
@@ -383,6 +384,19 @@ function FormFieldsGenericWebhook() {
   );
 }
 
+const getFilterScopeOptions = (t: TFunction): radioFieldsetOption[] => [
+  {
+    label: t("settings:forms.notification.filterScopeGlobal"),
+    description: t("settings:forms.notification.filterScopeGlobalDesc"),
+    value: "GLOBAL"
+  },
+  {
+    label: t("settings:forms.notification.filterScopeFilterOnly"),
+    description: t("settings:forms.notification.filterScopeFilterOnlyDesc"),
+    value: "FILTER_ONLY"
+  }
+];
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
@@ -447,6 +461,7 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
           name: "",
           webhook: "",
           events: [],
+          filter_scope: "GLOBAL",
           username: "",
           sound: "",
           event_sounds: {}
@@ -562,6 +577,12 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
                   <div className="p-4 sm:grid sm:gap-4">
                     <EventCheckBoxes />
                   </div>
+
+                  <RadioFieldsetWide
+                    name="filter_scope"
+                    legend={t("settings:forms.notification.filterScopeLegend")}
+                    options={getFilterScopeOptions(t)}
+                  />
                 </div>
               </div>
               {componentMap[values.type]}
@@ -767,6 +788,7 @@ interface InitialValues {
   event_sounds?: Record<string, string>;
   host?: string;
   events: NotificationEvent[];
+  filter_scope: NotificationFilterScope;
   username?: string;
   password?: string;
   used_by_filters?: NotificationFilter[];
@@ -830,6 +852,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     event_sounds: notification.event_sounds || {},
     host: notification.host,
     events: notification.events || [],
+    filter_scope: notification.filter_scope || "GLOBAL",
     username: notification.username,
     password: notification.password,
     used_by_filters: notification.used_by_filters || [],
@@ -915,6 +938,12 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
               <div className="p-4 sm:grid sm:gap-4">
                 <EventCheckBoxes />
               </div>
+
+              <RadioFieldsetWide
+                name="filter_scope"
+                legend={t("settings:forms.notification.filterScopeLegend")}
+                options={getFilterScopeOptions(t)}
+              />
             </div>
           </div>
 

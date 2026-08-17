@@ -190,7 +190,7 @@
     },
     "RELEASE_NEW": {
       "label": "Neuer Release",
-      "description": "Bei neuem Release vom Indexer (vor dem Filtern)"
+      "description": "Bei neuem Release vom Indexer (vor dem Filtern). Wird für jedes Release gesendet und kann nicht pro Filter eingeschränkt werden"
     }
   }
 }

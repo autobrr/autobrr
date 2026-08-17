@@ -47,6 +47,7 @@ CREATE TABLE notification
     priority     INTEGER   DEFAULT 0,
     method       TEXT,
     headers      TEXT,
+    filter_scope TEXT      DEFAULT 'GLOBAL' NOT NULL,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

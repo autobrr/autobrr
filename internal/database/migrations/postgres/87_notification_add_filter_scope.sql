@@ -1,0 +1,2 @@
+ALTER TABLE notification
+    ADD COLUMN filter_scope TEXT NOT NULL DEFAULT 'GLOBAL';

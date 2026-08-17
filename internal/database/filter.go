@@ -1307,6 +1307,11 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 		q = q.Set("release_profile_duplicate_id", filter.ReleaseProfileDuplicateID)
 	}
 
+	// an update carrying only associations (notifications, actions, indexers)
+	// sets no scalar columns; always bumping updated_at keeps the builder from
+	// failing with zero SET clauses
+	q = q.Set("updated_at", time.Now().Format(time.RFC3339))
+
 	q = q.Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := q.ToSql()

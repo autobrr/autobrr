@@ -9,32 +9,33 @@ import (
 )
 
 type Notification struct {
-	ID            int                  `json:"id"`
-	Name          string               `json:"name"`
-	Type          NotificationType     `json:"type"`
-	Enabled       bool                 `json:"enabled"`
-	Events        []string             `json:"events"`
-	Token         string               `json:"token"`
-	APIKey        string               `json:"api_key"`
-	Webhook       string               `json:"webhook"`
-	Title         string               `json:"title"`
-	Icon          string               `json:"icon"`
-	Username      string               `json:"username"`
-	Host          string               `json:"host"`
-	Password      string               `json:"password"`
-	Channel       string               `json:"channel"`
-	Rooms         string               `json:"rooms"`
-	Targets       string               `json:"targets"`
-	Devices       string               `json:"devices"`
-	Priority      int32                `json:"priority"`
-	Topic         string               `json:"topic"`
-	Sound         string               `json:"sound"`
-	EventSounds   map[string]string    `json:"event_sounds,omitempty"` // event -> sound mapping
-	UsedByFilters []FilterNotification `json:"used_by_filters,omitempty"`
-	Method        string               `json:"method,omitempty"`
-	Headers       string               `json:"headers,omitempty"`
-	CreatedAt     time.Time            `json:"created_at"`
-	UpdatedAt     time.Time            `json:"updated_at"`
+	ID            int                     `json:"id"`
+	Name          string                  `json:"name"`
+	Type          NotificationType        `json:"type"`
+	Enabled       bool                    `json:"enabled"`
+	Events        []string                `json:"events"`
+	FilterScope   NotificationFilterScope `json:"filter_scope"`
+	Token         string                  `json:"token"`
+	APIKey        string                  `json:"api_key"`
+	Webhook       string                  `json:"webhook"`
+	Title         string                  `json:"title"`
+	Icon          string                  `json:"icon"`
+	Username      string                  `json:"username"`
+	Host          string                  `json:"host"`
+	Password      string                  `json:"password"`
+	Channel       string                  `json:"channel"`
+	Rooms         string                  `json:"rooms"`
+	Targets       string                  `json:"targets"`
+	Devices       string                  `json:"devices"`
+	Priority      int32                   `json:"priority"`
+	Topic         string                  `json:"topic"`
+	Sound         string                  `json:"sound"`
+	EventSounds   map[string]string       `json:"event_sounds,omitempty"` // event -> sound mapping
+	UsedByFilters []FilterNotification    `json:"used_by_filters,omitempty"`
+	Method        string                  `json:"method,omitempty"`
+	Headers       string                  `json:"headers,omitempty"`
+	CreatedAt     time.Time               `json:"created_at"`
+	UpdatedAt     time.Time               `json:"updated_at"`
 
 	filters map[int]NotificationEvents
 }
@@ -139,28 +140,6 @@ func (n *Notification) SetFilterEvents(filterID int, events NotificationEvents) 
 	n.filters[filterID] = events
 }
 
-func (n *Notification) RemoveFilterEvents(filterID int) {
-	delete(n.filters, filterID)
-}
-
-func (n *Notification) ClearFilterEvents() {
-	n.filters = nil
-}
-
-// Clone returns a shallow copy of the notification with an independent,
-// freshly allocated filters map. Global fields are copied by value; the Events
-// slice and EventSounds map are shared but must never be mutated in place. Use
-// it to rebuild sender state copy-on-write so a Send goroutine reading the
-// previous object's filters map never races with a concurrent update.
-func (n *Notification) Clone() *Notification {
-	c := *n
-	c.filters = make(map[int]NotificationEvents, len(n.filters))
-	for k, v := range n.filters {
-		c.filters[k] = v
-	}
-	return &c
-}
-
 func (n Notification) MarshalJSON() ([]byte, error) {
 	type Alias Notification
 	return json.Marshal(&struct {
@@ -219,6 +198,29 @@ const (
 	NotificationTypeShoutrrr   NotificationType = "SHOUTRRR"
 	NotificationTypeWebhook    NotificationType = "WEBHOOK"
 )
+
+// NotificationFilterScope controls the global-events fallback for filters
+// without a per-filter row: GLOBAL falls back to the notification's global
+// events, FILTER_ONLY does not. System events (FilterID == 0) always use the
+// global events list regardless of scope.
+type NotificationFilterScope string
+
+const (
+	NotificationFilterScopeGlobal     NotificationFilterScope = "GLOBAL"
+	NotificationFilterScopeFilterOnly NotificationFilterScope = "FILTER_ONLY"
+)
+
+func (s NotificationFilterScope) String() string {
+	return string(s)
+}
+
+func (s NotificationFilterScope) Valid() bool {
+	switch s {
+	case NotificationFilterScopeGlobal, NotificationFilterScopeFilterOnly:
+		return true
+	}
+	return false
+}
 
 type NotificationEvent string
 

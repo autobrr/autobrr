@@ -190,7 +190,7 @@
       },
       "RELEASE_NEW": {
         "label": "Nový Release",
-        "description": "Při novém release z indexeru (před filtrováním)"
+        "description": "Při novém releasu z indexeru (před filtrováním). Odesílá se pro každý release a nelze jej omezit na filtr"
       }
     }
   }

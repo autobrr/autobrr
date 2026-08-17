@@ -4,11 +4,14 @@
 package notification
 
 import (
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"unicode/utf8"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/test/mockdiscord"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -153,4 +156,43 @@ func TestDiscordBuildEmbed_TruncatesLongSubjectAndMessage(t *testing.T) {
 
 	assert.Equal(t, discordEmbedTitleLimit, utf8.RuneCountInString(embed.Title))
 	assert.Equal(t, discordEmbedDescriptionLimit, utf8.RuneCountInString(embed.Description))
+}
+
+// Sends a real payload through the mockdiscord webhook server so the sender
+// and the documented Discord limits are exercised end to end - an oversized
+// embed would come back as a Discord-style 400 and fail the send.
+func TestDiscordSender_SendThroughMock(t *testing.T) {
+	t.Parallel()
+
+	server := &mockdiscord.Server{}
+	ts := httptest.NewServer(server.Handler())
+	defer ts.Close()
+
+	settings := &domain.Notification{
+		Name:    "Test Discord",
+		Type:    domain.NotificationTypeDiscord,
+		Enabled: true,
+		Webhook: ts.URL + "/api/webhooks/1/mock-token",
+		Events:  []string{string(domain.NotificationEventPushRejected)},
+	}
+
+	sender := NewDiscordSender(logger.Mock().With().Logger(), settings)
+
+	payload := domain.NotificationPayload{
+		Event:       domain.NotificationEventPushRejected,
+		Subject:     "New release!",
+		Message:     "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+		ReleaseName: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+		Filter:      "TV",
+		Indexer:     "MockIndexer",
+		Status:      domain.ReleasePushStatusRejected,
+		Rejections:  []string{strings.Repeat("rejection reason ", 500)},
+	}
+
+	require.NoError(t, sender.Send(payload.Event, payload))
+
+	messages := server.Messages()
+	require.Len(t, messages, 1)
+	require.Len(t, messages[0].Message.Embeds, 1)
+	assert.NotEmpty(t, messages[0].Message.Embeds[0].Title)
 }

@@ -13,12 +13,15 @@ type NotificationEvent =
   | "APP_UPDATE_AVAILABLE"
   | "RELEASE_NEW";
 
+type NotificationFilterScope = "GLOBAL" | "FILTER_ONLY";
+
 interface ServiceNotification {
   id: number;
   name: string;
   enabled: boolean;
   type: NotificationType;
   events: NotificationEvent[];
+  filter_scope: NotificationFilterScope;
   webhook?: string;
   token?: string;
   api_key?: string;

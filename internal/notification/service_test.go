@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/mock"
 )
@@ -18,11 +20,6 @@ type mockSender struct {
 func (m *mockSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) error {
 	args := m.Called(event, payload)
 	return args.Error(0)
-}
-
-func (m *mockSender) CanSend(event domain.NotificationEvent) bool {
-	args := m.Called(event)
-	return args.Bool(0)
 }
 
 func (m *mockSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
@@ -37,11 +34,6 @@ func (m *mockSender) IsEnabled() bool {
 
 func (m *mockSender) Name() string {
 	return "mock"
-}
-
-func (m *mockSender) HasFilterEvents(filterID int) bool {
-	args := m.Called(filterID)
-	return args.Bool(0)
 }
 
 func TestService_Send_Optimization(t *testing.T) {
@@ -132,6 +124,8 @@ type fakeNotificationRepo struct {
 	notifications map[int]*domain.Notification
 	// filterByNotification holds filter_notification rows keyed by notification id.
 	filterByNotification map[int][]domain.FilterNotification
+	// filtersErr, when set, makes GetNotificationFilters fail (fault injection).
+	filtersErr error
 }
 
 func (f *fakeNotificationRepo) List(_ context.Context) ([]domain.Notification, error) {
@@ -174,6 +168,9 @@ func (f *fakeNotificationRepo) Delete(_ context.Context, id int) error {
 }
 
 func (f *fakeNotificationRepo) GetNotificationFilters(_ context.Context, notificationID int) ([]domain.FilterNotification, error) {
+	if f.filtersErr != nil {
+		return nil, f.filtersErr
+	}
 	return f.filterByNotification[notificationID], nil
 }
 
@@ -394,4 +391,162 @@ func TestService_ConcurrentSendAndConfig(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 	close(stop)
 	wg.Wait()
+}
+
+// FILTER_ONLY scope: filters without a per-filter row must not fall back to
+// the global events, while configured filters and system events (FilterID == 0)
+// behave exactly as with GLOBAL scope.
+func TestSender_FilterOnlyScope(t *testing.T) {
+	const notifID = 1
+	const configuredFilterID = 10
+	const otherFilterID = 20
+
+	repo := &fakeNotificationRepo{
+		notifications: map[int]*domain.Notification{
+			notifID: {
+				ID:          notifID,
+				Name:        "Discord",
+				Type:        domain.NotificationTypeDiscord,
+				Enabled:     true,
+				Events:      []string{string(domain.NotificationEventPushApproved), string(domain.NotificationEventIRCDisconnected)},
+				FilterScope: domain.NotificationFilterScopeFilterOnly,
+				Webhook:     "https://discord.example/webhook",
+			},
+		},
+		filterByNotification: map[int][]domain.FilterNotification{
+			notifID: {
+				{FilterID: configuredFilterID, NotificationID: notifID, Events: []string{string(domain.NotificationEventPushApproved)}},
+			},
+		},
+	}
+
+	svc := newTestService(repo)
+
+	sender, ok := svc.senders[notifID]
+	if !ok {
+		t.Fatal("expected sender to be registered at startup")
+	}
+
+	if !sender.CanSendPayload(domain.NotificationEventPushApproved, domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: configuredFilterID}) {
+		t.Fatal("expected configured filter to fire with FILTER_ONLY scope")
+	}
+
+	if sender.CanSendPayload(domain.NotificationEventPushApproved, domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: otherFilterID}) {
+		t.Fatal("expected unconfigured filter to stay silent with FILTER_ONLY scope")
+	}
+
+	if !sender.CanSendPayload(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{Event: domain.NotificationEventIRCDisconnected}) {
+		t.Fatal("expected system event to fire regardless of scope")
+	}
+}
+
+// A notification whose row vanished between a concurrent config write and the
+// rebuild (e.g. Update racing Delete) must be deregistered, not resurrected
+// from the caller's stale object.
+func TestService_HydrateDeletedNotificationDeregisters(t *testing.T) {
+	const notifID = 1
+
+	repo := &fakeNotificationRepo{
+		notifications: map[int]*domain.Notification{
+			notifID: {
+				ID:      notifID,
+				Name:    "Discord",
+				Type:    domain.NotificationTypeDiscord,
+				Enabled: true,
+				Events:  []string{string(domain.NotificationEventPushApproved)},
+				Webhook: "https://discord.example/webhook",
+			},
+		},
+		filterByNotification: map[int][]domain.FilterNotification{},
+	}
+
+	svc := newTestService(repo)
+
+	if _, ok := svc.senders[notifID]; !ok {
+		t.Fatal("expected sender to be registered at startup")
+	}
+
+	// the concurrent delete commits while another write path is between its
+	// repo call and the locked rebuild
+	delete(repo.notifications, notifID)
+
+	svc.mu.Lock()
+	svc.hydrateAndRegister(context.Background(), notifID)
+	svc.mu.Unlock()
+
+	if _, ok := svc.senders[notifID]; ok {
+		t.Fatal("deleted notification was resurrected as a ghost sender")
+	}
+	if _, ok := svc.notifications[notifID]; ok {
+		t.Fatal("deleted notification still tracked in s.notifications")
+	}
+}
+
+// A transient repository failure during the rebuild must not replace
+// known-good state: the previously registered object keeps enforcing its
+// per-filter mutes instead of falling back to global events (Ito QA:
+// "A reload error can send muted notifications").
+func TestService_HydrateErrorKeepsMute(t *testing.T) {
+	const notifID = 1
+	const filterID = 42
+
+	repo := &fakeNotificationRepo{
+		notifications: map[int]*domain.Notification{
+			notifID: {
+				ID:      notifID,
+				Name:    "Discord",
+				Type:    domain.NotificationTypeDiscord,
+				Enabled: true,
+				Events:  []string{string(domain.NotificationEventPushApproved)},
+				Webhook: "https://discord.example/webhook",
+			},
+		},
+		filterByNotification: map[int][]domain.FilterNotification{
+			notifID: {
+				{FilterID: filterID, NotificationID: notifID, Events: []string{}}, // muted
+			},
+		},
+	}
+
+	svc := newTestService(repo)
+
+	payload := domain.NotificationPayload{Event: domain.NotificationEventPushApproved, FilterID: filterID}
+
+	if svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+		t.Fatal("expected notification to be muted for filter before the edit")
+	}
+
+	// the filter-notification lookup fails while the notification is edited
+	repo.filtersErr = errors.New("database is locked")
+
+	updated := &domain.Notification{
+		ID:      notifID,
+		Name:    "Discord renamed",
+		Type:    domain.NotificationTypeDiscord,
+		Enabled: true,
+		Events:  []string{string(domain.NotificationEventPushApproved)},
+		Webhook: "https://discord.example/webhook",
+	}
+	if err := svc.Update(context.Background(), updated); err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+
+	if svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+		t.Fatal("mute was lost after a failed per-filter reload")
+	}
+
+	// once the repository recovers, the next rebuild picks up the edit and the
+	// mute still holds
+	repo.filtersErr = nil
+
+	if err := svc.Update(context.Background(), updated); err != nil {
+		t.Fatalf("update failed: %v", err)
+	}
+
+	if svc.notifications[notifID].Name != "Discord renamed" {
+		t.Fatal("expected rename to be applied after the repository recovered")
+	}
+	if svc.senders[notifID].CanSendPayload(domain.NotificationEventPushApproved, payload) {
+		t.Fatal("expected mute to hold after the repository recovered")
+	}
 }

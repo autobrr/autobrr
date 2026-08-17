@@ -180,10 +180,12 @@ func (s *Service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	}
 	filter.Indexers = indexers
 
-	// Load notifications
+	// a nil slice here must be an error, not a fallback: the editor would render
+	// an empty tab and the next save would wipe the real rows
 	notifications, err := s.notificationSvc.GetFilterNotifications(ctx, filter.ID)
 	if err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find notifications")
+		return nil, err
 	}
 	filter.Notifications = notifications
 
@@ -468,6 +470,19 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 		return nil, err
 	}
 
+	// take care of per-filter notifications
+	// the filter notifications are fetched with FindByID; restamp the rows so
+	// the returned filter does not point at the source filter
+	for i := range filter.Notifications {
+		filter.Notifications[i].FilterID = filter.ID
+		filter.Notifications[i].FilterName = filter.Name
+	}
+
+	if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter notifications")
+		return nil, err
+	}
+
 	return filter, nil
 }
 
@@ -517,14 +532,17 @@ func (s *Service) Delete(ctx context.Context, filterID int) error {
 		return err
 	}
 
-	// delete filter
-	if err := s.repo.Delete(ctx, filterID); err != nil {
-		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter")
+	// must run before the filter row is deleted: on Postgres the FK cascade
+	// would empty filter_notification first, and the in-memory per-filter
+	// events would stay registered until restart
+	if err := s.notificationSvc.DeleteFilterNotifications(ctx, filterID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter notifications")
 		return err
 	}
 
-	if err := s.notificationSvc.DeleteFilterNotifications(ctx, filterID); err != nil {
-		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter notifications")
+	// delete filter
+	if err := s.repo.Delete(ctx, filterID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter")
 		return err
 	}
 
