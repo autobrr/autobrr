@@ -1361,6 +1361,8 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 
 // StoreIndexerConnections syncs the filter_indexer connections for the filter
 // to the given indexers, deleting stale connections and inserting missing ones.
+// Archived indexers already connected to the filter are kept; adding new
+// archived connections is rejected.
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
 	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
@@ -1380,6 +1382,34 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 	}
 
 	if len(indexerIDs) > 0 {
+		connectedQuery, connectedArgs, err := r.db.squirrel.
+			Select("indexer_id").
+			From("filter_indexer").
+			Where(sq.Eq{"filter_id": filterID}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		connectedRows, err := tx.QueryContext(ctx, connectedQuery, connectedArgs...)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		connected := make(map[int64]struct{})
+		for connectedRows.Next() {
+			var id int64
+			if err := connectedRows.Scan(&id); err != nil {
+				connectedRows.Close()
+				return errors.Wrap(err, "error scanning row")
+			}
+			connected[id] = struct{}{}
+		}
+		connectedRows.Close()
+		if err := connectedRows.Err(); err != nil {
+			return errors.Wrap(err, "error rows")
+		}
+
 		query, args, err := r.db.squirrel.
 			Select("id", "archived").
 			From("indexer").
@@ -1403,7 +1433,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 				return errors.Wrap(err, "error scanning row")
 			}
 			found++
-			if archived {
+			if _, ok := connected[id]; archived && !ok {
 				rows.Close()
 				return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", id)
 			}

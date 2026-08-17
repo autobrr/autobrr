@@ -96,6 +96,7 @@
     "announceTypes": "公告类型",
     "announceTypesTooltip": "新增！匹配包含任一所选公告类型的发布。",
     "indexers": "索引器",
+    "deprecatedIndexer": "{{name}}（已弃用）",
     "rulesTitle": "规则",
     "rulesSubtitle": "指定种子如何被处理或筛选。",
     "minSize": "最小大小",

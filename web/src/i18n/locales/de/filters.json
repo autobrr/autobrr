@@ -96,6 +96,7 @@
     "announceTypes": "Ankündigungstypen",
     "announceTypesTooltip": "NEU! Releases mit einem der ausgewählten Ankündigungstypen filtern.",
     "indexers": "Indexer",
+    "deprecatedIndexer": "{{name}} (nicht mehr unterstützt)",
     "rulesTitle": "Regeln",
     "rulesSubtitle": "Regeln festlegen, wie Torrents behandelt/ausgewählt werden sollen.",
     "minSize": "Min. Größe",
