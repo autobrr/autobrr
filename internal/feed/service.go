@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
+	errors2 "gitlab.com/tozd/go/errors"
 )
 
 type feedRepo interface {
@@ -64,6 +66,11 @@ type releaseService interface {
 	ProcessMultipleFromIndexer(ctx context.Context, releases []*domain.Release, indexer domain.IndexerMinimal) error
 }
 
+type eventBus interface {
+	OnIndexerDeleted(handler func(ctx context.Context, event events.IndexerChangeEvent) errors2.E) func()
+	OnIndexerToggled(handler func(ctx context.Context, event events.IndexerChangeEvent) errors2.E) func()
+}
+
 type feedInstance struct {
 	Feed           *domain.Feed
 	Name           string
@@ -104,7 +111,8 @@ func (k feedKey) ToString() string {
 }
 
 type Service struct {
-	log zerolog.Logger
+	log      zerolog.Logger
+	eventBus eventBus
 
 	// guards holds per-feed mutexes: run keeps a force run and a scheduled run from fetching
 	// and processing the same feed concurrently (cron's SkipIfStillRunning only covers a single
@@ -124,15 +132,65 @@ type feedGuards struct {
 	run      sync.Mutex
 }
 
-func NewService(log zerolog.Logger, repo feedRepo, cacheRepo feedCacheRepo, releaseSvc releaseService, proxySvc proxyService, scheduler schedulerService) *Service {
-	return &Service{
+func NewService(log zerolog.Logger, eventBus eventBus, repo feedRepo, cacheRepo feedCacheRepo, releaseSvc releaseService, proxySvc proxyService, scheduler schedulerService) *Service {
+	s := &Service{
 		log:        log.With().Str("module", "feed").Logger(),
+		eventBus:   eventBus,
 		repo:       repo,
 		cacheRepo:  cacheRepo,
 		releaseSvc: releaseSvc,
 		proxySvc:   proxySvc,
 		scheduler:  scheduler,
 	}
+
+	s.setupEventListeners()
+
+	return s
+}
+
+func (s *Service) setupEventListeners() {
+	s.eventBus.OnIndexerToggled(func(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+		indexer := event.Indexer
+		s.log.Trace().Str("event", string(event.Type)).Int("indexer_id", int(indexer.ID)).Bool("enabled", indexer.Enabled).Msg("indexer toggle enabled event")
+
+		if !indexer.ImplementationIsFeed() {
+			return nil
+		}
+
+		if err := s.ToggleIndexerEnabled(ctx, int(indexer.ID)); err != nil {
+			s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("could not toggle feed job for indexer")
+		}
+
+		return nil
+	})
+
+	s.eventBus.OnIndexerDeleted(func(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+		indexer := event.Indexer
+
+		s.log.Trace().Str("event", string(event.Type)).Int("indexer_id", int(indexer.ID)).Msg("indexer delete event")
+
+		//ctx := context.Background()
+
+		if indexer.ImplementationIsFeed() {
+			feedItem, err := s.FindOne(ctx, domain.FindOneParams{IndexerID: int(indexer.ID)})
+			if err != nil {
+				if errors.Is(err, domain.ErrRecordNotFound) {
+					return errors2.Wrap(err, "could not find feed item")
+				}
+
+				s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("indexer delete could not find feed")
+				return errors2.Wrap(err, "could not find feed item")
+			}
+
+			if err := s.Delete(ctx, feedItem.ID); err != nil {
+				s.log.Error().Err(err).Int("feed_id", feedItem.ID).Msg("indexer delete could not delete feed")
+			}
+
+			s.log.Debug().Str("feed_name", feedItem.Name).Msg("removed feed")
+		}
+
+		return nil
+	})
 }
 
 func (s *Service) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {

@@ -11,7 +11,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/rs/zerolog"
 )
 
@@ -37,23 +36,26 @@ type downloadService interface {
 	ResolveMagnetURI(ctx context.Context, r *domain.Release) error
 }
 
+type eventBus interface {
+}
+
 type Service struct {
 	log         zerolog.Logger
+	eventBus    eventBus
 	repo        actionRepo
 	clientSvc   clientService
 	downloadSvc downloadService
-	bus         EventBus.Bus
 
 	httpClient *http.Client
 }
 
-func NewService(log zerolog.Logger, repo actionRepo, clientSvc clientService, downloadSvc downloadService, bus EventBus.Bus) *Service {
+func NewService(log zerolog.Logger, bus eventBus, repo actionRepo, clientSvc clientService, downloadSvc downloadService) *Service {
 	s := &Service{
 		log:         log.With().Str("module", "action").Logger(),
+		eventBus:    bus,
 		repo:        repo,
 		clientSvc:   clientSvc,
 		downloadSvc: downloadSvc,
-		bus:         bus,
 
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,

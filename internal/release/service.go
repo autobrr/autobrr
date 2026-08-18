@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
@@ -77,6 +77,11 @@ type schedulerService interface {
 	GetNextRun(id string) (time.Time, error)
 }
 
+type eventBus interface {
+	EmitReleaseNew(event events.ReleaseEvent)
+	EmitReleasePush(event events.ReleasePushEvent)
+}
+
 type actionClientTypeKey struct {
 	Type     domain.ActionType
 	ClientID int32
@@ -94,9 +99,9 @@ func (k cleanupJobKey) ToString() string {
 
 type Service struct {
 	log         zerolog.Logger
+	eventBus    eventBus
 	m           sync.RWMutex
 	cleanupJobs map[string]int
-	bus         EventBus.Bus
 
 	repo       releaseRepo
 	actionSvc  actionService
@@ -105,11 +110,11 @@ type Service struct {
 	scheduler  schedulerService
 }
 
-func NewService(log zerolog.Logger, repo releaseRepo, actionSvc actionService, filterSvc filterService, indexerSvc indexerService, scheduler schedulerService, bus EventBus.Bus) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, repo releaseRepo, actionSvc actionService, filterSvc filterService, indexerSvc indexerService, scheduler schedulerService) *Service {
 	return &Service{
 		log:         log.With().Str("module", "release").Logger(),
+		eventBus:    eventBus,
 		cleanupJobs: map[string]int{},
-		bus:         bus,
 		repo:        repo,
 		actionSvc:   actionSvc,
 		filterSvc:   filterSvc,
@@ -676,6 +681,13 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Status = domain.ReleasePushStatusErr
 		status.Rejections = []string{err.Error()}
 
+		s.eventBus.EmitReleasePush(events.ReleasePushEvent{
+			Event:        events.Event{Type: events.ReleasePushError},
+			Action:       action,
+			ActionStatus: status,
+			Release:      release,
+		})
+
 		return status, err
 	}
 
@@ -683,10 +695,24 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Status = domain.ReleasePushStatusRejected
 		status.Rejections = rejections
 
+		s.eventBus.EmitReleasePush(events.ReleasePushEvent{
+			Event:        events.Event{Type: events.ReleasePushRejected},
+			Action:       action,
+			ActionStatus: status,
+			Release:      release,
+		})
+
 		return status, nil
 	}
 
 	status.Status = domain.ReleasePushStatusApproved
+
+	s.eventBus.EmitReleasePush(events.ReleasePushEvent{
+		Event:        events.Event{Type: events.ReleasePushApproved},
+		Action:       action,
+		ActionStatus: status,
+		Release:      release,
+	})
 
 	return status, nil
 }
@@ -778,18 +804,23 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 }
 
 func (s *Service) publishEventReleaseNew(release *domain.Release) {
-	payload := &domain.NotificationPayload{
-		Event:          domain.NotificationEventReleaseNew,
-		ReleaseName:    release.TorrentName,
-		Indexer:        release.Indexer.Name,
-		InfoHash:       release.TorrentHash,
-		Size:           release.Size,
-		Protocol:       release.Protocol,
-		Implementation: release.Implementation,
-		Timestamp:      time.Now(),
-		Release:        release,
-	}
-	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
+	//payload := &domain.NotificationPayload{
+	//	Event:          domain.NotificationEventReleaseNew,
+	//	ReleaseName:    release.TorrentName,
+	//	Indexer:        release.Indexer.Name,
+	//	InfoHash:       release.TorrentHash,
+	//	Size:           release.Size,
+	//	Protocol:       release.Protocol,
+	//	Implementation: release.Implementation,
+	//	Timestamp:      time.Now(),
+	//	Release:        release,
+	//}
+	//s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
+
+	s.eventBus.EmitReleaseNew(events.ReleaseEvent{
+		Event:   events.Event{Type: events.ReleaseNew},
+		Release: release,
+	})
 }
 
 func (s *Service) startCleanupJob(job *domain.ReleaseCleanupJob) error {

@@ -7,13 +7,14 @@ import (
 	"context"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
+	errors2 "gitlab.com/tozd/go/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 type notificationRepo interface {
@@ -39,33 +40,141 @@ type Sender interface {
 	HasFilterEvents(filterID int) bool
 }
 
-//type Sender interface {
-//	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
-//}
-//
-//type Tester interface {
-//	Test(ctx context.Context, notification *domain.Notification) error
-//}
-
 type Service struct {
-	log  zerolog.Logger
-	repo notificationRepo
+	log      zerolog.Logger
+	eventBus *events.EventBus
+	repo     notificationRepo
 
 	notifications map[int]*domain.Notification
 	senders       map[int]Sender
 }
 
-func NewService(log zerolog.Logger, repo notificationRepo) *Service {
+func NewService(log zerolog.Logger, eventBus *events.EventBus, repo notificationRepo) *Service {
 	s := &Service{
 		log:           log.With().Str("module", "notification").Logger(),
+		eventBus:      eventBus,
 		repo:          repo,
 		notifications: make(map[int]*domain.Notification),
 		senders:       make(map[int]Sender),
 	}
 
 	s.registerSenders()
+	s.setupEventListeners()
 
 	return s
+}
+
+func (s *Service) setupEventListeners() {
+	s.eventBus.OnAppUpdate(func(ctx context.Context, event events.AppUpdateEvent) errors2.E {
+		payload := domain.NotificationPayload{
+			Event:     domain.NotificationEventAppUpdateAvailable,
+			Subject:   "New update available!",
+			Message:   event.NewVersion,
+			Timestamp: time.Now(),
+		}
+		s.Send(payload.Event, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnReleaseNew(func(ctx context.Context, event events.ReleaseEvent) errors2.E {
+		release := event.Release
+		payload := domain.NotificationPayload{
+			Event:          domain.NotificationEventReleaseNew,
+			ReleaseName:    release.TorrentName,
+			Indexer:        release.Indexer.Name,
+			InfoHash:       release.TorrentHash,
+			Size:           release.Size,
+			Protocol:       release.Protocol,
+			Implementation: release.Implementation,
+			Timestamp:      time.Now(),
+			Release:        release,
+		}
+		s.Send(payload.Event, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnReleasePush(func(ctx context.Context, event events.ReleasePushEvent) errors2.E {
+		release := event.Release
+		action := event.Action
+		status := event.ActionStatus
+
+		payload := domain.NotificationPayload{
+			Event:       domain.NotificationEventPushApproved,
+			ReleaseName: release.TorrentName,
+			Filter:      release.FilterName,
+			FilterID:    release.FilterID,
+			Indexer:     release.Indexer.Name,
+			InfoHash:    release.TorrentHash,
+			Size:        release.Size,
+			Status:      domain.ReleasePushStatusApproved,
+			Action:      action.Name,
+			ActionType:  action.Type,
+			//Rejections:     status.Rejections,
+			Rejections:     []string{},
+			Protocol:       release.Protocol,
+			Implementation: release.Implementation,
+			Timestamp:      time.Now(),
+			Release:        release,
+		}
+
+		if action.Client != nil {
+			payload.ActionClient = action.Client.Name
+		}
+
+		switch event.Type {
+		case events.ReleasePushApproved:
+			payload.Event = domain.NotificationEventPushApproved
+			payload.Status = domain.ReleasePushStatusApproved
+
+		case events.ReleasePushRejected:
+			payload.Event = domain.NotificationEventPushRejected
+			payload.Status = domain.ReleasePushStatusRejected
+			payload.Rejections = status.Rejections
+
+		case events.ReleasePushError:
+			payload.Event = domain.NotificationEventPushError
+			payload.Status = domain.ReleasePushStatusErr
+			payload.Rejections = status.Rejections
+		}
+
+		s.Send(payload.Event, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnIRC(func(ctx context.Context, event events.IRCEvent) errors2.E {
+		var payload domain.NotificationPayload
+
+		switch event.Type {
+		case events.IRCReconnected:
+			payload = domain.NotificationPayload{
+				Event:   domain.NotificationEventIRCReconnected,
+				Subject: "IRC Reconnected",
+				Message: event.Network,
+				//Message: fmt.Sprintf("Network: %s", networkName),
+			}
+
+		case events.IRCDisconnected:
+			payload = domain.NotificationPayload{
+				Event:   domain.NotificationEventIRCDisconnected,
+				Subject: "IRC Disconnected",
+				Message: event.Network,
+			}
+
+		case events.IRCFlapping:
+			payload = domain.NotificationPayload{
+				Event:   domain.NotificationEventIRCDisconnected,
+				Subject: "IRC Stopped",
+				Message: event.Message,
+			}
+		}
+
+		s.Send(payload.Event, payload)
+
+		return nil
+	})
 }
 
 func (s *Service) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
