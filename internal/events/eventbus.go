@@ -127,23 +127,15 @@ func (eb *EventBus) EmitAppUpdate(event AppUpdateEvent) {
 }
 
 func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) errors.E) func() {
-	return onEvent(eb.log, eb.appUpdate, ApplicationUpdate, handler)
+	return onEvent(eb.log, eb.appUpdate, "AppUpdate", handler)
 }
 
-func (eb *EventBus) EmitIndexerDeleted(event IndexerChangeEvent) {
+func (eb *EventBus) EmitIndexer(event IndexerChangeEvent) {
 	emitEvent(eb.ctx, eb.log, eb.indexer, event)
 }
 
-func (eb *EventBus) OnIndexerDeleted(handler func(context.Context, IndexerChangeEvent) errors.E) func() {
-	return onEvent(eb.log, eb.indexer, IndexerDeleted, handler)
-}
-
-func (eb *EventBus) EmitIndexerToggled(event IndexerChangeEvent) {
-	emitEvent(eb.ctx, eb.log, eb.indexer, event)
-}
-
-func (eb *EventBus) OnIndexerToggled(handler func(context.Context, IndexerChangeEvent) errors.E) func() {
-	return onEvent(eb.log, eb.indexer, IndexerToggleEnabled, handler)
+func (eb *EventBus) OnIndexer(handler func(context.Context, IndexerChangeEvent) errors.E) func() {
+	return onEvent(eb.log, eb.indexer, "Indexer", handler)
 }
 
 func (eb *EventBus) EmitIRC(event IRCEvent) {
@@ -159,7 +151,7 @@ func (eb *EventBus) EmitReleaseNew(event ReleaseEvent) {
 }
 
 func (eb *EventBus) OnReleaseNew(handler func(context.Context, ReleaseEvent) errors.E) func() {
-	return onEvent(eb.log, eb.release, ReleaseNew, handler)
+	return onEvent(eb.log, eb.release, "ReleaseNew", handler)
 }
 
 func (eb *EventBus) EmitReleasePush(event ReleasePushEvent) {

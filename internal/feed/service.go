@@ -67,8 +67,7 @@ type releaseService interface {
 }
 
 type eventBus interface {
-	OnIndexerDeleted(handler func(ctx context.Context, event events.IndexerChangeEvent) errors2.E) func()
-	OnIndexerToggled(handler func(ctx context.Context, event events.IndexerChangeEvent) errors2.E) func()
+	OnIndexer(handler func(ctx context.Context, event events.IndexerChangeEvent) errors2.E) func()
 }
 
 type feedInstance struct {
@@ -149,48 +148,66 @@ func NewService(log zerolog.Logger, eventBus eventBus, repo feedRepo, cacheRepo 
 }
 
 func (s *Service) setupEventListeners() {
-	s.eventBus.OnIndexerToggled(func(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
-		indexer := event.Indexer
-		s.log.Trace().Str("event", string(event.Type)).Int("indexer_id", int(indexer.ID)).Bool("enabled", indexer.Enabled).Msg("indexer toggle enabled event")
+	s.eventBus.OnIndexer(func(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+		switch event.Type {
+		case events.IndexerToggleEnabled:
+			if err := s.onIndexerToggled(ctx, event); err != nil {
+				s.log.Error().Err(err).Msg("feed toggle enabled")
+			}
 
-		if !indexer.ImplementationIsFeed() {
-			return nil
-		}
-
-		if err := s.ToggleIndexerEnabled(ctx, int(indexer.ID)); err != nil {
-			s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("could not toggle feed job for indexer")
+		case events.IndexerDeleted:
+			if err := s.onIndexerDeleted(ctx, event); err != nil {
+				s.log.Error().Err(err).Msg("feed deleted from indexer")
+			}
 		}
 
 		return nil
 	})
+}
 
-	s.eventBus.OnIndexerDeleted(func(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
-		indexer := event.Indexer
+func (s *Service) onIndexerDeleted(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+	indexer := event.Indexer
 
-		s.log.Trace().Str("event", string(event.Type)).Int("indexer_id", int(indexer.ID)).Msg("indexer delete event")
+	if !indexer.ImplementationIsFeed() {
+		return nil
+	}
 
-		//ctx := context.Background()
-
-		if indexer.ImplementationIsFeed() {
-			feedItem, err := s.FindOne(ctx, domain.FindOneParams{IndexerID: int(indexer.ID)})
-			if err != nil {
-				if errors.Is(err, domain.ErrRecordNotFound) {
-					return errors2.Wrap(err, "could not find feed item")
-				}
-
-				s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("indexer delete could not find feed")
-				return errors2.Wrap(err, "could not find feed item")
-			}
-
-			if err := s.Delete(ctx, feedItem.ID); err != nil {
-				s.log.Error().Err(err).Int("feed_id", feedItem.ID).Msg("indexer delete could not delete feed")
-			}
-
-			s.log.Debug().Str("feed_name", feedItem.Name).Msg("removed feed")
+	s.log.Trace().Str("event", string(event.Type)).Int("indexer_id", int(indexer.ID)).Msg("indexer delete event")
+	feedItem, err := s.FindOne(ctx, domain.FindOneParams{IndexerID: int(indexer.ID)})
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return errors2.Wrap(err, "could not find feed item")
 		}
 
+		s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("indexer delete could not find feed")
+		return errors2.Wrap(err, "could not find feed item")
+	}
+
+	if err := s.Delete(ctx, feedItem.ID); err != nil {
+		s.log.Error().Err(err).Int("feed_id", feedItem.ID).Msg("indexer delete could not delete feed")
+		return errors2.Wrap(err, "could not delete feed")
+	}
+
+	s.log.Debug().Str("feed_name", feedItem.Name).Msg("removed feed")
+
+	return nil
+}
+
+func (s *Service) onIndexerToggled(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+	indexer := event.Indexer
+
+	if !indexer.ImplementationIsFeed() {
 		return nil
-	})
+	}
+
+	s.log.Trace().Str("event", string(event.Type)).Int("indexer_id", int(indexer.ID)).Bool("enabled", indexer.Enabled).Msg("indexer toggle enabled event")
+
+	if err := s.ToggleIndexerEnabled(ctx, int(indexer.ID)); err != nil {
+		s.log.Error().Err(err).Int("indexer_id", int(indexer.ID)).Msg("could not toggle feed job for indexer")
+		return errors2.Wrap(err, "could not toggle feed job for indexer")
+	}
+
+	return nil
 }
 
 func (s *Service) FindOne(ctx context.Context, params domain.FindOneParams) (*domain.Feed, error) {
