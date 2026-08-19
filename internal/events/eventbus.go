@@ -97,7 +97,11 @@ func (t *Topic[T]) On(handler func(context.Context, T) error) func() {
 
 // Emit dispatches event to every listener synchronously.
 func (t *Topic[T]) Emit(ctx context.Context, event T) error {
-	// Add UUID to context if not already present
+	// an event describes something that already happened, so the emitter's deadline
+	// must not decide whether subscribers observe it: TryEmit bails on a cancelled
+	// ctx, which would drop reconciliation when an HTTP client aborts mid-request.
+	// Values (event UUID, logger) still ride along.
+	ctx = context.WithoutCancel(ctx)
 	ctx = ContextWithEventUUID(ctx)
 
 	l := t.log.With().Str("event", string(event.GetType())).Str("event_uuid", GetEventUUID(ctx)).Logger()

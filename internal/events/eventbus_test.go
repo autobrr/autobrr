@@ -43,3 +43,24 @@ func TestEventBus_CallerPointsAtCallSite(t *testing.T) {
 		assert.Containsf(t, entry.Caller, "eventbus_test.go", "%q logged caller %q", entry.Message, entry.Caller)
 	}
 }
+
+// signals' TryEmit bails on a cancelled context, so the bus detaches
+// cancellation before dispatch: an aborted HTTP request must not skip the
+// subscribers that reconcile what the request already committed.
+func TestEventBus_EmitSurvivesCallerCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	bus := NewEventBus(zerolog.Nop())
+
+	var received int
+	unregister := bus.OnAppUpdate(func(ctx context.Context, event AppUpdateEvent) error {
+		received++
+		return nil
+	})
+	defer unregister()
+
+	bus.EmitAppUpdate(ctx, AppUpdateEvent{Event: Event{Type: ApplicationUpdate}, NewVersion: "v1.7.0"})
+
+	assert.Equal(t, 1, received)
+}
