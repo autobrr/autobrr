@@ -14,10 +14,10 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
@@ -41,13 +41,17 @@ type indexerRepo interface {
 	ListDeprecations(ctx context.Context) ([]domain.IndexerDeprecation, error)
 }
 
+type eventBus interface {
+	EmitIndexer(ctx context.Context, event events.IndexerChangeEvent)
+}
+
 type Service struct {
 	log         zerolog.Logger
+	eventBus    eventBus
 	config      *domain.Config
 	repo        indexerRepo
 	releaseRepo releaseRepo
 	ApiService  apiService
-	bus         EventBus.Bus
 
 	// contains all raw indexer definitions
 	definitions map[string]domain.IndexerDefinition
@@ -57,14 +61,14 @@ type Service struct {
 	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
 }
 
-func NewService(log zerolog.Logger, config *domain.Config, bus EventBus.Bus, repo indexerRepo, releaseRepo releaseRepo, apiService apiService) *Service {
+func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo indexerRepo, releaseRepo releaseRepo, apiService apiService) *Service {
 	return &Service{
 		log:                       log.With().Str("module", "indexer").Logger(),
+		eventBus:                  bus,
 		config:                    config,
 		repo:                      repo,
 		releaseRepo:               releaseRepo,
 		ApiService:                apiService,
-		bus:                       bus,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
 		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
@@ -180,7 +184,11 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 	if currentIndexer.ImplementationIsFeed() {
 		toggled := *currentIndexer
 		toggled.Enabled = indexer.Enabled
-		s.bus.Publish(domain.EventIndexerToggleEnabled, &toggled)
+
+		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
+			Event:   events.Event{Type: events.IndexerToggleEnabled},
+			Indexer: &toggled,
+		})
 	}
 
 	s.log.Debug().Str("indexer", indexer.Name).Msg("successfully updated indexer")
@@ -209,7 +217,10 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("could not delete indexer api client")
 	}
 
-	s.bus.Publish(domain.EventIndexerDelete, indexer)
+	s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
+		Event:   events.Event{Type: events.IndexerDeleted},
+		Indexer: indexer,
+	})
 
 	return nil
 }
@@ -887,7 +898,10 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	// can't be imported here. Always published: a changed-gate computed from the pre-write
 	// snapshot misses racing opposite toggles, and the handler reconciles idempotently
 	if indexer.ImplementationIsFeed() {
-		s.bus.Publish(domain.EventIndexerToggleEnabled, indexer)
+		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
+			Event:   events.Event{Type: events.IndexerToggleEnabled},
+			Indexer: indexer,
+		})
 	}
 
 	s.log.Debug().Str("indexer", indexer.Name).Int("indexer_id", indexerID).Bool("enabled", enabled).Msg("indexer.toggleEnabled: update indexer state")

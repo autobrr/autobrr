@@ -1,6 +1,6 @@
 module github.com/autobrr/autobrr
 
-go 1.26.0
+go 1.27.0
 
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 
@@ -14,7 +14,6 @@ require (
 	github.com/alexedwards/scs/postgresstore v0.0.0-20250417082927-ab20b3feb5e9
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/alphadose/haxmap v1.4.1
-	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
 	github.com/autobrr/go-deluge v1.4.0
 	github.com/autobrr/go-qbittorrent v1.17.0
 	github.com/autobrr/go-rtorrent v1.12.0
@@ -37,6 +36,7 @@ require (
 	github.com/icholy/digest v1.2.0
 	github.com/lib/pq v1.12.3
 	github.com/magiconair/properties v1.18.11
+	github.com/maniartech/signals v1.3.1
 	github.com/mmcdole/gofeed v1.4.1
 	github.com/moistari/rls v0.6.0
 	github.com/mxschmitt/playwright-go v0.6201.0

@@ -14,11 +14,12 @@ import (
 )
 
 type indexerSvcStub struct {
-	indexers []domain.Indexer
+	indexers  []domain.Indexer
+	connected []domain.Indexer
 }
 
 func (s *indexerSvcStub) FindByFilterID(_ context.Context, _ int) ([]domain.Indexer, error) {
-	return s.indexers, nil
+	return s.connected, nil
 }
 
 func (s *indexerSvcStub) List(_ context.Context) ([]domain.Indexer, error) {
@@ -55,22 +56,39 @@ func TestService_validateIndexers(t *testing.T) {
 	}
 
 	t.Run("accepts existing indexers", func(t *testing.T) {
-		assert.NoError(t, svc.validateIndexers(t.Context(), []domain.Indexer{{ID: 1}, {ID: 2}}))
+		assert.NoError(t, svc.validateIndexers(t.Context(), 1, []domain.Indexer{{ID: 1}, {ID: 2}}))
 	})
 
 	t.Run("accepts empty selection", func(t *testing.T) {
-		assert.NoError(t, svc.validateIndexers(t.Context(), nil))
+		assert.NoError(t, svc.validateIndexers(t.Context(), 1, nil))
 	})
 
 	t.Run("rejects unknown indexer", func(t *testing.T) {
-		err := svc.validateIndexers(t.Context(), []domain.Indexer{{ID: 1}, {ID: 99}})
+		err := svc.validateIndexers(t.Context(), 1, []domain.Indexer{{ID: 1}, {ID: 99}})
 		assert.ErrorIs(t, err, domain.ErrIndexerNotFound)
 	})
 
-	t.Run("rejects archived indexer", func(t *testing.T) {
+	t.Run("rejects newly added archived indexer", func(t *testing.T) {
 		svc.indexerSvc = &indexerSvcStub{indexers: []domain.Indexer{{ID: 1, Archived: true}}}
-		err := svc.validateIndexers(t.Context(), []domain.Indexer{{ID: 1, Archived: false}})
+		err := svc.validateIndexers(t.Context(), 1, []domain.Indexer{{ID: 1, Archived: false}})
 		assert.ErrorIs(t, err, domain.ErrIndexerArchived)
+	})
+
+	t.Run("rejects archived indexer on new filter", func(t *testing.T) {
+		svc.indexerSvc = &indexerSvcStub{
+			indexers:  []domain.Indexer{{ID: 1, Archived: true}},
+			connected: []domain.Indexer{{ID: 1, Archived: true}},
+		}
+		err := svc.validateIndexers(t.Context(), 0, []domain.Indexer{{ID: 1}})
+		assert.ErrorIs(t, err, domain.ErrIndexerArchived)
+	})
+
+	t.Run("keeps archived indexer already connected to the filter", func(t *testing.T) {
+		svc.indexerSvc = &indexerSvcStub{
+			indexers:  []domain.Indexer{{ID: 1, Archived: true}, {ID: 2}},
+			connected: []domain.Indexer{{ID: 1, Archived: true}},
+		}
+		assert.NoError(t, svc.validateIndexers(t.Context(), 1, []domain.Indexer{{ID: 1}, {ID: 2}}))
 	})
 }
 

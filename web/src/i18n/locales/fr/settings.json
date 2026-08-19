@@ -926,6 +926,7 @@
       "removeText": "Es-tu sûr de vouloir supprimer cette liste ? Cette action est irréversible.",
       "copyId": "Copier l'ID de la liste",
       "copyIdSuccess": "ID de la liste {{id}} copié dans le presse-papiers.",
+      "copyIdError": "Impossible de copier l'ID de la liste dans le presse-papiers.",
       "refresh": "Actualiser",
       "delete": "Supprimer",
       "enabledState": "activée",

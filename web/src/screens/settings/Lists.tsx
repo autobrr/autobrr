@@ -22,7 +22,7 @@ import { Section } from "@screens/settings/_components";
 import { EmptySimple } from "@components/emptystates";
 import { ListAddForm, ListUpdateForm } from "@forms";
 import { ListTypeNameMap } from "@domain/constants";
-import { classNames, IsErrorWithMessage } from "@utils";
+import { classNames, CopyTextToClipboard, IsErrorWithMessage } from "@utils";
 import { DeleteModal } from "@components/modals";
 
 function ListsSettings() {
@@ -267,11 +267,18 @@ function ListItem({ list }: ListItemProps) {
                           focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                           "font-medium cursor-pointer group flex rounded-md items-center w-full px-2 py-2 text-sm"
                         )}
-                        onClick={() => {
-                          navigator.clipboard.writeText(String(list.id));
-                          toast.custom((toastInstance) => (
-                            <Toast type="success" body={t("listScreens.lists.copyIdSuccess", { id: list.id })} t={toastInstance} />
-                          ));
+                        onClick={async () => {
+                          try {
+                            await CopyTextToClipboard(String(list.id));
+                            toast.custom((toastInstance) => (
+                              <Toast type="success" body={t("listScreens.lists.copyIdSuccess", { id: list.id })} t={toastInstance} />
+                            ));
+                          } catch (error) {
+                            console.error("Could not copy list ID to clipboard", error);
+                            toast.custom((toastInstance) => (
+                              <Toast type="error" body={t("listScreens.lists.copyIdError")} t={toastInstance} />
+                            ));
+                          }
                         }}
                       >
                         <ClipboardDocumentIcon

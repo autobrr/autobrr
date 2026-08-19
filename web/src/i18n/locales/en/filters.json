@@ -96,6 +96,7 @@
     "announceTypes": "announce types",
     "announceTypesTooltip": "NEW! Match releases which contain any of the selected announce types.",
     "indexers": "Indexers",
+    "deprecatedIndexer": "{{name}} (deprecated)",
     "rulesTitle": "Rules",
     "rulesSubtitle": "Specify rules on how torrents should be handled/selected.",
     "minSize": "Min size",

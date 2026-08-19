@@ -96,6 +96,7 @@
     "announceTypes": "tipos de anuncio",
     "announceTypesTooltip": "¡NUEVO! Coincidir con lanzamientos que contengan cualquiera de los tipos de anuncio seleccionados.",
     "indexers": "Indexadores",
+    "deprecatedIndexer": "{{name}} (obsoleto)",
     "rulesTitle": "Reglas",
     "rulesSubtitle": "Especifica reglas sobre cómo se deben manejar/seleccionar los torrents.",
     "minSize": "Tamaño mínimo",

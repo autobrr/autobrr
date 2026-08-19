@@ -388,6 +388,15 @@ func TestStoreIndexerConnections_RejectsArchived(t *testing.T) {
 			require.NoError(t, filterRepo.StoreIndexerConnection(ctx, filter.ID, int(dead.ID)))
 			require.NoError(t, indexerRepo.ArchiveByIdentifier(ctx, "fnp"))
 
+			require.NoError(t, filterRepo.StoreIndexerConnections(ctx, filter.ID, []domain.Indexer{
+				{ID: active.ID},
+				{ID: dead.ID},
+			}), "resubmitting an already connected archived indexer must keep working")
+
+			connected, err = indexerRepo.FindByFilterID(ctx, filter.ID)
+			require.NoError(t, err)
+			require.Len(t, connected, 2, "the archived connection survives a filter save")
+
 			matchingFilters, err := filterRepo.FindByIndexerIdentifier(ctx, "fnp")
 			require.NoError(t, err)
 			assert.Empty(t, matchingFilters, "archived indexers must not dispatch releases to filters")

@@ -926,6 +926,7 @@
       "removeText": "¿Estás seguro de que quieres eliminar esta lista? Esta acción no se puede deshacer.",
       "copyId": "Copiar ID de lista",
       "copyIdSuccess": "ID de lista {{id}} copiado al portapapeles.",
+      "copyIdError": "No se pudo copiar el ID de la lista al portapapeles.",
       "refresh": "Actualizar",
       "delete": "Eliminar",
       "enabledState": "habilitada",

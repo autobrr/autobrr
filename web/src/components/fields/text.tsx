@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { CopyTextToClipboard } from "@utils";
 
 interface KeyFieldProps {
   value: string;
@@ -19,20 +20,9 @@ export const KeyField = ({ value }: KeyFieldProps) => {
   const [isVisible, toggleVisibility] = useToggle(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  async function copyTextToClipboard(text: string) {
-    if ("clipboard" in navigator) {
-      return await navigator.clipboard.writeText(text);
-    } else {
-      return document.execCommand("copy", true, text);
-    }
-  }
-
-  // onClick handler function for the copy button
   const handleCopyClick = () => {
-    // Asynchronously call copyTextToClipboard
-    copyTextToClipboard(value)
+    CopyTextToClipboard(value)
       .then(() => {
-        // If successful, update the isCopied state value
         setIsCopied(true);
 
         toast.custom(toastInstance => (

@@ -4,6 +4,7 @@
 package irc
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	stdErr "errors"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
@@ -84,13 +86,13 @@ const (
 type Handler struct {
 	m sync.RWMutex
 
-	log                 zerolog.Logger
-	sse                 sseServer
-	network             *domain.IrcNetwork
-	releaseSvc          releaseService
-	notificationService notificationSender
-	announceProcessors  map[string]announce.Processor
-	definitions         map[string]*domain.IndexerDefinition
+	log                zerolog.Logger
+	eventBus           eventBus
+	sse                sseServer
+	network            *domain.IrcNetwork
+	releaseSvc         releaseService
+	announceProcessors map[string]announce.Processor
+	definitions        map[string]*domain.IndexerDefinition
 
 	client           *ircevent.Connection
 	clientState      ircState
@@ -117,20 +119,20 @@ type Handler struct {
 	stateMachine *ConnectionStateMachine
 }
 
-func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, notificationSvc notificationSender) *Handler {
+func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService) *Handler {
 	h := &Handler{
-		log:                 log.With().Str("network", network.Server).Logger(),
-		sse:                 sse,
-		client:              nil,
-		clientState:         ircStopped,
-		network:             &network,
-		releaseSvc:          releaseSvc,
-		notificationService: notificationSvc,
-		definitions:         map[string]*domain.IndexerDefinition{},
-		authenticated:       false,
-		saslauthed:          false,
-		connectionErrors:    []string{},
-		channels:            haxmap.New[string, *Channel](),
+		log:              log.With().Str("network", network.Server).Logger(),
+		eventBus:         eventBus,
+		sse:              sse,
+		client:           nil,
+		clientState:      ircStopped,
+		network:          &network,
+		releaseSvc:       releaseSvc,
+		definitions:      map[string]*domain.IndexerDefinition{},
+		authenticated:    false,
+		saslauthed:       false,
+		connectionErrors: []string{},
+		channels:         haxmap.New[string, *Channel](),
 	}
 
 	// init state machine
@@ -652,9 +654,10 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if reconnected {
 		h.log.Info().Msg("network re-connected after unexpected disconnect")
 
-		h.notificationService.Send(domain.NotificationPayload{
-			Event:   domain.NotificationEventIRCReconnected,
-			Subject: "IRC Reconnected",
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
+			Event:   events.Event{Type: events.IRCReconnected},
+			Network: networkName,
+			State:   string(events.IRCReconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
 		})
 	}
@@ -733,24 +736,29 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 			Dur("window", flappingWindow).
 			Msg("connection flapping; stopping network")
 
-		h.notificationService.Send(domain.NotificationPayload{
-			Event:   domain.NotificationEventIRCDisconnected,
-			Subject: "IRC network stopped",
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
+			Event:   events.Event{Type: events.IRCFlapping},
+			Network: networkName,
+			State:   string(events.IRCFlapping),
 			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; restart it after resolving the connection issue", networkName),
 		})
+
 		if client != nil {
 			client.Quit()
 		}
+
 		return
 	}
 
 	// check if we are responsible for disconnect
 	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
-		h.notificationService.Send(domain.NotificationPayload{
-			Event:   domain.NotificationEventIRCDisconnected,
-			Subject: "IRC Disconnected unexpectedly",
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
+			Event:   events.Event{Type: events.IRCDisconnected},
+			Network: networkName,
+			State:   string(events.IRCDisconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
+			//Subject: "IRC Disconnected unexpectedly",
 		})
 	}
 

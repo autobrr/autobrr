@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -70,6 +70,10 @@ func (r *stubIndexerRepo) ListDeprecations(_ context.Context) ([]domain.IndexerD
 	return nil, nil
 }
 
+type stubEventBus struct{}
+
+func (s *stubEventBus) EmitIndexer(_ context.Context, _ events.IndexerChangeEvent) {}
+
 func TestServiceUpdate_SecretSettings(t *testing.T) {
 	t.Parallel()
 
@@ -121,7 +125,7 @@ func TestServiceUpdate_SecretSettings(t *testing.T) {
 
 			repo := &stubIndexerRepo{current: current}
 
-			svc := NewService(zerolog.Nop(), nil, EventBus.New(), repo, nil, nil)
+			svc := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
 			svc.mappedDefinitions[current.Identifier] = &domain.IndexerDefinition{Identifier: current.Identifier, Implementation: "rss"}
 
 			update := &domain.Indexer{ID: 1, Name: "Test RSS", Identifier: current.Identifier, Implementation: "rss", Enabled: true, Settings: tt.settings}
@@ -152,7 +156,7 @@ func TestServiceUpdate_EmptySavedSecretMayBeOmitted(t *testing.T) {
 		Settings:       map[string]string{"api_key": ""},
 	}}
 
-	svc := NewService(zerolog.Nop(), nil, EventBus.New(), repo, nil, nil)
+	svc := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
 	svc.mappedDefinitions["rss-test-rss"] = &domain.IndexerDefinition{Identifier: "rss-test-rss", Implementation: "rss"}
 
 	err := svc.Update(t.Context(), &domain.Indexer{ID: 1, Name: "Test RSS", Identifier: "rss-test-rss", Implementation: "rss", Settings: map[string]string{}})
@@ -195,7 +199,7 @@ func TestServiceRejectsArchivedMutations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := &stubIndexerRepo{current: &domain.Indexer{ID: 1, Archived: true, Settings: map[string]string{}}}
-			service := NewService(zerolog.Nop(), nil, EventBus.New(), repo, nil, nil)
+			service := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
 
 			assert.ErrorIs(t, tt.run(service), domain.ErrIndexerArchived)
 			assert.Nil(t, repo.updated)

@@ -926,6 +926,7 @@
         "removeText": "Jste si jisti, že chcete odstranit tento list? Tato akce je nevratná.",
         "copyId": "Kopírovat List ID",
         "copyIdSuccess": "List ID {{id}} byl zkopírován do schránky.",
+        "copyIdError": "ID listu se nepodařilo zkopírovat do schránky.",
         "refresh": "Aktualizovat",
         "delete": "Smazat",
         "enabledState": "zapnut",

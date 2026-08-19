@@ -96,6 +96,7 @@
       "announceTypes": "Typy oznámení",
       "announceTypesTooltip": "NOVÉ! Shoda s releasy, která obsahují některý z vybraných typů oznámení.",
       "indexers": "Indexery",
+      "deprecatedIndexer": "{{name}} (vyřazený)",
       "rulesTitle": "Pravidla",
       "rulesSubtitle": "Určete pravidla, jak by měly být zpracovávány/vybrány torrenty.",
       "minSize": "Minimální velikost",
