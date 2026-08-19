@@ -13,7 +13,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.com/tozd/go/errors"
 )
 
 // Mock objects
@@ -64,7 +63,7 @@ func TestService_Process_PublishesEvent(t *testing.T) {
 
 	// Track if event was published
 	published := false
-	bus.OnReleaseNew(func(ctx context.Context, event events.ReleaseEvent) errors.E {
+	bus.OnReleaseNew(func(ctx context.Context, event events.ReleaseEvent) error {
 		published = true
 		return nil
 	})

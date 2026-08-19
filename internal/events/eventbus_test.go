@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gitlab.com/tozd/go/errors"
 )
 
 // The caller field is stamped with a hardcoded frame skip, so it silently
@@ -24,7 +23,7 @@ func TestEventBus_CallerPointsAtCallSite(t *testing.T) {
 
 	bus := NewEventBus(zerolog.New(&buf).Level(zerolog.TraceLevel))
 
-	unregister := bus.OnAppUpdate(func(ctx context.Context, event AppUpdateEvent) errors.E {
+	unregister := bus.OnAppUpdate(func(ctx context.Context, event AppUpdateEvent) error {
 		return nil
 	})
 	defer unregister()

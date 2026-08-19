@@ -10,10 +10,11 @@ import (
 	"runtime/debug"
 	"sync/atomic"
 
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/google/uuid"
 	"github.com/maniartech/signals"
 	"github.com/rs/zerolog"
-	"gitlab.com/tozd/go/errors"
 )
 
 // Topic.Emit and Topic.On are always reached through an Emit<Event>/On<Event>
@@ -61,7 +62,7 @@ func NewTopic[T EventConstraint](log zerolog.Logger, topic string) *Topic[T] {
 }
 
 // On registers handler and returns a function that unregisters it.
-func (t *Topic[T]) On(handler func(context.Context, T) errors.E) func() {
+func (t *Topic[T]) On(handler func(context.Context, T) error) func() {
 	key := generateKey()
 
 	// the listener logs at dispatch time, long after registration, so the
@@ -95,7 +96,7 @@ func (t *Topic[T]) On(handler func(context.Context, T) errors.E) func() {
 }
 
 // Emit dispatches event to every listener synchronously.
-func (t *Topic[T]) Emit(ctx context.Context, event T) errors.E {
+func (t *Topic[T]) Emit(ctx context.Context, event T) error {
 	// Add UUID to context if not already present
 	ctx = ContextWithEventUUID(ctx)
 
@@ -110,7 +111,7 @@ func (t *Topic[T]) Emit(ctx context.Context, event T) errors.E {
 	if err := t.signal.TryEmit(ctx, event); err != nil {
 		// We log at warn level to avoid noisy error logs for expected cancellations
 		l.Warn().Err(err).Str("caller", caller(callerSkipWrapper)).Msg("event emission error")
-		return errors.WithStack(err)
+		return errors.Wrap(err, "could not emit event")
 	}
 
 	return nil
@@ -140,7 +141,7 @@ func (eb *EventBus) EmitAppUpdate(ctx context.Context, event AppUpdateEvent) {
 	eb.appUpdate.Emit(ctx, event)
 }
 
-func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) errors.E) func() {
+func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) error) func() {
 	return eb.appUpdate.On(handler)
 }
 
@@ -148,7 +149,7 @@ func (eb *EventBus) EmitIndexer(ctx context.Context, event IndexerChangeEvent) {
 	eb.indexer.Emit(ctx, event)
 }
 
-func (eb *EventBus) OnIndexer(handler func(context.Context, IndexerChangeEvent) errors.E) func() {
+func (eb *EventBus) OnIndexer(handler func(context.Context, IndexerChangeEvent) error) func() {
 	return eb.indexer.On(handler)
 }
 
@@ -156,7 +157,7 @@ func (eb *EventBus) EmitIRC(ctx context.Context, event IRCEvent) {
 	eb.irc.Emit(ctx, event)
 }
 
-func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) errors.E) func() {
+func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) error) func() {
 	return eb.irc.On(handler)
 }
 
@@ -164,7 +165,7 @@ func (eb *EventBus) EmitReleaseNew(ctx context.Context, event ReleaseEvent) {
 	eb.release.Emit(ctx, event)
 }
 
-func (eb *EventBus) OnReleaseNew(handler func(context.Context, ReleaseEvent) errors.E) func() {
+func (eb *EventBus) OnReleaseNew(handler func(context.Context, ReleaseEvent) error) func() {
 	return eb.release.On(handler)
 }
 
@@ -172,7 +173,7 @@ func (eb *EventBus) EmitReleasePush(ctx context.Context, event ReleasePushEvent)
 	eb.releasePush.Emit(ctx, event)
 }
 
-func (eb *EventBus) OnReleasePush(handler func(context.Context, ReleasePushEvent) errors.E) func() {
+func (eb *EventBus) OnReleasePush(handler func(context.Context, ReleasePushEvent) error) func() {
 	return eb.releasePush.On(handler)
 }
 

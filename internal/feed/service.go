@@ -20,7 +20,6 @@ import (
 
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
-	errors2 "gitlab.com/tozd/go/errors"
 )
 
 type feedRepo interface {
@@ -67,7 +66,7 @@ type releaseService interface {
 }
 
 type eventBus interface {
-	OnIndexer(handler func(ctx context.Context, event events.IndexerChangeEvent) errors2.E) func()
+	OnIndexer(handler func(ctx context.Context, event events.IndexerChangeEvent) error) func()
 }
 
 type feedInstance struct {
@@ -148,7 +147,7 @@ func NewService(log zerolog.Logger, eventBus eventBus, repo feedRepo, cacheRepo 
 }
 
 func (s *Service) setupEventListeners() {
-	s.eventBus.OnIndexer(func(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+	s.eventBus.OnIndexer(func(ctx context.Context, event events.IndexerChangeEvent) error {
 		switch event.Type {
 		case events.IndexerToggleEnabled:
 			if err := s.onIndexerToggled(ctx, event); err != nil {
@@ -165,7 +164,7 @@ func (s *Service) setupEventListeners() {
 	})
 }
 
-func (s *Service) onIndexerDeleted(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+func (s *Service) onIndexerDeleted(ctx context.Context, event events.IndexerChangeEvent) error {
 	indexer := event.Indexer
 
 	if !indexer.ImplementationIsFeed() {
@@ -181,11 +180,11 @@ func (s *Service) onIndexerDeleted(ctx context.Context, event events.IndexerChan
 			return nil
 		}
 
-		return errors2.Wrap(err, "could not find feed for indexer")
+		return errors.Wrap(err, "could not find feed for indexer")
 	}
 
 	if err := s.Delete(ctx, feedItem.ID); err != nil {
-		return errors2.Wrapf(err, "could not delete feed %d", feedItem.ID)
+		return errors.Wrap(err, "could not delete feed %d", feedItem.ID)
 	}
 
 	s.log.Debug().Int("feed_id", feedItem.ID).Str("feed_name", feedItem.Name).Msg("removed feed for deleted indexer")
@@ -193,7 +192,7 @@ func (s *Service) onIndexerDeleted(ctx context.Context, event events.IndexerChan
 	return nil
 }
 
-func (s *Service) onIndexerToggled(ctx context.Context, event events.IndexerChangeEvent) errors2.E {
+func (s *Service) onIndexerToggled(ctx context.Context, event events.IndexerChangeEvent) error {
 	indexer := event.Indexer
 
 	if !indexer.ImplementationIsFeed() {
@@ -203,7 +202,7 @@ func (s *Service) onIndexerToggled(ctx context.Context, event events.IndexerChan
 	s.log.Trace().Str("event", string(event.Type)).Int("indexer_id", int(indexer.ID)).Bool("enabled", indexer.Enabled).Msg("indexer toggle enabled event")
 
 	if err := s.ToggleIndexerEnabled(ctx, int(indexer.ID)); err != nil {
-		return errors2.Wrap(err, "could not toggle feed job for indexer")
+		return errors.Wrap(err, "could not toggle feed job for indexer")
 	}
 
 	return nil

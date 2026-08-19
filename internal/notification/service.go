@@ -13,7 +13,6 @@ import (
 
 	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
-	errors2 "gitlab.com/tozd/go/errors"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -65,7 +64,7 @@ func NewService(log zerolog.Logger, eventBus *events.EventBus, repo notification
 }
 
 func (s *Service) setupEventListeners() {
-	s.eventBus.OnAppUpdate(func(ctx context.Context, event events.AppUpdateEvent) errors2.E {
+	s.eventBus.OnAppUpdate(func(ctx context.Context, event events.AppUpdateEvent) error {
 		payload := domain.NotificationPayload{
 			Event:     domain.NotificationEventAppUpdateAvailable,
 			Subject:   "New update available!",
@@ -77,7 +76,7 @@ func (s *Service) setupEventListeners() {
 		return nil
 	})
 
-	s.eventBus.OnReleaseNew(func(ctx context.Context, event events.ReleaseEvent) errors2.E {
+	s.eventBus.OnReleaseNew(func(ctx context.Context, event events.ReleaseEvent) error {
 		release := event.Release
 		payload := domain.NotificationPayload{
 			Event:          domain.NotificationEventReleaseNew,
@@ -95,7 +94,7 @@ func (s *Service) setupEventListeners() {
 		return nil
 	})
 
-	s.eventBus.OnReleasePush(func(ctx context.Context, event events.ReleasePushEvent) errors2.E {
+	s.eventBus.OnReleasePush(func(ctx context.Context, event events.ReleasePushEvent) error {
 		release := event.Release
 		action := event.Action
 		status := event.ActionStatus
@@ -146,7 +145,7 @@ func (s *Service) setupEventListeners() {
 		return nil
 	})
 
-	s.eventBus.OnIRC(func(ctx context.Context, event events.IRCEvent) errors2.E {
+	s.eventBus.OnIRC(func(ctx context.Context, event events.IRCEvent) error {
 		var payload domain.NotificationPayload
 
 		switch event.Type {
