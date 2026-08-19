@@ -60,7 +60,7 @@ func (m *mockReleaseRepo) Update(ctx context.Context, release *domain.Release) e
 func TestService_Process_PublishesEvent(t *testing.T) {
 	log := logger.Mock()
 
-	bus := events.NewEventBus(log, t.Context())
+	bus := events.NewEventBus(log)
 
 	// Track if event was published
 	published := false

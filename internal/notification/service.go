@@ -137,6 +137,8 @@ func (s *Service) setupEventListeners() {
 			payload.Event = domain.NotificationEventPushError
 			payload.Status = domain.ReleasePushStatusErr
 			payload.Rejections = status.Rejections
+		default:
+			return nil
 		}
 
 		s.Send(payload.Event, payload)
@@ -169,6 +171,8 @@ func (s *Service) setupEventListeners() {
 				Subject: "IRC Stopped",
 				Message: event.Message,
 			}
+		default:
+			return nil
 		}
 
 		s.Send(payload.Event, payload)

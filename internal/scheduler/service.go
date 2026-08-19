@@ -65,7 +65,7 @@ func (s *Service) addAppJobs() {
 	time.Sleep(5 * time.Second)
 
 	if s.config.CheckForUpdates {
-		updateCheckerJob := NewUpdateCheckerJob(s.log, "app-check-updates", s.version, s.updateSvc, s.eventBus)
+		updateCheckerJob := NewUpdateCheckerJob(s.log, s.eventBus, "app-check-updates", s.version, s.updateSvc)
 
 		if id, err := s.ScheduleJob(updateCheckerJob, 2*time.Hour, "app-check-updates"); err != nil {
 			s.log.Error().Err(err).Int("job_id", id).Msg("error adding job")

@@ -101,7 +101,7 @@ func main() {
 	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
 
 	// setup internal eventbus
-	eventBus := events.NewEventBus(log, ctx)
+	eventBus := events.NewEventBus(log)
 
 	// open database connection
 	db, err := database.NewDB(cfg.Config, log)

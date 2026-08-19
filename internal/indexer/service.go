@@ -42,7 +42,7 @@ type indexerRepo interface {
 }
 
 type eventBus interface {
-	EmitIndexer(event events.IndexerChangeEvent)
+	EmitIndexer(ctx context.Context, event events.IndexerChangeEvent)
 }
 
 type Service struct {
@@ -185,7 +185,7 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 		toggled := *currentIndexer
 		toggled.Enabled = indexer.Enabled
 
-		s.eventBus.EmitIndexer(events.IndexerChangeEvent{
+		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
 			Event:   events.Event{Type: events.IndexerToggleEnabled},
 			Indexer: &toggled,
 		})
@@ -217,7 +217,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("could not delete indexer api client")
 	}
 
-	s.eventBus.EmitIndexer(events.IndexerChangeEvent{
+	s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
 		Event:   events.Event{Type: events.IndexerDeleted},
 		Indexer: indexer,
 	})
@@ -898,7 +898,7 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	// can't be imported here. Always published: a changed-gate computed from the pre-write
 	// snapshot misses racing opposite toggles, and the handler reconciles idempotently
 	if indexer.ImplementationIsFeed() {
-		s.eventBus.EmitIndexer(events.IndexerChangeEvent{
+		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
 			Event:   events.Event{Type: events.IndexerToggleEnabled},
 			Indexer: indexer,
 		})

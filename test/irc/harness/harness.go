@@ -60,7 +60,7 @@ func Start(t testing.TB, network domain.IrcNetwork, defs []*domain.IndexerDefini
 	}
 	log := zerolog.New(zerolog.NewTestWriter(t)).Level(level).With().Timestamp().Logger()
 
-	bus := events.NewEventBus(log, t.Context())
+	bus := events.NewEventBus(log)
 
 	inst := &Instance{
 		t:        t,

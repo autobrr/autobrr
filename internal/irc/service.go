@@ -54,7 +54,7 @@ type sseServer interface {
 }
 
 type eventBus interface {
-	EmitIRC(event events.IRCEvent)
+	EmitIRC(ctx context.Context, event events.IRCEvent)
 }
 
 type Service struct {

@@ -72,13 +72,7 @@ func (r *stubIndexerRepo) ListDeprecations(_ context.Context) ([]domain.IndexerD
 
 type stubEventBus struct{}
 
-func (s *stubEventBus) EmitIndexerDeleted(event events.IndexerChangeEvent) {
-	return
-}
-
-func (s *stubEventBus) EmitIndexerToggled(event events.IndexerChangeEvent) {
-	return
-}
+func (s *stubEventBus) EmitIndexer(_ context.Context, _ events.IndexerChangeEvent) {}
 
 func TestServiceUpdate_SecretSettings(t *testing.T) {
 	t.Parallel()

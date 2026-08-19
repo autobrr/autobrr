@@ -4,6 +4,7 @@
 package irc
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	stdErr "errors"
@@ -653,7 +654,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if reconnected {
 		h.log.Info().Msg("network re-connected after unexpected disconnect")
 
-		h.eventBus.EmitIRC(events.IRCEvent{
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
 			Event:   events.Event{Type: events.IRCReconnected},
 			Network: networkName,
 			State:   string(events.IRCReconnected),
@@ -735,7 +736,7 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 			Dur("window", flappingWindow).
 			Msg("connection flapping; stopping network")
 
-		h.eventBus.EmitIRC(events.IRCEvent{
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
 			Event:   events.Event{Type: events.IRCFlapping},
 			Network: networkName,
 			State:   string(events.IRCFlapping),
@@ -752,7 +753,7 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 	// check if we are responsible for disconnect
 	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
-		h.eventBus.EmitIRC(events.IRCEvent{
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
 			Event:   events.Event{Type: events.IRCDisconnected},
 			Network: networkName,
 			State:   string(events.IRCDisconnected),

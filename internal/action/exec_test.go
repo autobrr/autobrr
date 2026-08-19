@@ -103,7 +103,6 @@ func Test_service_execCmd(t *testing.T) {
 				log:       logger.Mock().With().Logger(),
 				repo:      nil,
 				clientSvc: nil,
-				bus:       nil,
 			}
 			s.execCmd(t.Context(), tt.args.action, &tt.args.release)
 		})

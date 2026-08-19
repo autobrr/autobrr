@@ -22,14 +22,14 @@ import (
 func TestEventBus_CallerPointsAtCallSite(t *testing.T) {
 	var buf bytes.Buffer
 
-	bus := NewEventBus(zerolog.New(&buf).Level(zerolog.TraceLevel), t.Context())
+	bus := NewEventBus(zerolog.New(&buf).Level(zerolog.TraceLevel))
 
 	unregister := bus.OnAppUpdate(func(ctx context.Context, event AppUpdateEvent) errors.E {
 		return nil
 	})
 	defer unregister()
 
-	bus.EmitAppUpdate(AppUpdateEvent{Event: Event{Type: ApplicationUpdate}, NewVersion: "v1.7.0"})
+	bus.EmitAppUpdate(t.Context(), AppUpdateEvent{Event: Event{Type: ApplicationUpdate}, NewVersion: "v1.7.0"})
 
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
 	require.NotEmpty(t, lines)

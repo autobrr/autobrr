@@ -40,7 +40,6 @@ func caller(skip int) string {
 
 type EventBus struct {
 	log zerolog.Logger
-	ctx context.Context
 
 	appUpdate   signals.SyncSignal[AppUpdateEvent]
 	indexer     signals.SyncSignal[IndexerChangeEvent]
@@ -49,10 +48,9 @@ type EventBus struct {
 	releasePush signals.SyncSignal[ReleasePushEvent]
 }
 
-func NewEventBus(log zerolog.Logger, ctx context.Context) *EventBus {
+func NewEventBus(log zerolog.Logger) *EventBus {
 	return &EventBus{
 		log:         log.With().Str("module", "eventbus").Logger(),
-		ctx:         ctx,
 		appUpdate:   *signals.NewSync[AppUpdateEvent](),
 		indexer:     *signals.NewSync[IndexerChangeEvent](),
 		irc:         *signals.NewSync[IRCEvent](),
@@ -122,60 +120,58 @@ func emitEvent[T any](ctx context.Context, log zerolog.Logger, signal signals.Sy
 	return nil
 }
 
-func (eb *EventBus) EmitAppUpdate(event AppUpdateEvent) {
-	emitEvent(eb.ctx, eb.log, eb.appUpdate, event)
+func (eb *EventBus) EmitAppUpdate(ctx context.Context, event AppUpdateEvent) {
+	emitEvent(ctx, eb.log, eb.appUpdate, event)
 }
 
 func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) errors.E) func() {
 	return onEvent(eb.log, eb.appUpdate, "AppUpdate", handler)
 }
 
-func (eb *EventBus) EmitIndexer(event IndexerChangeEvent) {
-	emitEvent(eb.ctx, eb.log, eb.indexer, event)
+func (eb *EventBus) EmitIndexer(ctx context.Context, event IndexerChangeEvent) {
+	emitEvent(ctx, eb.log, eb.indexer, event)
 }
 
 func (eb *EventBus) OnIndexer(handler func(context.Context, IndexerChangeEvent) errors.E) func() {
 	return onEvent(eb.log, eb.indexer, "Indexer", handler)
 }
 
-func (eb *EventBus) EmitIRC(event IRCEvent) {
-	emitEvent(eb.ctx, eb.log, eb.irc, event)
+func (eb *EventBus) EmitIRC(ctx context.Context, event IRCEvent) {
+	emitEvent(ctx, eb.log, eb.irc, event)
 }
 
 func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) errors.E) func() {
 	return onEvent(eb.log, eb.irc, "IRC", handler)
 }
 
-func (eb *EventBus) EmitReleaseNew(event ReleaseEvent) {
-	emitEvent(eb.ctx, eb.log, eb.release, event)
+func (eb *EventBus) EmitReleaseNew(ctx context.Context, event ReleaseEvent) {
+	emitEvent(ctx, eb.log, eb.release, event)
 }
 
 func (eb *EventBus) OnReleaseNew(handler func(context.Context, ReleaseEvent) errors.E) func() {
 	return onEvent(eb.log, eb.release, "ReleaseNew", handler)
 }
 
-func (eb *EventBus) EmitReleasePush(event ReleasePushEvent) {
-	emitEvent(eb.ctx, eb.log, eb.releasePush, event)
+func (eb *EventBus) EmitReleasePush(ctx context.Context, event ReleasePushEvent) {
+	emitEvent(ctx, eb.log, eb.releasePush, event)
 }
 
 func (eb *EventBus) OnReleasePush(handler func(context.Context, ReleasePushEvent) errors.E) func() {
 	return onEvent(eb.log, eb.releasePush, "ReleasePush", handler)
 }
 
+type eventUUIDKey struct{}
+
 // GetEventUUID retrieves the UUID from context
 func GetEventUUID(ctx context.Context) string {
-	if val := ctx.Value("event_uuid"); val != nil {
-		if id, ok := val.(string); ok {
-			return id
-		}
-	}
-	return ""
+	id, _ := ctx.Value(eventUUIDKey{}).(string)
+	return id
 }
 
 // ContextWithEventUUID returns a new context with the event UUID set
 func ContextWithEventUUID(ctx context.Context) context.Context {
 	if GetEventUUID(ctx) == "" {
-		return context.WithValue(ctx, "event_uuid", uuid.New().String())
+		return context.WithValue(ctx, eventUUIDKey{}, uuid.New().String())
 	}
 	return ctx
 }

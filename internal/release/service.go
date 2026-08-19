@@ -78,8 +78,8 @@ type schedulerService interface {
 }
 
 type eventBus interface {
-	EmitReleaseNew(event events.ReleaseEvent)
-	EmitReleasePush(event events.ReleasePushEvent)
+	EmitReleaseNew(ctx context.Context, event events.ReleaseEvent)
+	EmitReleasePush(ctx context.Context, event events.ReleasePushEvent)
 }
 
 type actionClientTypeKey struct {
@@ -427,7 +427,7 @@ func (s *Service) Process(ctx context.Context, release *domain.Release) {
 		release.TraceID = domain.TraceIDFromCtx(ctx)
 	}
 
-	s.publishEventReleaseNew(release)
+	s.publishEventReleaseNew(ctx, release)
 
 	// TODO check in config for "Save all releases"
 
@@ -639,7 +639,7 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 			if release == nil {
 				continue
 			}
-			s.publishEventReleaseNew(release)
+			s.publishEventReleaseNew(ctx, release)
 		}
 
 		s.log.Debug().Str("indexer", indexer.Name).Msg("no active filters found for indexer: skipping filter processing")
@@ -655,7 +655,7 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 			release.TraceID = domain.NewTraceID()
 		}
 
-		s.publishEventReleaseNew(release)
+		s.publishEventReleaseNew(ctx, release)
 
 		if err := s.processRelease(ctx, release, filters); err != nil {
 			s.log.Error().Err(err).Str("trace_id", release.TraceID).Str("indexer", indexer.Name).Msg("release.ProcessMultipleFromIndexer: error processing filters for indexer")
@@ -681,7 +681,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Status = domain.ReleasePushStatusErr
 		status.Rejections = []string{err.Error()}
 
-		s.eventBus.EmitReleasePush(events.ReleasePushEvent{
+		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
 			Event:        events.Event{Type: events.ReleasePushError},
 			Action:       action,
 			ActionStatus: status,
@@ -695,7 +695,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Status = domain.ReleasePushStatusRejected
 		status.Rejections = rejections
 
-		s.eventBus.EmitReleasePush(events.ReleasePushEvent{
+		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
 			Event:        events.Event{Type: events.ReleasePushRejected},
 			Action:       action,
 			ActionStatus: status,
@@ -707,7 +707,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 
 	status.Status = domain.ReleasePushStatusApproved
 
-	s.eventBus.EmitReleasePush(events.ReleasePushEvent{
+	s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
 		Event:        events.Event{Type: events.ReleasePushApproved},
 		Action:       action,
 		ActionStatus: status,
@@ -803,21 +803,8 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	return nil
 }
 
-func (s *Service) publishEventReleaseNew(release *domain.Release) {
-	//payload := &domain.NotificationPayload{
-	//	Event:          domain.NotificationEventReleaseNew,
-	//	ReleaseName:    release.TorrentName,
-	//	Indexer:        release.Indexer.Name,
-	//	InfoHash:       release.TorrentHash,
-	//	Size:           release.Size,
-	//	Protocol:       release.Protocol,
-	//	Implementation: release.Implementation,
-	//	Timestamp:      time.Now(),
-	//	Release:        release,
-	//}
-	//s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
-
-	s.eventBus.EmitReleaseNew(events.ReleaseEvent{
+func (s *Service) publishEventReleaseNew(ctx context.Context, release *domain.Release) {
+	s.eventBus.EmitReleaseNew(ctx, events.ReleaseEvent{
 		Event:   events.Event{Type: events.ReleaseNew},
 		Release: release,
 	})

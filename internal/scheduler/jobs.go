@@ -17,31 +17,34 @@ import (
 )
 
 type eventBus interface {
-	EmitAppUpdate(event events.AppUpdateEvent)
+	EmitAppUpdate(ctx context.Context, event events.AppUpdateEvent)
 }
 
 type CheckUpdatesJob struct {
 	name          string
 	log           zerolog.Logger
+	eventBus      eventBus
 	version       string
 	updateService updateChecker
-	eventBus      eventBus
 
 	lastCheckVersion string
 }
 
-func NewUpdateCheckerJob(log zerolog.Logger, name, version string, updateService updateChecker, bus eventBus) *CheckUpdatesJob {
+func NewUpdateCheckerJob(log zerolog.Logger, bus eventBus, name, version string, updateService updateChecker) *CheckUpdatesJob {
 	return &CheckUpdatesJob{
-		log:           log.With().Str("job", name).Logger(),
-		name:          name,
-		version:       version,
-		updateService: updateService,
-		eventBus:      bus,
+		log:              log.With().Str("job", name).Logger(),
+		eventBus:         bus,
+		name:             name,
+		version:          version,
+		lastCheckVersion: version,
+		updateService:    updateService,
 	}
 }
 
 func (j *CheckUpdatesJob) Run() {
-	newRelease, err := j.updateService.CheckUpdateAvailable(context.TODO())
+	ctx := context.Background()
+
+	newRelease, err := j.updateService.CheckUpdateAvailable(ctx)
 	if err != nil {
 		j.log.Error().Err(err).Msg("could not check for new release")
 		return
@@ -53,7 +56,7 @@ func (j *CheckUpdatesJob) Run() {
 		if newRelease.TagName != j.lastCheckVersion {
 			j.log.Info().Str("version", newRelease.TagName).Msg("new release available")
 
-			j.eventBus.EmitAppUpdate(events.AppUpdateEvent{
+			j.eventBus.EmitAppUpdate(ctx, events.AppUpdateEvent{
 				Event:      events.Event{Type: events.ApplicationUpdate},
 				NewVersion: newRelease.TagName,
 			})
