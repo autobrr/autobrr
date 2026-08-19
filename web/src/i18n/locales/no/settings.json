@@ -921,6 +921,7 @@
       "removeText": "Er du sikker på at du vil fjerne denne listen? Denne handlingen kan ikke angres.",
       "copyId": "Kopier liste-ID",
       "copyIdSuccess": "Liste-ID {{id}} kopiert til utklippstavlen.",
+      "copyIdError": "Kunne ikke kopiere liste-ID-en til utklippstavlen.",
       "refresh": "Oppdater",
       "delete": "Slett",
       "enabledState": "aktivert",
