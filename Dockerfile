@@ -1,5 +1,5 @@
 # build web
-FROM node:24.18.0-alpine3.24 AS web-builder
+FROM node:24.19.0-alpine3.24 AS web-builder
 # Update and enable Corepack
 RUN npm install -g corepack@latest && \
     corepack enable
@@ -13,7 +13,7 @@ COPY web ./
 RUN pnpm run build
 
 # build app
-FROM golang:1.26-alpine3.24 AS app-builder
+FROM golang:1.27-alpine3.24 AS app-builder
 
 ARG VERSION=dev
 ARG REVISION=dev
