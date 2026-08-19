@@ -59,30 +59,33 @@ func NewEventBus(log zerolog.Logger) *EventBus {
 	}
 }
 
-// EventConstraint ensures that T embeds Event
+// EventConstraint ensures T embeds Event, so the bus can log the concrete event
+// type without reflecting over the payload.
 type EventConstraint interface {
-	GetEvent() *Event
+	GetType() EventType
 }
 
 // Generic internal methods for event handling
-func onEvent[T any](log zerolog.Logger, signal signals.SyncSignal[T], eventType EventType, handler func(context.Context, T) errors.E) func() {
+func onEvent[T EventConstraint](log zerolog.Logger, signal signals.SyncSignal[T], topic string, handler func(context.Context, T) errors.E) func() {
 	key := generateKey()
 
-	// the listener logs at dispatch time, long after registration, so the event
+	// the listener logs at dispatch time, long after registration, so the topic
 	// it belongs to and the subscriber that registered it are stamped once here
-	l := log.With().Str("event", string(eventType)).Str("listener", key).Str("caller", caller(callerSkipWrapper)).Logger()
+	l := log.With().Str("topic", topic).Str("listener", key).Str("caller", caller(callerSkipWrapper)).Logger()
 
 	l.Trace().Msg("registering event handler")
 
 	count := signal.AddListenerWithErr(func(ctx context.Context, event T) error {
-		// Panic/exception safety
+		// a panicking subscriber must not take down the emitter, so every listener
+		// recovers its own; emitEvent deliberately has no second recover
 		defer func() {
 			if r := recover(); r != nil {
-				l.Error().Str("event_uuid", GetEventUUID(ctx)).Interface("panic", r).Str("stack", string(debug.Stack())).Msg("event handler panic")
+				l.Error().Str("event", string(event.GetType())).Str("event_uuid", GetEventUUID(ctx)).Interface("panic", r).Str("stack", string(debug.Stack())).Msg("event handler panic")
 			}
 		}()
 
-		l.Trace().Str("event_uuid", GetEventUUID(ctx)).Str("type", fmt.Sprintf("%T", event)).Interface("payload", event).Msg("<-- receiving event")
+		// the emitter already logged the payload, this line only has to correlate
+		l.Trace().Str("event", string(event.GetType())).Str("event_uuid", GetEventUUID(ctx)).Msg("<-- receiving event")
 
 		return handler(ctx, event)
 	}, key)
@@ -96,24 +99,21 @@ func onEvent[T any](log zerolog.Logger, signal signals.SyncSignal[T], eventType 
 	}
 }
 
-func emitEvent[T any](ctx context.Context, log zerolog.Logger, signal signals.SyncSignal[T], event T) errors.E {
+func emitEvent[T EventConstraint](ctx context.Context, log zerolog.Logger, signal signals.SyncSignal[T], event T) errors.E {
 	// Add UUID to context if not already present
 	ctx = ContextWithEventUUID(ctx)
 
-	l := log.With().Str("event_uuid", GetEventUUID(ctx)).Str("type", fmt.Sprintf("%T", event)).Str("caller", caller(callerSkipWrapper)).Logger()
+	l := log.With().Str("event", string(event.GetType())).Str("event_uuid", GetEventUUID(ctx)).Logger()
 
-	l.Trace().Interface("payload", event).Msg("--> emitting event")
-
-	// Emit synchronously; recover panic inside signal dispatch and log emission errors
-	defer func() {
-		if r := recover(); r != nil {
-			l.Error().Interface("panic", r).Str("stack", string(debug.Stack())).Interface("payload", event).Msg("panic emitting event")
-		}
-	}()
+	// caller unwinds the stack and the payload marshals the whole event, so both
+	// stay behind the level check rather than being computed for a discarded line
+	if e := l.Trace(); e != nil {
+		e.Str("caller", caller(callerSkipWrapper)).Interface("payload", event).Msg("--> emitting event")
+	}
 
 	if err := signal.TryEmit(ctx, event); err != nil {
 		// We log at warn level to avoid noisy error logs for expected cancellations
-		l.Warn().Err(err).Interface("payload", event).Msg("event emission error")
+		l.Warn().Err(err).Str("caller", caller(callerSkipWrapper)).Msg("event emission error")
 		return errors.WithStack(err)
 	}
 
@@ -125,7 +125,7 @@ func (eb *EventBus) EmitAppUpdate(ctx context.Context, event AppUpdateEvent) {
 }
 
 func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) errors.E) func() {
-	return onEvent(eb.log, eb.appUpdate, "AppUpdate", handler)
+	return onEvent(eb.log, eb.appUpdate, "app_update", handler)
 }
 
 func (eb *EventBus) EmitIndexer(ctx context.Context, event IndexerChangeEvent) {
@@ -133,7 +133,7 @@ func (eb *EventBus) EmitIndexer(ctx context.Context, event IndexerChangeEvent) {
 }
 
 func (eb *EventBus) OnIndexer(handler func(context.Context, IndexerChangeEvent) errors.E) func() {
-	return onEvent(eb.log, eb.indexer, "Indexer", handler)
+	return onEvent(eb.log, eb.indexer, "indexer", handler)
 }
 
 func (eb *EventBus) EmitIRC(ctx context.Context, event IRCEvent) {
@@ -141,7 +141,7 @@ func (eb *EventBus) EmitIRC(ctx context.Context, event IRCEvent) {
 }
 
 func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) errors.E) func() {
-	return onEvent(eb.log, eb.irc, "IRC", handler)
+	return onEvent(eb.log, eb.irc, "irc", handler)
 }
 
 func (eb *EventBus) EmitReleaseNew(ctx context.Context, event ReleaseEvent) {
@@ -149,7 +149,7 @@ func (eb *EventBus) EmitReleaseNew(ctx context.Context, event ReleaseEvent) {
 }
 
 func (eb *EventBus) OnReleaseNew(handler func(context.Context, ReleaseEvent) errors.E) func() {
-	return onEvent(eb.log, eb.release, "ReleaseNew", handler)
+	return onEvent(eb.log, eb.release, "release", handler)
 }
 
 func (eb *EventBus) EmitReleasePush(ctx context.Context, event ReleasePushEvent) {
@@ -157,7 +157,7 @@ func (eb *EventBus) EmitReleasePush(ctx context.Context, event ReleasePushEvent)
 }
 
 func (eb *EventBus) OnReleasePush(handler func(context.Context, ReleasePushEvent) errors.E) func() {
-	return onEvent(eb.log, eb.releasePush, "ReleasePush", handler)
+	return onEvent(eb.log, eb.releasePush, "release_push", handler)
 }
 
 type eventUUIDKey struct{}

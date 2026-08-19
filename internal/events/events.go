@@ -35,6 +35,11 @@ type Event struct {
 	Type EventType
 }
 
+// GetType returns the event type. It is promoted to every event embedding Event.
+func (e Event) GetType() EventType {
+	return e.Type
+}
+
 type AppUpdateEvent struct {
 	Event
 	NewVersion string
