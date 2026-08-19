@@ -17,11 +17,13 @@ import { LeftNav } from "./LeftNav";
 import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
-import { ConfigQueryOptions, ListsQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { ConfigQueryOptions, IrcQueryOptions, ListsQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { AuthContext } from "@utils/Context";
 
+import { isUnhealthyIrcNetwork } from "./ircStatus";
+
 export const Header = () => {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["common", "settings"]);
   const loginRoute = getRouteApi("/login");
 
   const { data: config } = useQuery(ConfigQueryOptions(true));
@@ -30,9 +32,17 @@ export const Header = () => {
 
   const { data: lists } = useQuery(ListsQueryOptions());
 
+  const ircQuery = useQuery({
+    ...IrcQueryOptions(),
+    throwOnError: false,
+  });
+
   // Check if the last run of any list has errored
   const hasErroredList = lists?.some(list => list.last_refresh_status === "ERROR");
   const erroredLists = lists?.filter(list => list.last_refresh_status === "ERROR");
+  const unhealthyIrcNetworks = ircQuery.isError
+    ? []
+    : ircQuery.data?.filter(isUnhealthyIrcNetwork) ?? [];
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
@@ -88,6 +98,28 @@ export const Header = () => {
                   <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>
                 </div>
               </ExternalLink>
+            )}
+
+            {unhealthyIrcNetworks.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-sm bg-red-500 px-3 py-2">
+                <span className="flex shrink-0 items-center">
+                  <ExclamationTriangleIcon className="h-6 w-6 text-red-100" />
+                  <span className="mx-3 font-medium text-red-100">
+                    IRC: {t("settings:forms.irc.networkUnhealthy")}
+                  </span>
+                </span>
+                <span className="flex min-w-0 flex-wrap justify-center gap-1">
+                  {unhealthyIrcNetworks.map(network => (
+                    <span
+                      key={network.id}
+                      className="inline-flex max-w-full items-center rounded-md bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800"
+                      title={network.connection_errors.join(", ") || undefined}
+                    >
+                      <span className="truncate">{network.name}</span>
+                    </span>
+                  ))}
+                </span>
+              </div>
             )}
 
             {hasErroredList && (
