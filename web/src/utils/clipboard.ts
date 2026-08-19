@@ -35,7 +35,29 @@ function copyTextToClipboardFallback(text: string): void {
   }
 }
 
-export async function CopyTextToClipboard(text: string): Promise<void> {
+export async function CopyTextToClipboard(text: string | PromiseLike<string>): Promise<void> {
+  if (typeof text !== "string") {
+    const textPromise = Promise.resolve(text);
+
+    if (
+      typeof ClipboardItem === "function" &&
+      typeof navigator.clipboard?.write === "function"
+    ) {
+      try {
+        const item = new ClipboardItem({
+          "text/plain": textPromise.then((value) => new Blob([value], { type: "text/plain" })),
+        });
+
+        await navigator.clipboard.write([item]);
+        return;
+      } catch {
+        return CopyTextToClipboard(await textPromise);
+      }
+    }
+
+    return CopyTextToClipboard(await textPromise);
+  }
+
   if (typeof navigator.clipboard?.writeText === "function") {
     try {
       await navigator.clipboard.writeText(text);
