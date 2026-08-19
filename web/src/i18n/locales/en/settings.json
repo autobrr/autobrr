@@ -922,6 +922,7 @@
       "removeText": "Are you sure you want to remove this list? This action cannot be undone.",
       "copyId": "Copy List ID",
       "copyIdSuccess": "List ID {{id}} copied to clipboard.",
+      "copyIdError": "Failed to copy the list ID to the clipboard.",
       "refresh": "Refresh",
       "delete": "Delete",
       "enabledState": "enabled",

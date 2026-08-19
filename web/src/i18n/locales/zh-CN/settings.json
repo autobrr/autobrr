@@ -921,6 +921,7 @@
       "removeText": "确定要移除此列表吗？此操作无法撤销。",
       "copyId": "复制列表 ID",
       "copyIdSuccess": "列表 ID {{id}} 已复制到剪贴板。",
+      "copyIdError": "无法将列表 ID 复制到剪贴板。",
       "refresh": "刷新",
       "delete": "删除",
       "enabledState": "启用",
