@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
@@ -37,6 +38,7 @@ type downloadService interface {
 }
 
 type eventBus interface {
+	OnReleasePush(handler func(context.Context, events.ReleasePushEvent) error) func()
 }
 
 type Service struct {

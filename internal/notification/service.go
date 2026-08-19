@@ -39,16 +39,23 @@ type Sender interface {
 	HasFilterEvents(filterID int) bool
 }
 
+type eventBus interface {
+	OnAppUpdate(handler func(context.Context, events.AppUpdateEvent) error) func()
+	OnReleaseNew(handler func(context.Context, events.ReleaseEvent) error) func()
+	OnReleasePush(handler func(context.Context, events.ReleasePushEvent) error) func()
+	OnIRC(handler func(context.Context, events.IRCEvent) error) func()
+}
+
 type Service struct {
 	log      zerolog.Logger
-	eventBus *events.EventBus
+	eventBus eventBus
 	repo     notificationRepo
 
 	notifications map[int]*domain.Notification
 	senders       map[int]Sender
 }
 
-func NewService(log zerolog.Logger, eventBus *events.EventBus, repo notificationRepo) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, repo notificationRepo) *Service {
 	s := &Service{
 		log:           log.With().Str("module", "notification").Logger(),
 		eventBus:      eventBus,
