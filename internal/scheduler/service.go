@@ -25,23 +25,23 @@ type updateChecker interface {
 }
 
 type Service struct {
-	log             zerolog.Logger
-	config          *domain.Config
-	version         string
-	notificationSvc notificationSender
-	updateSvc       updateChecker
+	log       zerolog.Logger
+	eventBus  eventBus
+	config    *domain.Config
+	version   string
+	updateSvc updateChecker
 
 	cron *cron.Cron
 	jobs map[string]cron.EntryID
 	m    sync.RWMutex
 }
 
-func NewService(log zerolog.Logger, config *domain.Config, notificationSvc notificationSender, updateSvc updateChecker) *Service {
+func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, updateSvc updateChecker) *Service {
 	return &Service{
-		log:             log.With().Str("module", "scheduler").Logger(),
-		config:          config,
-		notificationSvc: notificationSvc,
-		updateSvc:       updateSvc,
+		log:       log.With().Str("module", "scheduler").Logger(),
+		eventBus:  bus,
+		config:    config,
+		updateSvc: updateSvc,
 		cron: cron.New(cron.WithChain(
 			cron.Recover(cron.DefaultLogger),
 		)),
@@ -65,16 +65,9 @@ func (s *Service) addAppJobs() {
 	time.Sleep(5 * time.Second)
 
 	if s.config.CheckForUpdates {
-		checkUpdates := &CheckUpdatesJob{
-			Name:             "app-check-updates",
-			Log:              s.log.With().Str("job", "app-check-updates").Logger(),
-			Version:          s.version,
-			NotifSvc:         s.notificationSvc,
-			updateService:    s.updateSvc,
-			lastCheckVersion: s.version,
-		}
+		updateCheckerJob := NewUpdateCheckerJob(s.log, s.eventBus, "app-check-updates", s.version, s.updateSvc)
 
-		if id, err := s.ScheduleJob(checkUpdates, 2*time.Hour, "app-check-updates"); err != nil {
+		if id, err := s.ScheduleJob(updateCheckerJob, 2*time.Hour, "app-check-updates"); err != nil {
 			s.log.Error().Err(err).Int("job_id", id).Msg("error adding job")
 		}
 	}

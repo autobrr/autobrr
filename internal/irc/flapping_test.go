@@ -4,36 +4,35 @@
 package irc
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
 )
 
-type recordingNotificationSender struct {
-	m       sync.Mutex
-	events  []domain.NotificationEvent
-	payload []domain.NotificationPayload
+type recordingEventBus struct {
+	m      sync.Mutex
+	events []events.IRCEvent
 }
 
-func (s *recordingNotificationSender) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
-	s.m.Lock()
-	defer s.m.Unlock()
+func (b *recordingEventBus) EmitIRC(_ context.Context, event events.IRCEvent) {
+	b.m.Lock()
+	defer b.m.Unlock()
 
-	s.events = append(s.events, event)
-	s.payload = append(s.payload, payload)
+	b.events = append(b.events, event)
 }
 
-func (s *recordingNotificationSender) snapshot() ([]domain.NotificationEvent, []domain.NotificationPayload) {
-	s.m.Lock()
-	defer s.m.Unlock()
+func (b *recordingEventBus) snapshot() []events.IRCEvent {
+	b.m.Lock()
+	defer b.m.Unlock()
 
-	return append([]domain.NotificationEvent(nil), s.events...), append([]domain.NotificationPayload(nil), s.payload...)
+	return append([]events.IRCEvent(nil), b.events...)
 }
 
 func recordSessionEnd(h *Handler, lifetime time.Duration, endedAt time.Time) bool {
@@ -153,10 +152,10 @@ func TestManualStopResetsAndDoesNotFeedFlappingBreaker(t *testing.T) {
 	}
 }
 
-func TestFlappingBreakerStopsNetworkAndNotifies(t *testing.T) {
+func TestFlappingBreakerStopsNetworkAndEmitsEvent(t *testing.T) {
 	h, _ := newTestHandler()
-	notifications := &recordingNotificationSender{}
-	h.notificationService = notifications
+	bus := &recordingEventBus{}
+	h.eventBus = bus
 	h.stateMachine.currentState = StateFullyOperational
 
 	now := time.Now()
@@ -180,12 +179,15 @@ func TestFlappingBreakerStopsNetworkAndNotifies(t *testing.T) {
 		t.Fatalf("state=%s, want Error", got)
 	}
 
-	events, payloads := notifications.snapshot()
-	if len(events) != 1 || events[0] != domain.NotificationEventIRCDisconnected {
-		t.Fatalf("notifications=%v, want one IRC disconnected event", events)
+	emitted := bus.snapshot()
+	if len(emitted) != 1 || emitted[0].Type != events.IRCFlapping {
+		t.Fatalf("emitted=%v, want one IRC flapping event", emitted)
 	}
-	if len(payloads) != 1 || !strings.Contains(payloads[0].Message, "TestNet stopped") {
-		t.Fatalf("notification payload=%v", payloads)
+	if !strings.Contains(emitted[0].Message, "TestNet stopped") {
+		t.Fatalf("emitted payload=%v", emitted[0])
+	}
+	if emitted[0].Network != "TestNet" {
+		t.Fatalf("network=%q, want TestNet", emitted[0].Network)
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
@@ -38,10 +39,6 @@ type indexerService interface {
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
 }
 
-type notificationSender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
-}
-
 type releaseService interface {
 	Process(ctx context.Context, release *domain.Release)
 }
@@ -56,15 +53,19 @@ type sseServer interface {
 	RemoveStream(id string)
 }
 
-type Service struct {
-	log zerolog.Logger
-	sse sseServer
+type eventBus interface {
+	EmitIRC(ctx context.Context, event events.IRCEvent)
+}
 
-	repo                ircRepo
-	releaseService      releaseService
-	indexerService      indexerService
-	notificationService notificationSender
-	proxyService        proxyService
+type Service struct {
+	log      zerolog.Logger
+	eventBus eventBus
+	sse      sseServer
+
+	repo           ircRepo
+	releaseService releaseService
+	indexerService indexerService
+	proxyService   proxyService
 
 	networkCache    *haxmap.Map[int64, *domain.IrcNetwork]
 	networkHandlers *haxmap.Map[int64, *Handler]
@@ -73,17 +74,17 @@ type Service struct {
 	lock   sync.RWMutex
 }
 
-func NewService(log zerolog.Logger, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, notificationSvc notificationSender, proxySvc proxyService) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, proxySvc proxyService) *Service {
 	return &Service{
-		log:                 log.With().Str("module", "irc").Logger(),
-		sse:                 sse,
-		repo:                repo,
-		releaseService:      releaseSvc,
-		indexerService:      indexerSvc,
-		notificationService: notificationSvc,
-		proxyService:        proxySvc,
-		networkCache:        haxmap.New[int64, *domain.IrcNetwork](),
-		networkHandlers:     haxmap.New[int64, *Handler](),
+		log:             log.With().Str("module", "irc").Logger(),
+		eventBus:        eventBus,
+		sse:             sse,
+		repo:            repo,
+		releaseService:  releaseSvc,
+		indexerService:  indexerSvc,
+		proxyService:    proxySvc,
+		networkCache:    haxmap.New[int64, *domain.IrcNetwork](),
+		networkHandlers: haxmap.New[int64, *Handler](),
 	}
 }
 
@@ -119,7 +120,7 @@ func (s *Service) StartHandlers() {
 		network.Channels = channels
 
 		// init new irc handler
-		handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
+		handler := NewHandler(s.log, s.eventBus, s.sse, network, definitions, s.releaseService)
 
 		s.networkHandlers.Set(network.ID, handler)
 
@@ -172,7 +173,7 @@ func (s *Service) startNetwork(network domain.IrcNetwork) error {
 	network.Channels = channels
 
 	// init new irc handler
-	handler := NewHandler(s.log, s.sse, network, definitions, s.releaseService, s.notificationService)
+	handler := NewHandler(s.log, s.eventBus, s.sse, network, definitions, s.releaseService)
 
 	s.networkHandlers.Set(network.ID, handler)
 

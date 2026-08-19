@@ -44,7 +44,6 @@ import (
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"github.com/alexedwards/scs/postgresstore"
 	"github.com/alexedwards/scs/v2"
-	"github.com/asaskevich/EventBus"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
@@ -102,7 +101,7 @@ func main() {
 	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
 
 	// setup internal eventbus
-	bus := EventBus.New()
+	eventBus := events.NewEventBus(log)
 
 	// open database connection
 	db, err := database.NewDB(cfg.Config, log)
@@ -161,25 +160,22 @@ func main() {
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
 		updateService         = update.NewUpdate(log, cfg.Config)
-		notificationService   = notification.NewService(log, notificationRepo)
-		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
+		notificationService   = notification.NewService(log, eventBus, notificationRepo)
+		schedulingService     = scheduler.NewService(log, eventBus, cfg.Config, updateService)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
 		indexerAPIService     = indexer.NewAPIService(log, proxyService)
 		downloadService       = releasedownload.NewDownloadService(log, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
-		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService)
+		actionService         = action.NewService(log, eventBus, actionRepo, downloadClientService, downloadService)
+		indexerService        = indexer.NewService(log, eventBus, cfg.Config, indexerRepo, releaseRepo, indexerAPIService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
-		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService, schedulingService, bus)
-		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
-		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
+		releaseService        = release.NewService(log, eventBus, releaseRepo, actionService, filterService, indexerService, schedulingService)
+		ircService            = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
+		feedService           = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
 	)
-
-	// register event subscribers
-	events.NewSubscribers(log, bus, feedService, notificationService, releaseService)
 
 	errorChannel := make(chan error)
 

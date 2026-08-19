@@ -1,0 +1,70 @@
+// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+package events
+
+import "github.com/autobrr/autobrr/internal/domain"
+
+type EventType string
+
+const (
+	ApplicationUpdate EventType = "application.update"
+
+	IndexerDeleted       EventType = "indexer.deleted"
+	IndexerToggleEnabled EventType = "indexer.toggle-enabled"
+
+	FilterApproved EventType = "filter.approved"
+	FilterRejected EventType = "filter.rejected"
+	FilterError    EventType = "filter.error"
+
+	FilterExternalApproved EventType = "filter.external.approved"
+	FilterExternalRejected EventType = "filter.external.rejected"
+	FilterExternalError    EventType = "filter.external.error"
+
+	ReleaseNew          EventType = "release.new"
+	ReleasePushApproved EventType = "release.push_approved"
+	ReleasePushRejected EventType = "release.push_rejected"
+	ReleasePushError    EventType = "release.push_error"
+
+	IRCDisconnected EventType = "irc.disconnected"
+	IRCReconnected  EventType = "irc.reconnected"
+	IRCFlapping     EventType = "irc.flapping"
+)
+
+type Event struct {
+	Type EventType
+}
+
+// GetType returns the event type. It is promoted to every event embedding Event.
+func (e Event) GetType() EventType {
+	return e.Type
+}
+
+type AppUpdateEvent struct {
+	Event
+	NewVersion string
+}
+
+type ReleaseEvent struct {
+	Event
+	Release *domain.Release
+}
+
+type ReleasePushEvent struct {
+	Event
+	Action       *domain.Action
+	ActionStatus *domain.ReleaseActionStatus
+	Release      *domain.Release
+}
+
+type IndexerChangeEvent struct {
+	Event
+	Indexer *domain.Indexer
+}
+
+type IRCEvent struct {
+	Event
+	State   string
+	Network string
+	Message string
+}

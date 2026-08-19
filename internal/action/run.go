@@ -103,45 +103,6 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 		return nil, errors.New("unsupported action type: %s", action.Type)
 	}
 
-	payload := &domain.NotificationPayload{
-		Event:          domain.NotificationEventPushApproved,
-		ReleaseName:    release.TorrentName,
-		Filter:         release.FilterName,
-		FilterID:       release.FilterID,
-		Indexer:        release.Indexer.Name,
-		InfoHash:       release.TorrentHash,
-		Size:           release.Size,
-		Status:         domain.ReleasePushStatusApproved,
-		Action:         action.Name,
-		ActionType:     action.Type,
-		Rejections:     []string{},
-		Protocol:       release.Protocol,
-		Implementation: release.Implementation,
-		Timestamp:      time.Now(),
-		Release:        release,
-	}
-
-	if action.Client != nil {
-		payload.ActionClient = action.Client.Name
-	}
-
-	if err != nil {
-		l.Error().Err(err).Msg("process action failed")
-
-		payload.Event = domain.NotificationEventPushError
-		payload.Status = domain.ReleasePushStatusErr
-		payload.Rejections = []string{err.Error()}
-	}
-
-	if rejections != nil {
-		payload.Event = domain.NotificationEventPushRejected
-		payload.Status = domain.ReleasePushStatusRejected
-		payload.Rejections = rejections
-	}
-
-	// send separate event for notifications
-	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
-
 	return rejections, err
 }
 
