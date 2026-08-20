@@ -30,7 +30,8 @@ func (s *indexerSvcStub) List(_ context.Context) ([]domain.Indexer, error) {
 // through the embedded nil interface, so reaching persistence fails the test.
 type filterRepoStub struct {
 	filterRepo
-	filter *domain.Filter
+	filter  *domain.Filter
+	updated *domain.Filter
 }
 
 func (s *filterRepoStub) FindByID(_ context.Context, filterID int) (*domain.Filter, error) {
@@ -40,13 +41,42 @@ func (s *filterRepoStub) FindByID(_ context.Context, filterID int) (*domain.Filt
 	return s.filter, nil
 }
 
+func (s *filterRepoStub) Update(_ context.Context, filter *domain.Filter) error {
+	s.updated = filter
+	return nil
+}
+
+func (s *filterRepoStub) StoreIndexerConnections(context.Context, int, []domain.Indexer) error {
+	return nil
+}
+
+func (s *filterRepoStub) StoreFilterExternal(context.Context, int, []domain.FilterExternal) error {
+	return nil
+}
+
+type actionSvcStub struct {
+	actionService
+}
+
+func (s *actionSvcStub) StoreFilterActions(_ context.Context, _ int64, actions []*domain.Action) ([]*domain.Action, error) {
+	return actions, nil
+}
+
 type notificationSvcStub struct {
 	notificationService
-	notifications []domain.Notification
+	notifications       []domain.Notification
+	storedFilterID      int
+	storedNotifications []domain.FilterNotification
 }
 
 func (s *notificationSvcStub) Find(_ context.Context, _ domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 	return s.notifications, len(s.notifications), nil
+}
+
+func (s *notificationSvcStub) StoreFilterNotifications(_ context.Context, filterID int, notifications []domain.FilterNotification) error {
+	s.storedFilterID = filterID
+	s.storedNotifications = notifications
+	return nil
 }
 
 func TestService_validateIndexers(t *testing.T) {
@@ -166,6 +196,27 @@ func TestService_Update_ValidatesNotificationsBeforePersisting(t *testing.T) {
 	assert.ErrorIs(t, err, domain.ErrNotificationNotFound)
 }
 
+func TestService_Update_StoresNotifications(t *testing.T) {
+	notificationSvc := &notificationSvcStub{notifications: []domain.Notification{{ID: 1}}}
+	repo := &filterRepoStub{filter: &domain.Filter{ID: 7}}
+	svc := &Service{
+		log:             zerolog.Nop(),
+		repo:            repo,
+		actionService:   &actionSvcStub{},
+		indexerSvc:      &indexerSvcStub{},
+		notificationSvc: notificationSvc,
+	}
+	notifications := []domain.FilterNotification{{NotificationID: 1, Events: []string{"PUSH_APPROVED"}}}
+	filter := &domain.Filter{ID: 7, Name: "filter", Notifications: notifications}
+
+	err := svc.Update(t.Context(), filter)
+
+	assert.NoError(t, err)
+	assert.Same(t, filter, repo.updated)
+	assert.Equal(t, 7, notificationSvc.storedFilterID)
+	assert.Equal(t, notifications, notificationSvc.storedNotifications)
+}
+
 func TestService_UpdatePartial_ValidatesNotificationsBeforePersisting(t *testing.T) {
 	svc := &Service{
 		log:             zerolog.Nop(),
@@ -179,4 +230,34 @@ func TestService_UpdatePartial_ValidatesNotificationsBeforePersisting(t *testing
 		Notifications: []domain.FilterNotification{{NotificationID: 99}},
 	})
 	assert.ErrorIs(t, err, domain.ErrNotificationNotFound)
+}
+
+func TestService_UpdateNotifications(t *testing.T) {
+	notificationSvc := &notificationSvcStub{notifications: []domain.Notification{{ID: 1}}}
+	svc := &Service{
+		log:             zerolog.Nop(),
+		repo:            &filterRepoStub{filter: &domain.Filter{ID: 7}},
+		notificationSvc: notificationSvc,
+	}
+	notifications := []domain.FilterNotification{{NotificationID: 1, Events: []string{"PUSH_APPROVED"}}}
+
+	err := svc.UpdateNotifications(t.Context(), 7, notifications)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 7, notificationSvc.storedFilterID)
+	assert.Equal(t, notifications, notificationSvc.storedNotifications)
+}
+
+func TestService_UpdateNotifications_ValidatesBeforePersisting(t *testing.T) {
+	notificationSvc := &notificationSvcStub{notifications: []domain.Notification{{ID: 1}}}
+	svc := &Service{
+		log:             zerolog.Nop(),
+		repo:            &filterRepoStub{filter: &domain.Filter{ID: 7}},
+		notificationSvc: notificationSvc,
+	}
+
+	err := svc.UpdateNotifications(t.Context(), 7, []domain.FilterNotification{{NotificationID: 99}})
+
+	assert.ErrorIs(t, err, domain.ErrNotificationNotFound)
+	assert.Zero(t, notificationSvc.storedFilterID)
 }

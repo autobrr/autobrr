@@ -103,22 +103,19 @@ func TestGenericWebhookSender_Send_Error(t *testing.T) {
 	assert.Contains(t, err.Error(), "bad request")
 }
 
-func TestGenericWebhookSender_CanSend(t *testing.T) {
+func TestGenericWebhookSender_IsEnabled(t *testing.T) {
 	settings := &domain.Notification{
 		Enabled: true,
 		Type:    domain.NotificationTypeWebhook,
 		Webhook: "http://localhost",
-		Events:  []string{"RELEASE_NEW", "TEST"},
 	}
 
 	sender := NewWebhookSender(logger.Mock().With().Logger(), settings)
 
-	assert.True(t, sender.CanSend(domain.NotificationEventReleaseNew))
-	assert.True(t, sender.CanSend(domain.NotificationEventTest))
-	assert.False(t, sender.CanSend(domain.NotificationEventPushApproved))
+	assert.True(t, sender.IsEnabled())
 
 	settings.Enabled = false
-	assert.False(t, sender.CanSend(domain.NotificationEventReleaseNew))
+	assert.False(t, sender.IsEnabled())
 }
 
 func TestGenericWebhookSender_Send_CustomMethod(t *testing.T) {

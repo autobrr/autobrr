@@ -227,7 +227,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, schedulingService, updateService)
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, notificationService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return

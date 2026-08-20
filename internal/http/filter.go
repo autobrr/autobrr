@@ -24,6 +24,7 @@ type filterService interface {
 	Delete(ctx context.Context, filterID int) error
 	Update(ctx context.Context, filter *domain.Filter) error
 	UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error
+	UpdateNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	PruneDeprecatedIndexers(ctx context.Context, identifiers []string) (int64, error)
@@ -320,13 +321,7 @@ func (h filterHandler) updateFilterNotifications(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// Use UpdatePartial to update just the notifications
-	update := domain.FilterUpdate{
-		ID:            filterID,
-		Notifications: notifications,
-	}
-
-	if err := h.service.UpdatePartial(r.Context(), update); err != nil {
+	if err := h.service.UpdateNotifications(r.Context(), filterID, notifications); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
 			return
