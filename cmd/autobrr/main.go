@@ -156,11 +156,15 @@ func main() {
 		proxyRepo          = database.NewProxyRepo(log, db)
 	)
 
+	notificationService, err := notification.NewService(ctx, log, eventBus, notificationRepo)
+	if err != nil {
+		log.Fatal().Err(err).Msg("could not initialize notification service")
+	}
+
 	// setup services
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
 		updateService         = update.NewUpdate(log, cfg.Config)
-		notificationService   = notification.NewService(log, eventBus, notificationRepo)
 		schedulingService     = scheduler.NewService(log, eventBus, cfg.Config, updateService)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)

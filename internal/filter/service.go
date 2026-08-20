@@ -436,6 +436,26 @@ func (s *Service) UpdatePartial(ctx context.Context, filter domain.FilterUpdate)
 	return nil
 }
 
+// UpdateNotifications replaces all notification routes for a filter.
+func (s *Service) UpdateNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error {
+	if _, err := s.repo.FindByID(ctx, filterID); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter")
+		return err
+	}
+
+	if err := s.validateNotifications(ctx, notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("invalid notifications for filter")
+		return err
+	}
+
+	if err := s.notificationSvc.StoreFilterNotifications(ctx, filterID, notifications); err != nil {
+		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not store filter notifications")
+		return err
+	}
+
+	return nil
+}
+
 func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, error) {
 	// find filter with actions, indexers and external filters
 	filter, err := s.FindByID(ctx, filterID)

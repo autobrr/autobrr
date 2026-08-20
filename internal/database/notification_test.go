@@ -266,3 +266,51 @@ func TestNotificationRepo_List(t *testing.T) {
 		})
 	}
 }
+
+func TestNotificationRepo_FilterNotificationLifecycle(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
+		repo := NewNotificationRepo(setupLoggerForTest(), db)
+
+		t.Run(fmt.Sprintf("FilterNotificationLifecycle [%s]", dbType), func(t *testing.T) {
+			filterQuery := db.squirrel.
+				Insert("filter").
+				Columns("name").
+				Values("notification-route-test").
+				Suffix("RETURNING id").
+				RunWith(db.Handler)
+
+			var filterID int
+			assert.NoError(t, filterQuery.QueryRowContext(ctx).Scan(&filterID))
+			t.Cleanup(func() {
+				query, args, err := db.squirrel.Delete("filter").Where("id = ?", filterID).ToSql()
+				if err == nil {
+					_, _ = db.Handler.ExecContext(ctx, query, args...)
+				}
+			})
+
+			notification := getMockNotification()
+			notification.Type = domain.NotificationTypeWebhook
+			notification.Webhook = "https://example.com/notifications"
+			assert.NoError(t, repo.Store(ctx, &notification))
+
+			routes := []domain.FilterNotification{{
+				FilterID:       filterID,
+				NotificationID: notification.ID,
+				Events:         []string{},
+			}}
+			assert.NoError(t, repo.StoreFilterNotifications(ctx, filterID, routes))
+
+			stored, err := repo.ListFilterNotifications(ctx)
+			assert.NoError(t, err)
+			assert.Contains(t, stored, routes[0])
+
+			assert.NoError(t, repo.Delete(ctx, notification.ID))
+			stored, err = repo.GetFilterNotifications(ctx, filterID)
+			assert.NoError(t, err)
+			assert.Empty(t, stored)
+		})
+	}
+}

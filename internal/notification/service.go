@@ -5,6 +5,10 @@ package notification
 
 import (
 	"context"
+	"maps"
+	"slices"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -26,17 +30,16 @@ type notificationRepo interface {
 
 	GetNotificationFilters(ctx context.Context, notificationID int) ([]domain.FilterNotification, error)
 	GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error)
+	ListFilterNotifications(ctx context.Context) ([]domain.FilterNotification, error)
 	StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error
 	DeleteFilterNotifications(ctx context.Context, filterID int) error
+	DeleteOrphanFilterNotifications(ctx context.Context) error
 }
 
 type Sender interface {
 	Send(event domain.NotificationEvent, payload domain.NotificationPayload) error
-	CanSend(event domain.NotificationEvent) bool
-	CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool
 	IsEnabled() bool
 	Name() string
-	HasFilterEvents(filterID int) bool
 }
 
 type eventBus interface {
@@ -51,23 +54,164 @@ type Service struct {
 	eventBus eventBus
 	repo     notificationRepo
 
-	notifications map[int]*domain.Notification
-	senders       map[int]Sender
+	stateMu sync.Mutex
+	state   atomic.Pointer[routingSnapshot]
 }
 
-func NewService(log zerolog.Logger, eventBus eventBus, repo notificationRepo) *Service {
+type eventSet map[domain.NotificationEvent]struct{}
+
+type routingSnapshot struct {
+	senders      map[int]Sender
+	globalEvents map[int]eventSet
+	filterRoutes map[int]map[int]eventSet
+}
+
+// NewService loads notification routes and registers event listeners.
+func NewService(ctx context.Context, log zerolog.Logger, eventBus eventBus, repo notificationRepo) (*Service, error) {
 	s := &Service{
-		log:           log.With().Str("module", "notification").Logger(),
-		eventBus:      eventBus,
-		repo:          repo,
-		notifications: make(map[int]*domain.Notification),
-		senders:       make(map[int]Sender),
+		log:      log.With().Str("module", "notification").Logger(),
+		eventBus: eventBus,
+		repo:     repo,
 	}
 
-	s.registerSenders()
+	if err := s.loadRoutingSnapshot(ctx); err != nil {
+		return nil, err
+	}
+
 	s.setupEventListeners()
 
-	return s
+	return s, nil
+}
+
+func newRoutingSnapshot() *routingSnapshot {
+	return &routingSnapshot{
+		senders:      make(map[int]Sender),
+		globalEvents: make(map[int]eventSet),
+		filterRoutes: make(map[int]map[int]eventSet),
+	}
+}
+
+func (r *routingSnapshot) clone() *routingSnapshot {
+	next := newRoutingSnapshot()
+
+	maps.Copy(next.senders, r.senders)
+	maps.Copy(next.globalEvents, r.globalEvents)
+	maps.Copy(next.filterRoutes, r.filterRoutes)
+
+	return next
+}
+
+func newEventSet(events []string) eventSet {
+	set := make(eventSet, len(events))
+	for _, event := range events {
+		set[domain.NotificationEvent(event)] = struct{}{}
+	}
+	return set
+}
+
+func (e eventSet) contains(event domain.NotificationEvent) bool {
+	_, ok := e[event]
+	return ok
+}
+
+func (r *routingSnapshot) resolve(event domain.NotificationEvent, filterID int) []Sender {
+	if filterID > 0 {
+		if routes, ok := r.filterRoutes[filterID]; ok {
+			interested := make([]Sender, 0, len(routes))
+			for notificationID, evt := range routes {
+				if !evt.contains(event) {
+					continue
+				}
+
+				if sender, ok := r.senders[notificationID]; ok {
+					interested = append(interested, sender)
+				}
+			}
+			return interested
+		}
+	}
+
+	interested := make([]Sender, 0, len(r.senders))
+	for notificationID, evt := range r.globalEvents {
+		if !evt.contains(event) {
+			continue
+		}
+
+		if sender, ok := r.senders[notificationID]; ok {
+			interested = append(interested, sender)
+		}
+	}
+
+	return interested
+}
+
+func (s *Service) currentSnapshot() *routingSnapshot {
+	if current := s.state.Load(); current != nil {
+		return current
+	}
+	return newRoutingSnapshot()
+}
+
+func (s *Service) loadRoutingSnapshot(ctx context.Context) error {
+	if err := s.repo.DeleteOrphanFilterNotifications(ctx); err != nil {
+		return errors.Wrap(err, "could not delete orphaned filter notifications")
+	}
+
+	notifications, err := s.repo.List(ctx)
+	if err != nil {
+		return errors.Wrap(err, "could not list notifications")
+	}
+
+	filterNotifications, err := s.repo.ListFilterNotifications(ctx)
+	if err != nil {
+		return errors.Wrap(err, "could not list filter notifications")
+	}
+
+	snapshot := newRoutingSnapshot()
+	for idx := range notifications {
+		s.setNotification(snapshot, &notifications[idx])
+	}
+	for _, notification := range filterNotifications {
+		routes, ok := snapshot.filterRoutes[notification.FilterID]
+		if !ok {
+			routes = make(map[int]eventSet)
+			snapshot.filterRoutes[notification.FilterID] = routes
+		}
+		routes[notification.NotificationID] = newEventSet(notification.Events)
+	}
+
+	s.state.Store(snapshot)
+	return nil
+}
+
+func cloneNotification(notification *domain.Notification) *domain.Notification {
+	cloned := *notification
+	cloned.Events = append([]string(nil), notification.Events...)
+	cloned.UsedByFilters = make([]domain.FilterNotification, len(notification.UsedByFilters))
+	for idx, filter := range notification.UsedByFilters {
+		cloned.UsedByFilters[idx] = filter
+		cloned.UsedByFilters[idx].Events = append([]string(nil), filter.Events...)
+	}
+
+	if notification.EventSounds != nil {
+		cloned.EventSounds = make(map[string]string, len(notification.EventSounds))
+		maps.Copy(cloned.EventSounds, notification.EventSounds)
+	}
+
+	return &cloned
+}
+
+func (s *Service) setNotification(snapshot *routingSnapshot, notification *domain.Notification) {
+	configuration := cloneNotification(notification)
+	snapshot.globalEvents[configuration.ID] = newEventSet(configuration.Events)
+
+	sender := s.newSender(configuration)
+	if sender == nil || !sender.IsEnabled() {
+		delete(snapshot.senders, configuration.ID)
+		return
+	}
+
+	snapshot.senders[configuration.ID] = sender
 }
 
 func (s *Service) setupEventListeners() {
@@ -217,19 +361,26 @@ func (s *Service) FindByID(ctx context.Context, notificationID int) (*domain.Not
 }
 
 func (s *Service) Store(ctx context.Context, notification *domain.Notification) error {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
 	err := s.repo.Store(ctx, notification)
 	if err != nil {
 		s.log.Error().Err(err).Interface("notification", notification).Msg("could not store notification")
 		return err
 	}
 
-	// register sender
-	s.registerSender(notification)
+	next := s.currentSnapshot().clone()
+	s.setNotification(next, notification)
+	s.state.Store(next)
 
 	return nil
 }
 
 func (s *Service) Update(ctx context.Context, notification *domain.Notification) error {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
 	existing, err := s.repo.FindByID(ctx, notification.ID)
 	if err != nil {
 		s.log.Error().Err(err).Int("notification_id", notification.ID).Msg("could not find notification by id")
@@ -251,13 +402,17 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 		return err
 	}
 
-	// register sender
-	s.registerSender(notification)
+	next := s.currentSnapshot().clone()
+	s.setNotification(next, notification)
+	s.state.Store(next)
 
 	return nil
 }
 
 func (s *Service) Delete(ctx context.Context, notificationID int) error {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
 	if _, err := s.repo.FindByID(ctx, notificationID); err != nil {
 		s.log.Error().Err(err).Int("notification_id", notificationID).Msg("could not find notification by id")
 		return err
@@ -268,8 +423,30 @@ func (s *Service) Delete(ctx context.Context, notificationID int) error {
 		return err
 	}
 
-	// delete sender
-	delete(s.senders, notificationID)
+	next := s.currentSnapshot().clone()
+	delete(next.senders, notificationID)
+	delete(next.globalEvents, notificationID)
+
+	for filterID, currentRoutes := range next.filterRoutes {
+		if _, ok := currentRoutes[notificationID]; !ok {
+			continue
+		}
+
+		routes := make(map[int]eventSet, len(currentRoutes)-1)
+		for routeNotificationID, events := range currentRoutes {
+			if routeNotificationID != notificationID {
+				routes[routeNotificationID] = events
+			}
+		}
+
+		if len(routes) == 0 {
+			delete(next.filterRoutes, filterID)
+		} else {
+			next.filterRoutes[filterID] = routes
+		}
+	}
+
+	s.state.Store(next)
 
 	return nil
 }
@@ -285,164 +462,86 @@ func (s *Service) GetFilterNotifications(ctx context.Context, filterID int) ([]d
 }
 
 func (s *Service) StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error {
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
+
+	current := s.currentSnapshot()
+	for _, notification := range notifications {
+		if _, ok := current.globalEvents[notification.NotificationID]; !ok {
+			return errors.Wrap(domain.ErrNotificationNotFound, "notification with id %d does not exist", notification.NotificationID)
+		}
+	}
+
 	if err := s.repo.StoreFilterNotifications(ctx, filterID, notifications); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not store filter notifications for filter")
 		return err
 	}
 
+	next := current.clone()
 	if len(notifications) == 0 {
-		for _, notification := range s.notifications {
-			notification.RemoveFilterEvents(filterID)
+		delete(next.filterRoutes, filterID)
+	} else {
+		routes := make(map[int]eventSet, len(notifications))
+		for _, notification := range notifications {
+			routes[notification.NotificationID] = newEventSet(notification.Events)
 		}
+		next.filterRoutes[filterID] = routes
 	}
-
-	for _, notification := range notifications {
-		if notification.NotificationID == 0 {
-			continue
-		}
-
-		n, ok := s.notifications[notification.NotificationID]
-		if ok {
-			n.SetFilterEvents(filterID, domain.NewNotificationEventsFromStrings(notification.Events))
-
-			s.registerSender(n)
-		}
-	}
+	s.state.Store(next)
 
 	return nil
 }
 
 func (s *Service) DeleteFilterNotifications(ctx context.Context, filterID int) error {
-	notifications, err := s.repo.GetFilterNotifications(ctx, filterID)
-	if err != nil {
-		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not find filter notifications for filter")
-		return err
-	}
+	s.stateMu.Lock()
+	defer s.stateMu.Unlock()
 
 	if err := s.repo.DeleteFilterNotifications(ctx, filterID); err != nil {
 		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not delete filter notifications for filter")
 		return err
 	}
 
-	for _, notification := range notifications {
-		if notification.NotificationID == 0 {
-			continue
-		}
-		n, ok := s.notifications[notification.NotificationID]
-		if ok {
-			n.RemoveFilterEvents(filterID)
-		}
-	}
+	next := s.currentSnapshot().clone()
+	delete(next.filterRoutes, filterID)
+	s.state.Store(next)
 
 	return nil
 }
 
-func (s *Service) registerSenders() {
-	ctx := context.Background()
-	notifications, err := s.repo.List(ctx)
-	if err != nil {
-		s.log.Error().Err(err).Msg("could not find notifications")
-		return
-	}
-
-	for _, notificationSender := range notifications {
-		f, err := s.repo.GetNotificationFilters(ctx, notificationSender.ID)
-		if err != nil {
-			s.log.Error().Err(err).Int("notification_id", notificationSender.ID).Msg("could not find filter notifications for notification")
-			continue
-		}
-		for _, notification := range f {
-			notificationSender.SetFilterEvents(notification.FilterID, domain.NewNotificationEventsFromStrings(notification.Events))
-		}
-
-		s.notifications[notificationSender.ID] = &notificationSender
-
-		s.registerSender(&notificationSender)
-	}
-
-	return
-}
-
-// registerSender registers an enabled notification via it's id
-func (s *Service) registerSender(notification *domain.Notification) {
-	if !notification.Enabled {
-		delete(s.senders, notification.ID)
-		return
-	}
-
+func (s *Service) newSender(notification *domain.Notification) Sender {
 	switch notification.Type {
 	case domain.NotificationTypeDiscord:
-		s.senders[notification.ID] = NewDiscordSender(s.log, notification)
-		break
+		return NewDiscordSender(s.log, notification)
 	case domain.NotificationTypeGotify:
-		s.senders[notification.ID] = NewGotifySender(s.log, notification)
-		break
+		return NewGotifySender(s.log, notification)
 	case domain.NotificationTypeLunaSea:
-		s.senders[notification.ID] = NewLunaSeaSender(s.log, notification)
-		break
+		return NewLunaSeaSender(s.log, notification)
 	case domain.NotificationTypeNotifiarr:
-		s.senders[notification.ID] = NewNotifiarrSender(s.log, notification)
-		break
+		return NewNotifiarrSender(s.log, notification)
 	case domain.NotificationTypeNtfy:
-		s.senders[notification.ID] = NewNtfySender(s.log, notification)
-		break
+		return NewNtfySender(s.log, notification)
 	case domain.NotificationTypePushover:
-		s.senders[notification.ID] = NewPushoverSender(s.log, notification)
-		break
+		return NewPushoverSender(s.log, notification)
 	case domain.NotificationTypeShoutrrr:
-		s.senders[notification.ID] = NewShoutrrrSender(s.log, notification)
-		break
+		return NewShoutrrrSender(s.log, notification)
 	case domain.NotificationTypeTelegram:
-		s.senders[notification.ID] = NewTelegramSender(s.log, notification)
-		break
+		return NewTelegramSender(s.log, notification)
 	case domain.NotificationTypeWebhook:
-		s.senders[notification.ID] = NewWebhookSender(s.log, notification)
-		break
+		return NewWebhookSender(s.log, notification)
 	default:
 		s.log.Error().Str("notification_type", string(notification.Type)).Msg("unsupported notification type")
-		return
+		return nil
 	}
-
-	return
 }
 
-// Send notifications
 func (s *Service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
-	if len(s.senders) == 0 {
+	snapshot := s.currentSnapshot()
+	if len(snapshot.senders) == 0 {
 		s.log.Trace().Msg("no notification senders registered")
 		return
 	}
 
-	// Find interested senders first to avoid spawning goroutines for no reason
-	var interestedSenders []Sender
-
-	if payload.FilterID > 0 {
-		hasFilterSpecific := false
-		for _, sender := range s.senders {
-			if sender.HasFilterEvents(payload.FilterID) {
-				hasFilterSpecific = true
-				if sender.CanSendPayload(event, payload) {
-					interestedSenders = append(interestedSenders, sender)
-				}
-			}
-		}
-
-		if !hasFilterSpecific {
-			// Fall back to global if no specific filter notifications
-			for _, sender := range s.senders {
-				if sender.CanSendPayload(event, payload) {
-					interestedSenders = append(interestedSenders, sender)
-				}
-			}
-		}
-	} else {
-		for _, sender := range s.senders {
-			if sender.CanSendPayload(event, payload) {
-				interestedSenders = append(interestedSenders, sender)
-			}
-		}
-	}
-
+	interestedSenders := snapshot.resolve(event, payload.FilterID)
 	if len(interestedSenders) == 0 {
 		s.log.Trace().Str("event", string(event)).Msg("no interested notification senders for event")
 		return
@@ -481,7 +580,7 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 	var agent Sender
 
 	// send test events
-	events := []domain.NotificationPayload{
+	testEvents := []domain.NotificationPayload{
 		{
 			Subject:   "Test Notification",
 			Message:   "autobrr goes brr!!",
@@ -624,33 +723,14 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		},
 	}
 
-	switch notification.Type {
-	case domain.NotificationTypeDiscord:
-		agent = NewDiscordSender(s.log, notification)
-	case domain.NotificationTypeGotify:
-		agent = NewGotifySender(s.log, notification)
-	case domain.NotificationTypeLunaSea:
-		agent = NewLunaSeaSender(s.log, notification)
-	case domain.NotificationTypeNotifiarr:
-		agent = NewNotifiarrSender(s.log, notification)
-	case domain.NotificationTypeNtfy:
-		agent = NewNtfySender(s.log, notification)
-	case domain.NotificationTypePushover:
-		agent = NewPushoverSender(s.log, notification)
-	case domain.NotificationTypeShoutrrr:
-		agent = NewShoutrrrSender(s.log, notification)
-	case domain.NotificationTypeTelegram:
-		agent = NewTelegramSender(s.log, notification)
-	case domain.NotificationTypeWebhook:
-		agent = NewWebhookSender(s.log, notification)
-	default:
-		s.log.Error().Str("notification_type", string(notification.Type)).Msg("unsupported notification type")
+	agent = s.newSender(notification)
+	if agent == nil {
 		return errors.New("unsupported notification type")
 	}
 
 	g, _ := errgroup.WithContext(ctx)
 
-	for _, event := range events {
+	for _, event := range testEvents {
 		if !enabledEvent(notification.Events, event.Event) {
 			continue
 		}
@@ -672,11 +752,5 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 }
 
 func enabledEvent(events []string, e domain.NotificationEvent) bool {
-	for _, v := range events {
-		if v == string(e) {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(events, string(e))
 }

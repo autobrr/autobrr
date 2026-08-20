@@ -311,6 +311,24 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 }
 
 func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error {
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error beginning transaction")
+	}
+	defer tx.Rollback()
+
+	filterQuery, filterArgs, err := r.db.squirrel.
+		Delete("filter_notification").
+		Where(sq.Eq{"notification_id": notificationID}).
+		ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building filter notification delete query")
+	}
+
+	if _, err := tx.ExecContext(ctx, filterQuery, filterArgs...); err != nil {
+		return errors.Wrap(err, "error deleting filter notifications")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Delete("notification").
 		Where(sq.Eq{"id": notificationID})
@@ -320,8 +338,12 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error committing notification delete")
 	}
 
 	r.log.Debug().Int("notification_id", notificationID).Msg("notification deleted")
@@ -413,6 +435,70 @@ func (r *NotificationRepo) GetFilterNotifications(ctx context.Context, filterID 
 	}
 
 	return notifications, nil
+}
+
+// ListFilterNotifications returns every persisted filter notification route.
+func (r *NotificationRepo) ListFilterNotifications(ctx context.Context) ([]domain.FilterNotification, error) {
+	query, args, err := r.db.squirrel.
+		Select("filter_id", "notification_id", "events").
+		From("filter_notification").
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+	defer rows.Close()
+
+	notifications := make([]domain.FilterNotification, 0)
+	for rows.Next() {
+		var notification domain.FilterNotification
+		var events pq.StringArray
+
+		if err := rows.Scan(&notification.FilterID, &notification.NotificationID, &events); err != nil {
+			return nil, errors.Wrap(err, "error scanning filter notification")
+		}
+
+		notification.Events = events
+		notifications = append(notifications, notification)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error iterating over filter notifications")
+	}
+
+	return notifications, nil
+}
+
+// DeleteOrphanFilterNotifications removes routes whose filter or notification no longer exists.
+func (r *NotificationRepo) DeleteOrphanFilterNotifications(ctx context.Context) error {
+	query := `
+		DELETE FROM filter_notification
+		WHERE NOT EXISTS (
+			SELECT 1 FROM notification WHERE notification.id = filter_notification.notification_id
+		)
+		OR NOT EXISTS (
+			SELECT 1 FROM filter WHERE filter.id = filter_notification.filter_id
+		)`
+
+	result, err := r.db.Handler.ExecContext(ctx, query)
+	if err != nil {
+		return errors.Wrap(err, "error deleting orphaned filter notifications")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting affected orphaned filter notifications")
+	}
+
+	if rowsAffected > 0 {
+		r.log.Warn().Int64("rows_affected", rowsAffected).Msg("deleted orphaned filter notifications")
+	}
+
+	return nil
 }
 
 func (r *NotificationRepo) StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error {
