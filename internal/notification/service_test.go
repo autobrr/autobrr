@@ -322,7 +322,7 @@ func TestServiceSend(t *testing.T) {
 
 		service := &Service{log: zerolog.Nop()}
 		service.state.Store(snapshot)
-		service.Send(t.Context(), domain.NotificationPayload{})
+		service.Send(t.Context(), domain.NotificationPayload{Event: domain.NotificationEventReleaseNew})
 
 		select {
 		case <-sender.sent:
@@ -339,7 +339,7 @@ func TestServiceSend(t *testing.T) {
 
 		service := &Service{log: zerolog.Nop()}
 		service.state.Store(snapshot)
-		service.Send(t.Context(), domain.NotificationPayload{})
+		service.Send(t.Context(), domain.NotificationPayload{Event: domain.NotificationEventReleaseNew})
 
 		select {
 		case <-sender.sent:
