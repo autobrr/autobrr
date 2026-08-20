@@ -181,6 +181,7 @@ func (s *Service) FindByID(ctx context.Context, filterID int) (*domain.Filter, e
 	notifications, err := s.notificationSvc.GetFilterNotifications(ctx, filter.ID)
 	if err != nil {
 		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not find notifications")
+		return nil, err
 	}
 	filter.Notifications = notifications
 
@@ -495,7 +496,7 @@ func (s *Service) Duplicate(ctx context.Context, filterID int) (*domain.Filter, 
 	}
 
 	if err := s.notificationSvc.StoreFilterNotifications(ctx, filter.ID, filter.Notifications); err != nil {
-		s.log.Error().Err(err).Int("filter_id", filterID).Msg("could not store filter notifications")
+		s.log.Error().Err(err).Int("filter_id", filter.ID).Msg("could not store filter notifications")
 		return nil, err
 	}
 
