@@ -156,15 +156,11 @@ func main() {
 		proxyRepo          = database.NewProxyRepo(log, db)
 	)
 
-	notificationService, err := notification.NewService(ctx, log, eventBus, notificationRepo)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not initialize notification service")
-	}
-
 	// setup services
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
 		updateService         = update.NewUpdate(log, cfg.Config)
+		notificationService   = notification.NewService(log, eventBus, notificationRepo)
 		schedulingService     = scheduler.NewService(log, eventBus, cfg.Config, updateService)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
@@ -231,7 +227,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, schedulingService, updateService)
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, notificationService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return

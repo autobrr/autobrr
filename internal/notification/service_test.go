@@ -356,7 +356,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 	t.Run("global edit is not reverted by later filter edits", func(t *testing.T) {
 		notification := validNotification(1, "webhook", pushApproved)
 		repo := newTestNotificationRepo([]domain.Notification{notification}, nil)
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		notification.Events = nil
@@ -374,7 +375,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		assert.Empty(t, service.currentSnapshot().resolve(pushApproved, 5))
 		assert.Empty(t, service.currentSnapshot().resolve(pushApproved, 6))
 
-		restarted, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		restarted := NewService(zerolog.Nop(), testEventBus{}, repo)
 		require.NoError(t, err)
 		for filterID := 1; filterID <= 6; filterID++ {
 			assert.Len(t, restarted.currentSnapshot().resolve(pushApproved, filterID), len(service.currentSnapshot().resolve(pushApproved, filterID)))
@@ -386,7 +387,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{notification}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 1, Events: []string{}}},
 		})
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		notification.Name = "updated webhook"
@@ -396,7 +398,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 
 	t.Run("new notification can be routed without restart", func(t *testing.T) {
 		repo := newTestNotificationRepo(nil, nil)
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		notification := validNotification(0, "new webhook")
@@ -419,7 +422,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 				{FilterID: 1, NotificationID: 2, Events: []string{string(pushApproved)}},
 			},
 		})
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		require.NoError(t, service.StoreFilterNotifications(ctx, 1, []domain.FilterNotification{{
@@ -436,7 +440,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 	t.Run("unknown notification is rejected before persistence", func(t *testing.T) {
 		notification := validNotification(1, "one", pushApproved)
 		repo := newTestNotificationRepo([]domain.Notification{notification}, nil)
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		err = service.StoreFilterNotifications(ctx, 1, []domain.FilterNotification{{
@@ -458,7 +463,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global, disabled}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 2, Events: []string{string(pushApproved)}}},
 		})
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		assert.Empty(t, service.currentSnapshot().resolve(pushApproved, 1))
@@ -469,7 +475,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 99, Events: []string{string(pushApproved)}}},
 		})
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		assert.Len(t, service.currentSnapshot().resolve(pushApproved, 1), 1)
@@ -481,7 +488,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global, override}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 2, Events: []string{}}},
 		})
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		require.NoError(t, service.Delete(ctx, override.ID))
@@ -495,7 +503,8 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 1, Events: []string{}}},
 		})
-		service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		err := service.Start()
 		require.NoError(t, err)
 
 		repo.mu.Lock()
@@ -539,7 +548,8 @@ func TestNewServiceFailsClosed(t *testing.T) {
 			repo := newTestNotificationRepo(nil, nil)
 			test.configure(repo)
 
-			service, err := NewService(t.Context(), zerolog.Nop(), testEventBus{}, repo)
+			service := NewService(zerolog.Nop(), testEventBus{}, repo)
+			err := service.Start()
 			assert.Error(t, err)
 			assert.Nil(t, service)
 		})
@@ -551,11 +561,12 @@ func TestServiceConcurrentRoutingUpdates(t *testing.T) {
 	pushApproved := domain.NotificationEventPushApproved
 	notification := validNotification(1, "webhook", pushApproved)
 	repo := newTestNotificationRepo([]domain.Notification{notification}, nil)
-	service, err := NewService(ctx, zerolog.Nop(), testEventBus{}, repo)
+	service := NewService(zerolog.Nop(), testEventBus{}, repo)
+	err := service.Start()
 	require.NoError(t, err)
 
 	var group sync.WaitGroup
-	for idx := 0; idx < 25; idx++ {
+	for idx := range 25 {
 		group.Add(2)
 		go func(filterID int) {
 			defer group.Done()

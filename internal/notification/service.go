@@ -67,20 +67,24 @@ type routingSnapshot struct {
 }
 
 // NewService loads notification routes and registers event listeners.
-func NewService(ctx context.Context, log zerolog.Logger, eventBus eventBus, repo notificationRepo) (*Service, error) {
+func NewService(log zerolog.Logger, eventBus eventBus, repo notificationRepo) *Service {
 	s := &Service{
 		log:      log.With().Str("module", "notification").Logger(),
 		eventBus: eventBus,
 		repo:     repo,
 	}
 
-	if err := s.loadRoutingSnapshot(ctx); err != nil {
-		return nil, err
-	}
+	return s
+}
 
+func (s *Service) Start() error {
 	s.setupEventListeners()
 
-	return s, nil
+	if err := s.loadRoutingSnapshot(context.Background()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newRoutingSnapshot() *routingSnapshot {
