@@ -376,7 +376,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		assert.Empty(t, service.currentSnapshot().resolve(pushApproved, 6))
 
 		restarted := NewService(zerolog.Nop(), testEventBus{}, repo)
-		require.NoError(t, err)
+		require.NoError(t, restarted.Start())
 		for filterID := 1; filterID <= 6; filterID++ {
 			assert.Len(t, restarted.currentSnapshot().resolve(pushApproved, filterID), len(service.currentSnapshot().resolve(pushApproved, filterID)))
 		}
@@ -518,7 +518,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 	})
 }
 
-func TestNewServiceFailsClosed(t *testing.T) {
+func TestServiceStartFailsClosed(t *testing.T) {
 	tests := []struct {
 		name      string
 		configure func(*testNotificationRepo)
@@ -549,9 +549,8 @@ func TestNewServiceFailsClosed(t *testing.T) {
 			test.configure(repo)
 
 			service := NewService(zerolog.Nop(), testEventBus{}, repo)
-			err := service.Start()
-			assert.Error(t, err)
-			assert.Nil(t, service)
+			assert.Error(t, service.Start())
+			assert.Nil(t, service.state.Load())
 		})
 	}
 }
