@@ -37,7 +37,7 @@ type notificationRepo interface {
 }
 
 type Sender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload) error
+	Send(ctx context.Context, payload domain.NotificationPayload) error
 	IsEnabled() bool
 	Name() string
 }
@@ -226,7 +226,7 @@ func (s *Service) setupEventListeners() {
 			Message:   event.NewVersion,
 			Timestamp: time.Now(),
 		}
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -244,7 +244,7 @@ func (s *Service) setupEventListeners() {
 			Timestamp:      time.Now(),
 			Release:        release,
 		}
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -295,7 +295,7 @@ func (s *Service) setupEventListeners() {
 			return nil
 		}
 
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -329,7 +329,7 @@ func (s *Service) setupEventListeners() {
 			return nil
 		}
 
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -538,28 +538,32 @@ func (s *Service) newSender(notification *domain.Notification) Sender {
 	}
 }
 
-func (s *Service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
+func (s *Service) Send(ctx context.Context, payload domain.NotificationPayload) {
 	snapshot := s.currentSnapshot()
 	if len(snapshot.senders) == 0 {
 		s.log.Trace().Msg("no notification senders registered")
 		return
 	}
 
-	interestedSenders := snapshot.resolve(event, payload.FilterID)
+	interestedSenders := snapshot.resolve(payload.Event, payload.FilterID)
 	if len(interestedSenders) == 0 {
-		s.log.Trace().Str("event", string(event)).Msg("no interested notification senders for event")
+		s.log.Trace().Str("event", string(payload.Event)).Msg("no interested notification senders for event")
 		return
 	}
 
-	go func(interested []Sender, event domain.NotificationEvent, payload domain.NotificationPayload) {
+	go func(interested []Sender, payload domain.NotificationPayload) {
 		for _, sender := range interested {
-			s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+			func() {
+				senderCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+				defer cancel()
+				s.log.Debug().Str("sender", sender.Name()).Str("event", string(payload.Event)).Msg("sending notification")
 
-			if err := sender.Send(event, payload); err != nil {
-				s.log.Error().Err(err).Str("sender", sender.Name()).Str("event", string(event)).Msg("could not send notification")
-			}
+				if err := sender.Send(senderCtx, payload); err != nil {
+					s.log.Error().Err(err).Str("sender", sender.Name()).Str("event", string(payload.Event)).Msg("could not send notification")
+				}
+			}()
 		}
-	}(interestedSenders, event, payload)
+	}(interestedSenders, payload)
 }
 
 func (s *Service) Test(ctx context.Context, notification *domain.Notification) error {
@@ -732,14 +736,14 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		return errors.New("unsupported notification type")
 	}
 
-	g, _ := errgroup.WithContext(ctx)
+	g, gCtx := errgroup.WithContext(ctx)
 
 	for _, event := range testEvents {
 		if !enabledEvent(notification.Events, event.Event) {
 			continue
 		}
 
-		if err := agent.Send(event.Event, event); err != nil {
+		if err := agent.Send(gCtx, event); err != nil {
 			s.log.Error().Err(err).Interface("notification", notification).Msg("error sending test notification")
 			return err
 		}

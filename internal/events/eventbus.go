@@ -9,10 +9,10 @@ import (
 	"runtime"
 	"runtime/debug"
 	"sync/atomic"
+	"uuid"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/google/uuid"
 	"github.com/maniartech/signals"
 	"github.com/rs/zerolog"
 )
@@ -192,7 +192,7 @@ func GetEventUUID(ctx context.Context) string {
 // ContextWithEventUUID returns a new context with the event UUID set
 func ContextWithEventUUID(ctx context.Context) context.Context {
 	if GetEventUUID(ctx) == "" {
-		return context.WithValue(ctx, eventUUIDKey{}, uuid.New().String())
+		return context.WithValue(ctx, eventUUIDKey{}, uuid.NewV7().String())
 	}
 	return ctx
 }

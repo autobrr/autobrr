@@ -21,7 +21,7 @@ type testSender struct {
 	sent chan struct{}
 }
 
-func (s *testSender) Send(domain.NotificationEvent, domain.NotificationPayload) error {
+func (s *testSender) Send(context.Context, domain.NotificationPayload) error {
 	if s.sent != nil {
 		s.sent <- struct{}{}
 	}
@@ -322,7 +322,7 @@ func TestServiceSend(t *testing.T) {
 
 		service := &Service{log: zerolog.Nop()}
 		service.state.Store(snapshot)
-		service.Send(domain.NotificationEventReleaseNew, domain.NotificationPayload{})
+		service.Send(t.Context(), domain.NotificationPayload{})
 
 		select {
 		case <-sender.sent:
@@ -339,7 +339,7 @@ func TestServiceSend(t *testing.T) {
 
 		service := &Service{log: zerolog.Nop()}
 		service.state.Store(snapshot)
-		service.Send(domain.NotificationEventReleaseNew, domain.NotificationPayload{})
+		service.Send(t.Context(), domain.NotificationPayload{})
 
 		select {
 		case <-sender.sent:

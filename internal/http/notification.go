@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/internal/notification/services/pushover"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
@@ -158,7 +158,7 @@ func (h notificationHandler) pushoverSounds(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	sounds, err := notification.GetPushoverSounds(apiToken)
+	sounds, err := pushover.GetSounds(r.Context(), apiToken)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return

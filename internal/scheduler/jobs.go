@@ -42,7 +42,8 @@ func NewUpdateCheckerJob(log zerolog.Logger, bus eventBus, name, version string,
 }
 
 func (j *CheckUpdatesJob) Run() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	newRelease, err := j.updateService.CheckUpdateAvailable(ctx)
 	if err != nil {
@@ -57,8 +58,10 @@ func (j *CheckUpdatesJob) Run() {
 			j.log.Info().Str("version", newRelease.TagName).Msg("new release available")
 
 			j.eventBus.EmitAppUpdate(ctx, events.AppUpdateEvent{
-				Event:      events.Event{Type: events.ApplicationUpdate},
-				NewVersion: newRelease.TagName,
+				Type:           events.ApplicationUpdate,
+				CurrentVersion: j.version,
+				NewVersion:     newRelease.TagName,
+				URL:            newRelease.HtmlURL,
 			})
 		}
 
