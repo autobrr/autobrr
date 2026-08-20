@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { hashKey, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRouteApi, redirect } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, ExclamationTriangleIcon, MegaphoneIcon, XMarkIcon  } from "@heroicons/react/24/outline";
@@ -18,13 +19,15 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 import { ConfigQueryOptions, IrcQueryOptions, ListsQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { IrcKeys } from "@api/query_keys";
 import { AuthContext } from "@utils/Context";
 
-import { isUnhealthyIrcNetwork } from "./ircStatus";
+import { evaluateIrcHealthPoll } from "./ircStatus";
 
 export const Header = () => {
   const { t } = useTranslation(["common", "settings"]);
   const loginRoute = getRouteApi("/login");
+  const queryClient = useQueryClient();
 
   const { data: config } = useQuery(ConfigQueryOptions(true));
 
@@ -32,17 +35,51 @@ export const Header = () => {
 
   const { data: lists } = useQuery(ListsQueryOptions());
 
-  const ircQuery = useQuery({
+  useQuery({
     ...IrcQueryOptions(),
     throwOnError: false,
   });
 
+  const previousUnhealthyIrcNetworkIds = useRef<ReadonlySet<number>>(new Set());
+  const [unhealthyIrcNetworks, setUnhealthyIrcNetworks] = useState<IrcNetworkWithHealth[]>([]);
+
+  useEffect(() => {
+    const ircQueryHash = hashKey(IrcKeys.lists());
+    const queryCache = queryClient.getQueryCache();
+    const unsubscribe = queryCache.subscribe(event => {
+      if (event.type !== "updated" || event.query.queryHash !== ircQueryHash)
+        return;
+
+      if (event.action.type === "error") {
+        previousUnhealthyIrcNetworkIds.current = new Set();
+        setUnhealthyIrcNetworks([]);
+        return;
+      }
+
+      // SSE handlers write manual successes; only API fetches count as polls.
+      if (event.action.type !== "success" || event.action.manual)
+        return;
+
+      const poll = evaluateIrcHealthPoll(
+        event.action.data as IrcNetworkWithHealth[],
+        previousUnhealthyIrcNetworkIds.current,
+      );
+      previousUnhealthyIrcNetworkIds.current = poll.currentUnhealthyIds;
+      setUnhealthyIrcNetworks(poll.confirmedNetworks);
+    });
+
+    const initialNetworks = queryClient.getQueryData<IrcNetworkWithHealth[]>(IrcKeys.lists()) ?? [];
+    previousUnhealthyIrcNetworkIds.current = evaluateIrcHealthPoll(
+      initialNetworks,
+      new Set(),
+    ).currentUnhealthyIds;
+
+    return unsubscribe;
+  }, [queryClient]);
+
   // Check if the last run of any list has errored
   const hasErroredList = lists?.some(list => list.last_refresh_status === "ERROR");
   const erroredLists = lists?.filter(list => list.last_refresh_status === "ERROR");
-  const unhealthyIrcNetworks = ircQuery.isError
-    ? []
-    : ircQuery.data?.filter(isUnhealthyIrcNetwork) ?? [];
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
