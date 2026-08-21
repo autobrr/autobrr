@@ -795,6 +795,7 @@ func TestRelease_MapVars(t *testing.T) {
 			r := tt.fields
 			_ = r.MapVars(tt.args.varMap, tt.args.forceSizeUnit)
 
+			r.RawVars = nil // Vars pass-through is tested separately
 			assert.Equal(t, tt.want, r)
 		})
 	}
