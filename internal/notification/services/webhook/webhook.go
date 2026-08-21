@@ -91,19 +91,18 @@ func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 		return errors.Wrap(err, "could not create request")
 	}
 
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "autobrr")
-	req.Header.Set("X-Autobrr-Event", message.Event)
-
 	for key, value := range c.headers {
 		req.Header.Set(key, value)
 	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("X-Autobrr-Event", message.Event)
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrap(err, "client request error")
 	}
-
 	defer sharedhttp.DrainAndClose(res)
 
 	c.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
@@ -114,7 +113,7 @@ func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 			return errors.Wrap(err, "could not read response body")
 		}
 
-		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
+		return errors.New("unexpected status: %d body: %s", res.StatusCode, string(body))
 	}
 
 	c.log.Debug().Str("event", message.Event).Msg("notification successfully sent to webhook")
