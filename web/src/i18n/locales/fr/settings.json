@@ -390,6 +390,8 @@
       "refreshTimeoutHelp": "Secondes avant l'annulation de l'actualisation.",
       "maxAge": "Âge max.",
       "maxAgeHelp": "Âge maximum du contenu du feed en secondes. Utiliser 0 pour désactiver le filtre d'âge et traiter tous les éléments.",
+      "cacheTTL": "TTL du cache",
+      "cacheTTLHelp": "Nombre de jours pendant lesquels les éléments du feed traités sont mémorisés. Les éléments encore présents dans le feed après expiration seront traités et téléchargés à nouveau. La valeur par défaut est de 31 jours.",
       "cookie": "Cookie",
       "cookieHelp": "Rarement utilisé",
       "userAgent": "User-Agent",

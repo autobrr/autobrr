@@ -29,7 +29,7 @@ interface Feed {
 
 interface FeedSettings {
   download_type: FeedDownloadType;
-  // download_type: string;
+  cache_ttl_days: number;
 }
 
 type FeedDownloadType = "MAGNET" | "TORRENT" | "NZB";

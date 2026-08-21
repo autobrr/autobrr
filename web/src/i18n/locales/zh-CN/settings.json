@@ -390,6 +390,8 @@
       "refreshTimeoutHelp": "取消刷新前等待的秒数。",
       "maxAge": "最大时长",
       "maxAgeHelp": "订阅内容的最大年龄，单位秒。填 0 可禁用年龄过滤并处理所有内容。",
+      "cacheTTL": "缓存 TTL",
+      "cacheTTLHelp": "已处理的订阅项目在缓存中保留的天数。过期后仍存在于订阅中的项目将被再次处理和下载。默认为 31 天。",
       "cookie": "Cookie",
       "cookieHelp": "不常用",
       "userAgent": "User-Agent",

@@ -322,8 +322,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		return nil, errors.Wrap(err, "could not check existing items")
 	}
 
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	ttl := j.Feed.CacheTTL()
 	toCache := make([]domain.FeedCacheItem, 0)
 
 	// Process items that don't exist in the cache
