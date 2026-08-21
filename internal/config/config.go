@@ -126,6 +126,23 @@ checkForUpdates = true
 # Disable Built In Login Form (only works when using external auth)
 #oidcDisableBuiltInLogin = false
 
+# Disable authentication (DANGEROUS)
+#
+# Only for deployments where a reverse proxy in front of autobrr performs
+# authentication itself. When enabled, autobrr performs NO authentication of its
+# own and grants full access to any request whose immediate network peer matches
+# authAllowedPeerCIDRs. Cannot be combined with oidcEnabled, and
+# corsAllowedOrigins must be set to explicit origins (not "*").
+#
+# Requires the acknowledgement below set to the exact value shown.
+#authDisabled = false
+#authDisabledAcknowledgement = "I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"
+#
+# Allowlist matched against the immediate TCP peer autobrr sees (normally the
+# reverse proxy or loopback), NOT a forwarded header or the end user's browser.
+# Prefer the exact proxy address as a /32 or /128.
+#authAllowedPeerCIDRs = ["127.0.0.1/32", "::1/128"]
+
 # Metrics
 #
 # Enable metrics endpoint
@@ -292,7 +309,7 @@ func (c *AppConfig) defaults() {
 
 		AuthDisabled:                false,
 		AuthDisabledAcknowledgement: "",
-		AuthDisabledAllowedCIDRs:    []string{},
+		AuthAllowedPeerCIDRs:        []string{},
 	}
 }
 
@@ -454,15 +471,15 @@ func (c *AppConfig) loadFromEnv() {
 
 	// Auth disabled configuration
 	if v := GetEnvStr("AUTH_DISABLED"); v != "" {
-		c.Config.AuthDisabled = strings.EqualFold(strings.ToLower(v), "true")
+		c.Config.AuthDisabled = strings.EqualFold(v, "true")
 	}
 
 	if v := GetEnvStr("AUTH_DISABLED_ACKNOWLEDGEMENT"); v != "" {
 		c.Config.AuthDisabledAcknowledgement = v
 	}
 
-	if v := GetEnvStr("AUTH_DISABLED_ALLOWED_CIDRS"); v != "" {
-		c.Config.AuthDisabledAllowedCIDRs = splitEnvList(v)
+	if v := GetEnvStr("AUTH_ALLOWED_PEER_CIDRS"); v != "" {
+		c.Config.AuthAllowedPeerCIDRs = splitEnvList(v)
 	}
 }
 

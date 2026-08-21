@@ -33,9 +33,13 @@ type Server struct {
 	allowedOrigins []string
 	sessionManager *scs.SessionManager
 
-	// authDisabledAllowedPrefixes is parsed once at startup from
-	// config.AuthDisabledAllowedCIDRs, rather than on every request.
-	authDisabledAllowedPrefixes []netip.Prefix
+	// authAllowedPeerPrefixes is parsed once at startup from
+	// config.AuthAllowedPeerCIDRs, rather than on every request.
+	authAllowedPeerPrefixes []netip.Prefix
+
+	// healthCheckPaths holds the exact resolved paths (base URL included) that are
+	// reachable from loopback while auth is disabled.
+	healthCheckPaths []string
 
 	actionService         actionService
 	apiService            apikeyService
@@ -128,15 +132,30 @@ func NewServer(deps Deps) *Server {
 	}
 
 	if deps.Config.Config.IsAuthDisabled() {
-		prefixes, err := deps.Config.Config.ParseAuthDisabledAllowedCIDRs()
+		prefixes, err := deps.Config.Config.ParseAuthAllowedPeerCIDRs()
 		if err != nil {
-			srv.log.Error().Err(err).Msg("auth disabled: invalid authDisabledAllowedCIDRs, denying all requests")
+			srv.log.Error().Err(err).Msg("auth disabled: invalid authAllowedPeerCIDRs, denying all requests")
 		} else {
-			srv.authDisabledAllowedPrefixes = prefixes
+			srv.authAllowedPeerPrefixes = prefixes
 		}
 	}
 
+	srv.healthCheckPaths = []string{
+		srv.routeBaseURL() + "api/healthz/liveness",
+		srv.routeBaseURL() + "api/healthz/readiness",
+	}
+
 	return srv
+}
+
+// routeBaseURL returns the base path the routers are mounted under. It mirrors the
+// derivation in Handler(): legacy mode always mounts at "/", otherwise at the
+// configured base URL.
+func (s *Server) routeBaseURL() string {
+	if s.config.Config.BaseURLModeLegacy {
+		return "/"
+	}
+	return s.config.Config.BaseURL
 }
 
 func (s *Server) Open() error {
@@ -176,9 +195,14 @@ func (s *Server) Handler() http.Handler {
 	r.Use(middleware.RequestID)
 	// Must run before RealIP so forwarded headers cannot bypass the allowlist.
 	r.Use(s.RequireAuthDisabledIPAllowlist)
-	r.Use(middleware.RealIP)
+	// RealIP rewrites r.RemoteAddr from untrusted forwarded headers. With auth
+	// disabled there is no trusted-proxy configuration, so skip it and keep the
+	// real TCP peer address intact for both the allowlist decision and logging.
+	if !s.config.Config.IsAuthDisabled() {
+		r.Use(middleware.RealIP)
+	}
 	r.Use(middleware.Recoverer)
-	r.Use(LoggerMiddleware(&s.log))
+	r.Use(LoggerMiddleware(&s.log, s.healthCheckPaths))
 
 	c := cors.New(cors.Options{
 		AllowCredentials:   true,
@@ -211,7 +235,7 @@ func (s *Server) Handler() http.Handler {
 			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
+			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
 			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)

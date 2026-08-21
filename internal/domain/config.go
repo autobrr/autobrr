@@ -56,9 +56,13 @@ type Config struct {
 	// Intended only for deployments behind a reverse proxy that handles
 	// authentication itself. Use IsAuthDisabled() to check whether auth is
 	// actually disabled.
-	AuthDisabled                bool     `toml:"authDisabled"`
-	AuthDisabledAcknowledgement string   `toml:"authDisabledAcknowledgement"`
-	AuthDisabledAllowedCIDRs    []string `toml:"authDisabledAllowedCIDRs"`
+	AuthDisabled                bool   `toml:"authDisabled"`
+	AuthDisabledAcknowledgement string `toml:"authDisabledAcknowledgement"`
+
+	// AuthAllowedPeerCIDRs is the allowlist consulted while authentication
+	// is disabled. Entries match the immediate TCP peer autobrr sees (normally the
+	// reverse proxy or loopback), never a forwarded header or the end user's browser.
+	AuthAllowedPeerCIDRs []string `toml:"authAllowedPeerCIDRs"`
 }
 
 // AuthDisabledAcknowledgementValue is the exact value AuthDisabledAcknowledgement
@@ -72,43 +76,61 @@ func (c *Config) IsAuthDisabled() bool {
 	return c.AuthDisabled && c.AuthDisabledAcknowledgement == AuthDisabledAcknowledgementValue
 }
 
-// ParseAuthDisabledAllowedCIDRs parses AuthDisabledAllowedCIDRs into netip.Prefix values.
-// Bare IPs are treated as single-host prefixes (/32 for IPv4, /128 for IPv6). Entries
-// with non-zero host bits (e.g. 192.168.1.5/24) are rejected to avoid ambiguous ranges.
-func (c *Config) ParseAuthDisabledAllowedCIDRs() ([]netip.Prefix, error) {
-	prefixes := make([]netip.Prefix, 0, len(c.AuthDisabledAllowedCIDRs))
+// ParseAuthAllowedPeerCIDRs parses AuthAllowedPeerCIDRs into netip.Prefix
+// values. Bare IPs are treated as single-host prefixes (/32 for IPv4, /128 for IPv6).
+// IPv4-mapped IPv6 forms are normalized to IPv4 so they compare consistently with real
+// peers. Entries with non-zero host bits (e.g. 192.168.1.5/24) and universal prefixes
+// (0.0.0.0/0, ::/0) are rejected to avoid ambiguous or all-address ranges.
+func (c *Config) ParseAuthAllowedPeerCIDRs() ([]netip.Prefix, error) {
+	prefixes := make([]netip.Prefix, 0, len(c.AuthAllowedPeerCIDRs))
 
-	for _, entry := range c.AuthDisabledAllowedCIDRs {
+	for _, entry := range c.AuthAllowedPeerCIDRs {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
 			continue
 		}
 
+		var prefix netip.Prefix
+
 		if strings.Contains(entry, "/") {
-			prefix, err := netip.ParsePrefix(entry)
+			p, err := netip.ParsePrefix(entry)
 			if err != nil {
-				return nil, errors.Wrap(err, "invalid CIDR in authDisabledAllowedCIDRs: %s", entry)
+				return nil, errors.Wrap(err, "invalid CIDR in authAllowedPeerCIDRs: %s", entry)
 			}
 
-			if prefix != prefix.Masked() {
-				return nil, errors.New("invalid CIDR in authDisabledAllowedCIDRs: %s has non-zero host bits", entry)
+			if p.Addr().Is4In6() {
+				if p.Bits() < 96 {
+					return nil, errors.New("invalid CIDR in authAllowedPeerCIDRs: %s is an ambiguous IPv4-mapped IPv6 range", entry)
+				}
+				p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()-96)
 			}
 
-			prefixes = append(prefixes, prefix)
-			continue
+			if p != p.Masked() {
+				return nil, errors.New("invalid CIDR in authAllowedPeerCIDRs: %s has non-zero host bits", entry)
+			}
+
+			prefix = p
+		} else {
+			addr, err := netip.ParseAddr(entry)
+			if err != nil {
+				return nil, errors.Wrap(err, "invalid IP in authAllowedPeerCIDRs: %s", entry)
+			}
+
+			addr = addr.Unmap()
+
+			bits := 32
+			if addr.Is6() {
+				bits = 128
+			}
+
+			prefix = netip.PrefixFrom(addr, bits)
 		}
 
-		addr, err := netip.ParseAddr(entry)
-		if err != nil {
-			return nil, errors.Wrap(err, "invalid IP in authDisabledAllowedCIDRs: %s", entry)
+		if prefix.Bits() == 0 {
+			return nil, errors.New("invalid CIDR in authAllowedPeerCIDRs: %s matches all addresses", entry)
 		}
 
-		bits := 32
-		if addr.Is6() {
-			bits = 128
-		}
-
-		prefixes = append(prefixes, netip.PrefixFrom(addr, bits))
+		prefixes = append(prefixes, prefix)
 	}
 
 	return prefixes, nil
@@ -125,12 +147,37 @@ func (c *Config) ValidateAuthDisabledConfig() error {
 		return errors.New("authDisabled cannot be used together with oidcEnabled")
 	}
 
-	if len(c.AuthDisabledAllowedCIDRs) == 0 {
-		return errors.New("authDisabledAllowedCIDRs is required when authentication is disabled")
+	if len(c.AuthAllowedPeerCIDRs) == 0 {
+		return errors.New("authAllowedPeerCIDRs is required when authentication is disabled")
 	}
 
-	if _, err := c.ParseAuthDisabledAllowedCIDRs(); err != nil {
+	prefixes, err := c.ParseAuthAllowedPeerCIDRs()
+	if err != nil {
 		return err
+	}
+
+	if len(prefixes) == 0 {
+		return errors.New("authAllowedPeerCIDRs contains no valid entries")
+	}
+
+	// A wildcard CORS origin combined with disabled auth turns any allowlisted-IP
+	// browser into a cross-origin read/write primitive against the API, so require
+	// explicit origins in this mode. Tokenize the value the same way it is consumed
+	// (comma-split) so a wildcard hidden inside a list is still rejected.
+	hasOrigin := false
+	for _, origin := range strings.Split(c.CorsAllowedOrigins, ",") {
+		origin = strings.TrimSpace(origin)
+		if origin == "" {
+			continue
+		}
+		if origin == "*" {
+			return errors.New("corsAllowedOrigins must not contain a wildcard \"*\" when authentication is disabled")
+		}
+		hasOrigin = true
+	}
+
+	if !hasOrigin {
+		return errors.New("corsAllowedOrigins must be set to explicit origins when authentication is disabled")
 	}
 
 	return nil

@@ -222,7 +222,14 @@ export const SettingsNotificationsRoute = createRoute({
 export const SettingsApiRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'api',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ApikeysQueryOptions()),
+  loader: (opts) => {
+    // API key management is unavailable when built-in auth is disabled; skip the
+    // prefetch so the (403'd) endpoint isn't hit and the page can render its notice.
+    if (AuthContext.get().authMethod === 'disabled') {
+      return;
+    }
+    return opts.context.queryClient.ensureQueryData(ApikeysQueryOptions());
+  },
   component: APISettings
 });
 
@@ -336,6 +343,18 @@ export const AuthRoute = createRoute({
             redirect: location.href,
           },
         });
+      }
+    } else {
+      // Reconcile the persisted auth method with the server so switching into
+      // auth-disabled mode can't leave stale login/account UI behind for a session
+      // that was already marked logged in.
+      try {
+        const config = await context.queryClient.ensureQueryData(ConfigQueryOptions());
+        if (config.auth_mode === 'disabled' && AuthContext.get().authMethod !== 'disabled') {
+          AuthContext.set({ ...AuthContext.get(), authMethod: 'disabled' });
+        }
+      } catch (error) {
+        console.debug("auth mode reconciliation failed:", error);
       }
     }
 

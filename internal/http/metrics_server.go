@@ -84,7 +84,7 @@ func (s MetricsServer) Handler() http.Handler {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
-	r.Use(LoggerMiddleware(&s.log))
+	r.Use(LoggerMiddleware(&s.log, nil))
 
 	if s.config.Config.MetricsBasicAuthUsers != "" {
 		r.Use(BasicAuth("metrics", s.config.Config.MetricsBasicAuthUsers))

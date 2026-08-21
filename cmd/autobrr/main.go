@@ -129,11 +129,29 @@ func main() {
 	switch {
 	case cfg.Config.IsAuthDisabled():
 		if err := cfg.Config.ValidateAuthDisabledConfig(); err != nil {
-			log.Fatal().Err(err).Msg("Authentication is disabled but authDisabledAllowedCIDRs is invalid or empty")
+			log.Fatal().Err(err).Msg("authentication is disabled but the configuration is invalid")
 		}
-		log.Warn().Strs("authDisabledAllowedCIDRs", cfg.Config.AuthDisabledAllowedCIDRs).Msg("Authentication is disabled via AUTOBRR__AUTH_DISABLED. Access is restricted to authDisabledAllowedCIDRs. Make sure autobrr is behind a reverse proxy with its own authentication.")
+
+		wildcardBind := cfg.Config.Host == "" || cfg.Config.Host == "0.0.0.0" || cfg.Config.Host == "::"
+		log.Warn().
+			Str("host", cfg.Config.Host).
+			Int("port", cfg.Config.Port).
+			Bool("wildcard_bind", wildcardBind).
+			Str("cors_allowed_origins", cfg.Config.CorsAllowedOrigins).
+			Strs("authAllowedPeerCIDRs", cfg.Config.AuthAllowedPeerCIDRs).
+			Msg("SECURITY: built-in authentication is DISABLED. Access is restricted only to the immediate network peer matching authAllowedPeerCIDRs. Ensure autobrr sits behind a reverse proxy that performs authentication.")
+
+		if prefixes, err := cfg.Config.ParseAuthAllowedPeerCIDRs(); err == nil {
+			for _, p := range prefixes {
+				if (p.Addr().Is4() && p.Bits() < 24) || (p.Addr().Is6() && p.Bits() < 64) {
+					log.Warn().Str("cidr", p.String()).Msg("authAllowedPeerCIDRs contains a broad range; prefer the exact reverse-proxy address as a /32 or /128")
+				}
+			}
+		}
 	case cfg.Config.AuthDisabled && cfg.Config.AuthDisabledAcknowledgement != domain.AuthDisabledAcknowledgementValue:
-		log.Warn().Msg("AUTOBRR__AUTH_DISABLED is set but AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT is missing or invalid. Authentication remains enabled. Set AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT=I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA to disable authentication.")
+		log.Warn().
+			Str("acknowledgement_value", domain.AuthDisabledAcknowledgementValue).
+			Msg("authDisabled is set but the acknowledgement is missing or invalid; authentication remains enabled. Set AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT (or authDisabledAcknowledgement) to acknowledgement_value to disable authentication.")
 	}
 
 	// session manager
