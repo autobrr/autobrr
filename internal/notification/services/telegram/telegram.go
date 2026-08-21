@@ -220,6 +220,12 @@ func retryAfterDelay(res *http.Response, apiErr *apiResponse) time.Duration {
 		if seconds, err := strconv.Atoi(header); err == nil && seconds > 0 {
 			return time.Duration(seconds) * time.Second
 		}
+
+		if at, err := http.ParseTime(header); err == nil {
+			if until := time.Until(at); until > 0 {
+				return until
+			}
+		}
 	}
 
 	return defaultRetryAfter

@@ -147,6 +147,56 @@ func TestClient_SendMessage_RateLimitTooLong(t *testing.T) {
 	assert.Equal(t, int32(1), requests.Load())
 }
 
+func TestClient_SendMessage_RateLimitHTTPDate(t *testing.T) {
+	t.Parallel()
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requests.Add(1) == 1 {
+			w.Header().Set("Retry-After", time.Now().Add(time.Second*2).UTC().Format(http.TimeFormat))
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"result":"error","details":{"response":"rate limited"}}`))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":"success"}`))
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{APIKey: "mock-api-key", Name: "mock"})
+	client.endpoint = server.URL
+
+	start := time.Now()
+	assert.NoError(t, client.SendMessage(t.Context(), &Message{Event: "TEST"}))
+	assert.GreaterOrEqual(t, time.Since(start), time.Millisecond*900, "retry must honor an HTTP-date Retry-After")
+	assert.Equal(t, int32(2), requests.Load())
+}
+
+func TestClient_SendMessage_RateLimitHTTPDateTooLong(t *testing.T) {
+	t.Parallel()
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.Header().Set("Retry-After", time.Now().Add(time.Minute).UTC().Format(http.TimeFormat))
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{APIKey: "mock-api-key", Name: "mock"})
+	client.endpoint = server.URL
+
+	err := client.SendMessage(t.Context(), &Message{Event: "TEST"})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "unexpected status: 429")
+		assert.Contains(t, err.Error(), "exceeds the retry budget")
+	}
+	assert.Equal(t, int32(1), requests.Load())
+}
+
 func TestClient_SendMessage_UnauthorizedNoRetry(t *testing.T) {
 	t.Parallel()
 

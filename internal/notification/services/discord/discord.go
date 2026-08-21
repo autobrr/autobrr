@@ -442,6 +442,12 @@ func rateLimitDelay(res *http.Response, retryAfter float64) time.Duration {
 		if seconds, err := strconv.ParseFloat(header, 64); err == nil && seconds > 0 {
 			return time.Duration(seconds * float64(time.Second))
 		}
+
+		if at, err := http.ParseTime(header); err == nil {
+			if until := time.Until(at); until > 0 {
+				return until
+			}
+		}
 	}
 
 	return defaultRetryAfter
